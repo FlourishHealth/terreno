@@ -116,6 +116,28 @@ describe("createOutbox", () => {
     expect(outbox.get({mutationId: "userB"})).toBeTruthy();
   });
 
+  it("clearForOtherUsers also drops anonymously-enqueued mutations", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({args: {}, collection: "todos", mutationId: "anon", operation: "create"});
+    outbox.enqueue({
+      args: {},
+      collection: "todos",
+      mutationId: "userB",
+      operation: "create",
+      userId: "B",
+    });
+
+    outbox.clearForOtherUsers({currentUserId: "B"});
+    expect(outbox.get({mutationId: "anon"})).toBeUndefined();
+    expect(outbox.get({mutationId: "userB"})).toBeTruthy();
+  });
+
+  it("reads an empty lastAttemptAt back as undefined before any attempt", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({args: {}, collection: "todos", mutationId: "m1", operation: "create"});
+    expect(outbox.get({mutationId: "m1"})?.lastAttemptAt).toBeUndefined();
+  });
+
   it("clears all mutations", () => {
     const outbox = makeOutbox();
     outbox.enqueue({args: {}, collection: "todos", mutationId: "m1", operation: "create"});

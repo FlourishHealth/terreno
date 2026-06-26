@@ -17,6 +17,7 @@ export const SYNC_TABLES_SCHEMA: TablesSchema = {
     localData: {type: "string"},
     mutationId: {type: "string"},
     serverData: {type: "string"},
+    serverVersion: {default: "", type: "string"},
   },
   [SYNC_TABLES.cursors]: {
     cursor: {type: "string"},

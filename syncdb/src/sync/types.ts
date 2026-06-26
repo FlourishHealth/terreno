@@ -35,6 +35,8 @@ export interface SyncNackEvent {
   mutationId: string;
   reason: SyncNackReason;
   serverData?: Record<string, unknown>;
+  /** Canonical server version for the conflicting entity (conflict reason). */
+  version?: string;
   message?: string;
 }
 

@@ -82,6 +82,21 @@ describe("createReplayCoordinator", () => {
     stop();
   });
 
+  it("error nacks mark the mutation failed", () => {
+    transport.emit({mutationId: "m1", reason: "error", type: "sync:nack"});
+    expect(outbox.get({mutationId: "m1"})?.status).toBe("failed");
+    stop();
+  });
+
+  it("conflict nacks thread server version and tolerate missing server data", () => {
+    transport.emit({mutationId: "m1", reason: "conflict", type: "sync:nack", version: "v9"});
+
+    const [captured] = conflicts.list();
+    expect(captured.serverData).toEqual({});
+    expect(captured.serverVersion).toBe("v9");
+    stop();
+  });
+
   it("ignores events for unknown mutations", () => {
     expect(() => transport.emit({mutationId: "unknown", type: "sync:ack"})).not.toThrow();
     stop();

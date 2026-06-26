@@ -109,6 +109,8 @@ export interface SyncConflict<TData = Record<string, unknown>> {
   entityId: string;
   localData: TData;
   serverData: TData;
+  /** Server version of the canonical document (applied on `useServer`). */
+  serverVersion?: string;
   createdAt: string;
   dismissed: boolean;
 }

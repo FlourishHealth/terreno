@@ -50,12 +50,13 @@ export const createDeltaApplier = ({store}: {store: SyncStore}): DeltaApplier =>
   };
 
   const applyChange = (change: DeltaChange): boolean => {
+    const existing = store.getEntity({collection: change.collection, id: change.entityId});
+
     if (change.op === "delete") {
       store.deleteEntity({collection: change.collection, id: change.entityId});
-      return true;
+      return existing !== undefined && !existing.deleted;
     }
 
-    const existing = store.getEntity({collection: change.collection, id: change.entityId});
     if (existing && change.version && existing.version === change.version) {
       return false;
     }

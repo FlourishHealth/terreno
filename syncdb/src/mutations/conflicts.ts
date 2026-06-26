@@ -34,6 +34,7 @@ interface ConflictRow {
   localData: string;
   mutationId: string;
   serverData: string;
+  serverVersion: string;
 }
 
 const rowToConflict = <T>(conflictId: string, row: Partial<ConflictRow>): SyncConflict<T> => ({
@@ -45,6 +46,7 @@ const rowToConflict = <T>(conflictId: string, row: Partial<ConflictRow>): SyncCo
   localData: decode<T>(row.localData),
   mutationId: row.mutationId ?? "",
   serverData: decode<T>(row.serverData),
+  serverVersion: row.serverVersion ? row.serverVersion : undefined,
 });
 
 export interface CaptureConflictArgs<T> {
@@ -53,6 +55,7 @@ export interface CaptureConflictArgs<T> {
   entityId: string;
   localData: T;
   serverData: T;
+  serverVersion?: string;
   conflictId?: string;
   createdAt?: string;
 }
@@ -79,6 +82,7 @@ export const createConflictStore = ({store}: {store: MergeableStore}): ConflictS
       localData: encode(args.localData),
       mutationId: args.mutationId,
       serverData: encode(args.serverData),
+      serverVersion: args.serverVersion ?? "",
     };
     store.setRow(SYNC_TABLES.conflicts, conflictId, row as unknown as Row);
     return rowToConflict<T>(conflictId, row);

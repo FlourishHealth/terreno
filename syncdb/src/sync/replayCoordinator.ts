@@ -79,6 +79,7 @@ export const createReplayCoordinator = ({
         localData: local?.data ?? mutation.args,
         mutationId: event.mutationId,
         serverData: event.serverData ?? {},
+        serverVersion: event.version,
       });
       outbox.markConflicted({mutationId: event.mutationId});
       return;

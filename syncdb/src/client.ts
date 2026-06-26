@@ -118,12 +118,22 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   };
 
   // Cache the in-flight promise so concurrent start() calls share one
-  // initialization rather than creating duplicate persisters/listeners.
+  // initialization rather than creating duplicate persisters/listeners. A
+  // failed init clears the cache so a later start() can retry.
   const start = async (): Promise<void> => {
     if (!startPromise) {
-      startPromise = initialize();
+      startPromise = initialize().catch((error) => {
+        startPromise = undefined;
+        throw error;
+      });
     }
     return startPromise;
+  };
+
+  const requeueInFlight = (): void => {
+    for (const mutation of outbox.list({status: "inFlight"})) {
+      outbox.markQueued({mutationId: mutation.mutationId});
+    }
   };
 
   const save = async (): Promise<void> => {
@@ -188,11 +198,18 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     transportUnsubs = [];
     config.transport?.disconnect();
     replayCoordinator = undefined;
+    // Return any in-flight mutations to the queue so they re-send on reconnect
+    // rather than being stranded (and keeping isSyncing stuck true).
+    requeueInFlight();
+    setOnline({isOnline: false});
     setSyncing({isSyncing: false});
   };
 
   const resolveConflict = (args: {conflictId: string; strategy: ConflictStrategy}): void => {
     conflictResolver.resolve(args);
+    // keepMine requeues the mutation; replay it now so the kept-local change is
+    // not stranded until an unrelated replay fires.
+    replayOutbox();
     notifyStatus();
   };
 
@@ -210,6 +227,7 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
       persister.destroy();
       persister = undefined;
     }
+    statusListeners.clear();
     startPromise = undefined;
   };
 

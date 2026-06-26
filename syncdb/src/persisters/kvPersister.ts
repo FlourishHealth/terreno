@@ -31,11 +31,17 @@ export const createKvPersister = ({
   key?: string;
 }): SyncDbPersister => {
   let autoSaveListenerId: string | undefined;
+  // Serialize saves so async encode/setItem cannot reorder and persist a stale
+  // snapshot when transactions fire in quick succession.
+  let saveChain: Promise<void> = Promise.resolve();
 
-  const save = async (): Promise<void> => {
-    const serialized = JSON.stringify(store.getMergeableContent());
-    const encoded = await codec.encode(serialized);
-    await storage.setItem(key, encoded);
+  const save = (): Promise<void> => {
+    saveChain = saveChain.then(async () => {
+      const serialized = JSON.stringify(store.getMergeableContent());
+      const encoded = await codec.encode(serialized);
+      await storage.setItem(key, encoded);
+    });
+    return saveChain;
   };
 
   const load = async (): Promise<void> => {

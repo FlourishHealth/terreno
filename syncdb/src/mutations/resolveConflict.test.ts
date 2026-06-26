@@ -57,6 +57,31 @@ describe("createConflictResolver", () => {
     expect(conflicts.get({conflictId: "c1"})).toBeUndefined();
   });
 
+  it("useServer applies the captured server version", () => {
+    const {conflicts, resolver, store} = setup();
+    conflicts.remove({conflictId: "c1"});
+    conflicts.capture({
+      collection: "todos",
+      conflictId: "c2",
+      entityId: "t1",
+      localData: {title: "Mine"},
+      mutationId: "m1",
+      serverData: {title: "Server"},
+      serverVersion: "v2",
+    });
+
+    resolver.resolve({conflictId: "c2", strategy: "useServer"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.version).toBe("v2");
+  });
+
+  it("resolves cleanly even when the mutation was already removed", () => {
+    const {conflicts, outbox, resolver} = setup();
+    outbox.remove({mutationId: "m1"});
+
+    expect(() => resolver.resolve({conflictId: "c1", strategy: "keepMine"})).not.toThrow();
+    expect(conflicts.get({conflictId: "c1"})).toBeUndefined();
+  });
+
   it("throws when resolving an unknown conflict", () => {
     const {resolver} = setup();
     expect(() => resolver.resolve({conflictId: "missing", strategy: "useServer"})).toThrow();

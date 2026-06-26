@@ -258,6 +258,35 @@ describe("createSyncDbClient", () => {
     await client.destroy();
   });
 
+  it("requeues in-flight mutations on disconnect and replays them on reconnect", async () => {
+    const transport = createFakeTransport();
+    const client = createSyncDbClient({
+      persisterFactory: createMemoryPersisterFactory(),
+      transport,
+    });
+    await client.start();
+    client.outbox.enqueue({
+      args: {title: "x"},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "create",
+    });
+    await client.connectSync();
+    // In flight, no ack yet.
+    expect(client.outbox.get({mutationId: "m1"})?.status).toBe("inFlight");
+
+    client.disconnectSync();
+    expect(client.getSyncStatus().isOnline).toBe(false);
+    // Not stranded: returned to the queue.
+    expect(client.outbox.get({mutationId: "m1"})?.status).toBe("queued");
+
+    await client.connectSync();
+    transport.emit({mutationId: "m1", type: "sync:ack"});
+    expect(client.outbox.get({mutationId: "m1"})).toBeUndefined();
+    await client.destroy();
+  });
+
   it("connectSync throws without a configured transport", async () => {
     const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
     await client.start();

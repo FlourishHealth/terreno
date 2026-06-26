@@ -67,6 +67,39 @@ describe("createConflictStore", () => {
     expect(conflicts.get({conflictId: "missing"})).toBeUndefined();
   });
 
+  it("round-trips serverVersion and dismiss on a missing id is a no-op", () => {
+    const store = makeStore();
+    const conflicts = createConflictStore({store: store.raw});
+    conflicts.capture({
+      collection: "todos",
+      conflictId: "c1",
+      entityId: "t1",
+      localData: {},
+      mutationId: "m1",
+      serverData: {},
+      serverVersion: "v7",
+    });
+
+    expect(conflicts.get({conflictId: "c1"})?.serverVersion).toBe("v7");
+    expect(() => conflicts.dismiss({conflictId: "missing"})).not.toThrow();
+  });
+
+  it("recovers from a corrupt payload by returning empty data", () => {
+    const store = makeStore();
+    const conflicts = createConflictStore({store: store.raw});
+    conflicts.capture({
+      collection: "todos",
+      conflictId: "c1",
+      entityId: "t1",
+      localData: {a: 1},
+      mutationId: "m1",
+      serverData: {a: 2},
+    });
+    store.raw.setCell("conflicts", "c1", "serverData", "{bad json");
+
+    expect(conflicts.get({conflictId: "c1"})?.serverData).toEqual({});
+  });
+
   it("removes and clears conflicts", () => {
     const store = makeStore();
     const conflicts = createConflictStore({store: store.raw});

@@ -43,6 +43,7 @@ export const createConflictResolver = ({
         collection: conflict.collection,
         data: conflict.serverData,
         id: conflict.entityId,
+        version: conflict.serverVersion,
       });
       if (outbox.get({mutationId: conflict.mutationId})) {
         outbox.remove({mutationId: conflict.mutationId});

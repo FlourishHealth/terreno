@@ -107,6 +107,52 @@ describe("createDeltaApplier", () => {
     expect(store.getEntity({collection: "todos", id: "t1"})?.deleted).toBe(true);
   });
 
+  it("compares non-numeric cursors lexicographically", () => {
+    const store = createSyncStore();
+    const applier = createDeltaApplier({store});
+    applier.apply(
+      deltaEvent("a", [{collection: "todos", data: {n: 1}, entityId: "t1", op: "upsert"}])
+    );
+
+    const older = applier.apply(
+      deltaEvent("a", [{collection: "todos", data: {n: 2}, entityId: "t1", op: "upsert"}])
+    );
+    expect(older.skipped).toBe(true);
+
+    const newer = applier.apply(
+      deltaEvent("b", [{collection: "todos", data: {n: 3}, entityId: "t1", op: "upsert"}])
+    );
+    expect(newer.skipped).toBe(false);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({n: 3});
+  });
+
+  it("applies a partial batch, counting only non-skipped changes", () => {
+    const store = createSyncStore();
+    const applier = createDeltaApplier({store});
+    applier.apply(
+      deltaEvent("1", [
+        {collection: "todos", data: {t: "a"}, entityId: "t1", op: "upsert", version: "v1"},
+      ])
+    );
+
+    const result = applier.apply(
+      deltaEvent("2", [
+        {collection: "todos", data: {t: "stale"}, entityId: "t1", op: "upsert", version: "v1"},
+        {collection: "todos", data: {t: "b"}, entityId: "t2", op: "upsert", version: "v1"},
+      ])
+    );
+    expect(result.applied).toBe(1);
+  });
+
+  it("counts a delete of a missing entity as not applied", () => {
+    const store = createSyncStore();
+    const applier = createDeltaApplier({store});
+    const result = applier.apply(
+      deltaEvent("1", [{collection: "todos", entityId: "ghost", op: "delete"}])
+    );
+    expect(result.applied).toBe(0);
+  });
+
   it("tracks cursors independently per stream", () => {
     const store = createSyncStore();
     const applier = createDeltaApplier({store});

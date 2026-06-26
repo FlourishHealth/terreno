@@ -50,4 +50,28 @@ describe("generateSyncDbDescriptors", () => {
     expect(descriptors).toEqual([]);
     expect(source).toContain("export const syncDbDescriptors");
   });
+
+  it("excludes a collection-only resource with no item-level operations", () => {
+    const {descriptors} = generateSyncDbDescriptors({
+      openapi: {paths: {"/health": {get: {operationId: "getHealth"}}}},
+    });
+    expect(descriptors).toEqual([]);
+  });
+
+  it("supports PUT updates and propagates operationId", () => {
+    const {descriptors} = generateSyncDbDescriptors({
+      openapi: {
+        paths: {
+          "/widgets": {post: {operationId: "createWidget"}},
+          "/widgets/{id}": {put: {operationId: "replaceWidget"}},
+        },
+      },
+    });
+    const widgets = descriptors.find((d) => d.collection === "widgets");
+    expect(widgets?.operations.create?.operationId).toBe("createWidget");
+    expect(widgets?.operations.update).toMatchObject({
+      method: "put",
+      operationId: "replaceWidget",
+    });
+  });
 });
