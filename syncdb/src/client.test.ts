@@ -40,6 +40,31 @@ describe("createSyncDbClient", () => {
     await second.destroy();
   });
 
+  it("excludes conflicted/failed mutations from queuedCount", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    client.outbox.enqueue({args: {}, collection: "todos", mutationId: "q", operation: "create"});
+    client.outbox.enqueue({args: {}, collection: "todos", mutationId: "f", operation: "create"});
+    client.outbox.markInFlight({mutationId: "f"});
+    client.outbox.markFailed({mutationId: "f"});
+
+    // Only the queued mutation counts; the failed one does not.
+    expect(client.getSyncStatus().queuedCount).toBe(1);
+    await client.destroy();
+  });
+
+  it("notifies status listeners when the outbox changes", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    let calls = 0;
+    client.addStatusListener(() => {
+      calls += 1;
+    });
+    client.outbox.enqueue({args: {}, collection: "todos", operation: "create"});
+    expect(calls).toBeGreaterThanOrEqual(1);
+    await client.destroy();
+  });
+
   it("reflects queued and conflict counts in sync status", async () => {
     const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
     await client.start();
@@ -284,6 +309,38 @@ describe("createSyncDbClient", () => {
     await client.connectSync();
     transport.emit({mutationId: "m1", type: "sync:ack"});
     expect(client.outbox.get({mutationId: "m1"})).toBeUndefined();
+    await client.destroy();
+  });
+
+  it("pauses replay while auth-blocked and resumes after reconnect", async () => {
+    const transport = createFakeTransport();
+    const client = createSyncDbClient({
+      persisterFactory: createMemoryPersisterFactory(),
+      transport,
+    });
+    await client.start();
+    client.outbox.enqueue({
+      args: {},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "create",
+    });
+    await client.connectSync();
+    transport.emit({mutationId: "m1", reason: "auth", type: "sync:nack"});
+    expect(client.getSyncStatus().authBlocked).toBe(true);
+
+    // A new mutation + replay must NOT send while auth is blocked.
+    const sentBefore = transport.sent.length;
+    client.outbox.enqueue({args: {}, collection: "todos", mutationId: "m2", operation: "create"});
+    client.replayOutbox();
+    expect(transport.sent.length).toBe(sentBefore);
+
+    // Reconnect clears auth-block and replays the backlog.
+    client.disconnectSync();
+    await client.connectSync();
+    expect(client.getSyncStatus().authBlocked).toBe(false);
+    expect(transport.sent.length).toBeGreaterThan(sentBefore);
     await client.destroy();
   });
 

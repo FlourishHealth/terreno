@@ -56,11 +56,15 @@ const SyncStatusBanner: React.FC = () => {
     );
   }
 
+  const onlineText =
+    status.queuedCount > 0
+      ? `Online — ${status.queuedCount} change(s) pending sync`
+      : "Online — all changes synced";
   const label = !status.isOnline
     ? {testID: "todos-sync-status-offline", text: "Offline — changes are queued locally"}
     : status.isSyncing
       ? {testID: "todos-sync-status-syncing", text: "Syncing queued changes…"}
-      : {testID: "todos-sync-status-online", text: "Online — all changes synced"};
+      : {testID: "todos-sync-status-online", text: onlineText};
 
   return (
     <Card marginBottom={4}>

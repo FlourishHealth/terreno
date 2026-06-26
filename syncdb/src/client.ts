@@ -5,6 +5,7 @@ import {type ConflictResolver, createConflictResolver} from "./mutations/resolve
 import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
 import type {SyncDbPersister} from "./persisters/types";
 import {createSyncStore, type SyncStore} from "./storage/store";
+import {SYNC_TABLES} from "./storage/types";
 import {createDeltaApplier, type DeltaApplier} from "./sync/deltaApplier";
 import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
 import type {SyncDbClientConfig, SyncStatus} from "./types";
@@ -61,7 +62,13 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   const outbox = createOutbox({store: store.raw});
   const conflicts = createConflictStore({store: store.raw});
   const deltaApplier = createDeltaApplier({store});
-  const status: MutableStatus = {authBlocked: false, isOnline: true, isSyncing: false};
+  // With a transport configured, start offline until connectSync() succeeds;
+  // without one, assume connectivity (optimistic, transport-less consumers).
+  const status: MutableStatus = {
+    authBlocked: false,
+    isOnline: !config.transport,
+    isSyncing: false,
+  };
   const statusListeners = new Set<(status: SyncStatus) => void>();
 
   let persister: SyncDbPersister | undefined;
@@ -71,14 +78,14 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
 
   const conflictResolver: ConflictResolver = createConflictResolver({conflicts, outbox, store});
 
-  const countUnresolvedConflicts = (): number => conflicts.count();
-
   const getSyncStatus = (): SyncStatus => ({
     authBlocked: status.authBlocked,
-    conflictCount: countUnresolvedConflicts(),
+    conflictCount: conflicts.count(),
     isOnline: status.isOnline,
     isSyncing: status.isSyncing,
-    queuedCount: outbox.count(),
+    // Pending = not-yet-acknowledged work (queued + in flight); conflicted and
+    // failed mutations are surfaced separately, not as "queued".
+    queuedCount: outbox.count({status: "queued"}) + outbox.count({status: "inFlight"}),
   });
 
   const notifyStatus = (): void => {
@@ -87,6 +94,13 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
       listener(snapshot);
     }
   };
+
+  // Surface outbox/conflict count changes (enqueue, ack, conflict capture,
+  // dismiss) to status subscribers, not just the explicit flag setters.
+  const internalListenerIds = [
+    store.raw.addTableListener(SYNC_TABLES.outbox, notifyStatus),
+    store.raw.addTableListener(SYNC_TABLES.conflicts, notifyStatus),
+  ];
 
   const setOnline = ({isOnline}: {isOnline: boolean}): void => {
     status.isOnline = isOnline;
@@ -147,8 +161,21 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     if (!replayCoordinator) {
       return;
     }
+    // Replay is paused while auth is blocked; it resumes on reconnect (which
+    // clears authBlocked) so mutations are not fired against an expired session.
+    if (status.authBlocked) {
+      return;
+    }
     replayCoordinator.replay();
     updateSyncing();
+  };
+
+  const teardownTransport = (): void => {
+    for (const unsubscribe of transportUnsubs) {
+      unsubscribe();
+    }
+    transportUnsubs = [];
+    replayCoordinator = undefined;
   };
 
   const connectSync = async (): Promise<void> => {
@@ -188,16 +215,18 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
       })
     );
 
-    await transport.connect();
+    try {
+      await transport.connect();
+    } catch (error) {
+      // Roll back partial wiring so a later connectSync() can retry cleanly.
+      teardownTransport();
+      throw error;
+    }
   };
 
   const disconnectSync = (): void => {
-    for (const unsubscribe of transportUnsubs) {
-      unsubscribe();
-    }
-    transportUnsubs = [];
+    teardownTransport();
     config.transport?.disconnect();
-    replayCoordinator = undefined;
     // Return any in-flight mutations to the queue so they re-send on reconnect
     // rather than being stranded (and keeping isSyncing stuck true).
     requeueInFlight();
@@ -221,11 +250,24 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   };
 
   const destroy = async (): Promise<void> => {
+    // Await any in-flight initialization so we don't tear down a persister that
+    // is still being created (which would leave a dangling auto-save listener).
+    const pendingStart = startPromise;
+    if (pendingStart !== undefined) {
+      try {
+        await pendingStart;
+      } catch {
+        // Ignore init failure during teardown.
+      }
+    }
     disconnectSync();
     if (persister) {
       persister.stopAutoSave();
       persister.destroy();
       persister = undefined;
+    }
+    for (const listenerId of internalListenerIds) {
+      store.raw.delListener(listenerId);
     }
     statusListeners.clear();
     startPromise = undefined;
