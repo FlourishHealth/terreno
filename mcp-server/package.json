@@ -1,6 +1,6 @@
 {
   "name": "@terreno/mcp",
-  "version": "0.22.2",
+  "version": "0.23.0",
   "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
   "type": "module",
   "main": "dist/index.js",
