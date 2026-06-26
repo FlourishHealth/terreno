@@ -1,3 +1,4 @@
+export * from "./bridge/reduxBridge";
 export * from "./client";
 export * from "./crypto/aesGcmCodec";
 export * from "./crypto/identityCodec";

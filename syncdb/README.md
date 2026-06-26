@@ -80,9 +80,11 @@ Also implemented:
 - React integration: `SyncDbProvider` + `useEntity`, `useQuery`,
   `useSyncMutations`, `useSyncStatus`, `useConflicts`.
 
+- Redux migration bridge (`createSyncDbBridge`): mirrors sync status into a
+  Redux slice and exposes optimistic mutation dispatchers.
+
 Not yet implemented (later phases):
 
-- Redux migration bridge.
 - `example-frontend` todos integration behind `USE_SYNCDB`.
 - `@terreno/syncdb-codegen`.
 
