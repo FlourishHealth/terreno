@@ -161,25 +161,26 @@ and update bun.lock.
 
 ## Test IDs (E2E / component tests)
 
-All public `@terreno/ui` components accept an optional `testId` prop for targeting in Playwright, Detox, or `@testing-library/react-native`.
+All public `@terreno/ui` components accept an optional `testID` prop for targeting in Playwright, Detox, or `@testing-library/react-native`.
 
-- **Root id:** `testId="login.email"` sets the primary interactive element (RN `testID`, which maps to `data-testid` on web).
-- **Legacy:** `testID` still works but is deprecated — prefer `testId`.
-- **Compound fields** (`TextField`, `SelectField`, `DateTimeField`, etc.): optional `testIds` overrides sub-elements; otherwise defaults use dot suffixes:
-  - `{testId}.label`, `{testId}` (input), `{testId}.error`, `{testId}.helper`
-- **Modal:** `testIds={{ primaryButton: "confirm.ok", secondaryButton: "confirm.cancel" }}` or defaults `{testId}.primary`, `{testId}.secondary`, `{testId}.dismiss`.
-- **DataTable:** `testIds={{ root, header, body, pagination, row }}`; row cells use `resolveDataTableRowTestId(testIds.row, rowKey)`. Pass `getRowTestId={(row, index) => rowId}` for stable ids when sorting or paginating.
+- **Root id:** `testID="login.email"` sets the primary interactive element (RN `testID`, which maps to `data-testid` on web).
+- **Compound fields** (`TextField`, `SelectField`, `DateTimeField`, etc.): optional `testIDs` overrides sub-elements; otherwise defaults use dot suffixes:
+  - `{testID}.label`, `{testID}` (input), `{testID}.error`, `{testID}.helper`
+- **Modal:** `testIDs={{ primaryButton: "confirm.ok", secondaryButton: "confirm.cancel" }}` or defaults `{testID}.primary`, `{testID}.secondary`, `{testID}.dismiss`.
+- **DataTable:** `testIDs={{ root, header, body, pagination, row }}`; row cells use `resolveDataTableRowTestID(testIDs.row, rowKey)`. Pass `getRowTestID={(row, index) => rowId}` for stable ids when sorting or paginating.
 
 Helpers exported from `@terreno/ui`:
 
 ```typescript
 import {
-  pickTestId,
-  resolveTestId,
-  resolveFieldTestIdsFromProps,
-  resolveModalTestIdsFromProps,
-  resolveDataTableTestIdsFromProps,
-  resolveDataTableRowTestId,
+  resolveTestID,
+  resolveFieldTestIDsFromProps,
+  resolveModalTestIDsFromProps,
+  resolveDataTableTestIDsFromProps,
+  resolveDataTableRowTestID,
+  toTestProps,
+  toDomTestProps,
+  toPlatformTestProps,
 } from "@terreno/ui";
 ```
 

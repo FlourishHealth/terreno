@@ -5,7 +5,6 @@ import type {IconName, PaginationProps} from "./Common";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
-import {pickTestId} from "./testing/resolveTestId";
 
 const PaginationButton: FC<{
   type: "first" | "prev" | "next" | "last" | "more";
@@ -76,9 +75,8 @@ const PaginationNumber: FC<{
   );
 };
 
-export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage, testId, testID}) => {
+export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage, testID}) => {
   const {theme} = useTheme();
-  const resolvedTestId = pickTestId({testID, testId});
 
   // Determine the number of pages to show. Show the first page,
   // the page before and after the current page, and the last page.
@@ -138,7 +136,7 @@ export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage, test
         flexDirection: "row",
         gap: theme.spacing.xs,
       }}
-      testID={resolvedTestId}
+      testID={testID}
     >
       <PaginationButton
         onClick={() => {

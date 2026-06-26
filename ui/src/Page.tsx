@@ -10,7 +10,6 @@ import {Heading} from "./Heading";
 import {IconButton} from "./IconButton";
 import {Spinner} from "./Spinner";
 import {Text} from "./Text";
-import {pickTestId} from "./testing/resolveTestId";
 
 export class Page extends React.Component<PageProps, {}> {
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
@@ -61,7 +60,6 @@ export class Page extends React.Component<PageProps, {}> {
   }
 
   renderBody() {
-    const resolvedTestId = pickTestId(this.props);
     return (
       <>
         <Box
@@ -76,7 +74,7 @@ export class Page extends React.Component<PageProps, {}> {
           maxWidth={this.props.maxWidth || 800}
           padding={this.props.padding !== undefined ? this.props.padding : 2}
           scroll={this.props.scroll === undefined ? true : this.props.scroll}
-          testId={resolvedTestId}
+          testID={this.props.testID}
           width="100%"
         >
           {this.renderHeader()}

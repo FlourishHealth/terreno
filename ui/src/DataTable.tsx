@@ -28,8 +28,8 @@ import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TableTitle} from "./table/TableTitle";
 import {
-  resolveDataTableRowTestId,
-  resolveDataTableTestIdsFromProps,
+  resolveDataTableRowTestID,
+  resolveDataTableTestIDsFromProps,
   toTestProps,
 } from "./testing/resolveTestId";
 
@@ -433,7 +433,7 @@ interface DataTableContentProps {
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
   rowTestIdBase?: string;
-  getRowTestId?: (row: DataTableCellData[], rowIndex: number) => string | number;
+  getRowTestID?: (row: DataTableCellData[], rowIndex: number) => string | number;
 }
 
 const DataTableContent: FC<DataTableContentProps> = ({
@@ -450,14 +450,14 @@ const DataTableContent: FC<DataTableContentProps> = ({
   moreContentSize = "md",
   rowHeight,
   rowTestIdBase,
-  getRowTestId,
+  getRowTestID,
 }) => {
   const [modalRow, setModalRow] = useState<number | null>(null);
   const {theme} = useTheme();
 
   const resolveRowTestId = (row: DataTableCellData[], rowIndex: number): string | undefined => {
-    const rowKey = getRowTestId ? getRowTestId(row, rowIndex) : rowIndex;
-    return resolveDataTableRowTestId(rowTestIdBase, rowKey);
+    const rowKey = getRowTestID ? getRowTestID(row, rowIndex) : rowIndex;
+    return resolveDataTableRowTestID(rowTestIdBase, rowKey);
   };
 
   return (
@@ -589,13 +589,12 @@ export const DataTable: FC<DataTableProps> = ({
   rowHeight = 54,
   headerHeight,
   defaultTextSize = "md",
-  testId,
   testID,
-  testIds,
-  getRowTestId,
+  testIDs,
+  getRowTestID,
 }) => {
   const {theme} = useTheme();
-  const tableTestIds = resolveDataTableTestIdsFromProps({testID, testId, testIds});
+  const tableTestIDs = resolveDataTableTestIDsFromProps({testID, testIDs});
   const headerScrollRef = useRef<ScrollView>(null);
   const bodyScrollRef = useRef<ScrollView>(null);
 
@@ -650,7 +649,7 @@ export const DataTable: FC<DataTableProps> = ({
   return (
     <View
       style={{display: "flex", flexDirection: "column", height: "100%"}}
-      testID={tableTestIds.root}
+      testID={tableTestIDs.root}
     >
       <View
         style={{
@@ -660,7 +659,7 @@ export const DataTable: FC<DataTableProps> = ({
           height: "100%",
           minHeight: 0,
         }}
-        testID={tableTestIds.body}
+        testID={tableTestIDs.body}
       >
         <DataTableHeader
           columns={columns}
@@ -673,7 +672,7 @@ export const DataTable: FC<DataTableProps> = ({
           pinnedColumns={pinnedColumns}
           rowHeight={rowHeight}
           sortColumn={sortColumn}
-          testID={tableTestIds.header}
+          testID={tableTestIDs.header}
         />
 
         <View style={{flex: 1, minHeight: 0}}>
@@ -684,13 +683,13 @@ export const DataTable: FC<DataTableProps> = ({
             columnWidths={columnWidths}
             customColumnComponentMap={customColumnComponentMap}
             data={processedData}
-            getRowTestId={getRowTestId}
+            getRowTestID={getRowTestID}
             moreContentComponent={moreContentComponent}
             moreContentExtraData={moreContentExtraData}
             onScroll={handleScroll}
             pinnedColumns={pinnedColumns}
             rowHeight={rowHeight}
-            rowTestIdBase={tableTestIds.row}
+            rowTestIdBase={tableTestIDs.row}
           />
         </View>
       </View>
@@ -706,7 +705,7 @@ export const DataTable: FC<DataTableProps> = ({
           <Pagination
             page={page}
             setPage={setPage!}
-            testId={tableTestIds.pagination}
+            testID={tableTestIDs.pagination}
             totalPages={totalPages}
           />
         </View>

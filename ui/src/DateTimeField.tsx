@@ -13,7 +13,7 @@ import {SelectField} from "./SelectField";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TimezonePicker} from "./TimezonePicker";
-import {resolveFieldTestIdsFromProps} from "./testing/resolveTestId";
+import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 
 interface SeparatorProps {
   type: "date" | "time";
@@ -417,12 +417,11 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   errorText,
   disabled,
   helperText,
-  testId,
   testID,
-  testIds,
+  testIDs,
 }): React.ReactElement => {
   const {theme} = useTheme();
-  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
+  const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   const dateActionSheetRef: React.RefObject<any> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");
@@ -974,8 +973,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   return (
     <>
-      {Boolean(title) && <FieldTitle testID={fieldTestIds.label} text={title as string} />}
-      {Boolean(errorText) && <FieldError testID={fieldTestIds.error} text={errorText as string} />}
+      {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title as string} />}
+      {Boolean(errorText) && <FieldError testID={fieldTestIDs.error} text={errorText as string} />}
 
       {isMobileTimeOnly && (
         <MobileTimeDisplay
@@ -1009,7 +1008,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
             minWidth: isMobileDatetime ? 200 : minimumWidth,
             paddingHorizontal: 6,
           }}
-          testID={fieldTestIds.input}
+          testID={fieldTestIDs.input}
         >
           {showDateSection && (
             <DateRowWithIcon
@@ -1062,7 +1061,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
         />
       )}
       {Boolean(helperText) && (
-        <FieldHelperText testID={fieldTestIds.helper} text={helperText as string} />
+        <FieldHelperText testID={fieldTestIDs.helper} text={helperText as string} />
       )}
     </>
   );

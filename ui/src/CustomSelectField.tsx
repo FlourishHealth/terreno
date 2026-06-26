@@ -5,7 +5,7 @@ import type {CustomSelectFieldProps} from "./Common";
 import {FieldHelperText} from "./fieldElements";
 import {SelectField} from "./SelectField";
 import {TextField} from "./TextField";
-import {resolveFieldTestIdsFromProps, resolveTestId} from "./testing/resolveTestId";
+import {resolveFieldTestIDsFromProps, resolveTestID} from "./testing/resolveTestId";
 
 export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   value,
@@ -16,14 +16,13 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   title,
   errorText,
   helperText,
-  testId,
   testID,
-  testIds,
+  testIDs,
 }) => {
   const [currentValue, setCurrentValue] = useState(value);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const textInputRef = useRef<TextInput | null>(null);
-  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
+  const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
 
   // Boolean that checks if currentValue is a value from the
   // options prop or if it is a true custom value
@@ -91,8 +90,8 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
           onChange={handleCustomSelectListChange}
           options={[...options, {label: "Custom", value: "custom"}]}
           placeholder={placeholder}
-          testId={fieldTestIds.input}
-          testIds={testIds}
+          testID={fieldTestIDs.input}
+          testIDs={testIDs}
           title={title}
           value={isValueCustom ? "custom" : currentValue}
         />
@@ -113,13 +112,13 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             }}
             onChange={onChange}
             placeholder="None selected"
-            testId={resolveTestId(fieldTestIds.input, "custom")}
+            testID={resolveTestID(fieldTestIDs.input, "custom")}
             type="text"
             value={value}
           />
         </View>
       )}
-      {Boolean(helperText) && <FieldHelperText testID={fieldTestIds.helper} text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText testID={fieldTestIDs.helper} text={helperText!} />}
     </View>
   );
 };

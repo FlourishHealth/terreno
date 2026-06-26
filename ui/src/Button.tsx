@@ -16,7 +16,6 @@ import {useCustomIcon} from "./IconRegistry";
 import {isMobileDevice} from "./MediaQuery";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
-import {pickTestId} from "./testing/resolveTestId";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
 
@@ -47,7 +46,6 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   modalSubTitle,
   pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   size = "default",
-  testId,
   testID,
   text,
   variant = "primary",
@@ -57,7 +55,6 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   const [loading, setLoading] = useState(propsLoading);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
-  const resolvedTestId = pickTestId({testID, testId});
   const CustomIcon = useCustomIcon(iconName);
 
   const {backgroundColor, borderColor, borderWidth, color} = useMemo(() => {
@@ -154,7 +151,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
         paddingVertical: 8 - (borderWidth ?? 0),
         width: fullWidth ? "100%" : "auto",
       }}
-      testID={resolvedTestId}
+      testID={testID}
     >
       <View style={{flexDirection: "row"}}>
         <View style={{flexDirection: iconPosition === "left" ? "row" : "row-reverse"}}>

@@ -7,7 +7,6 @@ import {Heading} from "./Heading";
 import {InfoModalIcon} from "./InfoModalIcon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
-import {pickTestId} from "./testing/resolveTestId";
 
 export const Accordion: FC<AccordionProps> = ({
   children,
@@ -20,11 +19,9 @@ export const Accordion: FC<AccordionProps> = ({
   infoModalText,
   infoModalTitle,
   onToggle,
-  testId,
   testID,
 }) => {
   const {theme} = useTheme();
-  const resolvedTestId = pickTestId({testID, testId});
   const [collapsed, setCollapsed] = useState(false);
 
   // The external collapse state should override the internal collapse state.
@@ -42,7 +39,7 @@ export const Accordion: FC<AccordionProps> = ({
         padding: 16,
         width: "100%",
       }}
-      testID={resolvedTestId}
+      testID={testID}
     >
       <View style={{alignItems: "center", flexDirection: "row", justifyContent: "space-between"}}>
         <View style={{flexDirection: "column", gap: 4}}>
@@ -69,7 +66,7 @@ export const Accordion: FC<AccordionProps> = ({
                 onToggle(!collapsed);
               }
             }}
-            testID={resolvedTestId ? `${resolvedTestId}.toggle` : "accordion-toggle"}
+            testID={testID ? `${testID}.toggle` : "accordion-toggle"}
           >
             <FontAwesome6
               color={theme.text.link}

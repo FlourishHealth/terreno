@@ -1,41 +1,26 @@
 import {describe, expect, it} from "bun:test";
 
 import {
-  pickTestId,
-  resolveDataTableRowTestId,
-  resolveFieldTestIds,
-  resolveModalTestIds,
-  resolveTestId,
+  resolveDataTableRowTestID,
+  resolveFieldTestIDs,
+  resolveModalTestIDs,
+  resolveTestID,
   toDomTestProps,
   toTestProps,
 } from "./resolveTestId";
 
-describe("pickTestId", () => {
-  it("prefers testId over testID", () => {
-    expect(pickTestId({testID: "old", testId: "new"})).toBe("new");
-  });
-
-  it("falls back to testID when testId is absent", () => {
-    expect(pickTestId({testID: "legacy"})).toBe("legacy");
-  });
-
-  it("returns undefined when neither is set", () => {
-    expect(pickTestId({})).toBeUndefined();
-  });
-});
-
-describe("resolveTestId", () => {
+describe("resolveTestID", () => {
   it("returns base when part is omitted", () => {
-    expect(resolveTestId("login")).toBe("login");
+    expect(resolveTestID("login")).toBe("login");
   });
 
   it("joins base and part with a dot", () => {
-    expect(resolveTestId("login", "email")).toBe("login.email");
-    expect(resolveTestId("login.email", "input")).toBe("login.email.input");
+    expect(resolveTestID("login", "email")).toBe("login.email");
+    expect(resolveTestID("login.email", "input")).toBe("login.email.input");
   });
 
   it("returns undefined when base is absent", () => {
-    expect(resolveTestId(undefined, "input")).toBeUndefined();
+    expect(resolveTestID(undefined, "input")).toBeUndefined();
   });
 });
 
@@ -55,9 +40,9 @@ describe("toDomTestProps", () => {
   });
 });
 
-describe("resolveFieldTestIds", () => {
+describe("resolveFieldTestIDs", () => {
   it("applies dot-suffix defaults", () => {
-    expect(resolveFieldTestIds("signup.email")).toEqual({
+    expect(resolveFieldTestIDs("signup.email")).toEqual({
       error: "signup.email.error",
       helper: "signup.email.helper",
       input: "signup.email",
@@ -65,9 +50,9 @@ describe("resolveFieldTestIds", () => {
     });
   });
 
-  it("allows testIds overrides", () => {
+  it("allows testIDs overrides", () => {
     expect(
-      resolveFieldTestIds("signup.email", {
+      resolveFieldTestIDs("signup.email", {
         input: "custom-input",
         label: "custom-label",
       })
@@ -80,9 +65,9 @@ describe("resolveFieldTestIds", () => {
   });
 });
 
-describe("resolveModalTestIds", () => {
+describe("resolveModalTestIDs", () => {
   it("applies dot-suffix defaults", () => {
-    expect(resolveModalTestIds("confirm-delete")).toEqual({
+    expect(resolveModalTestIDs("confirm-delete")).toEqual({
       dismiss: "confirm-delete.dismiss",
       primaryButton: "confirm-delete.primary",
       root: "confirm-delete",
@@ -92,12 +77,12 @@ describe("resolveModalTestIds", () => {
   });
 });
 
-describe("resolveDataTableRowTestId", () => {
+describe("resolveDataTableRowTestID", () => {
   it("appends row key to row test id base", () => {
-    expect(resolveDataTableRowTestId("users-table.row", "abc123")).toBe("users-table.row-abc123");
+    expect(resolveDataTableRowTestID("users-table.row", "abc123")).toBe("users-table.row-abc123");
   });
 
   it("returns undefined when base is absent", () => {
-    expect(resolveDataTableRowTestId(undefined, "abc123")).toBeUndefined();
+    expect(resolveDataTableRowTestID(undefined, "abc123")).toBeUndefined();
   });
 });

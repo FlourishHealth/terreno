@@ -1,15 +1,11 @@
 /** Shared test id surface for @terreno/ui components. */
-export interface WithTestId {
+export interface WithTestID {
   /** Root test id for the primary interactive element or container. */
-  testId?: string;
-  /**
-   * @deprecated Use `testId` instead. Kept for backward compatibility.
-   */
   testID?: string;
 }
 
 /** Sub-element test ids for compound form fields. */
-export interface FieldTestIds {
+export interface FieldTestIDs {
   label?: string;
   input?: string;
   error?: string;
@@ -17,7 +13,7 @@ export interface FieldTestIds {
 }
 
 /** Sub-element test ids for Modal. */
-export interface ModalTestIds {
+export interface ModalTestIDs {
   root?: string;
   title?: string;
   primaryButton?: string;
@@ -26,7 +22,7 @@ export interface ModalTestIds {
 }
 
 /** Sub-element test ids for DataTable. */
-export interface DataTableTestIds {
+export interface DataTableTestIDs {
   root?: string;
   header?: string;
   body?: string;
@@ -34,14 +30,14 @@ export interface DataTableTestIds {
   pagination?: string;
 }
 
-export interface ResolvedFieldTestIds {
+export interface ResolvedFieldTestIDs {
   label?: string;
   input?: string;
   error?: string;
   helper?: string;
 }
 
-export interface ResolvedModalTestIds {
+export interface ResolvedModalTestIDs {
   root?: string;
   title?: string;
   primaryButton?: string;
@@ -49,7 +45,7 @@ export interface ResolvedModalTestIds {
   dismiss?: string;
 }
 
-export interface ResolvedDataTableTestIds {
+export interface ResolvedDataTableTestIDs {
   root?: string;
   header?: string;
   body?: string;

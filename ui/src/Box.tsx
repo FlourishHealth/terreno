@@ -20,7 +20,6 @@ import type {
 import {getRounding, getSpacing} from "./Common";
 import {mediaQueryLargerThan} from "./MediaQuery";
 import {useTheme} from "./Theme";
-import {pickTestId} from "./testing/resolveTestId";
 import {Unifier} from "./Unifier";
 
 const ALIGN_CONTENT = {
@@ -63,7 +62,7 @@ const isValidWidthHeight = (value: number | string): boolean => {
 
 export const Box = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
-  const resolvedTestId = pickTestId(props);
+  const resolvedTestID = props.testID;
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -318,7 +317,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
           await props.onClick?.();
         }}
         style={propsToStyle()}
-        testID={resolvedTestId ? `${resolvedTestId}-clickable` : undefined}
+        testID={resolvedTestID ? `${resolvedTestID}-clickable` : undefined}
       >
         {props.children}
       </Pressable>
@@ -329,7 +328,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         style={propsToStyle()}
-        testID={resolvedTestId}
+        testID={resolvedTestID}
       >
         {props.children}
       </View>

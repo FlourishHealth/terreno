@@ -1,22 +1,17 @@
 import {Platform} from "react-native";
 
 import type {
-  DataTableTestIds,
-  FieldTestIds,
-  ModalTestIds,
-  ResolvedDataTableTestIds,
-  ResolvedFieldTestIds,
-  ResolvedModalTestIds,
-  WithTestId,
+  DataTableTestIDs,
+  FieldTestIDs,
+  ModalTestIDs,
+  ResolvedDataTableTestIDs,
+  ResolvedFieldTestIDs,
+  ResolvedModalTestIDs,
+  WithTestID,
 } from "./types";
 
-/** Prefer `testId`, fall back to legacy `testID`. */
-export const pickTestId = ({testId, testID}: WithTestId = {}): string | undefined => {
-  return testId ?? testID;
-};
-
 /** Build a dot-suffixed test id, e.g. `login.email` + `input` → `login.email.input`. */
-export const resolveTestId = (base: string | undefined, part?: string): string | undefined => {
+export const resolveTestID = (base: string | undefined, part?: string): string | undefined => {
   if (!base) {
     return undefined;
   }
@@ -56,72 +51,72 @@ export const toPlatformTestProps = (
 };
 
 /** Resolve compound field test ids with dot-suffix defaults. */
-export const resolveFieldTestIds = (
-  baseTestId: string | undefined,
-  testIds?: FieldTestIds
-): ResolvedFieldTestIds => {
+export const resolveFieldTestIDs = (
+  baseTestID: string | undefined,
+  testIDs?: FieldTestIDs
+): ResolvedFieldTestIDs => {
   return {
-    error: testIds?.error ?? resolveTestId(baseTestId, "error"),
-    helper: testIds?.helper ?? resolveTestId(baseTestId, "helper"),
-    input: testIds?.input ?? baseTestId,
-    label: testIds?.label ?? resolveTestId(baseTestId, "label"),
+    error: testIDs?.error ?? resolveTestID(baseTestID, "error"),
+    helper: testIDs?.helper ?? resolveTestID(baseTestID, "helper"),
+    input: testIDs?.input ?? baseTestID,
+    label: testIDs?.label ?? resolveTestID(baseTestID, "label"),
   };
 };
 
-/** Resolve field test ids from props that may use either `testId` or `testID`. */
-export const resolveFieldTestIdsFromProps = (
-  props: WithTestId & {testIds?: FieldTestIds}
-): ResolvedFieldTestIds => {
-  return resolveFieldTestIds(pickTestId(props), props.testIds);
+/** Resolve field test ids from component props. */
+export const resolveFieldTestIDsFromProps = (
+  props: WithTestID & {testIDs?: FieldTestIDs}
+): ResolvedFieldTestIDs => {
+  return resolveFieldTestIDs(props.testID, props.testIDs);
 };
 
 /** Resolve compound modal test ids with dot-suffix defaults. */
-export const resolveModalTestIds = (
-  baseTestId: string | undefined,
-  testIds?: ModalTestIds
-): ResolvedModalTestIds => {
+export const resolveModalTestIDs = (
+  baseTestID: string | undefined,
+  testIDs?: ModalTestIDs
+): ResolvedModalTestIDs => {
   return {
-    dismiss: testIds?.dismiss ?? resolveTestId(baseTestId, "dismiss"),
-    primaryButton: testIds?.primaryButton ?? resolveTestId(baseTestId, "primary"),
-    root: testIds?.root ?? baseTestId,
-    secondaryButton: testIds?.secondaryButton ?? resolveTestId(baseTestId, "secondary"),
-    title: testIds?.title ?? resolveTestId(baseTestId, "title"),
+    dismiss: testIDs?.dismiss ?? resolveTestID(baseTestID, "dismiss"),
+    primaryButton: testIDs?.primaryButton ?? resolveTestID(baseTestID, "primary"),
+    root: testIDs?.root ?? baseTestID,
+    secondaryButton: testIDs?.secondaryButton ?? resolveTestID(baseTestID, "secondary"),
+    title: testIDs?.title ?? resolveTestID(baseTestID, "title"),
   };
 };
 
-export const resolveModalTestIdsFromProps = (
-  props: WithTestId & {testIds?: ModalTestIds}
-): ResolvedModalTestIds => {
-  return resolveModalTestIds(pickTestId(props), props.testIds);
+export const resolveModalTestIDsFromProps = (
+  props: WithTestID & {testIDs?: ModalTestIDs}
+): ResolvedModalTestIDs => {
+  return resolveModalTestIDs(props.testID, props.testIDs);
 };
 
 /** Resolve compound DataTable test ids with dot-suffix defaults. */
-export const resolveDataTableTestIds = (
-  baseTestId: string | undefined,
-  testIds?: DataTableTestIds
-): ResolvedDataTableTestIds => {
+export const resolveDataTableTestIDs = (
+  baseTestID: string | undefined,
+  testIDs?: DataTableTestIDs
+): ResolvedDataTableTestIDs => {
   return {
-    body: testIds?.body ?? resolveTestId(baseTestId, "body"),
-    header: testIds?.header ?? resolveTestId(baseTestId, "header"),
-    pagination: testIds?.pagination ?? resolveTestId(baseTestId, "pagination"),
-    root: testIds?.root ?? baseTestId,
-    row: testIds?.row ?? resolveTestId(baseTestId, "row"),
+    body: testIDs?.body ?? resolveTestID(baseTestID, "body"),
+    header: testIDs?.header ?? resolveTestID(baseTestID, "header"),
+    pagination: testIDs?.pagination ?? resolveTestID(baseTestID, "pagination"),
+    root: testIDs?.root ?? baseTestID,
+    row: testIDs?.row ?? resolveTestID(baseTestID, "row"),
   };
 };
 
-export const resolveDataTableTestIdsFromProps = (
-  props: WithTestId & {testIds?: DataTableTestIds}
-): ResolvedDataTableTestIds => {
-  return resolveDataTableTestIds(pickTestId(props), props.testIds);
+export const resolveDataTableTestIDsFromProps = (
+  props: WithTestID & {testIDs?: DataTableTestIDs}
+): ResolvedDataTableTestIDs => {
+  return resolveDataTableTestIDs(props.testID, props.testIDs);
 };
 
 /** Row test id for DataTable — use with a stable row key, not row index alone. */
-export const resolveDataTableRowTestId = (
-  rowTestIdBase: string | undefined,
+export const resolveDataTableRowTestID = (
+  rowTestIDBase: string | undefined,
   rowKey: string | number
 ): string | undefined => {
-  if (!rowTestIdBase) {
+  if (!rowTestIDBase) {
     return undefined;
   }
-  return `${rowTestIdBase}-${rowKey}`;
+  return `${rowTestIDBase}-${rowKey}`;
 };

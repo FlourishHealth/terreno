@@ -5,7 +5,7 @@ import type {BooleanFieldProps} from "./Common";
 import {FieldHelperText, FieldTitle} from "./fieldElements";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
-import {resolveFieldTestIdsFromProps} from "./testing/resolveTestId";
+import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 
 const TOUCHABLE_SIZE = 20;
 const OFFSET = 10;
@@ -20,12 +20,11 @@ export const BooleanField: FC<BooleanFieldProps> = ({
   disabled,
   disabledHelperText,
   helperText,
-  testId,
   testID,
-  testIds,
+  testIDs,
 }) => {
   const {theme} = useTheme();
-  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
+  const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
   const backgroundColor = useRef(
     new Animated.Value(value ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET)
   ).current;
@@ -88,7 +87,7 @@ export const BooleanField: FC<BooleanFieldProps> = ({
         alignItems: "flex-start",
         flexDirection: "column",
       }}
-      testID={fieldTestIds.input}
+      testID={fieldTestIDs.input}
     >
       <View
         style={{
@@ -97,12 +96,12 @@ export const BooleanField: FC<BooleanFieldProps> = ({
           justifyContent: variant === "title" ? "flex-start" : "center",
         }}
       >
-        {Boolean(title) && <FieldTitle testID={fieldTestIds.label} text={title!} />}
+        {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title!} />}
         <Pressable
           aria-role="button"
           onPress={handleSwitch}
           style={{alignItems: "center", flexDirection: "row", justifyContent: "center"}}
-          testID={fieldTestIds.input ? `${fieldTestIds.input}.switch` : undefined}
+          testID={fieldTestIDs.input ? `${fieldTestIDs.input}.switch` : undefined}
         >
           <Animated.View
             style={{
@@ -144,10 +143,10 @@ export const BooleanField: FC<BooleanFieldProps> = ({
         </Pressable>
       </View>
       {disabled && disabledHelperText && (
-        <FieldHelperText testID={fieldTestIds.helper} text={disabledHelperText} />
+        <FieldHelperText testID={fieldTestIDs.helper} text={disabledHelperText} />
       )}
       {Boolean(helperText) && (
-        <FieldHelperText testID={fieldTestIds.helper} text={helperText as string} />
+        <FieldHelperText testID={fieldTestIDs.helper} text={helperText as string} />
       )}
     </View>
   );
