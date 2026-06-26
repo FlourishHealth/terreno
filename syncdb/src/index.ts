@@ -1,3 +1,4 @@
+export * from "./mutations/outbox";
 export * from "./persisters/adapt";
 export * from "./persisters/defaultPersisterFactory";
 export * from "./persisters/memoryPersister";
