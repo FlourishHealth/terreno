@@ -19,7 +19,13 @@ import type {
   FontAwesome6RegularNames,
   FontAwesome6SolidNames,
 } from "./CommonIconTypes";
-import type {DataTableTestIDs, FieldTestIDs, ModalTestIDs, WithTestID} from "./testing/types";
+import type {
+  DataTableTestIDs,
+  FieldTestIDs,
+  ModalTestIDs,
+  SegmentedControlTestIDs,
+  WithTestID,
+} from "./testing/types";
 
 export {
   resolveDataTableRowTestID,
@@ -31,7 +37,13 @@ export {
   toPlatformTestProps,
   toTestProps,
 } from "./testing";
-export type {DataTableTestIDs, FieldTestIDs, ModalTestIDs, WithTestID} from "./testing/types";
+export type {
+  DataTableTestIDs,
+  FieldTestIDs,
+  ModalTestIDs,
+  SegmentedControlTestIDs,
+  WithTestID,
+} from "./testing/types";
 
 export type PercentageString = `${number}%`;
 
@@ -702,7 +714,8 @@ export interface SegmentedControlBadgeConfig {
   status?: "info" | "error" | "warning" | "success" | "neutral";
 }
 
-export interface SegmentedControlProps {
+export interface SegmentedControlProps extends WithTestID {
+  testIDs?: SegmentedControlTestIDs;
   items: string[];
   size?: "md" | "lg"; // default "md"
   onChange: (activeIndex: number) => void;
