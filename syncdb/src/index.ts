@@ -11,6 +11,8 @@ export * from "./persisters/encryptedPersisterFactory";
 export * from "./persisters/kvPersister";
 export * from "./persisters/memoryPersister";
 export * from "./persisters/types";
+export * from "./react/hooks";
+export * from "./react/provider";
 export * from "./storage/schema";
 export * from "./storage/store";
 export * from "./storage/types";

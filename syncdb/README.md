@@ -72,10 +72,17 @@ Also implemented:
   key-value persister that encrypts the serialized store blob (opt-in via
   `createEncryptedPersisterFactory`).
 
+Also implemented:
+
+- Websocket-style delta sync: `SyncTransport` contract, in-memory fake
+  transport, cursor-aware idempotent delta applier, and an ack/nack replay
+  coordinator, all wired into the client (`connectSync` / `replayOutbox`).
+- React integration: `SyncDbProvider` + `useEntity`, `useQuery`,
+  `useSyncMutations`, `useSyncStatus`, `useConflicts`.
+
 Not yet implemented (later phases):
 
-- Websocket delta-sync transport and cursor-aware delta applier.
-- React hooks/provider and the Redux migration bridge.
+- Redux migration bridge.
 - `example-frontend` todos integration behind `USE_SYNCDB`.
 - `@terreno/syncdb-codegen`.
 
