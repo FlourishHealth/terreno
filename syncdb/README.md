@@ -82,11 +82,14 @@ Also implemented:
 
 - Redux migration bridge (`createSyncDbBridge`): mirrors sync status into a
   Redux slice and exposes optimistic mutation dispatchers.
+- `example-frontend` todos screen behind the `USE_SYNCDB` flag (local-first
+  CRUD, durable queue, offline/online toggle, conflict UI).
+- [`@terreno/syncdb-codegen`](../syncdb-codegen): OpenAPI → descriptor prototype.
 
-Not yet implemented (later phases):
-
-- `example-frontend` todos integration behind `USE_SYNCDB`.
-- `@terreno/syncdb-codegen`.
+This completes the implementation plan's phases. Remaining follow-ups: a real
+backend sync delta protocol + websocket transport implementation (the example
+uses a local simulated transport), field-level conflict merge UI, and typed
+schema generation in the codegen package.
 
 ## Usage (foundation API)
 

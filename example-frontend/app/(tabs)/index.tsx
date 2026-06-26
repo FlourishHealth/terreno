@@ -21,6 +21,7 @@ import {
 import type React from "react";
 import {useCallback, useState} from "react";
 import {RefreshControl, ScrollView} from "react-native";
+import {SyncTodos} from "@/components/syncTodos/SyncTodos";
 import {
   type Todo,
   terrenoApi,
@@ -29,6 +30,7 @@ import {
   usePatchTodosByIdMutation,
   usePostTodosMutation,
 } from "@/store";
+import {USE_SYNCDB} from "@/store/syncdb";
 
 const TodoItem: React.FC<{
   todo: Todo;
@@ -91,7 +93,7 @@ const TodoItem: React.FC<{
   );
 };
 
-const TodosScreen: React.FC = () => {
+const RtkTodosScreen: React.FC = () => {
   const [newTodoTitle, setNewTodoTitle] = useState<string>("");
   const [showCompleted, setShowCompleted] = useState<boolean>(true);
 
@@ -305,6 +307,13 @@ const TodosScreen: React.FC = () => {
       </Page>
     </ScrollView>
   );
+};
+
+const TodosScreen: React.FC = () => {
+  if (USE_SYNCDB) {
+    return <SyncTodos />;
+  }
+  return <RtkTodosScreen />;
 };
 
 export default TodosScreen;
