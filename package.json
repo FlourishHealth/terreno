@@ -139,6 +139,10 @@
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",
     "rtk:test": "bun run --filter '@terreno/rtk' test:ci",
+    "syncdb:compile": "bun run --filter '@terreno/syncdb' compile",
+    "syncdb:dev": "bun run --filter '@terreno/syncdb' dev",
+    "syncdb:lint": "bun run --filter '@terreno/syncdb' lint",
+    "syncdb:test": "bun run --filter '@terreno/syncdb' test:ci",
     "test:compile": "bun run --filter '@terreno/test' compile",
     "test:lint": "bun run --filter '@terreno/test' lint",
     "test:test": "bun run --filter '@terreno/test' test:ci",
@@ -169,6 +173,7 @@
     "feature-flags",
     "mcp-server",
     "rtk",
+    "syncdb",
     "test",
     "ui",
     "website"
