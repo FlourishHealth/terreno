@@ -125,7 +125,10 @@ jobs:
           export ANDROID_HOME="$android_home"
           export PATH="$(dirname "$sdkmanager_bin"):$PATH"
 
+          # sdkmanager closes stdin once licenses are accepted; avoid failing on yes SIGPIPE.
+          set +o pipefail
           yes | "$sdkmanager_bin" --licenses >/dev/null
+          set -o pipefail
 
           for attempt in 1 2 3; do
             echo "Ensuring Android emulator package is installed (attempt ${attempt}/3)"
