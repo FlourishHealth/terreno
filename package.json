@@ -143,6 +143,9 @@
     "syncdb:dev": "bun run --filter '@terreno/syncdb' dev",
     "syncdb:lint": "bun run --filter '@terreno/syncdb' lint",
     "syncdb:test": "bun run --filter '@terreno/syncdb' test:ci",
+    "syncdb-codegen:compile": "bun run --filter '@terreno/syncdb-codegen' compile",
+    "syncdb-codegen:lint": "bun run --filter '@terreno/syncdb-codegen' lint",
+    "syncdb-codegen:test": "bun run --filter '@terreno/syncdb-codegen' test:ci",
     "test:compile": "bun run --filter '@terreno/test' compile",
     "test:lint": "bun run --filter '@terreno/test' lint",
     "test:test": "bun run --filter '@terreno/test' test:ci",
@@ -174,6 +177,7 @@
     "mcp-server",
     "rtk",
     "syncdb",
+    "syncdb-codegen",
     "test",
     "ui",
     "website"

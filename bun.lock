@@ -550,6 +550,16 @@
         "expo-sqlite",
       ],
     },
+    "syncdb-codegen": {
+      "name": "@terreno/syncdb-codegen",
+      "version": "0.22.2",
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@types/bun": "^1.2.4",
+        "@types/node": "^25.0.3",
+        "typescript": "catalog:",
+      },
+    },
     "test": {
       "name": "@terreno/test",
       "version": "0.22.2",
@@ -2278,6 +2288,8 @@
     "@terreno/rtk": ["@terreno/rtk@workspace:rtk"],
 
     "@terreno/syncdb": ["@terreno/syncdb@workspace:syncdb"],
+
+    "@terreno/syncdb-codegen": ["@terreno/syncdb-codegen@workspace:syncdb-codegen"],
 
     "@terreno/test": ["@terreno/test@workspace:test"],
 

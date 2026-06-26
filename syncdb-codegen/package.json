@@ -1,0 +1,37 @@
+{
+  "description": "Generate typed syncdb operation descriptors from a backend OpenAPI spec",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "^1.2.4",
+    "@types/node": "^25.0.3",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "name": "@terreno/syncdb-codegen",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "compile:watch": "tsc -w",
+    "dev": "tsc -w",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:unsafefix": "biome check --write --unsafe .",
+    "test": "bun test",
+    "test:ci": "bun test"
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.22.2"
+}
