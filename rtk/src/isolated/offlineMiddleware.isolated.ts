@@ -14,7 +14,7 @@ mock.module("../authSlice", () => ({
   selectCurrentUserId: (state: {auth?: {userId?: string}}) => state.auth?.userId,
 }));
 mock.module("../constants", () => ({
-  baseUrl: "http://localhost:4000",
+  baseUrl: "http://localhost:3000",
   LOGOUT_ACTION_TYPE: "auth/logout",
 }));
 
@@ -52,7 +52,7 @@ const mockFetch = mock(() => Promise.resolve(createResponse()));
 globalThis.fetch = mockFetch as unknown as typeof fetch;
 
 const api = createApi({
-  baseQuery: fetchBaseQuery({baseUrl: "http://localhost:4000"}),
+  baseQuery: fetchBaseQuery({baseUrl: "http://localhost:3000"}),
   endpoints: (builder) => ({
     deleteTodosById: builder.mutation({
       query: (args: {id: string}) => ({
@@ -429,7 +429,7 @@ describe("createOfflineMiddleware", () => {
 
       const [url, options] = getFetchCall();
       const headers = options.headers as Record<string, string>;
-      expect(url).toBe("http://localhost:4000/todos");
+      expect(url).toBe("http://localhost:3000/todos");
       expect(options.method).toBe("POST");
       expect(options.body).toBe(JSON.stringify({completed: false, title: "Created offline"}));
       expect(headers.authorization).toBe("Bearer auth-token");
@@ -452,7 +452,7 @@ describe("createOfflineMiddleware", () => {
 
       const [url, options] = getFetchCall();
       const headers = options.headers as Record<string, string>;
-      expect(url).toBe("http://localhost:4000/todos/123");
+      expect(url).toBe("http://localhost:3000/todos/123");
       expect(options.method).toBe("PATCH");
       expect(options.body).toBe(JSON.stringify({title: "Updated offline"}));
       expect(headers["If-Unmodified-Since"]).toContain("GMT");
@@ -472,7 +472,7 @@ describe("createOfflineMiddleware", () => {
       await syncQueuedMutations(store);
 
       const [url, options] = getFetchCall();
-      expect(url).toBe("http://localhost:4000/todos/123");
+      expect(url).toBe("http://localhost:3000/todos/123");
       expect(options.method).toBe("DELETE");
       expect(options.body).toBeUndefined();
       expect(selectOfflineQueue(store.getState())).toHaveLength(0);
@@ -693,4 +693,4 @@ describe("createOfflineMiddleware", () => {
   });
 });
 
-const baseUrlForTest = "http://localhost:4000";
+const baseUrlForTest = "http://localhost:3000";

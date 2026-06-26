@@ -72,10 +72,13 @@ export interface BaseUrls {
  */
 export const SAME_ORIGIN_SENTINEL = "__SAME_ORIGIN__";
 
+/** Default local API port when resolving dev base URLs from Expo host/experience URLs. */
+export const DEFAULT_DEV_API_PORT = 3000;
+
 const LOCALHOST: BaseUrls = {
-  baseTasksUrl: "http://localhost:4000/tasks",
-  baseUrl: "http://localhost:4000",
-  baseWebsocketsUrl: "ws://localhost:4000/",
+  baseTasksUrl: `http://localhost:${DEFAULT_DEV_API_PORT}/tasks`,
+  baseUrl: `http://localhost:${DEFAULT_DEV_API_PORT}`,
+  baseWebsocketsUrl: `ws://localhost:${DEFAULT_DEV_API_PORT}/`,
 };
 
 /**
@@ -118,15 +121,15 @@ export const resolveBaseUrls = (args: {
     };
   if (host)
     return {
-      baseTasksUrl: `http://${host}:4000/tasks`,
-      baseUrl: `http://${host}:4000`,
-      baseWebsocketsUrl: `ws://${host}:4000/`,
+      baseTasksUrl: `http://${host}:${DEFAULT_DEV_API_PORT}/tasks`,
+      baseUrl: `http://${host}:${DEFAULT_DEV_API_PORT}`,
+      baseWebsocketsUrl: `ws://${host}:${DEFAULT_DEV_API_PORT}/`,
     };
   if (experience)
     return {
-      baseTasksUrl: `http:${experience}:4000/tasks`,
-      baseUrl: `http:${experience}:4000`,
-      baseWebsocketsUrl: `ws:${experience}:4000/`,
+      baseTasksUrl: `http:${experience}:${DEFAULT_DEV_API_PORT}/tasks`,
+      baseUrl: `http:${experience}:${DEFAULT_DEV_API_PORT}`,
+      baseWebsocketsUrl: `ws:${experience}:${DEFAULT_DEV_API_PORT}/`,
     };
   return LOCALHOST;
 };

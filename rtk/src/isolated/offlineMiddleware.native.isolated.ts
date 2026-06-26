@@ -10,7 +10,7 @@ mock.module("../authSlice", () => ({
   selectCurrentUserId: (state: {auth?: {userId?: string}}) => state.auth?.userId,
 }));
 mock.module("../constants", () => ({
-  baseUrl: "http://localhost:4000",
+  baseUrl: "http://localhost:3000",
   LOGOUT_ACTION_TYPE: "auth/logout",
 }));
 
@@ -30,7 +30,7 @@ const {createOfflineMiddleware} = await import("../offlineMiddleware");
 const {selectIsOnline} = await import("../offlineSlice");
 
 const api = createApi({
-  baseQuery: fetchBaseQuery({baseUrl: "http://localhost:4000"}),
+  baseQuery: fetchBaseQuery({baseUrl: "http://localhost:3000"}),
   endpoints: (builder) => ({
     patchTodosById: builder.mutation({
       query: (args: {id: string; body: Record<string, unknown>}) => ({
