@@ -2078,10 +2078,14 @@ describe("@terreno/api", () => {
         {_id: spinach._id as unknown as mongoose.Types.ObjectId},
         {$set: {updated: "2025-06-15T12:00:00.000Z"}}
       );
+      const staleTimestamp = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
+      if (!staleTimestamp) {
+        throw new Error("Failed to build If-Unmodified-Since header");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP()!)
+        .set("If-Unmodified-Since", staleTimestamp)
         .send({name: "String Timestamp"})
         .expect(409);
 
