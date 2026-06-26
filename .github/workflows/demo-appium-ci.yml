@@ -101,6 +101,36 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Preinstall Android emulator package (retry)
+        run: |
+          set -euo pipefail
+          if ! command -v sdkmanager >/dev/null 2>&1; then
+            echo "::error::sdkmanager is not available on PATH"
+            exit 1
+          fi
+          if [ -z "${ANDROID_HOME:-}" ]; then
+            echo "::error::ANDROID_HOME is not set"
+            exit 1
+          fi
+
+          yes | sdkmanager --licenses >/dev/null
+
+          for attempt in 1 2 3; do
+            echo "Ensuring Android emulator package is installed (attempt ${attempt}/3)"
+            rm -rf "$HOME/.android/cache"/* || true
+            if sdkmanager --install emulator --channel=0 >/dev/null; then
+              echo "Android emulator package ready."
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Failed to install Android emulator package after 3 attempts"
+              exit 1
+            fi
+
+            sleep "$((attempt * 10))"
+          done
+
       - name: Run Appium Android tests
         timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 12 || 35 }}
         uses: reactivecircus/android-emulator-runner@v2
