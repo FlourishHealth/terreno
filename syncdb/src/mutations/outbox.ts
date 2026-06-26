@@ -132,9 +132,7 @@ export const createOutbox = ({store}: {store: MergeableStore}): Outbox => {
   const markInFlight = ({mutationId}: {mutationId: string}): void => {
     const row = requireRow(mutationId);
     if (row.status !== "queued") {
-      throw new Error(
-        `Cannot mark in flight from status "${row.status}" (mutation ${mutationId})`
-      );
+      throw new Error(`Cannot mark in flight from status "${row.status}" (mutation ${mutationId})`);
     }
     store.setCell(SYNC_TABLES.outbox, mutationId, "status", "inFlight");
     store.setCell(SYNC_TABLES.outbox, mutationId, "attemptCount", (row.attemptCount ?? 0) + 1);
