@@ -1,5 +1,7 @@
 export * from "./client";
+export * from "./mutations/conflicts";
 export * from "./mutations/outbox";
+export * from "./mutations/resolveConflict";
 export * from "./persisters/adapt";
 export * from "./persisters/defaultPersisterFactory";
 export * from "./persisters/memoryPersister";
