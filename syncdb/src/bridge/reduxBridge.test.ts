@@ -28,6 +28,7 @@ describe("reduxBridge", () => {
       syncDbStatusChanged({
         authBlocked: false,
         conflictCount: 0,
+        failedCount: 0,
         isOnline: false,
         isSyncing: true,
         queuedCount: 2,

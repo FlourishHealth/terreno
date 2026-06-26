@@ -68,9 +68,16 @@ const SyncStatusBanner: React.FC = () => {
 
   return (
     <Card marginBottom={4}>
-      <Box alignItems="center" direction="row" justifyContent="between">
-        <Text testID={label.testID}>{label.text}</Text>
-        <Badge status="info" testID="todos-sync-queue-count" value={status.queuedCount} />
+      <Box gap={2}>
+        <Box alignItems="center" direction="row" justifyContent="between">
+          <Text testID={label.testID}>{label.text}</Text>
+          <Badge status="info" testID="todos-sync-queue-count" value={status.queuedCount} />
+        </Box>
+        {status.failedCount > 0 ? (
+          <Text color="error" size="sm" testID="todos-sync-failed-count">
+            {status.failedCount} change(s) failed to sync
+          </Text>
+        ) : null}
       </Box>
     </Card>
   );

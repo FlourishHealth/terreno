@@ -14,6 +14,7 @@ describe("createSyncDbClient", () => {
     expect(status).toEqual({
       authBlocked: false,
       conflictCount: 0,
+      failedCount: 0,
       isOnline: true,
       isSyncing: false,
       queuedCount: 0,
@@ -48,8 +49,25 @@ describe("createSyncDbClient", () => {
     client.outbox.markInFlight({mutationId: "f"});
     client.outbox.markFailed({mutationId: "f"});
 
-    // Only the queued mutation counts; the failed one does not.
+    // Only the queued mutation counts; the failed one is surfaced separately.
     expect(client.getSyncStatus().queuedCount).toBe(1);
+    expect(client.getSyncStatus().failedCount).toBe(1);
+    await client.destroy();
+  });
+
+  it("keeps notifying status listeners after a destroy/restart cycle", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    let calls = 0;
+    client.addStatusListener(() => {
+      calls += 1;
+    });
+
+    await client.destroy();
+    await client.start();
+    const before = calls;
+    client.outbox.enqueue({args: {}, collection: "todos", operation: "create"});
+    expect(calls).toBeGreaterThan(before);
     await client.destroy();
   });
 

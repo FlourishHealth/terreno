@@ -81,6 +81,7 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   const getSyncStatus = (): SyncStatus => ({
     authBlocked: status.authBlocked,
     conflictCount: conflicts.count(),
+    failedCount: outbox.count({status: "failed"}),
     isOnline: status.isOnline,
     isSyncing: status.isSyncing,
     // Pending = not-yet-acknowledged work (queued + in flight); conflicted and
@@ -96,11 +97,29 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   };
 
   // Surface outbox/conflict count changes (enqueue, ack, conflict capture,
-  // dismiss) to status subscribers, not just the explicit flag setters.
-  const internalListenerIds = [
-    store.raw.addTableListener(SYNC_TABLES.outbox, notifyStatus),
-    store.raw.addTableListener(SYNC_TABLES.conflicts, notifyStatus),
-  ];
+  // dismiss) to status subscribers, not just the explicit flag setters. These
+  // are (re)registered on start and torn down on destroy so they survive a
+  // destroy -> start restart cycle.
+  let internalListenerIds: string[] = [];
+
+  const registerInternalListeners = (): void => {
+    if (internalListenerIds.length > 0) {
+      return;
+    }
+    internalListenerIds = [
+      store.raw.addTableListener(SYNC_TABLES.outbox, notifyStatus),
+      store.raw.addTableListener(SYNC_TABLES.conflicts, notifyStatus),
+    ];
+  };
+
+  const unregisterInternalListeners = (): void => {
+    for (const listenerId of internalListenerIds) {
+      store.raw.delListener(listenerId);
+    }
+    internalListenerIds = [];
+  };
+
+  registerInternalListeners();
 
   const setOnline = ({isOnline}: {isOnline: boolean}): void => {
     status.isOnline = isOnline;
@@ -135,6 +154,9 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   // initialization rather than creating duplicate persisters/listeners. A
   // failed init clears the cache so a later start() can retry.
   const start = async (): Promise<void> => {
+    // Re-establish internal status listeners in case the client was destroyed
+    // and is being restarted on the same store.
+    registerInternalListeners();
     if (!startPromise) {
       startPromise = initialize().catch((error) => {
         startPromise = undefined;
@@ -266,10 +288,7 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
       persister.destroy();
       persister = undefined;
     }
-    for (const listenerId of internalListenerIds) {
-      store.raw.delListener(listenerId);
-    }
-    statusListeners.clear();
+    unregisterInternalListeners();
     startPromise = undefined;
   };
 

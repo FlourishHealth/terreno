@@ -9,8 +9,10 @@ export interface SyncStatus {
   isSyncing: boolean;
   /** Whether replay is paused because auth refresh failed. */
   authBlocked: boolean;
-  /** Number of mutations still pending in the outbox. */
+  /** Number of mutations still pending sync (queued + in flight). */
   queuedCount: number;
+  /** Number of mutations that failed and will not auto-replay. */
+  failedCount: number;
   /** Number of unresolved conflicts. */
   conflictCount: number;
 }
