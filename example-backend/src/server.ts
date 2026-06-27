@@ -28,6 +28,8 @@ import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
+import {todoCommentRouter} from "./api/todoComments";
+import {todoListRouter} from "./api/todoLists";
 import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
@@ -189,6 +191,8 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(todoRouter)
+      .register(todoListRouter)
+      .register(todoCommentRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
       .register(new VersionCheckPlugin())
       .register(
