@@ -1,11 +1,44 @@
+import {baseUrl, getAuthToken} from "@terreno/rtk";
 import {
   createSyncDbClient,
+  type SnapshotFetcher,
   type SyncClientMessage,
   type SyncDbClient,
   type SyncServerEvent,
   type SyncTransport,
   type TransportConnectionStatus,
 } from "@terreno/syncdb";
+
+/** Collections to mirror locally before a session (session prefetch). */
+export const SESSION_COLLECTIONS = ["todos", "todoLists", "todoComments"];
+
+/**
+ * Snapshot fetcher backed by the backend REST list endpoints. Used by
+ * `client.hydrate(...)` to download/mirror the user's collections locally
+ * before working offline. Authorized with the logged-in user's token, so it
+ * returns only owner-scoped data.
+ */
+export const createRestSnapshotFetcher = (): SnapshotFetcher => {
+  return async ({collection}) => {
+    const token = await getAuthToken();
+    const response = await fetch(`${baseUrl}/${collection}?limit=200`, {
+      headers: token ? {authorization: `Bearer ${token}`} : {},
+    });
+    if (!response.ok) {
+      throw new Error(`Snapshot fetch failed for ${collection}: ${response.status}`);
+    }
+    const body = (await response.json()) as {data?: Array<Record<string, unknown>>};
+    const docs = Array.isArray(body?.data) ? body.data : [];
+    return {
+      collection,
+      records: docs.map((doc) => {
+        const id = String(doc.id ?? doc._id ?? "");
+        const updated = typeof doc.updated === "string" ? doc.updated : undefined;
+        return {data: doc, id, updatedAt: updated, version: updated};
+      }),
+    };
+  };
+};
 
 /**
  * Feature flag controlling whether the todos screen uses the local-first

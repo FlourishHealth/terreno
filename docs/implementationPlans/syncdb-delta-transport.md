@@ -471,6 +471,7 @@ These extend the existing syncdb ACs (AC-1..AC-10) with the now-real server.
   - Files: `syncdb/src/sync/socketIoTransport.ts` (new), `syncdb/src/index.ts`, `syncdb/src/sync/socketIoTransport.test.ts` (new, fake socket).
 - [ ] **Task 5.2**: Bootstrap helper for `sync:resync` (snapshot fetch → apply → resubscribe).
   - Files: `syncdb/src/sync/bootstrap.ts` (new), tests.
+  - Note: the client-side snapshot primitive already exists — `client.hydrate({collections, fetcher, mode, since})` + `applyCollectionSnapshot` (`syncdb/src/sync/snapshot.ts`), used today for **session prefetch** (mirror collections locally before going offline) and reused for `sync:resync`. This task is just wiring it to the transport's resync signal + the `/sync/snapshot` fetcher.
 
 ### Phase 6: Example integration
 - [ ] **Task 6.1**: Enable `RealtimeApp` sync protocol; swap example-frontend simulated transport for the real one behind `USE_SYNCDB`, syncing `todos`, `todoLists`, and `todoComments` (models/routes/realtime config already added in this PR).

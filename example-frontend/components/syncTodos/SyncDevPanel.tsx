@@ -3,6 +3,7 @@ import {Badge, Box, Button, Card, Heading, Text} from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
 
+import {createRestSnapshotFetcher, SESSION_COLLECTIONS} from "@/store/syncdb";
 import {generateId} from "./ids";
 
 interface TodoData {
@@ -23,6 +24,7 @@ export const SyncDevPanel: React.FC = () => {
   const todos = useQuery<TodoData>({collection: "todos"});
   const [open, setOpen] = useState<boolean>(true);
   const [busy, setBusy] = useState<boolean>(false);
+  const [prefetchResult, setPrefetchResult] = useState<string | undefined>();
 
   const toggleConnectivity = useCallback(async (): Promise<void> => {
     if (status.isOnline) {
@@ -93,6 +95,25 @@ export const SyncDevPanel: React.FC = () => {
     client.conflicts.clear();
   }, [client]);
 
+  const prefetchSession = useCallback(async (): Promise<void> => {
+    setBusy(true);
+    setPrefetchResult(undefined);
+    try {
+      const results = await client.hydrate({
+        collections: SESSION_COLLECTIONS,
+        fetcher: createRestSnapshotFetcher(),
+      });
+      const total = results.reduce((sum, result) => sum + result.applied, 0);
+      setPrefetchResult(`Mirrored ${total} record(s) across ${results.length} collection(s).`);
+    } catch (error) {
+      setPrefetchResult(
+        `Prefetch failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [client]);
+
   return (
     <Card color="neutralLight" marginBottom={6} testID="dev-panel">
       <Box gap={3}>
@@ -148,6 +169,22 @@ export const SyncDevPanel: React.FC = () => {
                 text={status.authBlocked ? "Clear auth block" : "Simulate auth block"}
                 variant="muted"
               />
+            </Box>
+
+            <Box direction="row" gap={2} wrap>
+              <Button
+                disabled={busy}
+                iconName="download"
+                onClick={prefetchSession}
+                testID="dev-button-prefetch"
+                text="Prefetch session data"
+                variant="primary"
+              />
+              {prefetchResult ? (
+                <Text size="sm" testID="dev-prefetch-result">
+                  {prefetchResult}
+                </Text>
+              ) : null}
             </Box>
 
             <Box direction="row" gap={2} wrap>
