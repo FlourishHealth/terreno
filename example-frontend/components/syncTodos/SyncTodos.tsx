@@ -3,7 +3,6 @@ import {
   SyncDbProvider,
   useConflicts,
   useQuery,
-  useSyncDbClient,
   useSyncMutations,
   useSyncStatus,
 } from "@terreno/syncdb";
@@ -25,6 +24,7 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 
 import {getSyncDbClient} from "@/store/syncdb";
 import {generateId, slugify} from "./ids";
+import {SyncDevPanel} from "./SyncDevPanel";
 import {ListsBar} from "./SyncLists";
 import {TodoComments} from "./SyncTodoComments";
 
@@ -116,12 +116,10 @@ const ConflictBanner: React.FC = () => {
 };
 
 const SyncTodosScreen: React.FC = () => {
-  const client = useSyncDbClient();
   const allTodos = useQuery<TodoData>({collection: "todos"});
   const {create, update, remove} = useSyncMutations<TodoData>({collection: "todos"});
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
-  const [isOnline, setIsOnline] = useState<boolean>(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
 
   const todos = useMemo(
@@ -163,20 +161,6 @@ const SyncTodosScreen: React.FC = () => {
     [remove]
   );
 
-  const handleToggleConnectivity = useCallback(async (): Promise<void> => {
-    if (isOnline) {
-      client.disconnectSync();
-      setIsOnline(false);
-      return;
-    }
-    await client.connectSync();
-    setIsOnline(true);
-  }, [client, isOnline]);
-
-  const handleRefresh = useCallback((): void => {
-    client.replayOutbox();
-  }, [client]);
-
   return (
     <Page navigation={undefined}>
       <Box padding={4} testID="todos-screen-root">
@@ -206,20 +190,11 @@ const SyncTodosScreen: React.FC = () => {
             ) : null}
             <Box direction="row" gap={2}>
               <Button onClick={handleSave} testID="todos-button-save" text="Save" />
-              <Button
-                onClick={handleToggleConnectivity}
-                text={isOnline ? "Go offline" : "Go online"}
-                variant="outline"
-              />
-              <Button
-                onClick={handleRefresh}
-                testID="todos-button-refresh"
-                text="Refresh"
-                variant="muted"
-              />
             </Box>
           </Box>
         </Card>
+
+        <SyncDevPanel />
 
         {todos.length === 0 ? (
           <Text color="secondaryLight" testID="todos-empty-state">
