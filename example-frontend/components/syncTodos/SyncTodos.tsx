@@ -24,24 +24,16 @@ import type React from "react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 
 import {getSyncDbClient} from "@/store/syncdb";
+import {generateId, slugify} from "./ids";
+import {ListsBar} from "./SyncLists";
+import {TodoComments} from "./SyncTodoComments";
 
 interface TodoData {
   title: string;
   completed: boolean;
+  /** Optional id of the list this todo belongs to (local-first, schemaless). */
+  listId?: string;
 }
-
-const slugify = (value: string): string =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const generateId = (): string => {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-  return `todo_${Date.now().toString(36)}`;
-};
 
 const SyncStatusBanner: React.FC = () => {
   const status = useSyncStatus();
@@ -125,11 +117,20 @@ const ConflictBanner: React.FC = () => {
 
 const SyncTodosScreen: React.FC = () => {
   const client = useSyncDbClient();
-  const todos = useQuery<TodoData>({collection: "todos"});
+  const allTodos = useQuery<TodoData>({collection: "todos"});
   const {create, update, remove} = useSyncMutations<TodoData>({collection: "todos"});
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string | undefined>();
   const [isOnline, setIsOnline] = useState<boolean>(false);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+
+  const todos = useMemo(
+    () =>
+      selectedListId === null
+        ? allTodos
+        : allTodos.filter((todo) => todo.data.listId === selectedListId),
+    [allTodos, selectedListId]
+  );
 
   const handleSave = useCallback((): void => {
     if (!title.trim()) {
@@ -137,9 +138,16 @@ const SyncTodosScreen: React.FC = () => {
       return;
     }
     setError(undefined);
-    create({data: {completed: false, title: title.trim()}, id: generateId()});
+    create({
+      data: {
+        completed: false,
+        listId: selectedListId ?? undefined,
+        title: title.trim(),
+      },
+      id: generateId(),
+    });
     setTitle("");
-  }, [title, create]);
+  }, [title, create, selectedListId]);
 
   const handleToggle = useCallback(
     (id: string, todo: TodoData): void => {
@@ -178,6 +186,8 @@ const SyncTodosScreen: React.FC = () => {
 
         <SyncStatusBanner />
         <ConflictBanner />
+
+        <ListsBar onSelect={setSelectedListId} selectedListId={selectedListId} />
 
         <Card marginBottom={6}>
           <Box gap={3}>
@@ -236,6 +246,7 @@ const SyncTodosScreen: React.FC = () => {
                   variant="destructive"
                 />
               </Box>
+              <TodoComments todoId={todo.id} />
             </Card>
           ))
         )}
