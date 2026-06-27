@@ -110,6 +110,35 @@ client.outbox.enqueue({collection: "todos", operation: "create", args: {title: "
 const {queuedCount, isOnline, conflictCount} = client.getSyncStatus();
 ```
 
+### Session prefetch (mirror collections locally)
+
+Download whole collections into the local store before a session (e.g. so the
+user can work offline). `hydrate` is transport-agnostic — you provide a
+`SnapshotFetcher` (REST list endpoints, a future `/sync/snapshot`, etc.):
+
+```typescript
+const results = await client.hydrate({
+  collections: ["todos", "todoLists", "todoComments"],
+  fetcher: async ({collection, since}) => {
+    const res = await fetch(`${baseUrl}/${collection}?limit=200`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+    const {data} = await res.json();
+    return {
+      collection,
+      records: data.map((doc) => ({id: doc.id, data: doc, version: doc.updated})),
+    };
+  },
+});
+// results: [{collection, applied, removed, cursor}, ...]
+```
+
+- `mode: "merge"` (default) upserts server records and keeps local-only rows
+  (safe with pending offline mutations); `mode: "replace"` produces an exact
+  mirror by removing local rows absent from the snapshot (use on a clean store).
+- The known stream cursor is passed to the fetcher as `since` for incremental
+  prefetch, and any returned `cursor` is recorded so later deltas resume cleanly.
+
 ### Testing
 
 ```bash

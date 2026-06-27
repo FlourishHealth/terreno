@@ -8,6 +8,12 @@ import {createSyncStore, type SyncStore} from "./storage/store";
 import {SYNC_TABLES} from "./storage/types";
 import {createDeltaApplier, type DeltaApplier} from "./sync/deltaApplier";
 import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
+import {
+  type ApplySnapshotResult,
+  applyCollectionSnapshot,
+  type SnapshotFetcher,
+  type SnapshotMode,
+} from "./sync/snapshot";
 import type {SyncDbClientConfig, SyncStatus} from "./types";
 
 export interface SyncDbClient {
@@ -29,6 +35,16 @@ export interface SyncDbClient {
   disconnectSync(): void;
   /** Replay queued mutations now (no-op if not connected). */
   replayOutbox(): void;
+  /**
+   * Download and mirror collections into the local store (session prefetch).
+   * Useful before going offline: pull everything a session needs up front.
+   */
+  hydrate(args: {
+    collections: string[];
+    fetcher: SnapshotFetcher;
+    mode?: SnapshotMode;
+    since?: Record<string, string>;
+  }): Promise<ApplySnapshotResult[]>;
   /** Resolve a conflict with the given strategy. */
   resolveConflict(args: {conflictId: string; strategy: ConflictStrategy}): void;
   /** Current aggregate sync status. */
@@ -179,6 +195,31 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     await persister.save();
   };
 
+  const hydrate = async ({
+    collections,
+    fetcher,
+    mode,
+    since,
+  }: {
+    collections: string[];
+    fetcher: SnapshotFetcher;
+    mode?: SnapshotMode;
+    since?: Record<string, string>;
+  }): Promise<ApplySnapshotResult[]> => {
+    setSyncing({isSyncing: true});
+    try {
+      const results: ApplySnapshotResult[] = [];
+      for (const collection of collections) {
+        const sinceCursor = since?.[collection] ?? deltaApplier.getCursor({stream: collection});
+        const snapshot = await fetcher({collection, since: sinceCursor});
+        results.push(applyCollectionSnapshot({mode, snapshot, store}));
+      }
+      return results;
+    } finally {
+      updateSyncing();
+    }
+  };
+
   const replayOutbox = (): void => {
     if (!replayCoordinator) {
       return;
@@ -300,6 +341,7 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     destroy,
     disconnectSync,
     getSyncStatus,
+    hydrate,
     outbox,
     replayOutbox,
     resolveConflict,

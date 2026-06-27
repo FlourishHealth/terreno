@@ -362,6 +362,54 @@ describe("createSyncDbClient", () => {
     await client.destroy();
   });
 
+  it("hydrate downloads and mirrors collections into the local store", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+
+    const seen: Array<{collection: string; since?: string}> = [];
+    const fetcher = async ({collection, since}: {collection: string; since?: string}) => {
+      seen.push({collection, since});
+      return {
+        collection,
+        cursor: "10",
+        records: [{data: {title: `${collection}-1`}, id: `${collection}-1`, version: "v1"}],
+      };
+    };
+
+    const results = await client.hydrate({collections: ["todos", "todoLists"], fetcher});
+
+    expect(results).toHaveLength(2);
+    expect(seen.map((s) => s.collection)).toEqual(["todos", "todoLists"]);
+    expect(client.store.getEntity({collection: "todos", id: "todos-1"})?.data).toEqual({
+      title: "todos-1",
+    });
+    expect(client.store.getEntity({collection: "todoLists", id: "todoLists-1"})).toBeDefined();
+    await client.destroy();
+  });
+
+  it("hydrate passes the known cursor as `since` for incremental prefetch", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    client.deltaApplier.apply({
+      changes: [{collection: "todos", data: {}, entityId: "seed", op: "upsert"}],
+      cursor: "7",
+      stream: "todos",
+      type: "sync:delta",
+    });
+
+    let receivedSince: string | undefined;
+    await client.hydrate({
+      collections: ["todos"],
+      fetcher: async ({since}) => {
+        receivedSince = since;
+        return {collection: "todos", records: []};
+      },
+    });
+
+    expect(receivedSince).toBe("7");
+    await client.destroy();
+  });
+
   it("connectSync throws without a configured transport", async () => {
     const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
     await client.start();

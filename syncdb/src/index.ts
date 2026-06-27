@@ -20,5 +20,6 @@ export * from "./storage/types";
 export * from "./sync/deltaApplier";
 export * from "./sync/fakeTransport";
 export * from "./sync/replayCoordinator";
+export * from "./sync/snapshot";
 export * from "./sync/types";
 export * from "./types";
