@@ -324,6 +324,46 @@ syncDbBridge.connect({dispatch: store.dispatch});
 - **Permission parity** → both paths already go through `modelRouter` permissions
   / `queryFilter` / `responseHandler`, so authorization cannot drift.
 
+### Decommissioning Redux
+
+`@terreno/syncdb` is framework-agnostic and Redux-free — it has its own store
+(TinyBase) and hooks (`useSyncExternalStore`-based). So once all data syncing
+moves to syncdb, **Redux can be removed entirely**, provided the few non-data
+things the store holds today are relocated. The Redux bridge
+(`createSyncDbBridge`) is a migration aid only and is deleted at the end.
+
+What the example store (`example-frontend/store/index.ts`) holds today and where
+each piece lands:
+
+| Current Redux piece | After full syncdb migration |
+|---|---|
+| `terrenoApi` (RTK Query data + cache) | **Gone** — syncdb store + `useQuery`/`useEntity`/`useSyncMutations` |
+| `offline` slice + `createOfflineMiddleware` | **Gone** — syncdb outbox + conflict store |
+| `realtimeList`/`realtimeDocument` cache patching | **Gone** — syncdb delta applier |
+| `createSyncDbBridge` (status mirror) | **Gone** — use syncdb hooks directly |
+| redux-persist (for data) | **Gone** — syncdb persists itself (expo-sqlite/localStorage) |
+| Sentry redux enhancer | **Gone** with the store (or keep if Redux remains) |
+| **`auth` slice** (`generateAuthSlice`) | **Relocate** — move to Better Auth (session-based, no Redux); syncdb just consumes `getAuthToken` + a logout signal. *(Keeping the JWT auth slice keeps a minimal Redux store.)* |
+| **`appState`** (darkMode, language, app UI) | **Relocate** — React Context, `useStoredState` (already in `@terreno/ui`), Zustand, or syncdb store `Values`. |
+
+Two non-syncdb concerns gate full removal:
+
+1. **Auth.** Today the rtk auth slice owns userId/token/refresh. To drop Redux,
+   adopt **Better Auth** (already supported in this repo) so the syncdb transport
+   reuses its token; otherwise keep a tiny Redux store for auth only.
+2. **App-level UI state** (theme/language/ephemeral UI). Replace with Context /
+   `useStoredState` / Zustand / syncdb `Values`.
+
+Final removal step (once both are relocated and the last collection is migrated):
+remove `@reduxjs/toolkit`, `react-redux`, `redux-persist`, the Sentry redux
+enhancer, and the `<Provider>` wrapper; the app runs on `SyncDbProvider` + the
+auth provider only.
+
+**Recommended end state:** Better Auth + a lightweight context/`useStoredState`
+for app UI + syncdb for all data → **no Redux**. A pragmatic interim many teams
+settle on: keep a minimal Redux store for auth only and let syncdb own
+everything else.
+
 ## Plan corrections (from existing-infrastructure review)
 
 Folding in findings from reviewing `api/src/realtime/*`:
