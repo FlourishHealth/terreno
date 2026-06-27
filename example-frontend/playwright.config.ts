@@ -42,6 +42,10 @@ export default defineConfig({
     },
     {
       command: "bun run web",
+      // The example backend runs on port 4000, but @terreno/rtk now defaults dev
+      // base URLs to port 3000. Point the web bundle at the backend explicitly so
+      // OpenAPI, realtime, and version-check calls reach it during E2E.
+      env: {EXPO_PUBLIC_API_URL: "http://localhost:4000"},
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       url: "http://localhost:8082",
