@@ -246,6 +246,115 @@ protocol — no extra reconciliation logic on the client.
   mongoose-schema-safety skill — backfill existing docs to `version: "0"` /
   seq 0 so first delta is monotonic).
 
+## Migrating `@terreno/rtk` → `@terreno/syncdb` (all data syncing)
+
+The end state is **syncdb as the source of truth for every synced collection**,
+with `@terreno/rtk` reduced to (or removed in favor of) non-sync concerns. The
+migration is **incremental, per-collection, and reversible** — never a big-bang
+swap.
+
+### Principles
+
+- **Coexistence on one socket and one store.** The new `sync:*` events live
+  beside the existing `subscribe:*`/`sync` events on the same Socket.io server,
+  and the syncdb Redux bridge (`createSyncDbBridge`) mounts beside
+  `terrenoApi.reducer`, so both stacks run simultaneously during migration.
+- **Per-collection cutover behind flags.** `USE_SYNCDB` plus a per-collection
+  allowlist (e.g. `SYNCDB_COLLECTIONS=todos,todoLists`) decides, per collection,
+  whether reads/writes go through syncdb or RTK Query.
+- **Single auth source.** syncdb consumes the same `getAuthToken` the rtk auth
+  slice (or Better Auth) already provides; logout clears syncdb via
+  `outbox.clearForOtherUsers` + store reset (AC-10). Auth is the *last* thing to
+  move, if ever.
+
+### What moves vs. what stays
+
+| RTK usage | Migration |
+|---|---|
+| `useGetXQuery` (list) | → `useQuery({collection})` |
+| `useGetXByIdQuery` (read) | → `useEntity({collection, id})` |
+| `usePostX` / `usePatchX` / `useDeleteX` | → `useSyncMutations(...)` (optimistic + outbox) |
+| array ops (`/:id/:field` push/update/remove) | → outbox `arrayPush`/`arrayUpdate`/`arrayRemove` |
+| `realtimeList` / `realtimeDocument` cache patching | → deleted for migrated collections (the syncdb delta applier replaces it; the backend `realtime` config still drives fanout, now feeding `sync:delta`) |
+| OpenAPI → RTK Query codegen | → `@terreno/syncdb-codegen` descriptors per migrated collection |
+| auth/login/token refresh | **stays** (rtk auth slice or Better Auth) — syncdb reuses the token |
+| non-CRUD RPC (e.g. `bulkComplete`, GPT streaming), file/binary uploads | **stays** on RTK (or exposed as a syncdb custom op / plain HTTP) |
+
+### Step-by-step
+
+1. **Inventory & classify** every RTK Query endpoint as: (a) CRUD-on-a-collection
+   → migrate; (b) non-CRUD RPC/action → keep on RTK (or wrap); (c) auth/session →
+   keep.
+2. **Dual-run a pilot collection** (todos) behind the flag: syncdb owns
+   reads/writes; keep the RTK path available for parity comparison.
+3. **Reads**: swap query/read hooks; the Redux bridge keeps existing
+   status-driven selectors/UI working. Components read `entity.data` (REST-shaped,
+   because the delta serializer reuses the same `responseHandler`).
+4. **Writes**: swap mutation hooks to `useSyncMutations`; verify offline queue +
+   replay + conflict behavior against the real server.
+5. **Realtime**: disable `realtimeList`/`realtimeDocument` for the collection so
+   only the syncdb delta path patches it (avoid double-apply).
+6. **Codegen**: generate syncdb descriptors for the collection; retire its RTK
+   hooks once parity holds.
+7. **Repeat per collection**, widening the allowlist. When the last collection is
+   migrated, remove the RTK Query data layer; the auth slice may remain or move to
+   Better Auth.
+
+### Store coexistence sketch
+
+```typescript
+const store = configureStore({
+  reducer: {
+    auth: authSlice.authReducer,          // stays during migration
+    [terrenoApi.reducerPath]: terrenoApi.reducer, // un-migrated collections + RPC
+    syncdb: syncDbBridge.reducer,         // mirrored syncdb status for legacy selectors
+  },
+  middleware: (getDefault) =>
+    getDefault().concat(terrenoApi.middleware, ...authSlice.middleware),
+});
+syncDbBridge.connect({dispatch: store.dispatch});
+```
+
+### Migration risks
+
+- **Divergence during dual-run** → gate cutover on snapshot/since parity checks;
+  one collection at a time.
+- **Double realtime** (RTK realtime + syncdb delta on the same collection) →
+  enforce exactly one active path per collection via the allowlist.
+- **Permission parity** → both paths already go through `modelRouter` permissions
+  / `queryFilter` / `responseHandler`, so authorization cannot drift.
+
+## Plan corrections (from existing-infrastructure review)
+
+Folding in findings from reviewing `api/src/realtime/*`:
+
+- **Assign `seq` in the write path, not the change-stream watcher.** Every
+  instance runs its own watcher, so watcher-assigned seq would double-count.
+  Assign via a shared mongoose plugin (covers REST/admin/other-service writes
+  too) writing to an atomic per-stream counter; the `SyncEvent` log gets a unique
+  index on `(collection, entityId, resumeToken)` for idempotency.
+- **Stamp the originating `mutationId`/`version` on the document** so the
+  change-stream-derived `sync:delta` can be correlated/echo-suppressed by the
+  sender (the change stream carries no `mutationId` otherwise). The client's
+  per-entity version guard already de-dupes as a backstop.
+- **Socket auth is JWT-only today** (`@thream/socketio-jwt` + `TOKEN_SECRET`).
+  Apps on Better Auth (session) need a socket-auth bridge before the transport
+  works there.
+- **The client transport re-implements the socket lifecycle** (no `@terreno/rtk`
+  import): `useSocketConnection` is React/Redux-coupled, so
+  `createSocketIoSyncTransport` borrows its reconnection/token-refresh *patterns*
+  with an injected `getAuthToken`, keeping syncdb framework-agnostic.
+
+## Example app sandbox (already in this PR)
+
+To exercise multi-collection sync, `example-backend` now defines two additional
+owner-scoped, realtime-enabled models — **`TodoList`** (`/todoLists`) and
+**`TodoComment`** (`/todoComments`) — and `example-frontend`'s local-first screen
+consumes them via syncdb hooks (`ListsBar` over `todoLists`; `TodoComments` over
+`todoComments`, filtered by `todoId`; todos carry an optional local `listId`).
+These are the concrete collections the delta protocol + transport will sync
+end-to-end in Phase 6, and the migration pilot beyond todos.
+
 ## Phases
 
 1. **Server: versioning + event log + cursors**
@@ -324,8 +433,8 @@ These extend the existing syncdb ACs (AC-1..AC-10) with the now-real server.
   - Files: `syncdb/src/sync/bootstrap.ts` (new), tests.
 
 ### Phase 6: Example integration
-- [ ] **Task 6.1**: Enable `RealtimeApp` sync protocol + todos `realtime` config; swap example-frontend simulated transport for the real one behind `USE_SYNCDB`.
-  - Files: `example-backend/src/server.ts`, `example-backend/src/api/todos.ts`, `example-frontend/store/syncdb.ts`.
+- [ ] **Task 6.1**: Enable `RealtimeApp` sync protocol; swap example-frontend simulated transport for the real one behind `USE_SYNCDB`, syncing `todos`, `todoLists`, and `todoComments` (models/routes/realtime config already added in this PR).
+  - Files: `example-backend/src/server.ts`, `example-backend/src/api/todos.ts`, `example-backend/src/api/todoLists.ts`, `example-backend/src/api/todoComments.ts`, `example-frontend/store/syncdb.ts`.
 - [ ] **Task 6.2**: Two-client e2e (delta dedupe, conflict, resync).
   - Files: `example-frontend/e2e/*` (Playwright), tests.
 
