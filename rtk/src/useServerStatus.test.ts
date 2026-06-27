@@ -101,7 +101,7 @@ describe("useServerStatus", () => {
     const {unmount} = renderHook(
       () =>
         useServerStatus({
-          healthUrl: "http://localhost:3000/health",
+          healthUrl: "http://localhost:4000/health",
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -123,7 +123,7 @@ describe("useServerStatus", () => {
     const {unmount} = renderHook(
       () =>
         useServerStatus({
-          healthUrl: "http://localhost:3000/health",
+          healthUrl: "http://localhost:4000/health",
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -147,7 +147,7 @@ describe("useServerStatus", () => {
     const {unmount} = renderHook(
       () =>
         useServerStatus({
-          healthUrl: "http://localhost:3000/health",
+          healthUrl: "http://localhost:4000/health",
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -169,7 +169,7 @@ describe("useServerStatus", () => {
     const {unmount} = renderHook(
       () =>
         useServerStatus({
-          healthUrl: "http://localhost:3000/health",
+          healthUrl: "http://localhost:4000/health",
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -215,7 +215,7 @@ describe("useServerStatus", () => {
     const {unmount} = renderHook(
       () =>
         useServerStatus({
-          healthUrl: "http://localhost:3000/health",
+          healthUrl: "http://localhost:4000/health",
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -243,7 +243,7 @@ describe("useServerStatus", () => {
     const {unmount} = renderHook(
       () =>
         useServerStatus({
-          healthUrl: "http://localhost:3000/health",
+          healthUrl: "http://localhost:4000/health",
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}

@@ -10,6 +10,7 @@ import {
   logAuth,
   logSocket,
   resolveBaseUrls,
+  resolveDevApiPort,
   SAME_ORIGIN_SENTINEL,
   setRealtimeDebug,
 } from "./constants";
@@ -31,7 +32,7 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {BASE_URL: ""}}},
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://localhost:3000");
+    expect(urls.baseUrl).toBe("http://localhost:4000");
   });
 
   it("uses env override when provided", () => {
@@ -50,9 +51,9 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {}, hostUri: "10.0.0.12:8081"}},
       isDev: true,
     });
-    expect(urls.baseUrl).toBe("http://10.0.0.12:3000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://10.0.0.12:3000/");
-    expect(urls.baseTasksUrl).toBe("http://10.0.0.12:3000/tasks");
+    expect(urls.baseUrl).toBe("http://10.0.0.12:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://10.0.0.12:4000/");
+    expect(urls.baseTasksUrl).toBe("http://10.0.0.12:4000/tasks");
   });
 
   it("falls back to experienceUrl in dev mode when hostUri missing", () => {
@@ -63,9 +64,9 @@ describe("resolveBaseUrls", () => {
       },
       isDev: true,
     });
-    expect(urls.baseUrl).toBe("http://192.168.1.20:3000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://192.168.1.20:3000/");
-    expect(urls.baseTasksUrl).toBe("http://192.168.1.20:3000/tasks");
+    expect(urls.baseUrl).toBe("http://192.168.1.20:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://192.168.1.20:4000/");
+    expect(urls.baseTasksUrl).toBe("http://192.168.1.20:4000/tasks");
   });
 
   it("falls back to localhost in dev mode when nothing else is available", () => {
@@ -93,9 +94,9 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {}, hostUri: "172.16.0.3:8081"}},
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://172.16.0.3:3000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://172.16.0.3:3000/");
-    expect(urls.baseTasksUrl).toBe("http://172.16.0.3:3000/tasks");
+    expect(urls.baseUrl).toBe("http://172.16.0.3:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://172.16.0.3:4000/");
+    expect(urls.baseTasksUrl).toBe("http://172.16.0.3:4000/tasks");
   });
 
   it("falls back to experienceUrl in non-dev when hostUri absent", () => {
@@ -106,7 +107,7 @@ describe("resolveBaseUrls", () => {
       },
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://10.1.2.3:3000");
+    expect(urls.baseUrl).toBe("http://10.1.2.3:4000");
   });
 
   it("defaults to localhost in non-dev when nothing is configured", () => {
@@ -114,7 +115,7 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {}}},
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://localhost:3000");
+    expect(urls.baseUrl).toBe("http://localhost:4000");
   });
 
   it("envApiUrl takes priority over BASE_URL in non-dev", () => {
@@ -142,7 +143,7 @@ describe("resolveBaseUrls", () => {
       expoConstants: {},
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://localhost:3000");
+    expect(urls.baseUrl).toBe("http://localhost:4000");
   });
 
   it("ignores BASE_URL from extra in dev mode and uses hostUri instead", () => {
@@ -152,9 +153,9 @@ describe("resolveBaseUrls", () => {
       },
       isDev: true,
     });
-    expect(urls.baseUrl).toBe("http://192.168.0.10:3000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://192.168.0.10:3000/");
-    expect(urls.baseTasksUrl).toBe("http://192.168.0.10:3000/tasks");
+    expect(urls.baseUrl).toBe("http://192.168.0.10:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://192.168.0.10:4000/");
+    expect(urls.baseTasksUrl).toBe("http://192.168.0.10:4000/tasks");
   });
 
   it("falls back to experienceUrl when hostUri is empty string", () => {
@@ -165,7 +166,7 @@ describe("resolveBaseUrls", () => {
       },
       isDev: true,
     });
-    expect(urls.baseUrl).toBe("http://10.0.0.5:3000");
+    expect(urls.baseUrl).toBe("http://10.0.0.5:4000");
   });
 
   it("replaces 'api.' subdomain with 'tasks.' and 'ws.' for envApiUrl", () => {
@@ -205,7 +206,7 @@ describe("resolveBaseUrls", () => {
     const urls = resolveBaseUrls({
       expoConstants: {expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}}},
       isDev: false,
-      windowOrigin: "http://localhost:3000",
+      windowOrigin: "http://localhost:4000",
     });
     expect(urls.baseUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}`);
     expect(urls.baseWebsocketsUrl).toBe(`ws://localhost:${DEFAULT_DEV_API_PORT}/`);
@@ -229,8 +230,8 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}}},
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://localhost:3000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:3000/");
+    expect(urls.baseUrl).toBe("http://localhost:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
   });
 
   it("does not treat the sentinel as a literal base URL when a window origin is absent", () => {
@@ -241,7 +242,7 @@ describe("resolveBaseUrls", () => {
       isDev: false,
     });
     // Sentinel ignored -> falls through to hostUri resolution, not the literal "__SAME_ORIGIN__".
-    expect(urls.baseUrl).toBe("http://172.16.0.3:3000");
+    expect(urls.baseUrl).toBe("http://172.16.0.3:4000");
   });
 
   it("leaves a non-sentinel BASE_URL unchanged when a window origin is present", () => {
@@ -253,13 +254,66 @@ describe("resolveBaseUrls", () => {
     expect(urls.baseUrl).toBe("https://api.prod.com");
     expect(urls.baseWebsocketsUrl).toBe("https://ws.prod.com/");
   });
+
+  it("uses a custom devApiPort for hostUri resolution in dev mode", () => {
+    const urls = resolveBaseUrls({
+      devApiPort: 9000,
+      expoConstants: {expoConfig: {extra: {}, hostUri: "10.0.0.12:8081"}},
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://10.0.0.12:9000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://10.0.0.12:9000/");
+    expect(urls.baseTasksUrl).toBe("http://10.0.0.12:9000/tasks");
+  });
+
+  it("uses a custom devApiPort for the localhost fallback", () => {
+    const urls = resolveBaseUrls({
+      devApiPort: 3000,
+      expoConstants: {expoConfig: {extra: {}}},
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://localhost:3000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:3000/");
+    expect(urls.baseTasksUrl).toBe("http://localhost:3000/tasks");
+  });
+});
+
+describe("resolveDevApiPort", () => {
+  it("defaults to DEFAULT_DEV_API_PORT when nothing is configured", () => {
+    expect(resolveDevApiPort({expoConstants: {expoConfig: {extra: {}}}})).toBe(
+      DEFAULT_DEV_API_PORT
+    );
+  });
+
+  it("reads the port from expoConfig.extra.DEV_API_PORT", () => {
+    expect(resolveDevApiPort({expoConstants: {expoConfig: {extra: {DEV_API_PORT: "3000"}}}})).toBe(
+      3000
+    );
+  });
+
+  it("prefers EXPO_PUBLIC_DEV_API_PORT over extra.DEV_API_PORT", () => {
+    expect(
+      resolveDevApiPort({
+        envDevApiPort: "9000",
+        expoConstants: {expoConfig: {extra: {DEV_API_PORT: "3000"}}},
+      })
+    ).toBe(9000);
+  });
+
+  it("falls back to the default for empty or invalid values", () => {
+    expect(resolveDevApiPort({envDevApiPort: "", expoConstants: {}})).toBe(DEFAULT_DEV_API_PORT);
+    expect(resolveDevApiPort({envDevApiPort: "not-a-number", expoConstants: {}})).toBe(
+      DEFAULT_DEV_API_PORT
+    );
+    expect(resolveDevApiPort({envDevApiPort: "-5", expoConstants: {}})).toBe(DEFAULT_DEV_API_PORT);
+  });
 });
 
 describe("module-level exports", () => {
   it("exports baseUrl / websockets / tasks URLs that resolve to localhost with default mocks", () => {
-    expect(baseUrl).toBe("http://localhost:3000");
-    expect(baseWebsocketsUrl).toBe("ws://localhost:3000/");
-    expect(baseTasksUrl).toBe("http://localhost:3000/tasks");
+    expect(baseUrl).toBe("http://localhost:4000");
+    expect(baseWebsocketsUrl).toBe("ws://localhost:4000/");
+    expect(baseTasksUrl).toBe("http://localhost:4000/tasks");
   });
 
   it("AUTH_DEBUG is false by default with test-preload mocks", () => {

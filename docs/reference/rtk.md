@@ -337,8 +337,11 @@ Base RTK Query API with authentication, retry logic, and automatic token refresh
 **Base URL Resolution (priority order):**
 1. `Constants.expoConfig?.extra?.BASE_URL` (production/staging)
 2. `process.env.EXPO_PUBLIC_API_URL` (dev web)
-3. `Constants.expoConfig?.hostUri` + `:3000` (dev simulator/device)
-4. `http://localhost:3000` (fallback)
+3. `Constants.expoConfig?.hostUri` + the dev API port (dev simulator/device)
+4. `http://localhost:<dev API port>` (fallback)
+
+The dev API port defaults to `4000` and is overridable per app via `EXPO_PUBLIC_DEV_API_PORT`
+or `expoConfig.extra.DEV_API_PORT` (for example `3000` or `9000`).
 
 ## Debugging
 
@@ -396,14 +399,18 @@ Configuration for frontend apps using @terreno/rtk:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `EXPO_PUBLIC_API_URL` | No | Auto-detected | Backend API base URL (production/staging deployments) |
+| `EXPO_PUBLIC_DEV_API_PORT` | No | 4000 | Local dev API port for host/localhost resolution (also settable via `extra.DEV_API_PORT`) |
 | `NODE_ENV` | No | `development` | Environment: `development`, `production`, `test` |
 
 **Base URL resolution priority:**
 
 1. `Constants.expoConfig?.extra?.BASE_URL` (from `app.json` `extra` field)
 2. `process.env.EXPO_PUBLIC_API_URL` (for web development)
-3. `Constants.expoConfig?.hostUri` + `:3000` (for Expo dev server - simulator/device)
-4. `http://localhost:3000` (fallback)
+3. `Constants.expoConfig?.hostUri` + the dev API port (for Expo dev server - simulator/device)
+4. `http://localhost:<dev API port>` (fallback)
+
+The dev API port defaults to `4000` and is overridable per app via `EXPO_PUBLIC_DEV_API_PORT`
+or `expoConfig.extra.DEV_API_PORT` (for example `3000` or `9000`).
 
 **Example `app.json` configuration:**
 

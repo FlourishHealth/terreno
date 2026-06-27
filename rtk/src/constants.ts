@@ -72,20 +72,48 @@ export interface BaseUrls {
  */
 export const SAME_ORIGIN_SENTINEL = "__SAME_ORIGIN__";
 
-/** Default local API port when resolving dev base URLs from Expo host/experience URLs. */
-export const DEFAULT_DEV_API_PORT = 3000;
+/**
+ * Default local API port used when resolving dev base URLs from the Expo
+ * host/experience URL or the localhost fallback. Matches the example backend.
+ */
+export const DEFAULT_DEV_API_PORT = 4000;
 
-const LOCALHOST: BaseUrls = {
-  baseTasksUrl: `http://localhost:${DEFAULT_DEV_API_PORT}/tasks`,
-  baseUrl: `http://localhost:${DEFAULT_DEV_API_PORT}`,
-  baseWebsocketsUrl: `ws://localhost:${DEFAULT_DEV_API_PORT}/`,
+/**
+ * Resolves the local dev API port. Apps whose backend listens on a non-default
+ * port (for example 3000 or 9000) override it via the `EXPO_PUBLIC_DEV_API_PORT`
+ * env var or `expoConfig.extra.DEV_API_PORT`, mirroring how `EXPO_PUBLIC_API_URL`
+ * and `extra.BASE_URL` are provided. Missing or invalid values fall back to the
+ * default port.
+ */
+export const resolveDevApiPort = (args: {
+  envDevApiPort?: string;
+  expoConstants: ExpoConstantsShape;
+}): number => {
+  const raw = args.envDevApiPort ?? args.expoConstants.expoConfig?.extra?.DEV_API_PORT;
+  if (raw === undefined || raw === "") {
+    return DEFAULT_DEV_API_PORT;
+  }
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return DEFAULT_DEV_API_PORT;
+  }
+  return parsed;
 };
+
+const localhostUrls = (port: number): BaseUrls => ({
+  baseTasksUrl: `http://localhost:${port}/tasks`,
+  baseUrl: `http://localhost:${port}`,
+  baseWebsocketsUrl: `ws://localhost:${port}/`,
+});
 
 /**
  * Pure resolver for the base URLs used throughout the RTK package.
  * Decoupled from the Expo-constants module so it can be unit tested.
  */
 export const resolveBaseUrls = (args: {
+  // Local dev API port for host/experience/localhost resolution. Defaults to
+  // DEFAULT_DEV_API_PORT; callers pass the app-configured port (see resolveDevApiPort).
+  devApiPort?: number;
   envApiUrl?: string;
   expoConstants: ExpoConstantsShape;
   isDev: boolean;
@@ -93,6 +121,7 @@ export const resolveBaseUrls = (args: {
   // Injectable so the sentinel resolution can be unit tested without a DOM.
   windowOrigin?: string;
 }): BaseUrls => {
+  const port = args.devApiPort ?? DEFAULT_DEV_API_PORT;
   const hostUriPrefix = args.expoConstants.expoConfig?.hostUri?.split(":").shift();
   const experiencePrefix = args.expoConstants.experienceUrl?.split(":")[1];
   const baseFromExtra = args.expoConstants.expoConfig?.extra?.BASE_URL;
@@ -121,17 +150,17 @@ export const resolveBaseUrls = (args: {
     };
   if (host)
     return {
-      baseTasksUrl: `http://${host}:${DEFAULT_DEV_API_PORT}/tasks`,
-      baseUrl: `http://${host}:${DEFAULT_DEV_API_PORT}`,
-      baseWebsocketsUrl: `ws://${host}:${DEFAULT_DEV_API_PORT}/`,
+      baseTasksUrl: `http://${host}:${port}/tasks`,
+      baseUrl: `http://${host}:${port}`,
+      baseWebsocketsUrl: `ws://${host}:${port}/`,
     };
   if (experience)
     return {
-      baseTasksUrl: `http:${experience}:${DEFAULT_DEV_API_PORT}/tasks`,
-      baseUrl: `http:${experience}:${DEFAULT_DEV_API_PORT}`,
-      baseWebsocketsUrl: `ws:${experience}:${DEFAULT_DEV_API_PORT}/`,
+      baseTasksUrl: `http:${experience}:${port}/tasks`,
+      baseUrl: `http:${experience}:${port}`,
+      baseWebsocketsUrl: `ws:${experience}:${port}/`,
     };
-  return LOCALHOST;
+  return localhostUrls(port);
 };
 
 // When we use "expo publish", we want to point the API at the prod API. In the future,
@@ -151,6 +180,10 @@ const windowOrigin =
     : undefined;
 
 const resolved = resolveBaseUrls({
+  devApiPort: resolveDevApiPort({
+    envDevApiPort: process.env.EXPO_PUBLIC_DEV_API_PORT,
+    expoConstants: Constants as ExpoConstantsShape,
+  }),
   envApiUrl: process.env.EXPO_PUBLIC_API_URL,
   expoConstants: Constants as ExpoConstantsShape,
   isDev,
