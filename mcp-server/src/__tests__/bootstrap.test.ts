@@ -4,14 +4,15 @@ import {
   bootstrapTools,
   handleBootstrapPromptRequest,
   handleBootstrapToolCall,
+  PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
 
 describe("bootstrap", () => {
   describe("bootstrapTools", () => {
-    test("should export bootstrap_app and bootstrap_ai_rules", () => {
+    test("should export terreno_bootstrap_app and terreno_bootstrap_ai_rules", () => {
       const names = bootstrapTools.map((t) => t.name);
-      expect(names).toContain("bootstrap_app");
-      expect(names).toContain("bootstrap_ai_rules");
+      expect(names).toContain("terreno_bootstrap_app");
+      expect(names).toContain("terreno_bootstrap_ai_rules");
     });
 
     test("should have valid input schema structure", () => {
@@ -21,16 +22,23 @@ describe("bootstrap", () => {
         expect(tool.inputSchema.required).toContain("appDisplayName");
       }
     });
+
+    test("terreno_bootstrap_ai_rules should expose optional packages in inputSchema", () => {
+      const tool = bootstrapTools.find((t) => t.name === "terreno_bootstrap_ai_rules");
+      expect(tool).toBeDefined();
+      const props = tool?.inputSchema.properties as Record<string, {type?: string}> | undefined;
+      expect(props?.packages?.type).toBe("array");
+    });
   });
 
   describe("bootstrapPrompts", () => {
-    test("should export bootstrap_terreno_app prompt", () => {
+    test("should export terreno_bootstrap prompt", () => {
       const names = bootstrapPrompts.map((p) => p.name);
-      expect(names).toContain("bootstrap_terreno_app");
+      expect(names).toContain("terreno_bootstrap");
     });
 
     test("should have required arguments", () => {
-      const prompt = bootstrapPrompts.find((p) => p.name === "bootstrap_terreno_app");
+      const prompt = bootstrapPrompts.find((p) => p.name === "terreno_bootstrap");
       expect(prompt).toBeDefined();
       const argNames = prompt?.arguments.map((a) => a.name);
       expect(argNames).toContain("appName");
@@ -38,9 +46,9 @@ describe("bootstrap", () => {
     });
   });
 
-  describe("handleBootstrapToolCall - bootstrap_app", () => {
+  describe("handleBootstrapToolCall - terreno_bootstrap_app", () => {
     test("should return error when appName is missing", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "My App",
       });
       expect(result.content[0].text).toContain("Error");
@@ -48,14 +56,14 @@ describe("bootstrap", () => {
     });
 
     test("should return error when appDisplayName is missing", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appName: "my-app",
       });
       expect(result.content[0].text).toContain("Error");
     });
 
     test("should return all expected files with required args", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "My App",
         appName: "my-app",
       });
@@ -113,7 +121,7 @@ describe("bootstrap", () => {
     });
 
     test("should include setup instructions", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "Test App",
         appName: "test-app",
       });
@@ -130,7 +138,7 @@ describe("bootstrap", () => {
     });
 
     test("should use custom MCP server URL when provided", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "Custom App",
         appName: "custom-app",
         mcpServerUrl: "https://custom.mcp.example.com",
@@ -139,7 +147,7 @@ describe("bootstrap", () => {
     });
 
     test("should use default MCP server URL when not provided", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "Default App",
         appName: "default-app",
       });
@@ -147,7 +155,7 @@ describe("bootstrap", () => {
     });
 
     test("should include generated backend server code", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "Code App",
         appName: "code-app",
       });
@@ -160,7 +168,7 @@ describe("bootstrap", () => {
     });
 
     test("should include generated frontend code", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "FE App",
         appName: "fe-app",
       });
@@ -179,7 +187,7 @@ describe("bootstrap", () => {
     });
 
     test("should generate valid JSON in mcp.json settings", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "JSON App",
         appName: "json-app",
       });
@@ -190,11 +198,18 @@ describe("bootstrap", () => {
         const parsed = JSON.parse(match[1]);
         expect(parsed.mcpServers.terreno).toBeDefined();
         expect(parsed.mcpServers.terreno.type).toBe("http");
+        expect(parsed.mcpServers["terreno-local"]).toBeDefined();
+        expect(parsed.mcpServers.expo).toBeDefined();
+        expect(parsed.mcpServers.playwright).toBeDefined();
+        expect(parsed.mcpServers.playwright.args).toEqual([
+          "-y",
+          `@playwright/mcp@${PLAYWRIGHT_MCP_PACKAGE_VERSION}`,
+        ]);
       }
     });
 
     test("should use app name in workflow files", () => {
-      const result = handleBootstrapToolCall("bootstrap_app", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
         appDisplayName: "Workflow App",
         appName: "workflow-app",
       });
@@ -204,23 +219,23 @@ describe("bootstrap", () => {
     });
   });
 
-  describe("handleBootstrapToolCall - bootstrap_ai_rules", () => {
+  describe("handleBootstrapToolCall - terreno_bootstrap_ai_rules", () => {
     test("should return error when appName is missing", () => {
-      const result = handleBootstrapToolCall("bootstrap_ai_rules", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "My App",
       });
       expect(result.content[0].text).toContain("Error");
     });
 
     test("should return error when appDisplayName is missing", () => {
-      const result = handleBootstrapToolCall("bootstrap_ai_rules", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appName: "my-app",
       });
       expect(result.content[0].text).toContain("Error");
     });
 
     test("should generate all AI rules files with required args", () => {
-      const result = handleBootstrapToolCall("bootstrap_ai_rules", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "Rules App",
         appName: "rules-app",
       });
@@ -237,7 +252,7 @@ describe("bootstrap", () => {
     });
 
     test("should include setup instructions for rulesync", () => {
-      const result = handleBootstrapToolCall("bootstrap_ai_rules", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "R App",
         appName: "r-app",
       });
@@ -246,7 +261,7 @@ describe("bootstrap", () => {
     });
 
     test("should strip frontmatter from backend/frontend AGENTS files", () => {
-      const result = handleBootstrapToolCall("bootstrap_ai_rules", {
+      const result = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "Strip App",
         appName: "strip-app",
       });
@@ -262,6 +277,40 @@ describe("bootstrap", () => {
         expect(backendAgentsMatch[1]).toContain("Strip App Backend");
       }
     });
+
+    test("packages filter omits admin-backend guidelines from backend rules", () => {
+      const filtered = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "No Admin BE",
+        appName: "no-admin-be",
+        packages: ["api", "ui", "rtk"],
+      });
+      const filteredText = filtered.content[0].text;
+      expect(filteredText).not.toContain("## Admin Panel (backend)");
+
+      const full = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "With Admin BE",
+        appName: "with-admin-be",
+      });
+      const fullText = full.content[0].text;
+      expect(fullText).toContain("## Admin Panel (backend)");
+    });
+
+    test("packages filter omits admin-frontend guidelines from frontend rules", () => {
+      const filtered = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "No Admin FE",
+        appName: "no-admin-fe",
+        packages: ["api", "ui", "rtk"],
+      });
+      const filteredText = filtered.content[0].text;
+      expect(filteredText).not.toContain("AdminModelList");
+
+      const full = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "With Admin FE",
+        appName: "with-admin-fe",
+      });
+      const fullText = full.content[0].text;
+      expect(fullText).toContain("AdminModelList");
+    });
   });
 
   describe("handleBootstrapToolCall - unknown", () => {
@@ -273,7 +322,7 @@ describe("bootstrap", () => {
 
   describe("handleBootstrapPromptRequest", () => {
     test("should generate bootstrap prompt", () => {
-      const result = handleBootstrapPromptRequest("bootstrap_terreno_app", {
+      const result = handleBootstrapPromptRequest("terreno_bootstrap", {
         appDisplayName: "Prompt App",
         appName: "prompt-app",
       });
@@ -281,8 +330,8 @@ describe("bootstrap", () => {
 
       expect(text).toContain("prompt-app");
       expect(text).toContain("Prompt App");
-      expect(text).toContain("bootstrap_app");
-      expect(text).toContain("bootstrap_ai_rules");
+      expect(text).toContain("terreno_bootstrap_app");
+      expect(text).toContain("terreno_bootstrap_ai_rules");
       expect(text).toContain("rulesync");
     });
 

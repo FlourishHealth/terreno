@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["../biome.jsonc"],
+  "files": {
+    "includes": [
+      "package.json",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "app/**/*.ts",
+      "app/**/*.tsx",
+      "store/**/*.ts",
+      "store/**/*.tsx",
+      "components/**/*.ts",
+      "components/**/*.tsx",
+      "e2e/**/*.ts",
+      "playwright.config.ts",
+      "!store/openApiSdk.ts",
+      "!!**/node_modules",
+      "!!node_modules",
+      "!!**/dist",
+      "!!dist",
+      "!!**/build",
+      "!!build",
+      "!!**/coverage",
+      "!!coverage"
+    ]
+  },
+  "root": true
+}

@@ -1,0 +1,126 @@
+---
+name: submit
+description: >-
+  Lightweight pre-commit + commit + push + create/update PR, then spawn
+  check-watcher in the background. Use /fullsend for the full pipeline with code
+  review.
+---
+# Submit: Quick Commit & PR
+
+Lightweight path to run pre-commit checks, commit, push, and monitor CI. After pushing, this skill launches `/check-watcher` as a background sub-agent so CI is watched without blocking. Use `/fullsend` for the full pipeline that also includes code review.
+
+## Step 1: Assess Changes
+
+```bash
+git status && git diff --stat
+```
+
+```bash
+gh pr view --json number -q .number 2>/dev/null || echo "no-pr"
+```
+
+## Step 1.5: Pre-Commit Checks
+
+Delegate lint, type check, and related tests to the `pre-commit` subagent before committing.
+
+Use the `Agent` tool:
+- `subagent_type`: `pre-commit`
+- `description`: `Run pre-commit checks`
+- `prompt`: instruct it to run lint, compile, and related tests for the current project, fix any issues, and report back. Mention this is being run as part of `/submit` for an upcoming commit.
+
+Wait for the subagent to return its Pre-Commit Report. If it surfaces unfixable failures, STOP and report them — do not commit or push.
+
+If invoked from `/fullsend` (which already ran pre-commit), skip this step.
+
+## Step 2: Commit
+
+Stage and commit:
+- Review the diff to write an accurate message
+- Keep first line under 72 characters
+- No conventional commit prefixes
+- No AI attribution
+
+## Step 3: Push
+
+```bash
+git push origin HEAD
+```
+
+## Step 4: Create or Update PR
+
+### If no PR exists
+
+Use this template for the **initial** body only:
+
+```bash
+gh pr create --title "<title>" --body "$(cat <<'EOF'
+## Summary
+[What changed and why — 2-4 sentences]
+
+## Human Testing Steps
+- [ ] [Step-by-step verification instructions]
+
+## Changes
+- [Bullet list of specific changes]
+
+## Automated Tests
+- [Tests that ran and passed, or "None"]
+EOF
+)" --draft
+```
+
+### If a PR already exists
+
+1. Read the current PR title and body, then compare against commits and diff on the branch:
+
+```bash
+gh pr view --json title,body,baseRefName
+git log $(gh pr view --json baseRefName -q .baseRefName)..HEAD --oneline
+git diff $(gh pr view --json baseRefName -q .baseRefName)...HEAD --stat
+```
+
+2. **Merge policy (mandatory):** Treat the `body` from `gh pr view` as the source document.
+
+- **Do not replace the entire description** with a fresh template or a short stub. Build the next body by **editing a copy of the existing Markdown**.
+- Keep narrative, reviewer context, links, embedded media/HTML, `<!-- -->` comments, and manual checklist edits unless they are factually wrong for the branch.
+- Prefer **additive** updates: append bullets under **Changes** for new work; extend **Summary** with a brief "Update:" line (and date if helpful) when scope grows, instead of deleting the original explanation.
+- Refresh **Human Testing Steps** / **Automated Tests** only when verification needs changed; add or adjust bullets rather than wiping sections unless an item is now false.
+- If new work does not fit existing headings, add a **new section at the end** instead of removing unrelated content.
+- Change the PR **title** only when the overall branch goal changed; otherwise keep the existing title.
+
+3. Compare your merged draft against the `git log` / `git diff` output above. Revise only what is stale.
+
+4. Apply the **full** merged body once (avoid shell quoting breakage):
+
+```bash
+gh pr edit --title "<title-or-keep-existing>" --body-file /tmp/submit-pr-body.md
+```
+
+Write `/tmp/submit-pr-body.md` with the complete merged Markdown. Do not pass a placeholder body.
+
+If nothing needs changing, skip `gh pr edit` and tell the user the PR description is already current.
+
+If you use a PR management tool instead of `gh`, apply the same policy: when supplying a `body`, pass the **full merged Markdown** only—never a template or stub that drops existing reviewer context unless the user explicitly asked for a full rewrite.
+
+## Step 5: Print PR Link
+
+```bash
+gh pr view --json title,url -q '"**\(.title)** — \(.url)"'
+```
+
+## Step 6: Launch Check Watcher Sub-Agent
+
+Spawn `/check-watcher` as a **background sub-agent** so CI monitoring runs autonomously without blocking the parent conversation. Use the `Agent` tool with `run_in_background: true`.
+
+- `subagent_type`: `general-purpose`
+- `description`: `Watch CI for current PR`
+- `run_in_background`: `true`
+- `prompt`: instruct the sub-agent to invoke the `/check-watcher` skill for the current PR, fix any failures, and report back when checks are green or max attempts are hit. Include the PR number/URL from Step 5 so the sub-agent has context.
+
+Do **not** wait on the sub-agent — return control immediately after spawning. The user will be notified when it completes.
+
+By the time you reach this step, a PR is guaranteed to exist — either it pre-existed (from Step 1) or Step 4 just created it. Always spawn check-watcher.
+
+## Arguments
+
+$DESCRIPTION: Optional description to guide the commit message and PR

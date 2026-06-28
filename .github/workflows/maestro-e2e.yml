@@ -8,7 +8,7 @@ jobs:
     name: Maestro E2E Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -131,7 +131,7 @@ jobs:
 
       - name: Upload Maestro artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: maestro-screenshots
           path: ~/.maestro/tests/

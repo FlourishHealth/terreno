@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {forwardRef, useRef} from "react";
 import {Text, View} from "react-native";
@@ -12,11 +13,6 @@ mock.module("react-native-modalize", () => ({
       {children}
     </View>
   )),
-}));
-
-// Mock react-native-portalize
-mock.module("react-native-portalize", () => ({
-  Portal: ({children}: {children: React.ReactNode}) => <View testID="portal">{children}</View>,
 }));
 
 describe("ModalSheet", () => {

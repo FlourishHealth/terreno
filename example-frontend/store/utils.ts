@@ -10,7 +10,7 @@ interface VersionInfo {
   version: string;
 }
 
-export function versionInfo(): VersionInfo {
+export const versionInfo = (): VersionInfo => {
   return {
     dev: Boolean(__DEV__),
     environment: Constants.expoConfig?.extra?.APP_ENV ?? (__DEV__ ? "dev" : "unknown"),
@@ -27,7 +27,7 @@ export function versionInfo(): VersionInfo {
       Constants.expoConfig?.version ??
       "Unknown",
   };
-}
+};
 
 export const getCurrentExpoToken = async (): Promise<ExpoPushToken> => {
   if (Platform.OS === "web") {

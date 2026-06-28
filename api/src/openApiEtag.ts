@@ -14,7 +14,7 @@ export const openApiEtagMiddleware = (req: Request, res: Response, next: NextFun
 
   const originalJson = res.json.bind(res);
 
-  res.json = (body: any) => {
+  res.json = (body: unknown) => {
     const jsonString = JSON.stringify(body);
     const etag = `"${crypto.createHash("sha256").update(jsonString).digest("hex").substring(0, 16)}"`;
 

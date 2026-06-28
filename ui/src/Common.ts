@@ -1,9 +1,10 @@
 import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
-import type {ReactElement, ReactNode} from "react";
+import type {FC, ReactElement, ReactNode} from "react";
 import type {
   ImageStyle,
   ListRenderItemInfo,
+  ScrollView,
   StyleProp,
   TextInput,
   TextStyle,
@@ -18,12 +19,37 @@ import type {
   FontAwesome6RegularNames,
   FontAwesome6SolidNames,
 } from "./CommonIconTypes";
+import type {
+  DataTableTestIDs,
+  FieldTestIDs,
+  ModalTestIDs,
+  SegmentedControlTestIDs,
+  WithTestID,
+} from "./testing/types";
+
+export {
+  resolveDataTableRowTestID,
+  resolveDataTableTestIDsFromProps,
+  resolveFieldTestIDsFromProps,
+  resolveModalTestIDsFromProps,
+  resolveTestID,
+  toDomTestProps,
+  toPlatformTestProps,
+  toTestProps,
+} from "./testing";
+export type {
+  DataTableTestIDs,
+  FieldTestIDs,
+  ModalTestIDs,
+  SegmentedControlTestIDs,
+  WithTestID,
+} from "./testing/types";
 
 export type PercentageString = `${number}%`;
 
 export type NumberOrPercentage = number | PercentageString | string;
 
-export interface InfoModalIconProps {
+export interface InfoModalIconProps extends WithTestID {
   /**
    * The content of the information modal.
    */
@@ -354,8 +380,50 @@ export type Direction = "up" | "right" | "down" | "left";
 
 export type OnChangeCallback = (result: string) => void;
 
+/**
+ * Augmentable registry of custom icon names. Downstream consumers extend this
+ * interface via TypeScript declaration merging to register their own icons and
+ * get type-safe, autocompleted names everywhere an `iconName` is accepted.
+ *
+ * @example
+ * ```typescript
+ * declare module "@terreno/ui" {
+ *   interface CustomIconRegistry {
+ *     brandLogo: true;
+ *     sparkle: true;
+ *   }
+ * }
+ * ```
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: Intentionally empty so consumers can augment it via declaration merging.
+export interface CustomIconRegistry {}
+
+/** The set of custom icon names registered via {@link CustomIconRegistry}. */
+export type CustomIconName = keyof CustomIconRegistry & string;
+
 // Update if we start supporting more icon packs from Expo Icons.
-export type IconName = FontAwesome6SolidNames | FontAwesome6BrandNames | FontAwesome6RegularNames;
+export type IconName =
+  | FontAwesome6SolidNames
+  | FontAwesome6BrandNames
+  | FontAwesome6RegularNames
+  | CustomIconName;
+
+/** Props passed to a custom icon component when it is rendered. */
+export interface CustomIconProps extends WithTestID {
+  /** Resolved color string, already mapped from the active theme. */
+  color: string;
+  /** Resolved icon size in pixels. */
+  size: number;
+}
+
+/** A component that renders a custom (non-FontAwesome) icon. */
+export type CustomIconComponent = FC<CustomIconProps>;
+
+/**
+ * Map of custom icon name to the component that renders it. Provided to
+ * `TerrenoProvider` via the `icons` prop to register custom icons.
+ */
+export type IconRegistryMap = Record<string, CustomIconComponent>;
 
 export type AlignContent = "start" | "end" | "center" | "between" | "around" | "stretch";
 export type AlignSelf = "auto" | "start" | "end" | "center" | "baseline" | "stretch";
@@ -394,12 +462,12 @@ export const SPACING_MAP = {
   12: 80,
 };
 
-export function getSpacing(spacing: SignedUpTo12) {
+export const getSpacing = (spacing: SignedUpTo12) => {
   if (spacing < 0) {
     return SPACING_MAP[Math.abs(spacing) as UnsignedUpTo12] * -1;
   }
   return SPACING_MAP[spacing as UnsignedUpTo12];
-}
+};
 
 export type TextFieldType =
   | "date"
@@ -450,7 +518,7 @@ export interface AccessibilityProps {
   accessibilityHint: string;
 }
 
-export interface BoxPropsBase {
+export interface BoxPropsBase extends WithTestID {
   alignContent?: AlignContent;
   alignItems?: AlignItems;
   alignSelf?: AlignSelf;
@@ -463,7 +531,7 @@ export interface BoxPropsBase {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
-      // noExplicitAny: escape hatch for arbitrary inline style values
+      // biome-ignore lint/suspicious/noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
       [key: string]: any;
     };
   };
@@ -549,10 +617,9 @@ export interface BoxPropsBase {
 
   avoidKeyboard?: boolean;
   keyboardOffset?: number;
-  scrollRef?: React.RefObject<any>;
+  scrollRef?: React.RefObject<ScrollView | null>;
   onScroll?: (offsetY: number) => void;
   onLayout?: (event: LayoutChangeEvent) => void;
-  testID?: string;
 }
 
 // If onClick is provided, add accessibility props.
@@ -561,12 +628,68 @@ export type BoxProps =
   | (BoxPropsBase & {onClick: () => void} & AccessibilityProps);
 export type BoxColor = SurfaceColor | "transparent";
 
+export type CardProps = BoxProps & {
+  /**
+   * The visual variant of the card.
+   * - "container": A simple surface wrapper for arbitrary children (default).
+   * - "display": A structured card with a colored header, title, description, and optional action button.
+   * @default "container"
+   */
+  variant?: "container" | "display";
+
+  /**
+   * The size of the display card.
+   * - "large": On desktop, horizontal layout with image/header on the left (160px wide). On mobile, vertical with a full-width image.
+   * - "default": 600px wide with the same horizontal layout as large on desktop. On mobile, vertical layout with a full-width image.
+   * - "small": Always vertical layout — image/header stacked above content (160px wide on mobile).
+   * @default "default"
+   */
+  size?: "small" | "default" | "large";
+
+  /**
+   * The title displayed in the card body. Used in the "display" variant.
+   */
+  title?: string;
+
+  /**
+   * A short description displayed below the title. Used in the "display" variant.
+   */
+  description?: string;
+
+  /**
+   * The label for the action button. Used in the "display" variant.
+   */
+  buttonText?: string;
+
+  /**
+   * Callback invoked when the action button is pressed. Used in the "display" variant.
+   */
+  buttonOnClick?: () => void | Promise<void>;
+
+  /**
+   * URI of an image to display at the top of the card. When provided in the "display" variant,
+   * replaces the colored header with a full-width cover image.
+   */
+  imageUri?: string;
+
+  /**
+   * Accessibility label for the card image.
+   */
+  imageAlt?: string;
+
+  /**
+   * Height in pixels for the image area when imageUri is provided.
+   * @default 160
+   */
+  imageHeight?: number;
+};
+
 export interface ErrorBoundaryProps {
   onError?: (error: Error, stack: string) => void;
   children?: ReactNode;
 }
 
-export interface IconProps {
+export interface IconProps extends WithTestID {
   iconName: IconName;
   type?:
     | "regular"
@@ -580,7 +703,6 @@ export interface IconProps {
     | "sharp";
   color?: IconColor;
   size?: IconSize;
-  testID?: string;
 }
 
 export type TooltipPosition = "top" | "bottom" | "left" | "right";
@@ -592,7 +714,8 @@ export interface SegmentedControlBadgeConfig {
   status?: "info" | "error" | "warning" | "success" | "neutral";
 }
 
-export interface SegmentedControlProps {
+export interface SegmentedControlProps extends WithTestID {
+  testIDs?: SegmentedControlTestIDs;
   items: string[];
   size?: "md" | "lg"; // default "md"
   onChange: (activeIndex: number) => void;
@@ -613,9 +736,9 @@ export interface TextStyleWithOutline extends TextStyle {
   outline?: string;
 }
 
-interface BaseFieldProps {
+interface BaseFieldProps extends WithTestID {
   id?: string;
-  testID?: string;
+  testIDs?: FieldTestIDs;
   title?: string;
   placeholder?: string;
   iconName?: IconName;
@@ -752,18 +875,17 @@ const ROUNDING_MAP = {
   xl: 32,
 };
 
-export function getRounding(rounding: Rounding) {
+export const getRounding = (rounding: Rounding) => {
   return ROUNDING_MAP[rounding];
-}
+};
 
-export interface HeadingProps {
+export interface HeadingProps extends WithTestID {
   align?: "left" | "right" | "center" | "justify"; // default "left"
   children?: React.ReactNode;
   color?: TextColor;
   overflow?: "normal" | "breakWord"; // default "breakWord"
   size?: "sm" | "md" | "lg" | "xl" | "2xl"; // default "sm"
   truncate?: boolean; // default false
-  testID?: string;
 }
 
 export interface MetaProps {
@@ -797,7 +919,8 @@ export interface BackButtonInterface {
   onBack: () => void;
 }
 
-export interface BooleanFieldProps extends HelperTextProps, ErrorTextProps {
+export interface BooleanFieldProps extends WithTestID, HelperTextProps, ErrorTextProps {
+  testIDs?: FieldTestIDs;
   title?: string;
   variant?: "simple" | "title"; // default "simple"
   disabled?: boolean;
@@ -806,7 +929,7 @@ export interface BooleanFieldProps extends HelperTextProps, ErrorTextProps {
   onChange: (value: boolean) => void;
 }
 
-export interface CheckBoxProps {
+export interface CheckBoxProps extends WithTestID {
   /**
    * The background color of the checkbox.
    * @default "default"
@@ -858,17 +981,17 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
-  // noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
+  // biome-ignore lint/suspicious/noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
   renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
-  // noExplicitAny: list data type varies by consumer's data model
+  // biome-ignore lint/suspicious/noExplicitAny: list data type varies by consumer's data model
   listViewData: any[];
   listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
-  // noExplicitAny: callback value type varies by consumer's data model
+  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer's data model
   onSelectionChange?: (value?: any) => void | Promise<void>;
 }
 
@@ -917,7 +1040,7 @@ export type ReactChild = ReactNode;
 export type ReactChildren = ReactNode;
 export type WithChildren<P> = P & {children?: ReactNode};
 
-export interface AddressAutocompleteProps {
+export interface AddressAutocompleteProps extends WithTestID {
   disabled?: boolean;
   googleMapsApiKey?: string;
   includeCounty?: boolean;
@@ -926,10 +1049,9 @@ export interface AddressAutocompleteProps {
   handleAddressChange: OnChangeCallback;
   handleAutoCompleteChange: (value: AddressInterface) => void;
   googlePlacesMobileStyles?: Styles;
-  testID?: string;
 }
 
-export interface ActionSheetProps {
+export interface ActionSheetProps extends WithTestID {
   children?: React.ReactNode;
   ref?: React.MutableRefObject<{
     /**
@@ -1251,11 +1373,6 @@ export interface ActionSheetProps {
   keyboardMode?: "padding" | "position";
 
   /**
-   * Test ID for unit testing
-   */
-  testID?: string;
-
-  /**
    *
    Event called when the ActionSheet closes.
 
@@ -1299,7 +1416,7 @@ export interface CustomSvgProps extends SvgProps {
   doNotDisturb?: boolean;
 }
 
-export interface AvatarProps {
+export interface AvatarProps extends WithTestID {
   /**
    * The name of the user. This is used for the placeholder treatment if an image is not available.
    */
@@ -1332,13 +1449,9 @@ export interface AvatarProps {
    * Accessibility label for the avatar image.
    */
   accessibilityLabel?: string;
-  /**
-   * Test ID for unit testing
-   */
-  testID?: string;
 }
 
-export interface BadgeProps {
+export interface BadgeProps extends WithTestID {
   /**
    * When status is "custom", determines the badge's background color.
    */
@@ -1384,11 +1497,6 @@ export interface BadgeProps {
    * @default "info"
    */
   status?: "info" | "error" | "warning" | "success" | "neutral" | "custom";
-
-  /**
-   * Test ID for unit testing
-   */
-  testID?: string;
 
   /**
    * The text or number to display inside the badge.
@@ -1500,7 +1608,9 @@ export interface BodyProps {
   children?: ReactNode;
 }
 
-export interface ButtonProps {
+export type ButtonPressAnimation = "scale" | "opacity" | "none";
+
+export interface ButtonProps extends WithTestID {
   /**
    * The text content of the confirmation modal.
    * @default "Are you sure you want to continue?"
@@ -1539,9 +1649,10 @@ export interface ButtonProps {
    */
   modalSubTitle?: string;
   /**
-   * The test ID for the button, used for testing purposes.
+   * The press animation to use when the button is touched.
+   * @default "scale"
    */
-  testID?: string;
+  pressAnimation?: ButtonPressAnimation;
   /**
    * The text content of the button.
    */
@@ -1560,10 +1671,15 @@ export interface ButtonProps {
    */
   tooltipText?: string;
   /**
+   * The size of the button.
+   * @default "default"
+   */
+  size?: "default" | "sm";
+  /**
    * The type of the button, which determines its style.
    * @default "primary"
    */
-  variant?: "primary" | "secondary" | "muted" | "outline" | "destructive";
+  variant?: "primary" | "secondary" | "muted" | "outline" | "destructive" | "ghost";
   /**
    * If true, a confirmation modal will be shown before the onClick action.
    */
@@ -1578,7 +1694,7 @@ export interface ButtonProps {
  * Props for the SocialLoginButton component.
  * Used for OAuth social login buttons (Google, GitHub, Apple).
  */
-export interface SocialLoginButtonProps {
+export interface SocialLoginButtonProps extends WithTestID {
   /**
    * The OAuth provider for the social login.
    */
@@ -1619,14 +1735,10 @@ export interface SocialLoginButtonProps {
    * Custom text for the button. Defaults to "Continue with {Provider}".
    */
   text?: string;
-
-  /**
-   * Test ID for testing purposes.
-   */
-  testID?: string;
 }
 
-export interface CustomSelectFieldProps {
+export interface CustomSelectFieldProps extends WithTestID {
+  testIDs?: FieldTestIDs;
   /**
    * The current value of the custom select field.
    */
@@ -1675,6 +1787,7 @@ export interface DateTimeActionSheetProps {
   type?: "date" | "time" | "datetime";
   // Returns an ISO 8601 string. If mode is "time", the date portion is today.
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
   visible: boolean;
   onDismiss: () => void;
@@ -1686,6 +1799,7 @@ export interface DecimalRangeActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
@@ -1745,6 +1859,7 @@ export type FieldProps =
 export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
   /** Minimum height in total inches */
   min?: number;
@@ -1756,18 +1871,21 @@ export interface HeightActionSheetProps {
 
 export interface HyperlinkProps {
   linkDefault?: boolean;
-  // noExplicitAny: type comes from external linkify-it library which lacks an exported type
+  // biome-ignore lint/suspicious/noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
   linkify?: any;
+  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
   linkStyle?: StyleProp<any>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
   injectViewProps?: (url: string) => any;
   children?: React.ReactNode;
+  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
   style?: StyleProp<any>;
 }
 
-export interface IconButtonProps {
+export interface IconButtonProps extends WithTestID {
   /**
    * The accessibility hint describes the results of performing an action on a control or view.
    * It should be a very brief description of the result of interacting with the button.
@@ -1820,11 +1938,6 @@ export interface IconButtonProps {
   loading?: boolean;
 
   /**
-   * The test ID for the button, used for testing purposes.
-   */
-  testID?: string;
-
-  /**
    * The ideal position of the tooltip.
    */
   tooltipIdealPosition?: TooltipPosition;
@@ -1863,7 +1976,8 @@ export interface InfoTooltipButtonProps {
   size?: IconSize;
 }
 
-export interface ModalProps {
+export interface ModalProps extends WithTestID {
+  testIDs?: ModalTestIDs;
   /**
    * The content of the modal.
    */
@@ -1913,12 +2027,12 @@ export interface ModalProps {
   /**
    * The function to call when the primary button is clicked.
    */
-  // noExplicitAny: callback value type varies by consumer context
+  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer context
   primaryButtonOnClick?: (value?: any) => void | Promise<void>;
   /**
    * The function to call when the secondary button is clicked.
    */
-  // noExplicitAny: callback value type varies by consumer context
+  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer context
   secondaryButtonOnClick?: (value?: any) => void | Promise<void>;
 }
 
@@ -1927,11 +2041,12 @@ export interface NumberPickerActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
-export interface PageProps {
-  // noExplicitAny: React Navigation type varies by navigation stack configuration
+export interface PageProps extends WithTestID {
+  // biome-ignore lint/suspicious/noExplicitAny: React Navigation type varies by navigation stack configuration
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
@@ -1942,7 +2057,8 @@ export interface PageProps {
   closeButton?: boolean;
   direction?: "row" | "column";
   padding?: UnsignedUpTo12;
-  color?: SurfaceColor;
+  /** Page body surface; use `transparent` when a parent (e.g. admin shell) supplies the canvas color. */
+  color?: BoxColor;
   maxWidth?: number | string;
   keyboardOffset?: number;
   footer?: ReactNode;
@@ -1950,6 +2066,12 @@ export interface PageProps {
   rightButtonOnClick?: () => void;
   children?: ReactChildren;
   onError?: (error: Error, stack: string) => void;
+  /**
+   * When true, wraps content in SafeAreaView so it respects top/bottom device
+   * insets (camera notches, home indicator, status bar). Opt-in to avoid
+   * regressing existing screens that handle insets at the navigation level.
+   */
+  safeArea?: boolean;
 }
 
 export interface ProgressBarProps {
@@ -1978,6 +2100,7 @@ export interface SignatureFieldProps {
   onEnd?: () => void;
   disabledText?: string;
   errorText?: string;
+  fullWidth?: boolean;
 }
 
 export interface SideDrawerProps {
@@ -1997,7 +2120,7 @@ export interface SideDrawerProps {
   drawerStyles?: StyleProp<ViewStyle>;
 }
 
-export interface SpinnerProps {
+export interface SpinnerProps extends WithTestID {
   size?: "sm" | "md";
   color?: "light" | "dark" | "accent" | "secondary";
 }
@@ -2073,7 +2196,7 @@ export interface TableProps {
   extraControls?: React.ReactElement;
 }
 
-export interface PaginationProps {
+export interface PaginationProps extends WithTestID {
   page: number;
   setPage: (page: number) => void;
   totalPages: number;
@@ -2101,7 +2224,8 @@ export interface DataTableColumn {
   infoModalText?: string;
 }
 
-export interface DataTableProps {
+export interface DataTableProps extends WithTestID {
+  testIDs?: DataTableTestIDs;
   data: DataTableCellData[][];
   columns: DataTableColumn[];
   alternateRowBackground?: boolean;
@@ -2128,6 +2252,10 @@ export interface DataTableProps {
   moreContentExtraData?: Record<string, unknown>[];
   // Allows handling of custom column types.
   customColumnComponentMap?: DataTableCustomComponentMap;
+  /**
+   * Returns a stable key for row test ids. Defaults to row index when omitted.
+   */
+  getRowTestID?: (row: DataTableCellData[], rowIndex: number) => string | number;
 }
 
 export interface DataTableCellProps {
@@ -2234,7 +2362,7 @@ export interface TableContextProviderProps extends TableContextType {
   children: React.ReactNode;
 }
 
-export interface TextProps {
+export interface TextProps extends WithTestID {
   align?: "left" | "right" | "center" | "justify"; // default "left"
   children?: React.ReactNode;
   bold?: boolean; // default false
@@ -2245,13 +2373,13 @@ export interface TextProps {
   underline?: boolean;
   numberOfLines?: number;
   skipLinking?: boolean;
-  testID?: string;
 }
 
 export interface TextFieldPickerActionSheetProps {
   value?: string;
   mode?: "date" | "time";
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
@@ -2371,19 +2499,19 @@ export type TapToEditProps =
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   title: string;
-  // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
+  // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   value: any;
 
   /**
    * Not required if not editable.
    */
-  // noExplicitAny: value type varies across TapToEdit field types
+  // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types
   setValue?: (value: any) => void;
 
   /**
    * Not required if not editable.
    */
-  // noExplicitAny: value type varies across TapToEdit field types
+  // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types
   onSave?: (value: any) => void | Promise<void>;
 
   /**
@@ -2396,7 +2524,7 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    * Enable edit mode from outside the component.
    */
   isEditing?: boolean;
-  // noExplicitAny: input value type varies across TapToEdit field types
+  // biome-ignore lint/suspicious/noExplicitAny: input value type varies across TapToEdit field types
   transform?: (value: any) => string;
   /**
    * Show a confirmation modal before saving the value.
@@ -2485,11 +2613,12 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
-    // noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
+    // biome-ignore lint/suspicious/noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     [key: string]: any;
   };
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: ModelFieldConfig is a passthrough for arbitrary field configuration objects from various model contexts
 export type ModelFieldConfig = any;
 
 export interface OpenAPIProviderProps {
@@ -2518,14 +2647,15 @@ export interface ModelAdminFieldConfig {
 
 // The props for a custom column component for ModelAdmin.
 export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name"> {
-  // noExplicitAny: document shape varies by model used with ModelAdmin
+  // biome-ignore lint/suspicious/noExplicitAny: document shape varies by model used with ModelAdmin
   doc: any;
   fieldKey: string; // Dot notation representation of the field.
   // user: User;
   editing: boolean; // Allow for inline editing of the field.
 }
 
-export interface MultiselectFieldProps extends HelperTextProps, ErrorTextProps {
+export interface MultiselectFieldProps extends WithTestID, HelperTextProps, ErrorTextProps {
+  testIDs?: FieldTestIDs;
   /**
    * The available options for the multiselect field.
    */
@@ -2646,7 +2776,8 @@ export interface FieldOption {
 }
 
 // Split up SelectField so if value is passed as a string,
-export interface SelectFieldPropsBase {
+export interface SelectFieldPropsBase extends WithTestID {
+  testIDs?: FieldTestIDs;
   /**
    * If true, the select field will be disabled.
    * @default false

@@ -13,6 +13,7 @@ import {SelectField} from "./SelectField";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TimezonePicker} from "./TimezonePicker";
+import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 
 interface SeparatorProps {
   type: "date" | "time";
@@ -416,8 +417,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   errorText,
   disabled,
   helperText,
+  testID,
+  testIDs,
 }): React.ReactElement => {
   const {theme} = useTheme();
+  const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   const dateActionSheetRef: React.RefObject<any> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");
   const [showDate, setShowDate] = useState(false);
@@ -567,7 +572,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       const dayVal = override?.day ?? day;
       const yearVal = override?.year ?? year;
       const hourVal = override?.hour ?? hour;
-      let date;
+      let date: DateTime;
       if (type === "datetime") {
         if (!monthVal || !dayVal || !yearVal || !hour || !minuteVal) {
           return undefined;
@@ -635,7 +640,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
       if (date.isValid) {
         // Always return UTC ISO string
-        return date.toUTC().toISO();
+        return date.toUTC().toISO() ?? undefined;
       }
       return undefined;
     },
@@ -968,8 +973,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   return (
     <>
-      {Boolean(title) && <FieldTitle text={title as string} />}
-      {Boolean(errorText) && <FieldError text={errorText as string} />}
+      {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title as string} />}
+      {Boolean(errorText) && <FieldError testID={fieldTestIDs.error} text={errorText as string} />}
 
       {isMobileTimeOnly && (
         <MobileTimeDisplay
@@ -1003,6 +1008,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
             minWidth: isMobileDatetime ? 200 : minimumWidth,
             paddingHorizontal: 6,
           }}
+          testID={fieldTestIDs.input}
         >
           {showDateSection && (
             <DateRowWithIcon
@@ -1054,7 +1060,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           visible={showDate}
         />
       )}
-      {Boolean(helperText) && <FieldHelperText text={helperText as string} />}
+      {Boolean(helperText) && (
+        <FieldHelperText testID={fieldTestIDs.helper} text={helperText as string} />
+      )}
     </>
   );
 };

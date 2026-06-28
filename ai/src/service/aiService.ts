@@ -1,6 +1,12 @@
 import {logger} from "@terreno/api";
-import type {DataContent, LanguageModel, ModelMessage} from "ai";
-import {generateText as aiGenerateText, stepCountIs, streamText} from "ai";
+import type {DataContent, JSONValue, LanguageModel, ModelMessage} from "ai";
+import {
+  generateText as aiGenerateText,
+  NoObjectGeneratedError,
+  Output,
+  stepCountIs,
+  streamText,
+} from "ai";
 import type mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
@@ -8,6 +14,9 @@ import type {
   AIRequestType,
   AIServiceOptions,
   GenerateChatStreamOptions,
+  GenerateJsonArrayOptions,
+  GenerateJsonObjectOptions,
+  GenerateJsonValueOptions,
   GenerateStreamOptions,
   GenerateTextOptions,
   GptHistoryPrompt,
@@ -15,9 +24,11 @@ import type {
   SummaryOptions,
   TranslateOptions,
 } from "../types";
+import {normalizeLlmJsonTextForStructuredOutput} from "./parseAiJson";
 import {
   CONTENT_SUMMARY_PROMPT,
   DEFAULT_GPT_MEMORY,
+  JSON_VALUE_SYSTEM_PROMPT,
   REMIX_PROMPT,
   TRANSLATION_PROMPT,
 } from "./prompts";
@@ -31,6 +42,56 @@ export const TemperaturePresets = {
   MAXIMUM: 2.0,
 } as const;
 
+/**
+ * Wraps a language model so non-streaming `doGenerate` text parts are normalized via
+ * {@link normalizeLlmJsonTextForStructuredOutput} (fences, preamble, balanced slice, light repairs)
+ * before Vercel `Output.*` parsing.
+ */
+const withStrippedJsonFencesModel = (model: LanguageModel): LanguageModel => {
+  if (typeof model === "string") {
+    return model;
+  }
+
+  return new Proxy(model, {
+    get(target, prop, receiver) {
+      if (prop === "doGenerate") {
+        const original = Reflect.get(target, prop, receiver);
+        if (typeof original !== "function") {
+          return original;
+        }
+
+        const boundGenerate = original as (options: unknown) => PromiseLike<{
+          content: Array<{text?: string; type: string; [key: string]: unknown}>;
+          [key: string]: unknown;
+        }>;
+
+        return async (options: unknown) => {
+          const result = await Promise.resolve(boundGenerate.call(target, options));
+          if (!result?.content || !Array.isArray(result.content)) {
+            return result;
+          }
+
+          return {
+            ...result,
+            content: result.content.map((part) => {
+              if (part.type !== "text" || typeof part.text !== "string") {
+                return part;
+              }
+
+              return {
+                ...part,
+                text: normalizeLlmJsonTextForStructuredOutput(part.text),
+              };
+            }),
+          };
+        };
+      }
+
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as LanguageModel;
+};
+
 const getModelId = (model: LanguageModel): string => {
   if (typeof model === "string") {
     return model;
@@ -39,8 +100,9 @@ const getModelId = (model: LanguageModel): string => {
 };
 
 export class AIService {
-  private model: LanguageModel;
-  private defaultTemperature: number;
+  readonly model: LanguageModel;
+  readonly defaultTemperature: number;
+  private structuredJsonModel?: LanguageModel;
 
   constructor({model, defaultTemperature = TemperaturePresets.DEFAULT}: AIServiceOptions) {
     this.model = model;
@@ -51,9 +113,97 @@ export class AIService {
     return getModelId(this.model);
   }
 
+  private getModelForStructuredJson(): LanguageModel {
+    if (!this.structuredJsonModel) {
+      this.structuredJsonModel = withStrippedJsonFencesModel(this.model);
+    }
+    return this.structuredJsonModel;
+  }
+
+  private describeStructuredGenerationError(error: unknown): string {
+    if (error instanceof Error) {
+      const base = `${error.name}: ${error.message}`;
+      if (error.cause instanceof Error) {
+        return `${base} | cause: ${error.cause.name}: ${error.cause.message}`;
+      }
+      return base;
+    }
+    return String(error);
+  }
+
+  private extractRawModelTextFromStructuredError(error: unknown): string | undefined {
+    if (NoObjectGeneratedError.isInstance(error) && typeof error.text === "string") {
+      return error.text;
+    }
+    if (error instanceof Error && "text" in error) {
+      const t = (error as {text?: unknown}).text;
+      if (typeof t === "string") {
+        return t;
+      }
+    }
+    return undefined;
+  }
+
+  private extractFinishReasonFromStructuredError(error: unknown): string | undefined {
+    if (NoObjectGeneratedError.isInstance(error) && error.finishReason) {
+      return error.finishReason;
+    }
+    return undefined;
+  }
+
+  private async logStructuredJsonFailure(params: {
+    error: unknown;
+    prompt: string;
+    requestType: AIRequestType;
+    responseTime: number;
+    system: string;
+    userId?: mongoose.Types.ObjectId;
+  }): Promise<void> {
+    const rawText = this.extractRawModelTextFromStructuredError(params.error);
+    const responseForLog =
+      rawText !== undefined && rawText.length > 0
+        ? rawText
+        : "(no raw model text captured on this error)";
+    const errorDescription = this.describeStructuredGenerationError(params.error);
+    const finishReason = this.extractFinishReasonFromStructuredError(params.error);
+    const errorStack =
+      params.error instanceof Error && typeof params.error.stack === "string"
+        ? params.error.stack.length > 8000
+          ? `${params.error.stack.slice(0, 8000)}…`
+          : params.error.stack
+        : undefined;
+
+    logger.error("AIService structured JSON generation failed", {
+      aiModel: getModelId(this.model),
+      error: errorDescription,
+      finishReason,
+      prompt: params.prompt,
+      requestType: params.requestType,
+      response: rawText ?? "",
+      system: params.system,
+    });
+
+    await this.logRequest({
+      aiModel: getModelId(this.model),
+      error: errorDescription,
+      metadata: {
+        errorStack,
+        finishReason,
+        rawModelTextCaptured: Boolean(rawText && rawText.length > 0),
+        system: params.system,
+      },
+      prompt: params.prompt,
+      requestType: params.requestType,
+      response: responseForLog,
+      responseTime: params.responseTime,
+      userId: params.userId,
+    });
+  }
+
   private async logRequest(params: {
     aiModel: string;
     error?: string;
+    metadata?: Record<string, unknown>;
     prompt: string;
     requestType: AIRequestType;
     response?: string;
@@ -102,6 +252,174 @@ export class AIService {
         prompt,
         requestType: "general",
         responseTime,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /** Any JSON value (object, array, primitive, or null) via the AI SDK `Output.json()` parser. */
+  async generateJsonValue(options: GenerateJsonValueOptions): Promise<JSONValue> {
+    const {
+      maxOutputTokens,
+      outputDescription,
+      outputName,
+      prompt,
+      systemPrompt,
+      temperature,
+      userId,
+    } = options;
+    const startTime = Date.now();
+    const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
+
+    try {
+      const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-json-value", isEnabled: true},
+        maxOutputTokens,
+        model: this.getModelForStructuredJson(),
+        output: Output.json({description: outputDescription, name: outputName}),
+        prompt,
+        system,
+        temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
+      });
+
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        prompt,
+        requestType: "json_value",
+        response: JSON.stringify(result.output),
+        responseTime,
+        tokensUsed: result.usage?.totalTokens,
+        userId,
+      });
+
+      return result.output;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await this.logStructuredJsonFailure({
+        error,
+        prompt,
+        requestType: "json_value",
+        responseTime,
+        system,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /** Typed object from a Zod schema, `jsonSchema(...)`, or other `FlexibleSchema` (`Output.object()`). */
+  async generateJsonObject<OBJECT>(options: GenerateJsonObjectOptions<OBJECT>): Promise<OBJECT> {
+    const {
+      maxOutputTokens,
+      prompt,
+      schema,
+      schemaDescription,
+      schemaName,
+      systemPrompt,
+      temperature,
+      userId,
+    } = options;
+    const startTime = Date.now();
+    const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
+
+    try {
+      const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-json-object", isEnabled: true},
+        maxOutputTokens,
+        model: this.getModelForStructuredJson(),
+        output: Output.object({
+          description: schemaDescription,
+          name: schemaName,
+          schema,
+        }),
+        prompt,
+        system,
+        temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
+      });
+
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        prompt,
+        requestType: "json_object",
+        response: JSON.stringify(result.output),
+        responseTime,
+        tokensUsed: result.usage?.totalTokens,
+        userId,
+      });
+
+      return result.output;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await this.logStructuredJsonFailure({
+        error,
+        prompt,
+        requestType: "json_object",
+        responseTime,
+        system,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Typed array: the model is steered to emit `{"elements":[...]}`; the SDK validates each entry
+   * and this method returns the plain array (`Output.array()`).
+   */
+  async generateJsonArray<ELEMENT>(
+    options: GenerateJsonArrayOptions<ELEMENT>
+  ): Promise<Array<ELEMENT>> {
+    const {
+      element,
+      maxOutputTokens,
+      outputDescription,
+      outputName,
+      prompt,
+      systemPrompt,
+      temperature,
+      userId,
+    } = options;
+    const startTime = Date.now();
+    const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
+
+    try {
+      const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-json-array", isEnabled: true},
+        maxOutputTokens,
+        model: this.getModelForStructuredJson(),
+        output: Output.array({
+          description: outputDescription,
+          element,
+          name: outputName,
+        }),
+        prompt,
+        system,
+        temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
+      });
+
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        prompt,
+        requestType: "json_array",
+        response: JSON.stringify(result.output),
+        responseTime,
+        tokensUsed: result.usage?.totalTokens,
+        userId,
+      });
+
+      return result.output;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await this.logStructuredJsonFailure({
+        error,
+        prompt,
+        requestType: "json_array",
+        responseTime,
+        system,
         userId,
       });
       throw error;
@@ -216,13 +534,13 @@ export class AIService {
             parts.push({image: new URL(part.url), mediaType: part.mimeType, type: "image"});
           } else if (part.type === "file") {
             logger.debug("Building file message part", {
-              filename: (part as any).filename,
+              filename: part.filename,
               mediaType: part.mimeType,
               urlPrefix: part.url?.substring(0, 50),
             });
             parts.push({
               data: new URL(part.url),
-              filename: (part as any).filename,
+              filename: part.filename,
               mediaType: part.mimeType,
               type: "file",
             });

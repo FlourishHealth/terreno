@@ -7,10 +7,11 @@
       "@stories": ["stories"],
       "@components": ["components"],
       "@config": ["demoConfig"],
+      "@contexts/*": ["contexts/*"],
       "@story-config": ["story-config"]
     },
     "jsx": "react-jsx"
   },
-  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "appium/**"]
 }
 

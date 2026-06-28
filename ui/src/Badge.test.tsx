@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
 
 import {Badge} from "./Badge";
@@ -31,6 +32,13 @@ describe("Badge", () => {
   it("does not truncate numbers below maxValue", () => {
     const {getByText} = renderWithTheme(<Badge maxValue={100} value={50} variant="numberOnly" />);
     expect(getByText("50")).toBeTruthy();
+  });
+
+  it("keeps number badges scannable with a minimum width", () => {
+    const {getByTestId} = renderWithTheme(
+      <Badge testID="number-badge" value={5} variant="numberOnly" />
+    );
+    expect(getByTestId("number-badge")).toHaveStyle({minWidth: 20});
   });
 
   it("applies correct status colors", () => {

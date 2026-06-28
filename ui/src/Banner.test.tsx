@@ -1,12 +1,17 @@
-import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 import React from "react";
 
-import {Banner} from "./Banner";
+import {Banner, BannerButton, hideBanner} from "./Banner";
+import {ThemeContext} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 import {Unifier} from "./Unifier";
 
 describe("Banner", () => {
+  beforeEach(() => {
+    Unifier.storage.getItem = mock(() => Promise.resolve(null));
+    Unifier.storage.setItem = mock(() => Promise.resolve());
+  });
   it("renders correctly with default props", () => {
     const {toJSON} = renderWithTheme(<Banner id="test-banner" text="Test message" />);
     expect(toJSON()).toMatchSnapshot();
@@ -167,5 +172,126 @@ describe("Banner", () => {
     await waitFor(() => {
       expect(setItemMock).not.toHaveBeenCalled();
     });
+  });
+
+  it("hides banner when storage already has the dismissed flag", async () => {
+    const getItemMock = Unifier.storage.getItem as ReturnType<typeof mock>;
+    getItemMock.mockReturnValueOnce(Promise.resolve("true"));
+
+    const {queryByText} = renderWithTheme(
+      <Banner dismissible id="stored-banner" text="Previously dismissed" />
+    );
+
+    await waitFor(() => {
+      expect(queryByText("Previously dismissed")).toBeNull();
+    });
+  });
+
+  it("exercises the async .then path in useEffect", async () => {
+    const getItemMock = Unifier.storage.getItem as ReturnType<typeof mock>;
+    getItemMock.mockReturnValueOnce(Promise.resolve(null));
+
+    const {queryByText} = renderWithTheme(
+      <Banner dismissible id="flush-banner" text="Flush banner" />
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(queryByText("Flush banner")).toBeTruthy();
+  });
+
+  it("renders button without icon name (text-only button path)", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(
+      <Banner
+        buttonOnClick={handleClick}
+        buttonText="TextOnly"
+        id="textonly-banner"
+        text="Banner"
+      />
+    );
+    expect(getByText("TextOnly")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByText("TextOnly"));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    await waitFor(() => {
+      expect(handleClick).toHaveBeenCalled();
+    });
+  });
+
+  it("covers catch block when buttonOnClick rejects", async () => {
+    const handleClick = mock(() => Promise.reject(new Error("boom")));
+    const {UNSAFE_root} = renderWithTheme(
+      <Banner buttonOnClick={handleClick} buttonText="Fail" id="catch-banner" text="Banner" />
+    );
+
+    const pressable = UNSAFE_root.findAll(
+      (node) => node.props?.["aria-label"] === "Fail" && typeof node.props?.onPress === "function"
+    )[0];
+
+    try {
+      await act(async () => {
+        await pressable.props.onPress();
+      });
+    } catch (_e) {
+      // Expected: catch block in BannerButton re-throws
+    }
+
+    expect(handleClick).toHaveBeenCalled();
+  });
+
+  it("hideBanner persists the banner id to storage", async () => {
+    const setItemMock = Unifier.storage.setItem as ReturnType<typeof mock>;
+    setItemMock.mockClear();
+
+    await hideBanner("my-banner");
+    expect(setItemMock).toHaveBeenCalledWith("@TerrenoUI:my-banner", "true");
+  });
+
+  it("renders with button loading state", () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {toJSON} = renderWithTheme(
+      <Banner
+        buttonOnClick={handleClick}
+        buttonText="Loading"
+        id="test-banner"
+        loading
+        text="Banner loading"
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders banner with dismissible=true and no id (non-persistent dismiss)", async () => {
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <Banner dismissible text="Non persistent" />
+    );
+    expect(queryByText("Non persistent")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByLabelText("Dismiss"));
+    });
+    await waitFor(() => {
+      expect(queryByText("Non persistent")).toBeNull();
+    });
+  });
+
+  it("BannerButton returns null when theme is not available", () => {
+    const nullThemeContext = {
+      resetTheme: () => {},
+      setPrimitives: () => {},
+      setTheme: () => {},
+      theme: null,
+    };
+    const {toJSON} = render(
+      <ThemeContext.Provider value={nullThemeContext as never}>
+        <BannerButton buttonOnClick={() => {}} buttonText="Test" />
+      </ThemeContext.Provider>
+    );
+    expect(toJSON()).toBeNull();
   });
 });

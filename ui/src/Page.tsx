@@ -1,5 +1,6 @@
 import {router} from "expo-router";
 import React from "react";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -11,6 +12,7 @@ import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 
 export class Page extends React.Component<PageProps, {}> {
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   actionSheetRef: React.RefObject<any> = React.createRef();
 
   renderHeader() {
@@ -57,9 +59,9 @@ export class Page extends React.Component<PageProps, {}> {
     );
   }
 
-  render() {
+  renderBody() {
     return (
-      <ErrorBoundary onError={this.props.onError}>
+      <>
         <Box
           alignSelf="center"
           avoidKeyboard
@@ -72,6 +74,7 @@ export class Page extends React.Component<PageProps, {}> {
           maxWidth={this.props.maxWidth || 800}
           padding={this.props.padding !== undefined ? this.props.padding : 2}
           scroll={this.props.scroll === undefined ? true : this.props.scroll}
+          testID={this.props.testID}
           width="100%"
         >
           {this.renderHeader()}
@@ -98,7 +101,9 @@ export class Page extends React.Component<PageProps, {}> {
         {Boolean(this.props.footer) && (
           <Box
             alignSelf="center"
-            color={this.props.color || "neutralLight"}
+            color={
+              this.props.color === "transparent" ? "base" : (this.props.color ?? "neutralLight")
+            }
             direction={this.props.direction || "column"}
             display={this.props.display || "flex"}
             flex="shrink"
@@ -110,6 +115,20 @@ export class Page extends React.Component<PageProps, {}> {
           >
             {this.props.footer}
           </Box>
+        )}
+      </>
+    );
+  }
+
+  render() {
+    return (
+      <ErrorBoundary onError={this.props.onError}>
+        {this.props.safeArea ? (
+          <SafeAreaView edges={["top", "bottom"]} style={{flex: 1}}>
+            {this.renderBody()}
+          </SafeAreaView>
+        ) : (
+          this.renderBody()
         )}
       </ErrorBoundary>
     );

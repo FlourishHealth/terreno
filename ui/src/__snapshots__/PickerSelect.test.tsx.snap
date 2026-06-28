@@ -14,9 +14,11 @@ exports[`PickerSelect renders correctly with default props 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
-                "readOnly": true,
+                "editable": false,
+                "multiline": true,
                 "style": {
                   "color": "#1C1C1C",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Select an option",
@@ -37,8 +39,8 @@ exports[`PickerSelect renders correctly with default props 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -48,14 +50,15 @@ exports[`PickerSelect renders correctly with default props 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -279,9 +282,11 @@ exports[`PickerSelect renders with selected value 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
-                "readOnly": true,
+                "editable": false,
+                "multiline": true,
                 "style": {
                   "color": "#1C1C1C",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Option 2",
@@ -302,8 +307,8 @@ exports[`PickerSelect renders with selected value 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -313,14 +318,15 @@ exports[`PickerSelect renders with selected value 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -544,9 +550,11 @@ exports[`PickerSelect renders disabled state 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
-                "readOnly": true,
+                "editable": false,
+                "multiline": true,
                 "style": {
                   "color": "#686868",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Select an option",
@@ -567,8 +575,8 @@ exports[`PickerSelect renders disabled state 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -578,14 +586,15 @@ exports[`PickerSelect renders disabled state 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": true,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -811,9 +820,11 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
-                "readOnly": true,
+                "editable": false,
+                "multiline": true,
                 "style": {
                   "color": "#1C1C1C",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Option 1",
@@ -834,8 +845,8 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -845,14 +856,15 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -1066,9 +1078,11 @@ exports[`PickerSelect matches items by itemKey 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
-                "readOnly": true,
+                "editable": false,
+                "multiline": true,
                 "style": {
                   "color": "#1C1C1C",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Option 2",
@@ -1089,8 +1103,8 @@ exports[`PickerSelect matches items by itemKey 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -1100,14 +1114,15 @@ exports[`PickerSelect matches items by itemKey 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -1321,9 +1336,11 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
-                "readOnly": true,
+                "editable": false,
+                "multiline": true,
                 "style": {
                   "color": "#1C1C1C",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Select an option",
@@ -1344,8 +1361,8 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -1355,14 +1372,15 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -1506,10 +1524,12 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
+                "editable": false,
+                "multiline": true,
                 "placeholder": "Custom placeholder",
-                "readOnly": true,
                 "style": {
                   "color": "#1C1C1C",
+                  "flex": 1,
                 },
                 "testID": "text_input",
                 "value": "Option 1",
@@ -1530,8 +1550,8 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -1541,14 +1561,15 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },

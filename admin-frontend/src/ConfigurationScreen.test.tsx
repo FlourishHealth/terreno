@@ -1,22 +1,25 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi} from "./types";
 
 interface QueryState<T> {
   data: T | undefined;
   isLoading: boolean;
 }
-const metaState: QueryState<any> = {data: undefined, isLoading: false};
-const valuesState: QueryState<any> = {data: undefined, isLoading: false};
-let updateImpl: (body: any) => Promise<any> = async () => ({});
-const updateCalls: any[] = [];
+const metaState: QueryState<unknown> = {data: undefined, isLoading: false};
+const valuesState: QueryState<unknown> = {data: undefined, isLoading: false};
+let updateImpl: (body: unknown) => Promise<unknown> = async () => ({});
+const updateCalls: unknown[] = [];
 
 mock.module("./useConfigurationApi", () => ({
   useConfigurationApi: () => ({
     useMetaQuery: () => ({data: metaState.data, isLoading: metaState.isLoading}),
     useUpdateMutation: () => [
-      (body: any) => ({
+      (body: unknown) => ({
         unwrap: async () => {
           updateCalls.push(body);
           return updateImpl(body);
@@ -71,12 +74,14 @@ describe("ConfigurationScreen", () => {
   it("renders loading state on initial load", () => {
     metaState.isLoading = true;
     valuesState.isLoading = true;
-    const {toJSON} = renderWithTheme(<ConfigurationScreen api={{} as any} />);
+    const {toJSON} = renderWithTheme(<ConfigurationScreen api={{} as unknown as AdminApi} />);
     expect(toJSON()).toBeDefined();
   });
 
   it("renders an empty-state when metadata is missing", () => {
-    const {toJSON, getByText} = renderWithTheme(<ConfigurationScreen api={{} as any} />);
+    const {toJSON, getByText} = renderWithTheme(
+      <ConfigurationScreen api={{} as unknown as AdminApi} />
+    );
     expect(toJSON()).toBeDefined();
     expect(getByText(/No configuration metadata available/)).toBeDefined();
   });
@@ -85,7 +90,7 @@ describe("ConfigurationScreen", () => {
     metaState.data = {sections: []};
     valuesState.data = {};
     const {getByText} = renderWithTheme(
-      <ConfigurationScreen api={{} as any} basePath="/config" title="My Config" />
+      <ConfigurationScreen api={{} as unknown as AdminApi} basePath="/config" title="My Config" />
     );
     expect(getByText(/No configuration sections defined/)).toBeDefined();
   });
@@ -97,7 +102,7 @@ describe("ConfigurationScreen", () => {
       name: "Initial",
       smtp: {apiKey: "secret", host: "h", notes: "notes", port: 25},
     };
-    const {getByTestId} = renderWithTheme(<ConfigurationScreen api={{} as any} />);
+    const {getByTestId} = renderWithTheme(<ConfigurationScreen api={{} as unknown as AdminApi} />);
     await act(async () => {
       fireEvent.changeText(getByTestId("config-__root__-name"), "Updated");
       await new Promise((r) => setTimeout(r, 50));
@@ -116,7 +121,7 @@ describe("ConfigurationScreen", () => {
     updateImpl = async () => {
       throw new Error("nope");
     };
-    const {getByTestId} = renderWithTheme(<ConfigurationScreen api={{} as any} />);
+    const {getByTestId} = renderWithTheme(<ConfigurationScreen api={{} as unknown as AdminApi} />);
     await act(async () => {
       fireEvent.changeText(getByTestId("config-__root__-name"), "Boom");
       await new Promise((r) => setTimeout(r, 50));
@@ -131,7 +136,7 @@ describe("ConfigurationScreen", () => {
   it("accepts non-numeric number input and preserves the raw text", async () => {
     metaState.data = baseMeta;
     valuesState.data = {};
-    const {getByTestId} = renderWithTheme(<ConfigurationScreen api={{} as any} />);
+    const {getByTestId} = renderWithTheme(<ConfigurationScreen api={{} as unknown as AdminApi} />);
     await act(async () => {
       fireEvent.changeText(getByTestId("config-smtp-port"), "not-a-number");
       await new Promise((r) => setTimeout(r, 50));

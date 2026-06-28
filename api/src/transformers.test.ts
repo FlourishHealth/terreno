@@ -1,14 +1,17 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import type {ObjectId} from "mongoose";
+import type {Document, ObjectId} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
+import type {ModelRouterOptions} from "./api";
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
+import {APIError} from "./errors";
 import {Permissions} from "./permissions";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
-import {AdminOwnerTransformer} from "./transformers";
+import {authAsUser, type Food, FoodModel, getBaseServer, setupTestData, UserModel} from "./tests";
+import {AdminOwnerTransformer, defaultResponseHandler, transform} from "./transformers";
 
 describe("query and transform", () => {
   let notAdmin: any;
@@ -19,29 +22,9 @@ describe("query and transform", () => {
   beforeEach(async () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
 
-    [admin, notAdmin] = await setupDb();
-
-    await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date(),
-        name: "Spinach",
-        ownerId: notAdmin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        hidden: true,
-        name: "Apple",
-        ownerId: admin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        name: "Carrots",
-        ownerId: admin._id,
-      }),
-    ]);
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    notAdmin = testData.users.notAdmin;
     app = getBaseServer();
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
@@ -80,19 +63,19 @@ describe("query and transform", () => {
   it("filters list for non-admin", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(2);
+    expect(foodRes.body.data).toHaveLength(3);
   });
 
   it("does not filter list for admin", async () => {
     const agent = await authAsUser(app, "admin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(3);
+    expect(foodRes.body.data).toHaveLength(4);
   });
 
   it("admin read transform", async () => {
     const agent = await authAsUser(app, "admin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(3);
+    expect(foodRes.body.data).toHaveLength(4);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     expect(spinach.created).toBeDefined();
     expect(spinach.id).toBeDefined();
@@ -113,7 +96,7 @@ describe("query and transform", () => {
   it("owner read transform", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(2);
+    expect(foodRes.body.data).toHaveLength(3);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     expect(spinach.id).toBeDefined();
     expect(spinach.name).toBe("Spinach");
@@ -146,7 +129,7 @@ describe("query and transform", () => {
   it("auth read transform", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(2);
+    expect(foodRes.body.data).toHaveLength(3);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     expect(spinach.id).toBeDefined();
     expect(spinach.name).toBe("Spinach");
@@ -189,14 +172,80 @@ describe("query and transform", () => {
 
   it("anon read transform", async () => {
     const res = await server.get("/food");
-    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data).toHaveLength(3);
     expect(res.body.data.find((f: Food) => f.name === "Spinach")).toBeDefined();
     expect(res.body.data.find((f: Food) => f.name === "Carrots")).toBeDefined();
+    expect(res.body.data.find((f: Food) => f.name === "Pizza")).toBeDefined();
   });
 
   it("anon write transform fails", async () => {
     const foodRes = await server.get("/food");
     const carrots = foodRes.body.data.find((food: Food) => food.name === "Carrots");
     await server.patch(`/food/${carrots.id}`).send({calories: 10}).expect(403);
+  });
+});
+
+describe("transform (deprecated helper)", () => {
+  const mockTransformFn = (obj: Partial<Food>, _method: "create" | "update") => ({
+    ...obj,
+    name: `${obj.name}_transformed`,
+  });
+
+  it("returns data unchanged when no transformer is configured", () => {
+    const options = {permissions: {}} as ModelRouterOptions<Food>;
+    const data = {name: "Apple"} as Partial<Food>;
+    expect(transform(options, data, "create")).toEqual(data);
+  });
+
+  it("transforms a single object", () => {
+    const options = {
+      transformer: {transform: mockTransformFn},
+    } as unknown as ModelRouterOptions<Food>;
+    const result = transform(options, {name: "Apple"} as Partial<Food>, "create");
+    expect((result as Partial<Food>).name).toBe("Apple_transformed");
+  });
+
+  it("transforms an array of objects", () => {
+    const options = {
+      transformer: {transform: mockTransformFn},
+    } as unknown as ModelRouterOptions<Food>;
+    const data = [{name: "Apple"}, {name: "Banana"}] as Partial<Food>[];
+    const result = transform(options, data, "update") as Partial<Food>[];
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("Apple_transformed");
+    expect(result[1].name).toBe("Banana_transformed");
+  });
+});
+
+describe("defaultResponseHandler", () => {
+  it("returns null when doc is null", async () => {
+    const options = {permissions: {}} as ModelRouterOptions<Food>;
+    const req = {} as express.Request;
+    const result = await defaultResponseHandler<Food>(null, "read", req, options);
+    expect(result).toBeNull();
+  });
+
+  it("throws APIError when serialize throws", async () => {
+    const options = {
+      transformer: {
+        serialize: () => {
+          throw new Error("serialize boom");
+        },
+      },
+    } as unknown as ModelRouterOptions<Food>;
+    const fakeDoc = {
+      _id: "abc",
+      toObject: () => ({name: "Apple"}),
+    } as unknown as Document<unknown, unknown, unknown> & Food;
+    const req = {} as express.Request;
+
+    try {
+      await defaultResponseHandler(fakeDoc, "read", req, options);
+      expect(true).toBe(false);
+    } catch (err: unknown) {
+      expect(err).toBeInstanceOf(APIError);
+      expect((err as APIError).status).toBe(400);
+      expect((err as APIError).title).toContain("Error serializing read response");
+    }
   });
 });

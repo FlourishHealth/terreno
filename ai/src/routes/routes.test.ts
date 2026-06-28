@@ -1,9 +1,8 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {TerrenoApp} from "@terreno/api";
 import {jsonSchema, type LanguageModel, type Tool, tool} from "ai";
 import type express from "express";
 import mongoose from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
 import {AIRequest} from "../models/aiRequest";
@@ -11,10 +10,10 @@ import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
 import type {MCPService} from "../service/mcpService";
+import {authAsUser, ensureTestUsers, UserModel} from "../tests/helpers";
 import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
 import {addGptHistoryRoutes} from "./gptHistories";
 
-type PasswordedUser = {setPassword: (password: string) => Promise<void>};
 type SseResponse = supertest.Response & {body: string};
 
 // Mock langfuseVercelAi to avoid transitive langfuse SDK import in tests.
@@ -27,23 +26,6 @@ mock.module("../langfuseVercelAi", () => ({
 }));
 
 const {addGptRoutes} = await import("./gpt");
-
-// Test user schema
-const userSchema = new mongoose.Schema({
-  admin: {default: false, type: Boolean},
-  email: {index: true, type: String},
-  name: String,
-});
-userSchema.plugin(
-  passportLocalMongoose as unknown as (
-    schema: mongoose.Schema,
-    options: {usernameField: string}
-  ) => void,
-  {usernameField: "email"}
-);
-userSchema.plugin(createdUpdatedPlugin);
-
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
 // Create mock AI model (LanguageModelV2)
 const createMockModel = (modelId = "mock-model") => ({
@@ -126,44 +108,26 @@ const createErrorModel = () => ({
 let app: express.Application;
 let aiService: AIService;
 
-const authAsUser = async (appInstance: express.Application, type: "admin" | "notAdmin") => {
-  const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
-  const password = type === "admin" ? "securePassword" : "password";
-  const agent = supertest.agent(appInstance);
-  const res = await agent.post("/auth/login").send({email, password}).expect(200);
-  await agent.set("authorization", `Bearer ${res.body.data.token}`);
-  return agent;
-};
-
 describe("AI Routes", () => {
   beforeAll(async () => {
-    // Clean up and create test users
-    await UserModel.deleteMany({});
+    await ensureTestUsers();
     await AIRequest.deleteMany({});
     await GptHistory.deleteMany({});
-
-    const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as unknown as PasswordedUser).setPassword("securePassword");
-    await admin.save();
-
-    const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as unknown as PasswordedUser).setPassword("password");
-    await user.save();
   });
 
   beforeEach(() => {
     const mockModel = createMockModel();
     aiService = new AIService({model: mockModel as unknown as LanguageModel});
 
-    app = setupServer({
-      addRoutes: (router, options) => {
+    app = new TerrenoApp({
+      configureApp: (router, options) => {
         addGptHistoryRoutes(router, options);
         addGptRoutes(router, {aiService, openApiOptions: options});
         addAiRequestsExplorerRoutes(router, {openApiOptions: options});
       },
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
   });
 
   afterEach(async () => {
@@ -209,13 +173,13 @@ describe("AI Routes", () => {
     });
 
     it("returns demo response when no aiService configured", async () => {
-      const demoApp = setupServer({
-        addRoutes: (router, options) => {
+      const demoApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(demoApp, "notAdmin");
       const res = await agent.post("/gpt/remix").send({text: "Hello"});
       expect(res.status).toBe(200);
@@ -260,13 +224,13 @@ describe("AI Routes", () => {
     });
 
     it("sends demo response when no ai service configured", async () => {
-      const demoApp = setupServer({
-        addRoutes: (router, options) => {
+      const demoApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(demoApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -282,13 +246,13 @@ describe("AI Routes", () => {
       const createModelFn = mock((_apiKey: string, _modelId?: string) => {
         return createMockModel() as unknown as LanguageModel;
       });
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {createModelFn, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -304,13 +268,13 @@ describe("AI Routes", () => {
       const createServerModelFn = mock(
         (_modelId?: string) => createMockModel() as unknown as LanguageModel
       );
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {createServerModelFn, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -323,13 +287,13 @@ describe("AI Routes", () => {
 
     it("falls back to default aiService when createServerModelFn returns null", async () => {
       const createServerModelFn = mock((_modelId?: string) => null);
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService, createServerModelFn, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -432,13 +396,13 @@ describe("AI Routes", () => {
       const imageService = new AIService({
         model: createImageModel() as unknown as LanguageModel,
       });
-      const imgApp = setupServer({
-        addRoutes: (router, options) => {
+      const imgApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService: imageService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(imgApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -454,13 +418,13 @@ describe("AI Routes", () => {
       const errService = new AIService({
         model: createErrorModel() as unknown as LanguageModel,
       });
-      const errApp = setupServer({
-        addRoutes: (router, options) => {
+      const errApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService: errService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(errApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -478,13 +442,13 @@ describe("AI Routes", () => {
           throw new Error("mcp unavailable");
         }),
       } as unknown as MCPService;
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -501,13 +465,13 @@ describe("AI Routes", () => {
           search: {description: "web search"},
         })),
       } as unknown as MCPService;
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -527,8 +491,8 @@ describe("AI Routes", () => {
         }
         return mainFn();
       });
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             createServerModelFn,
             openApiOptions: options,
@@ -537,7 +501,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -552,8 +516,8 @@ describe("AI Routes", () => {
       const createModelFn = mock((_apiKey: string, _modelId?: string) => {
         return createMockModel() as unknown as LanguageModel;
       });
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             createModelFn,
             openApiOptions: options,
@@ -562,7 +526,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -583,8 +547,8 @@ describe("AI Routes", () => {
       const imageService = new AIService({
         model: createImageModel() as unknown as LanguageModel,
       });
-      const imgApp = setupServer({
-        addRoutes: (router, options) => {
+      const imgApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService: imageService,
             openApiOptions: options,
@@ -595,7 +559,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(imgApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -606,8 +570,8 @@ describe("AI Routes", () => {
     });
 
     it("uses the langfuse system prompt when configured", async () => {
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService,
             langfuseSystemPromptName: "missing-prompt-name",
@@ -616,7 +580,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -676,8 +640,8 @@ describe("AI Routes", () => {
         specificationVersion: "v2" as const,
         supportedUrls: {},
       };
-      const toolApp = setupServer({
-        addRoutes: (router, options) => {
+      const toolApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService: new AIService({model: toolModel as unknown as LanguageModel}),
             openApiOptions: options,
@@ -688,7 +652,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(toolApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -761,8 +725,8 @@ describe("AI Routes", () => {
         }),
         inputSchema: jsonSchema({properties: {}, type: "object"}),
       });
-      const fileToolApp = setupServer({
-        addRoutes: (router, options) => {
+      const fileToolApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService: new AIService({model: fileToolModel as unknown as LanguageModel}),
             openApiOptions: options,
@@ -771,7 +735,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(fileToolApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -816,8 +780,8 @@ describe("AI Routes", () => {
         specificationVersion: "v2" as const,
         supportedUrls: {},
       };
-      const errApp = setupServer({
-        addRoutes: (router, options) => {
+      const errApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService: new AIService({
               model: errEventModel as unknown as LanguageModel,
@@ -827,7 +791,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(errApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -870,8 +834,8 @@ describe("AI Routes", () => {
         }
         return createMockModel() as unknown as LanguageModel;
       });
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             createServerModelFn,
             openApiOptions: options,
@@ -880,7 +844,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -916,12 +880,60 @@ describe("AI Routes", () => {
       await Project.deleteMany({});
     });
 
+    it("streams text-delta events through the SSE path with a minimal mock model", async () => {
+      // Covers the text-delta SSE branch by using a model that emits only
+      // text-delta + finish (no step-start/step-end events).
+      const noStepModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({delta: "buffered tail", id: "t1", type: "text-delta" as const});
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 1, outputTokens: 1},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "no-step-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: noStepModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(customApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("buffered tail");
+    });
+
     it("uses per-request tools via createRequestTools", async () => {
       const createRequestTools = mock(() => ({
         localLookup: {description: "Per-request tool"} as unknown as Tool,
       }));
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService,
             createRequestTools,
@@ -930,7 +942,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -939,6 +951,61 @@ describe("AI Routes", () => {
         .parse(sseCollect);
       expect(res.status).toBe(200);
       expect(createRequestTools).toHaveBeenCalled();
+    });
+
+    it("streams with a model that emits a non-image file part (exercises file type guard)", async () => {
+      const nonImageFileModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "done", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 2, outputTokens: 2},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({delta: "here is a file", id: "t1", type: "text-delta" as const});
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.enqueue({
+                data: "UERGLWNvbnRlbnQ=",
+                mediaType: "application/pdf",
+                type: "file" as const,
+              });
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 2, outputTokens: 2},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "file-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const fileApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: nonImageFileModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(fileApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Give me a PDF"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      // Non-image files should not produce an image SSE event
+      expect(body).not.toContain('"image"');
+      expect(body).toContain("done");
     });
   });
 
@@ -1076,8 +1143,8 @@ describe("AI Routes", () => {
         specificationVersion: "v2" as const,
         supportedUrls: {},
       };
-      const errApp = setupServer({
-        addRoutes: (router, options) => {
+      const errApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService: new AIService({
               model: streamIterationErrorModel as unknown as LanguageModel,
@@ -1087,7 +1154,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(errApp, "notAdmin");
       const res = await agent
         .post("/gpt/prompt")
@@ -1101,7 +1168,6 @@ describe("AI Routes", () => {
 
     it("handles AIRequest.logRequest failure gracefully", async () => {
       const originalLogRequest = AIRequest.logRequest;
-      // biome-ignore lint/suspicious/noExplicitAny: Override static method for test mock.
       AIRequest.logRequest = mock(async () => {
         throw new Error("database write failed");
       }) as unknown as typeof AIRequest.logRequest;
@@ -1119,12 +1185,118 @@ describe("AI Routes", () => {
         AIRequest.logRequest = originalLogRequest;
       }
     });
+
+    it("swallows preparePromptForAI failure when langfuse prompt loading throws", async () => {
+      // Re-mock preparePromptForAI to throw, exercising the catch branch that
+      // logs `Langfuse system prompt skipped: ...` and continues without it.
+      mock.module("../langfuseVercelAi", () => ({
+        ...realLangfuseVercelAi,
+        createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
+        preparePromptForAI: async () => {
+          throw new Error("langfuse offline");
+        },
+      }));
+      try {
+        const customApp = new TerrenoApp({
+          configureApp: (router, options) => {
+            addGptRoutes(router, {
+              aiService,
+              langfuseSystemPromptName: "broken-prompt",
+              openApiOptions: options,
+            });
+          },
+          skipListen: true,
+          userModel: UserModel,
+        }).build();
+        const agent = await authAsUser(customApp, "notAdmin");
+        const res = await agent
+          .post("/gpt/prompt")
+          .send({prompt: "Hi"})
+          .buffer(true)
+          .parse(sseCollect);
+        // Failure is silently caught; request still completes successfully.
+        expect(res.status).toBe(200);
+        const body = (res as SseResponse).body;
+        expect(body).toContain("done");
+      } finally {
+        // Restore the original happy-path mock for subsequent tests.
+        mock.module("../langfuseVercelAi", () => ({
+          ...realLangfuseVercelAi,
+          createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
+          preparePromptForAI: async () => ({
+            config: {},
+            prompt: "test",
+            telemetry: {isEnabled: false},
+          }),
+        }));
+      }
+    });
+
+    it("logs warning when AIRequest.logRequest throws inside the stream error catch", async () => {
+      // Combine a stream that errors mid-iteration with a logRequest that also throws,
+      // exercising the catch-within-catch that logs `Failed to log AIRequest error`.
+      const streamIterationErrorModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({
+                delta: "partial",
+                id: "t1",
+                type: "text-delta" as const,
+              });
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.error(new Error("stream iteration failure"));
+            },
+          }),
+        })),
+        modelId: "stream-iter-error",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const errApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({
+              model: streamIterationErrorModel as unknown as LanguageModel,
+            }),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const originalLogRequest = AIRequest.logRequest;
+      AIRequest.logRequest = mock(async () => {
+        throw new Error("log write failed");
+      }) as unknown as typeof AIRequest.logRequest;
+      try {
+        const agent = await authAsUser(errApp, "notAdmin");
+        const res = await agent
+          .post("/gpt/prompt")
+          .send({prompt: "Hi"})
+          .buffer(true)
+          .parse(sseCollect);
+        // Failure path still flushes an SSE error event and ends the response.
+        expect(res.status).toBe(200);
+        const body = (res as SseResponse).body;
+        expect(body).toContain("error");
+      } finally {
+        AIRequest.logRequest = originalLogRequest;
+      }
+    });
   });
 
   describe("GPT tools route", () => {
     it("lists built-in tools from route config", async () => {
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {
             aiService,
             openApiOptions: options,
@@ -1133,7 +1305,7 @@ describe("AI Routes", () => {
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
       expect(res.status).toBe(200);
@@ -1144,13 +1316,13 @@ describe("AI Routes", () => {
       const createRequestTools = mock(() => ({
         now: {description: "Current time"} as unknown as Tool,
       }));
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService, createRequestTools, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
       expect(res.status).toBe(200);
@@ -1161,13 +1333,13 @@ describe("AI Routes", () => {
       const mcpService = {
         getTools: mock(async () => ({search: {description: "web search"}})),
       } as unknown as MCPService;
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
       expect(res.status).toBe(200);
@@ -1180,13 +1352,13 @@ describe("AI Routes", () => {
           throw new Error("boom");
         }),
       } as unknown as MCPService;
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
       expect(res.status).toBe(200);
@@ -1309,6 +1481,77 @@ describe("AI Routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.total).toBe(1);
+    });
+
+    it("returns 400 for invalid startDate format", async () => {
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?startDate=not-a-date");
+
+      expect(res.status).toBe(400);
+      expect(res.body.title).toContain("Invalid startDate");
+    });
+
+    it("returns 400 for invalid endDate format", async () => {
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?endDate=not-a-date");
+
+      expect(res.status).toBe(400);
+      expect(res.body.title).toContain("Invalid endDate");
+    });
+
+    it("streams with a model that emits a non-image file part (exercises file type guard)", async () => {
+      const nonImageFileModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "done", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 2, outputTokens: 2},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({delta: "here is a file", id: "t1", type: "text-delta" as const});
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.enqueue({
+                data: "UERGLWNvbnRlbnQ=",
+                mediaType: "application/pdf",
+                type: "file" as const,
+              });
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 2, outputTokens: 2},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "file-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const fileApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: nonImageFileModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(fileApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Give me a PDF"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      // Non-image files should not produce an image SSE event
+      expect(body).not.toContain('"image"');
+      expect(body).toContain("done");
     });
 
     it("filters by startDate and endDate range", async () => {

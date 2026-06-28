@@ -168,9 +168,12 @@ exports[`DecimalRangeActionSheet renders correctly 1`] = `
                                       ],
                                       "props": {
                                         "accessibilityHint": "Press to perform action",
-                                        "aria-label": "Close",
-                                        "aria-role": "button",
-                                        "disabled": undefined,
+                                        "accessibilityLabel": "Close",
+                                        "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": false,
+                                        },
+                                        "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -187,7 +190,7 @@ exports[`DecimalRangeActionSheet renders correctly 1`] = `
                                         },
                                         "testID": undefined,
                                       },
-                                      "type": "Pressable",
+                                      "type": "PressableScale",
                                     },
                                   ],
                                   "props": {
@@ -847,9 +850,12 @@ exports[`DecimalRangeActionSheet renders with different min/max range 1`] = `
                                       ],
                                       "props": {
                                         "accessibilityHint": "Press to perform action",
-                                        "aria-label": "Close",
-                                        "aria-role": "button",
-                                        "disabled": undefined,
+                                        "accessibilityLabel": "Close",
+                                        "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": false,
+                                        },
+                                        "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -866,7 +872,7 @@ exports[`DecimalRangeActionSheet renders with different min/max range 1`] = `
                                         },
                                         "testID": undefined,
                                       },
-                                      "type": "Pressable",
+                                      "type": "PressableScale",
                                     },
                                   ],
                                   "props": {

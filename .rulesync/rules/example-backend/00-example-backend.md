@@ -249,5 +249,5 @@ await Configuration.set("FEATURE_FLAG", "true");  // Persists to DB + updates ca
 - Mongoose: Use `Model.findExactlyOne` or `Model.findOneOrThrow` — never `Model.findOne`
 - Methods: `schema.methods = {...}` and `schema.statics = {...}` (direct assignment)
 - User casting: `req.user` is `UserDocument | undefined`, in callbacks cast with `as unknown as UserDocument`
-- Logging: Use `logger.info/warn/error/debug` — never `console.log`
+- Logging: Use `logger` or `createScopedLogger` from `@terreno/api` for traceable workflows — never `console.log`. See `.cursor/rules/api/02-logging-tracing.mdc`.
 - Testing: bun test with expect, supertest for HTTP, manual mocks in `__mocks__/`, never mock @terreno/api

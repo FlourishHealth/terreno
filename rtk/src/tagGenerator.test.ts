@@ -106,4 +106,14 @@ describe("generateTags", () => {
     const tags = generateTags(api, tagTypes);
     expect(tags.postUser).toBeUndefined();
   });
+
+  it("exercises the getConversations special-case invalidatesTags", () => {
+    // Omit "conversations" from tagTypes so the list-endpoint branch does not
+    // overwrite the special-case object.
+    const api = {endpoints: {getConversations: {}}};
+    const tags = generateTags(api, ["users", "posts"]);
+    expect(tags.getConversations).toBeDefined();
+    expect(typeof tags.getConversations.invalidatesTags).toBe("function");
+    expect(tags.getConversations.invalidatesTags(null)).toEqual(["conversations", "messages"]);
+  });
 });

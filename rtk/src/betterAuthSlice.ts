@@ -6,6 +6,7 @@
  */
 
 import {createListenerMiddleware, createSlice, type PayloadAction} from "@reduxjs/toolkit";
+import {DateTime} from "luxon";
 
 import type {BetterAuthClientInterface, BetterAuthUser} from "./betterAuthTypes";
 
@@ -125,7 +126,7 @@ export const generateBetterAuthSlice = (config: GenerateBetterAuthSliceConfig) =
         state.user = null;
         state.isLoading = false;
         state.error = null;
-        state.lastSyncTimestamp = Date.now();
+        state.lastSyncTimestamp = DateTime.now().toMillis();
       },
 
       /**
@@ -162,7 +163,7 @@ export const generateBetterAuthSlice = (config: GenerateBetterAuthSliceConfig) =
         state.user = action.payload.user;
         state.isLoading = false;
         state.error = null;
-        state.lastSyncTimestamp = Date.now();
+        state.lastSyncTimestamp = DateTime.now().toMillis();
       },
     },
   });

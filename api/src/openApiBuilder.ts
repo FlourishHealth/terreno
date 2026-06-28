@@ -29,6 +29,7 @@
  * router.get("/stats", middleware, statsHandler);
  * ```
  */
+import type express from "express";
 import merge from "lodash/merge";
 
 import type {ModelRouterOptions} from "./api";
@@ -111,7 +112,7 @@ export interface OpenApiSchemaProperty {
  * };
  * ```
  */
-export type OpenApiSchema = {
+export interface OpenApiSchema {
   /** The JSON Schema type (typically "object" or "array") */
   type: string;
   /** Property definitions for object types */
@@ -122,7 +123,8 @@ export type OpenApiSchema = {
   items?: OpenApiSchemaProperty;
   /** Schema for additional properties or boolean to allow/disallow them */
   additionalProperties?: OpenApiSchemaProperty | boolean;
-};
+  [key: string]: unknown;
+}
 
 /**
  * Defines a parameter in an OpenAPI operation.
@@ -211,6 +213,8 @@ interface OpenApiConfig {
   summary?: string;
   /** Detailed description of the operation */
   description?: string;
+  /** Explicit operationId for the operation */
+  operationId?: string;
   /** Operation parameters (query, path, header) */
   parameters?: OpenApiParameter[];
   /** Request body configuration */
@@ -246,7 +250,7 @@ interface ValidationConfig {
  */
 export interface OpenApiBuildResult {
   /** The OpenAPI documentation middleware */
-  middleware: any;
+  middleware: express.RequestHandler;
   /** Request body schema if defined */
   bodySchema?: Record<string, OpenApiSchemaProperty>;
   /** Query parameter schemas if defined */
@@ -358,6 +362,28 @@ export class OpenApiMiddlewareBuilder {
   }
 
   /**
+   * Sets an explicit `operationId` for the OpenAPI operation.
+   *
+   * The `operationId` is a unique string used to identify an operation. Client and SDK
+   * generators (e.g. RTK Query codegen) derive generated function and hook names from it,
+   * so setting it keeps generated names stable and readable for routes whose URL path would
+   * otherwise produce unwieldy names (e.g. deeply nested routes). It must be unique across
+   * the whole OpenAPI document.
+   *
+   * @param operationId - Unique operation identifier (e.g. "getUserStats")
+   * @returns The builder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * builder.withOperationId("getUserStats");
+   * ```
+   */
+  withOperationId(operationId: string): this {
+    this.config.operationId = operationId;
+    return this;
+  }
+
+  /**
    * Sets the description for the OpenAPI operation.
    *
    * The description provides detailed information about the operation,
@@ -397,7 +423,7 @@ export class OpenApiMiddlewareBuilder {
    * });
    * ```
    */
-  withRequestBody<T extends Record<string, any>>(
+  withRequestBody<T extends Record<string, unknown>>(
     schema: {
       [K in keyof T]: OpenApiSchemaProperty;
     },
@@ -454,7 +480,7 @@ export class OpenApiMiddlewareBuilder {
    * builder.withResponse(204, "No content");
    * ```
    */
-  withResponse<T extends Record<string, any>>(
+  withResponse<T extends Record<string, unknown>>(
     statusCode: number,
     schema:
       | {
@@ -508,7 +534,7 @@ export class OpenApiMiddlewareBuilder {
    * }, {description: "List of users"});
    * ```
    */
-  withArrayResponse<T extends Record<string, any>>(
+  withArrayResponse<T extends Record<string, unknown>>(
     statusCode: number,
     itemSchema: {
       [K in keyof T]: OpenApiSchemaProperty;
@@ -671,10 +697,10 @@ export class OpenApiMiddlewareBuilder {
    * ```
    */
   buildWithSchemas(): OpenApiBuildResult {
-    const noop = (_a: any, _b: any, next: () => void): void => next();
+    const noop: express.RequestHandler = (_a, _b, next) => next();
 
     // Build the OpenAPI documentation middleware only (no validation middleware)
-    let openApiMiddleware: any = noop;
+    let openApiMiddleware: express.RequestHandler = noop;
     if (this.options.openApi?.path) {
       openApiMiddleware = this.options.openApi.path(
         merge(
@@ -733,11 +759,12 @@ export class OpenApiMiddlewareBuilder {
    * router.get("/users/:id", middleware, getUserHandler);
    * ```
    */
+  // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
   build(): any {
-    const noop = (_a: any, _b: any, next: () => void): void => next();
+    const noop: express.RequestHandler = (_a, _b, next) => next();
 
     // Build the OpenAPI documentation middleware
-    let openApiMiddleware: any = noop;
+    let openApiMiddleware: express.RequestHandler = noop;
     if (this.options.openApi?.path) {
       openApiMiddleware = this.options.openApi.path(
         merge(
@@ -768,7 +795,7 @@ export class OpenApiMiddlewareBuilder {
     }
 
     // Build validation middleware
-    const validators: any[] = [openApiMiddleware];
+    const validators: express.RequestHandler[] = [openApiMiddleware];
 
     // Add body validation if we have a request body schema
     if (this.validationConfig.validateBody && this.requestBodySchema) {

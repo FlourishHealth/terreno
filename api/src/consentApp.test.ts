@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
@@ -38,6 +39,7 @@ describe("ConsentApp", () => {
     it("returns empty list when no forms exist", async () => {
       const res = await adminAgent.get("/consent-forms").expect(200);
       expect(res.body.data).toHaveLength(0);
+      expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     });
 
     it("lists consent forms for admins", async () => {
@@ -181,6 +183,32 @@ describe("ConsentApp", () => {
       const res = await adminAgent.get("/consent-responses").expect(200);
       expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0].agreed).toBe(true);
+    });
+
+    it("populates consentFormId and userId on read", async () => {
+      const form = await ConsentForm.create({
+        active: true,
+        content: new Map([["en", "# Terms"]]),
+        order: 1,
+        slug: "terms-populated",
+        title: "Terms Populated",
+        type: "terms",
+        version: 1,
+      });
+
+      const response = await ConsentResponse.create({
+        agreed: true,
+        agreedAt: new Date(),
+        consentFormId: form._id,
+        formVersionSnapshot: 1,
+        locale: "en",
+        userId: notAdmin._id,
+      });
+
+      const res = await adminAgent.get(`/consent-responses/${response._id}`).expect(200);
+      expect(res.body.data.consentFormId.title).toBe("Terms Populated");
+      expect(res.body.data.userId.email).toBe(notAdmin.email);
+      expect(res.body.data.userId.name).toBe(notAdmin.name);
     });
 
     it("blocks non-admins from listing responses", async () => {

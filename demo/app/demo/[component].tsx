@@ -5,6 +5,7 @@ import {
   type DemoConfiguration,
   type DemoConfigurationProp,
 } from "@config";
+import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
   Box,
   DataTable,
@@ -95,8 +96,10 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 
 // const ComponentTestMatrix = ({config}: {config: DemoConfiguration}): React.ReactElement | null => {
 //   // TODO: accordion this whole thing, default folded up, just for testing.
+//   // noExplicitAny: Dead commented-out code; types for testMatrix values and return type cannot be resolved without the full uncommented context
 //   function generateCombinations(testMatrix: {[prop: string]: any[]}): any[] {
 //     const keys = Object.keys(testMatrix);
+//     // noExplicitAny: Dead commented-out code; prevCombination shape depends on dynamic testMatrix keys
 //     const generate = (objIndex: number, prevCombination: any): any[] => {
 //       if (objIndex === keys.length) {
 //         return [prevCombination];
@@ -104,6 +107,7 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 //
 //       const key = keys[objIndex];
 //       const values = testMatrix[key];
+//       // noExplicitAny: Dead commented-out code; combination type depends on dynamic testMatrix keys
 //       const allCombinations: any[] = [];
 //
 //       for (const value of values) {
@@ -118,8 +122,10 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 //     return generate(0, {});
 //   }
 //
+//   // noExplicitAny: Dead commented-out code; combination type depends on dynamic testMatrix keys
 //   const combinations: any[] = [];
 //
+//   // noExplicitAny: Dead commented-out code; combination values are dynamic from testMatrix
 //   const generateTitleForCombination = (combination: {[prop: string]: any}): string =>
 //     Object.entries(combination)
 //       .map(([key, value]) => `${key}: ${value}`)
@@ -145,8 +151,10 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 // };
 
 const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
-  const convertControls = (controls: any): {[key: string]: any} => {
-    const result: {[key: string]: any} = {};
+  const convertControls = (
+    controls: Record<string, {defaultValue?: unknown}>
+  ): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
     Object.keys(controls).forEach((key) => {
       // TODO: use type to figure out a better default (e.g. true for boolean, etc)
       result[key] = controls[key].defaultValue ?? "";
@@ -189,11 +197,11 @@ const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
             <Field
               key={prop}
               title={config.demoOptions?.controls?.[prop]?.title ?? startCase(prop)}
-              {...(config.demoOptions?.controls?.[prop] as any)}
-              onChange={(value: any) => {
+              {...(config.demoOptions?.controls?.[prop] as Record<string, unknown>)}
+              onChange={(value: unknown) => {
                 setPropValues({...cloneDeep(propValues), [prop]: value});
               }}
-              value={propValues[prop]}
+              value={propValues[prop] as string}
             />
           ))}
         </Box>
@@ -363,6 +371,7 @@ const ComponentAdditionalDocs: FC<{config: DemoConfiguration}> = ({config}) => {
 
 const ComponentPage: FC = () => {
   const {component} = useLocalSearchParams<{component: string}>();
+  const {isEmbedMode} = useEmbedMode();
 
   const config = DemoConfig.find((c) => c.name === component);
 
@@ -377,8 +386,16 @@ const ComponentPage: FC = () => {
     navigation.setOptions({title: component});
   }, [navigation, component]);
 
+  if (isEmbedMode) {
+    return (
+      <Box padding={2} width="100%">
+        <ComponentDemo config={config} />
+      </Box>
+    );
+  }
+
   return (
-    <Box padding={4} scroll>
+    <Box flex="grow" height="100%" padding={4} scroll>
       <Box marginBottom={4}>
         <Heading size="lg">{config?.name}</Heading>
       </Box>

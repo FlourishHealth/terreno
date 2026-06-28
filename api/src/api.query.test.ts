@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type express from "express";
@@ -94,7 +95,17 @@ describe("query and list methods", () => {
           update: [Permissions.IsOwner],
         },
         populatePaths: [{path: "ownerId"}],
-        queryFields: ["hidden", "name", "calories", "created", "source.name", "tags", "eatenBy"],
+        queryFields: [
+          "hidden",
+          "name",
+          "calories",
+          "created",
+          "created_gte",
+          "created_lte",
+          "source.name",
+          "tags",
+          "eatenBy",
+        ],
         sort: {created: "descending"},
       })
     );
@@ -187,6 +198,19 @@ describe("query and list methods", () => {
     expect(res.body.more).toBe(false);
     expect(res.body.total).toBe(1);
     expect(res.body.data[0].id).toBe((apple as any).id);
+  });
+
+  it("list applies created_gte and created_lte as a Date range", async () => {
+    const res = await agent
+      .get("/food")
+      .query({
+        created_gte: "2021-12-03T00:00:05.000Z",
+        created_lte: "2021-12-03T00:00:25.000Z",
+        limit: 10,
+      })
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Pizza", "Spinach"]);
   });
 
   it("list query params not in list", async () => {
