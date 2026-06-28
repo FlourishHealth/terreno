@@ -4,22 +4,22 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "express": "^5.2.1",
+    "express": "catalog:",
     "lodash": "catalog:",
-    "qs": "^6.14.1",
-    "winston": "^3.18.3"
+    "qs": "catalog:",
+    "winston": "catalog:"
   },
   "description": "Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures for Terreno packages",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@types/bun": "^1.2.4",
-    "@types/express": "^5.0.6",
-    "@types/supertest": "^6.0.2",
-    "mongodb-memory-server": "^11.0.1",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/supertest": "catalog:",
+    "mongodb-memory-server": "catalog:",
     "mongodb-memory-server-core": "^11.0.1",
     "mongodb-memory-server-global": "^11.0.1",
     "mongoose": "catalog:",
-    "supertest": "^7.0.0",
+    "supertest": "catalog:",
     "typescript": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
