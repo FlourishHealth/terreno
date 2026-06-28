@@ -20,6 +20,8 @@ interface ListChipProps {
 const ListChip: React.FC<ListChipProps> = ({label, selected, onPress, testID}) => {
   return (
     <Box
+      accessibilityHint="Filters the todo list by this list"
+      accessibilityLabel={`Select ${label}`}
       color={selected ? "primary" : "neutralLight"}
       onClick={onPress}
       paddingX={3}

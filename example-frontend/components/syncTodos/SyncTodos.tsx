@@ -205,6 +205,8 @@ const SyncTodosScreen: React.FC = () => {
             <Card key={todo.id} marginBottom={2} testID={`todos-item-${slugify(todo.data.title)}`}>
               <Box alignItems="center" direction="row" justifyContent="between">
                 <Box
+                  accessibilityHint="Marks this todo complete or incomplete"
+                  accessibilityLabel={`Toggle ${todo.data.title}`}
                   alignItems="center"
                   direction="row"
                   flex="grow"
