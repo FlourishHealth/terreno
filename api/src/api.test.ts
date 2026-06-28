@@ -2081,7 +2081,7 @@ describe("@terreno/api", () => {
       const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
 
       if (!ifUnmodifiedSince) {
-        throw new Error("Expected If-Unmodified-Since header timestamp to be valid");
+        throw new Error("Expected valid HTTP date for If-Unmodified-Since");
       }
 
       const res = await agent

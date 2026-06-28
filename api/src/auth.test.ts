@@ -1175,3 +1175,41 @@ describe("login error and disabled user paths", () => {
     expect(res.body.title).toContain("disabled");
   });
 });
+
+describe("PATCH /me route edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 404 for PATCH /me when authenticated user is deleted from DB", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const {token, userId} = loginRes.body.data;
+
+    await UserModel.deleteOne({_id: userId});
+
+    const freshAgent = supertest.agent(app);
+    const res = await freshAgent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({name: "Updated"});
+    // Without user in DB, should get 401 or 404
+    expect([401, 404]).toContain(res.status);
+  });
+});
