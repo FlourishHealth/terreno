@@ -238,7 +238,8 @@ jobs:
         working-directory: demo
 
       - name: Run Appium iOS tests
-        timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 12 || 35 }}
+        # Smoke setup (sim boot + Expo) plus wdio teardown can exceed 12 minutes on macOS runners.
+        timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 18 || 35 }}
         run: |
           set -eu
           if [ -z "$IOS_APP_PATH" ]; then
