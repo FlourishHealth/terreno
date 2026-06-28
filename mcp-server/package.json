@@ -26,15 +26,15 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
-    "@sentry/bun": "^10.39.0",
+    "@sentry/bun": "catalog:",
     "@terreno/api": "workspace:*",
     "minisearch": "^7.2.0",
     "mongoose": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@types/bun": "^1.2.4",
-    "@types/node": "^25.3.0",
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
     "typescript": "catalog:"
   },
   "files": [
