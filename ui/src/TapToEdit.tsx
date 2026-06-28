@@ -26,7 +26,7 @@ const TapToEditTitle: FC<{
   );
 };
 
-export function formatAddress(address: AddressInterface, asString = false): string {
+export const formatAddress = (address: AddressInterface, asString = false): string => {
   let city = "";
   if (address?.city) {
     city = address?.state || address.zipcode ? `${address.city}, ` : `${address.city}`;
@@ -49,7 +49,6 @@ export function formatAddress(address: AddressInterface, asString = false): stri
   const addressLineFour = `${countyName}${address?.countyCode ? ` (${countyCode})` : ""}`;
 
   if (!asString) {
-    // Only add new lines if lines before and after are not empty to avoid awkward whitespace
     return `${addressLineOne}${
       addressLineOne && (addressLineTwo || addressLineThree) ? `\n` : ""
     }${addressLineTwo}${addressLineTwo && addressLineThree ? `\n` : ""}${addressLineThree}${
@@ -62,7 +61,7 @@ export function formatAddress(address: AddressInterface, asString = false): stri
       addressLineThree && addressLineFour ? `, ` : ""
     }${addressLineFour}`;
   }
-}
+};
 
 export const TapToEdit: FC<TapToEditProps> = ({
   value,
@@ -81,15 +80,11 @@ export const TapToEdit: FC<TapToEditProps> = ({
   ...fieldProps
 }) => {
   const [editing, setEditing] = useState(false);
-  const [initialValue, setInitialValue] = useState();
+  const initialValueRef = useRef<unknown>(undefined);
   const helperText: string | undefined = propsHelperText;
-  // setInitialValue is called after initial render to handle the case where the value is updated
-  useEffect(() => {
-    setInitialValue(value);
-    // do not update if value changes
-  }, [value]);
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
+  // biome-ignore lint/suspicious/noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
   const inputRef = useRef<any>(null);
 
   // bring the bring the input into focus when editing from within the component,
@@ -116,13 +111,16 @@ export const TapToEdit: FC<TapToEditProps> = ({
             helperText={helperText}
             inputRef={
               ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
-                ? (ref: any) => (inputRef.current = ref)
+                ? (ref: unknown) => {
+                    inputRef.current = ref;
+                  }
                 : undefined
             }
-            onChange={setValue ?? (() => {})}
+            onChange={setValue as NonNullable<typeof setValue>}
             row={fieldProps?.type === "textarea" ? 5 : undefined}
             type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
             value={value}
+            // biome-ignore lint/suspicious/noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
             {...(fieldProps as any)}
           />
           {editing && !isEditing && (
@@ -130,7 +128,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
               <Button
                 onClick={(): void => {
                   if (setValue) {
-                    setValue(initialValue);
+                    setValue(initialValueRef.current);
                   }
                   setEditing(false);
                 }}
@@ -142,7 +140,6 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   onClick={(): void => {
                     if (setValue) {
                       setValue("");
-                      setInitialValue("" as any);
                     }
                     if (onSave) {
                       onSave("");
@@ -161,7 +158,6 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     if (!onSave) {
                       console.error("No onSave provided for editable TapToEdit");
                     } else {
-                      setInitialValue(value);
                       await onSave(value);
                     }
                     setEditing(false);
@@ -271,7 +267,10 @@ export const TapToEdit: FC<TapToEditProps> = ({
                 accessibilityHint=""
                 accessibilityLabel="Edit"
                 marginLeft={2}
-                onClick={(): void => setEditing(true)}
+                onClick={(): void => {
+                  initialValueRef.current = value;
+                  setEditing(true);
+                }}
                 width={16}
               >
                 <Icon iconName="pencil" size="md" />

@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
+import {act, fireEvent} from "@testing-library/react-native";
 import {forwardRef, useImperativeHandle, useRef} from "react";
 import {Pressable, Text, View} from "react-native";
 
@@ -160,7 +160,7 @@ describe("MobileAddressAutocomplete", () => {
 
   it("falls back to the TextField and propagates its onChange without an API key", () => {
     const handleAddressChange = mock(() => {});
-    const {UNSAFE_root} = renderWithTheme(
+    const {root} = renderWithTheme(
       <MobileAddressAutocomplete
         handleAddressChange={handleAddressChange}
         handleAutoCompleteChange={() => {}}
@@ -168,7 +168,11 @@ describe("MobileAddressAutocomplete", () => {
         testID="mobile-fallback"
       />
     );
-    expect(UNSAFE_root).toBeTruthy();
+    // Find the TextField component with nativeID="address1" and trigger its onChange callback
+    const textFields = root.findAll((n) => n.props.nativeID === "address1" && n.props.onChangeText);
+    expect(textFields.length).toBeGreaterThan(0);
+    textFields[0].props.onChangeText("123 Main St");
+    expect(handleAddressChange).toHaveBeenCalledWith("123 Main St");
   });
 
   it("wrapping TouchableOpacity clears focus when pressed", () => {
@@ -184,5 +188,24 @@ describe("MobileAddressAutocomplete", () => {
     const [wrapper] = UNSAFE_getAllByType(TouchableOpacity);
     expect(wrapper).toBeTruthy();
     expect(() => wrapper.props.onPress?.()).not.toThrow();
+  });
+
+  it("fires handleAddressChange from the fallback TextField onChange", () => {
+    const handleAddressChange = mock(() => {});
+    const {TextField} = require("./TextField") as {
+      TextField: React.ComponentType<{onChange?: (v: string) => void}>;
+    };
+    const {UNSAFE_getByType} = renderWithTheme(
+      <MobileAddressAutocomplete
+        handleAddressChange={handleAddressChange}
+        handleAutoCompleteChange={() => {}}
+        inputValue=""
+      />
+    );
+    const textField = UNSAFE_getByType(TextField);
+    act(() => {
+      textField.props.onChange?.("789 Elm St");
+    });
+    expect(handleAddressChange).toHaveBeenCalledWith("789 Elm St");
   });
 });

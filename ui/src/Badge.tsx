@@ -102,13 +102,13 @@ export const Badge = ({
             backgroundColor,
             borderRadius: badgeBorderRadius,
             flexDirection: "row",
-            height: variant === "iconOnly" ? 16 : "auto",
+            height: 20,
             justifyContent: "center",
-            paddingHorizontal: variant === "iconOnly" ? theme.spacing.xs : theme.spacing.sm,
-            paddingVertical: variant === "iconOnly" ? 1 : theme.spacing.xs,
-            width: variant === "iconOnly" ? 16 : "auto",
+            paddingHorizontal: isIconOnly ? theme.spacing.xs : theme.spacing.sm,
+            paddingVertical: 0,
+            width: isIconOnly ? 20 : "auto",
           },
-          isIconOnly && {height: 16, width: 16},
+          variant === "numberOnly" && {minWidth: 20},
           secondary && {borderColor, borderWidth: 1},
         ]}
         testID={testID}

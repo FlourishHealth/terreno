@@ -1,0 +1,53 @@
+{
+  "browserslist": {
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ],
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ]
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.8.1",
+    "@docusaurus/preset-classic": "^3.8.1",
+    "@easyops-cn/docusaurus-search-local": "^0.49.0",
+    "@mdx-js/react": "^3.1.0",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@docusaurus/module-type-aliases": "^3.8.1",
+    "@docusaurus/tsconfig": "^3.8.1",
+    "@docusaurus/types": "^3.8.1",
+    "@types/node": "^22.15.0",
+    "typedoc": "catalog:",
+    "typedoc-plugin-markdown": "^4.7.0",
+    "typescript": "catalog:"
+  },
+  "name": "@terreno/website",
+  "private": true,
+  "scripts": {
+    "build": "bun run generate && docusaurus build",
+    "clear": "docusaurus clear",
+    "compile": "tsc --noEmit",
+    "docs:version": "docusaurus docs:version",
+    "docusaurus": "docusaurus",
+    "generate": "bun run generate:components && bun run generate:api",
+    "generate:api": "bun run scripts/generate-api-reference.ts",
+    "generate:components": "bun run scripts/generate-component-docs.ts",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "prune-versions": "bun run scripts/prune-doc-versions.ts",
+    "serve": "docusaurus serve",
+    "start": "bun run generate && docusaurus start --port 3001",
+    "test:ci": "bun test scripts/"
+  },
+  "version": "0.0.0"
+}

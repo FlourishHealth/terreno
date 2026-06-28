@@ -1,20 +1,24 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and mock.calls access
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
 import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
+import type {AdminApi} from "./types";
 
-const press = async (el: any): Promise<void> => {
+const press = async (el: ReactTestInstance): Promise<void> => {
   await act(async () => {
     fireEvent.press(el);
     await new Promise((r) => setTimeout(r, 150));
   });
 };
 
-const mockApi: any = {
+const mockApi = {
   endpoints: {},
   reducerPath: "test",
-};
+} as unknown as AdminApi;
 
 describe("AdminPrimitiveArrayField", () => {
   it("renders empty state when no items", () => {
@@ -63,7 +67,7 @@ describe("AdminPrimitiveArrayField", () => {
     );
     await press(getByTestId("admin-array-add-Tags"));
     expect(onChange).toHaveBeenCalled();
-    const next = (onChange.mock.calls[0] as any)[0];
+    const next = (onChange.mock.calls[0] as unknown[])[0];
     expect(next).toEqual(["foo", ""]);
   });
 
@@ -81,7 +85,7 @@ describe("AdminPrimitiveArrayField", () => {
     );
     await press(getByTestId("admin-array-remove-1"));
     expect(onChange).toHaveBeenCalled();
-    const next = (onChange.mock.calls[0] as any)[0];
+    const next = (onChange.mock.calls[0] as unknown[])[0];
     expect(next).toEqual(["a", "c"]);
   });
 
@@ -99,7 +103,7 @@ describe("AdminPrimitiveArrayField", () => {
     );
     fireEvent.changeText(getByTestId("admin-array-item-0"), "new");
     expect(onChange).toHaveBeenCalled();
-    const next = (onChange.mock.calls[0] as any)[0];
+    const next = (onChange.mock.calls[0] as unknown[])[0];
     expect(next).toEqual(["new"]);
   });
 
@@ -116,7 +120,7 @@ describe("AdminPrimitiveArrayField", () => {
       />
     );
     fireEvent.changeText(getByTestId("admin-array-item-0"), "42");
-    const next = (onChange.mock.calls[0] as any)[0];
+    const next = (onChange.mock.calls[0] as unknown[])[0];
     expect(next).toEqual([42, 2]);
   });
 
@@ -133,7 +137,7 @@ describe("AdminPrimitiveArrayField", () => {
       />
     );
     await press(getByTestId("admin-array-add-Flags"));
-    const next = (onChange.mock.calls[0] as any)[0];
+    const next = (onChange.mock.calls[0] as unknown[])[0];
     expect(next).toEqual([false]);
   });
 
@@ -150,7 +154,7 @@ describe("AdminPrimitiveArrayField", () => {
       />
     );
     await press(getByTestId("admin-array-add-Scores"));
-    const next = (onChange.mock.calls[0] as any)[0];
+    const next = (onChange.mock.calls[0] as unknown[])[0];
     expect(next).toEqual([0]);
   });
 
@@ -178,7 +182,7 @@ describe("AdminPrimitiveArrayField", () => {
         itemType="string"
         onChange={() => {}}
         title="Tags"
-        value={undefined as any}
+        value={undefined as unknown as string[]}
       />
     );
     expect(toJSON()).toBeDefined();

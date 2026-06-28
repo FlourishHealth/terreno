@@ -1,3 +1,7 @@
+---
+title: example-frontend - Expo app demonstrating full-stack Terreno usage
+trigger: always_on
+---
 # example-frontend
 
 Example Expo app demonstrating full-stack usage with @terreno/api backend, @terreno/rtk for state, and @terreno/ui for components. This is a **frontend-only** app — no Express, no Mongoose, no backend code.

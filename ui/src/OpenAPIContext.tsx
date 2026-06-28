@@ -8,6 +8,7 @@ import type {
   OpenAPIContextType,
   OpenAPIProviderProps,
   OpenAPISpec,
+  OpenApiProperty,
 } from "./Common";
 
 const OpenAPIContext = createContext<OpenAPIContextType | null>(null);
@@ -39,7 +40,7 @@ export const OpenAPIProvider = ({children, specUrl}: OpenAPIProviderProps): Reac
     }
 
     for (const dotField of dotFields.slice(1)) {
-      field = (field?.properties as any)?.[dotField];
+      field = (field?.properties as Record<string, OpenApiProperty> | undefined)?.[dotField];
     }
     return field;
   };
@@ -55,7 +56,7 @@ export const OpenAPIProvider = ({children, specUrl}: OpenAPIProviderProps): Reac
         const data = (await response.json()) as OpenAPISpec;
         setSpec(data);
       })
-      .catch((error: any) => console.error(`Error fetching OpenAPI spec: ${error}`));
+      .catch((error: unknown) => console.error(`Error fetching OpenAPI spec: ${String(error)}`));
   }, [specUrl]);
 
   return (

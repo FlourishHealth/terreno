@@ -4,7 +4,7 @@ import {StyleSheet, View} from "react-native";
 import {Host} from "react-native-portalize";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-export default function App() {
+const App = () => {
   const insets = useSafeAreaInsets();
 
   // Update when we have new fonts picked, these look baaad.
@@ -33,7 +33,7 @@ export default function App() {
           width: "100%",
         }}
       >
-        <View style={styles.body}>
+        <View style={styles.body} testID="demo-home-screen">
           <DemoHomePage
             onPress={(component: string) => {
               router.push(`demo/${encodeURIComponent(component)}`);
@@ -43,7 +43,7 @@ export default function App() {
       </View>
     </Host>
   );
-}
+};
 
 const styles = StyleSheet.create({
   body: {
@@ -64,3 +64,5 @@ const styles = StyleSheet.create({
     width: "100%",
   },
 });
+
+export default App;

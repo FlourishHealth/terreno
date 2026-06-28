@@ -1,3 +1,4 @@
+import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
@@ -5,12 +6,24 @@ import qs from "qs";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
-import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
-import {type AuthOptions, logRequests} from "./expressServer";
+import {
+  apiErrorMiddleware,
+  apiFallthroughErrorMiddleware,
+  apiUnauthorizedMiddleware,
+} from "./errors";
+import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {RealtimeApp} from "./realtime/realtimeApp";
+import type {RealtimeAppOptions} from "./realtime/types";
+import {
+  getCurrentRequestContext,
+  requestContextMiddleware,
+  updateRequestContextFromRequest,
+} from "./requestContext";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
 
@@ -49,28 +62,48 @@ export interface TerrenoAppOptions {
   arrayLimit?: number;
   /** Whether to log all incoming requests (default: true) */
   logRequests?: boolean;
+  /**
+   * Real-time sync configuration. When provided, Socket.io and MongoDB change streams
+   * are set up automatically — no need to register RealtimeApp as a separate plugin.
+   *
+   * Set to `true` for defaults, or pass a RealtimeAppOptions object for full control.
+   */
+  realtime?: boolean | RealtimeAppOptions;
+  /**
+   * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
+   * Use to attach early middleware via `app.use(...)` before JSON parsing.
+   */
+  beforeJsonSetup?: (app: express.Application) => void;
+  /**
+   * Invoked after registered plugins/model routers and before `/auth/me`.
+   * Receives the Express app and OpenAPI bundle for `modelRouter` / `createOpenApiBuilder` wiring.
+   */
+  configureApp?: AddRoutes;
 }
 
 /**
  * Fluent API for building Express applications with Terreno framework.
  *
- * TerrenoApp provides an alternative to `setupServer` using a registration
- * pattern instead of callbacks. Build applications by registering model
- * routers and plugins, then calling `start()` to begin listening.
+ * TerrenoApp is the supported way to assemble the Terreno Express stack.
+ * Build applications by registering model routers and plugins (and/or
+ * `configureApp`), then calling `start()` to listen.
  *
  * The middleware stack is configured in this order:
  * 1. CORS
- * 2. Custom middleware (via addMiddleware)
- * 3. JSON body parser
- * 4. Auth routes (/auth/login, /auth/signup, etc.)
- * 5. JWT authentication setup
- * 6. Request logging
- * 7. Sentry scopes
- * 8. OpenAPI middleware
- * 9. /auth/me routes
+ * 2. Optional `beforeJsonSetup` (configure the app before JSON parsing)
+ * 3. Custom middleware (via addMiddleware)
+ * 4. JSON body parser
+ * 5. Auth routes (/auth/login, /auth/signup, etc.)
+ * 6. JWT authentication setup
+ * 7. Request logging
+ * 8. Sentry scopes
+ * 9. OpenAPI middleware (including JSON `requestId` on object responses)
  * 10. GitHub OAuth routes (if enabled)
- * 11. Registered model routers and plugins
- * 12. Error handling middleware
+ * 11. Configuration app (if any)
+ * 12. Registered model routers and plugins
+ * 13. Optional `configureApp` callback
+ * 14. /auth/me routes
+ * 15. Error handling middleware
  *
  * @example
  * ```typescript
@@ -107,7 +140,6 @@ export interface TerrenoAppOptions {
  *   .start();
  * ```
  *
- * @see setupServer for the callback-based alternative
  * @see TerrenoPlugin for creating reusable plugins
  * @see modelRouter for creating CRUD route registrations
  */
@@ -196,6 +228,7 @@ export class TerrenoApp {
    * ```
    */
   configure(
+    // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
     model: import("mongoose").Model<any>,
     options?: Omit<ConfigurationAppOptions, "model">
   ): this {
@@ -239,7 +272,13 @@ export class TerrenoApp {
       qs.parse(str, {arrayLimit: options.arrayLimit ?? 200})
     );
 
+    app.use(requestContextMiddleware);
+
     app.use(cors({credentials: true, origin: options.corsOrigin ?? "*"}));
+
+    if (options.beforeJsonSetup) {
+      options.beforeJsonSetup(app);
+    }
 
     // Apply custom middleware before JSON parsing
     for (const fn of this.middlewareFns) {
@@ -255,8 +294,12 @@ export class TerrenoApp {
     app.use(express.json({limit: "50mb"}));
 
     // Auth routes (login/signup/refresh_token) before JWT middleware
-    addAuthRoutes(app, options.userModel as any, options.authOptions);
-    setupAuth(app as any, options.userModel as any);
+    addAuthRoutes(app, options.userModel, options.authOptions);
+    setupAuth(app, options.userModel);
+    app.use((req, res, next) => {
+      updateRequestContextFromRequest(req, res);
+      next();
+    });
 
     if (options.logRequests !== false) {
       app.use(logRequests);
@@ -269,9 +312,13 @@ export class TerrenoApp {
     });
 
     // Sentry scopes
-    app.use((req: any, _res: any, next: any) => {
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      const context = getCurrentRequestContext();
       const transactionId = req.header("X-Transaction-ID");
-      const sessionId = req.header("X-Session-ID");
+      const sessionId = context?.sessionId ?? req.header("X-Session-ID");
+      if (context?.requestId) {
+        Sentry.getCurrentScope().setTag("request_id", context.requestId);
+      }
       if (transactionId) {
         Sentry.getCurrentScope().setTag("transaction_id", transactionId);
       }
@@ -279,7 +326,7 @@ export class TerrenoApp {
         Sentry.getCurrentScope().setTag("session_id", sessionId);
       }
       if (req.user?._id) {
-        Sentry.getCurrentScope().setTag("user", req.user._id);
+        Sentry.getCurrentScope().setTag("user", String(req.user._id));
       }
       next();
     });
@@ -287,6 +334,7 @@ export class TerrenoApp {
     // OpenAPI
     app.use(openApiCompatMiddleware);
     app.use(openApiEtagMiddleware);
+    app.use(jsonResponseRequestIdMiddleware);
     const oapi = openapi({
       info: {
         description: "Generated docs from an Express api",
@@ -303,8 +351,8 @@ export class TerrenoApp {
 
     // GitHub OAuth
     if (options.githubAuth) {
-      setupGitHubAuth(app, options.userModel as any, options.githubAuth);
-      addGitHubAuthRoutes(app, options.userModel as any, options.githubAuth, options.authOptions);
+      setupGitHubAuth(app, options.userModel, options.githubAuth);
+      addGitHubAuthRoutes(app, options.userModel, options.githubAuth, options.authOptions);
     }
 
     // Mount configuration app if configured
@@ -322,9 +370,13 @@ export class TerrenoApp {
       }
     }
 
+    if (options.configureApp) {
+      options.configureApp(app, {openApi: oapi});
+    }
+
     // /auth/me must be registered after plugins so that session middleware
     // (e.g. Better Auth) has a chance to populate req.user first.
-    addMeRoutes(app, options.userModel as any, options.authOptions);
+    addMeRoutes(app, options.userModel, options.authOptions);
 
     Sentry.setupExpressErrorHandler(app);
 
@@ -332,12 +384,7 @@ export class TerrenoApp {
     app.use(apiUnauthorizedMiddleware);
     app.use(apiErrorMiddleware);
 
-    app.use(function onError(err: any, _req: any, res: any, _next: any) {
-      logger.error(`Fallthrough error: ${err}${err?.stack ? `\n${err.stack}` : ""}}`);
-      Sentry.captureException(err);
-      res.statusCode = 500;
-      res.end(`${res.sentry}\n`);
-    });
+    app.use(apiFallthroughErrorMiddleware);
 
     return app;
   }
@@ -363,16 +410,38 @@ export class TerrenoApp {
    * ```
    */
   start(): express.Application {
+    // If realtime option is set, auto-register the RealtimeApp plugin
+    if (this.options.realtime) {
+      const hasRealtimePlugin = this.registrations.some(
+        (r) => !this.isModelRouterRegistration(r) && r instanceof RealtimeApp
+      );
+      if (!hasRealtimePlugin) {
+        const realtimeConfig =
+          typeof this.options.realtime === "object" ? this.options.realtime : {};
+        this.register(new RealtimeApp(realtimeConfig));
+      }
+    }
+
     const app = this.build();
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
       try {
-        app.listen(port, () => {
+        const server = createServer(app);
+
+        // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
+        for (const reg of this.registrations) {
+          if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+            reg.onServerCreated(server);
+          }
+        }
+
+        server.listen(port, () => {
           logger.info(`Listening on port ${port}`);
         });
       } catch (error) {
-        logger.error(`Error trying to start HTTP server: ${error}\n${(error as any).stack}`);
+        const stack = error instanceof Error ? error.stack : String(error);
+        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
         process.exit(1);
       }
     }

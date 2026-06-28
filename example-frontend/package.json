@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@expo/vector-icons": "catalog:",
+    "@openfeature/react-sdk": "catalog:",
+    "@openfeature/web-sdk": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
     "@react-navigation/native": "catalog:",
     "@reduxjs/toolkit": "catalog:",
@@ -20,6 +22,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
+    "react-native-gesture-handler": "catalog:",
     "react-native-reanimated": "catalog:",
     "react-native-web": "catalog:",
     "react-native-webview": "catalog:",
@@ -29,31 +32,32 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
-    "babel-preset-expo": "~54.0.10",
-    "mongodb": "^6.20.0",
+    "babel-preset-expo": "catalog:",
+    "expo-mcp": "^0.2.4",
+    "mongodb": "catalog:",
     "typescript": "catalog:"
   },
   "main": "index.js",
   "name": "@terreno/example-frontend",
   "private": true,
   "scripts": {
-    "android": "bun expo start --android --port 8082",
+    "android": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --android --port 8082",
     "eas-build-post-install": "cd .. && bun run compile",
     "export": "bun expo export --platform web",
-    "ios": "bun expo start --ios --port 8082",
-    "lint": "bun biome check .",
-    "lint:fix": "bun biome check --write .",
-    "lint:unsafefix": "biome check --write . --unsafe",
+    "ios": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --ios --port 8082",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:unsafefix": "biome check --write --unsafe .",
     "sdk": "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
-    "start": "bun expo start --port 8082",
+    "start": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --port 8082",
     "test": "bun test ./**/*.test.ts ./**/*.test.tsx",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
-    "web": "bun expo start --web --port 8082"
+    "web": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --web --port 8082"
   },
   "version": "1.0.0"
 }

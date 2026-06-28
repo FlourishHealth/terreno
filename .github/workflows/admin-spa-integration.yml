@@ -1,0 +1,156 @@
+# Admin SPA Integration: build the SPA web export, serve it from a real example-backend
+# (AdminSpaServeApp at /console with Better Auth + admin API on the same origin), seed a
+# Better Auth admin user, and drive the full login -> admin model list flow with Playwright.
+name: Admin SPA Integration
+
+on:
+  push:
+    paths:
+      - "admin-spa/**"
+      - "admin-frontend/src/**"
+      - "admin-backend/src/**"
+      - "api/src/**"
+      - "api-health/src/**"
+      - "feature-flags/src/**"
+      - "rtk/src/**"
+      - "ui/src/**"
+      - "example-backend/src/**"
+      - "bun.lock"
+      - ".github/workflows/admin-spa-integration.yml"
+
+jobs:
+  integration:
+    name: Admin SPA Backend Integration E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      # The mongodb action builds its own helper image FROM docker:latest, which pulls
+      # from Docker Hub and intermittently times out on GitHub runners. Pre-pull the
+      # base image from the GCR mirror so the action's build resolves it locally.
+      - name: Pre-pull docker base image from mirror
+        continue-on-error: true
+        run: |
+          docker pull mirror.gcr.io/library/docker:latest
+          docker tag mirror.gcr.io/library/docker:latest docker:latest
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: "6.0"
+          mongodb-image: mirror.gcr.io/library/mongo
+          # Replica set is required for MongoDB change streams,
+          # which power the RealtimeApp WebSocket sync.
+          mongodb-replica-set: rs0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile workspace packages
+        run: bun run compile
+
+      - name: Build admin SPA web export
+        run: bun run build:web
+        working-directory: admin-spa
+        env:
+          CI: true
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "$TOKEN_SECRET" ]; then missing+=("TOKEN_SECRET"); fi
+          if [ -z "$REFRESH_TOKEN_SECRET" ]; then missing+=("REFRESH_TOKEN_SECRET"); fi
+          if [ -z "$SESSION_SECRET" ]; then missing+=("SESSION_SECRET"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Start backend with admin SPA enabled
+        run: |
+          bun run src/index.ts &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          # Wait up to 60s for the backend to be healthy (DB connected)
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4000/health | grep -q '"healthy":true'; then
+              echo "Backend ready after ${i}×2s"
+              exit 0
+            fi
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "::error::Backend process exited unexpectedly"
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Backend did not become ready within 60s"
+          exit 1
+        working-directory: example-backend
+        env:
+          PORT: "4000"
+          MONGO_URI: mongodb://127.0.0.1/terreno-admin-spa-e2e?replicaSet=rs0
+          ADMIN_SPA_ENABLED: "true"
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_URL: http://localhost:4000
+          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-admin-spa-e2e
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Seed Better Auth admin user
+        run: bun run src/scripts/seed-admin-spa-admin.ts
+        working-directory: example-backend
+        env:
+          MONGO_URI: mongodb://127.0.0.1/terreno-admin-spa-e2e?replicaSet=rs0
+
+      - name: Smoke check served SPA
+        run: |
+          curl -sf http://localhost:4000/console/app-config.json
+          curl -sf http://localhost:4000/console/ | grep -q "__ADMIN_SPA_BASE__"
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+        working-directory: admin-spa
+
+      - name: Run integration e2e
+        run: bun run test:integration
+        working-directory: admin-spa
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: admin-spa-integration-playwright-report
+          path: admin-spa/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Playwright test results
+        uses: actions/upload-artifact@v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: admin-spa-integration-test-results
+          path: admin-spa/test-results/
+          if-no-files-found: ignore
+          retention-days: 30

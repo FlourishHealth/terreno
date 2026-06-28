@@ -1,6 +1,8 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 
 import {LangfuseCache} from "./langfuseCache";
+import {getLangfuseClient, initLangfuseClient} from "./langfuseClient";
+import {createTelemetryConfig, preparePromptForAI} from "./langfuseVercelAi";
 
 const mockPromptGet = mock(async (_name: string, _options?: Record<string, unknown>) => ({
   config: {temperature: 0.5},
@@ -12,22 +14,16 @@ const mockPromptGet = mock(async (_name: string, _options?: Record<string, unkno
   version: 3,
 }));
 
-// Mock the langfuse SDK client so the real `getPrompt`/`compilePrompt` from
-// `./langfusePrompts` can be exercised without network access. We intentionally
-// do NOT mock `./langfusePrompts` directly because that would leak into other
-// test suites that share the module cache in the same bun process.
-const realLangfuseClient = await import("./langfuseClient");
-mock.module("./langfuseClient", () => ({
-  ...realLangfuseClient,
-  getLangfuseClient: () => ({prompt: {get: mockPromptGet}}),
-}));
-
-const {createTelemetryConfig, preparePromptForAI} = await import("./langfuseVercelAi");
-
 describe("langfuseVercelAi", () => {
   beforeEach(async () => {
     mockPromptGet.mockClear();
     await LangfuseCache.deleteMany({});
+    // Re-init the (fake) langfuse client and wire the prompt.get mock so the
+    // real `getPrompt`/`compilePrompt` from `./langfusePrompts` runs against
+    // a customizable response without network access.
+    initLangfuseClient({publicKey: "pk-test", secretKey: "sk-test"});
+    (getLangfuseClient() as unknown as {prompt: {get: typeof mockPromptGet}}).prompt.get =
+      mockPromptGet;
   });
 
   describe("preparePromptForAI", () => {

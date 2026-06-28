@@ -33,15 +33,24 @@ exports[`SignatureField renders correctly with default props 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "height": 180,
+                    "onPointerDown": [Function],
+                    "onPointerLeave": [Function],
+                    "onPointerMove": [Function],
+                    "onPointerUp": [Function],
                     "ref": {
                       "current": null,
                     },
                     "style": {
-                      "backgroundColor": "#FFFFFF",
+                      "display": "block",
+                      "height": 180,
+                      "maxWidth": "100%",
+                      "touchAction": "none",
+                      "width": "100%",
                     },
-                    "testID": "signature-canvas",
+                    "width": 300,
                   },
-                  "type": "View",
+                  "type": "canvas",
                 },
               ],
               "props": {

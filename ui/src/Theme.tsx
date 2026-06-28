@@ -172,18 +172,21 @@ const computeTheme = (
       return acc;
     }
     const value = themeConfig[key as keyof TerrenoThemeConfig] ?? {};
-    acc[key as keyof TerrenoTheme] = Object.keys(value).reduce((accKey, valueKey) => {
-      const primitiveKey = value[valueKey as keyof typeof value] as keyof ThemePrimitives;
-      if (key === "font") {
-        accKey[valueKey] = primitiveKey;
-      } else {
-        if (primitives[primitiveKey] === undefined) {
-          console.error(`Primitive ${primitiveKey} not found in theme.`);
+    (acc as unknown as Record<string, unknown>)[key] = Object.keys(value).reduce(
+      (accKey, valueKey) => {
+        const primitiveKey = value[valueKey as keyof typeof value] as keyof ThemePrimitives;
+        if (key === "font") {
+          accKey[valueKey] = primitiveKey;
+        } else {
+          if (primitives[primitiveKey] === undefined) {
+            console.error(`Primitive ${primitiveKey} not found in theme.`);
+          }
+          accKey[valueKey] = primitives[primitiveKey];
         }
-        accKey[valueKey as keyof typeof accKey] = primitives[primitiveKey];
-      }
-      return accKey;
-    }, {} as any);
+        return accKey;
+      },
+      {} as Record<string, string | number>
+    );
     return acc;
   }, {} as TerrenoTheme);
   return {...theme, primitives};
@@ -199,12 +202,15 @@ export const ThemeContext = createContext({
 });
 
 interface ThemeProviderProps {
-  children: any;
+  children: React.ReactNode;
+  initialPrimitives?: DeepPartial<ThemePrimitives>;
 }
 
-export const ThemeProvider = ({children}: ThemeProviderProps) => {
+export const ThemeProvider = ({children, initialPrimitives}: ThemeProviderProps) => {
   const [providerTheme, setProviderTheme] = useState<DeepPartial<TerrenoThemeConfig>>(defaultTheme);
-  const [providerPrimitives, setProviderPrimitives] = useState<ThemePrimitives>(defaultPrimitives);
+  const [providerPrimitives, setProviderPrimitives] = useState<ThemePrimitives>(
+    initialPrimitives ? {...defaultPrimitives, ...initialPrimitives} : defaultPrimitives
+  );
 
   const computedTheme = useMemo(
     () => computeTheme(providerTheme, providerPrimitives),
@@ -225,12 +231,12 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
           const prevSubTheme = prev[key as keyof TerrenoThemeConfig];
 
           if (newSubTheme && typeof newSubTheme === "object") {
-            (mergedTheme as any)[key as keyof TerrenoThemeConfig] = {
+            (mergedTheme as Record<string, unknown>)[key] = {
               ...prevSubTheme,
               ...newSubTheme,
             };
           } else {
-            mergedTheme[key as keyof TerrenoThemeConfig] = newSubTheme as any;
+            (mergedTheme as Record<string, unknown>)[key] = newSubTheme;
           }
         }
       }

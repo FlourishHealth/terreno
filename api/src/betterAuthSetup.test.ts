@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 import {MongoMemoryServer} from "mongodb-memory-server";

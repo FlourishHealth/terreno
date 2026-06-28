@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   BooleanField,
   Box,
@@ -12,7 +11,7 @@ import {
 import startCase from "lodash/startCase";
 import React, {useCallback} from "react";
 import {AdminRefField} from "./AdminRefField";
-import type {RefRendererMap} from "./types";
+import type {AdminApi, RefRendererMap} from "./types";
 
 interface AdminPrimitiveArrayFieldProps {
   title: string;
@@ -23,8 +22,13 @@ interface AdminPrimitiveArrayFieldProps {
   itemRef?: string;
   value: PrimitiveItem[];
   onChange: (value: PrimitiveItem[]) => void;
-  api: Api<any, any, any, any>;
-  baseUrl: string;
+  api: AdminApi;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
   /**
    * Optional map of custom ref-field renderers keyed by referenced model name. When
@@ -32,6 +36,7 @@ interface AdminPrimitiveArrayFieldProps {
    * {@link AdminRefField} for each ref item.
    */
   refRenderers?: RefRendererMap;
+  readOnly?: boolean;
 }
 
 type PrimitiveItem = string | number | boolean;
@@ -62,9 +67,13 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
   onChange,
   api,
   baseUrl,
+  apiBase,
+  routeBase,
   modelConfigs,
   refRenderers,
+  readOnly,
 }) => {
+  const isReadOnly = Boolean(readOnly);
   const arrayValue = Array.isArray(value) ? value : [];
 
   const handleAdd = useCallback(() => {
@@ -94,6 +103,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
     if (itemType === "boolean") {
       return (
         <BooleanField
+          disabled={isReadOnly}
           onChange={(val: boolean) => handleUpdate(index, val)}
           title=""
           value={Boolean(item)}
@@ -103,6 +113,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
     if (itemEnum && itemEnum.length > 0) {
       return (
         <SelectField
+          disabled={isReadOnly}
           onChange={(val: string) => handleUpdate(index, val)}
           options={itemEnum.map((v) => ({label: startCase(v), value: v}))}
           title=""
@@ -116,9 +127,12 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
         return (
           <CustomRenderer
             api={api}
+            apiBase={apiBase}
             baseUrl={baseUrl}
             onChange={(val: string) => handleUpdate(index, val)}
+            readOnly={isReadOnly}
             refModelName={itemRef}
+            routeBase={routeBase}
             routePath={refModel?.routePath ?? ""}
             title=""
             value={item != null ? String(item) : ""}
@@ -129,9 +143,12 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
         return (
           <AdminRefField
             api={api}
+            apiBase={apiBase}
             baseUrl={baseUrl}
             onChange={(val: string) => handleUpdate(index, val)}
+            readOnly={isReadOnly}
             refModelName={refModel.name}
+            routeBase={routeBase}
             routePath={refModel.routePath}
             title=""
             value={item != null ? String(item) : ""}
@@ -142,6 +159,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
     if (itemType === "number") {
       return (
         <TextField
+          disabled={isReadOnly}
           onChange={(text: string) => {
             const num = Number(text);
             handleUpdate(index, Number.isNaN(num) ? text : num);
@@ -155,6 +173,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
     // Default: string
     return (
       <TextField
+        disabled={isReadOnly}
         onChange={(val: string) => handleUpdate(index, val)}
         testID={`admin-array-item-${index}`}
         title=""
@@ -167,13 +186,15 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
     <Box gap={2}>
       <Box alignItems="center" direction="row" justifyContent="between">
         <Heading size="sm">{title}</Heading>
-        <Button
-          iconName="plus"
-          onClick={handleAdd}
-          testID={`admin-array-add-${title}`}
-          text="Add"
-          variant="outline"
-        />
+        {!isReadOnly ? (
+          <Button
+            iconName="plus"
+            onClick={handleAdd}
+            testID={`admin-array-add-${title}`}
+            text="Add"
+            variant="outline"
+          />
+        ) : null}
       </Box>
       {helperText ? (
         <Text color="secondaryDark" size="sm">
@@ -188,19 +209,23 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
 
       {arrayValue.length === 0 ? (
         <Box alignItems="center" padding={3}>
-          <Text color="secondaryDark">No items. Click &quot;Add&quot; to create one.</Text>
+          <Text color="secondaryDark">
+            {isReadOnly ? "No items." : 'No items. Click "Add" to create one.'}
+          </Text>
         </Box>
       ) : (
         arrayValue.map((item, index) => (
           <Box alignItems="center" direction="row" gap={2} key={`item-${index}`}>
             <Box flex="grow">{renderItemInput(item, index)}</Box>
-            <IconButton
-              accessibilityLabel="Remove item"
-              iconName="trash"
-              onClick={() => handleRemove(index)}
-              testID={`admin-array-remove-${index}`}
-              variant="destructive"
-            />
+            {!isReadOnly ? (
+              <IconButton
+                accessibilityLabel="Remove item"
+                iconName="trash"
+                onClick={() => handleRemove(index)}
+                testID={`admin-array-remove-${index}`}
+                variant="destructive"
+              />
+            ) : null}
           </Box>
         ))
       )}
