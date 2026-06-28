@@ -4,6 +4,8 @@ import {
   resolveDataTableRowTestID,
   resolveFieldTestIDs,
   resolveModalTestIDs,
+  resolveSegmentedControlTestIDs,
+  resolveSegmentedControlTestIDsFromProps,
   resolveTestID,
   toDomTestProps,
   toTestProps,
@@ -84,5 +86,45 @@ describe("resolveDataTableRowTestID", () => {
 
   it("returns undefined when base is absent", () => {
     expect(resolveDataTableRowTestID(undefined, "abc123")).toBeUndefined();
+  });
+});
+
+describe("resolveSegmentedControlTestIDs", () => {
+  it("applies dot-suffix defaults", () => {
+    expect(resolveSegmentedControlTestIDs("schedule.nav")).toEqual({
+      nextButton: "schedule.nav.next",
+      previousButton: "schedule.nav.previous",
+      root: "schedule.nav",
+    });
+  });
+
+  it("allows testIDs overrides", () => {
+    expect(
+      resolveSegmentedControlTestIDs("schedule.nav", {
+        nextButton: "custom-next",
+        previousButton: "custom-previous",
+      })
+    ).toEqual({
+      nextButton: "custom-next",
+      previousButton: "custom-previous",
+      root: "schedule.nav",
+    });
+  });
+});
+
+describe("resolveSegmentedControlTestIDsFromProps", () => {
+  it("resolves using component props", () => {
+    expect(
+      resolveSegmentedControlTestIDsFromProps({
+        testID: "schedule.nav",
+        testIDs: {
+          root: "custom-root",
+        },
+      })
+    ).toEqual({
+      nextButton: "schedule.nav.next",
+      previousButton: "schedule.nav.previous",
+      root: "custom-root",
+    });
   });
 });

@@ -100,7 +100,7 @@ jobs:
           restore-keys: |
             bun-${{ runner.os }}-
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -234,7 +234,7 @@ jobs:
           restore-keys: |
             bun-${{ runner.os }}-
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}

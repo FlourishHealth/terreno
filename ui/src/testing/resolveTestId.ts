@@ -7,6 +7,8 @@ import type {
   ResolvedDataTableTestIDs,
   ResolvedFieldTestIDs,
   ResolvedModalTestIDs,
+  ResolvedSegmentedControlTestIDs,
+  SegmentedControlTestIDs,
   WithTestID,
 } from "./types";
 
@@ -119,4 +121,22 @@ export const resolveDataTableRowTestID = (
     return undefined;
   }
   return `${rowTestIDBase}-${rowKey}`;
+};
+
+/** Resolve compound SegmentedControl test ids with dot-suffix defaults. */
+export const resolveSegmentedControlTestIDs = (
+  baseTestID: string | undefined,
+  testIDs?: SegmentedControlTestIDs
+): ResolvedSegmentedControlTestIDs => {
+  return {
+    nextButton: testIDs?.nextButton ?? resolveTestID(baseTestID, "next"),
+    previousButton: testIDs?.previousButton ?? resolveTestID(baseTestID, "previous"),
+    root: testIDs?.root ?? baseTestID,
+  };
+};
+
+export const resolveSegmentedControlTestIDsFromProps = (
+  props: WithTestID & {testIDs?: SegmentedControlTestIDs}
+): ResolvedSegmentedControlTestIDs => {
+  return resolveSegmentedControlTestIDs(props.testID, props.testIDs);
 };

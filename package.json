@@ -67,7 +67,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "rulesync": "^8.18.0"
+    "@types/chai": "^5.2.3",
+    "chai": "^6.2.2",
+    "rulesync": "^8.18.0",
+    "zod": "^4.4.3"
   },
   "name": "@terreno/root",
   "overrides": {

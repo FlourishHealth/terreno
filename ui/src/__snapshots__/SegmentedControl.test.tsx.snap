@@ -1049,6 +1049,7 @@ exports[`SegmentedControl renders with maxItems and scroll buttons 1`] = `
       "props": {
         "disabled": true,
         "onPress": [Function],
+        "testID": undefined,
       },
       "type": "Pressable",
     },
@@ -1216,6 +1217,7 @@ exports[`SegmentedControl renders with maxItems and scroll buttons 1`] = `
       "props": {
         "disabled": false,
         "onPress": [Function],
+        "testID": undefined,
       },
       "type": "Pressable",
     },
@@ -1243,6 +1245,7 @@ exports[`SegmentedControl handles scroll navigation 1`] = `
       "props": {
         "disabled": true,
         "onPress": [Function],
+        "testID": undefined,
       },
       "type": "Pressable",
     },
@@ -1410,6 +1413,7 @@ exports[`SegmentedControl handles scroll navigation 1`] = `
       "props": {
         "disabled": false,
         "onPress": [Function],
+        "testID": undefined,
       },
       "type": "Pressable",
     },

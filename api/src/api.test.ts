@@ -2078,6 +2078,10 @@ describe("@terreno/api", () => {
         {_id: spinach._id as unknown as mongoose.Types.ObjectId},
         {$set: {updated: "2025-06-15T12:00:00.000Z"}}
       );
+      const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
+      if (!ifUnmodifiedSince) {
+        throw new Error("Failed to serialize If-Unmodified-Since timestamp");
+      }
 
       const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
       if (!ifUnmodifiedSince) {

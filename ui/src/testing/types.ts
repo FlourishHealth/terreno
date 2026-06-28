@@ -30,6 +30,13 @@ export interface DataTableTestIDs {
   pagination?: string;
 }
 
+/** Sub-element test ids for SegmentedControl. */
+export interface SegmentedControlTestIDs {
+  root?: string;
+  previousButton?: string;
+  nextButton?: string;
+}
+
 export interface ResolvedFieldTestIDs {
   label?: string;
   input?: string;
@@ -51,4 +58,10 @@ export interface ResolvedDataTableTestIDs {
   body?: string;
   row?: string;
   pagination?: string;
+}
+
+export interface ResolvedSegmentedControlTestIDs {
+  root?: string;
+  previousButton?: string;
+  nextButton?: string;
 }
