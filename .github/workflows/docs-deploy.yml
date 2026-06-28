@@ -118,7 +118,7 @@ jobs:
   deploy-preview:
     name: Deploy docs preview
     needs: build
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_DOCS_SITE_ID != ''
     runs-on: ubuntu-latest
     environment:
       name: docs-preview-pr-${{ github.event.pull_request.number }}
