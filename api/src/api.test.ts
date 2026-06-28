@@ -2080,7 +2080,7 @@ describe("@terreno/api", () => {
       );
       const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
       if (!ifUnmodifiedSince) {
-        throw new Error("Failed to serialize If-Unmodified-Since timestamp");
+        throw new Error("Expected valid HTTP date");
       }
 
       const res = await agent
