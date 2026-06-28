@@ -40,7 +40,7 @@ jobs:
         id: check
         run: |
           FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
-          CHANGES=$(echo "$FILES" | grep -cE '^(docs/|website/|api/src/|rtk/src/|demo/demoConfig\.tsx|demo/story-config/|ui/src/|netlify\.toml)' || true)
+          CHANGES=$(echo "$FILES" | grep -cE '^(docs/|website/|api/src/|rtk/src/|demo/demoConfig\.tsx|demo/story-config/|ui/src/|netlify\.toml|\.github/workflows/docs-deploy\.yml)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
