@@ -10,6 +10,7 @@ on:
       - "rtk/**"
       - "ai/**"
       - "admin-frontend/**"
+      - "bun.lock"
       - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
 
@@ -199,7 +200,7 @@ jobs:
 
       - name: Deploy to Netlify
         id: netlify
-        uses: nwtgck/actions-netlify@v3.0
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: "./dist"
           production-deploy: false
@@ -295,7 +296,7 @@ jobs:
 
       - name: Deploy to Netlify
         id: netlify
-        uses: nwtgck/actions-netlify@v3.0
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: "./dist"
           production-deploy: true
@@ -409,7 +410,7 @@ jobs:
 
       - name: Deploy to Netlify
         id: netlify
-        uses: nwtgck/actions-netlify@v3.0
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: "./dist"
           production-deploy: false

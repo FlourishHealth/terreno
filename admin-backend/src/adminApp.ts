@@ -12,6 +12,7 @@ import {
   logger,
   type ModelRouterOptions,
   modelRouter,
+  type PopulatePath,
   type OpenApiMiddleware,
   Permissions,
   type ScriptArgDef,
@@ -91,6 +92,8 @@ export interface AdminModelConfig {
   permissions?: AdminModelPermissionsInput;
   /** Suggested page size for the changelist */
   pageSize?: number;
+  /** Mongoose populate paths for list/read responses (e.g. populated refs on consent responses). */
+  populatePaths?: PopulatePath[];
   /** UI-only hint that live updates may be available */
   realtime?: boolean;
   /**
@@ -1017,6 +1020,7 @@ export class AdminApp {
                 removeHiddenFields(value, hiddenFieldSet) as JSONValue
             : undefined,
         sort: config.defaultSort ?? "-created",
+        ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...auditHooks,
       };
 

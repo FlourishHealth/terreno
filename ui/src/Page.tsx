@@ -74,6 +74,7 @@ export class Page extends React.Component<PageProps, {}> {
           maxWidth={this.props.maxWidth || 800}
           padding={this.props.padding !== undefined ? this.props.padding : 2}
           scroll={this.props.scroll === undefined ? true : this.props.scroll}
+          testID={this.props.testID}
           width="100%"
         >
           {this.renderHeader()}

@@ -1566,11 +1566,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "Category of consent form",
                             "enum": [
                               "agreement",
-                              "privacy",
+                              "custom",
                               "hipaa",
+                              "privacy",
                               "research",
                               "terms",
-                              "custom",
                             ],
                             "type": "string",
                           },
@@ -1763,11 +1763,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Category of consent form",
                     "enum": [
                       "agreement",
-                      "privacy",
+                      "custom",
                       "hipaa",
+                      "privacy",
                       "research",
                       "terms",
-                      "custom",
                     ],
                     "type": "string",
                   },
@@ -1884,11 +1884,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Category of consent form",
                       "enum": [
                         "agreement",
-                        "privacy",
+                        "custom",
                         "hipaa",
+                        "privacy",
                         "research",
                         "terms",
-                        "custom",
                       ],
                       "type": "string",
                     },
@@ -2240,11 +2240,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Category of consent form",
                       "enum": [
                         "agreement",
-                        "privacy",
+                        "custom",
                         "hipaa",
+                        "privacy",
                         "research",
                         "terms",
-                        "custom",
                       ],
                       "type": "string",
                     },
@@ -2430,11 +2430,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Category of consent form",
                     "enum": [
                       "agreement",
-                      "privacy",
+                      "custom",
                       "hipaa",
+                      "privacy",
                       "research",
                       "terms",
-                      "custom",
                     ],
                     "type": "string",
                   },
@@ -2551,11 +2551,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Category of consent form",
                       "enum": [
                         "agreement",
-                        "privacy",
+                        "custom",
                         "hipaa",
+                        "privacy",
                         "research",
                         "terms",
-                        "custom",
                       ],
                       "type": "string",
                     },
@@ -2811,8 +2811,34 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "object",
                           },
                           "consentFormId": {
-                            "description": "Reference to the ConsentForm that was responded to",
-                            "type": "schemaobjectid",
+                            "properties": {
+                              "slug": {
+                                "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                                "type": "string",
+                              },
+                              "title": {
+                                "description": "Human-readable title of the consent form",
+                                "type": "string",
+                              },
+                              "type": {
+                                "description": "Category of consent form",
+                                "enum": [
+                                  "agreement",
+                                  "privacy",
+                                  "hipaa",
+                                  "research",
+                                  "terms",
+                                  "custom",
+                                ],
+                                "type": "string",
+                              },
+                              "version": {
+                                "default": 1,
+                                "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                                "type": "number",
+                              },
+                            },
+                            "type": "object",
                           },
                           "contentSnapshot": {
                             "description": "Snapshot of the form content in the user's locale at the time of response",
@@ -2858,8 +2884,17 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "userId": {
-                            "description": "Reference to the User who submitted this response",
-                            "type": "schemaobjectid",
+                            "properties": {
+                              "email": {
+                                "description": "The user's email address, used for authentication",
+                                "type": "string",
+                              },
+                              "name": {
+                                "description": "The user's display name",
+                                "type": "string",
+                              },
+                            },
+                            "type": "object",
                           },
                         },
                         "required": [
@@ -2969,8 +3004,34 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "object",
                   },
                   "consentFormId": {
-                    "description": "Reference to the ConsentForm that was responded to",
-                    "type": "schemaobjectid",
+                    "properties": {
+                      "slug": {
+                        "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                        "type": "string",
+                      },
+                      "title": {
+                        "description": "Human-readable title of the consent form",
+                        "type": "string",
+                      },
+                      "type": {
+                        "description": "Category of consent form",
+                        "enum": [
+                          "agreement",
+                          "privacy",
+                          "hipaa",
+                          "research",
+                          "terms",
+                          "custom",
+                        ],
+                        "type": "string",
+                      },
+                      "version": {
+                        "default": 1,
+                        "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                        "type": "number",
+                      },
+                    },
+                    "type": "object",
                   },
                   "contentSnapshot": {
                     "description": "Snapshot of the form content in the user's locale at the time of response",
@@ -3016,8 +3077,17 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "userId": {
-                    "description": "Reference to the User who submitted this response",
-                    "type": "schemaobjectid",
+                    "properties": {
+                      "email": {
+                        "description": "The user's email address, used for authentication",
+                        "type": "string",
+                      },
+                      "name": {
+                        "description": "The user's display name",
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
                   },
                 },
                 "type": "object",
@@ -3052,8 +3122,34 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "object",
                     },
                     "consentFormId": {
-                      "description": "Reference to the ConsentForm that was responded to",
-                      "type": "schemaobjectid",
+                      "properties": {
+                        "slug": {
+                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                          "type": "string",
+                        },
+                        "title": {
+                          "description": "Human-readable title of the consent form",
+                          "type": "string",
+                        },
+                        "type": {
+                          "description": "Category of consent form",
+                          "enum": [
+                            "agreement",
+                            "privacy",
+                            "hipaa",
+                            "research",
+                            "terms",
+                            "custom",
+                          ],
+                          "type": "string",
+                        },
+                        "version": {
+                          "default": 1,
+                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
                     },
                     "contentSnapshot": {
                       "description": "Snapshot of the form content in the user's locale at the time of response",
@@ -3099,8 +3195,17 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "userId": {
-                      "description": "Reference to the User who submitted this response",
-                      "type": "schemaobjectid",
+                      "properties": {
+                        "email": {
+                          "description": "The user's email address, used for authentication",
+                          "type": "string",
+                        },
+                        "name": {
+                          "description": "The user's display name",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
                     },
                   },
                   "required": [
@@ -3306,8 +3411,34 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "object",
                     },
                     "consentFormId": {
-                      "description": "Reference to the ConsentForm that was responded to",
-                      "type": "schemaobjectid",
+                      "properties": {
+                        "slug": {
+                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                          "type": "string",
+                        },
+                        "title": {
+                          "description": "Human-readable title of the consent form",
+                          "type": "string",
+                        },
+                        "type": {
+                          "description": "Category of consent form",
+                          "enum": [
+                            "agreement",
+                            "privacy",
+                            "hipaa",
+                            "research",
+                            "terms",
+                            "custom",
+                          ],
+                          "type": "string",
+                        },
+                        "version": {
+                          "default": 1,
+                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
                     },
                     "contentSnapshot": {
                       "description": "Snapshot of the form content in the user's locale at the time of response",
@@ -3353,8 +3484,17 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "userId": {
-                      "description": "Reference to the User who submitted this response",
-                      "type": "schemaobjectid",
+                      "properties": {
+                        "email": {
+                          "description": "The user's email address, used for authentication",
+                          "type": "string",
+                        },
+                        "name": {
+                          "description": "The user's display name",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
                     },
                   },
                   "required": [
@@ -3457,8 +3597,34 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "object",
                   },
                   "consentFormId": {
-                    "description": "Reference to the ConsentForm that was responded to",
-                    "type": "schemaobjectid",
+                    "properties": {
+                      "slug": {
+                        "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                        "type": "string",
+                      },
+                      "title": {
+                        "description": "Human-readable title of the consent form",
+                        "type": "string",
+                      },
+                      "type": {
+                        "description": "Category of consent form",
+                        "enum": [
+                          "agreement",
+                          "privacy",
+                          "hipaa",
+                          "research",
+                          "terms",
+                          "custom",
+                        ],
+                        "type": "string",
+                      },
+                      "version": {
+                        "default": 1,
+                        "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                        "type": "number",
+                      },
+                    },
+                    "type": "object",
                   },
                   "contentSnapshot": {
                     "description": "Snapshot of the form content in the user's locale at the time of response",
@@ -3504,8 +3670,17 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "userId": {
-                    "description": "Reference to the User who submitted this response",
-                    "type": "schemaobjectid",
+                    "properties": {
+                      "email": {
+                        "description": "The user's email address, used for authentication",
+                        "type": "string",
+                      },
+                      "name": {
+                        "description": "The user's display name",
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
                   },
                 },
                 "type": "object",
@@ -3540,8 +3715,34 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "object",
                     },
                     "consentFormId": {
-                      "description": "Reference to the ConsentForm that was responded to",
-                      "type": "schemaobjectid",
+                      "properties": {
+                        "slug": {
+                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                          "type": "string",
+                        },
+                        "title": {
+                          "description": "Human-readable title of the consent form",
+                          "type": "string",
+                        },
+                        "type": {
+                          "description": "Category of consent form",
+                          "enum": [
+                            "agreement",
+                            "privacy",
+                            "hipaa",
+                            "research",
+                            "terms",
+                            "custom",
+                          ],
+                          "type": "string",
+                        },
+                        "version": {
+                          "default": 1,
+                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
                     },
                     "contentSnapshot": {
                       "description": "Snapshot of the form content in the user's locale at the time of response",
@@ -3587,8 +3788,17 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "userId": {
-                      "description": "Reference to the User who submitted this response",
-                      "type": "schemaobjectid",
+                      "properties": {
+                        "email": {
+                          "description": "The user's email address, used for authentication",
+                          "type": "string",
+                        },
+                        "name": {
+                          "description": "The user's display name",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
                     },
                   },
                   "required": [
