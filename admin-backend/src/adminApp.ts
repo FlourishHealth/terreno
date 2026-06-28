@@ -6,13 +6,17 @@ import {
   type BackgroundTaskDocument,
   checkPermissions,
   createOpenApiBuilder,
+  createScriptArgs,
   getOpenApiSpecForModel,
   type JSONValue,
   logger,
   type ModelRouterOptions,
   modelRouter,
+  type PopulatePath,
   type OpenApiMiddleware,
   Permissions,
+  type ScriptArgDef,
+  type ScriptArgValue,
   type ScriptContext,
   type ScriptResult,
   type ScriptRunner,
@@ -38,6 +42,7 @@ import {
   normalizeAdminHome,
   SYSTEM_ADMIN_FIELDS,
 } from "./adminUiV2";
+import {RESERVED_SCRIPT_FLAGS} from "./scriptCli";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -87,6 +92,8 @@ export interface AdminModelConfig {
   permissions?: AdminModelPermissionsInput;
   /** Suggested page size for the changelist */
   pageSize?: number;
+  /** Mongoose populate paths for list/read responses (e.g. populated refs on consent responses). */
+  populatePaths?: PopulatePath[];
   /** UI-only hint that live updates may be available */
   realtime?: boolean;
   /**
@@ -117,6 +124,12 @@ export interface AdminScriptConfig {
   name: string;
   /** Human-readable description shown in the admin UI */
   description: string;
+  /**
+   * Optional declarations for the arguments this script accepts. Drives CLI help,
+   * type coercion, defaults, and validation. Scripts may still read undeclared
+   * arguments via `ctx.args`.
+   */
+  args?: ScriptArgDef[];
   /** The function that executes the script. Must return string[] results. */
   runner: ScriptRunner;
 }
@@ -213,6 +226,7 @@ interface AdminModelMeta {
 interface AdminScriptMeta {
   name: string;
   description: string;
+  args: ScriptArgDef[];
 }
 
 interface AdminConfigResponse {
@@ -568,6 +582,7 @@ export class AdminApp {
     // Build script metadata for config response
     const scriptConfigs = this.options.scripts ?? [];
     const configScripts: AdminScriptMeta[] = scriptConfigs.map((script) => ({
+      args: script.args ?? [],
       description: script.description,
       name: script.name,
     }));
@@ -605,6 +620,7 @@ export class AdminApp {
             scripts: {
               items: {
                 properties: {
+                  args: {type: "array"},
                   description: {type: "string"},
                   name: {type: "string"},
                 },
@@ -1004,6 +1020,7 @@ export class AdminApp {
                 removeHiddenFields(value, hiddenFieldSet) as JSONValue
             : undefined,
         sort: config.defaultSort ?? "-created",
+        ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...auditHooks,
       };
 
@@ -1169,6 +1186,45 @@ export class AdminApp {
         }
 
         const isWetRun = req.query.wetRun === "true";
+
+        // Collect flexible arguments from the request. Query params and a JSON body
+        // are both accepted; an explicit `args` object in the body takes precedence.
+        // Reserved runner flags (wetRun, wet, dry, json, ...) are stripped so scripts
+        // read args identically over HTTP and via the CLI.
+        const argValues: Record<string, ScriptArgValue> = {};
+        for (const [key, value] of Object.entries(req.query)) {
+          if (RESERVED_SCRIPT_FLAGS.includes(key) || value === undefined) {
+            continue;
+          }
+          argValues[key] = value as ScriptArgValue;
+        }
+        const rawBody =
+          req.body && typeof req.body === "object" && !Array.isArray(req.body)
+            ? (req.body as Record<string, unknown>)
+            : {};
+        const bodyValues =
+          rawBody.args && typeof rawBody.args === "object" && !Array.isArray(rawBody.args)
+            ? (rawBody.args as Record<string, ScriptArgValue>)
+            : (rawBody as Record<string, ScriptArgValue>);
+        for (const [key, value] of Object.entries(bodyValues)) {
+          if (RESERVED_SCRIPT_FLAGS.includes(key)) {
+            continue;
+          }
+          argValues[key] = value;
+        }
+
+        const {args, errors: argErrors} = createScriptArgs({
+          defs: script.args ?? [],
+          values: argValues,
+        });
+        if (argErrors.length > 0) {
+          throw new APIError({
+            detail: argErrors.join("; "),
+            status: 400,
+            title: `Invalid arguments for script: ${script.name}`,
+          });
+        }
+
         const now = DateTime.now().toJSDate();
 
         let task: BackgroundTaskDocument;
@@ -1194,7 +1250,7 @@ export class AdminApp {
           });
         }
 
-        // Build context for cancellation and progress reporting
+        // Build context for cancellation, progress reporting, and arguments
         const ctx: ScriptContext = {
           addLog: async (level, message) => {
             const current = await BackgroundTask.findById(task._id);
@@ -1202,6 +1258,7 @@ export class AdminApp {
               await current.addLog(level, message);
             }
           },
+          args,
           checkCancellation: async () => {
             await BackgroundTask.checkCancellation(task._id.toString());
           },

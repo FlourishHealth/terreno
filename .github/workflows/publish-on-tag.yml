@@ -76,61 +76,30 @@ jobs:
           VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
-      - name: Replace catalog references
+      - name: Replace catalog and workspace references
         run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "
           const fs = require('fs');
-          const path = require('path');
-          
-          // Read root catalog
           const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
           const catalog = rootPkg.catalog || {};
-          
-          // Read current package.json
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          
-          // Replace catalog: in dependencies
-          if (pkg.dependencies) {
-            for (const [key, value] of Object.entries(pkg.dependencies)) {
+          const version = process.env.VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
               if (value === 'catalog:') {
-                if (catalog[key]) {
-                  pkg.dependencies[key] = catalog[key];
-                } else {
-                  throw new Error(\`Catalog entry not found for \${key}\`);
-                }
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                pkg[depType][key] = version;
               }
             }
           }
-          
-          // Replace catalog: in devDependencies
-          if (pkg.devDependencies) {
-            for (const [key, value] of Object.entries(pkg.devDependencies)) {
-              if (value === 'catalog:') {
-                if (catalog[key]) {
-                  pkg.devDependencies[key] = catalog[key];
-                } else {
-                  throw new Error(\`Catalog entry not found for \${key}\`);
-                }
-              }
-            }
-          }
-          
-          // Replace catalog: in peerDependencies
-          if (pkg.peerDependencies) {
-            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
-              if (value === 'catalog:') {
-                if (catalog[key]) {
-                  pkg.peerDependencies[key] = catalog[key];
-                } else {
-                  throw new Error(\`Catalog entry not found for \${key}\`);
-                }
-              }
-            }
-          }
-          
-          // Write updated package.json
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
 
       - name: Compile
         run: bun run compile
@@ -539,7 +508,7 @@ jobs:
         run: echo "Published @terreno/rtk@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-admin-backend:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -842,7 +811,7 @@ jobs:
         run: echo "Published @terreno/admin-spa@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-ai:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -942,7 +911,7 @@ jobs:
         run: echo "Published @terreno/ai@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-api-health:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1036,7 +1005,7 @@ jobs:
         run: echo "Published @terreno/api-health@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-feature-flags:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1136,7 +1105,7 @@ jobs:
         run: echo "Published @terreno/feature-flags@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-mcp:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read

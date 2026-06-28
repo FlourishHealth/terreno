@@ -171,6 +171,108 @@ describe("AdminApp script routes", () => {
     });
   });
 
+  describe("POST /admin/scripts/:name/run with arguments", () => {
+    const createArgScript = () => ({
+      args: [
+        {default: "all", description: "Which model", name: "model", type: "string" as const},
+        {description: "Limit", name: "limit", required: true, type: "number" as const},
+      ],
+      description: "Echoes its arguments",
+      name: "argScript",
+      runner: async (
+        _wetRun: boolean,
+        ctx?: {
+          args: {
+            getString: (n: string, f?: string) => string | undefined;
+            getNumber: (n: string) => number | undefined;
+          };
+        }
+      ) => ({
+        results: [`model=${ctx?.args.getString("model")}`, `limit=${ctx?.args.getNumber("limit")}`],
+        success: true,
+      }),
+    });
+
+    beforeEach(async () => {
+      await setupDb();
+      app = buildApp([createArgScript()]);
+      adminAgent = await authAsUser(app, "admin");
+    });
+
+    it("passes JSON body args to the runner", async () => {
+      const res = await adminAgent
+        .post("/admin/scripts/argScript/run")
+        .send({args: {limit: 5, model: "todos"}})
+        .expect(201);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.status).toBe("completed");
+      expect(task?.result).toContain("model=todos");
+      expect(task?.result).toContain("limit=5");
+    });
+
+    it("passes query params as args", async () => {
+      const res = await adminAgent
+        .post("/admin/scripts/argScript/run?model=users&limit=9")
+        .expect(201);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.result).toContain("model=users");
+      expect(task?.result).toContain("limit=9");
+    });
+
+    it("applies declared defaults when an arg is omitted", async () => {
+      const res = await adminAgent
+        .post("/admin/scripts/argScript/run")
+        .send({args: {limit: 1}})
+        .expect(201);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.result).toContain("model=all");
+    });
+
+    it("returns 400 when a required arg is missing", async () => {
+      const res = await adminAgent.post("/admin/scripts/argScript/run").expect(400);
+      expect(res.body.title).toInclude("Invalid arguments for script: argScript");
+      expect(res.body.detail).toInclude("Missing required argument: --limit");
+    });
+
+    it("returns 400 when an arg fails type coercion", async () => {
+      const res = await adminAgent
+        .post("/admin/scripts/argScript/run")
+        .send({args: {limit: "not-a-number"}})
+        .expect(400);
+      expect(res.body.detail).toInclude("expected a number");
+    });
+
+    it("strips reserved runner flags from ctx.args over HTTP", async () => {
+      const echoScript = {
+        description: "Echoes arg keys",
+        name: "echoArgs",
+        runner: async (_wetRun: boolean, ctx?: {args: {raw: Record<string, unknown>}}) => ({
+          results: [
+            Object.keys(ctx?.args.raw ?? {})
+              .sort()
+              .join(","),
+          ],
+          success: true,
+        }),
+      };
+      app = buildApp([echoScript]);
+      const agent = await authAsUser(app, "admin");
+      const res = await agent
+        .post("/admin/scripts/echoArgs/run?wetRun=true&json=true&keep=yes")
+        .expect(201);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.result?.[0]).toBe("keep");
+    });
+  });
+
   describe("GET /admin/scripts/tasks/:id", () => {
     let taskId: string;
 
@@ -402,6 +504,23 @@ describe("AdminApp script routes", () => {
       expect(res.body.scripts[0].description).toBe("Migrate old data");
       expect(res.body.scripts[1].name).toBe("cleanup");
       expect(res.body.scripts[1].description).toBe("Clean up orphans");
+      expect(res.body.scripts[0].args).toEqual([]);
+    });
+
+    it("exposes declared script args in the config response", async () => {
+      app = buildApp([
+        {
+          args: [{description: "Which model", name: "model", type: "string"}],
+          description: "Echoes args",
+          name: "argScript",
+          runner: async () => ({results: [], success: true}),
+        },
+      ]);
+      const freshAdmin = await authAsUser(app, "admin");
+      const res = await freshAdmin.get("/admin/config").expect(200);
+
+      expect(res.body.scripts[0].args).toHaveLength(1);
+      expect(res.body.scripts[0].args[0].name).toBe("model");
     });
 
     it("returns empty scripts array when no scripts configured", async () => {

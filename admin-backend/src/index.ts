@@ -14,3 +14,5 @@ export type {
   DocumentStorageOptions,
 } from "./documentStorageApp";
 export {DocumentStorageApp} from "./documentStorageApp";
+export type {RunScriptCliOptions, RunScriptCliResult} from "./scriptCli";
+export {runScriptCli} from "./scriptCli";

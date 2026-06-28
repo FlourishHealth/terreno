@@ -6,6 +6,7 @@ import type {SegmentedControlProps} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {resolveSegmentedControlTestIDsFromProps} from "./testing/resolveTestId";
 
 export const SegmentedControl: FC<SegmentedControlProps> = ({
   items,
@@ -14,9 +15,12 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
   selectedIndex,
   maxItems,
   badges = [],
+  testID,
+  testIDs,
 }) => {
   const height = size === "md" ? 36 : 44;
   const {theme} = useTheme();
+  const segmentedControlTestIDs = resolveSegmentedControlTestIDsFromProps({testID, testIDs});
   const [startIndex, setStartIndex] = useState(0);
 
   const handlePrevious = useCallback(() => {
@@ -43,9 +47,14 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
         flexDirection: "row",
         gap: 8,
       }}
+      testID={segmentedControlTestIDs.root}
     >
       {Boolean(shouldShowScrollButtons) && (
-        <Pressable disabled={!canScrollLeft} onPress={handlePrevious}>
+        <Pressable
+          disabled={!canScrollLeft}
+          onPress={handlePrevious}
+          testID={segmentedControlTestIDs.previousButton}
+        >
           <Icon
             color={canScrollLeft ? "linkLight" : "extraLight"}
             iconName="chevron-left"
@@ -113,7 +122,11 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
         </View>
       </View>
       {Boolean(shouldShowScrollButtons) && (
-        <Pressable disabled={!canScrollRight} onPress={handleNext}>
+        <Pressable
+          disabled={!canScrollRight}
+          onPress={handleNext}
+          testID={segmentedControlTestIDs.nextButton}
+        >
           <Icon
             color={canScrollRight ? "linkLight" : "extraLight"}
             iconName="chevron-right"

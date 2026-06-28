@@ -12,6 +12,7 @@ import {
   ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
+  consentResponsePopulatePaths,
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
@@ -24,6 +25,7 @@ import {HealthApp} from "@terreno/api-health";
 import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
+import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
@@ -36,7 +38,6 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
-import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
 
@@ -428,6 +429,7 @@ export async function start(skipListen = false): Promise<express.Application> {
               listFields: ["userId", "agreed", "locale", "agreedAt"],
               model: ConsentResponse,
               permissions: {delete: false},
+              populatePaths: consentResponsePopulatePaths,
               routePath: "/consent-responses",
               searchFields: ["locale"],
               sortableFields: ["agreed", "locale", "agreedAt", "created"],
@@ -459,68 +461,7 @@ export async function start(skipListen = false): Promise<express.Application> {
               verb: event.verb,
             });
           },
-          scripts: [
-            {
-              description: "Count all todos and users in the database",
-              name: "countRecords",
-              runner: async (wetRun) => {
-                const todoCount = await Todo.countDocuments();
-                const userCount = await User.countDocuments();
-                const results = [`Found ${todoCount} todos`, `Found ${userCount} users`];
-                if (wetRun) {
-                  results.push("Wet run: no additional changes made by this script");
-                } else {
-                  results.push("Dry run: no changes made");
-                }
-                return {results, success: true};
-              },
-            },
-            {
-              description:
-                "Sync consent forms (Terms of Service, Privacy Policy) from code definitions to the database",
-              name: "syncConsents",
-              runner: async (wetRun) => {
-                const result = await syncConsents(consentDefinitions, {
-                  deactivateRemoved: true,
-                  dryRun: !wetRun,
-                });
-                const results: string[] = [];
-                if (result.created.length > 0) {
-                  results.push(`Created: ${result.created.join(", ")}`);
-                }
-                if (result.updated.length > 0) {
-                  results.push(`Updated: ${result.updated.join(", ")}`);
-                }
-                if (result.deactivated.length > 0) {
-                  results.push(`Deactivated: ${result.deactivated.join(", ")}`);
-                }
-                if (result.unchanged.length > 0) {
-                  results.push(`Unchanged: ${result.unchanged.join(", ")}`);
-                }
-                if (results.length === 0) {
-                  results.push("Nothing to do");
-                }
-                return {results, success: true};
-              },
-            },
-            {
-              description:
-                "Seed example feature flags (boolean and variant). Skips flags that already exist.",
-              name: "seedFeatureFlags",
-              runner: async (wetRun) => {
-                if (!wetRun) {
-                  return {
-                    results: [
-                      "Dry run: would create up to 5 example feature flags",
-                      "Run as wet run to actually create them",
-                    ],
-                    success: true,
-                  };
-                }
-                return seedFeatureFlags();
-              },
-            },
-          ],
+          scripts: adminScripts,
         })
       )
       .register(

@@ -6,7 +6,7 @@
   "dependencies": {
     "express": "^5.2.1",
     "lodash": "catalog:",
-    "qs": "catalog:",
+    "qs": "^6.14.1",
     "winston": "^3.18.3"
   },
   "description": "Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures for Terreno packages",
@@ -61,5 +61,5 @@
     "test:ci": "bun test"
   },
   "types": "dist/index.d.ts",
-  "version": "0.21.0"
+  "version": "0.23.0"
 }
