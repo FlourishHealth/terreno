@@ -387,6 +387,37 @@ describe("createSyncDbClient", () => {
     await client.destroy();
   });
 
+  it("hydrate does not overwrite entities with pending local mutations", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    // Optimistic local edit + queued mutation for t1.
+    client.store.upsertEntity({collection: "todos", data: {title: "my local edit"}, id: "t1"});
+    client.outbox.enqueue({
+      args: {title: "my local edit"},
+      collection: "todos",
+      entityId: "t1",
+      operation: "update",
+    });
+
+    await client.hydrate({
+      collections: ["todos"],
+      fetcher: async () => ({
+        collection: "todos",
+        records: [
+          {data: {title: "stale server value"}, id: "t1"},
+          {data: {title: "other"}, id: "t2"},
+        ],
+      }),
+    });
+
+    // t1 keeps the local edit; t2 (no pending mutation) is mirrored.
+    expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
+      title: "my local edit",
+    });
+    expect(client.store.getEntity({collection: "todos", id: "t2"})?.data).toEqual({title: "other"});
+    await client.destroy();
+  });
+
   it("hydrate passes the known cursor as `since` for incremental prefetch", async () => {
     const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
     await client.start();

@@ -17,6 +17,7 @@ export * from "./react/provider";
 export * from "./storage/schema";
 export * from "./storage/store";
 export * from "./storage/types";
+export * from "./sync/cursor";
 export * from "./sync/deltaApplier";
 export * from "./sync/fakeTransport";
 export * from "./sync/replayCoordinator";

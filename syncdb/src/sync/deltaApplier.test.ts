@@ -107,6 +107,20 @@ describe("createDeltaApplier", () => {
     expect(store.getEntity({collection: "todos", id: "t1"})?.deleted).toBe(true);
   });
 
+  it("orders multi-digit numeric cursors numerically (10 > 9)", () => {
+    const store = createSyncStore();
+    const applier = createDeltaApplier({store});
+    applier.apply(
+      deltaEvent("9", [{collection: "todos", data: {n: 9}, entityId: "t1", op: "upsert"}])
+    );
+
+    const newer = applier.apply(
+      deltaEvent("10", [{collection: "todos", data: {n: 10}, entityId: "t1", op: "upsert"}])
+    );
+    expect(newer.skipped).toBe(false);
+    expect(applier.getCursor({stream: "todos"})).toBe("10");
+  });
+
   it("compares non-numeric cursors lexicographically", () => {
     const store = createSyncStore();
     const applier = createDeltaApplier({store});

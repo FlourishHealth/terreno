@@ -2,6 +2,7 @@ import {DateTime} from "luxon";
 
 import type {SyncStore} from "../storage/store";
 import {SYNC_TABLES} from "../storage/types";
+import {isCursorAfter} from "./cursor";
 
 const nowIso = (): string => DateTime.utc().toISO();
 
@@ -56,12 +57,19 @@ export const applyCollectionSnapshot = <TData = Record<string, unknown>>({
   store,
   snapshot,
   mode = "merge",
+  skipIds,
 }: {
   store: SyncStore;
   snapshot: CollectionSnapshot<TData>;
   mode?: SnapshotMode;
+  /**
+   * Entity ids to leave untouched — typically ids with pending local outbox
+   * mutations, so a prefetch/snapshot never clobbers optimistic local edits.
+   */
+  skipIds?: ReadonlySet<string>;
 }): ApplySnapshotResult => {
   const incomingIds = new Set(snapshot.records.map((record) => record.id));
+  const isSkipped = (id: string): boolean => skipIds?.has(id) ?? false;
 
   let removed = 0;
   if (mode === "replace") {
@@ -69,7 +77,9 @@ export const applyCollectionSnapshot = <TData = Record<string, unknown>>({
       collection: snapshot.collection,
       includeDeleted: true,
     })) {
-      if (!incomingIds.has(existing.id)) {
+      // Never remove rows that are absent from the snapshot but have pending
+      // local mutations — they are local-only creates not yet acked.
+      if (!incomingIds.has(existing.id) && !isSkipped(existing.id)) {
         store.deleteEntity({collection: snapshot.collection, hard: true, id: existing.id});
         removed += 1;
       }
@@ -78,6 +88,11 @@ export const applyCollectionSnapshot = <TData = Record<string, unknown>>({
 
   let applied = 0;
   for (const record of snapshot.records) {
+    // Skip server records for entities with pending local edits so the
+    // optimistic local value wins until its mutation is acked.
+    if (isSkipped(record.id)) {
+      continue;
+    }
     if (record.deleted) {
       store.deleteEntity({collection: snapshot.collection, id: record.id});
     } else {
@@ -92,14 +107,24 @@ export const applyCollectionSnapshot = <TData = Record<string, unknown>>({
     applied += 1;
   }
 
+  // Advance the cursor monotonically — a snapshot/resync with an older cursor
+  // must not move the stream backward (which would re-apply or mis-order deltas).
+  let cursor: string | undefined;
   if (snapshot.cursor !== undefined) {
     const stream = snapshot.stream ?? snapshot.collection;
-    store.raw.setRow(SYNC_TABLES.cursors, stream, {
-      cursor: snapshot.cursor,
-      stream,
-      updatedAt: nowIso(),
-    });
+    const existing = store.raw.getCell(SYNC_TABLES.cursors, stream, "cursor");
+    const currentCursor = typeof existing === "string" ? existing : undefined;
+    if (currentCursor === undefined || isCursorAfter(snapshot.cursor, currentCursor)) {
+      store.raw.setRow(SYNC_TABLES.cursors, stream, {
+        cursor: snapshot.cursor,
+        stream,
+        updatedAt: nowIso(),
+      });
+      cursor = snapshot.cursor;
+    } else {
+      cursor = currentCursor;
+    }
   }
 
-  return {applied, collection: snapshot.collection, cursor: snapshot.cursor, removed};
+  return {applied, collection: snapshot.collection, cursor, removed};
 };

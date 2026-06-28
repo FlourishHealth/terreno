@@ -187,16 +187,22 @@ export const useSyncMutations = <TData = Record<string, unknown>>({
 
   const update = useCallback(
     (input: MutationInput<TData>): void => {
+      // Capture the current entity version (before the optimistic write) so the
+      // mutation carries baseVersion for server-side optimistic concurrency.
+      const baseVersion =
+        input.baseVersion ?? client.store.getEntity({collection, id: input.id})?.version;
       client.store.upsertEntity({collection, data: input.data ?? {}, id: input.id});
-      enqueueAndReplay({...input, operation: "update"});
+      enqueueAndReplay({...input, baseVersion, operation: "update"});
     },
     [client, collection, enqueueAndReplay]
   );
 
   const remove = useCallback(
     (input: {id: string; userId?: string; baseVersion?: string}): void => {
+      const baseVersion =
+        input.baseVersion ?? client.store.getEntity({collection, id: input.id})?.version;
       client.store.deleteEntity({collection, id: input.id});
-      enqueueAndReplay({...input, operation: "delete"});
+      enqueueAndReplay({...input, baseVersion, operation: "delete"});
     },
     [client, collection, enqueueAndReplay]
   );

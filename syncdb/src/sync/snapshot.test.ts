@@ -62,6 +62,43 @@ describe("applyCollectionSnapshot", () => {
     );
   });
 
+  it("does not regress the cursor when a snapshot supplies an older one", () => {
+    const store = createSyncStore();
+    applyCollectionSnapshot({snapshot: {collection: "todos", cursor: "10", records: []}, store});
+
+    const result = applyCollectionSnapshot({
+      snapshot: {collection: "todos", cursor: "5", records: []},
+      store,
+    });
+
+    expect(result.cursor).toBe("10");
+    expect(store.raw.getCell(SYNC_TABLES.cursors, "todos", "cursor")).toBe("10");
+  });
+
+  it("skips ids with pending local edits (merge and replace)", () => {
+    const store = createSyncStore();
+    store.upsertEntity({collection: "todos", data: {title: "my local edit"}, id: "t1"});
+    store.upsertEntity({collection: "todos", data: {title: "local-only create"}, id: "t2"});
+
+    const result = applyCollectionSnapshot<TodoData>({
+      mode: "replace",
+      skipIds: new Set(["t1", "t2"]),
+      snapshot: {
+        collection: "todos",
+        records: [{data: {title: "server wins?"}, id: "t1"}],
+      },
+      store,
+    });
+
+    // t1 not overwritten, t2 not removed despite replace mode.
+    expect(store.getEntity<TodoData>({collection: "todos", id: "t1"})?.data.title).toBe(
+      "my local edit"
+    );
+    expect(store.getEntity({collection: "todos", id: "t2"})).toBeDefined();
+    expect(result.applied).toBe(0);
+    expect(result.removed).toBe(0);
+  });
+
   it("does not touch other collections", () => {
     const store = createSyncStore();
     store.upsertEntity({collection: "notes", data: {title: "note"}, id: "n1"});

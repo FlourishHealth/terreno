@@ -206,18 +206,20 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     mode?: SnapshotMode;
     since?: Record<string, string>;
   }): Promise<ApplySnapshotResult[]> => {
-    setSyncing({isSyncing: true});
-    try {
-      const results: ApplySnapshotResult[] = [];
-      for (const collection of collections) {
-        const sinceCursor = since?.[collection] ?? deltaApplier.getCursor({stream: collection});
-        const snapshot = await fetcher({collection, since: sinceCursor});
-        results.push(applyCollectionSnapshot({mode, snapshot, store}));
-      }
-      return results;
-    } finally {
-      updateSyncing();
+    // Ids with pending local mutations must not be overwritten by the snapshot.
+    const pending = [...outbox.list({status: "queued"}), ...outbox.list({status: "inFlight"})];
+    const results: ApplySnapshotResult[] = [];
+    for (const collection of collections) {
+      const skipIds = new Set(
+        pending
+          .filter((mutation) => mutation.collection === collection && mutation.entityId)
+          .map((mutation) => mutation.entityId as string)
+      );
+      const sinceCursor = since?.[collection] ?? deltaApplier.getCursor({stream: collection});
+      const snapshot = await fetcher({collection, since: sinceCursor});
+      results.push(applyCollectionSnapshot({mode, skipIds, snapshot, store}));
     }
+    return results;
   };
 
   const replayOutbox = (): void => {

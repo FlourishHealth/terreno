@@ -2,19 +2,10 @@ import {DateTime} from "luxon";
 
 import type {SyncStore} from "../storage/store";
 import {SYNC_TABLES} from "../storage/types";
+import {isCursorAfter} from "./cursor";
 import type {DeltaChange, SyncDeltaEvent} from "./types";
 
 const nowIso = (): string => DateTime.utc().toISO();
-
-/** True when cursor `a` is strictly after cursor `b` (numeric when possible). */
-const isAfter = (a: string, b: string): boolean => {
-  const numA = Number(a);
-  const numB = Number(b);
-  if (Number.isFinite(numA) && Number.isFinite(numB)) {
-    return numA > numB;
-  }
-  return a.localeCompare(b) > 0;
-};
 
 export interface DeltaApplyResult {
   /** True when the whole delta was skipped (duplicate/out-of-order cursor). */
@@ -73,7 +64,7 @@ export const createDeltaApplier = ({store}: {store: SyncStore}): DeltaApplier =>
 
   const apply = (event: SyncDeltaEvent): DeltaApplyResult => {
     const current = getCursor({stream: event.stream});
-    if (current !== undefined && !isAfter(event.cursor, current)) {
+    if (current !== undefined && !isCursorAfter(event.cursor, current)) {
       return {applied: 0, cursor: current, skipped: true};
     }
 
