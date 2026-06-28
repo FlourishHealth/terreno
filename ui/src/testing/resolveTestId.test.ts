@@ -2,12 +2,17 @@ import {describe, expect, it} from "bun:test";
 
 import {
   resolveDataTableRowTestID,
+  resolveDataTableTestIDs,
+  resolveDataTableTestIDsFromProps,
   resolveFieldTestIDs,
+  resolveFieldTestIDsFromProps,
   resolveModalTestIDs,
+  resolveModalTestIDsFromProps,
   resolveSegmentedControlTestIDs,
   resolveSegmentedControlTestIDsFromProps,
   resolveTestID,
   toDomTestProps,
+  toPlatformTestProps,
   toTestProps,
 } from "./resolveTestId";
 
@@ -39,6 +44,21 @@ describe("toTestProps", () => {
 describe("toDomTestProps", () => {
   it("returns data-testid for DOM elements", () => {
     expect(toDomTestProps("submit")).toEqual({"data-testid": "submit"});
+  });
+
+  it("returns empty object when id is absent", () => {
+    expect(toDomTestProps(undefined)).toEqual({});
+  });
+});
+
+describe("toPlatformTestProps", () => {
+  it("returns empty object when id is absent", () => {
+    expect(toPlatformTestProps(undefined)).toEqual({});
+  });
+
+  it("returns testID on non-web platforms", () => {
+    const result = toPlatformTestProps("my-button");
+    expect(result.testID ?? result["data-testid"]).toBeDefined();
   });
 });
 
@@ -79,9 +99,90 @@ describe("resolveModalTestIDs", () => {
   });
 });
 
+describe("resolveFieldTestIDsFromProps", () => {
+  it("resolves from props with testID", () => {
+    const result = resolveFieldTestIDsFromProps({testID: "email"});
+    expect(result.input).toBe("email");
+    expect(result.label).toBe("email.label");
+    expect(result.error).toBe("email.error");
+    expect(result.helper).toBe("email.helper");
+  });
+
+  it("uses testIDs overrides from props", () => {
+    const result = resolveFieldTestIDsFromProps({
+      testID: "email",
+      testIDs: {input: "custom-input"},
+    });
+    expect(result.input).toBe("custom-input");
+    expect(result.label).toBe("email.label");
+  });
+});
+
+describe("resolveModalTestIDsFromProps", () => {
+  it("resolves from props with testID", () => {
+    const result = resolveModalTestIDsFromProps({testID: "dialog"});
+    expect(result.root).toBe("dialog");
+    expect(result.dismiss).toBe("dialog.dismiss");
+    expect(result.primaryButton).toBe("dialog.primary");
+    expect(result.secondaryButton).toBe("dialog.secondary");
+    expect(result.title).toBe("dialog.title");
+  });
+
+  it("uses testIDs overrides from props", () => {
+    const result = resolveModalTestIDsFromProps({
+      testID: "dialog",
+      testIDs: {dismiss: "close-btn"},
+    });
+    expect(result.dismiss).toBe("close-btn");
+  });
+});
+
+describe("resolveDataTableTestIDs", () => {
+  it("applies dot-suffix defaults", () => {
+    expect(resolveDataTableTestIDs("users-table")).toEqual({
+      body: "users-table.body",
+      header: "users-table.header",
+      pagination: "users-table.pagination",
+      root: "users-table",
+      row: "users-table.row",
+    });
+  });
+
+  it("allows testIDs overrides", () => {
+    expect(
+      resolveDataTableTestIDs("users-table", {header: "custom-header", root: "custom-root"})
+    ).toEqual({
+      body: "users-table.body",
+      header: "custom-header",
+      pagination: "users-table.pagination",
+      root: "custom-root",
+      row: "users-table.row",
+    });
+  });
+
+  it("returns undefined-based results when base is absent", () => {
+    const result = resolveDataTableTestIDs(undefined);
+    expect(result.root).toBeUndefined();
+    expect(result.header).toBeUndefined();
+  });
+});
+
+describe("resolveDataTableTestIDsFromProps", () => {
+  it("resolves from props with testID", () => {
+    const result = resolveDataTableTestIDsFromProps({testID: "table"});
+    expect(result.root).toBe("table");
+    expect(result.body).toBe("table.body");
+    expect(result.row).toBe("table.row");
+  });
+});
+
 describe("resolveDataTableRowTestID", () => {
   it("appends row key to row test id base", () => {
     expect(resolveDataTableRowTestID("users-table.row", "abc123")).toBe("users-table.row-abc123");
+  });
+
+  it("handles numeric row keys", () => {
+    expect(resolveDataTableRowTestID("table.row", 42)).toBe("table.row-42");
   });
 
   it("returns undefined when base is absent", () => {

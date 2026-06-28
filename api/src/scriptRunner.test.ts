@@ -1,6 +1,13 @@
-import {describe, expect, it} from "bun:test";
+import {afterAll, beforeAll, describe, expect, it} from "bun:test";
+import mongoose from "mongoose";
 
-import {createScriptArgs, parseScriptArgs, type ScriptArgDef} from "./scriptRunner";
+import {
+  BackgroundTask,
+  createScriptArgs,
+  parseScriptArgs,
+  type ScriptArgDef,
+  TaskCancelledError,
+} from "./scriptRunner";
 
 describe("parseScriptArgs", () => {
   it("parses --name=value form", () => {
@@ -170,6 +177,108 @@ describe("createScriptArgs", () => {
       const {args} = createScriptArgs({positional: ["p"], values: {x: "1"}});
       expect(args.raw.x).toBe("1");
       expect(args.positional).toEqual(["p"]);
+    });
+  });
+});
+
+describe("TaskCancelledError", () => {
+  it("sets the message and name", () => {
+    const err = new TaskCancelledError("task-123");
+    expect(err.message).toBe("Task task-123 was cancelled");
+    expect(err.name).toBe("TaskCancelledError");
+  });
+
+  it("is an instance of Error", () => {
+    const err = new TaskCancelledError("abc");
+    expect(err).toBeInstanceOf(Error);
+  });
+});
+
+describe("BackgroundTask model", () => {
+  beforeAll(async () => {
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(process.env.MONGO_URL ?? "mongodb://127.0.0.1/terreno-test");
+    }
+    await BackgroundTask.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await BackgroundTask.deleteMany({});
+  });
+
+  it("creates a task with required fields", async () => {
+    const task = await BackgroundTask.create({taskType: "test-task"});
+    expect(task.taskType).toBe("test-task");
+    expect(task.status).toBe("pending");
+    expect(task.isDryRun).toBe(false);
+    expect(task.logs).toEqual([]);
+  });
+
+  describe("addLog", () => {
+    it("appends a log entry and saves", async () => {
+      const task = await BackgroundTask.create({taskType: "log-test"});
+      await task.addLog("info", "step completed");
+
+      const reloaded = await BackgroundTask.findById(task._id);
+      expect(reloaded?.logs).toHaveLength(1);
+      expect(reloaded?.logs[0].level).toBe("info");
+      expect(reloaded?.logs[0].message).toBe("step completed");
+      expect(reloaded?.logs[0].timestamp).toBeDefined();
+    });
+
+    it("appends multiple log entries", async () => {
+      const task = await BackgroundTask.create({taskType: "multi-log"});
+      await task.addLog("info", "first");
+      await task.addLog("warn", "second");
+      await task.addLog("error", "third");
+
+      const reloaded = await BackgroundTask.findById(task._id);
+      expect(reloaded?.logs).toHaveLength(3);
+      expect(reloaded?.logs[0].level).toBe("info");
+      expect(reloaded?.logs[1].level).toBe("warn");
+      expect(reloaded?.logs[2].level).toBe("error");
+    });
+  });
+
+  describe("updateProgress", () => {
+    it("sets progress percentage and stage", async () => {
+      const task = await BackgroundTask.create({taskType: "progress-test"});
+      await task.updateProgress(50, "processing", "halfway done");
+
+      const reloaded = await BackgroundTask.findById(task._id);
+      expect(reloaded?.progress?.percentage).toBe(50);
+      expect(reloaded?.progress?.stage).toBe("processing");
+      expect(reloaded?.progress?.message).toBe("halfway done");
+    });
+
+    it("preserves previous stage and message when not provided", async () => {
+      const task = await BackgroundTask.create({taskType: "progress-retain"});
+      await task.updateProgress(25, "init", "starting");
+      await task.updateProgress(75);
+
+      const reloaded = await BackgroundTask.findById(task._id);
+      expect(reloaded?.progress?.percentage).toBe(75);
+      expect(reloaded?.progress?.stage).toBe("init");
+      expect(reloaded?.progress?.message).toBe("starting");
+    });
+  });
+
+  describe("checkCancellation", () => {
+    it("does nothing when task is not cancelled", async () => {
+      const task = await BackgroundTask.create({status: "running", taskType: "check-cancel"});
+      await expect(BackgroundTask.checkCancellation(task._id.toString())).resolves.toBeUndefined();
+    });
+
+    it("throws TaskCancelledError when task is cancelled", async () => {
+      const task = await BackgroundTask.create({status: "cancelled", taskType: "check-cancel"});
+      await expect(BackgroundTask.checkCancellation(task._id.toString())).rejects.toThrow(
+        TaskCancelledError
+      );
+    });
+
+    it("does nothing when task does not exist", async () => {
+      const fakeId = new mongoose.Types.ObjectId().toString();
+      await expect(BackgroundTask.checkCancellation(fakeId)).resolves.toBeUndefined();
     });
   });
 });
