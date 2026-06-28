@@ -1,5 +1,20 @@
 name: Demo Appium CI
 
+# The Appium suite spins up real EAS builds on emulators/simulators, which is
+# slow and inherently flaky. By default it runs as a NON-BLOCKING signal: the
+# jobs still execute and upload artifacts, but a failure does not fail the
+# workflow (each job sets `continue-on-error`).
+#
+# The exception is a "mobile build feature" change — a push that touches the
+# files that define the native build (eas.json, app config, native deps, or the
+# ios/android projects). Those changes are exactly the ones Appium is meant to
+# guard, so when they are detected the jobs become BLOCKING (continue-on-error
+# is disabled) and a failure fails the workflow. Manual `workflow_dispatch` runs
+# are always treated as deliberate and therefore blocking.
+#
+# The `detect-mobile-build` job computes this distinction and the Appium jobs
+# read its `is_mobile_build` output.
+
 on:
   push:
     paths:
@@ -7,6 +22,7 @@ on:
       - "demo/appium/**"
       - "demo/package.json"
       - "demo/app.json"
+      - "demo/app.config.ts"
       - "demo/eas.json"
       - ".github/workflows/demo-appium-ci.yml"
   workflow_dispatch:
@@ -44,9 +60,65 @@ on:
           - development:simulator
 
 jobs:
+  detect-mobile-build:
+    name: Detect mobile build change
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      is_mobile_build: ${{ steps.detect.outputs.is_mobile_build }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Detect mobile build changes
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Manual dispatch is always a deliberate run, so treat it as blocking.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Manual dispatch → Appium runs as a blocking check."
+            echo "is_mobile_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base="$PUSH_BEFORE"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            # First push to a branch (or unknown base): diff against master's merge-base.
+            git fetch --quiet origin master || true
+            base="$(git merge-base origin/master HEAD 2>/dev/null || true)"
+          fi
+
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "Could not determine a diff base → defaulting to non-blocking."
+            echo "is_mobile_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "$base" "$HEAD_SHA" || true)"
+          echo "Changed files between $base and $HEAD_SHA:"
+          echo "$changed"
+
+          # Files that define the native/mobile build. Touching these makes the
+          # Appium suite a meaningful gate, so the jobs block on failure.
+          if echo "$changed" | grep -Eq '^demo/(eas\.json|app\.config\.ts|app\.json|package\.json|ios/|android/)'; then
+            echo "Mobile build files changed → Appium is a blocking check."
+            echo "is_mobile_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No mobile build files changed → Appium is a non-blocking check."
+            echo "is_mobile_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   appium-android:
     name: Demo Appium · Android
+    needs: detect-mobile-build
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' }}
+    # Non-blocking unless the change is a mobile build feature (see detect-mobile-build).
+    continue-on-error: ${{ needs.detect-mobile-build.outputs.is_mobile_build != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -142,7 +214,10 @@ jobs:
 
   appium-ios:
     name: Demo Appium · iOS
+    needs: detect-mobile-build
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios' }}
+    # Non-blocking unless the change is a mobile build feature (see detect-mobile-build).
+    continue-on-error: ${{ needs.detect-mobile-build.outputs.is_mobile_build != 'true' }}
     # macos-latest resolves to macos-26 with iOS 26.x beta runtimes that break WDA (xcodebuild exit 70).
     runs-on: macos-15
     timeout-minutes: 60
