@@ -17,8 +17,8 @@ import {logger} from "./logger";
 import {ConsentForm} from "./models/consentForm";
 import {ConsentResponse} from "./models/consentResponse";
 import {Permissions} from "./permissions";
-import type {TerrenoPlugin} from "./terrenoPlugin";
 import type {PopulatePath} from "./populate";
+import type {TerrenoPlugin} from "./terrenoPlugin";
 import type {ConsentFormDocument} from "./types/consentForm";
 
 /** Shared populate config for consent response list/read endpoints. */
