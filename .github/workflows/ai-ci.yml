@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "ai/**"
+      - "bun.lock"
       - ".github/workflows/ai-ci.yml"
 
 defaults:

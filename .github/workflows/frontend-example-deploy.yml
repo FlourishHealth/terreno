@@ -10,6 +10,7 @@ on:
       - "rtk/**"
       - "ai/**"
       - "admin-frontend/**"
+      - "bun.lock"
       - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
 
