@@ -39,6 +39,7 @@
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "catalog:",
+    "bun-types": "latest",
     "expo-mcp": "^0.2.4",
     "mongodb": "catalog:",
     "typescript": "catalog:"
