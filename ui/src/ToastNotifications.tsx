@@ -61,7 +61,7 @@ import {
 // useDimensions hook
 // ============================================================================
 
-function useDimensions() {
+const useDimensions = () => {
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
   const onChange = useCallback(({window}: {window: ScaledSize}) => {
@@ -77,7 +77,7 @@ function useDimensions() {
   }, [onChange]);
 
   return dimensions;
-}
+};
 
 // ============================================================================
 // Toast Options and Props
@@ -177,10 +177,7 @@ export interface ToastOptions {
   /**
    * Payload data for custom toasts. You can pass whatever you want
    */
-  // noExplicitAny: This is the public API of a vendored 3rd-party library
-  // (react-native-toast-notifications); the `data` field is an opaque
-  // user-provided payload. Tightening to `unknown` breaks downstream consumers
-  // that spread `data` into `Toast` (e.g. TerrenoProvider) without refactor.
+  // biome-ignore lint/suspicious/noExplicitAny: This is the public API of a vendored 3rd-party library (react-native-toast-notifications); the data field is an opaque user-provided payload. Tightening to unknown breaks downstream consumers that spread data into Toast (e.g. TerrenoProvider) without refactor.
   data?: any;
 
   swipeEnabled?: boolean;

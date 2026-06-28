@@ -1,13 +1,5 @@
-import * as SentryBrowser from "@sentry/react";
+import * as Sentry from "@sentry/react";
 import {Platform} from "react-native";
-
-// import {
-//   createRoutesFromChildren,
-//   matchRoutes,
-//   useLocation,
-//   useNavigationType,
-// } from "react-router-dom";
-// import * as SentryNative from "@sentry/react-native";
 
 const IsWeb = Platform.OS === "web";
 
@@ -34,42 +26,36 @@ const _IGNORE_ERRORS = [
   /^.*Zn is not a function*$/,
 ];
 
-// biome-ignore lint/suspicious/noExplicitAny: Sentry types
-export const reactNavigationIntegration: any | undefined = IsWeb ? undefined : undefined;
-// : (SentryNative?.reactNavigationIntegration?.() ?? undefined);
+// biome-ignore lint/suspicious/noExplicitAny: Sentry types vary across versions
+export const reactNavigationIntegration: any | undefined = undefined;
 
 export const setupUnhandledRejectionHandler = (): void => {
   if (IsWeb && typeof window !== "undefined") {
     window.addEventListener("unhandledrejection", (event) => {
       const error = event.reason;
       if (error && typeof error === "object" && "data" in error && "status" in error) {
-        // Prevent default handling
         event.preventDefault();
-        // Create error message similar to rtkQueryErrorMiddleware pattern
         const errorMessage = error.data?.title ?? error.data?.message ?? JSON.stringify(error.data);
         const message = `Unhandled Promise Rejection (${error.status}): ${errorMessage}`;
         console.warn(message, error);
-        // Don't capture 401/404 errors in Sentry
         if (error.status !== 401 && error.status !== 404) {
           captureException(new Error(message));
         }
       }
     });
-  } else if (global.ErrorUtils) {
-    // React Native handles promise rejections differently through the ErrorUtils global
+  } else if (global?.ErrorUtils) {
     const originalHandler = global.ErrorUtils.getGlobalHandler();
     global.ErrorUtils.setGlobalHandler((error: unknown) => {
       if (error && typeof error === "object" && "data" in error && "status" in error) {
-        const errorObject = error as {data?: {title?: string; message?: string}};
+        const errorObject = error as {data?: {title?: string; message?: string}; status?: number};
         const errorMessage =
           errorObject.data?.title ?? errorObject.data?.message ?? JSON.stringify(errorObject.data);
-        const message = `Unhandled Promise Rejection (${error.status}): ${errorMessage}`;
+        const message = `Unhandled Promise Rejection (${errorObject.status}): ${errorMessage}`;
         console.warn(message, error);
-        if (error.status !== 401 && error.status !== 404) {
+        if (errorObject.status !== 401 && errorObject.status !== 404) {
           captureException(new Error(message));
         }
       } else if (originalHandler) {
-        // Let React Native handle other types of errors
         originalHandler(error);
       }
     });
@@ -78,119 +64,75 @@ export const setupUnhandledRejectionHandler = (): void => {
 
 export const sentryInit = (environment: string, debug = false): void => {
   try {
-    if (IsWeb) {
-      if (SentryBrowser.isInitialized()) {
-        console.warn("Sentry already initialized, skipping init");
-        return;
-      }
-      SentryBrowser.init({
-        // Don't send events in development
-        beforeSend(event) {
-          if (process.env.NODE_ENV === "development") {
-            return null;
-          }
-          return event;
-        },
-        debug,
-        dsn: SENTRY_DSN,
-        environment,
-        integrations: [
-          // SentryBrowser.reactRouterV6BrowserTracingIntegration({
-          //   // createRoutesFromChildren,
-          //   // matchRoutes,
-          //   useEffect,
-          //   // useLocation,
-          //   // useNavigationType,
-          // }),
-          SentryBrowser.replayIntegration(),
-        ],
-        replaysOnErrorSampleRate: SENTRY_ERROR_SAMPLE_RATE,
-        replaysSessionSampleRate: 0.1,
-
-        // Set `tracePropagationTargets` to control for which URLs trace propagation should be
-        // enabled
-        tracePropagationTargets: [/https:\/\/api\.flourish\.health.*\//],
-        tracesSampleRate: SENTRY_TRACE_SAMPLE_RATE,
-      });
-    } else {
-      // if (!SentryNative) {
-      //   throw new Error("@sentry/react-native is not available");
-      // }
-      // SentryNative.init({
-      //   // Don't send events in development
-      //   // biome-ignore lint/suspicious/noExplicitAny: Sentry doesn't export this type.
-      //   beforeSend(event: any) {
-      //     if (process.env.NODE_ENV === "development") {
-      //       return null;
-      //     }
-      //     return event;
-      //   },
-      //   debug,
-      //   dsn: SENTRY_DSN,
-      //   enabled: process.env.NODE_ENV === "production",
-      //   environment,
-      //   ignoreErrors: IGNORE_ERRORS,
-      //   integrations: [reactNavigationIntegration],
-      //   tracesSampleRate: SENTRY_TRACE_SAMPLE_RATE,
-      // });
+    if (!IsWeb) {
+      // @sentry/react-native requires a custom dev build with native modules.
+      // Skip initialization when running in Expo Go.
+      return;
     }
+
+    if (Sentry.isInitialized()) {
+      console.warn("Sentry already initialized, skipping init");
+      return;
+    }
+    Sentry.init({
+      beforeSend(event) {
+        if (process.env.NODE_ENV === "development") {
+          return null;
+        }
+        return event;
+      },
+      debug,
+      dsn: SENTRY_DSN,
+      environment,
+      integrations: [Sentry.replayIntegration()],
+      replaysOnErrorSampleRate: SENTRY_ERROR_SAMPLE_RATE,
+      replaysSessionSampleRate: 0.1,
+      tracePropagationTargets: [/https:\/\/api\.flourish\.health.*\//],
+      tracesSampleRate: SENTRY_TRACE_SAMPLE_RATE,
+    });
   } catch (error) {
     captureException(error);
   }
 };
 
 export const captureException = (error: unknown | Error): void => {
-  if (IsWeb) {
-    if (SentryBrowser.isInitialized()) {
-      SentryBrowser.captureException(error);
-    } else {
-      console.error(`Sentry not initialized, captured exception`, error);
-    }
+  if (!IsWeb) {
+    return;
+  }
+  if (Sentry.isInitialized()) {
+    Sentry.captureException(error);
   } else {
-    // note that Sentry for React Native doesn't have an isInitialized method
-    // SentryNative.captureException(error);
+    console.error(`Sentry not initialized, captured exception`, error);
   }
 };
 
 export const captureEvent = (message: string, extra?: Record<string, string>): void => {
-  if (IsWeb) {
-    if (SentryBrowser.isInitialized()) {
-      SentryBrowser.captureEvent({
-        extra,
-        level: "debug", // Use 'info' to avoid triggering alerts
-        message,
-      });
-    } else {
-      console.error(`Sentry not initialized, captured event`, message, extra);
-    }
+  if (!IsWeb) {
+    return;
+  }
+  if (Sentry.isInitialized()) {
+    Sentry.captureEvent({
+      extra,
+      level: "debug",
+      message,
+    });
   } else {
-    // note that Sentry for React Native doesn't have an isInitialized method
-    // SentryNative.captureEvent({
-    //   extra,
-    //   level: "debug", // Use 'info' to avoid triggering alerts
-    //   message,
-    // });
+    console.error(`Sentry not initialized, captured event`, message, extra);
   }
 };
 
 export const captureMessage = (message: string, extra?: Record<string, string>): void => {
-  if (IsWeb) {
-    const scope = new SentryBrowser.Scope();
-    for (const [key, value] of Object.entries(extra ?? {})) {
-      scope.setExtra(key, value);
-    }
-    if (SentryBrowser.isInitialized()) {
-      SentryBrowser.captureMessage(message, scope);
-    } else {
-      console.error(`Sentry not initialized, captured message: ${message}`);
-    }
+  if (!IsWeb) {
+    return;
+  }
+  const scope = new Sentry.Scope();
+  for (const [key, value] of Object.entries(extra ?? {})) {
+    scope.setExtra(key, value);
+  }
+  if (Sentry.isInitialized()) {
+    Sentry.captureMessage(message, scope);
   } else {
-    // const scope = new SentryNative.Scope();
-    // for (const [key, value] of Object.entries(extra ?? {})) {
-    //   scope.setExtra(key, value);
-    // }
-    // // note that Sentry for React Native doesn't have an isInitialized method
-    // SentryNative.captureMessage(message, scope);
+    console.error(`Sentry not initialized, captured message: ${message}`);
   }
 };
 
@@ -200,11 +142,11 @@ export const pageOnError = (error: Error, stack: unknown): void => {
 };
 
 export const createSentryReduxEnhancer = (): unknown => {
-  if (IsWeb) {
-    return SentryBrowser.createReduxEnhancer();
-  } else {
-    // return SentryNative.createReduxEnhancer();
+  if (IsWeb && typeof Sentry.createReduxEnhancer === "function") {
+    return Sentry.createReduxEnhancer();
   }
+
+  return (next: unknown) => next;
 };
 
 export const sentrySetUser = (
@@ -213,11 +155,9 @@ export const sentrySetUser = (
     type?: string;
   } | null
 ): void => {
-  if (IsWeb) {
-    SentryBrowser.setUser(user);
-    SentryBrowser.setTag("userType", user?.type);
-  } else {
-    // SentryNative.setUser(user);
-    // SentryNative.setTag("userType", user?.type);
+  if (!IsWeb) {
+    return;
   }
+  Sentry.setUser(user);
+  Sentry.setTag("userType", user?.type);
 };

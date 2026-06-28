@@ -1,8 +1,75 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
+import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
+import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";
+
+const docSearchTools: Tool[] = [
+  {
+    description:
+      "Search Terreno documentation (Diátaxis docs, bundled package guides, and @terreno/ui component props) with BM25-style keyword search. **Call this before guessing** modelRouter, OpenAPI, RTK Query, or UI APIs — same workflow as Laravel Boost search-docs.",
+    inputSchema: {
+      properties: {
+        packages: {
+          description:
+            'Optional filter: short names or npm scopes, e.g. ["api", "@terreno/ui"]. Matches chunks tagged for those packages.',
+          items: {type: "string"},
+          type: "array",
+        },
+        queries: {
+          description:
+            'One or more search phrases (multiple angles help, e.g. ["toggle", "switch field"]).',
+          items: {type: "string"},
+          type: "array",
+        },
+        tokenLimit: {
+          description: "Approximate max tokens of markdown to return (default 3000, hard-capped).",
+          type: "number",
+        },
+      },
+      required: ["queries"],
+      type: "object",
+    },
+    name: "terreno_search_docs",
+  },
+  {
+    description:
+      "Return the full props table for one @terreno/ui component from ui-types-documentation.json, plus short related markdown excerpts when available.",
+    inputSchema: {
+      properties: {
+        component: {
+          description: 'Component name as exported by @terreno/ui, e.g. "Button", "TextField".',
+          type: "string",
+        },
+      },
+      required: ["component"],
+      type: "object",
+    },
+    name: "terreno_get_component_docs",
+  },
+  {
+    description:
+      "Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to @terreno/* packages.",
+    inputSchema: {
+      properties: {
+        fromVersion: {
+          description: "Installed @terreno/* semver (e.g. 0.19.0)",
+          type: "string",
+        },
+        toVersion: {
+          description: "Target semver to upgrade to (e.g. 0.20.0)",
+          type: "string",
+        },
+      },
+      required: ["fromVersion", "toVersion"],
+      type: "object",
+    },
+    name: "terreno_get_upgrade_guide",
+  },
+];
 
 export const tools: Tool[] = [
   ...bootstrapTools,
+  ...docSearchTools,
   {
     description:
       "Generate a Mongoose model with proper Terreno conventions including schema, interfaces, and plugins",
@@ -49,10 +116,11 @@ export const tools: Tool[] = [
       required: ["name", "fields"],
       type: "object",
     },
-    name: "generate_model",
+    name: "terreno_generate_model",
   },
   {
-    description: "Generate a modelRouter route configuration for a Mongoose model",
+    description:
+      "Generate a modelRouter route configuration for a Mongoose model. For non-CRUD operations, add instanceActions (/:id/action) or collectionActions (/action) with Zod schemas — see docs/explanation/model-router-actions.md",
     inputSchema: {
       properties: {
         modelName: {
@@ -91,7 +159,7 @@ export const tools: Tool[] = [
       required: ["modelName", "routePath"],
       type: "object",
     },
-    name: "generate_route",
+    name: "terreno_generate_route",
   },
   {
     description: "Generate a React Native screen component using @terreno/ui components",
@@ -119,7 +187,7 @@ export const tools: Tool[] = [
       required: ["name", "type"],
       type: "object",
     },
-    name: "generate_screen",
+    name: "terreno_generate_screen",
   },
   {
     description: "Generate form field components for a data model",
@@ -168,7 +236,7 @@ export const tools: Tool[] = [
       required: ["fields"],
       type: "object",
     },
-    name: "generate_form_fields",
+    name: "terreno_generate_form_fields",
   },
   {
     description: "Validate a Mongoose schema follows Terreno conventions",
@@ -182,7 +250,7 @@ export const tools: Tool[] = [
       required: ["schema"],
       type: "object",
     },
-    name: "validate_model_schema",
+    name: "terreno_validate_model_schema",
   },
   {
     description:
@@ -221,7 +289,7 @@ export const tools: Tool[] = [
       required: ["models"],
       type: "object",
     },
-    name: "install_admin",
+    name: "terreno_install_admin",
   },
 ];
 
@@ -379,6 +447,10 @@ import { ${modelName} } from "../models/${lowerName}";`;
 
   return `import { Router } from "express";
 ${imports}
+
+// Non-CRUD endpoints: use instanceActions (POST/GET /:id/actionName) or
+// collectionActions (POST/GET /actionName) on modelRouter options. See
+// docs/explanation/model-router-actions.md. Requires zod in the backend app.
 
 export const add${modelName}Routes = (router: Router) => {
   router.use(
@@ -1014,14 +1086,57 @@ export const handleToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   // Handle bootstrap tools
-  if (name === "bootstrap_app" || name === "bootstrap_ai_rules") {
+  if (name === "terreno_bootstrap_app" || name === "terreno_bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
   }
 
   let result: string;
 
+  if (name === "terreno_search_docs") {
+    const queries = args.queries;
+    if (!Array.isArray(queries) || !queries.every((q) => typeof q === "string")) {
+      return {
+        content: [
+          {
+            text: '`queries` must be an array of strings, e.g. { "queries": ["modelRouter", "permissions"] }.',
+            type: "text",
+          },
+        ],
+      };
+    }
+    const packages = Array.isArray(args.packages)
+      ? args.packages.filter((p): p is string => typeof p === "string")
+      : undefined;
+    const tokenLimit = typeof args.tokenLimit === "number" ? args.tokenLimit : undefined;
+    result = searchDocs({packages, queries, tokenLimit});
+    return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_get_component_docs") {
+    const component = typeof args.component === "string" ? args.component : "";
+    result = getComponentDocsMarkdown(component);
+    return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_get_upgrade_guide") {
+    const fromVersion = typeof args.fromVersion === "string" ? args.fromVersion.trim() : "";
+    const toVersion = typeof args.toVersion === "string" ? args.toVersion.trim() : "";
+    if (!fromVersion || !toVersion) {
+      return {
+        content: [
+          {
+            text: 'Provide `fromVersion` and `toVersion` semver strings, e.g. { "fromVersion": "0.19.0", "toVersion": "0.20.0" }.',
+            type: "text",
+          },
+        ],
+      };
+    }
+    result = getUpgradeGuideMarkdown(fromVersion, toVersion);
+    return {content: [{text: result, type: "text"}]};
+  }
+
   switch (name) {
-    case "generate_model": {
+    case "terreno_generate_model": {
       const modelArgs = args as Parameters<typeof generateModel>[0];
       const code = generateModel(modelArgs);
       const modelName = modelArgs.name.toLowerCase();
@@ -1030,7 +1145,7 @@ export const handleToolCall = (
       ]);
       break;
     }
-    case "generate_route": {
+    case "terreno_generate_route": {
       const routeArgs = args as Parameters<typeof generateRoute>[0];
       const code = generateRoute(routeArgs);
       const modelName = routeArgs.modelName.toLowerCase();
@@ -1041,7 +1156,7 @@ export const handleToolCall = (
       ]);
       break;
     }
-    case "generate_screen": {
+    case "terreno_generate_screen": {
       const screenArgs = args as Parameters<typeof generateScreen>[0];
       const code = generateScreen(screenArgs);
       result = wrapWithFileInstructions(code, `frontend/src/screens/${screenArgs.name}Screen.tsx`, [
@@ -1049,17 +1164,17 @@ export const handleToolCall = (
       ]);
       break;
     }
-    case "generate_form_fields": {
+    case "terreno_generate_form_fields": {
       const code = generateFormFields(args as Parameters<typeof generateFormFields>[0]);
       result = wrapWithFileInstructions(code, "your form component file", [
         "Integrate this code into your form screen component",
       ]);
       break;
     }
-    case "validate_model_schema":
+    case "terreno_validate_model_schema":
       result = validateModelSchema(args as Parameters<typeof validateModelSchema>[0]);
       break;
-    case "install_admin":
+    case "terreno_install_admin":
       result = generateInstallAdmin(args as Parameters<typeof generateInstallAdmin>[0]);
       break;
     default:

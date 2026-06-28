@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
 
 import {type ListResponse, populateId} from "./mongooseSlice";
@@ -38,7 +39,6 @@ describe("populateId", () => {
 
   it("handles sparse arrays without throwing", () => {
     const sparse: ListResponse<{_id: string}> = {
-      // biome-ignore lint/suspicious/noExplicitAny: Simulating malformed API payloads.
       data: [undefined as any, {_id: "found"}],
     };
     expect(populateId("found", sparse)).toEqual({_id: "found"});

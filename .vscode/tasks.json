@@ -76,9 +76,9 @@
     {
       "label": "frontend (example)",
       "type": "shell",
-      "command": "bun run frontend:web",
+      "command": "bun run web",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/example-frontend"
       },
       "group": "build",
       "isBackground": true,
@@ -100,9 +100,9 @@
     {
       "label": "backend (example)",
       "type": "shell",
-      "command": "bun run backend:dev",
+      "command": "bun run dev",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/example-backend"
       },
       "group": "build",
       "isBackground": true,
@@ -124,9 +124,9 @@
     {
       "label": "demo",
       "type": "shell",
-      "command": "bun run demo:start",
+      "command": "bun run start",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/demo"
       },
       "group": "build",
       "isBackground": true,

@@ -244,9 +244,12 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Done",
-                                            "aria-role": "button",
-                                            "disabled": undefined,
+                                            "accessibilityLabel": "Done",
+                                            "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": false,
+                                            },
+                                            "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
                                               "alignItems": "center",
@@ -263,7 +266,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                             },
                                             "testID": undefined,
                                           },
-                                          "type": "Pressable",
+                                          "type": "PressableScale",
                                         },
                                       ],
                                       "props": {
@@ -1006,9 +1009,12 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Done",
-                                            "aria-role": "button",
-                                            "disabled": undefined,
+                                            "accessibilityLabel": "Done",
+                                            "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": false,
+                                            },
+                                            "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
                                               "alignItems": "center",
@@ -1025,7 +1031,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                             },
                                             "testID": undefined,
                                           },
-                                          "type": "Pressable",
+                                          "type": "PressableScale",
                                         },
                                       ],
                                       "props": {
@@ -1865,9 +1871,12 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Done",
-                                            "aria-role": "button",
-                                            "disabled": undefined,
+                                            "accessibilityLabel": "Done",
+                                            "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": false,
+                                            },
+                                            "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
                                               "alignItems": "center",
@@ -1884,7 +1893,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                             },
                                             "testID": undefined,
                                           },
-                                          "type": "Pressable",
+                                          "type": "PressableScale",
                                         },
                                       ],
                                       "props": {
@@ -2659,9 +2668,12 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Done",
-                                            "aria-role": "button",
-                                            "disabled": undefined,
+                                            "accessibilityLabel": "Done",
+                                            "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": false,
+                                            },
+                                            "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
                                               "alignItems": "center",
@@ -2678,7 +2690,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                             },
                                             "testID": undefined,
                                           },
-                                          "type": "Pressable",
+                                          "type": "PressableScale",
                                         },
                                       ],
                                       "props": {
@@ -3492,9 +3504,12 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Done",
-                                            "aria-role": "button",
-                                            "disabled": undefined,
+                                            "accessibilityLabel": "Done",
+                                            "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": false,
+                                            },
+                                            "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
                                               "alignItems": "center",
@@ -3511,7 +3526,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                             },
                                             "testID": undefined,
                                           },
-                                          "type": "Pressable",
+                                          "type": "PressableScale",
                                         },
                                       ],
                                       "props": {

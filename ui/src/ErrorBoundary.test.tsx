@@ -53,14 +53,14 @@ describe("ErrorBoundary", () => {
   });
 
   it("calls onError when componentDidCatch receives an error", () => {
-    const onError = mock(() => {});
+    const onError = mock<(error: Error, stack: string) => void>(() => {});
     const boundary = new ErrorBoundary({children: null, onError});
     const error = new Error("caught");
 
     boundary.componentDidCatch(error, {componentStack: "stack trace"});
 
     expect(onError).toHaveBeenCalledTimes(1);
-    expect((onError as any).mock.calls[0]).toEqual([error, "stack trace"]);
+    expect(onError.mock.calls[0]).toEqual([error, "stack trace"]);
   });
 
   it("does not throw when componentDidCatch is called without onError", () => {
@@ -77,7 +77,7 @@ describe("ErrorBoundary", () => {
     boundary.resetError();
 
     expect(setStateSpy).toHaveBeenCalledTimes(1);
-    expect((setStateSpy as any).mock.calls[0][0]).toEqual({error: undefined});
+    expect(setStateSpy.mock.calls[0][0]).toEqual({error: undefined});
     setStateSpy.mockRestore();
   });
 

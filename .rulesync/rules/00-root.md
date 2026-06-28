@@ -1,6 +1,6 @@
 ---
 root: true
-targets: ["cursor", "windsurf", "copilot"]
+targets: ["cursor", "windsurf", "copilot", "claudecode"]
 description: "Terreno monorepo root guidelines"
 globs: ["**/*"]
 ---
@@ -16,7 +16,8 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
-- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
+- **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
+- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
@@ -26,12 +27,17 @@ A monorepo containing shared packages for building full-stack applications with 
 Uses [Bun](https://bun.sh/) as the package manager.
 
 ```bash
+bun run bootstrap        # Install dependencies + compile all packages (dev-ready setup)
+bun run bootstrap:update # Reinstall + recompile after pulling changes or switching branches
 bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
 bun run test             # Run tests in api and ui
 ```
+
+- **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
+- **`bootstrap:update`**: Run when resuming work after pulling changes, switching branches, or when dependencies have changed.
 
 ### Package-specific commands
 
@@ -342,3 +348,68 @@ GitHub Actions workflows that use secrets or environment variables must validate
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+## Cursor Cloud specific instructions
+
+### Bootstrap
+
+From the repo root after clone or when dependencies change:
+
+```bash
+bun bootstrap
+```
+
+Installs workspace dependencies and compiles all packages (`bun install && bun run compile`).
+
+### Cloud VM toolchain
+
+Shared install script (in **flourish** repo): `bash /agent/repos/flourish/scripts/install-cloud-dev-tools.sh` then `source ~/.cloud-dev-tools.env`. Provides **terraform**, **gcloud**, **gh**, **Playwright** (after `bun bootstrap` in packages with `@playwright/test`), **Appium**, and **Android emulator** helpers. Terreno/terraform details: `terraform/README.md`.
+
+### Example full stack
+
+| Service | Port | Start command |
+|---------|------|---------------|
+| example-backend | 4000 | `bun run backend:dev` (from repo root) |
+| example-frontend web | 8082 | `bun run frontend:web` |
+
+The running `example-backend` needs a **real MongoDB replica set** (change streams power the realtime/feature-flag sync) at `MONGO_URI`, plus auth secrets `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`. (Only the bun **test** suites use the auto-managed in-memory Mongo from `@terreno/test`; the dev server does not.)
+
+A standalone `mongod` binary is available from the `mongodb-memory-server` cache (e.g. `~/.cache/mongodb-binaries/mongod-*`) after the test suites have run once. Run it as a single-node replica set, then point the backend at it:
+
+```bash
+# 1. start mongod (replica set required for change streams)
+"$(ls ~/.cache/mongodb-binaries/mongod-* | head -1)" \
+  --replSet rs0 --port 27017 --bind_ip 127.0.0.1 --dbpath /workspace/.devdata/mongo &
+# 2. initiate the replica set once (use node, not bun — the mongodb driver's bson
+#    package hits a "node:v8 isBuildingSnapshot" error under bun). From example-backend/:
+#    node -e 'import("mongodb").then(async ({MongoClient})=>{const c=new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true");await c.connect();await c.db("admin").command({replSetInitiate:{_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]}}).catch(()=>{});await c.close();})'
+# 3. run backend + frontend
+MONGO_URI="mongodb://127.0.0.1:27017/terreno-example?replicaSet=rs0" \
+  TOKEN_SECRET=dev-token-secret TOKEN_ISSUER=terreno-dev \
+  REFRESH_TOKEN_SECRET=dev-refresh-secret SESSION_SECRET=dev-session-secret \
+  PORT=4000 bun run backend:dev
+EXPO_PUBLIC_API_URL=http://localhost:4000 bun run frontend:web
+```
+
+Seed login users with `bun run backend:seed` (same env vars): creates `test@example.com` and admin `superuser@example.com`, both password `testpassword123`. Health check: `curl localhost:4000/health` → `"healthy":true`. The web app shows one-time Terms/Privacy/Consent modals (with a signature draw) on first login before the Todos screen.
+
+### Tests and lint
+
+- `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
+- `demo:start` serves the UI component demo on port **8085**.
+
+### GCP service account secrets
+
+When present, these are injected as environment variables holding GCP service-account credentials (each scoped with viewer plus some write permissions for its environment):
+
+- `GCP_SA_TERRENO` — terreno GCP service account (viewer + some write); use it for gcloud / GCP API access for terreno.
+- The sibling apps in this workspace have their own: `GCP_SA_PRD` (flourish production), `GCP_SA_STG` (flourish staging), and `GCP_SA_ZAPLING` (zapling).
+
+### Sentry API access
+
+When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
+
+### Gotchas
+
+- **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.
+- Use `$HOME/.bun/bin/bun` if `bun` is not on `PATH` in non-interactive shells (install via https://bun.sh).

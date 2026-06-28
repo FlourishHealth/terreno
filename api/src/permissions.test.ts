@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
@@ -12,7 +13,7 @@ import {
   FoodModel,
   getBaseServer,
   RequiredModel,
-  setupDb,
+  setupTestData,
   UserModel,
 } from "./tests";
 
@@ -23,22 +24,7 @@ describe("permissions", () => {
   beforeEach(async () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
 
-    const [admin, notAdmin] = await setupDb();
-
-    await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date(),
-        name: "Spinach",
-        ownerId: notAdmin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        name: "Apple",
-        ownerId: admin._id,
-      }),
-    ]);
+    await setupTestData();
     app = getBaseServer();
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
@@ -73,12 +59,12 @@ describe("permissions", () => {
   describe("anonymous food", () => {
     it("list", async () => {
       const res = await server.get("/food").expect(200);
-      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(4);
     });
 
     it("get", async () => {
       const res = await server.get("/food").expect(200);
-      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(4);
       const res2 = await server.get(`/food/${res.body.data[0]._id}`).expect(200);
       expect(res.body.data[0]._id).toBe(res2.body.data._id);
     });
@@ -115,12 +101,12 @@ describe("permissions", () => {
 
     it("list", async () => {
       const res = await agent.get("/food").expect(200);
-      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(4);
     });
 
     it("get", async () => {
       const res = await agent.get("/food").expect(200);
-      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(4);
       const res2 = await server.get(`/food/${res.body.data[0]._id}`).expect(200);
       expect(res.body.data[0]._id).toBe(res2.body.data._id);
     });
@@ -174,12 +160,12 @@ describe("permissions", () => {
 
     it("list", async () => {
       const res = await agent.get("/food");
-      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(4);
     });
 
     it("get", async () => {
       const res = await agent.get("/food");
-      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(4);
       const res2 = await agent.get(`/food/${res.body.data[0]._id}`);
       expect(res.body.data[0]._id).toBe(res2.body.data._id);
     });

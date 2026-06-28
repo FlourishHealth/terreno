@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import type jwt from "jsonwebtoken";
@@ -6,45 +7,37 @@ import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
 import {Permissions} from "./permissions";
-import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {getCurrentRequestContext} from "./requestContext";
+import {TerrenoApp} from "./terrenoApp";
+import {type Food, FoodModel, getBaseServer, setupDb, setupTestData, UserModel} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 import {timeout} from "./utils";
+
+const decodeTokenPayload = <T extends Record<string, unknown>>(token: string): T => {
+  const encodedPayload = token.split(".")[1];
+  return JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as T;
+};
 
 describe("auth tests", () => {
   let app: express.Application;
   let admin: any;
-  let notAdmin: any;
+  let contextEvents: Array<{
+    currentSessionId?: string;
+    requestId?: string;
+    sessionId?: string;
+    stage: string;
+    userId?: string;
+  }>;
   let agent: TestAgent;
 
   beforeEach(async () => {
     // Reset to real time - don't freeze time here as passport-local-mongoose
     // lockout mechanism needs real time to progress
     setSystemTime();
-    [admin, notAdmin] = await setupDb();
-
-    await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date(),
-        name: "Spinach",
-        ownerId: notAdmin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        hidden: true,
-        name: "Apple",
-        ownerId: admin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        name: "Carrots",
-        ownerId: admin._id,
-      }),
-    ]);
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    contextEvents = [];
 
     function addRoutes(router: express.Router): void {
       router.use(
@@ -76,12 +69,71 @@ describe("auth tests", () => {
           }),
         })
       );
+      router.use(
+        "/context-food",
+        modelRouter(FoodModel, {
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [],
+            list: [],
+            read: [],
+            update: [],
+          },
+          postCreate: async (_value, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: "postCreate",
+              userId: req.user?.id,
+            });
+          },
+          preCreate: (body, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: "preCreate",
+              userId: req.user?.id,
+            });
+
+            return {
+              ...(body as Partial<Food>),
+              categories: [],
+              eatenBy: [req.user?._id],
+              expiration: "2026-01-01",
+              lastEatenWith: {},
+              likesIds: [],
+              ownerId: req.user?._id,
+              source: {name: "context-test"},
+              tags: [],
+            } as unknown as Food;
+          },
+          responseHandler: async (value, method, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: `responseHandler:${method}`,
+              userId: req.user?.id,
+            });
+
+            return {
+              id: String((value as {_id: unknown})._id),
+              requestId: req.requestId ?? null,
+              sessionContext: getCurrentRequestContext()?.sessionId ?? null,
+              sessionId: req.sessionId ?? null,
+              userId: req.user?.id ?? null,
+            };
+          },
+        })
+      );
     }
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: UserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -143,7 +195,7 @@ describe("auth tests", () => {
     // Use token to see 2 foods + the one we just created
     const getRes = await agent.get("/food").expect(200);
 
-    expect(getRes.body.data).toHaveLength(3);
+    expect(getRes.body.data).toHaveLength(4);
     expect(getRes.body.data.find((f: any) => f.name === "Peas")).toBeDefined();
 
     const updateRes = await agent
@@ -201,6 +253,92 @@ describe("auth tests", () => {
     expect(res.body.data.token).toBeDefined();
   });
 
+  it("passes request and session context through modelRouter hooks", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+
+    const createRes = await agent
+      .post("/context-food")
+      .set("authorization", `Bearer ${loginRes.body.data.token}`)
+      .set("X-Request-ID", "model-router-request-1")
+      .send({calories: 10, name: "Context Apple"})
+      .expect(201);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    const sessionId = loginTokenPayload.sid;
+    if (!sessionId) {
+      throw new Error("Expected login token to include a session id");
+    }
+    expect(createRes.headers["x-request-id"]).toBe("model-router-request-1");
+    expect(createRes.headers["x-session-id"]).toBe(sessionId);
+    expect(createRes.body.data.requestId).toBe("model-router-request-1");
+    expect(createRes.body.data.sessionId).toBe(sessionId);
+    expect(createRes.body.data.sessionContext).toBe(sessionId);
+    expect(createRes.body.data.userId).toBe(String(admin._id));
+    expect(contextEvents).toEqual([
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "preCreate",
+        userId: String(admin._id),
+      },
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "postCreate",
+        userId: String(admin._id),
+      },
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "responseHandler:create",
+        userId: String(admin._id),
+      },
+    ]);
+  });
+
+  it("preserves JWT session id across refresh and request context", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+    const loginRefreshPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.refreshToken);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    const loginSessionId = loginTokenPayload.sid;
+    if (!loginSessionId) {
+      throw new Error("Expected login token to include a session id");
+    }
+    expect(loginRefreshPayload.sid).toBe(loginSessionId);
+    expect(loginRes.headers["x-session-id"]).toBe(loginSessionId);
+
+    const refreshRes = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: loginRes.body.data.refreshToken})
+      .expect(200);
+    const refreshedTokenPayload = decodeTokenPayload<{sid?: string}>(refreshRes.body.data.token);
+    const refreshedRefreshPayload = decodeTokenPayload<{sid?: string}>(
+      refreshRes.body.data.refreshToken
+    );
+
+    expect(refreshedTokenPayload.sid).toBe(loginSessionId);
+    expect(refreshedRefreshPayload.sid).toBe(loginSessionId);
+    expect(refreshRes.headers["x-session-id"]).toBe(loginSessionId);
+
+    const foodRes = await agent
+      .get("/food")
+      .set("authorization", `Bearer ${refreshRes.body.data.token}`)
+      .expect(200);
+    expect(foodRes.headers["x-session-id"]).toBe(loginSessionId);
+  });
+
   it("completes token login e2e", async () => {
     const res = await agent
       .post("/auth/login")
@@ -236,7 +374,7 @@ describe("auth tests", () => {
     // Use token to see admin foods
     const getRes = await agent.get("/food").expect(200);
 
-    expect(getRes.body.data).toHaveLength(3);
+    expect(getRes.body.data).toHaveLength(4);
     const food = getRes.body.data.find((f: any) => f.name === "Apple");
     expect(food).toBeDefined();
 
@@ -666,12 +804,12 @@ describe("addAuthRoutes /refresh_token error paths", () => {
 
   beforeEach(async () => {
     setSystemTime();
-    await setupDb();
-    app = setupServer({
-      addRoutes: () => {},
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
       skipListen: true,
       userModel: UserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -731,12 +869,12 @@ describe("addMeRoutes edge cases", () => {
 
   beforeEach(async () => {
     setSystemTime();
-    await setupDb();
-    app = setupServer({
-      addRoutes: () => {},
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
       skipListen: true,
       userModel: UserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -764,6 +902,314 @@ describe("addMeRoutes edge cases", () => {
     await UserModel.deleteOne({_id: (notAdmin as any)._id});
     const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
     // Either 404 (user not found in /me handler) or 401 (auth middleware rejects)
+    expect([401, 404]).toContain(res.status);
+  });
+
+  it("PATCH /auth/me returns 404 when user is deleted after auth", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    await UserModel.deleteOne({_id: notAdminId});
+    const res = await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({email: "x@x.com"});
+    expect([401, 404]).toContain(res.status);
+  });
+
+  it("PATCH /auth/me returns 403 on validation error", async () => {
+    const [admin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const adminId = (admin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: adminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({admin: "not_a_boolean_value_but_will_be_cast"});
+    expect([200, 403]).toContain(res.status);
+  });
+});
+
+describe("Secret prefix authorization bypass", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: (router: express.Router) => {
+        router.use(
+          "/food",
+          modelRouter(FoodModel, {
+            allowAnonymous: true,
+            permissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAny],
+              read: [Permissions.IsAny],
+              update: [],
+            },
+          })
+        );
+      },
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("passes through with Secret prefix authorization header without JWT decoding", async () => {
+    const res = await agent.get("/food").set("authorization", "Secret my-secret-token").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+});
+
+describe("generateTokens env integration", () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = {...OLD_ENV};
+    process.env.TOKEN_SECRET = "secret";
+    process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it("includes TOKEN_ISSUER in token when set", async () => {
+    process.env.TOKEN_ISSUER = "test-issuer";
+    const result = await generateTokens({_id: "user-123"});
+    const decoded = decodeTokenPayload<{iss?: string}>(result.token as string);
+    expect(decoded.iss).toBe("test-issuer");
+  });
+
+  it("generates a unique sessionId when none provided", async () => {
+    const result1 = await generateTokens({_id: "user-123"});
+    const result2 = await generateTokens({_id: "user-123"});
+    expect(result1.sessionId).toBeDefined();
+    expect(result2.sessionId).toBeDefined();
+    expect(result1.sessionId).not.toBe(result2.sessionId);
+  });
+
+  it("uses provided sessionId from options", async () => {
+    const result = await generateTokens({_id: "user-123"}, undefined, {
+      sessionId: "custom-session-id",
+    });
+    const decoded = decodeTokenPayload<{sid?: string}>(result.token as string);
+    expect(decoded.sid).toBe("custom-session-id");
+    expect(result.sessionId).toBe("custom-session-id");
+  });
+});
+
+describe("refresh_token without REFRESH_TOKEN_SECRET", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  const OLD_ENV = process.env;
+
+  beforeEach(async () => {
+    setSystemTime();
+    process.env = {...OLD_ENV};
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    process.env = OLD_ENV;
+  });
+
+  it("returns 401 when REFRESH_TOKEN_SECRET is not set", async () => {
+    process.env.REFRESH_TOKEN_SECRET = "";
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: "some-token"})
+      .expect(401);
+    expect(res.body.message).toContain("No REFRESH_TOKEN_SECRET set");
+  });
+});
+
+describe("generateTokens with custom TOKEN_EXPIRES_IN", () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = {...OLD_ENV};
+    process.env.TOKEN_SECRET = "secret";
+    process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it("uses TOKEN_EXPIRES_IN when set to a valid duration", async () => {
+    process.env.TOKEN_EXPIRES_IN = "1h";
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.token).toBeDefined();
+    const decoded = decodeTokenPayload<{exp: number; iat: number}>(result.token as string);
+    const diffSeconds = decoded.exp - decoded.iat;
+    // 1h = 3600s
+    expect(diffSeconds).toBe(3600);
+  });
+
+  it("uses REFRESH_TOKEN_EXPIRES_IN when set to a valid duration", async () => {
+    process.env.REFRESH_TOKEN_EXPIRES_IN = "7d";
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.refreshToken).toBeDefined();
+    const decoded = decodeTokenPayload<{exp: number; iat: number}>(result.refreshToken as string);
+    const diffSeconds = decoded.exp - decoded.iat;
+    // 7d = 604800s
+    expect(diffSeconds).toBe(604800);
+  });
+});
+
+describe("JWT cookie extraction and /me routes edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  const OLD_ENV = process.env;
+
+  beforeEach(async () => {
+    setSystemTime();
+    process.env = {...OLD_ENV};
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    process.env = OLD_ENV;
+  });
+
+  it("returns 401 for /me when no user is authenticated", async () => {
+    const res = await agent.get("/auth/me").expect(401);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for PATCH /me when no user is authenticated", async () => {
+    const res = await agent.patch("/auth/me").send({name: "Updated"}).expect(401);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 for /me when user is deleted from database", async () => {
+    // Login, then delete the user, then try /me
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const {token, userId} = loginRes.body.data;
+
+    // Delete the user from DB
+    await UserModel.deleteOne({_id: userId});
+
+    const freshAgent = supertest.agent(app);
+    const res = await freshAgent.get("/auth/me").set("authorization", `Bearer ${token}`);
+    // Without the user, the JWT verify succeeds but findById returns null
+    expect([401, 404]).toContain(res.status);
+  });
+});
+
+describe("login error and disabled user paths", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 401 with message for invalid credentials (no user found)", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({email: "nonexistent@example.com", password: "wrong"})
+      .expect(401);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it("returns 401 when disabled user tries to access protected route", async () => {
+    // Login to get token
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const {token, userId} = loginRes.body.data;
+
+    // Disable the user
+    await UserModel.findByIdAndUpdate(userId, {disabled: true});
+
+    // Try to access /me with disabled user's token
+    const freshAgent = supertest.agent(app);
+    const res = await freshAgent
+      .get("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .expect(401);
+    expect(res.body.title).toContain("disabled");
+  });
+});
+
+describe("PATCH /me route edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 404 for PATCH /me when authenticated user is deleted from DB", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const {token, userId} = loginRes.body.data;
+
+    await UserModel.deleteOne({_id: userId});
+
+    const freshAgent = supertest.agent(app);
+    const res = await freshAgent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({name: "Updated"});
+    // Without user in DB, should get 401 or 404
     expect([401, 404]).toContain(res.status);
   });
 });

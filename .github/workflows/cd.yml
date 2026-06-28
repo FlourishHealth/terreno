@@ -1,0 +1,626 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_terraform:
+        description: "Force-run terraform jobs even if terraform/ unchanged"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  deployments: write
+  statuses: write
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: flourish-terreno
+  GCP_BACKEND_REGION: us-central1
+  GCP_BACKEND_SERVICE: terreno-backend-example
+  GCP_TASKS_SERVICE: terreno-backend-example-tasks
+  GCP_MCP_REGION: us-east1
+  GCP_MCP_SERVICE: terreno-mcp
+  TF_DEPLOYMENT: terreno-prod
+
+jobs:
+  # ───────────────────────────── Change detection ─────────────────────────────
+
+  detect:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+      backend: ${{ steps.filter.outputs.backend }}
+      tasks: ${{ steps.filter.outputs.tasks }}
+      mcp: ${{ steps.filter.outputs.mcp }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            terraform:
+              - 'terraform/**'
+              - '.github/workflows/cd.yml'
+            backend:
+              - 'example-backend/**'
+              - 'api/**'
+              - 'api-health/**'
+              - 'admin-backend/**'
+              - 'ai/**'
+              - '.github/workflows/cd.yml'
+            tasks:
+              - 'example-backend/**'
+              - 'api/**'
+              - 'api-health/**'
+              - 'admin-backend/**'
+              - 'ai/**'
+              - '.github/workflows/cd.yml'
+            mcp:
+              - 'mcp-server/**'
+              - 'ui/**'
+              - '.github/workflows/cd.yml'
+
+  # ───────────────────────────── Terraform ─────────────────────────────
+
+  terraform-format:
+    name: Terraform format
+    needs: detect
+    if: needs.detect.outputs.terraform == 'true' || github.event.inputs.run_terraform == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.9.8
+      - name: terraform fmt -check
+        run: terraform -chdir=terraform fmt -check -recursive
+
+  terraform-preview:
+    name: Terraform preview
+    needs: [detect, terraform-format]
+    if: |
+      always() &&
+      needs.terraform-format.result == 'success' &&
+      github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_TF_ADMIN_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Create Infra Manager preview
+        id: preview
+        run: |
+          set -euo pipefail
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          PREVIEW_ID="${TF_DEPLOYMENT}-pr${{ github.event.pull_request.number }}-${GITHUB_RUN_ID}"
+          echo "preview_id=$PREVIEW_ID" >> "$GITHUB_OUTPUT"
+          echo "location=$LOCATION" >> "$GITHUB_OUTPUT"
+          gcloud infra-manager previews create "$PREVIEW_ID" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --location="$LOCATION" \
+            --deployment="projects/${{ env.GCP_PROJECT_ID }}/locations/${LOCATION}/deployments/${TF_DEPLOYMENT}" \
+            --service-account="projects/${{ env.GCP_PROJECT_ID }}/serviceAccounts/${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+            --local-source="terraform" \
+            --quiet
+      - name: Describe preview
+        run: |
+          set -euo pipefail
+          gcloud infra-manager previews describe \
+            "${{ steps.preview.outputs.preview_id }}" \
+            --location="${{ steps.preview.outputs.location }}" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --format='yaml(state,errorCode,errorLogs,buildResults)'
+      - name: Cleanup preview
+        if: always()
+        run: |
+          gcloud infra-manager previews delete \
+            "${{ steps.preview.outputs.preview_id }}" \
+            --location="${{ steps.preview.outputs.location }}" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --quiet || true
+
+  terraform-apply:
+    name: Terraform apply
+    needs: [detect, terraform-format]
+    if: |
+      always() &&
+      needs.terraform-format.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Validate required vars
+        run: |
+          missing=()
+          [ -z "${{ vars.GCP_TF_PROJECT_ID_PROD }}" ] && missing+=("GCP_TF_PROJECT_ID_PROD")
+          [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] && missing+=("GCP_WIF_PROVIDER_PROD")
+          [ -z "${{ vars.GCP_TF_ADMIN_SA_PROD }}" ] && missing+=("GCP_TF_ADMIN_SA_PROD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required repository variables: ${missing[*]}"
+            exit 1
+          fi
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_TF_ADMIN_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Apply Infra Manager deployment
+        run: |
+          set -euo pipefail
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          gcloud infra-manager deployments apply "${TF_DEPLOYMENT}" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --location="$LOCATION" \
+            --service-account="projects/${{ env.GCP_PROJECT_ID }}/serviceAccounts/${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+            --local-source="terraform" \
+            --quiet
+      - name: Show deployment status
+        run: |
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          gcloud infra-manager deployments describe "${TF_DEPLOYMENT}" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --location="$LOCATION" \
+            --format='yaml(state,latestRevision,errorCode)'
+
+  # ───────────────────────────── Backend (example-backend) ─────────────────────────────
+
+  backend-deploy-prod:
+    name: Backend deploy (prod)
+    needs: [detect, terraform-apply]
+    # Always run terraform-apply first if it's queued; only deploy if terraform
+    # succeeded or was skipped (no terraform/ changes in this push).
+    if: |
+      always() &&
+      needs.detect.outputs.backend == 'true' &&
+      github.event_name == 'push' &&
+      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.deploy.outputs.url }}
+      deployment_id: ${{ steps.create-deployment.outputs.deployment_id }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'example-backend-production',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Example Backend Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+            return deployment.data.id;
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying backend to Cloud Run'
+            });
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }} \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:latest \
+            .
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+          docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:latest
+      # Better Auth is only enabled once the terraform-managed secret exists,
+      # so deploys keep working before the first terraform apply creates it.
+      - name: Resolve Better Auth deploy config
+        id: better-auth
+        run: |
+          set -euo pipefail
+          SECRET_NAME="${{ env.GCP_BACKEND_SERVICE }}-better-auth-secret"
+          if gcloud secrets versions access latest --secret="$SECRET_NAME" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "Better Auth secret found; enabling better-auth on this revision."
+            {
+              echo "env_vars<<BETTER_AUTH_EOF"
+              echo "AUTH_PROVIDER=better-auth"
+              echo "BETTER_AUTH_URL=https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+              echo "BETTER_AUTH_EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "secrets=BETTER_AUTH_SECRET=$SECRET_NAME:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Better Auth secret '$SECRET_NAME' is not accessible yet (terraform apply has not created it); deploying without better-auth, console login will be unavailable."
+            echo "env_vars=" >> "$GITHUB_OUTPUT"
+            echo "secrets=" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_BACKEND_SERVICE }}
+          region: ${{ env.GCP_BACKEND_REGION }}
+          image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+          tag: prod
+          env_vars: |
+            NODE_ENV=production
+            ADMIN_SPA_ENABLED=true
+            ${{ steps.better-auth.outputs.env_vars }}
+          secrets: |
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+            ${{ steps.better-auth.outputs.secrets }}
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: '${{ steps.deploy.outputs.url }}',
+              description: 'Backend deployed successfully'
+            });
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Backend deployment failed'
+            });
+
+  backend-deploy-preview:
+    name: Backend deploy (preview)
+    needs: [detect, terraform-preview]
+    if: |
+      always() &&
+      needs.detect.outputs.backend == 'true' &&
+      github.event_name == 'pull_request' &&
+      (needs.terraform-preview.result == 'success' || needs.terraform-preview.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Deactivate previous preview deployments
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const environment = `example-backend-preview-pr-${{ github.event.pull_request.number }}`;
+            try {
+              const deployments = await github.rest.repos.listDeployments({...context.repo, environment});
+              for (const deployment of deployments.data) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo,
+                  deployment_id: deployment.id,
+                  state: 'inactive',
+                });
+              }
+            } catch (e) {
+              core.info(`No previous deployments found for ${environment}`);
+            }
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: `example-backend-preview-pr-${{ github.event.pull_request.number }}`,
+              transient_environment: true,
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Example Backend Preview Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying backend preview to Cloud Run'
+            });
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }} \
+            .
+      - name: Push Docker image
+        run: docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+      # Better Auth is only enabled once the terraform-managed secret exists,
+      # so preview deploys keep working before the first terraform apply on master.
+      - name: Resolve Better Auth deploy config
+        id: better-auth
+        run: |
+          set -euo pipefail
+          SECRET_NAME="${{ env.GCP_BACKEND_SERVICE }}-better-auth-secret"
+          if gcloud secrets versions access latest --secret="$SECRET_NAME" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "Better Auth secret found; enabling better-auth on this revision."
+            {
+              echo "env_vars<<BETTER_AUTH_EOF"
+              echo "AUTH_PROVIDER=better-auth"
+              echo "BETTER_AUTH_URL=https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+              echo "BETTER_AUTH_EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "secrets=BETTER_AUTH_SECRET=$SECRET_NAME:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Better Auth secret '$SECRET_NAME' is not accessible yet (terraform apply has not created it); deploying without better-auth, console login will be unavailable."
+            echo "env_vars=" >> "$GITHUB_OUTPUT"
+            echo "secrets=" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy to Cloud Run with tag
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_BACKEND_SERVICE }}
+          region: ${{ env.GCP_BACKEND_REGION }}
+          image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+          tag: pr-${{ github.event.pull_request.number }}
+          no_traffic: true
+          env_vars: |
+            NODE_ENV=production
+            ADMIN_SPA_ENABLED=true
+            ${{ steps.better-auth.outputs.env_vars }}
+          secrets: |
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+            ${{ steps.better-auth.outputs.secrets }}
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const tagUrl = `https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: tagUrl,
+              description: 'Backend preview deployed successfully'
+            });
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Backend preview deployment failed'
+            });
+
+  # ───────────────────────────── Backend tasks worker ─────────────────────────────
+
+  tasks-deploy-prod:
+    name: Tasks deploy (prod)
+    needs: [detect, terraform-apply]
+    if: |
+      always() &&
+      needs.detect.outputs.tasks == 'true' &&
+      github.event_name == 'push' &&
+      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Validate required vars
+        run: |
+          missing=()
+          [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] && missing+=("GCP_WIF_PROVIDER_PROD")
+          [ -z "${{ vars.GCP_CD_DEPLOYER_SA_PROD }}" ] && missing+=("GCP_CD_DEPLOYER_SA_PROD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required repository variables: ${missing[*]}"
+            exit 1
+          fi
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }} \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:latest \
+            .
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
+          docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:latest
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_TASKS_SERVICE }}
+          region: ${{ env.GCP_BACKEND_REGION }}
+          image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
+          tag: prod
+          env_vars: |
+            NODE_ENV=production
+            BACKEND_SERVICE=tasks
+            FLOURISH_SERVICE=${{ env.GCP_TASKS_SERVICE }}
+          secrets: |
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
+
+  # ───────────────────────────── MCP server ─────────────────────────────
+
+  mcp-test:
+    name: MCP test
+    needs: detect
+    if: |
+      needs.detect.outputs.mcp == 'true' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build all packages
+        run: bun run compile
+      - name: Test MCP server
+        run: bun run test:ci
+        working-directory: mcp-server
+        env:
+          CI: true
+
+  mcp-deploy:
+    name: MCP deploy
+    needs: [detect, terraform-apply, mcp-test]
+    if: |
+      always() &&
+      needs.detect.outputs.mcp == 'true' &&
+      github.event_name == 'push' &&
+      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') &&
+      needs.mcp-test.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build all packages
+        run: bun run compile
+      - name: Build MCP server executable
+        working-directory: mcp-server
+        run: |
+          mkdir -p dist/docs
+          cp -r src/docs/* dist/docs/
+          bun build --compile src/index.ts --outfile dist/terreno-mcp
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_MCP_REGION }}-docker.pkg.dev --quiet
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file mcp-server/Dockerfile \
+            --tag ${{ env.GCP_MCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE }}/${{ env.GCP_MCP_SERVICE }}:${{ github.sha }} \
+            --tag ${{ env.GCP_MCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE }}/${{ env.GCP_MCP_SERVICE }}:latest \
+            .
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GCP_MCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE }}/${{ env.GCP_MCP_SERVICE }}:${{ github.sha }}
+          docker push ${{ env.GCP_MCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE }}/${{ env.GCP_MCP_SERVICE }}:latest
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_MCP_SERVICE }}
+          region: ${{ env.GCP_MCP_REGION }}
+          image: ${{ env.GCP_MCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE }}/${{ env.GCP_MCP_SERVICE }}:${{ github.sha }}
+          env_vars: |
+            SENTRY_DSN=${{ secrets.MCP_SENTRY_DSN }}
+          flags: |
+            --cpu=1
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
+      - name: Show deployment URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

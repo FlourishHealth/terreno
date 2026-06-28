@@ -110,6 +110,20 @@ describe("NumberField", () => {
     expect(queryByText(/must be/)).toBeNull();
   });
 
+  it("shows decimal error for non-numeric characters in decimal type", () => {
+    const {getByText} = renderWithTheme(
+      <NumberField label="Decimal" onChange={noOp} type="decimal" value="12abc" />
+    );
+    expect(getByText("Value must be a decimal")).toBeTruthy();
+  });
+
+  it("shows decimal error for multiple decimal points", () => {
+    const {getByText} = renderWithTheme(
+      <NumberField label="Decimal" onChange={noOp} type="decimal" value="1.2.3" />
+    );
+    expect(getByText("Value must be a decimal")).toBeTruthy();
+  });
+
   it("syncs value when prop changes", async () => {
     const handleChange = mock((_value: string): void => {});
     const {getByDisplayValue, unmount} = renderWithTheme(

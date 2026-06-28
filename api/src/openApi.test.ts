@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import type {Router} from "express";
@@ -5,8 +6,6 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
 import {
   createOpenApiMiddleware,
   deleteOpenApiMiddleware,
@@ -16,6 +15,7 @@ import {
   readOpenApiMiddleware,
 } from "./openApi";
 import {Permissions} from "./permissions";
+import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
 function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
@@ -89,13 +89,11 @@ describe("openApi", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   it("gets the openapi.json", async () => {
@@ -245,13 +243,11 @@ describe("openApi without swagger", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "false";
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   it("does not have the swagger ui", async () => {
@@ -267,13 +263,11 @@ describe("openApi populate", () => {
   beforeEach(async () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
 
-    app = setupServer({
-      addRoutes: addRoutesPopulate,
+    app = new TerrenoApp({
+      configureApp: addRoutesPopulate,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   it("gets the openapi.json with populate", async () => {

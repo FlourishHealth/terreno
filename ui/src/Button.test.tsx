@@ -1,8 +1,10 @@
-import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {describe, expect, it, mock, spyOn} from "bun:test";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
-import {renderWithTheme} from "./test-utils";
+import {isMobileDevice} from "./MediaQuery";
+import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
+import * as Utilities from "./Utilities";
 
 describe("Button", () => {
   it("renders correctly with default props", () => {
@@ -54,6 +56,28 @@ describe("Button", () => {
       <Button onClick={() => {}} text="Delete" variant="destructive" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("defaults to scale press animation", () => {
+    const tree = renderWithTheme(<Button onClick={() => {}} text="Default animation" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableScale");
+  });
+
+  it("renders opacity press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="opacity" text="Opacity" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableOpacity");
+  });
+
+  it("renders no press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="none" text="No animation" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableWithoutFeedback");
   });
 
   // Disabled state
@@ -109,6 +133,19 @@ describe("Button", () => {
     await waitFor(() => {
       expect(handleClick).toHaveBeenCalled();
     });
+  });
+
+  it("does not call onClick again on the trailing debounce edge after rapid presses", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(<Button onClick={handleClick} text="Click" />);
+
+    await act(async () => {
+      fireEvent.press(getByText("Click"));
+      fireEvent.press(getByText("Click"));
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   // Confirmation modal tests
@@ -227,5 +264,104 @@ describe("Button", () => {
       <Button onClick={() => {}} text="Hover me" tooltipText="Tooltip text" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders without a ThemeProvider using default context theme", () => {
+    const {toJSON} = render(<Button onClick={() => {}} text="No theme" />);
+    // The ThemeContext provides a default computed theme, so the button renders
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("uses Pressable when disabled (not PressableScale)", () => {
+    const tree = renderWithTheme(<Button disabled onClick={() => {}} text="Disabled" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("Pressable");
+  });
+
+  it("uses Pressable when loading (not PressableScale)", () => {
+    const tree = renderWithTheme(<Button loading onClick={() => {}} text="Loading" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("Pressable");
+  });
+
+  it("renders with custom confirmationText and modalSubTitle", () => {
+    const {toJSON} = renderWithTheme(
+      <Button
+        confirmationText="Custom confirmation text"
+        modalSubTitle="Custom subtitle"
+        modalTitle="Custom Title"
+        onClick={() => {}}
+        text="Confirm Btn"
+        withConfirmation
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  describe("custom icons", () => {
+    it("renders a registered custom icon by name", () => {
+      const {queryByTestId} = renderWithIcons(
+        <Button iconName="testCustomIcon" onClick={() => {}} text="Custom" />
+      );
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).not.toBeNull();
+    });
+
+    it("renders a FontAwesome icon (not the custom one) for unregistered names", () => {
+      const {queryByTestId, getByText} = renderWithIcons(
+        <Button iconName="check" onClick={() => {}} text="FontAwesome" />
+      );
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).toBeNull();
+      expect(getByText("FontAwesome")).toBeTruthy();
+    });
+  });
+
+  it("renders disabled button and does not call onClick", () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(<Button disabled onClick={handleClick} text="Disabled" />);
+    fireEvent.press(getByText("Disabled"));
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it("shows loading indicator when loading prop is true", () => {
+    const {toJSON} = renderWithTheme(<Button loading onClick={() => {}} text="Loading" />);
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders ghost variant with correct styles", () => {
+    const {toJSON} = renderWithTheme(<Button onClick={() => {}} text="Ghost" variant="ghost" />);
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with size sm", () => {
+    const tree = renderWithTheme(<Button onClick={() => {}} size="sm" text="Small" />).toJSON();
+    expect(tree).toBeTruthy();
+  });
+
+  it("does not render tooltip wrapper when isMobileDevice is true", () => {
+    const nativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
+
+    const {getByText, toJSON} = renderWithTheme(
+      <Button onClick={() => {}} text="No Tooltip" tooltipText="Should not wrap" />
+    );
+
+    expect(getByText("No Tooltip")).toBeTruthy();
+    const tree = JSON.stringify(toJSON());
+    expect(tree).not.toContain("Should not wrap");
+    nativeSpy.mockRestore();
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+  });
+
+  it("renders tooltip wrapper when tooltipText is provided and not native", () => {
+    const nativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+
+    const {getByText} = renderWithTheme(
+      <Button onClick={() => {}} text="With Tooltip" tooltipText="Helpful tip" />
+    );
+
+    expect(getByText("With Tooltip")).toBeTruthy();
+    nativeSpy.mockRestore();
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
   });
 });

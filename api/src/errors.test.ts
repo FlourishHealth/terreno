@@ -1,12 +1,14 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
-import {Schema} from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 import {
   APIError,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
+  errorMessage,
+  errorStack,
   errorsPlugin,
   getAPIErrorBody,
   getDisableExternalErrorTracking,
@@ -154,6 +156,36 @@ describe("getDisableExternalErrorTracking", () => {
   });
 });
 
+describe("errorMessage", () => {
+  it("returns the message from an Error instance", () => {
+    expect(errorMessage(new Error("boom"))).toBe("boom");
+  });
+
+  it("returns the string representation of a non-Error value", () => {
+    expect(errorMessage("raw string")).toBe("raw string");
+    expect(errorMessage(42)).toBe("42");
+    expect(errorMessage(null)).toBe("null");
+  });
+});
+
+describe("errorStack", () => {
+  it("returns the stack trace from an Error with a stack", () => {
+    const err = new Error("fail");
+    expect(errorStack(err)).toBe(err.stack as string);
+  });
+
+  it("returns the string representation when error has no stack", () => {
+    const err = new Error("no-stack");
+    Object.defineProperty(err, "stack", {value: undefined});
+    expect(errorStack(err)).toBe("Error: no-stack");
+  });
+
+  it("returns the string representation of a non-Error value", () => {
+    expect(errorStack("plain")).toBe("plain");
+    expect(errorStack(123)).toBe("123");
+  });
+});
+
 describe("getAPIErrorBody", () => {
   it("returns title and status by default", () => {
     const error = new APIError({status: 404, title: "Not Found"});
@@ -298,5 +330,23 @@ describe("apiErrorMiddleware", () => {
     apiErrorMiddleware(err, req, res as unknown as Response, next as unknown as NextFunction);
     expect(next).toHaveBeenCalledWith(err);
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("converts Mongoose CastError to a 400 APIError response", () => {
+    const err = new mongoose.Error.CastError("Number", "not-a-number", "general.maxUploadSizeMb");
+    apiErrorMiddleware(err, req, res as unknown as Response, next as unknown as NextFunction);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          fields: expect.objectContaining({
+            "general.maxUploadSizeMb": expect.stringContaining("Expected Number"),
+          }),
+        }),
+        status: 400,
+        title: "Validation failed",
+      })
+    );
+    expect(next).not.toHaveBeenCalled();
   });
 });

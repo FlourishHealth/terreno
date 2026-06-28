@@ -107,7 +107,7 @@ const watchModels = (): void => {
     changeWatcher = nativeDb.watch(pipeline, options as any) as any;
 
     if (!changeWatcher) {
-      throw new Error("Failed to create change stream watcher");
+      throw new APIError({status: 500, title: "Failed to create change stream watcher"});
     }
 
     changeWatcher.on("change", async (change: ChangeStreamDocument) => {
@@ -179,12 +179,12 @@ export const connectToWebsockets = async (app: express.Application): Promise<voi
     logWebsocketInfo(`[websocket] Service flags - isWebsocketService: ${isWebsocketService}`);
 
     if (io) {
-      throw new Error("WebSocket server is already initialized");
+      throw new APIError({status: 500, title: "WebSocket server is already initialized"});
     }
 
     websocketHttpServer = createServer(app);
     if (!websocketHttpServer) {
-      throw new Error("WebSocket server is not initialized");
+      throw new APIError({status: 500, title: "WebSocket server is not initialized"});
     }
     io = new Server(websocketHttpServer, {
       cors: {
@@ -370,7 +370,7 @@ export const connectToWebsockets = async (app: express.Application): Promise<voi
 
 export const getIoInstance = (): Server => {
   if (!io) {
-    throw new Error("Socket.io instance is not initialized");
+    throw new APIError({status: 500, title: "Socket.io instance is not initialized"});
   }
   return io;
 };

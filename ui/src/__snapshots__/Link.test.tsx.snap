@@ -28,6 +28,7 @@ exports[`Link renders correctly with href 1`] = `
     "aria-role": "button",
     "hitSlop": 20,
     "onPress": [Function],
+    "testID": undefined,
   },
   "type": "Pressable",
 }

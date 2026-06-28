@@ -1,8 +1,10 @@
-import {DemoConfiguration} from "@config";
+import type {DemoConfiguration} from "@config";
 import {
   ButtonDemo,
   ButtonIconPosition,
   ButtonLoading,
+  ButtonPressAnimations,
+  ButtonSizes,
   ButtonVariants,
   ConfirmationButton,
   FullWidthButtons,
@@ -48,7 +50,7 @@ export const ButtonConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: ButtonDemo,
+  demo: (props) => <ButtonDemo {...props} />,
   demoOptions: {
     controls: {
       variant: {
@@ -59,6 +61,8 @@ export const ButtonConfiguration: DemoConfiguration = {
           {label: "Secondary", value: "secondary"},
           {label: "Outline", value: "outline"},
           {label: "Muted", value: "muted"},
+          {label: "Destructive", value: "destructive"},
+          {label: "Ghost", value: "ghost"},
         ],
       },
       iconName: {
@@ -84,18 +88,37 @@ export const ButtonConfiguration: DemoConfiguration = {
         type: "boolean",
         defaultValue: false,
       },
+      pressAnimation: {
+        type: "select",
+        defaultValue: "scale",
+        options: [
+          {label: "Scale", value: "scale"},
+          {label: "Opacity", value: "opacity"},
+          {label: "None", value: "none"},
+        ],
+      },
       withConfirmation: {
         type: "boolean",
         defaultValue: false,
       },
+      size: {
+        type: "select",
+        defaultValue: "default",
+        options: [
+          {label: "Default", value: "default"},
+          {label: "Small", value: "sm"},
+        ],
+      },
     },
   },
   stories: {
-    Variants: {render: ButtonVariants},
-    IconPosition: {render: ButtonIconPosition},
-    Loading: {render: ButtonLoading},
-    Confirmation: {render: ConfirmationButton},
-    FullWidth: {render: FullWidthButtons},
-    Multiline: {render: MultilineButtons},
+    Variants: {render: () => <ButtonVariants />},
+    Sizes: {render: () => <ButtonSizes />},
+    IconPosition: {render: () => <ButtonIconPosition />},
+    Loading: {render: () => <ButtonLoading />},
+    Confirmation: {render: () => <ConfirmationButton />},
+    FullWidth: {render: () => <FullWidthButtons />},
+    PressAnimations: {render: () => <ButtonPressAnimations />},
+    Multiline: {render: () => <MultilineButtons />},
   },
 };

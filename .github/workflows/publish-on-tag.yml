@@ -11,7 +11,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Get version from tag
         id: version
@@ -30,7 +30,7 @@ jobs:
       run:
         working-directory: api
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -76,61 +76,30 @@ jobs:
           VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
-      - name: Replace catalog references
+      - name: Replace catalog and workspace references
         run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "
           const fs = require('fs');
-          const path = require('path');
-          
-          // Read root catalog
           const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
           const catalog = rootPkg.catalog || {};
-          
-          // Read current package.json
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          
-          // Replace catalog: in dependencies
-          if (pkg.dependencies) {
-            for (const [key, value] of Object.entries(pkg.dependencies)) {
+          const version = process.env.VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
               if (value === 'catalog:') {
-                if (catalog[key]) {
-                  pkg.dependencies[key] = catalog[key];
-                } else {
-                  throw new Error(\`Catalog entry not found for \${key}\`);
-                }
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                pkg[depType][key] = version;
               }
             }
           }
-          
-          // Replace catalog: in devDependencies
-          if (pkg.devDependencies) {
-            for (const [key, value] of Object.entries(pkg.devDependencies)) {
-              if (value === 'catalog:') {
-                if (catalog[key]) {
-                  pkg.devDependencies[key] = catalog[key];
-                } else {
-                  throw new Error(\`Catalog entry not found for \${key}\`);
-                }
-              }
-            }
-          }
-          
-          // Replace catalog: in peerDependencies
-          if (pkg.peerDependencies) {
-            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
-              if (value === 'catalog:') {
-                if (catalog[key]) {
-                  pkg.peerDependencies[key] = catalog[key];
-                } else {
-                  throw new Error(\`Catalog entry not found for \${key}\`);
-                }
-              }
-            }
-          }
-          
-          // Write updated package.json
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
 
       - name: Compile
         run: bun run compile
@@ -146,6 +115,85 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/api@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
+  publish-test:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: test
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Replace catalog references
+        run: |
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/test@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
   publish-ui:
     needs: check-changes
     runs-on: ubuntu-latest
@@ -155,7 +203,7 @@ jobs:
       run:
         working-directory: ui
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -310,7 +358,7 @@ jobs:
       run:
         working-directory: rtk
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -460,7 +508,7 @@ jobs:
         run: echo "Published @terreno/rtk@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-admin-backend:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -468,7 +516,7 @@ jobs:
       run:
         working-directory: admin-backend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -559,7 +607,7 @@ jobs:
       run:
         working-directory: admin-frontend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -655,8 +703,115 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/admin-frontend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
+  publish-admin-spa:
+    needs: [check-changes, publish-ui, publish-rtk, publish-admin-frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: admin-spa
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      # Build the static web export BEFORE replacing workspace deps, so metro resolves the
+      # local workspace sources. The resulting dist/ is shipped in the published package.
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
+
+      - name: Compile server plugin
+        run: bun run compile
+
+      - name: Build web export
+        run: bun run build:web
+
+      - name: Get latest @terreno/ui version
+        id: ui_version
+        run: |
+          UI_VERSION=$(npm view @terreno/ui version 2>/dev/null || echo "")
+          if [ -z "$UI_VERSION" ]; then
+            UI_VERSION="${{ needs.check-changes.outputs.version }}"
+          fi
+          echo "ui_version=$UI_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Replace catalog and workspace references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          UI_VERSION="${{ steps.ui_version.outputs.ui_version }}"
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          const uiVersion = process.env.UI_VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                pkg[depType][key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                pkg[depType][key] = version;
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+          UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/admin-spa@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
   publish-ai:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -664,7 +819,7 @@ jobs:
       run:
         working-directory: ai
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -756,7 +911,7 @@ jobs:
         run: echo "Published @terreno/ai@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-api-health:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -764,7 +919,7 @@ jobs:
       run:
         working-directory: api-health
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -850,7 +1005,7 @@ jobs:
         run: echo "Published @terreno/api-health@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-feature-flags:
-    needs: [check-changes, publish-api]
+    needs: [check-changes, publish-api, publish-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -858,7 +1013,7 @@ jobs:
       run:
         working-directory: feature-flags
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -949,11 +1104,108 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/feature-flags@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
+  publish-mcp:
+    needs: [check-changes, publish-api, publish-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: mcp-server
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Replace catalog and workspace references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                pkg[depType][key] = version;
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+
+      - name: Install dependencies after replacement
+        run: bun install
+
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/mcp@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
   update-version-on-master:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health, publish-feature-flags]
+    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags, publish-mcp]
+    # Run if any package was published and this is not a prerelease (beta/alpha) tag
     if: |
       always() &&
-      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success')
+      !contains(needs.check-changes.outputs.version, '-beta') &&
+      !contains(needs.check-changes.outputs.version, '-alpha') &&
+      (needs.publish-api.result == 'success' || needs.publish-test.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-admin-spa.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success' || needs.publish-mcp.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -969,7 +1221,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
         with:
           ref: master
           token: ${{ secrets.REPO_ADMIN_TOKEN }}
@@ -992,13 +1244,16 @@ jobs:
           }
 
           update_version api "${{ needs.publish-api.result }}"
+          update_version test "${{ needs.publish-test.result }}"
           update_version ui "${{ needs.publish-ui.result }}"
           update_version rtk "${{ needs.publish-rtk.result }}"
           update_version admin-backend "${{ needs.publish-admin-backend.result }}"
           update_version admin-frontend "${{ needs.publish-admin-frontend.result }}"
+          update_version admin-spa "${{ needs.publish-admin-spa.result }}"
           update_version ai "${{ needs.publish-ai.result }}"
           update_version api-health "${{ needs.publish-api-health.result }}"
           update_version feature-flags "${{ needs.publish-feature-flags.result }}"
+          update_version mcp-server "${{ needs.publish-mcp.result }}"
 
       - name: Commit and push to master
         run: |
@@ -1008,11 +1263,79 @@ jobs:
             echo "No version changes to commit"
           else
             git commit -m "chore: bump package versions to ${VERSION}"
+            git pull --rebase origin master
+            git push origin master
+          fi
+
+  cut-docs-version:
+    needs: [check-changes, update-version-on-master]
+    if: |
+      needs.update-version-on-master.result == 'success' &&
+      !contains(needs.check-changes.outputs.version, '-beta') &&
+      !contains(needs.check-changes.outputs.version, '-alpha') &&
+      endsWith(needs.check-changes.outputs.version, '.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Validate required secrets
+        env:
+          REPO_ADMIN_TOKEN: ${{ secrets.REPO_ADMIN_TOKEN }}
+        run: |
+          missing=()
+          if [ -z "$REPO_ADMIN_TOKEN" ]; then missing+=("REPO_ADMIN_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6.0.3
+        with:
+          ref: master
+          token: ${{ secrets.REPO_ADMIN_TOKEN }}
+          persist-credentials: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "joshgachnang"
+          git config --global user.email "josh@flourish.health"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate docs inputs
+        run: |
+          bun run compile
+          bun run types
+        working-directory: ui
+
+      - name: Cut docs version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          cd website
+          bun run generate
+          bun run docs:version "$VERSION"
+          bun run prune-versions
+
+      - name: Commit versioned docs
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          git add website/versioned_docs website/versioned_sidebars website/versions.json
+          if git diff --cached --quiet; then
+            echo "No docs version changes to commit"
+          else
+            git commit -m "chore: cut docs version ${VERSION}"
+            git pull --rebase origin master
             git push origin master
           fi
 
   notify:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health, publish-feature-flags]
+    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags, publish-mcp]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -1035,13 +1358,16 @@ jobs:
           }
 
           add_status "@terreno/api" "${{ needs.publish-api.result }}"
+          add_status "@terreno/test" "${{ needs.publish-test.result }}"
           add_status "@terreno/ui" "${{ needs.publish-ui.result }}"
           add_status "@terreno/rtk" "${{ needs.publish-rtk.result }}"
           add_status "@terreno/admin-backend" "${{ needs.publish-admin-backend.result }}"
           add_status "@terreno/admin-frontend" "${{ needs.publish-admin-frontend.result }}"
+          add_status "@terreno/admin-spa" "${{ needs.publish-admin-spa.result }}"
           add_status "@terreno/ai" "${{ needs.publish-ai.result }}"
           add_status "@terreno/api-health" "${{ needs.publish-api-health.result }}"
           add_status "@terreno/feature-flags" "${{ needs.publish-feature-flags.result }}"
+          add_status "@terreno/mcp" "${{ needs.publish-mcp.result }}"
           echo "message=$MESSAGE" >> $GITHUB_OUTPUT
 
       - name: Zoom Chat Notification

@@ -2,15 +2,40 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import {useEffect} from "react";
+import React, {type FC, type ReactNode, useEffect} from "react";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
-import {baseUrl, getAuthToken, useSelectCurrentUserId, useUpgradeCheck} from "@terreno/rtk";
+import {OpenFeatureProvider} from "@openfeature/react-sdk";
+import {
+  baseUrl,
+  getAuthToken,
+  setRealtimeSocket,
+  useRealtimeDebug,
+  useSelectCurrentUserId,
+  useServerStatus,
+  useSocketConnection,
+  useTerrenoFeatureFlags,
+  useUpgradeCheck,
+} from "@terreno/rtk";
 import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
 import store, {logout, persistor, useAppDispatch} from "@/store";
 import {terrenoApi} from "@/store/sdk";
+
+const OpenFeatureBridge: FC<{
+  children: ReactNode;
+  socket: ReturnType<typeof useSocketConnection>["socket"];
+}> = ({children, socket}) => {
+  const bridgeUserId = useSelectCurrentUserId();
+  useTerrenoFeatureFlags(terrenoApi, {
+    skip: !bridgeUserId,
+    socket,
+    userId: bridgeUserId,
+  });
+  return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
+};
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -23,7 +48,7 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout(): React.ReactElement | null {
+const RootLayout = (): React.ReactElement | null => {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
@@ -58,18 +83,21 @@ export default function RootLayout(): React.ReactElement | null {
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
-          <RootLayoutNav />
-        </TerrenoProvider>
-      </PersistGate>
-    </Provider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
+            <RootLayoutNav />
+          </TerrenoProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
-}
+};
 
-function RootLayoutNav(): React.ReactElement {
+const RootLayoutNav = (): React.ReactElement => {
   const userId = useSelectCurrentUserId();
+  const {isOnline} = useServerStatus({skip: !userId});
   const profile = useReadProfile();
   const dispatch = useAppDispatch();
   const segments = useSegments();
@@ -83,6 +111,24 @@ function RootLayoutNav(): React.ReactElement {
     warningCheckCount,
     warningMessage,
   } = useUpgradeCheck({pollingIntervalMs: 300_000, recheckOnForeground: true});
+
+  // Connect to WebSocket for real-time sync
+  const {socket} = useSocketConnection({
+    baseUrl,
+    getAuthToken,
+    shouldConnect: !!userId && isOnline,
+  });
+
+  // Sync frontend debug logging with backend debug.websocketsDebug (via /realtime/health)
+  useRealtimeDebug(baseUrl, socket?.connected);
+
+  // Provide socket to per-endpoint realtime handlers (realtimeList / realtimeDocument)
+  useEffect(() => {
+    setRealtimeSocket(socket);
+    return (): void => {
+      setRealtimeSocket(null);
+    };
+  }, [socket]);
 
   // Validate stored auth token on mount
   useEffect(() => {
@@ -154,7 +200,11 @@ function RootLayoutNav(): React.ReactElement {
       profileLoaded: !!profile,
       userId,
     });
-    return <ConsentNavigator api={terrenoApi}>{content}</ConsentNavigator>;
+    return (
+      <ConsentNavigator api={terrenoApi}>
+        <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
+      </ConsentNavigator>
+    );
   }
 
   console.debug("[RootLayout] Skipping ConsentNavigator", {
@@ -162,5 +212,7 @@ function RootLayoutNav(): React.ReactElement {
     profileLoaded: !!profile,
     userId: userId ?? "none",
   });
-  return content;
-}
+  return <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>;
+};
+
+export default RootLayout;

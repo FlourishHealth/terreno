@@ -1,9 +1,20 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import type {AdminApi, EndpointBuilder} from "./types";
+
+/** Generic referenced document — admin can pick from any Mongoose model so the shape varies. */
+interface PickerItem {
+  _id?: string;
+  name?: string;
+  title?: string;
+  email?: string;
+  label?: string;
+  displayName?: string;
+  [key: string]: unknown;
+}
 
 interface AdminObjectPickerProps {
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   routePath: string;
   refModelName: string;
   title: string;
@@ -11,29 +22,33 @@ interface AdminObjectPickerProps {
   onChange: (value: string) => void;
   errorText?: string;
   helperText?: string;
+  readOnly?: boolean;
 }
 
-const DISPLAY_FIELDS = ["name", "title", "email", "label", "displayName"];
+const DISPLAY_FIELDS = ["name", "title", "email", "label", "displayName"] as const;
+type DisplayField = (typeof DISPLAY_FIELDS)[number];
 
-const getDisplayValue = (item: any): string => {
+const getDisplayValue = (item: PickerItem): string => {
   for (const field of DISPLAY_FIELDS) {
-    if (item[field]) {
-      return String(item[field]);
+    const val = item[field];
+    if (val) {
+      return String(val);
     }
   }
   return item._id ?? String(item);
 };
 
-const getSecondaryText = (item: any, primaryField: string): string | undefined => {
+const getSecondaryText = (item: PickerItem, primaryField: string): string | undefined => {
   for (const field of DISPLAY_FIELDS) {
-    if (field !== primaryField && item[field]) {
-      return String(item[field]);
+    const val = item[field];
+    if (field !== primaryField && val) {
+      return String(val);
     }
   }
   return undefined;
 };
 
-const getPrimaryField = (item: any): string => {
+const getPrimaryField = (item: PickerItem): DisplayField | "_id" => {
   for (const field of DISPLAY_FIELDS) {
     if (item[field]) {
       return field;
@@ -51,6 +66,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   onChange,
   errorText,
   helperText,
+  readOnly,
 }) => {
   const [searchText, setSearchText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -73,7 +89,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
 
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [searchEndpointKey]: build.query({
           query: (q: string) => ({
             method: "GET",
@@ -93,15 +109,18 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   }, [api, routePath, searchEndpointKey, readEndpointKey]);
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const useSearchQuery = (enhancedApi as any)[`use${capitalize(searchEndpointKey)}Query`];
-  const useReadQuery = (enhancedApi as any)[`use${capitalize(readEndpointKey)}Query`];
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
+  const useSearchQuery = enhanced[`use${capitalize(searchEndpointKey)}Query`];
+  const useReadQuery = enhanced[`use${capitalize(readEndpointKey)}Query`];
 
   const {data: searchData, isFetching: isSearching} = useSearchQuery(debouncedQuery, {
     skip: !debouncedQuery,
   });
 
   // Fetch the currently selected item to display its name
-  const {data: selectedItem} = useReadQuery(value, {
+  const {data: selectedItem, isLoading: isSelectedLoading} = useReadQuery(value, {
     skip: !value,
   });
 
@@ -125,8 +144,8 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   }, []);
 
   const handleSelect = useCallback(
-    (item: any) => {
-      onChange(item._id);
+    (item: PickerItem) => {
+      onChange(item._id ?? "");
       setSelectedDisplay(getDisplayValue(item));
       setSearchText("");
       setDebouncedQuery("");
@@ -157,6 +176,22 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   const results = Array.isArray(searchData)
     ? searchData
     : ((searchData as {data?: unknown[]} | undefined)?.data ?? []);
+
+  if (readOnly) {
+    const roValue =
+      selectedDisplay || (value && isSelectedLoading ? "Loading…" : value ? String(value) : "");
+    return (
+      <TextField
+        disabled
+        errorText={errorText}
+        helperText={helperText}
+        onChange={() => {}}
+        testID={`admin-picker-${refModelName}-readonly`}
+        title={title}
+        value={roValue}
+      />
+    );
+  }
 
   return (
     <Box gap={1}>
@@ -216,7 +251,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
           )}
 
           {!isSearching &&
-            results.map((item: any) => {
+            (results as PickerItem[]).map((item) => {
               const primaryField = getPrimaryField(item);
               const secondary = getSecondaryText(item, primaryField);
               return (
@@ -229,9 +264,11 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
                   paddingY={2}
                   testID={`admin-picker-${refModelName}-result-${item._id}`}
                 >
-                  <Text size="sm">{getDisplayValue(item)}</Text>
+                  <Text size="sm" skipLinking>
+                    {getDisplayValue(item)}
+                  </Text>
                   {secondary && (
-                    <Text color="secondaryDark" size="sm">
+                    <Text color="secondaryDark" size="sm" skipLinking>
                       {secondary}
                     </Text>
                   )}

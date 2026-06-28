@@ -1,31 +1,20 @@
 import {beforeAll, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {TerrenoApp} from "@terreno/api";
 import type {LanguageModel} from "ai";
 import type express from "express";
-import mongoose from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
 import {AiApp} from "./aiApp";
 import type {FileStorageService} from "./service/fileStorage";
 import type {MCPService} from "./service/mcpService";
+import {authAsUserWithCredentials, ensureTestUsers, UserModel} from "./tests/helpers";
 
-type PasswordedUser = {setPassword: (password: string) => Promise<void>};
-
-const userSchema = new mongoose.Schema({
-  admin: {default: false, type: Boolean},
-  email: {index: true, type: String},
-  name: String,
-});
-userSchema.plugin(
-  passportLocalMongoose as unknown as (
-    schema: mongoose.Schema,
-    options: {usernameField: string}
-  ) => void,
-  {usernameField: "email"}
-);
-userSchema.plugin(createdUpdatedPlugin);
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+const AI_APP_TEST_USER = {
+  admin: false,
+  email: "aiapp@example.com",
+  name: "User",
+  password: "password",
+} as const;
 
 const createMockModel = () => ({
   doGenerate: mock(async () => ({
@@ -53,31 +42,25 @@ const createMockModel = () => ({
 
 describe("AiApp", () => {
   beforeAll(async () => {
-    await UserModel.deleteMany({});
-    const user = await UserModel.create({email: "aiapp@example.com", name: "User"});
-    await (user as unknown as PasswordedUser).setPassword("password");
-    await user.save();
+    await ensureTestUsers([AI_APP_TEST_USER]);
   });
 
   const authAsUser = async (app: express.Application) => {
-    const agent = supertest.agent(app);
-    const res = await agent
-      .post("/auth/login")
-      .send({email: "aiapp@example.com", password: "password"})
-      .expect(200);
-    await agent.set("authorization", `Bearer ${res.body.data.token}`);
-    return agent;
+    return authAsUserWithCredentials(app, {
+      email: AI_APP_TEST_USER.email,
+      password: AI_APP_TEST_USER.password,
+    });
   };
 
   it("registers gpt and project routes by default", async () => {
     const {AIService} = await import("./service/aiService");
     const aiService = new AIService({model: createMockModel() as unknown as LanguageModel});
     const plugin = new AiApp({aiService});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
 
     const agent = await authAsUser(app);
     const tools = await agent.get("/gpt/tools");
@@ -101,11 +84,11 @@ describe("AiApp", () => {
       })),
     } as unknown as FileStorageService;
     const plugin = new AiApp({fileStorageService, gcsBucket: "test-bucket"});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
     // Unauthenticated access to upload route: ensure it exists (returns 401, not 404).
     const upload = await supertest(app).post("/files/upload");
     expect(upload.status).not.toBe(404);
@@ -122,11 +105,11 @@ describe("AiApp", () => {
       })),
     } as unknown as FileStorageService;
     const plugin = new AiApp({fileStorageService});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
     const upload = await supertest(app).post("/files/upload");
     expect(upload.status).toBe(404);
   });
@@ -138,11 +121,11 @@ describe("AiApp", () => {
       reconnectServer: mock(async () => {}),
     } as unknown as MCPService;
     const plugin = new AiApp({mcpService});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
     const agent = await authAsUser(app);
     const servers = await agent.get("/mcp/servers");
     expect(servers.status).not.toBe(404);

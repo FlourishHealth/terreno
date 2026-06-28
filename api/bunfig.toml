@@ -1,5 +1,5 @@
 [test]
-preload = ["./src/tests/bunSetup.ts"]
+preload = ["./src/tests/testEnv.ts", "./src/tests/bunSetup.ts"]
 root = "./src"
 coverage = true
 coveragePathIgnorePatterns = ["dist/**", "**/*.test.ts", "**/tests/**", "**/vendor/**", "../**"]

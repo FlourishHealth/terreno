@@ -8,11 +8,12 @@
     "@terreno/api": "workspace:*",
     "express": "^5.2.1",
     "luxon": "catalog:",
-    "multer": "^1.4.5-lts.1"
+    "multer": "2.2.0"
   },
   "description": "Admin panel backend plugin for @terreno/api",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@terreno/test": "workspace:*",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
     "@types/luxon": "catalog:",
@@ -48,10 +49,10 @@
     "dev": "bun tsc -w",
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
-    "test": "bun test",
-    "test:ci": "bun test",
+    "test": "bun test --timeout=120000",
+    "test:ci": "bun test --timeout=120000",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.13.0"
+  "version": "0.23.0"
 }

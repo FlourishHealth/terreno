@@ -1,13 +1,16 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic endpoint injection
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {act, fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import {AdminObjectPicker} from "../AdminObjectPicker";
+import type {AdminApi} from "../types";
 
 interface ApiState {
-  searchData: any;
+  searchData: unknown;
   isSearching: boolean;
-  selectedItem: any;
+  selectedItem: Record<string, unknown> | undefined;
 }
 
 const apiState: ApiState = {
@@ -16,11 +19,11 @@ const apiState: ApiState = {
   selectedItem: undefined,
 };
 
-const querySpecs: any[] = [];
+const querySpecs: unknown[] = [];
 const makeApi = () => ({
-  injectEndpoints: ({endpoints}: {endpoints: (b: any) => Record<string, any>}) => {
+  injectEndpoints: ({endpoints}: {endpoints: (b: unknown) => Record<string, unknown>}) => {
     const build = {
-      query: (spec: any) => {
+      query: (spec: Record<string, unknown>) => {
         // Invoke the query lambda so the URL/params builders run.
         if (typeof spec?.query === "function") {
           querySpecs.push(spec.query("some-id"));
@@ -33,9 +36,9 @@ const makeApi = () => ({
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     const searchKey = keys.find((k) => k.startsWith("adminSearch_"));
     const readKey = keys.find((k) => k.startsWith("adminSearchRead_"));
-    const enhanced: any = {};
+    const enhanced: Record<string, unknown> = {};
     if (searchKey) {
-      enhanced[`use${cap(searchKey)}Query`] = (_q: string, opts: any) => {
+      enhanced[`use${cap(searchKey)}Query`] = (_q: string, opts: Record<string, unknown>) => {
         if (opts?.skip) {
           return {data: undefined, isFetching: false};
         }
@@ -43,7 +46,7 @@ const makeApi = () => ({
       };
     }
     if (readKey) {
-      enhanced[`use${cap(readKey)}Query`] = (_id: string, opts: any) => {
+      enhanced[`use${cap(readKey)}Query`] = (_id: string, opts: Record<string, unknown>) => {
         if (opts?.skip) {
           return {data: undefined};
         }
@@ -65,7 +68,7 @@ describe("AdminObjectPicker", () => {
   it("wires the search and read query endpoints to the right URLs", () => {
     renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -76,7 +79,9 @@ describe("AdminObjectPicker", () => {
     const urls = querySpecs.map((s) => s.url).sort();
     expect(urls).toContain("/admin/users/search");
     expect(urls).toContain("/admin/users/some-id");
-    const searchSpec = querySpecs.find((s: any) => s.url === "/admin/users/search");
+    const searchSpec = querySpecs.find(
+      (s: unknown) => (s as Record<string, unknown>).url === "/admin/users/search"
+    );
     expect(searchSpec.params).toEqual({q: "some-id"});
   });
 
@@ -85,7 +90,7 @@ describe("AdminObjectPicker", () => {
     apiState.selectedItem = {_id: "abc123"};
     const {toJSON} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="Foo"
         routePath="/admin/foo"
@@ -99,7 +104,7 @@ describe("AdminObjectPicker", () => {
   it("clears the pending debounce timeout on rapid input (line 120)", async () => {
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -122,7 +127,7 @@ describe("AdminObjectPicker", () => {
   it("renders a search field when there is no selected value", () => {
     const {toJSON} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         errorText="bad"
         helperText="helper"
         onChange={() => {}}
@@ -139,7 +144,7 @@ describe("AdminObjectPicker", () => {
     apiState.selectedItem = {_id: "u1", email: "e@x.com", name: "Alice"};
     const {toJSON, getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -156,7 +161,7 @@ describe("AdminObjectPicker", () => {
     const onChange = mock((_: string) => undefined);
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={onChange}
         refModelName="User"
         routePath="/admin/users"
@@ -175,7 +180,7 @@ describe("AdminObjectPicker", () => {
     apiState.selectedItem = {_id: "u1", name: "Alice"};
     const {getByTestId, queryByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -197,7 +202,7 @@ describe("AdminObjectPicker", () => {
     ];
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -216,7 +221,7 @@ describe("AdminObjectPicker", () => {
     apiState.searchData = undefined;
     const {toJSON} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -231,7 +236,7 @@ describe("AdminObjectPicker", () => {
     apiState.selectedItem = {_id: "raw-id"};
     const {toJSON} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -249,7 +254,7 @@ describe("AdminObjectPicker", () => {
     ];
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -269,7 +274,7 @@ describe("AdminObjectPicker", () => {
     const onChange = mock((_: string) => undefined);
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={onChange}
         refModelName="User"
         routePath="/admin/users"
@@ -293,7 +298,7 @@ describe("AdminObjectPicker", () => {
     apiState.searchData = [];
     const {getByTestId, getByText} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -312,7 +317,7 @@ describe("AdminObjectPicker", () => {
     apiState.searchData = {data: [{_id: "p1", name: "Paginated"}]};
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -330,7 +335,7 @@ describe("AdminObjectPicker", () => {
   it("cleans up the debounce timer on unmount", async () => {
     const {getByTestId, unmount} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -350,7 +355,7 @@ describe("AdminObjectPicker", () => {
   it("opens results dropdown on focus and shows 'Start typing to search'", async () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"
@@ -369,7 +374,7 @@ describe("AdminObjectPicker", () => {
     apiState.selectedItem = {_id: "x", label: "Label", title: "Title"};
     const {getByTestId} = renderWithTheme(
       <AdminObjectPicker
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         onChange={() => {}}
         refModelName="User"
         routePath="/admin/users"

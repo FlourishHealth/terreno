@@ -6,8 +6,9 @@
  * endpoints for fetching pending consents and submitting responses.
  */
 
-import type express from "express";
+import {type Application, Router} from "express";
 import {DateTime} from "luxon";
+import type {CollectionActionConfig} from "./actions";
 import {asyncHandler, modelRouter} from "./api";
 import type {User} from "./auth";
 import {authenticateMiddleware} from "./auth";
@@ -16,8 +17,21 @@ import {logger} from "./logger";
 import {ConsentForm} from "./models/consentForm";
 import {ConsentResponse} from "./models/consentResponse";
 import {Permissions} from "./permissions";
+import type {PopulatePath} from "./populate";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import type {ConsentFormDocument} from "./types/consentForm";
+
+/** Shared populate config for consent response list/read endpoints. */
+export const consentResponsePopulatePaths: PopulatePath[] = [
+  {
+    fields: ["title", "slug", "version", "type"],
+    path: "consentFormId",
+  },
+  {
+    fields: ["name", "email"],
+    path: "userId",
+  },
+];
 
 export interface ConsentAppOptions {
   auditTrail?: boolean;
@@ -40,6 +54,12 @@ export interface ConsentAppOptions {
   supportedLocales?: string[];
 }
 
+const requireAdmin = (user: User | undefined): void => {
+  if (!user?.admin) {
+    throw new APIError({status: 403, title: "Admin access required"});
+  }
+};
+
 export class ConsentApp implements TerrenoPlugin {
   private options: ConsentAppOptions;
 
@@ -47,82 +67,79 @@ export class ConsentApp implements TerrenoPlugin {
     this.options = options;
   }
 
-  register(app: express.Application): void {
+  register(app: Application): void {
     const {auditTrail, resolveConsentForms, aiConfig} = this.options;
 
-    // Admin CRUD for consent forms
+    const collectionActions: Record<string, CollectionActionConfig<unknown, unknown, unknown>> = {};
+
+    if (aiConfig) {
+      collectionActions.generate = {
+        handler: async ({body, user}) => {
+          requireAdmin(user);
+          const typedBody = body as {type?: string; description?: string; locale?: string};
+          if (!typedBody.type) {
+            throw new APIError({status: 400, title: "type is required"});
+          }
+          if (!typedBody.description) {
+            throw new APIError({status: 400, title: "description is required"});
+          }
+          const locale = typedBody.locale ?? "en";
+          const content = await aiConfig.generateContent({
+            description: typedBody.description,
+            locale,
+            type: typedBody.type,
+          });
+          logger.info("ConsentForm content generated", {locale, type: typedBody.type});
+          return {content};
+        },
+        method: "POST",
+        permissions: [Permissions.IsAuthenticated],
+        summary: "Generate consent form content with AI",
+      };
+
+      collectionActions.translate = {
+        handler: async ({body, user}) => {
+          requireAdmin(user);
+          const typedBody = body as {
+            content?: string;
+            fromLocale?: string;
+            toLocale?: string;
+          };
+          if (!typedBody.content) {
+            throw new APIError({status: 400, title: "content is required"});
+          }
+          if (!typedBody.fromLocale) {
+            throw new APIError({status: 400, title: "fromLocale is required"});
+          }
+          if (!typedBody.toLocale) {
+            throw new APIError({status: 400, title: "toLocale is required"});
+          }
+          const translated = await aiConfig.translateContent({
+            content: typedBody.content,
+            fromLocale: typedBody.fromLocale,
+            toLocale: typedBody.toLocale,
+          });
+          logger.info("ConsentForm content translated", {
+            fromLocale: typedBody.fromLocale,
+            toLocale: typedBody.toLocale,
+          });
+          return {content: translated};
+        },
+        method: "POST",
+        permissions: [Permissions.IsAuthenticated],
+        summary: "Translate consent form content with AI",
+      };
+    }
+
     app.use(
       "/consent-forms",
       modelRouter(ConsentForm, {
-        endpoints: (router) => {
-          if (aiConfig) {
-            // POST /consent-forms/generate - generate consent form content with AI
-            router.post(
-              "/generate",
-              authenticateMiddleware(),
-              asyncHandler(async (req, res) => {
-                const user = req.user as User | undefined;
-                if (!user?.admin) {
-                  throw new APIError({status: 403, title: "Admin access required"});
-                }
-
-                const {type, description, locale = "en"} = req.body;
-                if (!type) {
-                  throw new APIError({status: 400, title: "type is required"});
-                }
-                if (!description) {
-                  throw new APIError({status: 400, title: "description is required"});
-                }
-
-                const content = await aiConfig.generateContent({description, locale, type});
-
-                logger.info("ConsentForm content generated", {locale, type});
-
-                return res.json({data: {content}});
-              })
-            );
-
-            // POST /consent-forms/translate - translate consent form content with AI
-            router.post(
-              "/translate",
-              authenticateMiddleware(),
-              asyncHandler(async (req, res) => {
-                const user = req.user as User | undefined;
-                if (!user?.admin) {
-                  throw new APIError({status: 403, title: "Admin access required"});
-                }
-
-                const {content, fromLocale, toLocale} = req.body;
-                if (!content) {
-                  throw new APIError({status: 400, title: "content is required"});
-                }
-                if (!fromLocale) {
-                  throw new APIError({status: 400, title: "fromLocale is required"});
-                }
-                if (!toLocale) {
-                  throw new APIError({status: 400, title: "toLocale is required"});
-                }
-
-                const translated = await aiConfig.translateContent({content, fromLocale, toLocale});
-
-                logger.info("ConsentForm content translated", {fromLocale, toLocale});
-
-                return res.json({data: {content: translated}});
-              })
-            );
-          }
-
-          // POST /consent-forms/:id/publish - clone form with incremented version and activate
-          router.post(
-            "/:id/publish",
-            authenticateMiddleware(),
-            asyncHandler(async (req, res) => {
-              const user = req.user as User | undefined;
-              if (!user?.admin) {
-                throw new APIError({status: 403, title: "Admin access required"});
-              }
-
-              const form = await ConsentForm.findExactlyOne({_id: req.params.id});
+        collectionActions,
+        instanceActions: {
+          publish: {
+            handler: async ({doc, user}) => {
+              requireAdmin(user);
+              const form = doc as ConsentFormDocument;
 
               const newFormData = {
                 active: true,
@@ -144,7 +161,6 @@ export class ConsentApp implements TerrenoPlugin {
 
               const newForm = await ConsentForm.create(newFormData);
 
-              // Deactivate all other versions of the same slug
               await ConsentForm.updateMany(
                 {_id: {$ne: newForm._id}, slug: form.slug},
                 {active: false}
@@ -155,9 +171,12 @@ export class ConsentApp implements TerrenoPlugin {
                 slug: newForm.slug,
               });
 
-              return res.json({data: newForm});
-            })
-          );
+              return newForm;
+            },
+            method: "POST",
+            permissions: [Permissions.IsAuthenticated],
+            summary: "Publish a new version of a consent form",
+          },
         },
         permissions: {
           create: [Permissions.IsAdmin],
@@ -182,17 +201,12 @@ export class ConsentApp implements TerrenoPlugin {
           read: [Permissions.IsAdmin],
           update: [],
         },
-        populatePaths: [
-          {
-            fields: ["title", "slug", "version", "type"],
-            path: "consentFormId",
-          },
-        ],
+        populatePaths: consentResponsePopulatePaths,
       })
     );
 
     // User-facing consent endpoints
-    const router = require("express").Router() as express.Router;
+    const router = Router();
 
     // GET /consents/pending - fetch pending consent forms for the current user
     router.get(
@@ -229,7 +243,6 @@ export class ConsentApp implements TerrenoPlugin {
           respondedFormVersions.set(formId, response.formVersionSnapshot ?? 0);
         }
 
-        // Fetch the forms corresponding to existing responses to check version matches
         const respondedFormIds = existingResponses.map((r) => r.consentFormId);
         const respondedForms = await ConsentForm.find({_id: {$in: respondedFormIds}});
         const formVersionByFormId = new Map<string, number>();
@@ -237,17 +250,14 @@ export class ConsentApp implements TerrenoPlugin {
           formVersionByFormId.set(form._id.toString(), form.version);
         }
 
-        // Filter out forms where the user already has a response matching the current version
         const pendingForms = resolvedForms.filter((form) => {
           const formId = form._id.toString();
-          // Find responses for this form
           const matchingResponses = existingResponses.filter(
             (r) => r.consentFormId.toString() === formId
           );
           if (matchingResponses.length === 0) {
             return true;
           }
-          // Check if any response matches the current form version
           return !matchingResponses.some((r) => r.formVersionSnapshot === form.version);
         });
 
@@ -300,7 +310,6 @@ export class ConsentApp implements TerrenoPlugin {
           throw new APIError({status: 400, title: "Consent form is not active"});
         }
 
-        // Validate signature requirement
         if (form.captureSignature && agreed && !signature) {
           throw new APIError({
             status: 400,
@@ -308,7 +317,6 @@ export class ConsentApp implements TerrenoPlugin {
           });
         }
 
-        // Validate required checkboxes
         if (agreed && form.checkboxes.length > 0) {
           const values = checkboxValues ?? {};
           for (let i = 0; i < form.checkboxes.length; i++) {
@@ -409,7 +417,6 @@ export class ConsentApp implements TerrenoPlugin {
       })
     );
 
-    // GET /consents/audit/:userId - admin audit trail for a specific user
     if (auditTrail) {
       router.get(
         "/audit/:userId",
