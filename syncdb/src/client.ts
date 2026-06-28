@@ -206,8 +206,10 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     mode?: SnapshotMode;
     since?: Record<string, string>;
   }): Promise<ApplySnapshotResult[]> => {
-    // Ids with pending local mutations must not be overwritten by the snapshot.
-    const pending = [...outbox.list({status: "queued"}), ...outbox.list({status: "inFlight"})];
+    // Ids with any non-acked local mutation (queued, inFlight, conflicted, or
+    // failed) must not be overwritten by the snapshot — acked mutations are
+    // already removed from the outbox, so listing all remaining rows covers them.
+    const pending = outbox.list();
     const results: ApplySnapshotResult[] = [];
     for (const collection of collections) {
       const skipIds = new Set(

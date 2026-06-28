@@ -50,6 +50,28 @@ describe("react hooks", () => {
     expect(result.current.status.queuedCount).toBe(1);
   });
 
+  it("useSyncMutations threads baseVersion across rapid successive updates", async () => {
+    const {client, wrapper} = await setup();
+    client.store.upsertEntity<TodoData>({
+      collection: "todos",
+      data: {title: "v1"},
+      id: "t1",
+      version: "ver-1",
+    });
+    const {result} = renderHook(() => useSyncMutations<TodoData>({collection: "todos"}), {wrapper});
+
+    act(() => {
+      result.current.update({data: {title: "edit-1"}, id: "t1"});
+    });
+    act(() => {
+      result.current.update({data: {title: "edit-2"}, id: "t1"});
+    });
+
+    const mutations = client.outbox.list<TodoData>();
+    expect(mutations).toHaveLength(2);
+    expect(mutations.every((m) => m.baseVersion === "ver-1")).toBe(true);
+  });
+
   it("useEntity re-renders when its entity changes", async () => {
     const {client, wrapper} = await setup();
     const {result} = renderHook(() => useEntity<TodoData>({collection: "todos", id: "t1"}), {

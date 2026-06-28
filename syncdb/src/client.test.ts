@@ -418,6 +418,33 @@ describe("createSyncDbClient", () => {
     await client.destroy();
   });
 
+  it("hydrate also protects entities with conflicted/failed mutations", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    client.store.upsertEntity({collection: "todos", data: {title: "local"}, id: "t1"});
+    client.outbox.enqueue({
+      args: {},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "update",
+    });
+    client.outbox.markInFlight({mutationId: "m1"});
+    client.outbox.markFailed({mutationId: "m1"});
+
+    await client.hydrate({
+      collections: ["todos"],
+      fetcher: async () => ({
+        collection: "todos",
+        records: [{data: {title: "server"}, id: "t1"}],
+      }),
+    });
+
+    // Failed-but-not-acked mutation still protects the local value.
+    expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({title: "local"});
+    await client.destroy();
+  });
+
   it("hydrate passes the known cursor as `since` for incremental prefetch", async () => {
     const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
     await client.start();
