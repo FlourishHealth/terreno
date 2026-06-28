@@ -2079,9 +2079,14 @@ describe("@terreno/api", () => {
         {$set: {updated: "2025-06-15T12:00:00.000Z"}}
       );
 
+      const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
+      if (!ifUnmodifiedSince) {
+        throw new Error("Expected valid HTTP date");
+      }
+
       const res = await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP()!)
+        .set("If-Unmodified-Since", ifUnmodifiedSince)
         .send({name: "String Timestamp"})
         .expect(409);
 
