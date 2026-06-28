@@ -53,7 +53,12 @@ export const SyncDevPanel: React.FC = () => {
   }, [client]);
 
   const toggleAuthBlocked = useCallback((): void => {
-    client.setAuthBlocked({authBlocked: !status.authBlocked});
+    const nextBlocked = !status.authBlocked;
+    client.setAuthBlocked({authBlocked: nextBlocked});
+    // Clearing the block should resume replay, mirroring reconnect behavior.
+    if (!nextBlocked) {
+      client.replayOutbox();
+    }
   }, [client, status.authBlocked]);
 
   const simulateConflict = useCallback((): void => {
