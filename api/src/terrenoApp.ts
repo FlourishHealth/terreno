@@ -5,6 +5,7 @@ import express from "express";
 import qs from "qs";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import {addTerrenoDevBrowserLogsRoute} from "./browserLogsRoute";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {
   apiErrorMiddleware,
@@ -292,6 +293,7 @@ export class TerrenoApp {
     }
 
     app.use(express.json({limit: "50mb"}));
+    addTerrenoDevBrowserLogsRoute(app);
 
     // Auth routes (login/signup/refresh_token) before JWT middleware
     addAuthRoutes(app, options.userModel, options.authOptions);
