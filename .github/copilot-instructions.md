@@ -365,7 +365,26 @@ Shared install script (in **flourish** repo): `bash /agent/repos/flourish/script
 | example-backend | 4000 | `bun run backend:dev` (from repo root) |
 | example-frontend web | 8082 | `bun run frontend:web` |
 
-`example-frontend` uses in-memory Mongo via `example-backend` — no system MongoDB required for the example apps.
+The running `example-backend` needs a **real MongoDB replica set** (change streams power the realtime/feature-flag sync) at `MONGO_URI`, plus auth secrets `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`. (Only the bun **test** suites use the auto-managed in-memory Mongo from `@terreno/test`; the dev server does not.)
+
+A standalone `mongod` binary is available from the `mongodb-memory-server` cache (e.g. `~/.cache/mongodb-binaries/mongod-*`) after the test suites have run once. Run it as a single-node replica set, then point the backend at it:
+
+```bash
+# 1. start mongod (replica set required for change streams)
+"$(ls ~/.cache/mongodb-binaries/mongod-* | head -1)" \
+  --replSet rs0 --port 27017 --bind_ip 127.0.0.1 --dbpath /workspace/.devdata/mongo &
+# 2. initiate the replica set once (use node, not bun — the mongodb driver's bson
+#    package hits a "node:v8 isBuildingSnapshot" error under bun). From example-backend/:
+#    node -e 'import("mongodb").then(async ({MongoClient})=>{const c=new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true");await c.connect();await c.db("admin").command({replSetInitiate:{_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]}}).catch(()=>{});await c.close();})'
+# 3. run backend + frontend
+MONGO_URI="mongodb://127.0.0.1:27017/terreno-example?replicaSet=rs0" \
+  TOKEN_SECRET=dev-token-secret TOKEN_ISSUER=terreno-dev \
+  REFRESH_TOKEN_SECRET=dev-refresh-secret SESSION_SECRET=dev-session-secret \
+  PORT=4000 bun run backend:dev
+EXPO_PUBLIC_API_URL=http://localhost:4000 bun run frontend:web
+```
+
+Seed login users with `bun run backend:seed` (same env vars): creates `test@example.com` and admin `superuser@example.com`, both password `testpassword123`. Health check: `curl localhost:4000/health` → `"healthy":true`. The web app shows one-time Terms/Privacy/Consent modals (with a signature draw) on first login before the Todos screen.
 
 ### Tests and lint
 
