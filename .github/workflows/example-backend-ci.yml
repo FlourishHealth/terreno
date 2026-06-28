@@ -10,9 +10,9 @@ on:
       - "example-backend/**"
       - "api-health/**"
       - "feature-flags/**"
+      - "bun.lock"
       - "rtk/**"
       - "ui/**"
-      - "bun.lock"
       - ".github/workflows/example-backend-ci.yml"
 
 jobs:

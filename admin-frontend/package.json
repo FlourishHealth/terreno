@@ -2,7 +2,7 @@
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
-    "jspdf": "^4.2.0",
+    "jspdf": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "react-native": "catalog:"

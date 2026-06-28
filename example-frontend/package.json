@@ -32,13 +32,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
-    "babel-preset-expo": "~54.0.10",
+    "babel-preset-expo": "catalog:",
     "expo-mcp": "^0.2.4",
-    "mongodb": "^6.20.0",
+    "mongodb": "catalog:",
     "typescript": "catalog:"
   },
   "main": "index.js",
