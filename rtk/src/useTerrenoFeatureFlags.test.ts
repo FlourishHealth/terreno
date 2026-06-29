@@ -196,6 +196,21 @@ describe("useTerrenoFeatureFlags ref-count cleanup", () => {
     await OpenFeature.setProviderAndWait(refcountTestDomain, NOOP_PROVIDER);
   });
 
+  it("awaits pending provider switch during cleanup when unmount overlaps setProviderAndWait", async () => {
+    const {api} = buildApi({data: {alpha: boolDef("on")}});
+    // Render and immediately unmount before the provider switch resolves.
+    // This exercises the `await pending` path (line 119) in the cleanup.
+    const {unmount} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u-fast"})
+    );
+    // Unmount immediately — cleanup fires while the provider switch is still in-flight
+    unmount();
+    // Allow microtasks (the pending await + NOOP install) to settle
+    await new Promise((r) => setTimeout(r, 200));
+    // After cleanup the domain should have fallen back to NOOP
+    expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(false);
+  });
+
   it("installs NOOP provider after the last hook instance unmounts", async () => {
     const {api} = buildApi({data: {alpha: boolDef("on")}});
     const {unmount} = renderHook(() =>

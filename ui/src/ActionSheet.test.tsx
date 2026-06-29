@@ -888,4 +888,99 @@ describe("ActionSheet", () => {
       await expect((ref.current as any)._onScrollBegin()).resolves.toBeUndefined();
     });
   });
+
+  describe("_onKeyboardShow", () => {
+    it("returns early when no field is focused", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      const RN = require("react-native");
+      const origState = RN.TextInput.State;
+      RN.TextInput.State = {currentlyFocusedField: () => null};
+      try {
+        act(() => {
+          instance._onKeyboardShow({endCoordinates: {height: 300}});
+        });
+        await act(async () => {
+          await new Promise((r) => setTimeout(r, 10));
+        });
+        expect(instance.state.keyboard).toBe(true);
+      } finally {
+        RN.TextInput.State = origState;
+      }
+    });
+  });
+
+  describe("handleChildScrollEnd", () => {
+    it("recoils to previous scroll position when offset is close", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      // Set up internal state to trigger recoil path
+      instance.prevScroll = 200;
+      instance.offsetY = 180;
+      instance._scrollTo = mock(() => {});
+      instance.getInitialScrollPosition = mock(() => 250);
+      await instance.handleChildScrollEnd();
+      expect(instance.isRecoiling).toBe(true);
+      // Wait for setTimeout to clear isRecoiling
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect(instance.isRecoiling).toBe(false);
+    });
+
+    it("hides modal when offset is far below scroll position", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      instance.prevScroll = 500;
+      instance.offsetY = 100;
+      instance._scrollTo = mock(() => {});
+      instance._hideModal = mock(() => {});
+      instance.getInitialScrollPosition = mock(() => 400);
+      await instance.handleChildScrollEnd();
+      expect(instance._hideModal).toHaveBeenCalled();
+    });
+
+    it("bounces back when scrolling up beyond prevScroll", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      // offsetY <= prevScroll AND prevScroll - springOffset <= offsetY
+      instance.prevScroll = 200;
+      instance.offsetY = 195;
+      instance._scrollTo = mock(() => {});
+      await instance.handleChildScrollEnd();
+      expect(instance.isRecoiling).toBe(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect(instance.isRecoiling).toBe(false);
+    });
+  });
 });
