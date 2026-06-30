@@ -81,7 +81,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     } else if (variant === "destructive") {
       bgColor = theme.surface.error;
     } else if (variant === "ghost") {
-      bgColor = theme.surface.base;
+      bgColor = "transparent";
       textColor = theme.surface.secondaryDark;
     }
 

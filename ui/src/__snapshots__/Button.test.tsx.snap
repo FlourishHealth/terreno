@@ -1263,7 +1263,7 @@ exports[`Button renders ghost variant with correct styles 1`] = `
     "style": {
       "alignItems": "center",
       "alignSelf": "flex-start",
-      "backgroundColor": "#FFFFFF",
+      "backgroundColor": "transparent",
       "borderColor": undefined,
       "borderRadius": 360,
       "borderWidth": undefined,
