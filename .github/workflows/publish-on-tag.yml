@@ -11,7 +11,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Get version from tag
         id: version
@@ -30,7 +30,7 @@ jobs:
       run:
         working-directory: api
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -124,7 +124,7 @@ jobs:
       run:
         working-directory: test
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -203,7 +203,7 @@ jobs:
       run:
         working-directory: ui
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -358,7 +358,7 @@ jobs:
       run:
         working-directory: rtk
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -516,7 +516,7 @@ jobs:
       run:
         working-directory: admin-backend
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -607,7 +607,7 @@ jobs:
       run:
         working-directory: admin-frontend
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -712,7 +712,7 @@ jobs:
       run:
         working-directory: admin-spa
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -819,7 +819,7 @@ jobs:
       run:
         working-directory: ai
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -919,7 +919,7 @@ jobs:
       run:
         working-directory: api-health
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -1013,7 +1013,7 @@ jobs:
       run:
         working-directory: feature-flags
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -1113,7 +1113,7 @@ jobs:
       run:
         working-directory: mcp-server
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -1221,7 +1221,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
         with:
           ref: master
           token: ${{ secrets.REPO_ADMIN_TOKEN }}
@@ -1289,7 +1289,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
         with:
           ref: master
           token: ${{ secrets.REPO_ADMIN_TOKEN }}
