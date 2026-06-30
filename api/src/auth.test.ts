@@ -1213,3 +1213,91 @@ describe("PATCH /me route edge cases", () => {
     expect([401, 404]).toContain(res.status);
   });
 });
+
+describe("signupUser postCreate error path", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("signup succeeds and stores extra body fields after postCreate", async () => {
+    const res = await agent
+      .post("/auth/signup")
+      .send({age: 30, email: "postcreate@example.com", password: "testpass123"})
+      .expect(200);
+    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.userId).toBeDefined();
+
+    const user = await UserModel.findOne({email: "postcreate@example.com"});
+    expect(user).toBeDefined();
+    expect((user as unknown as Record<string, unknown>).age).toBe(30);
+  });
+});
+
+describe("JWT decoding edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: (router: express.Router) => {
+        router.use(
+          "/food",
+          modelRouter(FoodModel, {
+            allowAnonymous: true,
+            permissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAny],
+              read: [Permissions.IsAny],
+              update: [],
+            },
+          })
+        );
+      },
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("handles null-string token gracefully without crashing", async () => {
+    const res = await agent.get("/food").set("authorization", "Bearer null").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("handles undefined-string token gracefully", async () => {
+    const res = await agent.get("/food").set("authorization", "Bearer undefined").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("handles JWT with malformed user id that causes findById to error", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: "not-a-valid-objectid!!!"}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent.get("/food").set("authorization", `Bearer ${token}`);
+    // Request still completes (error is caught in decodeJWTMiddleware),
+    // then may fail downstream with a validation error
+    expect([200, 400, 401]).toContain(res.status);
+  });
+});

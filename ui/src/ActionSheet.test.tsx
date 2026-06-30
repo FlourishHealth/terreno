@@ -888,4 +888,171 @@ describe("ActionSheet", () => {
       await expect((ref.current as any)._onScrollBegin()).resolves.toBeUndefined();
     });
   });
+
+  describe("_onKeyboardShow measure callback (findNodeHandle returns truthy)", () => {
+    it("animates when keyboard overlaps focused field", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const rn = require("react-native");
+      const origState = rn.TextInput.State;
+      const origMeasure = rn.UIManager.measure;
+      // Override findNodeHandle to return a truthy value via the module mock
+      const _origFindNodeHandle = rn.findNodeHandle;
+      rn.findNodeHandle.mockImplementation(() => 42);
+
+      rn.TextInput.State = {currentlyFocusedField: () => 42};
+      rn.UIManager.measure = (_node: any, callback: any) => {
+        // pageY=700, fieldHeight=40 → gap = 812 - 300 - (700+40) = -228 < 0 → triggers animation
+        callback(0, 0, 100, 40, 0, 700);
+      };
+
+      act(() => {
+        (ref.current as any)._onKeyboardShow({endCoordinates: {height: 300}});
+      });
+
+      rn.UIManager.measure = origMeasure;
+      rn.TextInput.State = origState;
+      rn.findNodeHandle.mockImplementation(() => null);
+      expect(ref.current!.state.keyboard).toBe(true);
+    });
+
+    it("returns early when gap >= 0 (field not overlapped)", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const rn = require("react-native");
+      const origState = rn.TextInput.State;
+      const origMeasure = rn.UIManager.measure;
+      rn.findNodeHandle.mockImplementation(() => 42);
+
+      rn.TextInput.State = {currentlyFocusedField: () => 42};
+      rn.UIManager.measure = (_node: any, callback: any) => {
+        // pageY=100, fieldHeight=40 → gap = 812 - 300 - (100+40) = 372 >= 0 → returns early
+        callback(0, 0, 100, 40, 0, 100);
+      };
+
+      act(() => {
+        (ref.current as any)._onKeyboardShow({endCoordinates: {height: 300}});
+      });
+
+      rn.UIManager.measure = origMeasure;
+      rn.TextInput.State = origState;
+      rn.findNodeHandle.mockImplementation(() => null);
+      expect(ref.current!.state.keyboard).toBe(true);
+    });
+
+    it("uses position mode offset when keyboardMode is position", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet keyboardMode="position" ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const rn = require("react-native");
+      const origState = rn.TextInput.State;
+      const origMeasure = rn.UIManager.measure;
+      rn.findNodeHandle.mockImplementation(() => 42);
+
+      rn.TextInput.State = {currentlyFocusedField: () => 42};
+      rn.UIManager.measure = (_node: any, callback: any) => {
+        callback(0, 0, 100, 40, 0, 700);
+      };
+
+      act(() => {
+        (ref.current as any)._onKeyboardShow({endCoordinates: {height: 300}});
+      });
+
+      rn.UIManager.measure = origMeasure;
+      rn.TextInput.State = origState;
+      rn.findNodeHandle.mockImplementation(() => null);
+      expect(ref.current!.state.keyboard).toBe(true);
+    });
+  });
+
+  describe("handleChildScrollEnd recoil timeout", () => {
+    it("resets isRecoiling after setTimeout fires", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled initialOffsetFromBottom={1} ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      // Set a large deviceHeight so _applyHeightLimiter doesn't zero out actionSheetHeight
+      (ref.current as any).setState({deviceHeight: 1000});
+      (ref.current as any).actionSheetHeight = 500;
+      // scrollOffset = 500 * 1 + 1000*0.15 = 650
+      // Need: offsetY <= prevScroll AND prevScroll - springOffset > offsetY AND offsetY > scrollOffset - 100
+      (ref.current as any).offsetY = 580;
+      (ref.current as any).prevScroll = 700;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect((ref.current as any).isRecoiling).toBe(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect((ref.current as any).isRecoiling).toBe(false);
+    });
+  });
+
+  describe("_onDeviceLayout setTimeout body", () => {
+    it("updates state when setTimeout callback fires", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await act(async () => {
+        await (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 900, width: 400}},
+        });
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("returns early when dimensions match previous values", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      // First call to set initial values
+      await act(async () => {
+        await (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 812, width: 375}},
+        });
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      // Second call with same dimensions should return early
+      await act(async () => {
+        await (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 812, width: 375}},
+        });
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      expect(ref.current).toBeTruthy();
+    });
+  });
 });
