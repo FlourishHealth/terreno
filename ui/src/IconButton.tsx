@@ -155,6 +155,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
           selectable={undefined}
           size={size === "sm" ? 12 : variant === "navigation" ? 20 : 16}
           solid
+          style={{textAlign: "center"}}
         />
       )}
       {Boolean(indicator) && (
