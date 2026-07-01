@@ -8,6 +8,7 @@
     "@reduxjs/toolkit": "catalog:",
     "@sentry/react": "catalog:",
     "@terreno/rtk": "workspace:*",
+    "@terreno/syncdb": "workspace:*",
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",
     "expo-constants": "catalog:",
@@ -16,6 +17,7 @@
     "expo-notifications": "catalog:",
     "expo-router": "catalog:",
     "expo-splash-screen": "catalog:",
+    "expo-sqlite": "~15.2.14",
     "expo-updates": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
@@ -37,6 +39,7 @@
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "catalog:",
+    "bun-types": "latest",
     "expo-mcp": "^0.2.4",
     "mongodb": "catalog:",
     "typescript": "catalog:"

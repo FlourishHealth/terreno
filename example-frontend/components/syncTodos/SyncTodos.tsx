@@ -1,0 +1,272 @@
+import {
+  type SyncDbClient,
+  SyncDbProvider,
+  useConflicts,
+  useQuery,
+  useSyncMutations,
+  useSyncStatus,
+} from "@terreno/syncdb";
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  CheckBox,
+  Heading,
+  IconButton,
+  Page,
+  Spinner,
+  Text,
+  TextField,
+} from "@terreno/ui";
+import type React from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
+
+import {getSyncDbClient} from "@/store/syncdb";
+import {generateId, slugify} from "./ids";
+import {SyncDevPanel} from "./SyncDevPanel";
+import {ListsBar} from "./SyncLists";
+import {TodoComments} from "./SyncTodoComments";
+
+interface TodoData {
+  title: string;
+  completed: boolean;
+  /** Optional id of the list this todo belongs to (local-first, schemaless). */
+  listId?: string;
+}
+
+const SyncStatusBanner: React.FC = () => {
+  const status = useSyncStatus();
+
+  if (status.authBlocked) {
+    return (
+      <Card color="error" marginBottom={4}>
+        <Text bold color="error" testID="app-sync-status-auth-blocked">
+          Sign-in required to sync. Your changes are saved locally.
+        </Text>
+      </Card>
+    );
+  }
+
+  const onlineText =
+    status.queuedCount > 0
+      ? `Online — ${status.queuedCount} change(s) pending sync`
+      : "Online — all changes synced";
+  const label = !status.isOnline
+    ? {testID: "todos-sync-status-offline", text: "Offline — changes are queued locally"}
+    : status.isSyncing
+      ? {testID: "todos-sync-status-syncing", text: "Syncing queued changes…"}
+      : {testID: "todos-sync-status-online", text: onlineText};
+
+  return (
+    <Card marginBottom={4}>
+      <Box gap={2}>
+        <Box alignItems="center" direction="row" justifyContent="between">
+          <Text testID={label.testID}>{label.text}</Text>
+          <Badge status="info" testID="todos-sync-queue-count" value={status.queuedCount} />
+        </Box>
+        {status.failedCount > 0 ? (
+          <Text color="error" size="sm" testID="todos-sync-failed-count">
+            {status.failedCount} change(s) failed to sync
+          </Text>
+        ) : null}
+      </Box>
+    </Card>
+  );
+};
+
+const ConflictBanner: React.FC = () => {
+  const {conflicts, resolve} = useConflicts<TodoData>();
+
+  if (conflicts.length === 0) {
+    return null;
+  }
+
+  return (
+    <Box marginBottom={4} testID="todos-conflict-banner">
+      {conflicts.map((conflict) => (
+        <Card
+          color="error"
+          key={conflict.conflictId}
+          marginBottom={2}
+          testID={`todos-conflict-card-${slugify(conflict.localData.title ?? conflict.entityId)}`}
+        >
+          <Box gap={2}>
+            <Text bold color="error">
+              Conflict on “{conflict.localData.title ?? conflict.entityId}”
+            </Text>
+            <Box direction="row" gap={2}>
+              <Button
+                onClick={() => resolve({conflictId: conflict.conflictId, strategy: "useServer"})}
+                testID="todos-conflict-action-use-server"
+                text="Use server"
+                variant="muted"
+              />
+              <Button
+                onClick={() => resolve({conflictId: conflict.conflictId, strategy: "keepMine"})}
+                testID="todos-conflict-action-keep-mine"
+                text="Keep mine"
+              />
+            </Box>
+          </Box>
+        </Card>
+      ))}
+    </Box>
+  );
+};
+
+const SyncTodosScreen: React.FC = () => {
+  const allTodos = useQuery<TodoData>({collection: "todos"});
+  const {create, update, remove} = useSyncMutations<TodoData>({collection: "todos"});
+  const [title, setTitle] = useState<string>("");
+  const [error, setError] = useState<string | undefined>();
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+
+  const todos = useMemo(
+    () =>
+      selectedListId === null
+        ? allTodos
+        : allTodos.filter((todo) => todo.data.listId === selectedListId),
+    [allTodos, selectedListId]
+  );
+
+  const handleSave = useCallback((): void => {
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+    setError(undefined);
+    create({
+      data: {
+        completed: false,
+        listId: selectedListId ?? undefined,
+        title: title.trim(),
+      },
+      id: generateId(),
+    });
+    setTitle("");
+  }, [title, create, selectedListId]);
+
+  const handleToggle = useCallback(
+    (id: string, todo: TodoData): void => {
+      update({data: {...todo, completed: !todo.completed}, id});
+    },
+    [update]
+  );
+
+  const handleDelete = useCallback(
+    (id: string): void => {
+      remove({id});
+    },
+    [remove]
+  );
+
+  return (
+    <Page navigation={undefined}>
+      <Box padding={4} testID="todos-screen-root">
+        <Box marginBottom={4}>
+          <Heading size="xl">Local-First Todos</Heading>
+        </Box>
+
+        <SyncStatusBanner />
+        <ConflictBanner />
+
+        <ListsBar onSelect={setSelectedListId} selectedListId={selectedListId} />
+
+        <Card marginBottom={6}>
+          <Box gap={3}>
+            <TextField
+              onChange={setTitle}
+              onEnter={handleSave}
+              placeholder="What needs to be done?"
+              testID="todos-input-title"
+              title="New Todo"
+              value={title}
+            />
+            {error ? (
+              <Text color="error" testID="todos-error-title-required">
+                {error}
+              </Text>
+            ) : null}
+            <Box direction="row" gap={2}>
+              <Button onClick={handleSave} testID="todos-button-save" text="Save" />
+            </Box>
+          </Box>
+        </Card>
+
+        <SyncDevPanel />
+
+        {todos.length === 0 ? (
+          <Text color="secondaryLight" testID="todos-empty-state">
+            No todos yet. Add one above!
+          </Text>
+        ) : (
+          todos.map((todo) => (
+            <Card key={todo.id} marginBottom={2} testID={`todos-item-${slugify(todo.data.title)}`}>
+              <Box alignItems="center" direction="row" justifyContent="between">
+                <Box
+                  accessibilityHint="Marks this todo complete or incomplete"
+                  accessibilityLabel={`Toggle ${todo.data.title}`}
+                  alignItems="center"
+                  direction="row"
+                  flex="grow"
+                  gap={3}
+                  onClick={() => handleToggle(todo.id, todo.data)}
+                >
+                  <CheckBox selected={todo.data.completed} size="md" />
+                  <Text underline={todo.data.completed}>{todo.data.title}</Text>
+                </Box>
+                <IconButton
+                  accessibilityLabel="Delete todo"
+                  iconName="trash"
+                  onClick={() => handleDelete(todo.id)}
+                  variant="destructive"
+                />
+              </Box>
+              <TodoComments todoId={todo.id} />
+            </Card>
+          ))
+        )}
+      </Box>
+    </Page>
+  );
+};
+
+const SyncTodosGate: React.FC<{client: SyncDbClient}> = ({client}) => {
+  const [ready, setReady] = useState<boolean>(false);
+
+  // Initialize persistence (load any locally-stored todos) before rendering.
+  useEffect(() => {
+    let active = true;
+    void client.start().then(() => {
+      if (active) {
+        setReady(true);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [client]);
+
+  if (!ready) {
+    return (
+      <Page navigation={undefined}>
+        <Box alignItems="center" flex="grow" justifyContent="center">
+          <Spinner />
+        </Box>
+      </Page>
+    );
+  }
+
+  return (
+    <SyncDbProvider client={client}>
+      <SyncTodosScreen />
+    </SyncDbProvider>
+  );
+};
+
+/** Local-first todos screen rendered when the USE_SYNCDB flag is enabled. */
+export const SyncTodos: React.FC = () => {
+  const client = useMemo(() => getSyncDbClient(), []);
+  return <SyncTodosGate client={client} />;
+};

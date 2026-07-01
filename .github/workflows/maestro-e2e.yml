@@ -53,6 +53,10 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
+      - name: Build SyncDB dependency
+        run: bun run compile
+        working-directory: syncdb
+
       - name: Export frontend for web
         run: bun run export
         working-directory: example-frontend

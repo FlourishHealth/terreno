@@ -1566,11 +1566,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "Category of consent form",
                             "enum": [
                               "agreement",
-                              "custom",
-                              "hipaa",
                               "privacy",
+                              "hipaa",
                               "research",
                               "terms",
+                              "custom",
                             ],
                             "type": "string",
                           },
@@ -1763,11 +1763,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Category of consent form",
                     "enum": [
                       "agreement",
-                      "custom",
-                      "hipaa",
                       "privacy",
+                      "hipaa",
                       "research",
                       "terms",
+                      "custom",
                     ],
                     "type": "string",
                   },
@@ -1884,11 +1884,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Category of consent form",
                       "enum": [
                         "agreement",
-                        "custom",
-                        "hipaa",
                         "privacy",
+                        "hipaa",
                         "research",
                         "terms",
+                        "custom",
                       ],
                       "type": "string",
                     },
@@ -2240,11 +2240,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Category of consent form",
                       "enum": [
                         "agreement",
-                        "custom",
-                        "hipaa",
                         "privacy",
+                        "hipaa",
                         "research",
                         "terms",
+                        "custom",
                       ],
                       "type": "string",
                     },
@@ -2430,11 +2430,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Category of consent form",
                     "enum": [
                       "agreement",
-                      "custom",
-                      "hipaa",
                       "privacy",
+                      "hipaa",
                       "research",
                       "terms",
+                      "custom",
                     ],
                     "type": "string",
                   },
@@ -2551,11 +2551,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Category of consent form",
                       "enum": [
                         "agreement",
-                        "custom",
-                        "hipaa",
                         "privacy",
+                        "hipaa",
                         "research",
                         "terms",
+                        "custom",
                       ],
                       "type": "string",
                     },
@@ -9281,6 +9281,1317 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "summary": "Configure GCS settings",
         "tags": [
           "settings",
+        ],
+      },
+    },
+    "/todoComments/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "ownerId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user who authored this comment",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "todoId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The todo this comment belongs to",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "ownerId": {
+                            "description": "The user who authored this comment",
+                            "type": "schemaobjectid",
+                          },
+                          "text": {
+                            "description": "The comment body",
+                            "type": "string",
+                          },
+                          "todoId": {
+                            "description": "The todo this comment belongs to",
+                            "type": "schemaobjectid",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "ownerId",
+                          "text",
+                          "todoId",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todocomments",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "description": "The user who authored this comment",
+                    "type": "schemaobjectid",
+                  },
+                  "text": {
+                    "description": "The comment body",
+                    "type": "string",
+                  },
+                  "todoId": {
+                    "description": "The todo this comment belongs to",
+                    "type": "schemaobjectid",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user who authored this comment",
+                      "type": "schemaobjectid",
+                    },
+                    "text": {
+                      "description": "The comment body",
+                      "type": "string",
+                    },
+                    "todoId": {
+                      "description": "The todo this comment belongs to",
+                      "type": "schemaobjectid",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "text",
+                    "todoId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todocomments",
+        ],
+      },
+    },
+    "/todoComments/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todocomments",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user who authored this comment",
+                      "type": "schemaobjectid",
+                    },
+                    "text": {
+                      "description": "The comment body",
+                      "type": "string",
+                    },
+                    "todoId": {
+                      "description": "The todo this comment belongs to",
+                      "type": "schemaobjectid",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "text",
+                    "todoId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todocomments",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "description": "The user who authored this comment",
+                    "type": "schemaobjectid",
+                  },
+                  "text": {
+                    "description": "The comment body",
+                    "type": "string",
+                  },
+                  "todoId": {
+                    "description": "The todo this comment belongs to",
+                    "type": "schemaobjectid",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user who authored this comment",
+                      "type": "schemaobjectid",
+                    },
+                    "text": {
+                      "description": "The comment body",
+                      "type": "string",
+                    },
+                    "todoId": {
+                      "description": "The todo this comment belongs to",
+                      "type": "schemaobjectid",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "text",
+                    "todoId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todocomments",
+        ],
+      },
+    },
+    "/todoLists/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "ownerId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user who owns this list",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "color": {
+                            "description": "Optional display color (hex) for the list",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "name": {
+                            "description": "Display name of the todo list",
+                            "type": "string",
+                          },
+                          "ownerId": {
+                            "description": "The user who owns this list",
+                            "type": "schemaobjectid",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "name",
+                          "ownerId",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todolists",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "color": {
+                    "description": "Optional display color (hex) for the list",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "name": {
+                    "description": "Display name of the todo list",
+                    "type": "string",
+                  },
+                  "ownerId": {
+                    "description": "The user who owns this list",
+                    "type": "schemaobjectid",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "color": {
+                      "description": "Optional display color (hex) for the list",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "name": {
+                      "description": "Display name of the todo list",
+                      "type": "string",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this list",
+                      "type": "schemaobjectid",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ownerId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todolists",
+        ],
+      },
+    },
+    "/todoLists/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todolists",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "color": {
+                      "description": "Optional display color (hex) for the list",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "name": {
+                      "description": "Display name of the todo list",
+                      "type": "string",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this list",
+                      "type": "schemaobjectid",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ownerId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todolists",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "color": {
+                    "description": "Optional display color (hex) for the list",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "name": {
+                    "description": "Display name of the todo list",
+                    "type": "string",
+                  },
+                  "ownerId": {
+                    "description": "The user who owns this list",
+                    "type": "schemaobjectid",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "color": {
+                      "description": "Optional display color (hex) for the list",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "name": {
+                      "description": "Display name of the todo list",
+                      "type": "string",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this list",
+                      "type": "schemaobjectid",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ownerId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todolists",
         ],
       },
     },

@@ -1,0 +1,4 @@
+[test]
+root = "./src"
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = ["**/dist/**", "**/*.test.ts", "**/node_modules/**"]
