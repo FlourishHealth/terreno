@@ -1213,3 +1213,98 @@ describe("PATCH /me route edge cases", () => {
     expect([401, 404]).toContain(res.status);
   });
 });
+
+describe("anonymous user creation path", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+
+    // Add createAnonymousUser to the model for this test
+    (UserModel as any).createAnonymousUser = async () => {
+      const user = await (UserModel as any).register(
+        {admin: false, email: `anon-${Date.now()}@example.com`},
+        "anon-password"
+      );
+      return user;
+    };
+
+    app = new TerrenoApp({
+      configureApp: (router: express.Router) => {
+        router.use(
+          "/food",
+          modelRouter(FoodModel, {
+            allowAnonymous: true,
+            permissions: {
+              create: [Permissions.IsAuthenticated],
+              delete: [],
+              list: [Permissions.IsAny],
+              read: [Permissions.IsAny],
+              update: [],
+            },
+          })
+        );
+      },
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    delete (UserModel as any).createAnonymousUser;
+  });
+
+  it("creates anonymous user when JWT has valid id but user not found and createAnonymousUser exists", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    // Sign a token with a valid-format but non-existent user id
+    const fakeId = "000000000000000000000099";
+    const token = jwtLib.sign(
+      {id: fakeId},
+      process.env.TOKEN_SECRET as string,
+      {issuer: process.env.TOKEN_ISSUER}
+    );
+    const res = await agent
+      .get("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .expect(200);
+    expect(res.body.data.email).toContain("anon-");
+  });
+});
+
+describe("JWT with missing id in payload", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 401 when JWT payload has no id field", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign(
+      {email: "test@example.com"},
+      process.env.TOKEN_SECRET as string,
+      {issuer: process.env.TOKEN_ISSUER}
+    );
+    const res = await agent
+      .get("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .expect(401);
+    expect(res.status).toBe(401);
+  });
+});
