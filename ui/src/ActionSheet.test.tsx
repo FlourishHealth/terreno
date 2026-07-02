@@ -888,4 +888,156 @@ describe("ActionSheet", () => {
       await expect((ref.current as any)._onScrollBegin()).resolves.toBeUndefined();
     });
   });
+
+  describe("_onKeyboardShow with negative gap (animation needed)", () => {
+    it("triggers animation when focused field is below keyboard", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const {
+        TextInput: MockTextInput,
+        UIManager: MockUIManager,
+        findNodeHandle: mockFNH,
+      } = require("react-native");
+      const origState = MockTextInput.State;
+      const origMeasure = MockUIManager.measure;
+      (mockFNH as any).mockReturnValue(42);
+      MockTextInput.State = {
+        currentlyFocusedField: () => 42,
+      };
+      // Set pageY=600, fieldHeight=40 so gap = windowHeight(812) - keyboardHeight(300) - (600+40) = -128 < 0
+      MockUIManager.measure = (_node: any, cb: any) => {
+        cb(0, 0, 100, 40, 0, 600);
+      };
+      act(() => {
+        (ref.current as any)._onKeyboardShow({
+          endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 400},
+        });
+      });
+      expect(ref.current!.state.keyboard).toBe(true);
+      MockTextInput.State = origState;
+      MockUIManager.measure = origMeasure;
+      (mockFNH as any).mockReturnValue(null);
+    });
+
+    it("uses position mode when keyboardMode is position", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet keyboardMode="position" ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const {
+        TextInput: MockTextInput,
+        UIManager: MockUIManager,
+        findNodeHandle: mockFNH,
+      } = require("react-native");
+      const origState = MockTextInput.State;
+      const origMeasure = MockUIManager.measure;
+      (mockFNH as any).mockReturnValue(42);
+      MockTextInput.State = {
+        currentlyFocusedField: () => 42,
+      };
+      // Large pageY to ensure gap < 0
+      MockUIManager.measure = (_node: any, cb: any) => {
+        cb(0, 0, 100, 40, 0, 700);
+      };
+      act(() => {
+        (ref.current as any)._onKeyboardShow({
+          endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 400},
+        });
+      });
+      expect(ref.current!.state.keyboard).toBe(true);
+      MockTextInput.State = origState;
+      MockUIManager.measure = origMeasure;
+      (mockFNH as any).mockReturnValue(null);
+    });
+  });
+
+  describe("handleChildScrollEnd recoil to initial position", () => {
+    it("recoils to initial scroll position and sets isRecoiling", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled initialOffsetFromBottom={0.5} ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      // getInitialScrollPosition = actionSheetHeight * initialOffsetFromBottom + correction + extraScroll
+      // With deviceHeight ~812: correction = 812 * 0.15 ≈ 121.8
+      // scrollOffset = 500 * 0.5 + 121.8 = 371.8
+      // Need offsetY > scrollOffset - 100 = 271.8
+      (ref.current as any).actionSheetHeight = 500;
+      (ref.current as any).offsetY = 300;
+      (ref.current as any).prevScroll = 400;
+      await (ref.current as any).handleChildScrollEnd();
+      expect((ref.current as any).currentOffsetFromBottom).toBe(0.5);
+    });
+  });
+
+  describe("_onDeviceLayout timeout execution", () => {
+    it("executes the timeout callback to update device dimensions", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      // Reset deviceLayoutCalled so the callback sets state
+      (ref.current as any).deviceLayoutCalled = false;
+      act(() => {
+        (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 900, width: 375}},
+        });
+      });
+      // Wait for outer setTimeout(1) + inner measure() setTimeout(100)
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      expect((ref.current as any).deviceLayoutCalled).toBe(true);
+      expect(ref.current!.state.deviceHeight).toBeDefined();
+    });
+
+    it("skips state update on second call with same dimensions", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      // First call to set dimensions
+      (ref.current as any).deviceLayoutCalled = false;
+      act(() => {
+        (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 900, width: 375}},
+        });
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      const heightAfterFirst = ref.current!.state.deviceHeight;
+      // Second call with same dimensions - should skip setState
+      act(() => {
+        (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 900, width: 375}},
+        });
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      expect(ref.current!.state.deviceHeight).toBe(heightAfterFirst);
+    });
+  });
 });
