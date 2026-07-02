@@ -1262,15 +1262,10 @@ describe("anonymous user creation path", () => {
     const jwtLib = (await import("jsonwebtoken")).default;
     // Sign a token with a valid-format but non-existent user id
     const fakeId = "000000000000000000000099";
-    const token = jwtLib.sign(
-      {id: fakeId},
-      process.env.TOKEN_SECRET as string,
-      {issuer: process.env.TOKEN_ISSUER}
-    );
-    const res = await agent
-      .get("/auth/me")
-      .set("authorization", `Bearer ${token}`)
-      .expect(200);
+    const token = jwtLib.sign({id: fakeId}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`).expect(200);
     expect(res.body.data.email).toContain("anon-");
   });
 });
@@ -1296,15 +1291,10 @@ describe("JWT with missing id in payload", () => {
 
   it("returns 401 when JWT payload has no id field", async () => {
     const jwtLib = (await import("jsonwebtoken")).default;
-    const token = jwtLib.sign(
-      {email: "test@example.com"},
-      process.env.TOKEN_SECRET as string,
-      {issuer: process.env.TOKEN_ISSUER}
-    );
-    const res = await agent
-      .get("/auth/me")
-      .set("authorization", `Bearer ${token}`)
-      .expect(401);
+    const token = jwtLib.sign({email: "test@example.com"}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`).expect(401);
     expect(res.status).toBe(401);
   });
 });
