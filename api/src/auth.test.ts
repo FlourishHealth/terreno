@@ -1213,3 +1213,100 @@ describe("PATCH /me route edge cases", () => {
     expect([401, 404]).toContain(res.status);
   });
 });
+
+describe("generateTokens with SIGNUP_DISABLED and user.postCreate", () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = {...OLD_ENV};
+    process.env.TOKEN_SECRET = "secret";
+    process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it("generates token with sessionId in both token and refresh token", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.sessionId).toBeDefined();
+    const tokenDecoded = jwtLib.decode(result.token as string) as {sid?: string};
+    const refreshDecoded = jwtLib.decode(result.refreshToken as string) as {sid?: string};
+    expect(tokenDecoded.sid).toBe(result.sessionId);
+    expect(refreshDecoded.sid).toBe(result.sessionId);
+  });
+});
+
+describe("JWT cookie extraction", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: (router: express.Router) => {
+        router.use(
+          "/food",
+          modelRouter(FoodModel, {
+            allowAnonymous: true,
+            permissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAny],
+              read: [Permissions.IsAny],
+              update: [],
+            },
+          })
+        );
+      },
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("skips decode when token is the string null", async () => {
+    const res = await agent.get("/food").set("authorization", "Bearer null").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("skips decode when token is the string undefined", async () => {
+    const res = await agent.get("/food").set("authorization", "Bearer undefined").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+});
+
+describe("signup disabled", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  const OLD_ENV = process.env;
+
+  beforeEach(async () => {
+    setSystemTime();
+    process.env = {...OLD_ENV};
+    process.env.SIGNUP_DISABLED = "true";
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    process.env = OLD_ENV;
+  });
+
+  it("returns 404 when SIGNUP_DISABLED is true", async () => {
+    const res = await agent.post("/auth/signup").send({email: "new@example.com", password: "123"});
+    expect(res.status).toBe(404);
+  });
+});
