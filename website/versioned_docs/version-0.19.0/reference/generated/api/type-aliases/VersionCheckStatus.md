@@ -1,1 +1,0 @@
-> **VersionCheckStatus** = `"ok"` \| `"warning"` \| `"required"`
