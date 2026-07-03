@@ -835,6 +835,7 @@ exports[`Page renders with right button 1`] = `
                               "borderRadius": 360,
                               "borderWidth": undefined,
                               "flexDirection": "column",
+                              "height": undefined,
                               "justifyContent": "center",
                               "paddingHorizontal": 20,
                               "paddingVertical": 8,

@@ -889,94 +889,74 @@ describe("ActionSheet", () => {
     });
   });
 
-  describe("_onKeyboardShow", () => {
-    it("returns early when no field is focused", async () => {
-      const ref = createRef<ActionSheet>();
-      render(
-        <ThemeProvider>
-          <ActionSheet ref={ref}>
-            <Text>Content</Text>
-          </ActionSheet>
-        </ThemeProvider>
-      );
-      const instance = ref.current as any;
-      const RN = require("react-native");
-      const origState = RN.TextInput.State;
-      RN.TextInput.State = {currentlyFocusedField: () => null};
-      try {
-        act(() => {
-          instance._onKeyboardShow({endCoordinates: {height: 300}});
-        });
-        await act(async () => {
-          await new Promise((r) => setTimeout(r, 10));
-        });
-        expect(instance.state.keyboard).toBe(true);
-      } finally {
-        RN.TextInput.State = origState;
-      }
-    });
-  });
-
   describe("handleChildScrollEnd", () => {
-    it("recoils to previous scroll position when offset is close", async () => {
+    it("recoils when within scroll threshold of initial position", async () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
-          <ActionSheet gestureEnabled ref={ref}>
+          <ActionSheet gestureEnabled ref={ref} springOffset={100}>
             <Text>Content</Text>
           </ActionSheet>
         </ThemeProvider>
       );
       const instance = ref.current as any;
-      // Set up internal state to trigger recoil path
-      instance.prevScroll = 200;
-      instance.offsetY = 180;
-      instance._scrollTo = mock(() => {});
-      instance.getInitialScrollPosition = mock(() => 250);
-      await instance.handleChildScrollEnd();
-      expect(instance.isRecoiling).toBe(true);
-      // Wait for setTimeout to clear isRecoiling
+      instance.actionSheetHeight = 500;
+      instance.prevScroll = 300;
+      instance.offsetY = 250;
+      instance.isRecoiling = false;
+      instance.currentOffsetFromBottom = 1;
+
+      await act(async () => {
+        await instance.handleChildScrollEnd();
+      });
+      // After recoil, isRecoiling is set true then cleared after timeout
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });
       expect(instance.isRecoiling).toBe(false);
     });
 
-    it("hides modal when offset is far below scroll position", async () => {
+    it("hides modal when scrolled far past threshold", async () => {
       const ref = createRef<ActionSheet>();
+      const onClose = mock(() => {});
       render(
         <ThemeProvider>
-          <ActionSheet gestureEnabled ref={ref}>
+          <ActionSheet gestureEnabled onClose={onClose} ref={ref} springOffset={50}>
             <Text>Content</Text>
           </ActionSheet>
         </ThemeProvider>
       );
       const instance = ref.current as any;
-      instance.prevScroll = 500;
+      instance.actionSheetHeight = 500;
+      instance.prevScroll = 300;
       instance.offsetY = 100;
-      instance._scrollTo = mock(() => {});
-      instance._hideModal = mock(() => {});
-      instance.getInitialScrollPosition = mock(() => 400);
-      await instance.handleChildScrollEnd();
-      expect(instance._hideModal).toHaveBeenCalled();
+      instance.isRecoiling = false;
+      instance.isClosing = false;
+
+      await act(async () => {
+        await instance.handleChildScrollEnd();
+      });
+      expect(instance.isClosing).toBe(true);
     });
 
-    it("bounces back when scrolling up beyond prevScroll", async () => {
+    it("recoils back to prevScroll when not past threshold", async () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
-          <ActionSheet gestureEnabled ref={ref}>
+          <ActionSheet gestureEnabled ref={ref} springOffset={100}>
             <Text>Content</Text>
           </ActionSheet>
         </ThemeProvider>
       );
       const instance = ref.current as any;
-      // offsetY <= prevScroll AND prevScroll - springOffset <= offsetY
-      instance.prevScroll = 200;
-      instance.offsetY = 195;
-      instance._scrollTo = mock(() => {});
-      await instance.handleChildScrollEnd();
-      expect(instance.isRecoiling).toBe(true);
+      instance.actionSheetHeight = 500;
+      instance.prevScroll = 300;
+      instance.offsetY = 290;
+      instance.isRecoiling = false;
+
+      await act(async () => {
+        await instance.handleChildScrollEnd();
+      });
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });

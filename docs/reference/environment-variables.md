@@ -146,12 +146,16 @@ The base URL is resolved in priority order:
 
 1. `Constants.expoConfig?.extra?.BASE_URL` (production/staging builds)
 2. `process.env.EXPO_PUBLIC_API_URL` (development web)
-3. `Constants.expoConfig?.hostUri` + `:3000` (dev simulator/device)
-4. `http://localhost:3000` (fallback)
+3. `Constants.expoConfig?.hostUri` + the dev API port (dev simulator/device)
+4. `http://localhost:<dev API port>` (fallback)
+
+The dev API port defaults to `4000` and is overridable per app via `EXPO_PUBLIC_DEV_API_PORT`
+or `expoConfig.extra.DEV_API_PORT` (for example `3000` or `9000`).
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `EXPO_PUBLIC_API_URL` | ❌ | Auto-detected | Backend API base URL<br/>Web: `http://localhost:3000`<br/>Simulator: Auto-detected via `hostUri`<br/>Device: Use your computer's local IP |
+| `EXPO_PUBLIC_API_URL` | ❌ | Auto-detected | Backend API base URL<br/>Web: `http://localhost:4000`<br/>Simulator: Auto-detected via `hostUri`<br/>Device: Use your computer's local IP |
+| `EXPO_PUBLIC_DEV_API_PORT` | ❌ | 4000 | Local dev API port for host/localhost resolution (also settable via `extra.DEV_API_PORT`) |
 
 ### Debug Flags
 

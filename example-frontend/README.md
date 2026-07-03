@@ -281,6 +281,27 @@ Requires EAS (Expo Application Services):
 
 See [Expo documentation](https://docs.expo.dev/build/introduction/) for details.
 
+### Native builds vs OTA updates (fingerprint)
+
+The app uses `"runtimeVersion": {"policy": "fingerprint"}` (`app.json`). The
+[fingerprint](https://docs.expo.dev/versions/latest/sdk/fingerprint/) is a hash
+of everything that affects the **native** binary (native dependencies, config
+plugins, app icon/scheme, SDK version, etc.). CI (`.github/workflows/eas-pr.yml`)
+publishes an EAS Update for every PR and only triggers a **new native dev build**
+when the fingerprint changes — i.e. when a matching dev build doesn't already
+exist. JS-only changes keep the same fingerprint and ship as fast OTA updates.
+
+To keep this fast, `fingerprint.config.js` skips the Expo config `extra` section
+(`sourceSkips: ["ExpoConfigExtraSection"]`). Values in `extra` (e.g. `BASE_URL`,
+`AUTH_DEBUG`, the EAS `projectId`) are read by JS at runtime and shipped in the JS
+bundle via EAS Update — they don't change the native binary, so they must not
+feed the fingerprint. Without this skip, per-environment or per-commit `extra`
+values would force a full native rebuild on every change instead of an OTA update.
+
+**Rule of thumb:** if your change only touches JS/TS (screens, components, store,
+SDK), expect a quick OTA update. Only native dependency/config changes should
+produce a long native build.
+
 ## Learn More
 
 - [Terreno Documentation](../docs/README.md)
