@@ -1307,6 +1307,6 @@ describe("signup disabled", () => {
 
   it("returns 404 when SIGNUP_DISABLED is true", async () => {
     const res = await agent.post("/auth/signup").send({email: "new@example.com", password: "123"});
-    expect([404, 500]).toContain(res.status);
+    expect(res.status).toBe(404);
   });
 });
