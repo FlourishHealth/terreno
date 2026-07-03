@@ -1,5 +1,5 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
+import type {Model} from "mongoose";
 import {loadDocOr404} from "./docLoader";
 import {APIError} from "./errors";
 
@@ -9,7 +9,7 @@ describe("loadDocOr404", () => {
       collection: {findOne: mock(async () => ({deleted: true}))},
       findById: mock(() => ({exec: mock(async () => null)})),
       modelName: "MockModel",
-    } as any;
+    } as unknown as Model<unknown>;
 
     try {
       await loadDocOr404(model, "507f1f77bcf86cd799439011");
@@ -33,7 +33,7 @@ describe("loadDocOr404", () => {
         }),
       })),
       modelName: "MockModel",
-    } as any;
+    } as unknown as Model<unknown>;
 
     await expect(loadDocOr404(model, "507f1f77bcf86cd799439011")).rejects.toBe(original);
   });
@@ -43,7 +43,7 @@ describe("loadDocOr404", () => {
       collection: {findOne: mock(async () => null)},
       findById: mock(() => ({exec: mock(async () => null)})),
       modelName: "MockModel",
-    } as any;
+    } as unknown as Model<unknown>;
 
     try {
       await loadDocOr404(model, "507f1f77bcf86cd799439011");
