@@ -33,10 +33,8 @@ export interface GitHubAuthOptions {
     profile: Profile,
     accessToken: string,
     refreshToken: string,
-    // biome-ignore lint/suspicious/noExplicitAny: user shape varies per consumer's User model
-    existingUser?: any
-    // biome-ignore lint/suspicious/noExplicitAny: passport user value remains untyped
-  ) => Promise<any>;
+    existingUser?: Record<string, unknown>
+  ) => Promise<unknown>;
 }
 
 /** Fields added to user documents for GitHub authentication */
