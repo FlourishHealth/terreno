@@ -1,4 +1,5 @@
 import {normalizeHex, type PaletteAnchors} from "./colorUtils";
+import {BODY_FONTS, type FontSelection, HEADING_FONTS} from "./fonts";
 import {ANCHOR_FAMILIES, type ChatMessage, FAMILY_LABELS} from "./paletteTypes";
 
 /**
@@ -44,15 +45,26 @@ Examples of the kind of requests you will get and how to reason about them:
 - "Calm, trustworthy healthcare app" -> teal/blue primary, muted green secondary, soft accent,
   clean light-gray neutrals.
 
-Respond ONLY with a JSON object. Include every family key plus a short "explanation" (1-3 sentences)
-describing the palette's mood and any accessibility trade-offs you made.`;
+You also recommend a font pairing that fits the palette's mood: a "headingFont" for
+titles/display and a "bodyFont" for body copy and UI. Choose from these Google Fonts only.
+Heading fonts: ${HEADING_FONTS.join(", ")}.
+Body fonts: ${BODY_FONTS.join(", ")}.
+Pick a pairing with clear contrast between heading and body, and briefly justify it in
+"fontRationale".
+
+Respond ONLY with a JSON object. Include every family key, a short "explanation" (1-3 sentences)
+describing the palette's mood and any accessibility trade-offs you made, plus "headingFont",
+"bodyFont", and "fontRationale".`;
 
 /** Shape the Gemini responseSchema so the model always returns parseable anchors. */
 const RESPONSE_SCHEMA = {
   properties: {
     accent: {description: "Anchor hex for the accent family", type: "string"},
+    bodyFont: {description: "Recommended body font family", type: "string"},
     error: {description: "Anchor hex for the error family", type: "string"},
     explanation: {description: "Short description of the palette and trade-offs", type: "string"},
+    fontRationale: {description: "Why this font pairing fits the palette", type: "string"},
+    headingFont: {description: "Recommended heading font family", type: "string"},
     neutral: {description: "Anchor hex for the neutral family, e.g. #4E4E4E", type: "string"},
     primary: {description: "Anchor hex for the primary family", type: "string"},
     secondary: {description: "Anchor hex for the secondary family", type: "string"},
@@ -66,6 +78,8 @@ const RESPONSE_SCHEMA = {
 export interface GeminiPaletteResponse {
   anchors: PaletteAnchors;
   explanation: string;
+  fonts: FontSelection;
+  fontRationale?: string;
 }
 
 interface GeminiPart {
@@ -82,11 +96,11 @@ interface GeminiResponseBody {
 }
 
 /** Build the running "current palette" context so the model iterates instead of starting over. */
-const buildAnchorContext = (anchors: PaletteAnchors): string => {
+const buildAnchorContext = (anchors: PaletteAnchors, fonts: FontSelection): string => {
   const lines = ANCHOR_FAMILIES.map(
     (family) => `- ${FAMILY_LABELS[family]}: ${anchors[family]}`
   ).join("\n");
-  return `The current palette anchors are:\n${lines}\n\nUpdate them based on the latest request. Keep families the user did not mention unless a cohesive change requires it.`;
+  return `The current palette anchors are:\n${lines}\n\nCurrent fonts: heading "${fonts.headingFont}", body "${fonts.bodyFont}".\n\nUpdate them based on the latest request. Keep families and fonts the user did not mention unless a cohesive change requires it.`;
 };
 
 const mapRoleToGemini = (role: ChatMessage["role"]): "user" | "model" => {
@@ -103,12 +117,14 @@ export const generatePaletteFromChat = async ({
   model,
   messages,
   currentAnchors,
+  currentFonts,
   fetchImpl,
 }: {
   apiKey: string;
   model: string;
   messages: ChatMessage[];
   currentAnchors: PaletteAnchors;
+  currentFonts: FontSelection;
   fetchImpl?: typeof fetch;
 }): Promise<GeminiPaletteResponse> => {
   if (!apiKey) {
@@ -129,7 +145,7 @@ export const generatePaletteFromChat = async ({
 
   // Prepend the current-palette context as a user turn so the model always has fresh state.
   const contents = [
-    {parts: [{text: buildAnchorContext(currentAnchors)}], role: "user" as const},
+    {parts: [{text: buildAnchorContext(currentAnchors, currentFonts)}], role: "user" as const},
     ...conversation,
   ];
 
@@ -159,7 +175,12 @@ export const generatePaletteFromChat = async ({
     throw new Error("Gemini returned an empty response.");
   }
 
-  let parsed: Partial<Record<keyof PaletteAnchors | "explanation", string>>;
+  let parsed: Partial<
+    Record<
+      keyof PaletteAnchors | "explanation" | "headingFont" | "bodyFont" | "fontRationale",
+      string
+    >
+  >;
   try {
     parsed = JSON.parse(text);
   } catch {
@@ -174,8 +195,15 @@ export const generatePaletteFromChat = async ({
     }
   }
 
+  const fonts: FontSelection = {
+    bodyFont: parsed.bodyFont?.trim() || currentFonts.bodyFont,
+    headingFont: parsed.headingFont?.trim() || currentFonts.headingFont,
+  };
+
   return {
     anchors,
     explanation: parsed.explanation ?? "Updated the palette.",
+    fontRationale: parsed.fontRationale?.trim() || undefined,
+    fonts,
   };
 };

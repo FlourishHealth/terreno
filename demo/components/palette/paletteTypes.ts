@@ -51,43 +51,137 @@ export const DEFAULT_ANCHORS: PaletteAnchors = {
   warning: "#f36719",
 };
 
+export type ThemeMode = "light" | "dark";
+
+/** A semantic theme role, resolved to a concrete primitive via the active light/dark role map. */
+export interface RoleRef {
+  group: "text" | "surface" | "border";
+  key: string;
+}
+
 /**
- * A single foreground/background contrast pairing to evaluate. `foreground` and `background` are
- * theme primitive keys (e.g. `neutral900`), matching the role→primitive mapping in the stock theme.
+ * A single foreground/background contrast pairing to evaluate, expressed in semantic theme roles so
+ * the same check can be resolved against either the light or the dark role map.
  */
 export interface ContrastCheckDef {
   label: string;
-  foreground: string;
-  background: string;
+  fg: RoleRef;
+  bg: RoleRef;
   /**
    * Large text and UI component boundaries only need 3:1 (AA). Normal body text needs 4.5:1.
    */
   largeText?: boolean;
 }
 
+/** Nested role → primitive-key map (a subset of a `TerrenoThemeConfig`). */
+export type RoleMap = Record<RoleRef["group"], Record<string, string>>;
+
 /**
- * Curated set of the most important text/surface pairings in the stock Terreno theme. These mirror
- * `defaultTheme` in `ui/src/Theme.tsx`, so flagging one here flags a real accessibility risk in an
- * app using the generated palette.
+ * The stock Terreno light theme mapping (subset used by the audit + preview), mirroring
+ * `defaultTheme` in `ui/src/Theme.tsx`.
+ */
+export const LIGHT_ROLE_MAP: RoleMap = {
+  border: {default: "neutral300"},
+  surface: {
+    base: "neutral000",
+    error: "error200",
+    primary: "primary400",
+    secondaryDark: "secondary500",
+    success: "success200",
+    warning: "warning100",
+  },
+  text: {
+    accent: "accent700",
+    error: "error200",
+    inverted: "neutral000",
+    link: "primary600",
+    primary: "neutral900",
+    secondaryLight: "neutral600",
+  },
+};
+
+/**
+ * A dark theme mapping built by remapping roles (not inverting the neutral ramp). `text.inverted`
+ * is deliberately kept light so text on colored surfaces stays legible — see the dark-mode audit.
+ */
+export const DARK_ROLE_MAP: RoleMap = {
+  border: {default: "neutral700"},
+  surface: {
+    base: "neutral900",
+    error: "error100",
+    primary: "primary400",
+    secondaryDark: "secondary400",
+    success: "success100",
+    warning: "warning100",
+  },
+  text: {
+    accent: "accent200",
+    error: "error100",
+    inverted: "neutral000",
+    link: "primary200",
+    primary: "neutral000",
+    secondaryLight: "neutral300",
+  },
+};
+
+/**
+ * Curated set of the most important text/surface pairings. Flagging one here flags a real
+ * accessibility risk in an app using the generated palette in that mode.
  */
 export const CONTRAST_CHECKS: ContrastCheckDef[] = [
-  {background: "neutral000", foreground: "neutral900", label: "Body text on page"},
-  {background: "neutral000", foreground: "neutral600", label: "Secondary text on page"},
-  {background: "neutral000", foreground: "primary600", label: "Link text on page"},
-  {background: "neutral000", foreground: "accent700", label: "Accent text on page"},
-  {background: "primary400", foreground: "neutral000", label: "Inverted text on primary surface"},
   {
-    background: "secondary500",
-    foreground: "neutral000",
+    bg: {group: "surface", key: "base"},
+    fg: {group: "text", key: "primary"},
+    label: "Body text on page",
+  },
+  {
+    bg: {group: "surface", key: "base"},
+    fg: {group: "text", key: "secondaryLight"},
+    label: "Secondary text on page",
+  },
+  {
+    bg: {group: "surface", key: "base"},
+    fg: {group: "text", key: "link"},
+    label: "Link text on page",
+  },
+  {
+    bg: {group: "surface", key: "base"},
+    fg: {group: "text", key: "accent"},
+    label: "Accent text on page",
+  },
+  {
+    bg: {group: "surface", key: "primary"},
+    fg: {group: "text", key: "inverted"},
+    label: "Inverted text on primary surface",
+  },
+  {
+    bg: {group: "surface", key: "secondaryDark"},
+    fg: {group: "text", key: "inverted"},
     label: "Inverted text on secondary surface",
   },
-  {background: "error200", foreground: "neutral000", label: "Inverted text on error surface"},
-  {background: "success200", foreground: "neutral000", label: "Inverted text on success surface"},
-  {background: "warning100", foreground: "neutral000", label: "Inverted text on warning surface"},
-  {background: "neutral000", foreground: "error200", label: "Error text on page"},
   {
-    background: "neutral000",
-    foreground: "neutral300",
+    bg: {group: "surface", key: "error"},
+    fg: {group: "text", key: "inverted"},
+    label: "Inverted text on error surface",
+  },
+  {
+    bg: {group: "surface", key: "success"},
+    fg: {group: "text", key: "inverted"},
+    label: "Inverted text on success surface",
+  },
+  {
+    bg: {group: "surface", key: "warning"},
+    fg: {group: "text", key: "inverted"},
+    label: "Inverted text on warning surface",
+  },
+  {
+    bg: {group: "surface", key: "base"},
+    fg: {group: "text", key: "error"},
+    label: "Error text on page",
+  },
+  {
+    bg: {group: "surface", key: "base"},
+    fg: {group: "border", key: "default"},
     label: "Default border on page (UI)",
     largeText: true,
   },
@@ -103,11 +197,28 @@ export interface ContrastResult extends ContrastCheckDef {
   passesAaa: boolean;
 }
 
-/** Run every curated contrast check against a flat map of generated primitives. */
-export const runContrastChecks = (primitives: Record<string, string>): ContrastResult[] => {
+const resolveRole = (
+  ref: RoleRef,
+  roleMap: RoleMap,
+  primitives: Record<string, string>,
+  fallback: string
+): string => {
+  const primitiveKey = roleMap[ref.group]?.[ref.key];
+  return (primitiveKey && primitives[primitiveKey]) || fallback;
+};
+
+/**
+ * Run every curated contrast check against a flat map of generated primitives, using the light or
+ * dark role mapping depending on `mode`.
+ */
+export const runContrastChecks = (
+  primitives: Record<string, string>,
+  mode: ThemeMode = "light"
+): ContrastResult[] => {
+  const roleMap = mode === "dark" ? DARK_ROLE_MAP : LIGHT_ROLE_MAP;
   return CONTRAST_CHECKS.map((check) => {
-    const foregroundHex = primitives[check.foreground] ?? "#000000";
-    const backgroundHex = primitives[check.background] ?? "#ffffff";
+    const foregroundHex = resolveRole(check.fg, roleMap, primitives, "#000000");
+    const backgroundHex = resolveRole(check.bg, roleMap, primitives, "#ffffff");
     const assessment = assessContrast(foregroundHex, backgroundHex);
     const passes = check.largeText ? assessment.aaLarge : assessment.aa;
     const passesAaa = check.largeText ? assessment.aaaLarge : assessment.aaa;

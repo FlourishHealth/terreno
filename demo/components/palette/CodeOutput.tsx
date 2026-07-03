@@ -3,27 +3,36 @@ import * as Clipboard from "expo-clipboard";
 import React, {useCallback, useMemo, useState} from "react";
 import {Platform, Text as RNText, ScrollView} from "react-native";
 
-import {buildPrimitivesObjectCode, buildSetPrimitivesCode} from "./codeExport";
+import {buildFontConfigCode, buildPrimitivesObjectCode, buildSetPrimitivesCode} from "./codeExport";
+import type {FontSelection} from "./fonts";
 
 /**
- * Emits the exact, copy-pasteable code for the generated palette in two forms: a `ThemePrimitives`
- * object literal for a theme file, and a runtime `setPrimitives({...})` call. This is the "output
- * the exact code" deliverable — what a developer drops into their Terreno app to adopt the palette.
+ * Emits the exact, copy-pasteable code for the generated palette: a `ThemePrimitives` object
+ * literal for a theme file, a runtime `setPrimitives({...})` call, and the recommended `theme.font`
+ * config. This is the "output the exact code" deliverable — what a developer drops into their
+ * Terreno app to adopt the palette.
  */
 
 interface CodeOutputProps {
   primitives: Record<string, string>;
+  fonts: FontSelection;
 }
 
 const MONOSPACE = Platform.select({default: "monospace", ios: "Menlo", web: "monospace"});
 
-export const CodeOutput: React.FC<CodeOutputProps> = ({primitives}) => {
+export const CodeOutput: React.FC<CodeOutputProps> = ({primitives, fonts}) => {
   const [form, setForm] = useState<number>(0);
   const [copied, setCopied] = useState<boolean>(false);
 
   const code = useMemo(() => {
-    return form === 0 ? buildPrimitivesObjectCode(primitives) : buildSetPrimitivesCode(primitives);
-  }, [form, primitives]);
+    if (form === 1) {
+      return buildSetPrimitivesCode(primitives);
+    }
+    if (form === 2) {
+      return buildFontConfigCode(fonts);
+    }
+    return buildPrimitivesObjectCode(primitives);
+  }, [fonts, form, primitives]);
 
   const handleCopy = useCallback(async (): Promise<void> => {
     await Clipboard.setStringAsync(code);
@@ -47,7 +56,7 @@ export const CodeOutput: React.FC<CodeOutputProps> = ({primitives}) => {
         />
       </Box>
       <SegmentedControl
-        items={["Theme primitives", "setPrimitives()"]}
+        items={["Theme primitives", "setPrimitives()", "Fonts"]}
         onChange={handleFormChange}
         selectedIndex={form}
       />

@@ -62,14 +62,18 @@ const ContrastRow: React.FC<ContrastRowProps> = ({result}) => {
 
 interface ContrastReportProps {
   results: ContrastResult[];
+  title?: string;
 }
 
-export const ContrastReport: React.FC<ContrastReportProps> = ({results}) => {
+export const ContrastReport: React.FC<ContrastReportProps> = ({
+  results,
+  title = "Accessibility (WCAG)",
+}) => {
   const failures = results.filter((result) => !result.passes).length;
   return (
     <Box gap={3}>
       <Box alignItems="center" direction="row" gap={2}>
-        <Heading size="sm">Accessibility (WCAG)</Heading>
+        <Heading size="sm">{title}</Heading>
         <Badge
           status={failures === 0 ? "success" : "error"}
           value={failures === 0 ? "All pass" : `${failures} issue${failures === 1 ? "" : "s"}`}

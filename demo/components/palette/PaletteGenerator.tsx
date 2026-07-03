@@ -8,6 +8,9 @@ import {CodeOutput} from "./CodeOutput";
 import {ComponentPreview} from "./ComponentPreview";
 import {ContrastReport} from "./ContrastReport";
 import {generatePrimitivesFromAnchors, type PaletteAnchors} from "./colorUtils";
+import {DarkModeAudit} from "./DarkModeAudit";
+import {FontControls} from "./FontControls";
+import {DEFAULT_FONTS, type FontSelection} from "./fonts";
 import {DEFAULT_GEMINI_MODEL, generatePaletteFromChat} from "./geminiClient";
 import {PaletteRamps} from "./PaletteRamps";
 import {
@@ -45,6 +48,8 @@ export const PaletteGenerator: React.FC = () => {
   const [model, setModel] = useStoredState<string>("palette-gemini-model", DEFAULT_GEMINI_MODEL);
 
   const [anchors, setAnchors] = useState<PaletteAnchors>(DEFAULT_ANCHORS);
+  const [fonts, setFonts] = useState<FontSelection>(DEFAULT_FONTS);
+  const [fontRationale, setFontRationale] = useState<string | undefined>(undefined);
   const [selectedFamily, setSelectedFamily] = useState<Family>("primary");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -54,7 +59,8 @@ export const PaletteGenerator: React.FC = () => {
     () => generatePrimitivesFromAnchors(anchors) as Record<string, string>,
     [anchors]
   );
-  const contrastResults = useMemo(() => runContrastChecks(primitives), [primitives]);
+  const lightContrast = useMemo(() => runContrastChecks(primitives, "light"), [primitives]);
+  const darkContrast = useMemo(() => runContrastChecks(primitives, "dark"), [primitives]);
 
   const handleChangeAnchor = useCallback((family: Family, hex: string): void => {
     setAnchors((prev) => ({...prev, [family]: hex}));
@@ -73,14 +79,20 @@ export const PaletteGenerator: React.FC = () => {
       setError(undefined);
 
       try {
-        const {anchors: nextAnchors, explanation} = await generatePaletteFromChat({
+        const result = await generatePaletteFromChat({
           apiKey,
           currentAnchors: anchors,
+          currentFonts: fonts,
           messages: history,
           model: model || DEFAULT_GEMINI_MODEL,
         });
-        setAnchors(nextAnchors);
-        setMessages((prev) => [...prev, makeMessage("assistant", explanation)]);
+        setAnchors(result.anchors);
+        setFonts(result.fonts);
+        setFontRationale(result.fontRationale);
+        const reply = result.fontRationale
+          ? `${result.explanation}\n\nFonts: ${result.fontRationale}`
+          : result.explanation;
+        setMessages((prev) => [...prev, makeMessage("assistant", reply)]);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : "Something went wrong.";
         setError(message);
@@ -88,11 +100,13 @@ export const PaletteGenerator: React.FC = () => {
         setIsLoading(false);
       }
     },
-    [anchors, apiKey, messages, model]
+    [anchors, apiKey, fonts, messages, model]
   );
 
   const handleReset = useCallback((): void => {
     setAnchors(DEFAULT_ANCHORS);
+    setFonts(DEFAULT_FONTS);
+    setFontRationale(undefined);
     setMessages([]);
     setError(undefined);
   }, []);
@@ -163,13 +177,23 @@ export const PaletteGenerator: React.FC = () => {
               selectedFamily={selectedFamily}
             />
           </Box>
+          <Box border="default" gap={3} padding={4} rounding="md">
+            <Heading size="sm">Fonts</Heading>
+            <Text color="secondaryLight" size="sm">
+              Pick a heading + body pairing (or let the assistant suggest one). The preview uses the
+              real typefaces on web; the export includes the theme.font config.
+            </Text>
+            <FontControls fonts={fonts} onChange={setFonts} rationale={fontRationale} />
+          </Box>
         </Box>
 
         <Box flex="grow" gap={6}>
           <PaletteRamps primitives={primitives} />
-          <ContrastReport results={contrastResults} />
+          <ContrastReport results={lightContrast} title="Accessibility — light mode (WCAG)" />
+          <ContrastReport results={darkContrast} title="Accessibility — dark mode (WCAG)" />
           <ComponentPreview primitives={primitives} />
-          <CodeOutput primitives={primitives} />
+          <DarkModeAudit />
+          <CodeOutput fonts={fonts} primitives={primitives} />
         </Box>
       </Box>
     </Box>

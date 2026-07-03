@@ -1,4 +1,5 @@
 import {MAIN_FAMILIES, SHADE_KEYS, STATUS_FAMILIES, STATUS_SHADE_KEYS} from "./colorUtils";
+import type {FontSelection} from "./fonts";
 
 /**
  * Turn a flat map of generated color primitives into copy-pasteable code for a Terreno app: either
@@ -36,4 +37,18 @@ export const buildPrimitivesObjectCode = (primitives: Record<string, string>): s
 /** A `setPrimitives({...})` call for applying the palette at runtime via `useTheme()`. */
 export const buildSetPrimitivesCode = (primitives: Record<string, string>): string => {
   return `// Apply at runtime with the useTheme() hook from @terreno/ui.\nconst {setPrimitives} = useTheme();\nsetPrimitives({\n${formatEntries(primitives, "  ")}\n});`;
+};
+
+/**
+ * The recommended font pairing as a `theme.font` config plus a note on wiring the fonts up (the
+ * stock Terreno theme currently hardcodes Nunito/Titillium, so custom fonts must also be loaded).
+ */
+export const buildFontConfigCode = (fonts: FontSelection): string => {
+  return [
+    "// Font pairing — set in your theme config and load the families (expo-font / @expo-google-fonts).",
+    "font: {",
+    `  primary: "${fonts.bodyFont}",`,
+    `  title: "${fonts.headingFont}",`,
+    "},",
+  ].join("\n");
 };

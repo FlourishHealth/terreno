@@ -12,22 +12,43 @@ import {
   TextField,
   type ThemePrimitiveColors,
   ThemeProvider,
+  useTheme,
 } from "@terreno/ui";
-import React, {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {View} from "react-native";
 
 import {ErrorBoundary} from "../ErrorBoundary";
+import {DARK_THEME_CONFIG} from "./darkTheme";
+import type {ThemeMode} from "./paletteTypes";
 
 /**
- * Live preview of real Terreno components rendered under the generated palette. A nested
- * `ThemeProvider` (keyed by the palette so it re-initializes on every change) scopes the palette to
- * this subtree only, leaving the rest of the demo app on the default theme. Two views are offered:
- * a hand-built "showcase" mini-app and the full grid of every component demo.
+ * Live preview of real Terreno components rendered under the generated palette, in light or dark
+ * mode. A nested `ThemeProvider` (keyed by the palette + mode so it re-initializes on every change)
+ * scopes the palette to this subtree only. Two views are offered: a hand-built "showcase" mini-app
+ * and the full grid of every component demo.
  */
 
 interface ComponentPreviewProps {
   primitives: Partial<ThemePrimitiveColors>;
 }
+
+/**
+ * Applies the dark role remapping to the nested provider once it has mounted. Dark mode remaps
+ * semantic roles rather than inverting primitives, so `setTheme` is the right lever here.
+ */
+const ThemeModeApplier: React.FC<{mode: ThemeMode; children: React.ReactNode}> = ({
+  mode,
+  children,
+}) => {
+  const {setTheme} = useTheme();
+  // Applied on mount (the provider is remounted whenever mode/palette change via its key).
+  useEffect(() => {
+    if (mode === "dark") {
+      setTheme(DARK_THEME_CONFIG);
+    }
+  }, [mode, setTheme]);
+  return <>{children}</>;
+};
 
 const CARD_WIDTH = 260;
 const CARD_PREVIEW_HEIGHT = 160;
@@ -134,30 +155,56 @@ const AllComponentsGrid: React.FC = () => {
 
 export const ComponentPreview: React.FC<ComponentPreviewProps> = ({primitives}) => {
   const [view, setView] = useState<number>(0);
+  const [mode, setMode] = useState<ThemeMode>("light");
 
-  // Remount the themed subtree whenever the palette changes so the nested ThemeProvider re-reads
-  // its initial primitives (it only consumes `initialPrimitives` on mount).
-  const paletteKey = useMemo(() => JSON.stringify(primitives), [primitives]);
+  // Remount the themed subtree whenever the palette or mode changes so the nested ThemeProvider
+  // re-reads its initial primitives (it only consumes `initialPrimitives` on mount) and re-applies
+  // the correct role mapping from a clean default.
+  const paletteKey = useMemo(() => `${mode}-${JSON.stringify(primitives)}`, [mode, primitives]);
 
   const handleViewChange = useCallback((index: number): void => {
     setView(index);
   }, []);
 
+  const handleModeChange = useCallback((index: number): void => {
+    setMode(index === 1 ? "dark" : "light");
+  }, []);
+
+  const baseHex =
+    mode === "dark"
+      ? ((primitives as Record<string, string>).neutral900 ?? "#1c1c1c")
+      : ((primitives as Record<string, string>).neutral000 ?? "#ffffff");
+
   return (
     <Box gap={4}>
       <Box alignItems="center" direction="row" gap={3} justifyContent="between" wrap>
         <Heading size="sm">Component preview</Heading>
-        <Box minWidth={220}>
-          <SegmentedControl
-            items={["Showcase", "All components"]}
-            onChange={handleViewChange}
-            selectedIndex={view}
-          />
+        <Box direction="row" gap={2} wrap>
+          <Box minWidth={160}>
+            <SegmentedControl
+              items={["Light", "Dark"]}
+              onChange={handleModeChange}
+              selectedIndex={mode === "dark" ? 1 : 0}
+            />
+          </Box>
+          <Box minWidth={220}>
+            <SegmentedControl
+              items={["Showcase", "All components"]}
+              onChange={handleViewChange}
+              selectedIndex={view}
+            />
+          </Box>
         </Box>
       </Box>
-      <Box color="base" padding={4} rounding="md">
+      <Box
+        dangerouslySetInlineStyle={{__style: {backgroundColor: baseHex}}}
+        padding={4}
+        rounding="md"
+      >
         <ThemeProvider initialPrimitives={primitives} key={paletteKey}>
-          {view === 0 ? <ShowcaseCard /> : <AllComponentsGrid />}
+          <ThemeModeApplier mode={mode}>
+            {view === 0 ? <ShowcaseCard /> : <AllComponentsGrid />}
+          </ThemeModeApplier>
         </ThemeProvider>
       </Box>
     </Box>
