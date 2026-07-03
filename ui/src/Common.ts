@@ -762,10 +762,18 @@ export interface ErrorTextProps {
 }
 
 export interface AiSuggestionProps {
-  status: "not-started" | "generating" | "ready" | "added";
+  /**
+   * Persisted suggestion state. `ready` renders expanded; `hidden` and `added` render
+   * condensed into the collapsed header row (re-expandable with "Show") so a hidden or
+   * accepted suggestion never disappears entirely.
+   */
+  status: "not-started" | "generating" | "ready" | "added" | "hidden";
   text?: string;
+  /** Adds the suggestion text to the note. Stays available after adding for re-adds. */
   onAdd?: () => void;
+  /** Persists a hide. Called for any non-`added` status when the user presses "Hide". */
   onHide?: () => void;
+  /** Persists an un-hide. Called for any non-`added` status when the user presses "Show". */
   onShow?: () => void;
   onFeedback?: (feedback: "like" | "dislike" | null) => void;
   feedback?: "like" | "dislike" | null;

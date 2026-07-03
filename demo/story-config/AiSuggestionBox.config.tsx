@@ -3,6 +3,7 @@ import {
   AiSuggestionAdded,
   AiSuggestionAllStates,
   AiSuggestionGenerating,
+  AiSuggestionHidden,
   AiSuggestionMainDemo,
   AiSuggestionNotStarted,
   AiSuggestionReady,
@@ -14,7 +15,7 @@ export const AiSuggestionBoxConfiguration: DemoConfiguration = {
   component: AiSuggestionBox,
   related: ["Text area", "Text field"],
   description:
-    "An AI suggestion block that renders inside TextField or TextArea. Shows AI-generated content with feedback controls and add-to-note actions. Supports multiple states: not-started, generating, ready, and added.",
+    "An AI suggestion block that renders inside TextField or TextArea. Shows AI-generated content with feedback controls and add-to-note actions. Supports multiple states: not-started, generating, ready, added, and hidden. Hidden and added suggestions condense into a collapsed row that can be re-expanded with Show.",
   a11yNotes: [
     "Thumbs up and thumbs down buttons have accessibility labels.",
     "Show/Hide and Add to note buttons have accessibility roles.",
@@ -51,6 +52,7 @@ export const AiSuggestionBoxConfiguration: DemoConfiguration = {
     Generating: {render: AiSuggestionGenerating},
     Ready: {render: AiSuggestionReady},
     Added: {render: AiSuggestionAdded},
+    Hidden: {render: AiSuggestionHidden},
     AllStates: {render: AiSuggestionAllStates},
   },
 };
