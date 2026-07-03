@@ -1,21 +1,28 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import type {Document, ObjectId} from "mongoose";
+import type {Document, HydratedDocument, ObjectId} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import type {ModelRouterOptions} from "./api";
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {Permissions} from "./permissions";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupTestData, UserModel} from "./tests";
+import {
+  authAsUser,
+  type Food,
+  FoodModel,
+  getBaseServer,
+  setupTestData,
+  type User,
+  UserModel,
+} from "./tests";
 import {AdminOwnerTransformer, defaultResponseHandler, transform} from "./transformers";
 
 describe("query and transform", () => {
-  let notAdmin: any;
-  let admin: any;
+  let notAdmin: HydratedDocument<User>;
+  let admin: HydratedDocument<User>;
   let server: TestAgent;
   let app: express.Application;
 
@@ -26,8 +33,8 @@ describe("query and transform", () => {
     admin = testData.users.admin;
     notAdmin = testData.users.notAdmin;
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(
       "/food",
       modelRouter(FoodModel, {
