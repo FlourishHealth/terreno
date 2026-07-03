@@ -1938,6 +1938,12 @@ export interface IconButtonProps extends WithTestID {
   loading?: boolean;
 
   /**
+   * The size of the button.
+   * @default "default"
+   */
+  size?: "default" | "sm";
+
+  /**
    * The ideal position of the tooltip.
    */
   tooltipIdealPosition?: TooltipPosition;
@@ -1957,7 +1963,7 @@ export interface IconButtonProps extends WithTestID {
    * The variant of the button, which determines its style.
    * @default "primary"
    */
-  variant?: "primary" | "secondary" | "muted" | "destructive" | "navigation";
+  variant?: "primary" | "secondary" | "muted" | "destructive" | "navigation" | "ghost";
 
   /**
    * If true, a confirmation modal will be shown before the onClick action.

@@ -56,6 +56,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   indicator,
   indicatorText,
   loading: propsLoading = false,
+  size = "default",
   testID,
   variant = "primary",
   withConfirmation = false,
@@ -93,6 +94,9 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   } else if (variant === "destructive") {
     backgroundColor = theme.text.inverted;
     color = theme.text.error;
+  } else if (variant === "ghost") {
+    backgroundColor = "transparent";
+    color = theme.surface.secondaryDark;
   }
 
   const indicatorColor = indicator ? theme.surface[indicator] : undefined;
@@ -134,23 +138,24 @@ const IconButtonComponent: FC<IconButtonProps> = ({
         alignItems: "center",
         backgroundColor,
         borderRadius: theme.radius.rounded,
-        height: 32,
+        height: size === "sm" ? 28 : 32,
         justifyContent: "center",
-        width: 32,
+        width: size === "sm" ? 28 : 32,
       }}
       testID={testID}
     >
       {loading ? (
         <ActivityIndicator color={color} size="small" />
       ) : CustomIcon ? (
-        <CustomIcon color={color} size={variant === "navigation" ? 20 : 16} />
+        <CustomIcon color={color} size={size === "sm" ? 12 : variant === "navigation" ? 20 : 16} />
       ) : (
         <FontAwesome6
           color={color}
           name={iconName}
           selectable={undefined}
-          size={variant === "navigation" ? 20 : 16}
+          size={size === "sm" ? 12 : variant === "navigation" ? 20 : 16}
           solid
+          style={{textAlign: "center"}}
         />
       )}
       {Boolean(indicator) && (
