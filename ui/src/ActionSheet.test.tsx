@@ -889,7 +889,7 @@ describe("ActionSheet", () => {
     });
   });
 
-  describe("handleChildScrollEnd", () => {
+  describe("handleChildScrollEnd additional coverage", () => {
     it("recoils when within scroll threshold of initial position", async () => {
       const ref = createRef<ActionSheet>();
       render(
@@ -939,7 +939,7 @@ describe("ActionSheet", () => {
       expect(instance.isClosing).toBe(true);
     });
 
-    it("recoils back to prevScroll when not past threshold", async () => {
+    it("recoils back to previous position when not past threshold", async () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
@@ -957,6 +957,27 @@ describe("ActionSheet", () => {
       await act(async () => {
         await instance.handleChildScrollEnd();
       });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect(instance.isRecoiling).toBe(false);
+    });
+
+    it("bounces back when scrolling up beyond prevScroll", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      instance.prevScroll = 200;
+      instance.offsetY = 195;
+      instance._scrollTo = mock(() => {});
+      await instance.handleChildScrollEnd();
+      expect(instance.isRecoiling).toBe(true);
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });

@@ -275,6 +275,38 @@ describe("getOpenApiSpecForModel populate with existing properties", () => {
   });
 });
 
+describe("getOpenApiSpecForModel populate property merge", () => {
+  it("merges properties when the same path is populated twice", () => {
+    // First populate sets the field properties, second triggers the merge branch.
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["name"], path: "likesIds.userId"}, {path: "likesIds.userId"}],
+    });
+    const likesIds = result.properties.likesIds as Record<string, unknown>;
+    const items = likesIds.items as Record<string, Record<string, unknown>>;
+    const userIdProps = items.properties.userId as Record<string, Record<string, unknown>>;
+    // After the merge the wider populate should have contributed all user fields.
+    expect(userIdProps.properties).toBeDefined();
+    expect(userIdProps.properties.name).toBeDefined();
+  });
+
+  it("merges openApiComponent ref into an already-populated path", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [
+        {path: "likesIds.userId"},
+        {openApiComponent: "UserComponent", path: "likesIds.userId"},
+      ],
+    });
+    const likesIds = result.properties.likesIds as Record<string, unknown>;
+    const items = likesIds.items as Record<string, Record<string, unknown>>;
+    const userIdProps = items.properties.userId as Record<string, Record<string, unknown>>;
+    // Merge path adds the $ref key inside the existing properties.
+    expect(userIdProps.properties).toBeDefined();
+    expect(userIdProps.properties.userId).toEqual({
+      $ref: "#/components/schemas/UserComponent",
+    });
+  });
+});
+
 describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
   it("filters populated fields using dot-notation keys", () => {
     const result = getOpenApiSpecForModel(FoodModel, {
