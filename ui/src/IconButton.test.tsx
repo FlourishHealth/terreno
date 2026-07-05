@@ -143,6 +143,20 @@ describe("IconButton", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders ghost variant", () => {
+    const {toJSON} = renderWithTheme(
+      <IconButton accessibilityLabel="Test" iconName="check" onClick={() => {}} variant="ghost" />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders sm size", () => {
+    const {toJSON} = renderWithTheme(
+      <IconButton accessibilityLabel="Test" iconName="check" onClick={() => {}} size="sm" />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
   describe("custom icons", () => {
     // IconButton renders `null` under the bun/react-test-renderer harness (all of
     // its snapshots are null), so we verify the custom-icon code path renders

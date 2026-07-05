@@ -13,6 +13,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Logging & Tracing](#logging--tracing)
 - [Extensibility](#extensibility)
 - [Webhooks & Notifications](#webhooks--notifications)
+- [HTTP Client](#http-client)
 - [Utilities](#utilities)
 - [Script Helpers](#script-helpers)
 
@@ -29,6 +30,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
 - Extensibility: `TerrenoPlugin` interface
 - Notifiers: `sendSlackMessage`, `sendGoogleChatMessage`, `sendZoomMessage`
+- HTTP client: `createAuthenticatedClient`, `withApiErrorHandling`, `normalizeApiError`, `markRetryUnsafe`
 
 ## Server Setup
 
@@ -969,6 +971,75 @@ await sendZoomMessage({
 - Error alerts
 - Deployment confirmations
 - Health check failures
+
+## HTTP Client
+
+Utilities for calling **external** third-party APIs with consistent auth, retry, and error handling. See the how-to guide: [Call external APIs](../how-to/call-external-apis.md).
+
+### createAuthenticatedClient
+
+Axios instance factory with a pluggable auth strategy, lazy token caching, and a retry policy for transient failures.
+
+``````typescript
+import {createAuthenticatedClient} from "@terreno/api";
+
+const client = createAuthenticatedClient({
+  apiName: "widgetService",
+  auth: {getToken: async () => fetchServiceToken(), type: "bearer"},
+  baseURL: "https://api.widgets.example/v2",
+  retry: {maxAttempts: 3}, // optional; shown with defaults below
+});
+
+const response = await client.axios.get("/widgets/123");
+client.invalidateToken(); // drop the cached token; next request re-authenticates
+``````
+
+**Auth strategies** (`auth` option):
+- `{type: "bearer", getToken}` — caller-supplied async token fetcher, cached until invalidated
+- `{type: "oauth2", tokenUrl, credentials, refreshOn401}` — client-credentials grant handled internally; `refreshOn401: true` refreshes and retries exactly once on a 401
+- `{type: "apiKey", header, getKey}` — key sent on the named header
+
+**Retry policy** (`retry` option, all fields optional):
+
+| Field | Default | Meaning |
+|---|---|---|
+| `maxAttempts` | `3` | Total attempts including the first request |
+| `retryOn` | `["rateLimited", "server", "network"]` | Failure classifications to retry |
+| `baseDelayMs` | `250` | Base for exponential backoff with jitter |
+| `maxDelayMs` | `30000` | Ceiling for any single delay, including `Retry-After` values |
+
+Only idempotent methods (GET/HEAD/OPTIONS) are retried by default. Opt a request in with `markRetryUnsafe(config?)` when the operation is safe to repeat and its body is replayable.
+
+**Why:** external integrations otherwise duplicate token plumbing and diverge on retry behavior; centralizing them makes rate-limit handling and credential rotation consistent, and makes non-idempotent retries an explicit, reviewable choice.
+
+### normalizeApiError
+
+Pure function converting any thrown value into a stable, log-safe shape.
+
+``````typescript
+import {normalizeApiError} from "@terreno/api";
+
+const normalized = normalizeApiError(error, {apiName: "widgetService", operation: "getWidget"});
+// {isAxios, statusCode, messages, classification, apiName, operation}
+``````
+
+`classification` is one of `"rateLimited" | "unauthorized" | "notFound" | "validation" | "server" | "network" | "unknown"`. Messages are extracted only from recognized body fields (`{message}`, JSONAPI `{errors: [{title, detail}]}`, plain strings truncated to 500 chars) — raw payload bodies never reach the normalized shape.
+
+### withApiErrorHandling
+
+Call-site wrapper: normalize → optional `redactError` hook → log exactly once → rethrow.
+
+``````typescript
+import {withApiErrorHandling} from "@terreno/api";
+
+const response = await withApiErrorHandling(() => client.axios.get(`/widgets/${id}`), {
+  apiName: "widgetService",
+  operation: "getWidget",
+  rethrowAs: "apiError", // optional; default "raw" rethrows the original error
+});
+``````
+
+With `rethrowAs: "apiError"` the failure is converted to a terreno `APIError` (stable title, per-occurrence `detail`, classification in `meta`) suitable for route handlers. Works with SDK-based integrations too — it does not require `createAuthenticatedClient`.
 
 ## Utilities
 
