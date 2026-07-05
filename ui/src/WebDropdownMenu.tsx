@@ -197,7 +197,7 @@ export const WebDropdownMenu = ({
     scheduleAfterPaint(() => {
       scrollSelectedIntoView();
     });
-  }, [filteredOptions, scrollSelectedIntoView, selectedFilteredIndex, visible]);
+  }, [scrollSelectedIntoView, selectedFilteredIndex, visible]);
 
   const handleOptionLayout = useCallback(
     (index: number, offset: number, height: number): void => {

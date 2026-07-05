@@ -87,7 +87,12 @@ describe("CustomSelectField", () => {
   it("shows custom input when 'custom' is selected from dropdown", async () => {
     const onChange = mock(() => {});
     const {getByTestId, queryByPlaceholderText} = renderWithTheme(
-      <CustomSelectField onChange={onChange} options={defaultOptions} searchable={false} value="a" />
+      <CustomSelectField
+        onChange={onChange}
+        options={defaultOptions}
+        searchable={false}
+        value="a"
+      />
     );
 
     const picker = getByTestId("ios_picker");
