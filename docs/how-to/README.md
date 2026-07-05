@@ -8,6 +8,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
+- [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Deploy to Google Cloud Platform](deploy-to-gcp.md) — Deploy demo and example apps to GCS with CDN
 
 ## Coming Soon

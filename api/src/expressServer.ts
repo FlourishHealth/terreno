@@ -1,3 +1,4 @@
+import type {OutgoingMessage} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cron from "cron";
 import express, {type Router} from "express";
@@ -36,8 +37,27 @@ export const setupEnvironment = (): void => {
 
 export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<unknown>>) => void;
 
-// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
-const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
+interface LoggableRequest {
+  body?: Record<string, unknown>;
+  method: string;
+  originalUrl?: string;
+  route?: {path: string};
+  routeMount?: string | string[];
+  url?: string;
+  user?: {
+    admin?: boolean;
+    id?: string;
+    testUser?: boolean;
+    type?: string;
+  };
+}
+
+interface LoggableResponse {
+  locals?: {loggingOptions?: LoggingOptions};
+  statusCode?: number;
+}
+
+const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startTime: bigint) => {
   const options = (res.locals?.loggingOptions ?? {}) as LoggingOptions;
 
   const slowReadMs = options.logSlowRequestsReadMs ?? SLOW_READ_MAX;
@@ -50,7 +70,7 @@ const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
     pathName = `${req.routeMount}${req.route.path}`;
   } else if (req.route) {
     pathName = req.route.path;
-  } else if (res.statusCode < 400) {
+  } else if (res.statusCode != null && res.statusCode < 400) {
     logger.warn(`Request without route: ${req.originalUrl}`);
   }
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
@@ -77,8 +97,11 @@ const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   }
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
-export const logRequests = (req: any, res: any, next: express.NextFunction): void => {
+export const logRequests = (
+  req: LoggableRequest,
+  res: LoggableResponse,
+  next: express.NextFunction
+): void => {
   const startTime = process.hrtime.bigint();
 
   let userString = "";
@@ -106,7 +129,7 @@ export const logRequests = (req: any, res: any, next: express.NextFunction): voi
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
     logger.debug(`${req.method} <- ${req.url}${userString}${body}`);
   }
-  onFinished(res, () => logRequestsFinished(req, res, startTime));
+  onFinished(res as unknown as OutgoingMessage, () => logRequestsFinished(req, res, startTime));
   next();
 };
 
@@ -145,6 +168,7 @@ export const createRouterWithAuth = (
 };
 
 export interface AuthOptions {
+  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
   // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
   generateJWTPayload?: (user: any) => Record<string, unknown>;
   // biome-ignore lint/suspicious/noExplicitAny: see above
