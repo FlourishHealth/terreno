@@ -392,8 +392,14 @@ describe("useConflicts", () => {
     });
     expect(result.current.conflicts.conflicts).toEqual([]);
     expect(result.current.entity.data?.title).toBe("mine v2");
-    expect(client.outbox.getMutation({mutationId})?.status).toBe("queued");
-    expect(client.outbox.getMutation({mutationId})?.baseVersion).toBe(7);
+    // The retry is requeued under a fresh mutationId (the original id is burned on the
+    // server's idempotency ledger).
+    expect(client.outbox.getMutation({mutationId})).toBeUndefined();
+    const retry = client.outbox
+      .listQueued({userId: "u1"})
+      .find((mutation) => mutation.entityId === "t1");
+    expect(retry?.status).toBe("queued");
+    expect(retry?.baseVersion).toBe(7);
     await act(async () => {
       await client.stop();
     });
