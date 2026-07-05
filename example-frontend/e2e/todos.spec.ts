@@ -1,8 +1,15 @@
 import {expect, test} from "./fixtures/test";
 import {clearTodos} from "./helpers/clearTodos";
 import {loginAs} from "./helpers/login";
+import {setSyncDbFlag} from "./helpers/syncdbFlag";
 
 test.describe("Todos", () => {
+  // This file asserts the RTK todos path — pin the use-syncdb flag off so it holds
+  // regardless of which spec ran before it.
+  test.beforeAll(async () => {
+    await setSyncDbFlag(false);
+  });
+
   test.beforeEach(async ({page}) => {
     await clearTodos();
     await loginAs(page);

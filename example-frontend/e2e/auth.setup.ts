@@ -1,26 +1,28 @@
-import {test as setup} from "@playwright/test";
-import {ADMIN_USER, SECOND_USER, TEST_USER} from "./fixtures/testUsers";
+import {type APIRequestContext, test as setup} from "@playwright/test";
+import {ADMIN_USER, ALL_E2E_USERS} from "./fixtures/testUsers";
 import {setUserAdmin} from "./helpers/adminAuth";
+import {setSyncDbFlag} from "./helpers/syncdbFlag";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
-setup("create test user", async ({request}) => {
-  // Create the regular test user
-  await createUser(request, TEST_USER);
-  await acceptPendingConsentForms(request, TEST_USER);
+setup("create test users", async ({request}) => {
+  for (const user of ALL_E2E_USERS) {
+    await createUser(request, user);
+    if (user.email === ADMIN_USER.email) {
+      await setUserAdmin(ADMIN_USER.email);
+    }
+    await acceptPendingConsentForms(request, user);
+  }
 
-  // Create a second non-admin user used by realtime isolation tests
-  await createUser(request, SECOND_USER);
-  await acceptPendingConsentForms(request, SECOND_USER);
-
-  // Create the admin user and promote
-  await createUser(request, ADMIN_USER);
-  await setUserAdmin(ADMIN_USER.email);
-  await acceptPendingConsentForms(request, ADMIN_USER);
+  // Ensure the use-syncdb flag exists and starts disabled. Creating it here (in the
+  // setup project, before any spec runs) means the per-file setSyncDbFlag guards only
+  // ever PATCH an existing flag — concurrent guards in parallel workers cannot race
+  // on flag creation.
+  await setSyncDbFlag(false);
 });
 
 const createUser = async (
-  request: Parameters<Parameters<typeof setup>[1]>[0]["request"],
+  request: APIRequestContext,
   user: {email: string; name: string; password: string}
 ): Promise<void> => {
   const response = await request.post(`${API_URL}/auth/signup`, {
@@ -44,7 +46,7 @@ const createUser = async (
 };
 
 const acceptPendingConsentForms = async (
-  request: Parameters<Parameters<typeof setup>[1]>[0]["request"],
+  request: APIRequestContext,
   user: {email: string; password: string}
 ): Promise<void> => {
   // Login to get a token

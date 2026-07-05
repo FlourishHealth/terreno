@@ -1,8 +1,15 @@
 import {type APIRequestContext, request} from "@playwright/test";
 import {expect, test} from "./fixtures/test";
-import {SECOND_USER, TEST_USER} from "./fixtures/testUsers";
-import {clearTodos} from "./helpers/clearTodos";
+import {REALTIME_USER, SECOND_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
+import {setSyncDbFlag} from "./helpers/syncdbFlag";
+import {clearTodosAs} from "./helpers/todosApi";
+
+// Realtime asserts the RTK todos path — pin the use-syncdb flag off, and use a
+// dedicated user so this file can run in parallel with the todos/offline suites.
+test.beforeAll(async () => {
+  await setSyncDbFlag(false);
+});
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
@@ -13,7 +20,7 @@ interface BackendClient {
 }
 
 const getBackendClient = async (
-  user: {email: string; password: string} = TEST_USER
+  user: {email: string; password: string} = REALTIME_USER
 ): Promise<BackendClient> => {
   const api = await request.newContext({baseURL: API_URL});
   const loginRes = await api.post("/auth/login", {
@@ -33,34 +40,10 @@ const getBackendClient = async (
   return {api, token, userId};
 };
 
-/**
- * Clear todos for a given user (defaults to TEST_USER via the helper).
- */
-const clearTodosFor = async (user: {email: string; password: string}): Promise<void> => {
-  const {api, token} = await getBackendClient(user);
-  try {
-    const todosRes = await api.get("/todos", {
-      headers: {authorization: `Bearer ${token}`},
-    });
-    if (!todosRes.ok()) {
-      return;
-    }
-    const todosData = await todosRes.json();
-    const todos = (todosData.data ?? []) as Array<{id: string}>;
-    await Promise.all(
-      todos.map((todo) =>
-        api.delete(`/todos/${todo.id}`, {headers: {authorization: `Bearer ${token}`}})
-      )
-    );
-  } finally {
-    await api.dispose();
-  }
-};
-
 test.describe("Realtime sync", () => {
   test.beforeEach(async ({page}) => {
-    await clearTodos();
-    await loginAs(page);
+    await clearTodosAs(REALTIME_USER);
+    await loginAs(page, REALTIME_USER);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await page.getByTestId("todos-new-title-input").first().waitFor({state: "visible"});
@@ -141,13 +124,13 @@ test.describe("Realtime sync", () => {
 
 test.describe("Realtime cross-user isolation", () => {
   test.beforeEach(async () => {
-    await clearTodos();
-    await clearTodosFor(SECOND_USER);
+    await clearTodosAs(REALTIME_USER);
+    await clearTodosAs(SECOND_USER);
   });
 
   test("user A does not see realtime events for user B's todos", async ({page}) => {
-    // Log in as TEST_USER (user A) in the browser
-    await loginAs(page);
+    // Log in as REALTIME_USER (user A) in the browser
+    await loginAs(page, REALTIME_USER);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await page.getByTestId("todos-new-title-input").first().waitFor({state: "visible"});
@@ -177,8 +160,8 @@ test.describe("Realtime cross-user isolation", () => {
 
 test.describe("Realtime reconnection", () => {
   test.beforeEach(async ({page}) => {
-    await clearTodos();
-    await loginAs(page);
+    await clearTodosAs(REALTIME_USER);
+    await loginAs(page, REALTIME_USER);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await page.getByTestId("todos-new-title-input").first().waitFor({state: "visible"});
