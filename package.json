@@ -184,6 +184,10 @@
     "test:lint": "bun run --filter '@terreno/test' lint",
     "test:test": "bun run --filter '@terreno/test' test:ci",
     "rtk:web": "bun run --filter '@terreno/rtk' web",
+    "syncdb:compile": "bun run --filter '@terreno/syncdb' compile",
+    "syncdb:dev": "bun run --filter '@terreno/syncdb' dev",
+    "syncdb:lint": "bun run --filter '@terreno/syncdb' lint",
+    "syncdb:test": "bun run --filter '@terreno/syncdb' test:ci",
     "rules": "bunx rulesync generate",
     "rules:check": "bunx rulesync generate && git diff --exit-code",
     "test": "bun run --filter '*' test:ci",
@@ -210,6 +214,7 @@
     "feature-flags",
     "mcp-server",
     "rtk",
+    "syncdb",
     "test",
     "ui",
     "website"

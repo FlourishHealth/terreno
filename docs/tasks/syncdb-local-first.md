@@ -68,25 +68,25 @@
 
 ## Phase 3: Client core (@terreno/syncdb)
 
-- [ ] **Task 3.1**: Package scaffold
+- [x] **Task 3.1**: Package scaffold
   - Description: New workspace package `syncdb/` (`@terreno/syncdb`): tsconfig, biome, bun test setup; deps `tinybase` + `luxon` (catalog where available); optional peers `expo-sqlite`, `react`, `socket.io-client`. Root scripts (`syncdb:compile` etc.) and inclusion in `compile`/`lint`/`test`/bootstrap pipelines.
   - Files: `syncdb/package.json` (new), `syncdb/tsconfig.json` (new), `syncdb/biome.jsonc` (new), `syncdb/src/index.ts` (new), root `package.json`
   - Depends on: none
   - Acceptance: `bun run bootstrap:update` compiles the package; empty test suite runs green; lint passes.
 
-- [ ] **Task 3.2**: MergeableStore schema + typed entity accessors
+- [x] **Task 3.2**: MergeableStore schema + typed entity accessors
   - Description: `createSyncStore({collections})` building a `MergeableStore` with the documented table layout (`{collection}`, `_outbox`, `_cursors`, `_conflicts`; values `schemaVersion`, `lastUserId`); typed accessors: upsert/get/list/softDelete/clear per collection with JSON `data` cell round-tripping. Harvest/adapt `storage/store.ts` + `storage/schema.ts` from PR #835.
   - Files: `syncdb/src/storage/store.ts` (new), `syncdb/src/storage/schema.ts` (new), `syncdb/src/storage/types.ts` (new)
   - Depends on: 3.1
   - Acceptance: unit tests — accessor round-trips, tombstone filtering in list, per-collection isolation.
 
-- [ ] **Task 3.3**: Outbox state machine
+- [x] **Task 3.3**: Outbox state machine
   - Description: Durable outbox on the `_outbox` table with lifecycle `queued→inFlight→acked|conflicted|failed`, FIFO per collection, attemptCount, and per-user isolation (mutations record userId; replay skips mismatches — semantics ported from `rtk/src/offlineMiddleware.ts:96-107`). Harvest/adapt `mutations/outbox.ts` from #835.
   - Files: `syncdb/src/mutations/outbox.ts` (new)
   - Depends on: 3.2
   - Acceptance: unit tests — every legal/illegal state transition, FIFO ordering, user-isolation skip.
 
-- [ ] **Task 3.4**: Cursor store + idempotent delta applier
+- [x] **Task 3.4**: Cursor store + idempotent delta applier
   - Description: `_cursors` accessors + `applyDelta(delta)`: ignore if `delta.seq <= entity.seq` (idempotent); apply create/update/tombstone; advance the cursor **keyed by `delta.stream`** (a socket interleaves deltas from multiple independent streams/counters); report seq jumps (`delta.seq > cursor(delta.stream) + 1`) as a *reconcile hint* — jumps are legitimate when permission-filtered deltas skip seqs, so the hint is rate-limited downstream, never treated as proof of loss. Never overwrite an entity that has a pending outbox mutation (optimistic state protected; conflict resolution decides). Harvest/adapt `sync/cursor.ts` + `sync/deltaApplier.ts` from #835.
   - Files: `syncdb/src/sync/cursor.ts` (new), `syncdb/src/sync/deltaApplier.ts` (new)
   - Depends on: 3.3

@@ -1,0 +1,7 @@
+[test]
+root = "./src"
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = ["**/dist/**", "**/*.test.ts", "**/*.test.tsx", "**/node_modules/**"]
+# Enforced by scripts/check-coverage.ts; Bun parses this key but does not
+# fail the run when coverage is below threshold.
+coverageThreshold = { line = 95, function = 95 }
