@@ -21,6 +21,7 @@ on:
 jobs:
   integration:
     name: Admin SPA Backend Integration E2E
+    if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
