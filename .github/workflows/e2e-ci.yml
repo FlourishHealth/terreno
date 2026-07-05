@@ -40,6 +40,7 @@ jobs:
           - consents
           - ai-chat
           - realtime
+          - syncdb
     steps:
       - uses: actions/checkout@v6.0.3
 

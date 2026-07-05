@@ -186,7 +186,7 @@ const SyncTodosScreen: React.FC = () => {
 
           {/* Completed todos */}
           {completedTodos.length > 0 && (
-            <Box>
+            <Box testID="todos-completed-section">
               <Box marginBottom={3}>
                 <Heading size="lg">Completed ({completedTodos.length})</Heading>
               </Box>

@@ -5,7 +5,7 @@ import type {User} from "../auth";
 import {isAPIError} from "../errors";
 import {logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
-import {ExecutorConflictError, executeCreate, executeDelete, executeUpdate} from "./executors";
+import {executeCreate, executeDelete, executeUpdate, isExecutorConflictError} from "./executors";
 import {SyncMutation, type SyncMutationDocument} from "./models";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import {serializeSyncDoc} from "./routes";
@@ -130,7 +130,8 @@ const finalizeNack = async ({
   mutation: SyncMutateRequest;
   request: express.Request;
 }): Promise<SyncMutationOutcome> => {
-  if (error instanceof ExecutorConflictError) {
+  // Duck-typed: `instanceof` breaks for Error subclasses in the compiled ES5 dist.
+  if (isExecutorConflictError(error)) {
     let serverDoc: unknown;
     try {
       serverDoc = await serializeSyncDoc({

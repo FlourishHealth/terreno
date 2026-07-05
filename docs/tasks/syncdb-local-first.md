@@ -190,7 +190,7 @@
   - Depends on: 7.2
   - Acceptance: manual verification per acceptance criteria; all testIDs present.
 
-- [ ] **Task 7.4**: Playwright e2e
+- [x] **Task 7.4**: Playwright e2e
   - Description: `e2e/syncdb.spec.ts` per repo E2E rules (loginAs helper in beforeEach, testID selectors, no waitForTimeout): offline create → banner shows queued → reconnect → synced; conflict flow via dev panel; encrypted-at-rest smoke (raw IndexedDB blob contains no todo-title plaintext); **user-switch wipe (AC-7)** — user B sees none of user A's data and A's queued mutation is not replayed as B.
   - Files: `example-frontend/e2e/syncdb.spec.ts` (new), e2e helpers as needed
   - Depends on: 7.3

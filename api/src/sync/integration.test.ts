@@ -39,7 +39,7 @@ import mongoose, {model, Schema} from "mongoose";
 import {modelRouter} from "../api";
 import {addAuthRoutes, generateTokens, setupAuth} from "../auth";
 import {Permissions} from "../permissions";
-import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
+import {createdUpdatedPlugin, findOneOrNoneFor, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {RealtimeApp} from "../realtime/realtimeApp";
 import {getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncMutation} from "./models";
@@ -457,26 +457,31 @@ describe("syncdb end-to-end integration", () => {
 
     // keepMine: the mutation is re-enqueued against the server's current seq, under a
     // FRESH mutationId — the original id is burned on the server's idempotency ledger
-    // (it would replay the recorded conflict nack forever)...
+    // (it would replay the recorded conflict nack forever) — and resolveConflict kicks
+    // a replay immediately, so the retry drains without waiting for another trigger.
     a.client.resolveConflict({mutationId, strategy: "keepMine"});
     expect(a.client.getSyncStatus().conflictCount).toBe(0);
     expect(a.client.outbox.getMutation({mutationId})).toBeUndefined();
-    const retry = a.client.outbox
-      .listQueued({userId: userAId})
-      .find((mutation) => mutation.entityId === conflictDocId);
-    if (!retry) {
-      throw new Error("keepMine retry not queued");
-    }
-    expect(retry.mutationId).not.toBe(mutationId);
 
     // ...and the replay applies the client's data server-side.
-    await a.client.replayOutbox();
     await waitFor(
-      () => a.client.outbox.getMutation({mutationId: retry.mutationId})?.status === "acked",
-      {label: "keepMine mutation acked"}
+      async () => {
+        const doc = await IntTodoModel.findById(conflictDocId);
+        return doc?.title === "client wins";
+      },
+      {label: "keepMine retry applied server-side"}
     );
     const settled = await IntTodoModel.findById(conflictDocId);
     expect(settled?.title).toBe("client wins");
+
+    // The retry ran under a fresh identity: the server ledger holds an applied row for
+    // this doc whose mutationId differs from the burned (conflicted) original.
+    const appliedRetry = await findOneOrNoneFor(SyncMutation, {
+      mutationId: {$ne: mutationId},
+      resultId: conflictDocId,
+      status: "applied",
+    });
+    expect(appliedRetry).toBeTruthy();
 
     const entity = a.client.store.getEntity<{title?: string}>({
       collection: COLLECTION,
