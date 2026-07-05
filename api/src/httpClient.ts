@@ -1,29 +1,35 @@
-import axios, {type AxiosInstance, type InternalAxiosRequestConfig} from "axios";
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from "axios";
 
 import {APIError} from "./errors";
 import {logger as defaultLogger} from "./logger";
 
-// Note: this augmentation is global — `retryUnsafe` appears on every axios config type in
-// consumer apps, but it only has an effect on instances created by createAuthenticatedClient.
-// Retried request bodies must be replayable: JSON objects are fine, but streams/FormData are
-// consumed on first send and cannot be retried.
-declare module "axios" {
-  export interface AxiosRequestConfig {
-    // Opts a non-idempotent request (POST/PUT/PATCH/DELETE) into the retry policy.
-    // Callers must be sure the operation is safe to repeat.
-    retryUnsafe?: boolean;
-  }
-}
-
 // Internal per-request state tracked on the axios config across interceptor retries.
 // __httpClientManaged marks configs that passed through this client's request interceptor —
 // errors from foreign configs (e.g. the oauth2 token POST itself) must never be refreshed
-// or retried here, or a failing token endpoint would loop forever.
+// or retried here, or a failing token endpoint would loop forever. retryUnsafe is set by
+// markRetryUnsafe() rather than a global axios module augmentation so the flag stays
+// scoped to this module's API and cannot be silently misapplied to unrelated axios usage.
 interface RetryState {
   __httpClientRetryCount?: number;
   __httpClientDidAuthRefresh?: boolean;
   __httpClientManaged?: boolean;
+  retryUnsafe?: boolean;
 }
+
+/**
+ * Opts a non-idempotent request (POST/PUT/PATCH/DELETE) into the retry policy of a
+ * createAuthenticatedClient instance: `client.axios.post(url, body, markRetryUnsafe())`.
+ * Callers must be sure the operation is safe to repeat, and the request body must be
+ * replayable — JSON objects are fine, but streams/FormData are consumed on first send.
+ * Has no effect on axios instances not created by createAuthenticatedClient.
+ */
+export const markRetryUnsafe = (config: AxiosRequestConfig = {}): AxiosRequestConfig => {
+  return {...config, retryUnsafe: true} as AxiosRequestConfig & RetryState;
+};
 
 /**
  * Minimal logging surface used by the HTTP client utilities so consumers (and tests)
@@ -252,7 +258,7 @@ const DEFAULT_RETRY_POLICY: RetryPolicy = {
   retryOn: ["rateLimited", "server", "network"],
 };
 
-// Retries apply only to these methods unless a request sets `retryUnsafe: true` —
+// Retries apply only to these methods unless a request opts in via markRetryUnsafe() —
 // repeating a failed POST against an external service can duplicate side effects.
 const IDEMPOTENT_METHODS = ["get", "head", "options"];
 
@@ -302,7 +308,7 @@ const parseRetryAfterMs = (headerValue: unknown): number | undefined => {
  * Retries: failures classified in `retry.retryOn` (default: rateLimited, server,
  * network) are retried with exponential backoff and jitter up to `maxAttempts` total
  * attempts, honoring a parseable Retry-After header. Only idempotent methods
- * (GET/HEAD/OPTIONS) are retried unless the request sets `retryUnsafe: true`.
+ * (GET/HEAD/OPTIONS) are retried unless the request opts in via markRetryUnsafe().
  *
  * Logging: the client logs retries and token refreshes at debug level only and always
  * rejects with the original axios error — error-level logging is left to the call site

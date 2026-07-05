@@ -8,6 +8,7 @@ import {APIError} from "./errors";
 import {
   createAuthenticatedClient,
   type HttpClientLogger,
+  markRetryUnsafe,
   normalizeApiError,
   withApiErrorHandling,
 } from "./httpClient";
@@ -656,11 +657,13 @@ describe("createAuthenticatedClient", () => {
       }
     });
 
-    it("retries a POST when the request opts in with retryUnsafe", async () => {
+    it("retries a POST when the request opts in via markRetryUnsafe, preserving config", async () => {
       let attempts = 0;
+      const seenTestHeaders: (string | undefined)[] = [];
       const server = await startTestServer((app) => {
-        app.post("/orders", (_req, res) => {
+        app.post("/orders", (req, res) => {
           attempts += 1;
+          seenTestHeaders.push(req.headers["x-test"] as string | undefined);
           if (attempts === 1) {
             res.status(500).json({message: "boom"});
             return;
@@ -674,9 +677,14 @@ describe("createAuthenticatedClient", () => {
           baseURL: server.baseURL,
           retry: FAST_RETRY,
         });
-        const response = await client.axios.post("/orders", {widget: 1}, {retryUnsafe: true});
+        const response = await client.axios.post(
+          "/orders",
+          {widget: 1},
+          markRetryUnsafe({headers: {"X-Test": "kept"}})
+        );
         expect(response.data.ok).toBe(true);
         expect(attempts).toBe(2);
+        expect(seenTestHeaders).toEqual(["kept", "kept"]);
       } finally {
         await server.close();
       }
