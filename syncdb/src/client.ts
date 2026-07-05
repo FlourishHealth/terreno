@@ -1,3 +1,4 @@
+import {createServerKeyProvider} from "./crypto/keyProviders";
 import type {KeyProvider} from "./crypto/types";
 import {listConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
@@ -206,9 +207,18 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   const createAndStartPersister = async (userId: string): Promise<void> => {
-    const factory =
-      config.persisterFactory ??
-      createDefaultPersisterFactory({keyProvider: config.keyProvider, userId});
+    // Default key provider is SERVER-DERIVED (HKDF over GET /sync/key material) so the
+    // server can rotate/revoke; pass keyProvider: createLocalKeyProvider() for a purely
+    // device-local key with no server-side copy of the material.
+    const keyProvider =
+      config.keyProvider ??
+      (httpChannel
+        ? createServerKeyProvider({
+            appName: config.name,
+            fetchKeyMaterial: httpChannel.fetchKeyMaterial,
+          })
+        : undefined);
+    const factory = config.persisterFactory ?? createDefaultPersisterFactory({keyProvider, userId});
     persister = factory({databaseName: config.name, store: store.raw});
     await persister.startAutoLoad();
     await persister.startAutoSave();

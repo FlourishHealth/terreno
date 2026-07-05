@@ -39,6 +39,11 @@ export interface HttpChannel {
    * rejects with {@link AuthRequiredError}, anything else rejects.
    */
   sendMutation: (request: SyncMutateRequest) => Promise<SendMutationResult>;
+  /**
+   * Fetch the caller's per-user key material from `GET /sync/key` — feeds the
+   * default server-derived encryption KeyProvider.
+   */
+  fetchKeyMaterial: () => Promise<string>;
 }
 
 /** Minimal fetch signature (global fetch is assignable; tests inject stubs). */
@@ -112,5 +117,17 @@ export const createHttpChannel = ({
     throw new Error(`Sync mutate failed with status ${response.status}`);
   };
 
-  return {fetchSnapshotPage, sendMutation};
+  const fetchKeyMaterial = async (): Promise<string> => {
+    const response = await request("/sync/key");
+    if (!response.ok) {
+      throw new Error(`Sync key request failed with status ${response.status}`);
+    }
+    const body = (await response.json()) as {keyMaterial?: string};
+    if (!body.keyMaterial) {
+      throw new Error("Sync key response is missing keyMaterial");
+    }
+    return body.keyMaterial;
+  };
+
+  return {fetchKeyMaterial, fetchSnapshotPage, sendMutation};
 };

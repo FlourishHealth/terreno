@@ -2,6 +2,8 @@
 
 Redux Toolkit Query utilities for @terreno/api backends with React Native / Expo support.
 
+> **Deprecation notice (data synchronization):** the offline mutation queue (`createOfflineMiddleware`, `offlineSlice`, `configureOfflineMutationEndpoints`) and realtime cache patching (`realtimeList`, `realtimeDocument`) are superseded by [`@terreno/syncdb`](../syncdb/README.md), the local-first data layer. Use syncdb for new offline/realtime work; see the [migration guide](../docs/how-to/migrate-rtk-to-syncdb.md). @terreno/rtk remains the home of the generated RTK Query OpenAPI SDK (non-synced RPC/custom endpoints) and legacy JWT auth.
+
 ## Features
 
 - Authentication slice with JWT token management

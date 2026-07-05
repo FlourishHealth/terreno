@@ -93,7 +93,9 @@ describe("createSocketTransport", () => {
     await connecting.connect();
     expect(statuses).toEqual([{connected: true}]);
     expect(tokenCalls.length).toBeGreaterThanOrEqual(1);
-    expect(server.sockets[0]?.handshake.auth.token).toBe("test-token");
+    // The raw provider token is sent Bearer-prefixed, matching the server's
+    // legacy JWT socket validator (and the HTTP channel's Authorization header).
+    expect(server.sockets[0]?.handshake.auth.token).toBe("Bearer test-token");
 
     connecting.disconnect();
     // Allow the disconnect event to round-trip.

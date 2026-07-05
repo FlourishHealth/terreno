@@ -1,0 +1,292 @@
+# @terreno/syncdb
+
+Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](../docs/how-to/migrate-rtk-to-syncdb.md)).
+
+## Architecture
+
+```
+        FRONTEND (@terreno/syncdb)                 BACKEND (@terreno/api)
+┌───────────────────────────────────┐      ┌────────────────────────────────────┐
+│ React hooks (useQuery, useEntity, │      │ modelRouter(path, Model, {sync})   │
+│ useMutate, useSyncStatus, ...)    │      │  └─ sync registry + validation     │
+│        │            ▲             │      │                                    │
+│        ▼            │             │      │ syncPlugin (schema)                │
+│ TinyBase MergeableStore           │      │  └─ stamps _syncSeq per write      │
+│  {collection} tables + _outbox    │      │                                    │
+│  + _cursors + _conflicts          │      │ SyncApp (HTTP)     RealtimeApp     │
+│        │            ▲             │      │  /sync/snapshot     (Socket.io +   │
+│        ▼            │             │      │  /sync/mutate       change streams)│
+│ Persister (AES-GCM IndexedDB on   │      │  /sync/key              │          │
+│ web, expo-sqlite on native)       │      └─────────┬───────────────┼──────────┘
+└──────┬─────────────────▲──────────┘                │               │
+       │                 │                           │               │
+       │   sync:mutate ─────────────────────────────►│               │
+       │   sync:ack / sync:nack ◄────────────────────┘               │
+       │   sync:delta ◄──────────────────────────────────────────────┘
+       │   GET /sync/snapshot (bootstrap + catch-up, HTTP)
+       └── POST /sync/mutate (fallback while the socket is down)
+```
+
+## Installation
+
+```bash
+bun install @terreno/syncdb
+# native persistence (optional peer):
+bun install expo-sqlite
+```
+
+React bindings live on the `@terreno/syncdb/react` subpath so the main entry stays importable without react.
+
+## Quick start
+
+### Backend
+
+Apply both required plugins to the schema, add a `sync` config to the modelRouter (three-argument form required), and register `SyncApp` (HTTP routes) plus `RealtimeApp` (socket + `sync:delta` emission):
+
+```typescript
+import {
+  isDeletedPlugin,
+  modelRouter,
+  OwnerQueryFilter,
+  Permissions,
+  RealtimeApp,
+  SyncApp,
+  syncPlugin,
+  TerrenoApp,
+} from "@terreno/api";
+
+todoSchema.plugin(isDeletedPlugin); // soft delete — required (deletes must remain queryable tombstones)
+todoSchema.plugin(syncPlugin); // stamps a per-stream _syncSeq on every write
+
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {
+    create: [Permissions.IsAuthenticated],
+    delete: [Permissions.IsOwner],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+  },
+  preCreate: (body, req) => ({...body, ownerId: (req.user as unknown as UserDocument)?._id}),
+  queryFilter: OwnerQueryFilter,
+  sync: {
+    scope: {type: "owner"}, // stream = todos|owner:{ownerId}
+  },
+});
+
+new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(new SyncApp()) // GET /sync/snapshot, POST /sync/mutate, GET /sync/key
+  .register(new RealtimeApp()) // Socket.io server; installs sync:subscribe/sync:mutate handlers
+  .start();
+```
+
+Registration is validated at startup: a model with a `sync` config but no `isDeletedPlugin`, no `syncPlugin`, a missing scope field, or a custom scope without a `snapshotFilter` throws with an actionable message. The registry also creates the `{scopeField, _syncSeq}` compound index that snapshot/catch-up queries use.
+
+`RealtimeApp` requires a MongoDB replica set (change streams). Socket auth accepts legacy JWTs by default; add Better Auth sessions with `new RealtimeApp({betterAuth: {auth, userModel: User}})`.
+
+### Frontend
+
+```typescript
+import {betterAuthAdapter, createSyncDb} from "@terreno/syncdb";
+import {SyncDbProvider, useMutate, useQuery, useSyncStatus} from "@terreno/syncdb/react";
+import {createBetterAuthClient} from "@terreno/rtk";
+
+const authClient = createBetterAuthClient({baseURL: "http://localhost:4000"});
+
+export const syncDb = createSyncDb({
+  authProvider: betterAuthAdapter(authClient),
+  baseUrl: "http://localhost:4000",
+  collections: ["todos"],
+  name: "myapp",
+});
+
+// After login. Resolves even when offline — the app works local-first and
+// syncs when connectivity returns.
+await syncDb.start();
+```
+
+```tsx
+const App = () => (
+  <SyncDbProvider client={syncDb}>
+    <TodoList />
+  </SyncDbProvider>
+);
+
+const TodoList: React.FC = () => {
+  const todos = useQuery<Todo>("todos", {filter: (t) => !t.completed});
+  const {create, update, remove} = useMutate("todos");
+  const status = useSyncStatus(); // {isOnline, isSyncing, queuedCount, conflictCount, streams}
+
+  // create({data: {title: "Milk"}}) applies locally, enqueues in the durable
+  // outbox, and replays to the server (socket first, HTTP fallback).
+  // update({id, data: {completed: true}}) merges fields; remove({id}) soft-deletes.
+  ...
+};
+```
+
+### Client API surface
+
+```typescript
+const client = createSyncDb({
+  name,                           // persisted database name
+  collections,                    // string[] — synced collections
+  authProvider,                   // {getToken, getUserId, onAuthChange}
+  baseUrl?,                       // server origin (required unless transport + httpChannel injected)
+  keyProvider?,                   // web encryption key provider (default: server-derived via GET /sync/key)
+  persisterFactory?,              // platform persister override
+  transport?, httpChannel?,       // test/DI overrides
+  reconcileIntervalMs?,           // periodic reconcile (default 5 min; 0 disables)
+  seqJumpReconcileMinIntervalMs?, // seq-jump reconcile rate limit (default 30s)
+});
+
+client.start() / client.stop();
+client.mutate({collection, operation, id?, data?}); // → {mutationId, id}
+client.reconcile();       // HTTP snapshot catch-up for every collection
+client.replayOutbox();    // drain queued mutations now
+client.resolveConflict({mutationId, strategy: "useServer" | "keepMine"});
+client.getSyncStatus();   // {isOnline, isSyncing, queuedCount, conflictCount, streams}
+client.onStatusChange(cb);
+client.store / client.outbox; // low-level access
+```
+
+React hooks (`@terreno/syncdb/react`): `SyncDbProvider`, `useSyncDbClient`, `useEntity(collection, id)`, `useQuery(collection, {filter?, sort?, includeDeleted?})`, `useMutate(collection)`, `useSyncStatus()`, `useConflicts()`.
+
+## Stream scoping
+
+Streams are the unit of ordered delivery and cursor resumption, keyed `{collection}|{scope}` — multi-tenant by default:
+
+```typescript
+sync: {scope: {type: "owner"}}                       // todos|owner:{ownerId}   (field defaults to "ownerId")
+sync: {scope: {type: "owner", field: "userId"}}      // todos|owner:{userId}
+sync: {scope: {type: "tenant", field: "organizationId"}} // todos|tenant:{orgId}
+sync: {scope: {type: "broadcast"}}                   // todos|all
+sync: {
+  scope: (doc) => String(doc.workspaceId),           // todos|custom:{value}
+  snapshotFilter: (user) => ({workspaceId: {$in: [...]}}), // REQUIRED for custom scopes
+}
+```
+
+- **Owner** streams are always keyed by the authenticated socket's own user id — a client-supplied id never selects the stream.
+- **Tenant** (and custom) subscriptions resolve the user's memberships via `SyncAppOptions.getUserScopes`:
+
+```typescript
+new SyncApp({
+  getUserScopes: async (user, entry) => {
+    const memberships = await Membership.find({userId: user.id});
+    return memberships.map((m) => String(m.organizationId));
+  },
+});
+```
+
+- **`snapshotFilter`** is the server-side query restricting `GET /sync/snapshot` to the caller's documents. It is derived automatically for owner (`{field: user.id}`) and tenant (`{field: {$in: getUserScopes(...)}}`) scopes; custom resolver scopes must supply one (a stream function cannot be inverted into a Mongo query) — validated at registration.
+- **`responseHandler`** on the sync config sanitizes payloads for snapshots and deltas, falling back to the modelRouter `responseHandler`, then the document's `toJSON`.
+
+Scope changes (a doc moves owner/tenant) are handled at write time: `syncPlugin` stamps `_syncPrevStream`, and the change-stream watcher emits a tombstone delta to the previous stream plus a create delta to the new one.
+
+## Write-path restrictions
+
+`syncPlugin` stamps `_syncSeq` on: `save`, `insertMany`, `updateOne`, `findOneAndUpdate`, `replaceOne`, `findOneAndReplace`. These paths **throw** on sync-registered models:
+
+- `updateMany`, `deleteMany` — multi-document writes cannot stamp per-document seqs. Loop per document instead.
+- `deleteOne` (query and document forms), `findOneAndDelete` — hard deletes are invisible to tombstone catch-up. Use soft delete (`doc.deleted = true; await doc.save()`).
+- `Model.bulkWrite` **bypasses Mongoose middleware entirely** — it neither stamps nor throws. Do not use it on synced models; this is a documented restriction the plugin cannot enforce.
+
+Sequencing guarantees: validation failures never consume a seq (the claim happens post-validation); the claim joins the caller's session when one is present, so caller-managed transactions get counter+write atomicity. A rare write failure after a claim burns a seq, which clients treat as a benign gap.
+
+## Sync protocol
+
+### HTTP (mounted by `SyncApp`, all authenticated)
+
+| Endpoint | Purpose | Auth |
+|---|---|---|
+| `GET /sync/snapshot?collection=&cursor=&limit=` | Bootstrap + catch-up. Returns `{entities: [{id, data, seq, deleted}], cursor, hasMore}`. `cursor=0` = full snapshot (legacy docs without `_syncSeq` arrive in the first page with seq 0). Default page 500, max 1000. | Model `list` permissions + server-enforced scope filter |
+| `POST /sync/mutate` | HTTP fallback for outbox replay (same handler as the socket channel). Body: `{mutationId, collection, operation, id?, data?, baseVersion?}`. Returns `{ack}` or `{nack}` with status 409 (conflict), 403 (unauthorized), 422 (validation), 500 (error). | modelRouter create/update/delete write path |
+| `GET /sync/key` | Caller's per-user key material for the server key provider (32 random bytes, base64; created on first call). | Own key only |
+
+### Socket events (on the `RealtimeApp` Socket.io server)
+
+| Event | Direction | Payload |
+|---|---|---|
+| `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[]}` — server resolves the user's streams from scope config (+ `getUserScopes`) and joins `sync:{stream}` rooms |
+| `sync:subscribed` | server → client | `{collection, streams}` |
+| `sync:error` | server → client | `{collection, message}` — per-collection subscribe failure (unknown collection, permission denied, missing resolver, cap exceeded) |
+| `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?}` — emitted by the change-stream watcher |
+| `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` (+ optional Socket.io ack callback) |
+| `sync:ack` | server → client | `{mutationId, id, seq}` |
+| `sync:nack` | server → client | `{mutationId, code: "conflict"\|"unauthorized"\|"validation"\|"error", serverDoc?, serverSeq?, message?}` |
+
+Limits: 50 collection subscriptions per socket; 100 `sync:mutate` per second per socket.
+
+### Conflicts and idempotency
+
+The client sends `baseVersion` = the `_syncSeq` it last saw for the doc; a mismatch with the current `_syncSeq` yields a `conflict` nack carrying the canonical server doc + seq. The conflict lands in the local `_conflicts` table and surfaces through `useConflicts()`; resolve with `useServer` (accept the server doc) or `keepMine` (re-enqueue with a fresh baseVersion).
+
+Every mutation is idempotent: the handler atomically claims a `SyncMutation` ledger row (unique `mutationId`) before applying, so a re-sent mutation (lost ack, socket retry racing the HTTP fallback) reads back the recorded outcome instead of double-applying.
+
+## Encryption at rest (web)
+
+Web persistence is **encrypted by default**: the store content is AES-256-GCM encrypted via Web Crypto before it touches IndexedDB. Key management is a pluggable `KeyProvider`:
+
+- `createServerKeyProvider({appName, fetchKeyMaterial})` (**the default**: `createSyncDb` wires it automatically to `GET /sync/key` through its authenticated HTTP channel): fetches per-user key material, derives a non-extractable AES-256-GCM key via HKDF-SHA256 (salt = `{appName}:{userId}`), and caches the derived CryptoKey in IndexedDB so offline cold starts still decrypt. Server rotation of key material makes decryption fail → hook `onDecryptFailure` to wipe and re-bootstrap.
+- `createLocalKeyProvider()`: a random non-extractable CryptoKey generated on-device and cached in IndexedDB. No server dependency and no server-side copy of the key — strictly stronger for the at-rest case, at the cost of no server-driven rotation/revocation.
+
+```typescript
+import {createLocalKeyProvider} from "@terreno/syncdb";
+
+// Default: server-derived key, wired automatically — nothing to configure.
+const syncDb = createSyncDb({name: "myapp", collections, authProvider, baseUrl});
+
+// Opt out of the server-side key copy with a device-local key:
+const localSyncDb = createSyncDb({
+  name: "myapp",
+  collections,
+  authProvider,
+  baseUrl,
+  keyProvider: createLocalKeyProvider(),
+});
+```
+
+**Threat model (stated explicitly):** the web encryption defends against **at-rest disk inspection of IndexedDB** (stolen/imaged device, backup scraping) and against a **stale store being readable after user switch** (per-user keys + wipe-on-user-change). It does **not** defend against XSS or any code executing on the origin — a non-extractable CryptoKey can still be *used* to decrypt in place — and with the server key provider the server can reconstruct any user's key (that is the trade for rotation/revocation; choose the local key provider where that is unacceptable). Server-side data is protected by MongoDB/infra controls, not this layer.
+
+Native relies on the OS app sandbox: the expo-sqlite store is plaintext by design.
+
+## Local store layout
+
+One TinyBase `MergeableStore` per `{app, userId}` (wiped and re-bootstrapped on user change):
+
+```
+tables:
+  {collection}   → rowId = doc _id; cells: data (JSON string), seq, deleted, pendingMutationId
+  _outbox        → rowId = mutationId; cells: collection, operation, entityId, args (JSON),
+                   baseVersion?, status (queued|inFlight|acked|conflicted|failed),
+                   attemptCount, userId, createdAt, enqueueOrder
+  _cursors       → rowId = stream; cells: seq, updatedAt
+  _conflicts     → rowId = mutationId; cells: collection, entityId, localData, serverData,
+                   serverSeq, dismissed
+values: schemaVersion, lastUserId
+```
+
+The outbox replays FIFO over the socket (HTTP fallback while disconnected), with per-user isolation: queued mutations record `userId` and replay skips on mismatch.
+
+### Why MergeableStore (and the Yjs door)
+
+`MergeableStore` is TinyBase's per-cell LWW CRDT (hybrid logical clocks) with a different on-disk format from the plain `Store`. Adopting it from day one avoids a per-device data migration later, and keeps the door open to a Yjs CRDT backend for collaborative structures (rich text) through the same persister/transport abstractions — without implementing Yjs now. The cost is roughly 2× storage overhead for the CRDT metadata, accepted for that readiness.
+
+## Gap handling
+
+Stream seqs are **not** contiguous from any one client's perspective — permission-filtered deltas legitimately skip numbers, and a failed write can burn a seq. Convergence therefore never depends on a gap proof:
+
+- A **seq jump** in an incoming delta is treated as a *hint*: it triggers an HTTP reconcile (snapshot catch-up from the stream cursor), rate-limited to once per 30s per stream (`seqJumpReconcileMinIntervalMs`).
+- Every **reconnect** triggers a reconcile plus an outbox replay.
+- A **periodic reconcile** (default every 5 minutes, `reconcileIntervalMs`; 0 disables) guarantees convergence even for deltas missed with no observable jump.
+
+Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), safe under concurrent writes because a doc's seq only ever increases.
+
+## Known limitations
+
+- **Multi-tab web**: two tabs of the same user share one IndexedDB blob; concurrent persister saves are last-writer-wins at the blob level and can drop the other tab's queued outbox rows. Single-writer coordination (Web Locks) is not implemented yet — avoid relying on offline writes from multiple simultaneous tabs.
+- **`Model.bulkWrite` bypass**: bulkWrite skips Mongoose middleware, so it neither stamps seqs nor throws on synced models. Nothing can catch this server-side; it is a hard convention.
+- **Native plaintext by design**: no SQLCipher; the OS sandbox is deemed sufficient.
+- **Whole-store persistence**: each save serializes and (on web) encrypts the full store — cost scales with store size, not change size. Bound it by scoping which collections sync; saves are debounced.
+- **`realtime` + `sync` coexistence**: a model may enable both (distinct events, `sync` vs `sync:delta`, so clients never double-apply), at the cost of double emission work. Treat `realtime` as deprecated for a model once `sync` is on.
+- **Seq counter write amplification**: every synced write does an atomic `$inc` on a per-stream counter doc. Acceptable at current scale; Redis-based counters are the documented upgrade path.

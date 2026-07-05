@@ -196,7 +196,7 @@
   - Depends on: 7.3
   - Acceptance: e2e suite green in CI with USE_SYNCDB on.
 
-- [ ] **Task 7.5**: Docs + migration guide + rtk deprecation note
+- [x] **Task 7.5**: Docs + migration guide + rtk deprecation note
   - Description: `syncdb/README.md` (architecture, usage, key management, multi-tenant scoping, the Yjs door); `docs/how-to/migrate-rtk-to-syncdb.md` (auth → Better Auth, reads, writes, offline, realtime equivalents); deprecation note in `rtk/README.md` scoped to data-sync concerns; package list updates in root `CLAUDE.md`/README.
   - Files: `syncdb/README.md` (new), `docs/how-to/migrate-rtk-to-syncdb.md` (new), `rtk/README.md`, `CLAUDE.md`
   - Depends on: 7.2

@@ -57,6 +57,9 @@ const makeChannel = (): FakeChannel => {
   const state: FakeChannel["state"] = {fetchCount: 0, pages: {}};
   return {
     channel: {
+      fetchKeyMaterial: async () => {
+        throw new Error("key material not expected in this test");
+      },
       fetchSnapshotPage: async ({collection}) => {
         state.fetchCount += 1;
         return state.pages[collection] ?? {cursor: 0, entities: [], hasMore: false};
@@ -500,6 +503,7 @@ describe("createSyncDb", () => {
     };
     let httpMutations = 0;
     const http: HttpChannel = {
+      fetchKeyMaterial: harness.http.channel.fetchKeyMaterial,
       fetchSnapshotPage: harness.http.channel.fetchSnapshotPage,
       sendMutation: async (request) => {
         httpMutations += 1;
