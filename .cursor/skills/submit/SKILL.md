@@ -45,6 +45,16 @@ git push origin HEAD
 
 ## Step 4: Create or Update PR
 
+### Include run evidence (screenshots/videos)
+
+If any evidence was captured during this run — screenshots, screen recordings, or videos (e.g. from browser testing, `verify-ui-changes`, Playwright, or emulator sessions) — include it in the PR body under an `## Evidence` section:
+
+- Check for media generated during the session (e.g. `/opt/cursor/artifacts/`, `.cursor/artifacts/`, test output dirs, or files you saved while verifying).
+- In Cursor cloud runs, reference artifacts by absolute path with HTML tags — the PR tool uploads them and rewrites the URLs automatically: `<img alt="Description" src="/opt/cursor/artifacts/screenshots/example.png" />` or `<video src="/opt/cursor/artifacts/demo.mp4"></video>`.
+- With `gh`, only include media you can reference by a stable URL (already-uploaded images); do not commit media files to the repo just to link them.
+- Give each item a one-line caption saying what it demonstrates.
+- Skip the section entirely if no evidence exists — never add placeholders.
+
 ### If no PR exists
 
 Use this template for the **initial** body only:
@@ -66,6 +76,8 @@ EOF
 )" --draft
 ```
 
+Append an `## Evidence` section to the initial body when run evidence exists (see "Include run evidence" above).
+
 ### If a PR already exists
 
 1. Read the current PR title and body, then compare against commits and diff on the branch:
@@ -83,6 +95,7 @@ git diff $(gh pr view --json baseRefName -q .baseRefName)...HEAD --stat
 - Prefer **additive** updates: append bullets under **Changes** for new work; extend **Summary** with a brief "Update:" line (and date if helpful) when scope grows, instead of deleting the original explanation.
 - Refresh **Human Testing Steps** / **Automated Tests** only when verification needs changed; add or adjust bullets rather than wiping sections unless an item is now false.
 - If new work does not fit existing headings, add a **new section at the end** instead of removing unrelated content.
+- If this run produced new evidence (screenshots/videos), add it under the existing `## Evidence` section, or create that section if missing — keep any evidence already in the body.
 - Change the PR **title** only when the overall branch goal changed; otherwise keep the existing title.
 
 3. Compare your merged draft against the `git log` / `git diff` output above. Revise only what is stale.

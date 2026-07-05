@@ -46,7 +46,8 @@ Stop and fix before committing if checks fail.
 - Read and apply PR template if present.
 - Keep PR title/body accurate and concise.
 - Include human testing steps and automated checks sections.
-- Apply PHI minimum-necessary handling in PR text.
+- **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them to the PR body under an `## Evidence` section with a one-line caption per item. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section if no evidence exists.
+- Apply PHI minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing PHI.
 
 ### 5) Conflict resolution before handoff
 
