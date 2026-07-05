@@ -112,6 +112,38 @@ describe("normalizeApiError", () => {
     expect(normalized.messages).toEqual(["Network Error"]);
   });
 
+  it("classifies a sub-400 response status as unknown", () => {
+    const normalized = normalizeApiError(buildAxiosError({status: 302}), CONTEXT);
+    expect(normalized.classification).toBe("unknown");
+    expect(normalized.statusCode).toBe(302);
+  });
+
+  it("extracts detail-only JSONAPI error entries", () => {
+    const error = buildAxiosError({data: {errors: [{detail: "just a detail"}]}, status: 400});
+    const normalized = normalizeApiError(error, CONTEXT);
+    expect(normalized.messages).toEqual(["just a detail"]);
+  });
+
+  it("falls back to the axios message for empty-string, empty-message, and empty-errors bodies", () => {
+    for (const data of ["", {message: ""}, {errors: []}]) {
+      const normalized = normalizeApiError(buildAxiosError({data, status: 500}), CONTEXT);
+      expect(normalized.messages).toEqual(["Request failed with status code 500"]);
+    }
+  });
+
+  it("falls back to the axios message when the errors array has no usable entries", () => {
+    const error = buildAxiosError({data: {errors: ["oops", null, 42, {title: 5}]}, status: 500});
+    const normalized = normalizeApiError(error, CONTEXT);
+    expect(normalized.messages).toEqual(["Request failed with status code 500"]);
+  });
+
+  it("truncates long plain-string bodies so unbounded payloads never reach the logger", () => {
+    const error = buildAxiosError({data: "x".repeat(2000), status: 503});
+    const normalized = normalizeApiError(error, CONTEXT);
+    expect(normalized.messages[0].length).toBeLessThanOrEqual(512);
+    expect(normalized.messages[0].endsWith("…")).toBe(true);
+  });
+
   it("classifies a plain Error as unknown and preserves its message", () => {
     const normalized = normalizeApiError(new Error("boom"), CONTEXT);
     expect(normalized.isAxios).toBe(false);
@@ -165,13 +197,14 @@ describe("withApiErrorHandling", () => {
     expect(normalized.classification).toBe("notFound");
   });
 
-  it("converts to an APIError when rethrowAs is apiError", async () => {
-    const {logger} = createRecordingLogger();
+  it("converts to an APIError when rethrowAs is apiError, logging via APIError only", async () => {
+    const {logger, entries} = createRecordingLogger();
+    const original = buildAxiosError({data: {message: "Rate limit exceeded"}, status: 429});
     let caught: unknown;
     try {
       await withApiErrorHandling(
         async () => {
-          throw buildAxiosError({data: {message: "Rate limit exceeded"}, status: 429});
+          throw original;
         },
         {...CONTEXT, logger, rethrowAs: "apiError"}
       );
@@ -181,7 +214,12 @@ describe("withApiErrorHandling", () => {
     expect(caught).toBeInstanceOf(APIError);
     const apiError = caught as APIError;
     expect(apiError.status).toBe(429);
-    expect(apiError.title).toBe("testApi getWidget failed: Rate limit exceeded");
+    expect(apiError.title).toBe("testApi getWidget request failed");
+    expect(apiError.detail).toBe("Rate limit exceeded");
+    expect(apiError.error).toBe(original);
+    expect(apiError.meta?.classification).toBe("rateLimited");
+    // Logged exactly once: the APIError constructor logs, so the wrapper must not.
+    expect(entries).toHaveLength(0);
   });
 
   it("defaults the APIError status to 500 when the failure has no status code", async () => {
@@ -201,13 +239,30 @@ describe("withApiErrorHandling", () => {
     expect((caught as APIError).status).toBe(500);
   });
 
-  it("applies the redactError hook before logging", async () => {
-    const {logger, entries} = createRecordingLogger();
+  it("clamps sub-400 response statuses to a 500 APIError", async () => {
+    const {logger} = createRecordingLogger();
     let caught: unknown;
     try {
       await withApiErrorHandling(
         async () => {
-          throw buildAxiosError({data: {message: "patient 12345 not found"}, status: 404});
+          throw buildAxiosError({status: 302});
+        },
+        {...CONTEXT, logger, rethrowAs: "apiError"}
+      );
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as APIError).status).toBe(500);
+  });
+
+  it("applies the redactError hook before logging", async () => {
+    const {logger, entries} = createRecordingLogger();
+    const original = buildAxiosError({data: {message: "patient 12345 not found"}, status: 404});
+    let caught: unknown;
+    try {
+      await withApiErrorHandling(
+        async () => {
+          throw original;
         },
         {
           ...CONTEXT,
@@ -218,8 +273,52 @@ describe("withApiErrorHandling", () => {
     } catch (error) {
       caught = error;
     }
-    expect(caught).toBeDefined();
+    expect(caught).toBe(original);
     const logged = entries[0].args[0] as {messages: string[]};
     expect(logged.messages).toEqual(["[redacted]"]);
+  });
+
+  it("uses redacted messages in the APIError detail when combined with rethrowAs apiError", async () => {
+    const {logger} = createRecordingLogger();
+    let caught: unknown;
+    try {
+      await withApiErrorHandling(
+        async () => {
+          throw buildAxiosError({data: {message: "patient 12345 not found"}, status: 404});
+        },
+        {
+          ...CONTEXT,
+          logger,
+          redactError: (normalized) => ({...normalized, messages: ["[redacted]"]}),
+          rethrowAs: "apiError",
+        }
+      );
+    } catch (error) {
+      caught = error;
+    }
+    const apiError = caught as APIError;
+    expect(apiError.detail).toBe("[redacted]");
+    expect(apiError.message).not.toContain("patient 12345");
+  });
+
+  it("falls back to a generic detail when redactError strips all messages", async () => {
+    const {logger} = createRecordingLogger();
+    let caught: unknown;
+    try {
+      await withApiErrorHandling(
+        async () => {
+          throw buildAxiosError({data: {message: "sensitive"}, status: 404});
+        },
+        {
+          ...CONTEXT,
+          logger,
+          redactError: (normalized) => ({...normalized, messages: []}),
+          rethrowAs: "apiError",
+        }
+      );
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as APIError).detail).toBe("unknown error");
   });
 });

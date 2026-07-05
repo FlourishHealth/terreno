@@ -55,13 +55,20 @@ const classifyStatusCode = (statusCode: number): ApiErrorClassification => {
   return "unknown";
 };
 
+// Plain-string bodies (HTML error pages, proxy text) are truncated to this length so an
+// unbounded — and potentially sensitive — payload never reaches the logger whole.
+const MAX_STRING_BODY_MESSAGE_LENGTH = 500;
+
 /**
  * Extracts human-readable messages from common API error response body shapes:
- * plain strings, `{message}`, and JSONAPI-style `{errors: [{title, detail}]}`.
+ * plain strings (truncated), `{message}`, and JSONAPI-style `{errors: [{title, detail}]}`.
  * Returns an empty array when the body has no recognizable message.
  */
 const extractBodyMessages = (data: unknown): string[] => {
   if (typeof data === "string" && data.length > 0) {
+    if (data.length > MAX_STRING_BODY_MESSAGE_LENGTH) {
+      return [`${data.slice(0, MAX_STRING_BODY_MESSAGE_LENGTH)}…`];
+    }
     return [data];
   }
   if (data && typeof data === "object") {
@@ -98,8 +105,10 @@ const extractBodyMessages = (data: unknown): string[] => {
  * classified as "network"; non-axios errors fall through to "unknown" with the error
  * message preserved.
  *
- * The normalized shape intentionally excludes request/response payload bodies so it is
- * safe to log as-is.
+ * Raw payload bodies are not carried on the normalized shape — only recognized message
+ * fields are extracted, and plain-string bodies are truncated. Consumers whose services
+ * put sensitive data inside those message fields should additionally use a redactError
+ * hook.
  */
 export const normalizeApiError = (
   error: unknown,
@@ -151,12 +160,14 @@ export interface WithApiErrorHandlingOptions {
 
 /**
  * Wraps an external API call with standardized error handling: failures are normalized
- * via normalizeApiError, passed through the optional redactError hook, logged once with
- * structured context, and rethrown — either as the original error (default) or as a
- * terreno APIError when `rethrowAs: "apiError"`.
+ * via normalizeApiError, passed through the optional redactError hook, logged exactly
+ * once, and rethrown.
  *
- * Only the normalized shape (status code, classification, extracted messages) is logged;
- * request/response payload bodies never reach the logger.
+ * In "raw" mode (default) the wrapper logs the normalized shape via the injected logger
+ * and rethrows the original error. In "apiError" mode the wrapper throws a terreno
+ * APIError — whose constructor already logs — so the wrapper itself stays silent to
+ * preserve the log-once contract. The APIError title is stable per JSONAPI convention;
+ * per-occurrence text goes in `detail`, built from the (redacted) normalized messages.
  */
 export const withApiErrorHandling = async <T>(
   fn: () => Promise<T>,
@@ -173,14 +184,17 @@ export const withApiErrorHandling = async <T>(
     if (options.redactError) {
       normalized = options.redactError(normalized);
     }
-    log.error(`[${options.apiName}] ${options.operation} failed`, normalized);
     if (options.rethrowAs === "apiError") {
+      const statusCode = normalized.statusCode;
       throw new APIError({
+        detail: normalized.messages[0] ?? "unknown error",
         error,
-        status: normalized.statusCode ?? 500,
-        title: `${options.apiName} ${options.operation} failed: ${normalized.messages[0]}`,
+        meta: {classification: normalized.classification},
+        status: statusCode !== undefined && statusCode >= 400 ? statusCode : 500,
+        title: `${options.apiName} ${options.operation} request failed`,
       });
     }
+    log.error(`[${options.apiName}] ${options.operation} failed`, normalized);
     throw error;
   }
 };
