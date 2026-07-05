@@ -30,7 +30,7 @@
 
 ## Phase 2: Server mutation channel + deltas
 
-- [ ] **Task 2.0**: Extract transport-agnostic CRUD executors from modelRouter
+- [x] **Task 2.0**: Extract transport-agnostic CRUD executors from modelRouter
   - Description: **The load-bearing refactor of this IP.** modelRouter's create/update/delete logic is currently inline inside Express `asyncHandler` closures with permissions/validation as middleware (`api/src/api.ts:648-745` and onward) — no callable write path exists. Extract `executeCreate/executeUpdate/executeDelete({model, options, user, body, id, concurrencyCheck})` that run permissions, pre/post hooks, and validation without `req`/`res`; migrate the REST handlers to thin wrappers over them. `executeUpdate`'s concurrency check accepts either the legacy `If-Unmodified-Since` timestamp (REST) or a `baseSeq` integer (sync) so both LWW modes share one code path.
   - Files: `api/src/executors.ts` (new) or `api/src/api.ts` (extract in place), `api/src/index.ts`
   - Depends on: none (can start immediately; blocks 2.1)
