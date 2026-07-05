@@ -29,6 +29,9 @@ export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
 export {
+  type AuthorizedEmitEntry,
+  emitPayloadToAuthorizedRoom,
+  emitSyncDeltaForChange,
   startChangeStreamWatcher,
   stopChangeStreamWatcher,
 } from "./realtime/changeStreamWatcher";
@@ -57,6 +60,14 @@ export {
   type RealtimeRegistryEntry,
   registerRealtime,
 } from "./realtime/registry";
+export {
+  type AuthenticatableSocket,
+  type BetterAuthSocketOptions,
+  createBetterAuthValidator,
+  createLegacyJwtValidator,
+  createSocketAuthMiddleware,
+  type SocketAuthValidator,
+} from "./realtime/socketAuth";
 export type {
   ChangeStreamConfig,
   DocumentSubscription,

@@ -142,17 +142,28 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
     const previousStream = streamForObject(entry, targetObj);
 
     const rawUpdate = (this.getUpdate() ?? {}) as Record<string, any>;
-    const isReplacement = !Object.keys(rawUpdate).some((key) => key.startsWith("$"));
+    // Only replaceOne/findOneAndReplace replace the document. A plain object passed to
+    // updateOne/findOneAndUpdate is an IMPLICIT $set in Mongoose — treating it as a
+    // replacement would resolve the scope value as undefined and claim the wrong stream.
+    const op = (this as unknown as {op?: string}).op ?? "";
+    const isTrueReplacement = op === "replaceOne" || op === "findOneAndReplace";
+    const hasOperators = Object.keys(rawUpdate).some((key) => key.startsWith("$"));
+    // The fields the update effectively $sets (empty for true replacements).
+    const setFields: Record<string, unknown> = isTrueReplacement
+      ? {}
+      : hasOperators
+        ? ((rawUpdate.$set as Record<string, unknown>) ?? {})
+        : rawUpdate;
     const scopeField = getScopeField(entry.config.scope);
 
     let currentStream: string;
     if (typeof entry.config.scope === "function") {
-      const effectiveDoc = isReplacement ? rawUpdate : {...targetObj, ...(rawUpdate.$set ?? {})};
+      const effectiveDoc = isTrueReplacement ? rawUpdate : {...targetObj, ...setFields};
       currentStream = streamForObject(entry, effectiveDoc);
     } else if (scopeField) {
-      const newScopeValue = isReplacement
+      const newScopeValue = isTrueReplacement
         ? rawUpdate[scopeField]
-        : (rawUpdate.$set?.[scopeField] ?? targetObj[scopeField]);
+        : (setFields[scopeField] ?? targetObj[scopeField]);
       currentStream = streamForScopeValue({
         collectionTag: entry.collectionTag,
         scope: entry.config.scope,
@@ -165,7 +176,8 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
     const prevStream = previousStream !== currentStream ? previousStream : null;
     const seq = await claimSyncSeqs({session, stream: currentStream});
 
-    if (isReplacement) {
+    if (isTrueReplacement || !hasOperators) {
+      // True replacements and implicit-$set plain objects both take plain keys.
       rawUpdate._syncPrevStream = prevStream;
       rawUpdate._syncSeq = seq;
     } else {

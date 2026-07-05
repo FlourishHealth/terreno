@@ -72,6 +72,10 @@ const expectNack = (outcome: SyncMutationOutcome) => {
 describe("applySyncMutation", () => {
   beforeAll(async () => {
     await setupDb();
+    // The shared test database can be dropped by another test file mid-suite
+    // (configurationPlugin.test.ts drops it in an afterAll); rebuild the unique indexes
+    // the idempotency tests depend on.
+    await Promise.all([SyncCounter.ensureIndexes(), SyncMutation.ensureIndexes()]);
   });
 
   beforeEach(async () => {

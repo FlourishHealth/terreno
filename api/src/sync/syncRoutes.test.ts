@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import {model, Schema} from "mongoose";
 import supertest from "supertest";
@@ -67,6 +67,17 @@ const adminOnlyOptions = {
     update: [Permissions.IsAdmin],
   },
 } as unknown as ModelRouterOptions<any>;
+
+// The shared test database can be dropped by another test file mid-suite
+// (configurationPlugin.test.ts drops it in an afterAll); rebuild the unique indexes the
+// duplicate-delivery and key tests depend on.
+beforeAll(async () => {
+  await Promise.all([
+    SyncCounter.ensureIndexes(),
+    SyncKey.ensureIndexes(),
+    SyncMutation.ensureIndexes(),
+  ]);
+});
 
 describe("sync routes", () => {
   let app: express.Application;

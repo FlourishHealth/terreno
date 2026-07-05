@@ -3,6 +3,8 @@ export * from "./models";
 export * from "./mutationHandler";
 export * from "./registry";
 export * from "./routes";
+export * from "./serialize";
+export * from "./socketHandlers";
 export * from "./streams";
 export * from "./syncApp";
 export * from "./syncSeqPlugin";

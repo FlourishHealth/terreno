@@ -4,7 +4,13 @@ import {model, Schema} from "mongoose";
 import {type ModelRouterOptions, modelRouter} from "../api";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {setupDb} from "../tests";
-import {claimSyncSeqs, getOrCreateSyncKeyMaterial, SyncCounter, SyncKey} from "./models";
+import {
+  claimSyncSeqs,
+  getOrCreateSyncKeyMaterial,
+  SyncCounter,
+  SyncKey,
+  SyncMutation,
+} from "./models";
 import {
   clearSyncRegistry,
   findSyncEntryByCollectionTag,
@@ -36,6 +42,17 @@ syncStuffSchema.plugin(isDeletedPlugin);
 syncStuffSchema.plugin(createdUpdatedPlugin);
 syncStuffSchema.plugin(syncPlugin);
 const SyncStuffModel = model<SyncStuff>("SyncStuff", syncStuffSchema);
+
+// The shared test database can be dropped by another test file mid-suite
+// (configurationPlugin.test.ts drops it in an afterAll), destroying the unique indexes
+// the concurrency/idempotency tests below depend on. Rebuild them before this file runs.
+beforeAll(async () => {
+  await Promise.all([
+    SyncCounter.ensureIndexes(),
+    SyncKey.ensureIndexes(),
+    SyncMutation.ensureIndexes(),
+  ]);
+});
 
 // Has syncPlugin but is never registered — hooks must no-op.
 const unregisteredSchema = new Schema<SyncStuff>({
@@ -275,6 +292,33 @@ describe("syncPlugin seq stamping", () => {
       {new: true}
     );
     expect(updated?._syncSeq).toBe(2);
+  });
+
+  it("stamps plain-object updates (implicit $set) on the correct stream", async () => {
+    // Regression: a plain object passed to findOneAndUpdate is an implicit $set, not a
+    // replacement — the scope value must come from the existing doc, not read as
+    // undefined from the update body (which claimed a bogus "owner:undefined" stream).
+    const doc = await SyncStuffModel.create({name: "p", ownerId: "u1"});
+    const updated = await SyncStuffModel.findOneAndUpdate(
+      {_id: doc._id},
+      {name: "p2"},
+      {new: true}
+    );
+    expect(updated?._syncSeq).toBe(2);
+    expect(updated?._syncPrevStream).toBeNull();
+    expect(updated?.ownerId).toBe("u1");
+    const counters = await SyncCounter.find({}).sort({stream: 1});
+    expect(counters.map((c) => c.stream)).toEqual(["syncStuff|owner:u1"]);
+  });
+
+  it("stamps plain-object updateOne (implicit $set) without a bogus scope move", async () => {
+    const doc = await SyncStuffModel.create({name: "q1", ownerId: "u1"});
+    await SyncStuffModel.updateOne({_id: doc._id}, {name: "q2"});
+    const updated = await SyncStuffModel.find({_id: doc._id});
+    expect(updated[0]?._syncSeq).toBe(2);
+    expect(updated[0]?._syncPrevStream).toBeNull();
+    const counters = await SyncCounter.find({});
+    expect(counters).toHaveLength(1);
   });
 
   it("stamps on replaceOne", async () => {
