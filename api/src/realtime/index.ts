@@ -1,4 +1,10 @@
-export {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
+export {
+  type AuthorizedEmitEntry,
+  emitPayloadToAuthorizedRoom,
+  emitSyncDeltaForChange,
+  startChangeStreamWatcher,
+  stopChangeStreamWatcher,
+} from "./changeStreamWatcher";
 export {matchesQuery} from "./queryMatcher";
 export {
   addQuerySubscription,
@@ -24,6 +30,14 @@ export {
   type RealtimeRegistryEntry,
   registerRealtime,
 } from "./registry";
+export {
+  type AuthenticatableSocket,
+  type BetterAuthSocketOptions,
+  createBetterAuthValidator,
+  createLegacyJwtValidator,
+  createSocketAuthMiddleware,
+  type SocketAuthValidator,
+} from "./socketAuth";
 export type {
   ChangeStreamConfig,
   DocumentSubscription,

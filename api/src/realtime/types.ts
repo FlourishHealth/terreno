@@ -1,4 +1,6 @@
 import type express from "express";
+import type {SyncAppOptions} from "../sync/routes";
+import type {BetterAuthSocketOptions} from "./socketAuth";
 
 /**
  * Configuration for real-time sync on a modelRouter.
@@ -81,6 +83,17 @@ export interface RealtimeAppOptions {
   redisUrl?: string;
   /** JWT secret for socket authentication (default: process.env.TOKEN_SECRET) */
   tokenSecret?: string;
+  /**
+   * Enables the Better Auth session validator for socket authentication, tried after the
+   * legacy JWT validator. Pass the instance returned by `createBetterAuth` (and optionally
+   * the app user model so `decodedToken.id`/`admin` match the REST identity).
+   */
+  betterAuth?: BetterAuthSocketOptions;
+  /**
+   * Explicit SyncAppOptions override for the sync socket handlers. Normally omitted —
+   * the options registered by the SyncApp plugin are used automatically.
+   */
+  sync?: SyncAppOptions;
   /** Enable debug logging */
   debug?: boolean;
 }

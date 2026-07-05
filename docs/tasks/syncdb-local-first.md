@@ -48,19 +48,19 @@
   - Depends on: 2.1
   - Acceptance: API tests mirror all 2.1 outcomes over HTTP with correct status codes.
 
-- [ ] **Task 2.3**: Socket `sync:mutate`/`sync:ack`/`sync:nack` + `sync:subscribe` with tenant rooms
+- [x] **Task 2.3**: Socket `sync:mutate`/`sync:ack`/`sync:nack` + `sync:subscribe` with tenant rooms
   - Description: Socket handlers calling `applySyncMutation` and replying ack/nack. `sync:subscribe {collections}` resolves the user's streams: owner scope reuses `user:{id}` room membership; tenant scope joins `sync:{stream}` rooms via a new `getUserStreams(user)` config callback on the sync plugin; broadcast uses the model room. Per-socket subscription caps consistent with existing handlers.
   - Files: `api/src/sync/socketHandlers.ts` (new), `api/src/realtime/realtimeApp.ts` (install hook), `api/src/sync/syncApp.ts`
   - Depends on: 2.1
   - Acceptance: integration tests with a socket.io client — mutate→ack roundtrip; conflict→nack with server doc; subscribe joins correct rooms per scope type; cap enforcement.
 
-- [ ] **Task 2.4**: `sync:delta` emission from the change-stream watcher
+- [x] **Task 2.4**: `sync:delta` emission from the change-stream watcher
   - Description: Extend `changeStreamWatcher` so sync-registered models also emit `sync:delta {collection, id, method, data?, seq, stream, deleted?}` to the stream's rooms with per-socket permission checks (reuse `emitToAuthorizedRoom`). `seq`/`stream` are read from the post-image (`fullDocument._syncSeq`; the watcher runs `updateLookup`, `changeStreamWatcher.ts:419`). Scope changes use the **`_syncPrevStream` field stamped by the 1.2 plugin** (change streams run `fullDocumentBeforeChange: "off"`, so the old scope is not otherwise available): when post-image `_syncPrevStream` differs from the current stream, emit a tombstone delta to the previous stream + a create delta to the new stream. `realtime` and `sync` may coexist on a model: distinct event names, double emission accepted, documented as transitional.
   - Files: `api/src/realtime/changeStreamWatcher.ts`, `api/src/sync/streams.ts`
   - Depends on: 2.3 (and 1.2's `_syncPrevStream`)
   - Acceptance: integration tests — create/update/soft-delete each produce exactly one delta with correct seq on the right stream; tenant A's socket never receives tenant B's delta; scope-move emits tombstone+create pair **without Mongo pre-images enabled**; a model with both `realtime` and `sync` emits both event types with no cross-talk.
 
-- [ ] **Task 2.5**: Pluggable socket authenticator (Better Auth support)
+- [x] **Task 2.5**: Pluggable socket authenticator (Better Auth support)
   - Description: Refactor `RealtimeApp`'s hardcoded `@thream/socketio-jwt` middleware into an authenticator chain: legacy JWT validator (default, behavior unchanged) plus a Better Auth session-token validator (validates via Better Auth session lookup and populates the same `socket.decodedToken` shape consumed by `getSocketUser`).
   - Files: `api/src/realtime/socketAuth.ts` (new), `api/src/realtime/realtimeApp.ts`, `api/src/realtime/socketUser.ts`
   - Depends on: none (parallel with 2.1–2.4)

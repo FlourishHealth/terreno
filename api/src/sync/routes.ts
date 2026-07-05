@@ -8,6 +8,7 @@ import {checkPermissions} from "../permissions";
 import {getOrCreateSyncKeyMaterial} from "./models";
 import {applySyncMutation} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
+import {serializeSyncPayload} from "./serialize";
 import {getScopeField} from "./streams";
 import type {
   SyncEntityPayload,
@@ -42,6 +43,7 @@ const NACK_HTTP_STATUS: Record<SyncNackCode, number> = {
 /**
  * Serialize a document for a sync payload through the fallback chain:
  * sync responseHandler > modelRouter responseHandler > toJSON.
+ * Delegates to the shared `serializeSyncPayload` (also used for `sync:delta` emission).
  */
 export const serializeSyncDoc = async ({
   entry,
@@ -51,15 +53,8 @@ export const serializeSyncDoc = async ({
   entry: SyncRegistryEntry;
   doc: mongoose.Document;
   req: express.Request;
-}): Promise<unknown> => {
-  if (entry.config.responseHandler) {
-    return entry.config.responseHandler(doc.toObject() as Record<string, unknown>, "update");
-  }
-  if (entry.options.responseHandler) {
-    return entry.options.responseHandler(doc as any, "list", req, entry.options);
-  }
-  return doc.toJSON();
-};
+}): Promise<unknown> =>
+  serializeSyncPayload({doc: doc as unknown as Record<string, unknown>, entry, req});
 
 /** Build the server-enforced scope filter for a snapshot request. */
 export const buildSnapshotScopeFilter = async ({

@@ -1,14 +1,18 @@
 import type express from "express";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {addSyncRoutes, type SyncAppOptions} from "./routes";
+import {setActiveSyncAppOptions} from "./socketHandlers";
 
 /**
  * TerrenoPlugin mounting the SyncDB local-first sync HTTP routes
- * (`GET /sync/snapshot`, `GET /sync/key`). Models opt in via modelRouter's `sync`
- * option; this plugin serves the registered collections.
+ * (`GET /sync/snapshot`, `POST /sync/mutate`, `GET /sync/key`). Models opt in via
+ * modelRouter's `sync` option; this plugin serves the registered collections.
  *
- * Phase 2 extends this plugin with the socket mutation channel (`sync:mutate`)
- * and `sync:delta` emission via the RealtimeApp change-stream watcher.
+ * Registration also publishes the plugin's options (notably `getUserScopes`) as the
+ * active SyncAppOptions so RealtimeApp's connection handler can install the socket
+ * mutation/subscription channel (`sync:subscribe`, `sync:mutate`) with the same
+ * configuration — the socket layer requires both plugins: SyncApp for config/routes and
+ * RealtimeApp for the Socket.io server and `sync:delta` emission.
  */
 export class SyncApp implements TerrenoPlugin {
   private readonly options: SyncAppOptions;
@@ -18,6 +22,7 @@ export class SyncApp implements TerrenoPlugin {
   }
 
   register(app: express.Application): void {
+    setActiveSyncAppOptions(this.options);
     addSyncRoutes(app, this.options);
   }
 }

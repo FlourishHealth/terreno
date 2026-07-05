@@ -21,7 +21,12 @@ type WatchedChange = Extract<
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
+import {checkPermissions, type PermissionMethod} from "../permissions";
+import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
+import {serializeSyncPayload} from "../sync/serialize";
+import {syncRoomForStream} from "../sync/socketHandlers";
+import {resolveStreamForDoc} from "../sync/streams";
+import type {SyncDelta, SyncMutationOperation} from "../sync/types";
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
@@ -94,8 +99,18 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
   return sockets;
 };
 
+/**
+ * The minimal registry-entry shape the authorized-room emitters need. Both
+ * `RealtimeRegistryEntry` and `SyncRegistryEntry` satisfy it structurally.
+ */
+export interface AuthorizedEmitEntry {
+  modelName: string;
+  // biome-ignore lint/suspicious/noExplicitAny: permissions are generic across all models
+  options: {permissions: {read: PermissionMethod<any>[]}};
+}
+
 const canReadDocument = async (
-  entry: RealtimeRegistryEntry,
+  entry: AuthorizedEmitEntry,
   user?: User,
   doc?: Record<string, unknown>
 ): Promise<boolean> => {
@@ -211,14 +226,32 @@ export const serializeDoc = async (
   );
 };
 
-export const emitToAuthorizedRoom = async (
-  io: Server,
-  room: string,
-  event: RealtimeEvent,
-  entry: RealtimeRegistryEntry,
-  fullDocument: Record<string, unknown> | undefined,
-  logDebug: (msg: string) => void
-): Promise<void> => {
+/**
+ * Generalized authorized-room emitter: iterates the sockets in `room`, runs the per-socket
+ * read-permission check against `fullDocument`, builds the payload per socket (so
+ * responseHandlers can tailor output to the receiving user), and emits `eventName`.
+ *
+ * `emitToAuthorizedRoom` (legacy "sync" events) and the sync layer's `sync:delta`
+ * emission both delegate here.
+ */
+export const emitPayloadToAuthorizedRoom = async ({
+  io,
+  room,
+  eventName,
+  entry,
+  fullDocument,
+  buildPayload,
+  logDebug,
+}: {
+  io: Server;
+  room: string;
+  eventName: string;
+  entry: AuthorizedEmitEntry;
+  fullDocument: Record<string, unknown> | undefined;
+  /** Build the per-socket payload; a throw drops the emission for that socket only. */
+  buildPayload: (user: User | undefined) => Promise<unknown> | unknown;
+  logDebug: (msg: string) => void;
+}): Promise<void> => {
   const sockets = getSocketsInRoom(io, room);
   for (const socket of sockets) {
     const user = getSocketUser(socket);
@@ -232,21 +265,39 @@ export const emitToAuthorizedRoom = async (
         continue;
       }
 
-      if (!fullDocument) {
-        socket.emit("sync", event);
-        continue;
-      }
-
-      const data = await serializeDoc(entry, fullDocument, event.method, user);
-      socket.emit("sync", {...event, data});
+      socket.emit(eventName, await buildPayload(user));
     } catch (error) {
       logger.error(
-        `[realtime] Failed to emit ${entry.modelName}/${event.method} to socket ${socket.id}: ${error}`
+        `[realtime] Failed to emit ${eventName} for ${entry.modelName} to socket ${socket.id}: ${error}`
       );
       Sentry.captureException(error);
     }
   }
 };
+
+export const emitToAuthorizedRoom = async (
+  io: Server,
+  room: string,
+  event: RealtimeEvent,
+  entry: RealtimeRegistryEntry,
+  fullDocument: Record<string, unknown> | undefined,
+  logDebug: (msg: string) => void
+): Promise<void> =>
+  emitPayloadToAuthorizedRoom({
+    buildPayload: async (user) => {
+      if (!fullDocument) {
+        return event;
+      }
+      const data = await serializeDoc(entry, fullDocument, event.method, user);
+      return {...event, data};
+    },
+    entry,
+    eventName: "sync",
+    fullDocument,
+    io,
+    logDebug,
+    room,
+  });
 
 /**
  * Emit a sync event to document-specific and query rooms.
@@ -361,6 +412,230 @@ export const emitToDocumentAndQueryRooms = async (
 };
 
 /**
+ * Emit legacy realtime "sync" events for a change on a realtime-registered collection.
+ * Extracted verbatim from the change handler so sync-delta emission (which is keyed off
+ * the independent sync registry) runs even when the realtime path skips the change.
+ */
+const processRealtimeChange = async ({
+  io,
+  entry,
+  change,
+  docId,
+  logDebug,
+  logInfo,
+}: {
+  io: Server;
+  entry: RealtimeRegistryEntry;
+  change: WatchedChange;
+  docId: string;
+  logDebug: (msg: string) => void;
+  logInfo: (msg: string) => void;
+}): Promise<void> => {
+  // Map to our method type. Pass enabledMethods so soft deletes only
+  // remap to "delete" when the model actually subscribes to deletes —
+  // otherwise the change is kept as "update" so update subscribers
+  // still receive it.
+  const method = mapOperationType(change.operationType, change, entry.config.methods);
+  if (!method) {
+    return;
+  }
+
+  // Check if this method is enabled for this model
+  if (!entry.config.methods.includes(method)) {
+    logDebug(`[realtime] Method ${method} not enabled for ${entry.modelName}`);
+    return;
+  }
+
+  // fullDocument is present on insert/update/replace; absent on delete.
+  const fullDocument = change.operationType === "delete" ? undefined : change.fullDocument;
+
+  // For hard deletes, we don't have the full document
+  const isHardDelete = method === "delete" && !fullDocument;
+
+  // Determine target rooms
+  let rooms: string[];
+  if (isHardDelete) {
+    // Hard delete: no fullDocument, so we can't resolve owner/custom rooms.
+    // For owner strategy we cannot safely fan out to a model room without
+    // leaking deletes across users — admins still receive the event via the
+    // admin room and any document-specific subscribers via document rooms.
+    if (entry.config.roomStrategy === "owner") {
+      rooms = ["admin"];
+    } else if (entry.config.roomStrategy === "broadcast") {
+      rooms = ["authenticated"];
+    } else {
+      const collectionTag = getCollectionTag(entry.routePath);
+      rooms = [`model:${collectionTag}`];
+    }
+  } else {
+    rooms = resolveRooms(entry, fullDocument ?? {}, method);
+  }
+
+  const collection = getCollectionTag(entry.routePath);
+
+  const event: RealtimeEvent = {
+    collection,
+    id: docId,
+    method,
+    model: entry.modelName,
+    timestamp: DateTime.now().toMillis(),
+    ...(change.operationType === "update" && change.updateDescription?.updatedFields
+      ? {updatedFields: Object.keys(change.updateDescription.updatedFields)}
+      : {}),
+  };
+
+  // Emit to strategy-based rooms (model/owner/broadcast)
+  for (const room of rooms) {
+    await emitToAuthorizedRoom(io, room, event, entry, fullDocument, logDebug);
+  }
+
+  // Emit to document-specific and query rooms
+  await emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
+
+  logDebug(
+    `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
+  );
+  // Log only metadata — never the document payload, which may contain sensitive fields.
+  const metadata: Record<string, unknown> = {
+    collection: event.collection,
+    id: event.id,
+    method: event.method,
+    model: event.model,
+    timestamp: event.timestamp,
+  };
+  if (event.updatedFields) {
+    metadata.updatedFields = event.updatedFields;
+  }
+  logInfo(`[realtime] sync event: ${JSON.stringify(metadata)}`);
+};
+
+/**
+ * Emit `sync:delta` events for a change on a sync-registered collection.
+ *
+ * Deltas fan out to the dedicated `sync:{stream}` rooms joined via `sync:subscribe`
+ * (independent of the legacy realtime rooms), with the same per-socket read-permission
+ * checks as legacy events. `seq` and `stream` come from the post-image: the `syncPlugin`
+ * stamps `_syncSeq` on every synced write and the watcher runs `updateLookup`.
+ *
+ * Soft deletes (an update setting `deleted: true`, reclassified by `mapOperationType`)
+ * produce a `method: "delete"` delta with `deleted: true` and the tombstone data intact.
+ *
+ * Scope moves: when the post-image carries a `_syncPrevStream` differing from the current
+ * stream (stamped by `syncPlugin` at write time — change streams run with
+ * `fullDocumentBeforeChange: "off"`, so the old scope is not otherwise available), a
+ * data-less tombstone delta is emitted to the previous stream and the delta to the new
+ * stream is reported as `method: "create"` so new-stream subscribers materialize the doc.
+ *
+ * A model with both `realtime` and `sync` configs emits both the legacy "sync" event and
+ * "sync:delta" — distinct event names, no interference (documented as transitional).
+ *
+ * Exported for testing.
+ */
+export const emitSyncDeltaForChange = async ({
+  io,
+  entry,
+  change,
+  docId,
+  logDebug,
+}: {
+  io: Server;
+  entry: SyncRegistryEntry;
+  change: WatchedChange;
+  docId: string;
+  logDebug: (msg: string) => void;
+}): Promise<void> => {
+  if (change.operationType === "delete") {
+    // Hard deletes are blocked on synced models by syncPlugin; a direct collection-level
+    // delete has no post-image, so neither stream nor seq can be resolved. Clients
+    // reconcile via snapshot instead.
+    logDebug(
+      `[sync] Skipping hard delete for synced collection ${entry.collectionTag}/${docId}: ` +
+        "no post-image to resolve stream/seq"
+    );
+    return;
+  }
+  const fullDocument = change.fullDocument as Record<string, unknown> | undefined;
+  if (!fullDocument) {
+    logDebug(`[sync] Skipping ${entry.collectionTag}/${docId}: change has no fullDocument`);
+    return;
+  }
+
+  const mapped = mapOperationType(change.operationType, change);
+  if (!mapped) {
+    return;
+  }
+  let method: SyncMutationOperation = mapped;
+  const deleted = fullDocument.deleted === true;
+  const seq = typeof fullDocument._syncSeq === "number" ? fullDocument._syncSeq : 0;
+  const stream = resolveStreamForDoc({
+    collectionTag: entry.collectionTag,
+    doc: fullDocument,
+    scope: entry.config.scope,
+  });
+
+  const prevStreamRaw = fullDocument._syncPrevStream;
+  const prevStream =
+    typeof prevStreamRaw === "string" && prevStreamRaw.length > 0 && prevStreamRaw !== stream
+      ? prevStreamRaw
+      : null;
+  if (prevStream) {
+    // Scope move: tombstone the old stream (no data) so its subscribers drop the doc...
+    const tombstone: SyncDelta = {
+      collection: entry.collectionTag,
+      deleted: true,
+      id: docId,
+      method: "delete",
+      seq,
+      stream: prevStream,
+    };
+    await emitPayloadToAuthorizedRoom({
+      buildPayload: () => tombstone,
+      entry,
+      eventName: "sync:delta",
+      fullDocument,
+      io,
+      logDebug,
+      room: syncRoomForStream(prevStream),
+    });
+    logDebug(
+      `[sync] Emitted scope-move tombstone for ${entry.collectionTag}/${docId} to ${prevStream}`
+    );
+    // ...and the new stream sees the doc for the first time: report it as a create
+    // (unless the same write also soft-deleted the doc, in which case the tombstone wins).
+    if (method !== "delete") {
+      method = "create";
+    }
+  }
+
+  const delta: SyncDelta = {
+    collection: entry.collectionTag,
+    id: docId,
+    method,
+    seq,
+    stream,
+    ...(deleted ? {deleted: true} : {}),
+  };
+  await emitPayloadToAuthorizedRoom({
+    buildPayload: async (user) => {
+      const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
+      const data = ensureApiId(
+        await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
+      );
+      return {...delta, data};
+    },
+    entry,
+    eventName: "sync:delta",
+    fullDocument,
+    io,
+    logDebug,
+    room: syncRoomForStream(stream),
+  });
+  logDebug(
+    `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${stream}`
+  );
+};
+
+/**
  * Start watching MongoDB change streams and emitting real-time events.
  */
 export const startChangeStreamWatcher = (
@@ -454,91 +729,29 @@ export const startChangeStreamWatcher = (
           return;
         }
 
-        // Find the registry entry for this collection
+        // Realtime and sync registries are independent: a model may be in either or both.
+        // A model with both configs emits both the legacy "sync" event and "sync:delta".
         const entry = findRegistryEntryByCollection(collectionName);
+        const syncEntry = findSyncEntryByCollectionName(collectionName);
 
-        if (!entry) {
-          // Not a registered realtime model — skip
+        if (!entry && !syncEntry) {
+          // Not a registered realtime or sync model — skip
           logDebug(`[realtime] No registry entry for collection: ${collectionName}`);
           return;
         }
 
-        // Map to our method type. Pass enabledMethods so soft deletes only
-        // remap to "delete" when the model actually subscribes to deletes —
-        // otherwise the change is kept as "update" so update subscribers
-        // still receive it.
-        const method = mapOperationType(change.operationType, change, entry.config.methods);
-        if (!method) {
-          return;
+        if (entry) {
+          await processRealtimeChange({change, docId, entry, io, logDebug, logInfo});
         }
 
-        // Check if this method is enabled for this model
-        if (!entry.config.methods.includes(method)) {
-          logDebug(`[realtime] Method ${method} not enabled for ${entry.modelName}`);
-          return;
-        }
-
-        // fullDocument is present on insert/update/replace; absent on delete.
-        const fullDocument = change.operationType === "delete" ? undefined : change.fullDocument;
-
-        // For hard deletes, we don't have the full document
-        const isHardDelete = method === "delete" && !fullDocument;
-
-        // Determine target rooms
-        let rooms: string[];
-        if (isHardDelete) {
-          // Hard delete: no fullDocument, so we can't resolve owner/custom rooms.
-          // For owner strategy we cannot safely fan out to a model room without
-          // leaking deletes across users — admins still receive the event via the
-          // admin room and any document-specific subscribers via document rooms.
-          if (entry.config.roomStrategy === "owner") {
-            rooms = ["admin"];
-          } else if (entry.config.roomStrategy === "broadcast") {
-            rooms = ["authenticated"];
-          } else {
-            const collectionTag = getCollectionTag(entry.routePath);
-            rooms = [`model:${collectionTag}`];
+        if (syncEntry) {
+          try {
+            await emitSyncDeltaForChange({change, docId, entry: syncEntry, io, logDebug});
+          } catch (error) {
+            logger.error(`[sync] Error emitting sync delta: ${error}`);
+            Sentry.captureException(error);
           }
-        } else {
-          rooms = resolveRooms(entry, fullDocument ?? {}, method);
         }
-
-        const collection = getCollectionTag(entry.routePath);
-
-        const event: RealtimeEvent = {
-          collection,
-          id: docId,
-          method,
-          model: entry.modelName,
-          timestamp: DateTime.now().toMillis(),
-          ...(change.operationType === "update" && change.updateDescription?.updatedFields
-            ? {updatedFields: Object.keys(change.updateDescription.updatedFields)}
-            : {}),
-        };
-
-        // Emit to strategy-based rooms (model/owner/broadcast)
-        for (const room of rooms) {
-          await emitToAuthorizedRoom(io, room, event, entry, fullDocument, logDebug);
-        }
-
-        // Emit to document-specific and query rooms
-        await emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
-
-        logDebug(
-          `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
-        );
-        // Log only metadata — never the document payload, which may contain sensitive fields.
-        const metadata: Record<string, unknown> = {
-          collection: event.collection,
-          id: event.id,
-          method: event.method,
-          model: event.model,
-          timestamp: event.timestamp,
-        };
-        if (event.updatedFields) {
-          metadata.updatedFields = event.updatedFields;
-        }
-        logInfo(`[realtime] sync event: ${JSON.stringify(metadata)}`);
       } catch (error) {
         logger.error(`[realtime] Error processing change event: ${error}`);
         Sentry.captureException(error);

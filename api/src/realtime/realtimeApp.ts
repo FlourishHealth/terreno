@@ -1,13 +1,13 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type http from "node:http";
 import * as Sentry from "@sentry/bun";
-import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
 import {Server, type Socket} from "socket.io";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
+import {getActiveSyncAppOptions, installSyncSocketHandlers} from "../sync/socketHandlers";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
@@ -17,6 +17,7 @@ import {
   removeQuerySubscription,
 } from "./queryStore";
 import {findRegistryEntryByRoutePath, type RealtimeRegistryEntry} from "./registry";
+import {createSocketAuthMiddleware} from "./socketAuth";
 import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
@@ -379,7 +380,7 @@ export class RealtimeApp implements TerrenoPlugin {
         },
       });
 
-      // JWT authentication middleware
+      // Authentication middleware: legacy JWT first, optionally Better Auth sessions.
       const tokenSecret = this.config.tokenSecret ?? process.env.TOKEN_SECRET;
       if (!tokenSecret) {
         throw new Error(
@@ -389,12 +390,15 @@ export class RealtimeApp implements TerrenoPlugin {
       }
 
       this.io.use(
-        authorize({
-          secret: tokenSecret,
+        createSocketAuthMiddleware({
+          betterAuth: this.config.betterAuth,
+          tokenSecret,
         })
       );
 
-      logInfo("[realtime] JWT authorization middleware added");
+      logInfo(
+        `[realtime] Socket auth middleware added (JWT${this.config.betterAuth ? " + Better Auth" : ""})`
+      );
 
       // Configure adapter for multi-instance deployments
       this.setupAdapter(logInfo);
@@ -402,9 +406,18 @@ export class RealtimeApp implements TerrenoPlugin {
       // Connection handling
       this.io.on("connection", (socket: Socket): void => {
         try {
-          // socketio-jwt's authorize middleware adds `decodedToken` at runtime; cast through
+          // The auth middleware adds `decodedToken` at runtime; cast through
           // RealtimeSocketLike (a structural subset) to keep socket handler logic testable.
           installRealtimeSocketHandlers(socket as unknown as RealtimeSocketLike, {logInfo});
+          // Sync protocol handlers (sync:subscribe / sync:mutate). Options come from the
+          // SyncApp plugin (setActiveSyncAppOptions) or an explicit `sync` override here;
+          // with neither, the handlers still install and reject unknown collections.
+          installSyncSocketHandlers(
+            this.io,
+            socket as unknown as RealtimeSocketLike,
+            this.config.sync ?? getActiveSyncAppOptions() ?? {},
+            {logInfo}
+          );
         } catch (error) {
           logger.error(`[realtime] Error handling connection: ${error}`);
           Sentry.captureException(error);
