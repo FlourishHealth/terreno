@@ -158,13 +158,13 @@
 
 ## Phase 6: React layer + Better Auth adapter
 
-- [ ] **Task 6.1**: SyncDbProvider + hooks
+- [x] **Task 6.1**: SyncDbProvider + hooks
   - Description: `SyncDbProvider client={...}`; hooks over TinyBase reactive listeners: `useEntity`, `useQuery` (filter/sort in JS with memoization), `useMutate`, `useSyncStatus`, `useConflicts`. React Native Web compatible. Harvest/adapt `react/hooks.ts` + `react/provider.tsx` from #835.
   - Files: `syncdb/src/react/provider.tsx` (new), `syncdb/src/react/hooks.ts` (new)
   - Depends on: 5.4
   - Acceptance: hook tests (@testing-library/react-native) — re-render on local write and on applied delta; status and conflict reactivity.
 
-- [ ] **Task 6.2**: Better Auth AuthProvider adapter
+- [x] **Task 6.2**: Better Auth AuthProvider adapter
   - Description: `betterAuthAdapter(authClient)` implementing `{getToken, getUserId, onAuthChange}` against the Better Auth client used in-repo (`rtk/src/betterAuthClient.ts` / admin-spa pattern).
   - Files: `syncdb/src/auth/betterAuthAdapter.ts` (new), `syncdb/src/auth/types.ts` (new)
   - Depends on: 3.1
