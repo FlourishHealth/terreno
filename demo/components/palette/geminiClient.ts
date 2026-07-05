@@ -11,14 +11,17 @@ import {ANCHOR_FAMILIES, type ChatMessage, FAMILY_LABELS} from "./paletteTypes";
  */
 
 export const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
-/** Curated fallback models for the picker when the live model list cannot be fetched. */
+/**
+ * Curated fallback models (Gemini 3 family) for the picker when the live model list cannot be
+ * fetched. When an API key is set, `listGeminiModels` replaces these with the live set for the key.
+ */
 export const DEFAULT_GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash-lite",
-  "gemini-flash-latest",
+  "gemini-3.5-flash",
+  "gemini-3.1-pro-preview",
+  "gemini-3-flash-preview",
+  "gemini-3-pro-preview",
 ];
 
 const MAX_MODEL_LIST_PAGES = 10;

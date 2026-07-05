@@ -33,7 +33,7 @@ describe("generatePaletteFromChat", () => {
         currentAnchors: DEFAULT_ANCHORS,
         currentFonts: DEFAULT_FONTS,
         messages: baseMessages,
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
       })
     ).rejects.toThrow(/api key/i);
   });
@@ -63,7 +63,7 @@ describe("generatePaletteFromChat", () => {
       currentFonts: DEFAULT_FONTS,
       fetchImpl: fetchImpl as unknown as typeof fetch,
       messages: baseMessages,
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
     });
 
     expect(result.anchors.primary).toBe("#0a0b0c");
@@ -90,7 +90,7 @@ describe("generatePaletteFromChat", () => {
       currentFonts: DEFAULT_FONTS,
       fetchImpl: fetchImpl as unknown as typeof fetch,
       messages: baseMessages,
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
     });
 
     expect(result.anchors.primary).toBe("#abcdef");
@@ -113,7 +113,7 @@ describe("generatePaletteFromChat", () => {
         currentFonts: DEFAULT_FONTS,
         fetchImpl: fetchImpl as unknown as typeof fetch,
         messages: baseMessages,
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
       })
     ).rejects.toThrow("Invalid API key");
   });
@@ -130,7 +130,7 @@ describe("generatePaletteFromChat", () => {
         currentFonts: DEFAULT_FONTS,
         fetchImpl: fetchImpl as unknown as typeof fetch,
         messages: baseMessages,
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
       })
     ).rejects.toThrow(/parse/i);
   });
@@ -141,9 +141,9 @@ describe("listGeminiModels", () => {
     const fetchImpl = mock(async () =>
       makeResponse({
         models: [
-          {name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"]},
+          {name: "models/gemini-3.5-flash", supportedGenerationMethods: ["generateContent"]},
           {name: "models/text-embedding", supportedGenerationMethods: ["embedContent"]},
-          {name: "models/gemini-2.5-pro", supportedGenerationMethods: ["generateContent"]},
+          {name: "models/gemini-3.1-pro-preview", supportedGenerationMethods: ["generateContent"]},
         ],
       })
     );
@@ -152,7 +152,7 @@ describe("listGeminiModels", () => {
       apiKey: "key",
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
-    expect(models).toEqual(["gemini-2.5-flash", "gemini-2.5-pro"]);
+    expect(models).toEqual(["gemini-3.5-flash", "gemini-3.1-pro-preview"]);
   });
 
   it("returns undefined without a key", async () => {
