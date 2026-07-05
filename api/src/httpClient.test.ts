@@ -1,7 +1,6 @@
+import {describe, expect, it} from "bun:test";
 import type {Server} from "node:http";
 import type {AddressInfo} from "node:net";
-
-import {describe, expect, it} from "bun:test";
 import {AxiosError, type AxiosRequestHeaders, type AxiosResponse, isAxiosError} from "axios";
 import express from "express";
 
