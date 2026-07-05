@@ -7,6 +7,7 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
+import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
@@ -220,7 +221,7 @@ export class AIService {
 
   async generateText(options: GenerateTextOptions): Promise<string> {
     const {prompt, systemPrompt, temperature, maxOutputTokens, userId} = options;
-    const startTime = Date.now();
+    const startTime = DateTime.now().toMillis();
 
     try {
       const result = await aiGenerateText({
@@ -232,7 +233,7 @@ export class AIService {
         temperature: temperature ?? this.defaultTemperature,
       });
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         prompt,
@@ -245,7 +246,7 @@ export class AIService {
 
       return result.text;
     } catch (error) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         error: error instanceof Error ? error.message : String(error),
@@ -269,7 +270,7 @@ export class AIService {
       temperature,
       userId,
     } = options;
-    const startTime = Date.now();
+    const startTime = DateTime.now().toMillis();
     const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
 
     try {
@@ -283,7 +284,7 @@ export class AIService {
         temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
       });
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         prompt,
@@ -296,7 +297,7 @@ export class AIService {
 
       return result.output;
     } catch (error) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logStructuredJsonFailure({
         error,
         prompt,
@@ -321,7 +322,7 @@ export class AIService {
       temperature,
       userId,
     } = options;
-    const startTime = Date.now();
+    const startTime = DateTime.now().toMillis();
     const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
 
     try {
@@ -339,7 +340,7 @@ export class AIService {
         temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
       });
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         prompt,
@@ -352,7 +353,7 @@ export class AIService {
 
       return result.output;
     } catch (error) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logStructuredJsonFailure({
         error,
         prompt,
@@ -382,7 +383,7 @@ export class AIService {
       temperature,
       userId,
     } = options;
-    const startTime = Date.now();
+    const startTime = DateTime.now().toMillis();
     const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
 
     try {
@@ -400,7 +401,7 @@ export class AIService {
         temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
       });
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         prompt,
@@ -413,7 +414,7 @@ export class AIService {
 
       return result.output;
     } catch (error) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logStructuredJsonFailure({
         error,
         prompt,
@@ -428,7 +429,7 @@ export class AIService {
 
   async *generateTextStream(options: GenerateStreamOptions): AsyncGenerator<string> {
     const {prompt, systemPrompt, temperature, maxOutputTokens, userId} = options;
-    const startTime = Date.now();
+    const startTime = DateTime.now().toMillis();
     let fullResponse = "";
 
     try {
@@ -446,7 +447,7 @@ export class AIService {
         yield chunk;
       }
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       const usage = await result.usage;
       await this.logRequest({
         aiModel: getModelId(this.model),
@@ -458,7 +459,7 @@ export class AIService {
         userId,
       });
     } catch (error) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         error: error instanceof Error ? error.message : String(error),
@@ -557,7 +558,7 @@ export class AIService {
 
   async *generateChatStream(options: GenerateChatStreamOptions): AsyncGenerator<string> {
     const {messages, systemPrompt, tools, toolChoice, stopWhen, userId} = options;
-    const startTime = Date.now();
+    const startTime = DateTime.now().toMillis();
     let fullResponse = "";
 
     const promptText = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
@@ -579,7 +580,7 @@ export class AIService {
         yield chunk;
       }
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       const usage = await result.usage;
       await this.logRequest({
         aiModel: getModelId(this.model),
@@ -591,7 +592,7 @@ export class AIService {
         userId,
       });
     } catch (error) {
-      const responseTime = Date.now() - startTime;
+      const responseTime = DateTime.now().toMillis() - startTime;
       await this.logRequest({
         aiModel: getModelId(this.model),
         error: error instanceof Error ? error.message : String(error),
