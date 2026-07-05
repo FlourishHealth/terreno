@@ -13,7 +13,7 @@ interface FlagRecord {
  * Toggle the backend "use-syncdb" feature flag via the admin feature-flags API,
  * creating the flag first when the database was never seeded. This is how the
  * syncdb e2e suite turns the local-first data layer on and off at runtime
- * without rebuilding the web bundle (see the note at the top of syncdb.spec.ts).
+ * without rebuilding the web bundle (see the note at the top of helpers/syncdbSuite.ts).
  */
 export const setSyncDbFlag = async (enabled: boolean): Promise<void> => {
   const apiContext = await request.newContext({baseURL: API_URL});

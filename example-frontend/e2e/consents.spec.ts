@@ -2,12 +2,15 @@ import {expect, test} from "./fixtures/test";
 import {getAdminToken} from "./helpers/adminAuth";
 import {createConsentForm, deleteConsentForm} from "./helpers/consentForms";
 import {loginAs} from "./helpers/login";
+import {setSyncDbFlag} from "./helpers/syncdbFlag";
 
 test.describe("Consent Flow", () => {
   let adminToken: string;
   let consentFormId: string;
 
   test.beforeAll(async ({request}) => {
+    // Post-consent assertions expect the RTK todos screen — pin the flag off.
+    await setSyncDbFlag(false);
     adminToken = await getAdminToken(request);
   });
 

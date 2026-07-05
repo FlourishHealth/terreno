@@ -31,6 +31,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # One shard per spec file. Keep this list in sync with example-frontend/e2e/
+        # so every spec runs in CI; a shard's playwright step should stay under ~2
+        # minutes — split the spec file if it grows past that.
         spec:
           - login
           - signup
@@ -40,7 +43,16 @@ jobs:
           - consents
           - ai-chat
           - realtime
-          - syncdb
+          - feature-flags
+          - offline-sync
+          - offline-mutations
+          - offline-conflicts
+          - offline-ui
+          - syncdb-load-delta
+          - syncdb-offline
+          - syncdb-conflicts
+          - syncdb-storage
+          - syncdb-flag-off
     steps:
       - uses: actions/checkout@v6.0.3
 

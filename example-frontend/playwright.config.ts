@@ -1,22 +1,76 @@
-import {defineConfig, devices} from "@playwright/test";
+import {defineConfig, devices, type Project} from "@playwright/test";
+
+const chromium = {...devices["Desktop Chrome"]};
+
+/**
+ * In CI every spec file runs in its own job against a dedicated backend and database
+ * (see .github/workflows/e2e-ci.yml), so a flat setup → chromium topology is enough
+ * and cross-file interference is impossible.
+ *
+ * Locally all files share one backend, so files run in parallel (one worker per
+ * file) and the suites that mutate backend-global state are phased via project
+ * dependencies:
+ *
+ *   setup → app (everything else, parallel)
+ *         → consents      (active consent forms gate every user's login)
+ *         → syncdb-*      (backend-global use-syncdb flag on; one project per file,
+ *                          chained — concurrent syncdb clients against one backend
+ *                          race the client's start()/mutate() lifecycle)
+ *         → syncdb-flag-off (verifies the RTK path and leaves the flag off)
+ *
+ * Per-suite users (fixtures/testUsers.ts) keep the parallel files from clearing each
+ * other's todos. To run a single consents/syncdb file without its dependency phases,
+ * pass --no-deps (each file's beforeAll ensures the flag state it needs).
+ */
+const syncdbFiles = ["syncdb-load-delta", "syncdb-offline", "syncdb-conflicts", "syncdb-storage"];
+
+const localProjects: Project[] = [
+  {name: "setup", testMatch: /auth\.setup\.ts/},
+  {
+    dependencies: ["setup"],
+    name: "app",
+    testIgnore: [/consents\.spec\.ts/, /syncdb-.*\.spec\.ts/],
+    use: chromium,
+  },
+  {
+    dependencies: ["app"],
+    name: "consents",
+    testMatch: /consents\.spec\.ts/,
+    use: chromium,
+  },
+  ...syncdbFiles.map((file, index) => ({
+    dependencies: [index === 0 ? "consents" : syncdbFiles[index - 1]],
+    name: file,
+    testMatch: new RegExp(`${file}\\.spec\\.ts`),
+    use: chromium,
+  })),
+  {
+    dependencies: [syncdbFiles[syncdbFiles.length - 1]],
+    name: "syncdb-flag-off",
+    testMatch: /syncdb-flag-off\.spec\.ts/,
+    use: chromium,
+  },
+];
+
+const ciProjects: Project[] = [
+  {name: "setup", testMatch: /auth\.setup\.ts/},
+  {
+    dependencies: ["setup"],
+    name: "chromium",
+    use: chromium,
+  },
+];
 
 export default defineConfig({
   forbidOnly: !!process.env.CI,
   fullyParallel: false,
-  projects: [
-    {
-      name: "setup",
-      testMatch: /auth\.setup\.ts/,
-    },
-    {
-      dependencies: ["setup"],
-      name: "chromium",
-      use: {...devices["Desktop Chrome"]},
-    },
-  ],
+  projects: process.env.CI ? ciProjects : localProjects,
   reporter: process.env.CI ? [["github"], ["html", {open: "never"}]] : "html",
   retries: process.env.CI ? 2 : 0,
   testDir: "./e2e",
+  // Locally 6 files share one Metro dev server, so page loads can take far longer
+  // than they do on an idle machine — give tests headroom over the 30s default.
+  timeout: process.env.CI ? 30_000 : 60_000,
   use: {
     baseURL: "http://localhost:8082",
     navigationTimeout: 60000,
@@ -47,5 +101,9 @@ export default defineConfig({
       url: "http://localhost:8082",
     },
   ],
-  workers: 1,
+  // CI shards run a single file each, so one worker suffices; locally files fan out
+  // across workers (fullyParallel stays false, preserving in-file test order). Capped
+  // at 6 because a single Metro dev server cannot survive a dozen simultaneous
+  // browsers requesting the bundle.
+  workers: process.env.CI ? 1 : 6,
 });

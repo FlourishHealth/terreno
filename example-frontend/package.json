@@ -58,7 +58,7 @@
     "test": "bun test ./**/*.test.ts ./**/*.test.tsx",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
-    "web": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --web --port 8082"
+    "web": "EXPO_UNSTABLE_MCP_SERVER=1 NODE_OPTIONS=--max-old-space-size=8192 bun expo start --web --port 8082"
   },
   "version": "1.0.0"
 }
