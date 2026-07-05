@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
+import {act, fireEvent} from "@testing-library/react-native";
 import {renderWithTheme} from "../test-utils";
 import {TableBadge} from "./TableBadge";
 
@@ -55,10 +55,10 @@ describe("TableBadge", () => {
   it("renders badge when editing is enabled but options are missing", () => {
     const {getByText, queryByTestId} = renderWithTheme(<TableBadge isEditing value="Pending" />);
     expect(getByText("Pending")).toBeTruthy();
-    expect(queryByTestId("ios_picker")).toBeNull();
+    expect(queryByTestId("web_picker")).toBeNull();
   });
 
-  it("updates selected value when select field changes to a non-empty option", () => {
+  it("updates selected value when select field changes to a non-empty option", async () => {
     const editingOptions = [
       {label: "Option A", value: "a"},
       {label: "Option B", value: "b"},
@@ -66,14 +66,18 @@ describe("TableBadge", () => {
     const {getByTestId} = renderWithTheme(
       <TableBadge editingOptions={editingOptions} isEditing value="a" />
     );
-    const picker = getByTestId("ios_picker");
 
-    expect(picker.props.selectedValue).toBe("a");
-    fireEvent(picker, "onValueChange", "b", 2);
-    expect(getByTestId("ios_picker").props.selectedValue).toBe("b");
+    expect(getByTestId("text_input").props.children).toBe("Option A");
+    await act(async () => {
+      fireEvent.press(getByTestId("web_picker"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("web_dropdown_option_b"));
+    });
+    expect(getByTestId("text_input").props.children).toBe("Option B");
   });
 
-  it("clears selected value when select field changes to an empty value", () => {
+  it("clears selected value when select field changes to an empty value", async () => {
     const editingOptions = [
       {label: "Option A", value: "a"},
       {label: "Option B", value: "b"},
@@ -81,9 +85,13 @@ describe("TableBadge", () => {
     const {getByTestId} = renderWithTheme(
       <TableBadge editingOptions={editingOptions} isEditing value="a" />
     );
-    const picker = getByTestId("ios_picker");
 
-    fireEvent(picker, "onValueChange", "", 0);
-    expect(getByTestId("ios_picker").props.selectedValue).toBe("");
+    await act(async () => {
+      fireEvent.press(getByTestId("web_picker"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("web_dropdown_option_"));
+    });
+    expect(getByTestId("text_input").props.children).toBe("Please select an option.");
   });
 });
