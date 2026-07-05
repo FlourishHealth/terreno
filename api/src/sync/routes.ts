@@ -6,9 +6,15 @@ import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware} from "../errors";
 import {checkPermissions} from "../permissions";
 import {getOrCreateSyncKeyMaterial} from "./models";
+import {applySyncMutation} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import {getScopeField} from "./streams";
-import type {SyncEntityPayload, SyncSnapshotResponse} from "./types";
+import type {
+  SyncEntityPayload,
+  SyncMutateRequest,
+  SyncNackCode,
+  SyncSnapshotResponse,
+} from "./types";
 
 /** Options for the SyncApp plugin's HTTP routes. */
 export interface SyncAppOptions {
@@ -24,6 +30,14 @@ export interface SyncAppOptions {
 
 const MAX_SNAPSHOT_LIMIT = 1000;
 const DEFAULT_SNAPSHOT_LIMIT = 500;
+
+/** HTTP status for each nack code returned by `POST /sync/mutate`. */
+const NACK_HTTP_STATUS: Record<SyncNackCode, number> = {
+  conflict: 409,
+  error: 500,
+  unauthorized: 403,
+  validation: 422,
+};
 
 /**
  * Serialize a document for a sync payload through the fallback chain:
@@ -102,6 +116,7 @@ const parseNonNegativeInt = (raw: unknown, name: string, fallback: number): numb
 /**
  * Mount the SyncDB HTTP routes:
  * - GET /sync/snapshot — bootstrap/catch-up per collection with server-enforced scoping
+ * - POST /sync/mutate — HTTP fallback mutation channel over applySyncMutation
  * - GET /sync/key — per-user key material for the default encryption KeyProvider
  */
 export const addSyncRoutes = (app: express.Application, options: SyncAppOptions = {}): void => {
@@ -169,6 +184,27 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         hasMore: docs.length > limit,
       };
       return res.json(response);
+    })
+  );
+
+  router.post(
+    "/sync/mutate",
+    authenticateMiddleware(),
+    asyncHandler(async (req, res) => {
+      const user = req.user as User | undefined;
+      if (!user) {
+        throw new APIError({status: 401, title: "Authentication required"});
+      }
+      const outcome = await applySyncMutation({
+        mutation: req.body as SyncMutateRequest,
+        req,
+        user,
+      });
+      if (outcome.type === "ack") {
+        return res.json({ack: outcome.ack});
+      }
+      // Duplicate deliveries reading a recorded outcome map to the same statuses.
+      return res.status(NACK_HTTP_STATUS[outcome.nack.code]).json({nack: outcome.nack});
     })
   );
 

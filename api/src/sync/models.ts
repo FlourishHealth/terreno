@@ -64,6 +64,84 @@ export const claimSyncSeqs = async ({
   }
 };
 
+/** Lifecycle status of a sync mutation ledger row. */
+export type SyncMutationStatus = "pending" | "applied" | "conflicted" | "failed";
+
+export interface SyncMutationDocument {
+  _id: mongoose.Types.ObjectId;
+  mutationId: string;
+  userId: string;
+  status: SyncMutationStatus;
+  nackCode?: string;
+  resultId?: string;
+  resultSeq?: number;
+  serverDoc?: unknown;
+  error?: string;
+  created: Date;
+}
+
+/** Ledger rows are only needed while a client could still replay a mutation. */
+const SYNC_MUTATION_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+const syncMutationSchema = new Schema<SyncMutationDocument>({
+  created: {
+    default: () => new Date(),
+    description: "When the mutation was first claimed; TTL-indexed so rows expire after 30 days",
+    type: Date,
+  },
+  error: {
+    description: "Error message recorded for rejected mutations",
+    type: String,
+  },
+  mutationId: {
+    description:
+      "Client-generated idempotency key; unique so concurrent deliveries claim exactly once",
+    required: true,
+    type: String,
+    unique: true,
+  },
+  nackCode: {
+    description:
+      "Nack code recorded for rejected mutations (conflict/unauthorized/validation/error)",
+    type: String,
+  },
+  resultId: {
+    description: "The affected document id, recorded when the mutation is applied",
+    type: String,
+  },
+  resultSeq: {
+    description: "The document's _syncSeq after apply (applied) or at conflict time (conflicted)",
+    type: Number,
+  },
+  serverDoc: {
+    description: "Canonical serialized server document, recorded for conflict nacks",
+    type: Schema.Types.Mixed,
+  },
+  status: {
+    description: "Lifecycle status: pending while applying, then applied, conflicted, or failed",
+    enum: ["pending", "applied", "conflicted", "failed"],
+    required: true,
+    type: String,
+  },
+  userId: {
+    description: "The user who submitted the mutation; replays from other users are rejected",
+    required: true,
+    type: String,
+  },
+});
+syncMutationSchema.index({created: 1}, {expireAfterSeconds: SYNC_MUTATION_TTL_SECONDS});
+
+/**
+ * Idempotency ledger for the sync mutation channel. A row is inserted with status
+ * `pending` before a mutation is applied (the atomic claim on the unique mutationId);
+ * the outcome is recorded on the same row so duplicate deliveries — socket retries or
+ * the HTTP fallback racing a socket send — read back the recorded outcome instead of
+ * re-applying.
+ */
+export const SyncMutation: Model<SyncMutationDocument> =
+  (mongoose.models.SyncMutation as Model<SyncMutationDocument>) ??
+  mongoose.model<SyncMutationDocument>("SyncMutation", syncMutationSchema);
+
 export interface SyncKeyDocument {
   _id: mongoose.Types.ObjectId;
   userId: string;
