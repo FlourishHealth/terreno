@@ -36,13 +36,13 @@
   - Depends on: none (can start immediately; blocks 2.1)
   - Acceptance: **the entire existing @terreno/api test suite passes unchanged**; new unit tests drive each executor directly (no HTTP) covering permission denial, hook invocation order, and validation failure.
 
-- [ ] **Task 2.1**: Shared mutation handler + SyncMutation idempotency ledger
+- [x] **Task 2.1**: Shared mutation handler + SyncMutation idempotency ledger
   - Description: `applySyncMutation({user, mutation})` that (a) **atomically claims** the mutation by inserting a `SyncMutation` row with status `pending` (unique index on mutationId) *before* applying — a dup-key error means another delivery owns/completed it, so wait/read back the recorded outcome instead of re-applying (closes the concurrent socket-retry + HTTP-fallback race); (b) executes create/update/delete through the Task 2.0 executors (permissions, pre/post hooks, validation); (c) passes `baseVersion` as the executor's `baseSeq` concurrency check — mismatch yields a conflict outcome carrying the canonical serialized doc + seq; (d) finalizes the ledger row with the outcome (TTL 30d).
   - Files: `api/src/sync/mutationHandler.ts` (new), `api/src/sync/models.ts`
   - Depends on: 1.2, 2.0
   - Acceptance: unit tests — successful apply; duplicate mutationId returns recorded outcome without re-applying; **two concurrent deliveries of the same mutationId apply exactly once**; conflict on stale baseVersion includes server doc; permission denial → unauthorized outcome; validation failure → validation outcome.
 
-- [ ] **Task 2.2**: `POST /sync/mutate` HTTP endpoint
+- [x] **Task 2.2**: `POST /sync/mutate` HTTP endpoint
   - Description: Thin route over `applySyncMutation`: 200 with ack body; 409 with nack body for conflicts; 403/422 mapped to `unauthorized`/`validation` nack codes.
   - Files: `api/src/sync/routes.ts`
   - Depends on: 2.1

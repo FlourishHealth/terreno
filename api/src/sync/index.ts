@@ -1,5 +1,6 @@
 export * from "./executors";
 export * from "./models";
+export * from "./mutationHandler";
 export * from "./registry";
 export * from "./routes";
 export * from "./streams";

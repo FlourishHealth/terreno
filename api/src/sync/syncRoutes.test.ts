@@ -6,10 +6,11 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import type {ModelRouterOptions} from "../api";
 import {addAuthRoutes, setupAuth} from "../auth";
+import {APIError} from "../errors";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
-import {SyncCounter, SyncKey} from "./models";
+import {SyncCounter, SyncKey, SyncMutation} from "./models";
 import {clearSyncRegistry, registerSync} from "./registry";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
@@ -98,6 +99,7 @@ describe("sync routes", () => {
       RouteProjectModel.collection.deleteMany({}),
       SyncCounter.deleteMany({}),
       SyncKey.deleteMany({}),
+      SyncMutation.deleteMany({}),
     ]);
 
     app = getBaseServer();
@@ -255,6 +257,175 @@ describe("sync routes", () => {
       await RouteStuffModel.create({name: "secret", ownerId: notAdminId});
       const res = await agent.get("/sync/snapshot?collection=routeStuff").expect(200);
       expect(res.body.entities[0].data).toEqual({redactedName: "x-secret"});
+    });
+  });
+
+  describe("POST /sync/mutate", () => {
+    it("requires authentication", async () => {
+      await server
+        .post("/sync/mutate")
+        .send({collection: "routeStuff", mutationId: "hm-1", operation: "create"})
+        .expect(401);
+    });
+
+    it("returns 200 with an ack for a successful create", async () => {
+      const res = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeStuff",
+          data: {name: "via http", ownerId: notAdminId},
+          mutationId: "hm-create-1",
+          operation: "create",
+        })
+        .expect(200);
+      expect(res.body.ack.mutationId).toBe("hm-create-1");
+      expect(res.body.ack.seq).toBe(1);
+      const saved = await RouteStuffModel.findById(res.body.ack.id);
+      expect(saved?.name).toBe("via http");
+    });
+
+    it("returns 200 with an ack for updates and deletes", async () => {
+      const doc = await RouteStuffModel.create({name: "http original", ownerId: notAdminId});
+      const updateRes = await agent
+        .post("/sync/mutate")
+        .send({
+          baseVersion: 1,
+          collection: "routeStuff",
+          data: {name: "http updated"},
+          id: String(doc._id),
+          mutationId: "hm-update-1",
+          operation: "update",
+        })
+        .expect(200);
+      expect(updateRes.body.ack.seq).toBe(2);
+
+      const deleteRes = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeStuff",
+          id: String(doc._id),
+          mutationId: "hm-delete-1",
+          operation: "delete",
+        })
+        .expect(200);
+      expect(deleteRes.body.ack.seq).toBe(3);
+      const tombstones = await RouteStuffModel.find({_id: doc._id, deleted: true});
+      expect(tombstones).toHaveLength(1);
+    });
+
+    it("returns the recorded ack for a duplicate delivery without re-applying", async () => {
+      const body = {
+        collection: "routeStuff",
+        data: {name: "http once", ownerId: notAdminId},
+        mutationId: "hm-dup-1",
+        operation: "create",
+      };
+      const first = await agent.post("/sync/mutate").send(body).expect(200);
+      const second = await agent.post("/sync/mutate").send(body).expect(200);
+      expect(second.body.ack).toEqual(first.body.ack);
+      expect(await RouteStuffModel.countDocuments({name: "http once"})).toBe(1);
+    });
+
+    it("returns 409 with the server doc on a stale baseVersion", async () => {
+      const doc = await RouteStuffModel.create({name: "server v1", ownerId: notAdminId});
+      doc.name = "server v2";
+      await doc.save(); // seq 2
+
+      const res = await agent
+        .post("/sync/mutate")
+        .send({
+          baseVersion: 1,
+          collection: "routeStuff",
+          data: {name: "stale"},
+          id: String(doc._id),
+          mutationId: "hm-conflict-1",
+          operation: "update",
+        })
+        .expect(409);
+      expect(res.body.nack.code).toBe("conflict");
+      expect(res.body.nack.serverSeq).toBe(2);
+      expect(res.body.nack.serverDoc.name).toBe("server v2");
+      const saved = await RouteStuffModel.findById(doc._id);
+      expect(saved?.name).toBe("server v2");
+    });
+
+    it("returns 403 with an unauthorized nack for permission denials", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {scope: {type: "owner"}},
+        model: RouteStuffModel as any,
+        options: adminOnlyOptions,
+        routePath: "/routeStuff",
+      });
+      const body = (mutationId: string) => ({
+        collection: "routeStuff",
+        data: {name: "admin only", ownerId: notAdminId},
+        mutationId,
+        operation: "create",
+      });
+      const res = await agent.post("/sync/mutate").send(body("hm-perm-1")).expect(403);
+      expect(res.body.nack.code).toBe("unauthorized");
+      await adminAgent.post("/sync/mutate").send(body("hm-perm-2")).expect(200);
+    });
+
+    it("returns 422 with a validation nack for invalid mutations", async () => {
+      const missingField = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeStuff",
+          data: {ownerId: notAdminId},
+          mutationId: "hm-invalid-1",
+          operation: "create",
+        })
+        .expect(422);
+      expect(missingField.body.nack.code).toBe("validation");
+
+      const unknownCollection = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "nope",
+          data: {name: "x"},
+          mutationId: "hm-invalid-2",
+          operation: "create",
+        })
+        .expect(422);
+      expect(unknownCollection.body.nack.code).toBe("validation");
+
+      const missingId = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeStuff",
+          data: {name: "x"},
+          mutationId: "hm-invalid-3",
+          operation: "update",
+        })
+        .expect(422);
+      expect(missingId.body.nack.code).toBe("validation");
+    });
+
+    it("returns 500 with an error nack for unexpected failures", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {scope: {type: "owner"}},
+        model: RouteStuffModel as any,
+        options: {
+          ...authedOptions,
+          preCreate: () => {
+            throw new APIError({status: 500, title: "database exploded"});
+          },
+        } as unknown as ModelRouterOptions<any>,
+        routePath: "/routeStuff",
+      });
+      const res = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeStuff",
+          data: {name: "boom", ownerId: notAdminId},
+          mutationId: "hm-error-1",
+          operation: "create",
+        })
+        .expect(500);
+      expect(res.body.nack.code).toBe("error");
     });
   });
 
