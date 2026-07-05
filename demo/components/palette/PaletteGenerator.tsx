@@ -204,7 +204,7 @@ export const PaletteGenerator: React.FC = () => {
       </Box>
 
       <Box direction="column" gap={5} lgDirection="row">
-        <Box flex="grow" gap={5} maxWidth={520}>
+        <Box flex="grow" gap={5} maxWidth={520} minWidth={320}>
           <Box border="default" height={420} padding={4} rounding="md">
             <ChatPanel
               disabled={!apiKey}
@@ -243,7 +243,7 @@ export const PaletteGenerator: React.FC = () => {
           </Box>
         </Box>
 
-        <Box flex="grow" gap={6}>
+        <Box flex="grow" gap={6} minWidth={0}>
           <PaletteRamps primitives={primitives} />
           <ContrastReport results={lightContrast} title="Accessibility — light mode (WCAG)" />
           <ContrastReport results={darkContrast} title="Accessibility — dark mode (WCAG)" />

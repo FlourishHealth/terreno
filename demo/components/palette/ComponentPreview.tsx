@@ -115,7 +115,7 @@ const ShowcaseCard: React.FC = () => {
 
 const AllComponentsGrid: React.FC = () => {
   return (
-    <Box direction="row" gap={3} wrap>
+    <Box direction="row" gap={3} overflow="hidden" width="100%" wrap>
       {DemoConfig.map((config) => {
         if (!config.name || !config.demo) {
           return null;
@@ -127,6 +127,8 @@ const AllComponentsGrid: React.FC = () => {
               borderColor: "#ccc",
               borderRadius: 4,
               borderWidth: 1,
+              // Clamp to the container so a narrow preview column never overflows horizontally.
+              maxWidth: "100%",
               overflow: "hidden",
               width: CARD_WIDTH,
             }}
@@ -187,9 +189,9 @@ export const ComponentPreview: React.FC<ComponentPreviewProps> = ({primitives}) 
               selectedIndex={mode === "dark" ? 1 : 0}
             />
           </Box>
-          <Box minWidth={220}>
+          <Box minWidth={200}>
             <SegmentedControl
-              items={["Showcase", "All components"]}
+              items={["Showcase", "All"]}
               onChange={handleViewChange}
               selectedIndex={view}
             />

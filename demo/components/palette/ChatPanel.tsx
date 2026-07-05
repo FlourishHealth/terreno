@@ -17,6 +17,40 @@ export const EXAMPLE_PROMPTS: string[] = [
   "High-contrast dark-friendly palette with a vivid coral accent",
 ];
 
+interface PromptChipProps {
+  prompt: string;
+  disabled?: boolean;
+  onSelect: (prompt: string) => void;
+}
+
+/**
+ * Full-width, text-wrapping starter prompt. Uses a pressable Box (not Button) so long prompts wrap
+ * instead of overflowing the chat column.
+ */
+const PromptChip: React.FC<PromptChipProps> = ({prompt, disabled, onSelect}) => {
+  const handlePress = useCallback((): void => {
+    if (disabled) {
+      return;
+    }
+    onSelect(prompt);
+  }, [disabled, onSelect, prompt]);
+
+  return (
+    <Box
+      accessibilityHint="Send this starter prompt to the assistant"
+      accessibilityLabel={prompt}
+      border="default"
+      dangerouslySetInlineStyle={{__style: {opacity: disabled ? 0.6 : 1}}}
+      onClick={handlePress}
+      padding={3}
+      rounding="md"
+      width="100%"
+    >
+      <Text color="link">{prompt}</Text>
+    </Box>
+  );
+};
+
 interface MessageBubbleProps {
   message: ChatMessage;
 }
@@ -78,12 +112,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             </Text>
             <Box gap={2}>
               {EXAMPLE_PROMPTS.map((prompt) => (
-                <Button
+                <PromptChip
                   disabled={disabled || isLoading}
                   key={prompt}
-                  onClick={() => handleExample(prompt)}
-                  text={prompt}
-                  variant="outline"
+                  onSelect={handleExample}
+                  prompt={prompt}
                 />
               ))}
             </Box>
