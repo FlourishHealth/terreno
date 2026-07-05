@@ -48,10 +48,10 @@ import {registerRealtime} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
   type ExecutorConcurrencyCheck,
-  ExecutorConflictError,
   executeCreate,
   executeDelete,
   executeUpdate,
+  isExecutorConflictError,
 } from "./sync/executors";
 import {registerSync} from "./sync/registry";
 import type {SyncConfig} from "./sync/types";
@@ -983,7 +983,8 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
           user: req.user,
         }));
       } catch (error: unknown) {
-        if (error instanceof ExecutorConflictError) {
+        // Duck-typed: `instanceof` breaks for Error subclasses in the compiled ES5 dist.
+        if (isExecutorConflictError(error)) {
           const serialized = await responseHandler(
             error.doc as Document<unknown, unknown, unknown> & T,
             "update",

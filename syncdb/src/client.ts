@@ -393,6 +393,9 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     strategy: ConflictResolutionStrategy;
   }): void => {
     applyConflictResolution({mutationId, outbox, store, strategy});
+    // keepMine re-enqueues the mutation with a fresh baseVersion — drain it now
+    // rather than waiting for the next mutate/reconnect/periodic trigger.
+    void replayOutbox().catch(warn("post-resolve replay failed"));
   };
 
   const getSyncStatus = (): SyncStatus => ({

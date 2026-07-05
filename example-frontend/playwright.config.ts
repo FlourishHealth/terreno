@@ -28,7 +28,7 @@ export default defineConfig({
     {
       // In CI the backend is started explicitly by the workflow before playwright runs.
       // reuseExistingServer: true lets playwright use it instead of starting a second instance.
-      command: "bun --cwd ../example-backend run src/index.ts",
+      command: "bun run --cwd ../example-backend src/index.ts",
       env: {
         MONGO_URI: process.env.MONGO_URI ?? "mongodb://127.0.0.1/terreno-e2e",
         PORT: "4000",

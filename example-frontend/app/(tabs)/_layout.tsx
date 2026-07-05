@@ -24,6 +24,7 @@ const TabLayout: React.FC = () => {
       <Tabs.Screen
         name="index"
         options={{
+          tabBarButtonTestID: "tab-todos",
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="list" />,
           title: "Todos",
         }}
@@ -60,6 +61,7 @@ const TabLayout: React.FC = () => {
       <Tabs.Screen
         name="profile"
         options={{
+          tabBarButtonTestID: "tab-profile",
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,
           title: "Profile",
         }}

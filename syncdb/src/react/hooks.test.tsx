@@ -395,6 +395,9 @@ describe("useConflicts", () => {
     // The retry is requeued under a fresh mutationId (the original id is burned on the
     // server's idempotency ledger).
     expect(client.outbox.getMutation({mutationId})).toBeUndefined();
+    // resolveConflict kicks an immediate replay; the offline responder rejects the
+    // send and the retry settles back into the queue.
+    await act(flush);
     const retry = client.outbox
       .listQueued({userId: "u1"})
       .find((mutation) => mutation.entityId === "t1");

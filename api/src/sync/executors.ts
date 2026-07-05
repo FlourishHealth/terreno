@@ -104,6 +104,26 @@ export class ExecutorConflictError extends APIError {
 }
 
 /**
+ * Duck-typed guard for {@link ExecutorConflictError}. The package compiles to ES5, where
+ * TypeScript's emit for classes extending built-ins (Error) breaks the prototype chain, so
+ * `instanceof` returns false for consumers running the compiled dist (bun running the TS
+ * source directly is unaffected — which is why unit/integration tests never caught it).
+ * Always use this guard instead of `instanceof ExecutorConflictError`.
+ */
+export const isExecutorConflictError = (error: unknown): error is ExecutorConflictError => {
+  if (error instanceof ExecutorConflictError) {
+    return true;
+  }
+  const candidate = error as {conflictType?: unknown; status?: unknown; doc?: unknown};
+  return (
+    !!candidate &&
+    typeof candidate === "object" &&
+    (candidate.conflictType === "timestamp" || candidate.conflictType === "seq") &&
+    candidate.status === 409
+  );
+};
+
+/**
  * Minimal stand-in for an Express request when executors run outside HTTP. Only `user` is
  * populated — see the module doc comment for the hook compatibility contract.
  */
