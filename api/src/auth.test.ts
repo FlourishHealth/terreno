@@ -1270,7 +1270,6 @@ describe("JWT strategy createAnonymousUser path", () => {
   });
 });
 
-describe("decodeJWTMiddleware error paths", () => {
 describe("generateTokens with SIGNUP_DISABLED and user.postCreate", () => {
   const OLD_ENV = process.env;
 
@@ -1295,7 +1294,7 @@ describe("generateTokens with SIGNUP_DISABLED and user.postCreate", () => {
   });
 });
 
-describe("JWT cookie extraction", () => {
+describe("decodeJWTMiddleware error paths", () => {
   let app: express.Application;
   let agent: TestAgent;
 
@@ -1358,7 +1357,6 @@ describe("JWT cookie extraction", () => {
   it("skips decode when token is the string undefined", async () => {
     const res = await agent.get("/food").set("authorization", "Bearer undefined").expect(200);
     expect(res.body.data).toBeDefined();
-  });
   });
 });
 
