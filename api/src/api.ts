@@ -42,6 +42,8 @@ import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./pe
 import type {PopulatePath} from "./populate";
 import {registerRealtime} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
+import {registerSync} from "./sync/registry";
+import type {SyncConfig} from "./sync/types";
 import {
   defaultResponseHandler,
   serialize,
@@ -340,6 +342,15 @@ export interface ModelRouterOptions<T> {
    * Requires the RealtimeApp plugin to be registered with TerrenoApp.
    */
   realtime?: RealtimeConfig;
+  /**
+   * Enable local-first sync (@terreno/syncdb) for this model. Documents are scoped
+   * into streams (owner/tenant/broadcast/custom) with monotonic per-stream cursors.
+   *
+   * Requires the schema to use `isDeletedPlugin` (soft delete tombstones) and
+   * `syncPlugin` (per-stream `_syncSeq` stamping) — validated at registration.
+   * Only works with the three-argument form: modelRouter('/path', Model, options).
+   */
+  sync?: SyncConfig;
 }
 
 /**
@@ -600,6 +611,10 @@ export function modelRouter<T>(
         routePath: path,
       });
     }
+    // Register for local-first sync if configured (validates the schema contract)
+    if (options.sync) {
+      registerSync({config: options.sync, model, options, routePath: path});
+    }
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
@@ -613,6 +628,12 @@ export function modelRouter<T>(
     logger.warn(
       `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
         "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+  if (options.sync) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has sync config but was called without a path. ` +
+        "Local-first sync only works with the three-argument form: modelRouter('/path', Model, options)"
     );
   }
 

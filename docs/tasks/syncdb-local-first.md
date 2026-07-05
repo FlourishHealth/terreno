@@ -4,25 +4,25 @@
 
 ## Phase 1: Server sync foundation
 
-- [ ] **Task 1.1**: Sync types + registry + modelRouter `sync` option
+- [x] **Task 1.1**: Sync types + registry + modelRouter `sync` option
   - Description: Define `SyncConfig` (scope strategies: owner, tenant with configurable field, broadcast, custom resolver; optional `responseHandler`) and shared protocol types (`SyncDelta`, `SyncMutateRequest`, `SyncAck`, `SyncNack`). Add `sync?: SyncConfig` to `modelRouterOptions`; registration enrolls the model in a sync registry (modeled on `api/src/realtime/registry.ts`) and validates at startup that the model uses `isDeletedPlugin` (soft delete) — throw with a clear message otherwise.
   - Files: `api/src/sync/types.ts` (new), `api/src/sync/registry.ts` (new), `api/src/api.ts`, `api/src/index.ts`
   - Depends on: none
   - Acceptance: `bun run api:test` — registering sync on a soft-delete model succeeds; on a hard-delete model throws at startup; registry exposes scope config for stream resolution.
 
-- [ ] **Task 1.2**: `_syncSeq` plugin + SyncCounter model + stream resolution
-  - Description: Mongoose plugin that, on every synced write, resolves the doc's stream from scope config and claims the next seq via `SyncCounter` `$inc`, stamping `_syncSeq` — **counter claim + document write in a single MongoDB transaction** (replica set already required for change streams) so failed writes never burn a seq. Hooks **all single-doc write paths**: `save`, `insertMany`, `updateOne`, `findOneAndUpdate`, `replaceOne`; `updateMany` and `bulkWrite` **throw on synced models** (documented restriction — callers loop per doc). On scope-field change, stamp `_syncPrevStream` (previous stream key) on the doc so the watcher can tombstone the old stream without Mongo pre-images. Compound index on scope field + `_syncSeq`. Stream key format: `{collection}|{scopeType}:{scopeValue}` (broadcast: `{collection}|all`). All schema fields carry `description`.
+- [x] **Task 1.2**: `_syncSeq` plugin + SyncCounter model + stream resolution
+  - Description: Developer-applied Mongoose schema plugin (`syncPlugin` — middleware cannot be attached post-compile, so registration validates presence instead of applying it) whose hooks consult the sync registry at write time: resolve the doc's stream from scope config, claim the next seq via `SyncCounter` `$inc`, stamp `_syncSeq`. Validation failures never burn a seq (Mongoose validates before user pre-save hooks); the claim joins the caller's session when present (no owned per-write transaction — hot-counter WriteConflicts; residual write-failure burns are benign gaps by design). Hooks **all single-doc write paths**: `save`, `insertMany`, `updateOne`, `findOneAndUpdate`, `replaceOne`, `findOneAndReplace`; `updateMany`, `deleteMany`, `deleteOne`, and `findOneAndDelete` **throw on synced models**; `bulkWrite` bypasses middleware (documented restriction). On scope-field change, stamp `_syncPrevStream` (previous stream key) so the watcher can tombstone the old stream without Mongo pre-images. Compound index on scope field + `_syncSeq` created at registration. Stream key format: `{collection}|{scopeType}:{scopeValue}` (broadcast: `{collection}|all`). All schema fields carry `description`.
   - Files: `api/src/sync/syncSeqPlugin.ts` (new), `api/src/sync/models.ts` (new), `api/src/sync/streams.ts` (new)
   - Depends on: 1.1
-  - Acceptance: unit tests prove monotonic seqs per stream across concurrent writes; a write that fails validation does not consume a seq (no phantom gap); **each** hooked write path (`save`, `insertMany`, `updateOne`, `findOneAndUpdate`, `replaceOne`) stamps `_syncSeq`; `updateMany`/`bulkWrite` on a synced model throw; scope-field change stamps `_syncPrevStream`; owner/tenant/broadcast/custom scopes resolve correct stream keys.
+  - Acceptance: unit tests prove monotonic seqs per stream across concurrent writes; a write that fails validation does not consume a seq (no phantom gap); **each** hooked write path stamps `_syncSeq`; guarded operations on a synced model throw (and pass through on unregistered models); scope-field change stamps `_syncPrevStream` on both save and findOneAndUpdate paths; tombstone updates are stamped; owner/tenant/broadcast/custom scopes resolve correct stream keys.
 
-- [ ] **Task 1.3**: `GET /sync/snapshot` endpoint
+- [x] **Task 1.3**: `GET /sync/snapshot` endpoint
   - Description: `createOpenApiBuilder` route returning `{entities: [{id, data, seq, deleted}], cursor, hasMore}` for a collection, filtered server-side by the caller's scope (owner/tenant via registry config), honoring model `list` permissions, paginated by `_syncSeq` ascending (default limit 500). **Must explicitly bypass `isDeletedPlugin`'s auto-filter** (`api/src/plugins.ts:52-57` injects `{deleted: {$ne: true}}` unless the query mentions `deleted`) with `deleted: {$in: [true, false]}` so tombstones are returned. `data` passes through the sync `responseHandler` fallback chain (sync responseHandler > model responseHandler > toJSON). Mounted by a `SyncApp` TerrenoPlugin.
   - Files: `api/src/sync/routes.ts` (new), `api/src/sync/syncApp.ts` (new), `api/src/terrenoApp.ts`
   - Depends on: 1.2
   - Acceptance: API tests — full snapshot at cursor=0; incremental at cursor=N includes updates **and a soft-deleted doc appears as a tombstone (regression test against the auto-filter)**; scope isolation (user A never sees user B's docs); pagination hasMore/cursor advance; 401 unauthenticated.
 
-- [ ] **Task 1.4**: SyncKey model + `GET /sync/key`
+- [x] **Task 1.4**: SyncKey model + `GET /sync/key`
   - Description: Per-user key material (32 random bytes base64, generated server-side on first request, unique index on userId). Route returns own key material only. Creation must be **race-safe**: upsert with `$setOnInsert` (or catch the dup-key error and re-read) so two concurrent first calls both return the single persisted material — a loser deriving a key from unpersisted bytes would produce an undecryptable store.
   - Files: `api/src/sync/models.ts`, `api/src/sync/routes.ts`
   - Depends on: 1.1
