@@ -1,591 +1,550 @@
-# Implementation Plan: SyncDB Local-First Data Layer
+# Implementation Plan: SyncDB Local-First Data Layer (v2)
 
-**Status:** Drafted from PRD
+*When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
+
+**Status:** Shaped, ready for review
 **Priority:** High
 **Effort:** Large
-
-## Context
-
-`@terreno/rtk` currently provides RTK Query primitives (auth slice, base API, offline queue/middleware, realtime cache patching). The requested direction is to replace it with a local-first package where the browser-local database is the primary UI source of truth, mutations apply locally first, and server communication is asynchronous reconciliation via websocket deltas.
-
-The replacement must focus on:
-
-- local database-first reads,
-- local mutation durability and replay,
-- websocket-based delta sync,
-- encryption at rest for IndexedDB using Web Crypto,
-- no bundling/chunking optimization work in this phase.
+**Supersedes:** the prior v1 plan (PR #739, previous content of this file) and the foundation implementation in PR #835 (to be closed with a comment linking here). Proven pieces of #835 — the outbox state machine, AES-GCM codec, delta applier, and type contracts — are harvested and adapted, not reused wholesale.
+**Research:** investigation + decision log kept in the IP session's `research.md` (gitignored by repo convention); key findings and decisions are inlined below.
 
 ## Core Concept
 
-Build a new package, `@terreno/syncdb`, that supersedes `@terreno/rtk` for data synchronization concerns. The app reads from an encrypted local entity store (IndexedDB + in-memory cache), writes optimistically to local state and durable outbox first, and then syncs to the server over websocket/HTTP acknowledgement channels.
+`@terreno/syncdb` is a local-first data layer: a TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth. Mutations apply locally and enqueue in a durable outbox, then replay over a `sync:mutate` ack/nack channel that executes the existing modelRouter write path (permissions, hooks, validation). Inbound changes flow from the existing change-stream watcher as `sync:delta` events carrying monotonic per-stream cursors, with HTTP snapshot/catch-up reconciliation. The server remains the source of truth for validation and authorization — but not for immediate UI responsiveness.
 
-Server remains source of truth for final validation and authorization, but **not** the source for immediate UI responsiveness.
+Key architectural decisions (rationale in `research.md`):
 
-## Models
+- **TinyBase `MergeableStore` from day one.** It is a per-cell LWW CRDT (hybrid logical clocks) with a different on-disk format from plain `Store`; adopting it now avoids a per-device data migration later and keeps the Yjs door open without implementing Yjs.
+- **Custom delta protocol over the existing `RealtimeApp`** (Socket.io + Mongo change streams), not TinyBase's `WsSynchronizer` (a client-relay with no server-authoritative validation hook) and not an off-the-shelf engine (infra dependency, bypasses modelRouter permissions).
+- **Simple cursors:** per-doc `_syncSeq` + reconcile-on-reconnect; no event log collection, no strict gap proof. Synced models must use soft delete (`isDeletedPlugin`) so tombstones remain queryable.
+- **Multi-tenant by default:** streams are scoped `{collection}|{scope}` where scope is owner, tenant (configurable field), broadcast, or custom.
+- **Auth lives in Better Auth.** Syncdb consumes a narrow `AuthProvider` interface; a Better Auth adapter ships in the package.
+- **Encryption default-on for web** via Web Crypto AES-GCM in a custom IndexedDB persister. Key management is a configurable `KeyProvider`: default derives via HKDF from server-provided per-user key material (`GET /sync/key`); an alternative purely-local non-extractable CryptoKey provider ships too. Native relies on the OS sandbox (plaintext sqlite).
 
-No new backend Mongoose models are required in v1. Core state models are client-side storage schemas inside `@terreno/syncdb`.
+## **Models**
 
-### Client local storage schema (IndexedDB)
+### Server (`@terreno/api`)
+
+**`sync` option on modelRouter** (parallel to the existing `realtime` option):
 
 ```typescript
-interface LocalEntityRecord {
-  key: string; // `${collection}:${id}`
-  collection: string;
-  id: string;
-  // encrypted payload envelope
-  payloadCiphertext: ArrayBuffer;
-  iv: Uint8Array;
-  keyId: string;
-  aadVersion: number;
-  updatedAt: string; // ISO from server/version metadata
-}
-
-interface LocalOutboxMutation {
-  mutationId: string;
-  collection: string;
-  operation: "create" | "update" | "delete" | "arrayPush" | "arrayUpdate" | "arrayRemove";
-  entityId?: string;
-  argsCiphertext: ArrayBuffer;
-  iv: Uint8Array;
-  keyId: string;
-  baseVersion?: string;
-  createdAt: string;
-  lastAttemptAt?: string;
-  attemptCount: number;
-  status: "queued" | "inFlight" | "acked" | "conflicted" | "failed";
-}
-
-interface SyncCursor {
-  stream: string; // e.g. collection or workspace stream
-  cursor: string; // monotonic sequence/offset from server
-  updatedAt: string;
-}
-
-interface SyncConflict {
-  conflictId: string;
-  mutationId: string;
-  collection: string;
-  entityId: string;
-  localCiphertext: ArrayBuffer;
-  serverCiphertext: ArrayBuffer;
-  iv: Uint8Array;
-  keyId: string;
-  createdAt: string;
-  dismissed: boolean;
-}
-
-interface KeyringEntry {
-  keyId: string;
-  wrappedDek: ArrayBuffer;
-  wrapAlg: "AES-KW";
-  createdAt: string;
-}
+const router = modelRouter("/todos", Todo, {
+  permissions: {...},
+  sync: {
+    // Which stream a doc belongs to — multi-tenant by default
+    scope: {type: "owner"},                          // stream = todos|owner:{ownerId}
+    // or {type: "tenant", field: "organizationId"}  // stream = todos|tenant:{orgId}
+    // or {type: "broadcast"}                        // stream = todos|all
+    // or (doc) => string                            // custom
+    responseHandler?: (doc) => unknown,              // sanitize, like realtimeResponseHandler
+  },
+});
 ```
 
-### In-memory runtime model
+Registering `sync`:
 
-- normalized entity map by `collection:id`
-- derived query subscriptions (similar to RTK query selectors, but local-first)
-- optimistic patch history for rollback/rebase on conflict
+- **requires soft delete** on the model (`isDeletedPlugin`, `deleted: true` tombstones) — validated at startup by the sync registry; hard-delete models cannot enable sync. This is what makes cursor catch-up correct without an event log. Note: `isDeletedPlugin` auto-injects `{deleted: {$ne: true}}` into `find`/`findOne` (`api/src/plugins.ts:52-57`) — sync's snapshot/catch-up queries **must explicitly bypass it** with `deleted: {$in: [true, false]}` (the plugin skips injection when the query already mentions `deleted`).
+- applies the `_syncSeq` plugin and enrolls the model with the change-stream watcher (reusing the `realtime` registry machinery).
+- **restricts write paths**: the plugin hooks `save`, `insertMany`, `updateOne`, `findOneAndUpdate`, and `replaceOne`; `updateMany` and `bulkWrite` **throw on synced models** (a per-document seq cannot be atomically stamped by a multi-doc update — callers must loop per doc). The existing `bulkComplete` action in example-backend (`Todo.updateMany`, `example-backend/src/api/todos.ts:22`) is refactored accordingly in Phase 7.
 
-## APIs
+**`realtime` vs `sync` coexistence:** a model may enable both. They emit distinct events (`sync` for the legacy RTK cache-patching path, `sync:delta` for syncdb) so clients never double-apply, at the cost of double emission work per change while both are enabled. Recommendation: treat `realtime` as deprecated for a model once `sync` is on; document this in the migration guide.
 
-### Package API surface (`@terreno/syncdb`)
+**New/modified Mongoose schemas** (all fields carry `description` per repo convention):
 
-#### Bootstrap/configuration
+```typescript
+// Plugin applied to every synced model at registration:
+{_syncSeq: number}   // compound index: {<scopeField>: 1, _syncSeq: 1}
 
-- `createSyncDbClient(config)` - initializes local stores, crypto, transport
-- `createSyncDbReduxBridge(client)` - optional bridge for Redux apps migrating from RTK
-- `withSyncDbProvider(...)` / hooks for React integration
+// SyncCounter — atomic per-stream monotonic counter
+// (findOneAndUpdate + $inc + upsert; Redis upgrade path documented as future work)
+{stream: string /* unique index */, seq: number}
 
-#### Read/query APIs
+// SyncMutation — idempotency ledger; a re-sent mutation (lost ack) is never double-applied
+{mutationId: string /* unique index */, userId: string,
+ status: "applied" | "conflicted" | "failed",
+ resultId?: string, resultSeq?: number, error?: string,
+ created: Date /* TTL index, 30 days */}
 
-- `useEntity({collection, id})`
-- `useQuery({collection, filter, sort, page})`
-- `selectEntity(state, key)` / `selectQuery(state, key)` for non-hook usage
+// SyncKey — per-user key material for the default encryption KeyProvider
+{userId: string /* unique index */, keyMaterial: string /* 32 random bytes, base64, server-generated */,
+ created: Date}
+```
 
-#### Mutation APIs
+**Cursor semantics:** every synced write claims the next `seq` for its stream (`SyncCounter` `$inc`) and stamps it on the doc as `_syncSeq` — **counter claim + document write run in a single MongoDB transaction** (the replica set is already mandatory for change streams), so a failed write never burns a seq and never creates a phantom gap. The client's cursor per stream is the highest seq it has applied. Catch-up = `find({...scopeFilter, deleted: {$in: [true, false]}, _syncSeq: {$gt: cursor}})`, paginated by `_syncSeq` ascending — safe under concurrent writes because a doc's seq only ever increases, moving it *ahead of* the scan pointer, never behind it. Deletes remain visible as soft-delete tombstones.
 
-- `useMutation({collection, operation})`
-- `client.mutate({...})` (local apply + durable outbox enqueue + async flush)
-- `resolveConflict({conflictId, strategy: "useServer" | "keepMine"})`
+**Why a counter and not change-stream resume tokens:** resume tokens are opaque, oplog-scoped, and expire with oplog retention — they cannot answer "give me every doc in my stream changed since X" as a plain indexed query, which is what makes the HTTP catch-up trivial and durable. The counter's costs (one transactional `$inc` per synced write) are accepted; Redis is the documented upgrade path.
 
-#### Sync/transport APIs
+**Gap handling:** stream seqs are **not** guaranteed contiguous from any one client's perspective — permission-filtered deltas legitimately skip numbers. The seq-jump heuristic is therefore a *hint*, not a proof: jumps trigger an HTTP reconcile **rate-limited** (at most once per 30s per stream), and a low-frequency periodic reconcile (on visibility change / every few minutes while connected) guarantees convergence even for deltas missed with no observable jump.
 
-- `client.connectSync()` / `client.disconnectSync()`
-- `client.getSyncStatus()` returns online/syncing/authBlocked/conflicted/queue stats
-- `client.replayOutbox()` for manual replay triggers
+**Scope changes** (doc moves tenant / owner changes): change streams run with `fullDocumentBeforeChange: "off"` (`changeStreamWatcher.ts:420`), so the old scope is **not available from the change event**. Instead, the `_syncSeq` plugin detects scope-field changes at write time and stamps `_syncPrevStream` on the doc; the watcher reads it from the post-image and emits a tombstone delta to the previous stream plus a create delta to the new stream. No Mongo pre-image configuration required.
 
-### Server contract requirements (existing/new endpoints/events)
+### Client (`@terreno/syncdb` — no Mongoose, no Redux)
 
-No new broad sync protocol backend is required to start, but these contracts must be supported:
+TinyBase `MergeableStore` layout, one store per `{app, userId}`:
 
-- Mutation ack/nack with stable `mutationId`
-- Delta events with monotonic cursor/sequence:
-  - `sync:delta`
-  - `sync:ack`
-  - `sync:nack`
-- Snapshot/bootstrap API for initial hydration (`since=cursor` or full snapshot)
-- Conflict responses include canonical server document/version metadata
+```
+tables:
+  {collection}   → rowId = doc _id; cells: data (JSON string), seq, deleted, pendingMutationId?
+  _outbox        → rowId = mutationId; cells: collection, operation, entityId, args (JSON),
+                   baseVersion, status (queued|inFlight|acked|conflicted|failed),
+                   attemptCount, userId, createdAt
+  _cursors       → rowId = stream; cells: seq, updatedAt
+  _conflicts     → rowId = mutationId; cells: collection, entityId, localData, serverData,
+                   serverSeq, dismissed
+values: schemaVersion, lastUserId
+```
 
-### OpenAPI/codegen direction
+**Persistence:**
 
-- New generator package: `@terreno/syncdb-codegen`
-- Input remains backend OpenAPI
-- Output should generate typed syncdb query/mutation descriptors instead of RTK hooks
+- Native: `ExpoSqlitePersister` (JSON-serialization mode — required for MergeableStore), plaintext (OS sandbox is sufficient).
+- Web: custom `EncryptedIndexedDbPersister` (`createCustomPersister`): serialize mergeable content → AES-GCM encrypt via Web Crypto → single blob in IndexedDB. Encryption is **default-on**. (TinyBase's stock `IndexedDbPersister` does not support MergeableStore, so a custom persister is required regardless.)
+- Tests/SSR: in-memory persister.
 
-## Notifications
+**Key providers (configurable):**
 
-No push/email/SMS scope in this project.
+- `serverKeyProvider` (**default**): fetch `GET /sync/key` once per login, derive the AES-256-GCM key via HKDF (salt = app name + userId), cache as a **non-extractable CryptoKey in IndexedDB** so offline cold start still decrypts. Server rotation of key material → client detects decrypt failure, wipes, re-bootstraps.
+- `localKeyProvider`: random non-extractable CryptoKey generated and stored locally; no server dependency (and no server-side copy of the material — strictly stronger for the at-rest case, at the cost of no server-driven rotation/revocation).
 
-In-app sync state notifications required:
+**Encryption threat model (stated explicitly):** the web encryption defends against **at-rest disk inspection of IndexedDB** (stolen/imaged device, backup scraping) and against a **stale store being readable after user switch** (per-user keys + wipe). It does **not** defend against XSS or any code executing on the origin (a non-extractable CryptoKey can still be *used* to decrypt in place), and with `serverKeyProvider` the server can reconstruct any user's key (that is the trade for rotation/revocation — choose `localKeyProvider` where that is unacceptable). Server-side data is protected by MongoDB/infra controls, not this layer.
 
-- disconnected/offline state,
-- syncing queued changes,
-- auth-blocked replay,
-- unresolved conflict count.
+## **APIs**
 
-## UI
+### HTTP endpoints (mounted by the sync plugin; all `authenticateMiddleware()` + model permissions + server-enforced scope filters, documented via `createOpenApiBuilder`)
 
-`@terreno/syncdb` itself is data-layer first. Minimal reusable UI hooks/components are included:
+| Method & Path | Purpose | Permissions |
+|---|---|---|
+| `GET /sync/snapshot?collection=&cursor=&limit=` | Bootstrap + catch-up. Returns `{entities: [{id, data, seq, deleted}], cursor, hasMore}`. `cursor=0` = full snapshot. Paginated (default 500). | Auth + model `list` permissions + scope filter (owner/tenant) applied server-side |
+| `POST /sync/mutate` | HTTP fallback for outbox replay (same handler as the socket channel). Body: `{mutationId, collection, operation, id?, data?, baseVersion?}` | Auth + model's create/update/delete permissions via modelRouter write path |
+| `GET /sync/key` | Returns caller's `keyMaterial` (creates on first call) for the default KeyProvider | Auth (own key only) |
 
-- `useSyncStatus`
-- `useConflicts`
-- optional small status helpers for banners
+### Socket protocol (new events on the existing authenticated Socket.io server)
 
-Feature UI composition remains in consuming apps. For migration confidence, `example-frontend` should expose:
+| Event | Direction | Payload |
+|---|---|---|
+| `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[]}` — server resolves the user's streams from scope config (+ `getUserStreams(user)` for tenant membership) and joins rooms |
+| `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?}` — emitted by the change-stream watcher with per-socket permission checks (reuses `emitToAuthorizedRoom`) |
+| `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` — executes the modelRouter write path |
+| `sync:ack` | server → client | `{mutationId, id, seq}` |
+| `sync:nack` | server → client | `{mutationId, code: "conflict"\|"unauthorized"\|"validation"\|"error", serverDoc?, serverSeq?, message}` — conflict nacks carry the canonical server doc |
 
-- local-first todo list read from syncdb,
-- optimistic CRUD while offline,
-- conflict resolution controls.
+**Conflict rule:** client sends `baseVersion` = the `_syncSeq` it last saw for the doc; mismatch with the current `_syncSeq` → nack `conflict`. Same LWW semantics as the rtk offline queue's `If-Unmodified-Since`, on a monotonic integer. The extracted update executor (see below) accepts either check — REST passes the timestamp header, sync passes `baseVersion` — so the two LWW modes share one code path instead of diverging.
 
-## Feature Flags & Migrations
+**A prerequisite refactor this plan owns explicitly:** modelRouter's create/update/delete logic is currently inline inside Express `asyncHandler` closures with permissions and validation as middleware (`api/src/api.ts:648-745` and onward) — there is **no callable write path today**. Phase 2 therefore begins by extracting transport-agnostic executors (`executeCreate/executeUpdate/executeDelete({model, options, user, body, id, ...})`) and migrating the REST handlers onto them with the entire existing API test suite kept green. `applySyncMutation` builds on those executors; it does not synthesize fake `req`/`res` objects.
 
-- Introduce feature flag in consumers: `USE_SYNCDB`.
-- Allow side-by-side mode:
-  - existing RTK path remains functional,
-  - syncdb path enabled per screen/domain.
-- Migration order:
-  1. todos/read-only,
-  2. todos with mutations,
-  3. additional resources.
-- No data migration on backend required for v1.
-- Client-side IndexedDB schema versioning and migration handlers required.
+**Idempotency (atomic claim):** the handler **inserts** a `SyncMutation` row with status `pending` (unique index on `mutationId`) *before* applying; a duplicate-key error means another delivery owns or completed it — the handler waits/reads back the recorded outcome instead of re-applying. This closes the race where socket retry and HTTP fallback deliver the same mutation concurrently.
 
-## Activity Log & User Updates
+**Socket auth:** a pluggable socket authenticator on `RealtimeApp` — legacy JWT (current `@thream/socketio-jwt` path) continues to work; a Better Auth session validator is added alongside.
 
-No new backend activity log behavior is required for this phase.
+### Client package API surface
 
-Optional follow-up: include client-origin metadata headers (e.g., `X-Terreno-Syncdb`) on replayed mutations for observability.
+```typescript
+createSyncDb({name, collections, authProvider, keyProvider?, transportFactory?, persisterFactory?})
+// authProvider: {getToken(), getUserId(), onAuthChange(cb)} — betterAuthAdapter ships in the package
+
+client.start() / client.stop()            // load persister, hydrate, connect socket
+client.bootstrap({collections?})          // HTTP snapshot pull (initial or forced)
+client.mutate({collection, operation, id?, data})  // local apply + outbox enqueue + async flush
+client.resolveConflict({mutationId, strategy: "useServer" | "keepMine"})
+client.getSyncStatus()                    // {isOnline, queuedCount, conflictCount, isSyncing, streams}
+
+// React (TinyBase reactive listeners, no Redux):
+<SyncDbProvider client={client}>
+useEntity(collection, id)
+useQuery(collection, {filter?, sort?})
+useMutate(collection)
+useSyncStatus()
+useConflicts()
+```
+
+Outbox replays FIFO per collection over the socket, falling back to `POST /sync/mutate`; per-user replay isolation is ported from `rtk/src/offlineMiddleware.ts` (queued mutations record `userId`; replay skips on mismatch).
+
+## **Notifications**
+
+None (no push/email/SMS). In-app sync state surfaces via `useSyncStatus()`: offline indicator, queued-mutation count, syncing state, unresolved-conflict count. The example app renders a status banner and a conflict resolution sheet.
+
+## **UI**
+
+Syncdb is a library; the UI work is the example-frontend proof surface:
+
+- **Todos screen on syncdb** behind a `USE_SYNCDB` feature flag (existing OpenFeature infra). The RTK path remains the default until parity is verified.
+- **`SyncStatusBanner`**: offline / N queued / syncing / conflict count. testIDs: `sync-status-banner`, `sync-queued-count`, `sync-conflict-badge`.
+- **Conflict resolution sheet**: local vs server values side by side, "Keep mine" / "Use server". testIDs: `conflict-sheet`, `conflict-item-{id}`, `conflict-keep-mine-button`, `conflict-use-server-button`.
+- **Dev testing panel** (dev-only): offline toggle, force reconnect, wipe local store. testIDs: `syncdb-dev-panel`, `syncdb-offline-toggle`, `syncdb-wipe-button`.
+
+All components built from @terreno/ui primitives (Box, Text, Button, Modal/ModalSheet).
 
 ## Phases
 
-1. **Foundation and package scaffold**
-   - Create `@terreno/syncdb` package structure and public API skeleton.
-   - Add typed config and lifecycle primitives.
+1. **Server sync foundation** — `sync` modelRouter option + registry + soft-delete validation, `_syncSeq` plugin (transactional seq claim, all write paths, `updateMany`/`bulkWrite` guard, `_syncPrevStream`) + `SyncCounter`, `GET /sync/snapshot` (tombstone-inclusive), `SyncKey` (race-safe upsert) + `GET /sync/key`.
+2. **Server mutation channel + deltas** — **CRUD executor extraction from modelRouter (Task 2.0, the load-bearing refactor)**, then shared mutation handler (`sync:mutate` + `POST /sync/mutate`) with atomic idempotency claim, ack/nack with conflict payloads, `sync:delta` emission with seq, `sync:subscribe` + tenant rooms, pluggable socket authenticator (Better Auth).
+3. **Client core** — package scaffold, `MergeableStore` schema + typed accessors, persister factories (expo-sqlite / memory), outbox state machine + cursor store + idempotent delta applier (harvested from #835).
+4. **Client crypto** — `EncryptedIndexedDbPersister`, AES-GCM codec (harvested), `serverKeyProvider` (default) + `localKeyProvider`, wipe-on-user-change.
+5. **Client sync engine + transport** — Socket.io transport, HTTP fallback + bootstrap, replay coordinator, conflict store/resolver, reconcile heuristics; integration tests against a real example-backend.
+6. **React layer + Better Auth adapter** — `SyncDbProvider`, hooks, `betterAuthAdapter`.
+7. **Example integration + docs** — example-backend `sync` enablement (todos + a tenant-scoped model), example-frontend behind `USE_SYNCDB` with banner/conflict UI, Playwright e2e, migration guide, close #835.
 
-2. **Local database + encryption**
-   - Implement IndexedDB adapter with encrypted entity/outbox storage.
-   - Add key management and login/logout key lifecycle.
+Each phase is one PR. Phases 1–2 (server) and 3–4 (client foundations) can proceed in parallel once Phase 1's shared protocol types are agreed.
 
-3. **Local mutation engine**
-   - Optimistic local writes, durable outbox enqueue, retry/replay orchestration.
-   - Conflict capture and resolution primitives.
+## Feature Flags & Migrations
 
-4. **Websocket delta sync**
-   - Handshake, cursor resume, delta apply pipeline, ack/nack integration.
-   - Reconnect handling and idempotent delta application.
+- `USE_SYNCDB` feature flag in example-frontend only; the packages themselves need no flag (adoption is opt-in by construction).
+- No data migrations: local stores are new; server collections (`SyncCounter`, `SyncMutation`, `SyncKey`) are additive. Docs without `_syncSeq` sort before any cursor and are delivered by the first snapshot; the plugin stamps them on their next write.
+- `@terreno/rtk` is **not removed**: README deprecation notice for data-sync concerns + migration guide at `docs/how-to/migrate-rtk-to-syncdb.md`. rtk remains for non-synced RPC endpoints and legacy JWT auth until Better Auth migration completes.
+- PR #835 is closed with a comment linking this plan once the IP PR is up.
 
-5. **React integration + migration bridge**
-   - Query/mutation hooks and optional Redux bridge for existing apps.
-   - Implement `example-frontend` todos flow using syncdb behind a flag.
+## Activity Log & User Updates
 
-6. **Codegen replacement path**
-   - Create `@terreno/syncdb-codegen` prototype.
-   - Generate typed operation descriptors and migrate one domain.
+None user-facing. Server-side `logger` instrumentation: applied mutations at `info` (mutationId, collection, seq), nacks at `info` with code, replay/idempotency anomalies at `warn`.
 
-7. **Validation + docs**
-   - Unit/integration testing across crypto, storage, replay, sync ordering, and conflict scenarios.
-   - Consumer migration guide and operational playbook.
+## Permissions & Access
 
-## Not Included / Future Work
+- Every mutation — socket or HTTP — executes the modelRouter write path: identical permissions, pre/post hooks, and validation as REST CRUD. No parallel authorization system.
+- Snapshot enforces model `list` permissions plus a server-side scope filter; clients can never read another scope's stream.
+- Delta emission reuses the per-socket permission checks in `emitToAuthorizedRoom` (`api/src/realtime/changeStreamWatcher.ts:214-249`).
+- Local isolation: store per `{app, userId}`; on auth user change syncdb wipes and re-bootstraps. Per-user encryption keys make a stale store unreadable to the next user.
 
-- Bundling and chunking optimizations.
-- Service worker asset prefetch strategy.
-- Full cross-resource CRDT collaboration model.
-- Field-level/semantic conflict merge UI (beyond keep mine/use server).
-- Native mobile storage encryption strategy outside web IndexedDB.
+## **Not included/Future work**
+
+- **Bundling/chunking optimization** (future speed work, explicitly no tasks in this IP): lazy-load persisters per platform, code-split the sync engine so non-syncdb apps pay nothing, web chunking for faster initial load.
+- Yjs CRDT backend for collaborative structures (rich text); the door stays open via the MergeableStore + persister/transport abstractions.
+- Redis-based per-stream counters for high-throughput multi-instance deployments (documented upgrade path).
+- Field-level conflict merge UI (v1 is whole-doc keep-mine/use-server).
+- `@terreno/syncdb-codegen` typed collection descriptors from OpenAPI.
+- Removing `@terreno/rtk`.
+- Admin sync-inspection UI (outbox/cursor/conflict visibility in admin panel).
+- Native sqlite encryption (SQLCipher) — sandbox deemed sufficient.
 
 ## Risks & Mitigations
 
-- **Delta ordering bugs can corrupt local state:** enforce cursor monotonicity + idempotent apply checks and reject out-of-order deltas until gap resolution.
-- **Crypto key lifecycle mistakes can cause data loss:** design explicit key versioning/rotation and recovery policy; test logout/login/rekey paths.
-- **Migration complexity across apps:** provide Redux bridge and feature-flagged incremental rollout rather than big-bang replacement.
-- **Conflict UX scope creep:** lock v1 to two conflict strategies and defer merge editor.
-- **Backend contract drift:** define strict event schemas and integration tests between client and server mock transport.
+- **modelRouter executor extraction (Task 2.0) is the highest-risk item in the plan**: it refactors the framework's most load-bearing file (`api/src/api.ts`, ~1000 lines of inline Express handlers). Mitigation: it is its own PR-sized task with the hard gate that the entire existing API test suite passes unchanged before anything sync-specific builds on it.
+- **Whole-store serialize+encrypt per save** (TinyBase persisters persist the full store): debounced/throttled saves (500ms trailing); per-table blob sharding is the documented follow-up if profiling demands it. Encryption cost scales with store size, not change size — bounded in practice by scoping which collections sync.
+- **TinyBase version behavior unverified in-repo** (`tinybase` is not yet a dependency anywhere): MergeableStore persister-mode constraints were verified against tinybase.org v8 docs, not an installed version. Task 3.1 pins the version; Task 3.5/4.2 acceptance tests are the tripwire.
+- **Better Auth socket authentication**: `RealtimeApp` validates legacy JWTs only today. Pluggable authenticator added in Phase 2; legacy JWT path unchanged, so nothing regresses.
+- **Seq counter write amplification** (one transactional `$inc` + doc write per synced write): acceptable at current scale; Redis path documented. Transactions require the replica set, which change streams already mandate.
+- **Missed deltas while connected**: no strict gap proof by design — rate-limited seq-jump reconcile + reconcile-on-reconnect + periodic reconcile give eventual convergence (accepted in shaping). Permission-filtered deltas make seq gaps legitimate, hence the rate limiting.
+- **Scope changes**: `_syncPrevStream` stamped at write time (no Mongo pre-image config needed); watcher emits old-stream tombstone + new-stream create; explicit test case.
+- **Multi-tab same-user on web**: two tabs share one IndexedDB blob; concurrent persister saves are last-writer-wins at the blob level, which can drop the other tab's queued outbox rows. V1 mitigation: single-writer persistence via the Web Locks API (the lock-holding tab owns persister saves; others operate in-memory and re-load on lock acquisition). Full multi-tab coordination (BroadcastChannel state sharing) is future work; AC-8 remains valid because each tab holds its own socket.
+- **`sync:mutate` flood**: per-socket rate limit on the mutation channel (consistent with existing subscription caps) — each mutation costs a transaction + ledger write.
+- **MergeableStore ~2× storage overhead**: accepted for CRDT-readiness; documented.
 
 ## Acceptance Criteria
 
-### Feature: Local-First Todo Workflow
+*All UI criteria run against example-frontend (web) with `USE_SYNCDB` on unless stated otherwise. Server-only behaviors (scope isolation, idempotency, permission enforcement) are additionally covered by bun API/integration tests per the Task List; the criteria below are the user-observable surface.*
 
-#### AC-1: Offline create updates UI immediately and queues mutation
+### Feature: Local-First Reads & Bootstrap
+
+#### AC-1: Todos load from the local store after login
 **Priority:** P0
-**Screen:** Todos Screen
+**Screen:** Todos
 **Preconditions:**
-- `USE_SYNCDB` is enabled.
-- User is authenticated.
-- Network is disabled (browser offline mode).
+- `USE_SYNCDB` flag on; test user has ≥3 todos on the server; fresh browser profile (empty local store)
 
 **Steps:**
-1. Navigate to the todos tab and wait for `todos-screen-root`.
-2. Enter `Offline task` into `todos-input-title`.
-3. Tap `todos-button-save`.
-4. Observe `todos-item-offline-task` and `todos-sync-queue-count`.
+1. Log in via `loginAs()` and wait for `todos-screen` to be visible
+2. Observe the todos list after bootstrap completes
 
 **Expected results:**
-- [ ] `todos-item-offline-task` is visible immediately after tapping save.
-- [ ] `todos-sync-status-offline` is visible.
-- [ ] `todos-sync-queue-count` increments by 1.
+- [ ] All server todos render as `todo-item-{id}` elements
+- [ ] `sync-status-banner` shows no queued count and no offline indicator
 
-**testIDs needed:** `todos-screen-root`, `todos-input-title`, `todos-button-save`, `todos-item-offline-task`, `todos-sync-status-offline`, `todos-sync-queue-count`
+**testIDs needed:** `todos-screen`, `todo-item-{id}`, `sync-status-banner`
 
 ---
 
-#### AC-2: Queued local mutations survive full page reload
+#### AC-2: Data persists across reload without network
 **Priority:** P0
-**Screen:** Todos Screen
+**Screen:** Todos
 **Preconditions:**
-- AC-1 completed with at least one queued mutation.
-- Network remains disabled.
+- AC-1 completed (local store populated)
 
 **Steps:**
-1. Reload the app/browser tab.
-2. Return to todos and wait for `todos-screen-root`.
-3. Observe `todos-item-offline-task` and `todos-sync-queue-count`.
+1. Toggle offline via `syncdb-offline-toggle` (dev panel)
+2. Reload the page and wait for `todos-screen`
 
 **Expected results:**
-- [ ] `todos-item-offline-task` is still visible after reload.
-- [ ] `todos-sync-queue-count` remains greater than 0.
-- [ ] No login redirect occurs while session remains valid.
+- [ ] Previously synced todos render from the local store with no network
+- [ ] `sync-status-banner` shows the offline indicator (`sync-offline-indicator` visible)
 
-**testIDs needed:** `todos-screen-root`, `todos-item-offline-task`, `todos-sync-queue-count`
+**testIDs needed:** `syncdb-dev-panel`, `syncdb-offline-toggle`, `todos-screen`, `todo-item-{id}`, `sync-status-banner`, `sync-offline-indicator`
 
 ---
 
-#### AC-3: Reconnect replays outbox and clears queued state
-**Priority:** P0
-**Screen:** Todos Screen
+#### AC-3: Empty state renders for a user with no data
+**Priority:** P1
+**Screen:** Todos
 **Preconditions:**
-- At least one queued local mutation exists.
-- User remains authenticated.
+- Fresh user with zero todos
 
 **Steps:**
-1. Re-enable network connectivity.
-2. Wait for `todos-sync-status-syncing`.
-3. Wait for `todos-sync-status-online`.
-4. Refresh the todos list using `todos-button-refresh`.
+1. Log in and wait for `todos-screen`
 
 **Expected results:**
-- [ ] Sync state transitions from offline/queued to syncing, then online.
-- [ ] `todos-sync-queue-count` reaches `0`.
-- [ ] `todos-item-offline-task` persists in the server-backed list after refresh.
+- [ ] `todos-empty-state` is visible; no `todo-item-*` elements exist
 
-**testIDs needed:** `todos-sync-status-syncing`, `todos-sync-status-online`, `todos-sync-queue-count`, `todos-button-refresh`, `todos-item-offline-task`
+**testIDs needed:** `todos-empty-state`
 
 ---
 
-### Feature: Delta Sync Integrity
+### Feature: Offline Mutations & Durable Outbox
 
-#### AC-4: Remote websocket delta applies once and does not duplicate rows
+#### AC-4: Offline create applies instantly and syncs on reconnect
 **Priority:** P0
-**Screen:** Todos Screen
+**Screen:** Todos
 **Preconditions:**
-- Two clients are logged in to the same workspace.
-- Both clients have `USE_SYNCDB` enabled and are online.
+- Logged in, store bootstrapped
 
 **Steps:**
-1. In client A, create a todo titled `Delta task` with `todos-button-save`.
-2. In client B, wait for `todos-item-delta-task` to appear.
-3. Trigger a duplicate-delta test event (or reconnect client B to replay last cursor window).
-4. Count rows matching `todos-item-delta-task`.
+1. Toggle offline via `syncdb-offline-toggle`
+2. Type "Offline milk run" into `todos-title-input`, click `todos-create-button`
+3. Observe the list and banner
+4. Toggle back online
+5. Wait for the queued count to clear
 
 **Expected results:**
-- [ ] Client B shows `todos-item-delta-task` without manual refresh.
-- [ ] After duplicate/replay delta delivery, row count for `Delta task` remains exactly 1.
-- [ ] `todos-sync-cursor-state` reports no cursor gap error.
+- [ ] The new todo appears in the list immediately (before any network)
+- [ ] `sync-queued-count` shows "1" while offline
+- [ ] After reconnect, `sync-queued-count` disappears and the todo remains (now server-acked)
+- [ ] The todo is visible in a second browser session for the same user
 
-**testIDs needed:** `todos-button-save`, `todos-item-delta-task`, `todos-sync-cursor-state`
+**testIDs needed:** `todos-title-input`, `todos-create-button`, `sync-queued-count`, `syncdb-offline-toggle`
+
+---
+
+#### AC-5: Queued mutations survive an app reload
+**Priority:** P0
+**Screen:** Todos
+**Preconditions:**
+- Offline with 2 queued mutations (1 create, 1 update)
+
+**Steps:**
+1. Reload the page while still offline; wait for `todos-screen`
+2. Observe banner and list
+3. Toggle online
+
+**Expected results:**
+- [ ] `sync-queued-count` still shows "2" after reload (outbox is durable)
+- [ ] Optimistic changes are still visible in the list
+- [ ] After reconnect, both mutations replay in order and the queue clears
+
+**testIDs needed:** `sync-queued-count`, `todos-screen`, `todo-item-{id}`
+
+---
+
+#### AC-6: Offline update and delete apply locally and replay
+**Priority:** P1
+**Screen:** Todos
+**Preconditions:**
+- Logged in with ≥2 synced todos
+
+**Steps:**
+1. Toggle offline
+2. Toggle completion on one todo via `todo-toggle-{id}`; delete another via `todo-delete-{id}`
+3. Toggle online; wait for the queue to clear
+
+**Expected results:**
+- [ ] Toggle and delete reflect immediately while offline
+- [ ] After reconnect the server state matches (verify via second session): toggled todo is completed, deleted todo is gone
+
+**testIDs needed:** `todo-toggle-{id}`, `todo-delete-{id}`
+
+---
+
+#### AC-7: User switch wipes local data
+**Priority:** P0
+**Screen:** Todos / Login
+**Preconditions:**
+- User A logged in with synced todos and 1 queued (offline) mutation
+
+**Steps:**
+1. Log out; log in as user B
+2. Wait for `todos-screen`
+
+**Expected results:**
+- [ ] None of user A's todos are visible to user B
+- [ ] `sync-queued-count` is absent (A's outbox not replayed as B)
+- [ ] Logging back in as A re-bootstraps A's server data
+
+**testIDs needed:** `todos-screen`, `sync-queued-count`
+
+---
+
+### Feature: Live Delta Sync
+
+#### AC-8: Changes from another session appear without refresh
+**Priority:** P0
+**Screen:** Todos
+**Preconditions:**
+- Same user logged in from two browser contexts (A and B), both on `todos-screen`
+
+**Steps:**
+1. In context B, create a todo "From the other tab"
+2. Observe context A without any interaction
+
+**Expected results:**
+- [ ] The new todo appears in context A via `sync:delta` (no reload, no refetch button)
+- [ ] Completing it in B updates A; deleting it in B removes it from A
+
+**testIDs needed:** `todo-item-{id}`, `todos-create-button`, `todo-toggle-{id}`, `todo-delete-{id}`
+
+---
+
+#### AC-9: Reconnect catch-up converges missed changes
+**Priority:** P0
+**Screen:** Todos
+**Preconditions:**
+- Same user in contexts A and B; A toggled offline
+
+**Steps:**
+1. In context B (online), create one todo, update another, delete a third
+2. Toggle A back online
+3. Wait for sync to settle
+
+**Expected results:**
+- [ ] Context A shows all three changes after reconnect (HTTP catch-up from cursor), with no duplicates
+
+**testIDs needed:** `todo-item-{id}`, `syncdb-offline-toggle`
 
 ---
 
 ### Feature: Conflict Resolution
 
-#### AC-5: Conflict creates resolvable record with keep-mine and use-server actions
+#### AC-10: Conflicting offline edit surfaces a conflict with both versions
+**Priority:** P0
+**Screen:** Todos / Conflict sheet
+**Preconditions:**
+- Same user in contexts A and B; both see todo T
+
+**Steps:**
+1. Toggle A offline; edit T's title to "Local edit" in A
+2. In B (online), edit T's title to "Server edit"
+3. Toggle A online; wait for replay
+4. Click `sync-conflict-badge` to open the conflict sheet
+
+**Expected results:**
+- [ ] `sync-conflict-badge` appears showing "1"
+- [ ] `conflict-sheet` shows the local value ("Local edit") and server value ("Server edit") side by side in `conflict-item-{id}`
+- [ ] T's local display is not silently overwritten while the conflict is unresolved
+
+**testIDs needed:** `sync-conflict-badge`, `conflict-sheet`, `conflict-item-{id}`
+
+---
+
+#### AC-11: "Use server" resolves to the server version
+**Priority:** P0
+**Screen:** Conflict sheet
+**Preconditions:**
+- AC-10 state (open conflict)
+
+**Steps:**
+1. Click `conflict-use-server-button`
+
+**Expected results:**
+- [ ] The sheet closes (or the item leaves the list); `sync-conflict-badge` disappears
+- [ ] T shows "Server edit" locally; no mutation is re-sent
+
+**testIDs needed:** `conflict-use-server-button`, `sync-conflict-badge`
+
+---
+
+#### AC-12: "Keep mine" re-applies the local version to the server
 **Priority:** P1
-**Screen:** Todos Screen
+**Screen:** Conflict sheet
 **Preconditions:**
-- Two clients edit the same todo record.
-- Server conflict contract (`409`) is enabled.
+- AC-10 state (open conflict)
 
 **Steps:**
-1. Client A updates `todos-item-shared` title to `Mine`.
-2. Client B updates same item title to `Server`.
-3. Let client A reconnect/replay to receive conflict.
-4. In client A, open `todos-conflict-card-shared` and click `todos-conflict-action-use-server`.
-5. Repeat conflict and click `todos-conflict-action-keep-mine`.
+1. Click `conflict-keep-mine-button`
+2. Wait for the queue to clear
 
 **Expected results:**
-- [ ] Conflict banner `todos-conflict-banner` appears when `409` is received.
-- [ ] Choosing `use-server` updates row text to `Server` and removes conflict card.
-- [ ] Choosing `keep-mine` retries mutation and final row text is `Mine` after replay.
+- [ ] T shows "Local edit" locally and in context B (mutation re-enqueued with fresh baseVersion and acked)
+- [ ] `sync-conflict-badge` disappears
 
-**testIDs needed:** `todos-item-shared`, `todos-conflict-banner`, `todos-conflict-card-shared`, `todos-conflict-action-use-server`, `todos-conflict-action-keep-mine`
+**testIDs needed:** `conflict-keep-mine-button`, `sync-conflict-badge`
 
 ---
 
-### Feature: Validation and Error Handling
+### Feature: Sync Status UI
 
-#### AC-6: Invalid local mutation is rejected before queue insertion
+#### AC-13: Banner reflects offline / queued / syncing states
 **Priority:** P1
-**Screen:** Todos Screen
+**Screen:** Todos
 **Preconditions:**
-- User is authenticated.
-- `USE_SYNCDB` enabled.
+- Logged in, bootstrapped
 
 **Steps:**
-1. Clear `todos-input-title` to empty.
-2. Tap `todos-button-save`.
-3. Observe `todos-error-title-required` and `todos-sync-queue-count`.
+1. Toggle offline → observe banner
+2. Create 2 todos → observe queued count
+3. Toggle online → observe transition
 
 **Expected results:**
-- [ ] `todos-error-title-required` is visible.
-- [ ] No new todo row is inserted.
-- [ ] `todos-sync-queue-count` does not increment.
+- [ ] Offline: `sync-offline-indicator` visible
+- [ ] Queued: `sync-queued-count` shows "2"
+- [ ] On reconnect: count clears; banner returns to idle (no offline indicator, no count)
 
-**testIDs needed:** `todos-input-title`, `todos-button-save`, `todos-error-title-required`, `todos-sync-queue-count`
+**testIDs needed:** `sync-status-banner`, `sync-offline-indicator`, `sync-queued-count`
 
 ---
 
-#### AC-7: Auth refresh failure pauses replay without clearing local state
-**Priority:** P1
-**Screen:** App Root / Todos Screen
+### Feature: Encryption at Rest (web)
+
+#### AC-14: IndexedDB contains no plaintext entity data
+**Priority:** P0
+**Screen:** N/A (storage assertion)
 **Preconditions:**
-- Queue contains at least one pending mutation.
-- Access token is expired.
-- Refresh endpoint fails (network/server unavailable).
+- Logged in; a todo titled "SECRET_MARKER_XYZ" has synced; persister has saved
 
 **Steps:**
-1. Re-enable network partially so app can attempt replay while refresh endpoint fails.
-2. Wait for `app-sync-status-auth-blocked`.
-3. Inspect todos list and queued item.
-4. Restore refresh endpoint and re-authenticate if needed.
+1. Via `page.evaluate`, read all records from the syncdb IndexedDB database
+2. Serialize the raw stored values and search for "SECRET_MARKER_XYZ"
 
 **Expected results:**
-- [ ] `app-sync-status-auth-blocked` is shown.
-- [ ] Local queued items remain visible; queue is not cleared.
-- [ ] After refresh succeeds, replay resumes and queue drains.
+- [ ] The marker string does not appear anywhere in raw IndexedDB contents (payload is AES-GCM ciphertext)
+- [ ] After reload (same session), the todo still renders with the correct title (decrypt works)
 
-**testIDs needed:** `app-sync-status-auth-blocked`, `todos-item-offline-task`, `todos-sync-queue-count`
+**testIDs needed:** `todo-item-{id}` (post-reload assertion)
 
 ---
 
-### Feature: Empty State and Navigation
+### Feature: Flag & Migration Safety
 
-#### AC-8: Empty state renders correctly and transitions after first local create
-**Priority:** P1
-**Screen:** Todos Screen
+#### AC-15: USE_SYNCDB off leaves the RTK path unchanged
+**Priority:** P0
+**Screen:** Todos
 **Preconditions:**
-- User has zero todos.
-- `USE_SYNCDB` enabled.
+- `USE_SYNCDB` flag off
 
 **Steps:**
-1. Open todos tab and wait for `todos-empty-state`.
-2. Enter `First local todo` in `todos-input-title`.
-3. Tap `todos-button-save`.
+1. Log in; wait for `todos-screen`
+2. Create, toggle, and delete a todo
 
 **Expected results:**
-- [ ] `todos-empty-state` is visible before create.
-- [ ] `todos-empty-state` disappears after create.
-- [ ] `todos-item-first-local-todo` appears immediately.
+- [ ] All CRUD works exactly as before (RTK Query path)
+- [ ] No syncdb UI (`sync-status-banner`, `syncdb-dev-panel`) is rendered
 
-**testIDs needed:** `todos-empty-state`, `todos-input-title`, `todos-button-save`, `todos-item-first-local-todo`
+**testIDs needed:** `todos-screen`, `sync-status-banner`, `syncdb-dev-panel`
 
 ---
 
-#### AC-9: Sync status survives tab navigation and returns consistent state
-**Priority:** P2
-**Screen:** Tabs Navigation (Todos and Profile)
-**Preconditions:**
-- `USE_SYNCDB` enabled.
-- One queued item exists while offline.
+### Feature: Server Contract (API-level, verified by bun tests — listed for completeness)
 
-**Steps:**
-1. From todos, confirm `todos-sync-status-offline`.
-2. Navigate using `tabs-button-profile`.
-3. Navigate back using `tabs-button-todos`.
-4. Observe status and queue count again.
+#### AC-16: Scope isolation, idempotency, and authoritative validation
+**Priority:** P0
+**Screen:** N/A (API)
+**Preconditions:** integration test environment (Phase 5.5)
 
 **Expected results:**
-- [ ] Returning to todos still shows `todos-sync-status-offline`.
-- [ ] `todos-sync-queue-count` matches value before navigation.
-- [ ] No duplicate list rows appear after navigation.
+- [ ] `GET /sync/snapshot` never returns another owner's/tenant's documents regardless of query params
+- [ ] Re-sending a `sync:mutate` with the same `mutationId` returns the recorded outcome without double-applying
+- [ ] A mutation violating model permissions is nacked `unauthorized`; one failing validation is nacked `validation`; neither modifies data
+- [ ] A mutation with a stale `baseVersion` is nacked `conflict` and includes the canonical server doc + seq
 
-**testIDs needed:** `todos-sync-status-offline`, `tabs-button-profile`, `tabs-button-todos`, `todos-sync-queue-count`
-
----
-
-### Feature: Access Isolation
-
-#### AC-10: Logout clears replay context to prevent cross-user mutation replay
-**Priority:** P1
-**Screen:** App Root / Login Screen
-**Preconditions:**
-- User A has queued offline mutations.
-- User A logs out; User B logs in on same device/browser profile.
-
-**Steps:**
-1. For User A, create queued mutation while offline.
-2. Tap `app-button-logout`.
-3. Log in as User B with `login-input-email`, `login-input-password`, `login-button-submit`.
-4. Re-enable network and open todos.
-
-**Expected results:**
-- [ ] User A queued mutations are not replayed under User B session.
-- [ ] User B sees only User B data.
-- [ ] `todos-sync-queue-count` is 0 after User B login unless User B creates new local mutations.
-
-**testIDs needed:** `app-button-logout`, `login-input-email`, `login-input-password`, `login-button-submit`, `todos-sync-queue-count`
-
----
-
-### Coverage Notes
-
-- Happy path: AC-1, AC-2, AC-3, AC-4
-- Validation: AC-6
-- Error handling: AC-7
-- Empty states: AC-8
-- Permissions/access: AC-10
-- Navigation: AC-9
-- Data persistence: AC-2, AC-3
-- Out of scope confirmation: bundling/chunking optimization remains intentionally excluded from acceptance validation for this plan.
+**testIDs needed:** none (API tests)
 
 ---
 
 ## Task List (Bot Consumption)
 
-*Structured task breakdown for automated implementation. Each task should be independently implementable and testable.*
+*Structured task breakdown for automated implementation. The canonical copy lives at `docs/tasks/syncdb-local-first.md`; keep the two in sync.*
 
-### Phase 1: Foundation
-
-- [ ] **Task 1.1**: Scaffold `@terreno/syncdb` package
-  - Description: Create package entrypoints, config types, lifecycle interfaces, and baseline exports.
-  - Files: `syncdb/package.json` (new), `syncdb/src/index.ts` (new), `syncdb/src/types.ts` (new), `syncdb/README.md` (new)
-  - Depends on: none
-  - Acceptance: package compiles and exports typed `createSyncDbClient` placeholder API.
-
-- [ ] **Task 1.2**: Define canonical storage and sync type contracts
-  - Description: Add interfaces for local entities, outbox mutations, sync cursor, conflicts, and keyring records.
-  - Files: `syncdb/src/storage/types.ts` (new), `syncdb/src/sync/types.ts` (new), `syncdb/src/crypto/types.ts` (new)
-  - Depends on: Task 1.1
-  - Acceptance: type-only unit tests compile and enforce required fields for all persistence records.
-
-### Phase 2: Local DB + Crypto
-
-- [ ] **Task 2.1**: Implement IndexedDB adapter
-  - Description: Build object stores, schema versioning, migrations, and CRUD helpers for entities/outbox/cursors/conflicts.
-  - Files: `syncdb/src/storage/indexedDb.ts` (new), `syncdb/src/storage/migrations.ts` (new), `syncdb/src/storage/indexedDb.test.ts` (new)
-  - Depends on: Task 1.2
-  - Acceptance: tests verify create/read/update/delete and schema upgrade behavior.
-
-- [ ] **Task 2.2**: Implement Web Crypto key management
-  - Description: Add DEK generation, wrap/unwrap flow, and keyring persistence.
-  - Files: `syncdb/src/crypto/keyManager.ts` (new), `syncdb/src/crypto/keyManager.test.ts` (new)
-  - Depends on: Task 1.2
-  - Acceptance: tests verify deterministic decryptability with same key material and failure with wrong key.
-
-- [ ] **Task 2.3**: Encrypt/decrypt persistence envelope
-  - Description: Add AES-GCM envelope helpers and integrate with IndexedDB adapter reads/writes.
-  - Files: `syncdb/src/crypto/envelope.ts` (new), `syncdb/src/storage/secureStorage.ts` (new), tests in `syncdb/src/crypto/envelope.test.ts` (new)
-  - Depends on: Task 2.1, Task 2.2
-  - Acceptance: plaintext is never written to IndexedDB stores in tests; decrypt roundtrip passes.
-
-### Phase 3: Local Mutation Engine
-
-- [ ] **Task 3.1**: Build optimistic apply/revert pipeline
-  - Description: Add mutation planner that applies local patch and stores inverse patch for rollback.
-  - Files: `syncdb/src/mutations/optimistic.ts` (new), `syncdb/src/mutations/optimistic.test.ts` (new)
-  - Depends on: Task 2.3
-  - Acceptance: optimistic updates are immediate and reversable in unit tests.
-
-- [ ] **Task 3.2**: Durable outbox enqueue and replay state machine
-  - Description: Implement queue transitions (`queued` -> `inFlight` -> `acked/conflicted/failed`) and retry metadata.
-  - Files: `syncdb/src/mutations/outbox.ts` (new), `syncdb/src/mutations/outbox.test.ts` (new)
-  - Depends on: Task 3.1
-  - Acceptance: replay state transitions and retry counters are deterministic in tests.
-
-- [ ] **Task 3.3**: Conflict store and resolver actions
-  - Description: Persist conflict objects and implement `useServer`/`keepMine` resolution behavior.
-  - Files: `syncdb/src/mutations/conflicts.ts` (new), `syncdb/src/mutations/conflicts.test.ts` (new)
-  - Depends on: Task 3.2
-  - Acceptance: both resolution strategies update outbox/entity state as expected.
-
-### Phase 4: Websocket Delta Sync
-
-- [ ] **Task 4.1**: Implement sync transport client
-  - Description: Add websocket handshake, authentication payload, and reconnect strategy.
-  - Files: `syncdb/src/sync/transport.ts` (new), `syncdb/src/sync/transport.test.ts` (new)
-  - Depends on: Task 1.2
-  - Acceptance: transport emits lifecycle events and reconnect behavior in tests.
-
-- [ ] **Task 4.2**: Implement cursor-aware delta apply engine
-  - Description: Apply server deltas to local entities with idempotency and monotonic cursor checks.
-  - Files: `syncdb/src/sync/deltaApplier.ts` (new), `syncdb/src/sync/deltaApplier.test.ts` (new)
-  - Depends on: Task 2.3, Task 4.1
-  - Acceptance: duplicate/out-of-order deltas are safely handled; valid ordered deltas update local store.
-
-- [ ] **Task 4.3**: Wire ack/nack to outbox replay loop
-  - Description: Connect transport acknowledgements to outbox mutation completion/conflict paths.
-  - Files: `syncdb/src/sync/replayCoordinator.ts` (new), `syncdb/src/sync/replayCoordinator.test.ts` (new)
-  - Depends on: Task 3.3, Task 4.2
-  - Acceptance: ack removes queued mutation; nack creates conflict and preserves retry semantics.
-
-### Phase 5: React + Migration
-
-- [ ] **Task 5.1**: Implement React hooks API
-  - Description: Add `useEntity`, `useQuery`, `useMutation`, `useSyncStatus`, and conflict hooks.
-  - Files: `syncdb/src/react/hooks.ts` (new), `syncdb/src/react/provider.tsx` (new), `syncdb/src/react/hooks.test.tsx` (new)
-  - Depends on: Task 3.3, Task 4.3
-  - Acceptance: hooks re-render on local mutation and remote delta updates.
-
-- [ ] **Task 5.2**: Add Redux migration bridge
-  - Description: Provide optional bridge/adapters for existing Redux-based apps migrating from `@terreno/rtk`.
-  - Files: `syncdb/src/bridge/reduxBridge.ts` (new), `syncdb/src/bridge/reduxBridge.test.ts` (new)
-  - Depends on: Task 5.1
-  - Acceptance: bridge exposes selectors and dispatch-compatible mutation wrappers.
-
-- [ ] **Task 5.3**: Migrate example todos behind feature flag
-  - Description: Integrate syncdb into `example-frontend` for one domain (todos) with `USE_SYNCDB` toggle.
-  - Files: `example-frontend/store/index.ts`, `example-frontend/store/sdk.ts`, `example-frontend/app/(tabs)/index.tsx`, `example-frontend/app/_layout.tsx`
-  - Depends on: Task 5.1, Task 5.2
-  - Acceptance: toggling flag changes data path to syncdb and preserves todo CRUD behavior.
-
-### Phase 6: Codegen + Documentation
-
-- [ ] **Task 6.1**: Prototype syncdb codegen package
-  - Description: Build `@terreno/syncdb-codegen` to emit typed operation descriptors from OpenAPI.
-  - Files: `syncdb-codegen/package.json` (new), `syncdb-codegen/src/index.ts` (new), tests under `syncdb-codegen/src/*.test.ts` (new)
-  - Depends on: Task 1.1
-  - Acceptance: generator emits descriptor file for at least one example endpoint group.
-
-- [ ] **Task 6.2**: Add consumer migration documentation
-  - Description: Document install/configuration/migration steps from `@terreno/rtk` to `@terreno/syncdb`.
-  - Files: `syncdb/README.md`, `docs/implementationPlans/syncdb-local-first.md`
-  - Depends on: Task 5.3
-  - Acceptance: docs include side-by-side migration example and rollout checklist.
-
-- [ ] **Task 6.3**: Validation suite run and stabilization
-  - Description: Run compile/lint/tests for new packages and touched example app flows, fixing regressions.
-  - Files: no dedicated source file; any fixes in touched files
-  - Depends on: Task 6.2
-  - Acceptance: relevant package compile/test/lint commands pass with documented outputs.
+See `docs/tasks/syncdb-local-first.md` for the full 26-task breakdown across the 7 phases above (including Task 2.0, the modelRouter executor extraction).
