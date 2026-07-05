@@ -3,6 +3,10 @@ import axios, {type AxiosInstance, type InternalAxiosRequestConfig} from "axios"
 import {APIError} from "./errors";
 import {logger as defaultLogger} from "./logger";
 
+// Note: this augmentation is global — `retryUnsafe` appears on every axios config type in
+// consumer apps, but it only has an effect on instances created by createAuthenticatedClient.
+// Retried request bodies must be replayable: JSON objects are fine, but streams/FormData are
+// consumed on first send and cannot be retried.
 declare module "axios" {
   export interface AxiosRequestConfig {
     // Opts a non-idempotent request (POST/PUT/PATCH/DELETE) into the retry policy.
@@ -12,9 +16,13 @@ declare module "axios" {
 }
 
 // Internal per-request state tracked on the axios config across interceptor retries.
+// __httpClientManaged marks configs that passed through this client's request interceptor —
+// errors from foreign configs (e.g. the oauth2 token POST itself) must never be refreshed
+// or retried here, or a failing token endpoint would loop forever.
 interface RetryState {
   __httpClientRetryCount?: number;
   __httpClientDidAuthRefresh?: boolean;
+  __httpClientManaged?: boolean;
 }
 
 /**
@@ -232,11 +240,15 @@ export interface RetryPolicy {
   // Base for exponential backoff with jitter; a Retry-After response header takes
   // precedence when present and parseable.
   baseDelayMs: number;
+  // Ceiling for any single delay, including server-provided Retry-After values, so a
+  // hostile or misconfigured server cannot make the client sleep indefinitely.
+  maxDelayMs: number;
 }
 
 const DEFAULT_RETRY_POLICY: RetryPolicy = {
   baseDelayMs: 250,
   maxAttempts: 3,
+  maxDelayMs: 30_000,
   retryOn: ["rateLimited", "server", "network"],
 };
 
@@ -246,11 +258,15 @@ const IDEMPOTENT_METHODS = ["get", "head", "options"];
 
 export interface CreateAuthenticatedClientOptions {
   baseURL: string;
+  // Service name used in normalized error context and log prefixes (e.g. "fitbit");
+  // defaults to the baseURL.
+  apiName?: string;
   auth: AuthStrategy;
   retry?: Partial<RetryPolicy>;
   logger?: HttpClientLogger;
-  // Rewrites the normalized error before it is logged — for consumers with bespoke
-  // redaction/classification needs.
+  // Rewrites the normalized error before it is logged. Note the returned classification
+  // also feeds the retry decision, so hooks should redact messages rather than rewrite
+  // classifications unless changing retry behavior is intended.
   redactError?: (normalized: NormalizedApiError) => NormalizedApiError;
 }
 
@@ -263,13 +279,14 @@ export interface AuthenticatedClient {
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 const parseRetryAfterMs = (headerValue: unknown): number | undefined => {
-  if (typeof headerValue !== "string") {
+  if (typeof headerValue !== "string" || headerValue.trim() === "") {
     return undefined;
   }
   const seconds = Number(headerValue);
   if (Number.isFinite(seconds) && seconds >= 0) {
     return seconds * 1000;
   }
+  // HTTP-date form falls back to backoff rather than date math.
   return undefined;
 };
 
@@ -295,8 +312,13 @@ export const createAuthenticatedClient = (
   options: CreateAuthenticatedClientOptions
 ): AuthenticatedClient => {
   const log = options.logger ?? defaultLogger;
+  const apiName = options.apiName ?? options.baseURL;
   const retryPolicy: RetryPolicy = {...DEFAULT_RETRY_POLICY, ...options.retry};
-  let cachedToken: string | undefined;
+  // The in-flight promise is cached (not the resolved value) so concurrent first
+  // requests share a single token fetch. resolvedToken tracks the last issued token so
+  // a 401 only invalidates the cache if a newer token hasn't already replaced it.
+  let tokenPromise: Promise<string> | undefined;
+  let resolvedToken: string | undefined;
 
   const fetchToken = async (): Promise<string> => {
     const {auth} = options;
@@ -314,19 +336,46 @@ export const createAuthenticatedClient = (
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
       }
     );
-    return response.data.access_token;
+    const accessToken = response.data?.access_token;
+    if (typeof accessToken !== "string" || accessToken.length === 0) {
+      throw new Error(`[httpClient] ${apiName} token response has no access_token`);
+    }
+    return accessToken;
   };
 
-  const getCachedToken = async (): Promise<string> => {
-    if (cachedToken === undefined) {
-      cachedToken = await fetchToken();
+  const invalidateToken = (): void => {
+    tokenPromise = undefined;
+    resolvedToken = undefined;
+  };
+
+  const getCachedToken = (): Promise<string> => {
+    if (!tokenPromise) {
+      tokenPromise = fetchToken().then(
+        (token) => {
+          resolvedToken = token;
+          return token;
+        },
+        (error) => {
+          // Clear the failed fetch so the next request retries, and wrap the failure in
+          // a plain Error: the raw token-request AxiosError must never reach the response
+          // interceptor's refresh/retry logic (see __httpClientManaged).
+          invalidateToken();
+          const normalized = normalizeApiError(error, {apiName, operation: "token fetch"});
+          const wrapped = new Error(
+            `[httpClient] ${apiName} token fetch failed: ${normalized.messages[0]}`
+          );
+          (wrapped as Error & {cause?: unknown}).cause = error;
+          throw wrapped;
+        }
+      );
     }
-    return cachedToken;
+    return tokenPromise;
   };
 
   const instance = axios.create({baseURL: options.baseURL});
 
   instance.interceptors.request.use(async (config): Promise<InternalAxiosRequestConfig> => {
+    (config as InternalAxiosRequestConfig & RetryState).__httpClientManaged = true;
     const token = await getCachedToken();
     if (options.auth.type === "apiKey") {
       config.headers.set(options.auth.header, token);
@@ -341,8 +390,13 @@ export const createAuthenticatedClient = (
       throw error;
     }
     const config = error.config as InternalAxiosRequestConfig & RetryState;
+    // Errors from configs this client didn't manage (e.g. a failing token POST) must
+    // propagate untouched — refreshing or retrying them can loop forever.
+    if (!config.__httpClientManaged) {
+      throw error;
+    }
     let normalized = normalizeApiError(error, {
-      apiName: options.baseURL,
+      apiName,
       operation: `${config.method ?? "request"} ${config.url ?? ""}`,
     });
     if (options.redactError) {
@@ -357,8 +411,13 @@ export const createAuthenticatedClient = (
       !config.__httpClientDidAuthRefresh
     ) {
       config.__httpClientDidAuthRefresh = true;
-      cachedToken = undefined;
-      log.debug(`[httpClient] ${normalized.operation} got 401, refreshing token and retrying`);
+      // Only invalidate if this request failed with the current token — a concurrent
+      // request may have already refreshed it.
+      const sentAuthorization = config.headers.get("Authorization");
+      if (resolvedToken === undefined || sentAuthorization === `Bearer ${resolvedToken}`) {
+        invalidateToken();
+      }
+      log.debug(`[${apiName}] ${normalized.operation} got 401, refreshing token and retrying`);
       return instance.request(config);
     }
 
@@ -377,19 +436,14 @@ export const createAuthenticatedClient = (
     const backoffMs =
       retryPolicy.baseDelayMs * 2 ** (attemptsSoFar - 1) * (1 + Math.random() * 0.5);
     const retryAfterMs = parseRetryAfterMs(error.response?.headers?.["retry-after"]);
-    const delayMs = retryAfterMs ?? backoffMs;
+    const delayMs = Math.min(retryAfterMs ?? backoffMs, retryPolicy.maxDelayMs);
     log.debug(
-      `[httpClient] ${normalized.operation} failed (${normalized.classification}), ` +
+      `[${apiName}] ${normalized.operation} failed (${normalized.classification}), ` +
         `retrying attempt ${attemptsSoFar + 1}/${retryPolicy.maxAttempts} in ${Math.round(delayMs)}ms`
     );
     await sleep(delayMs);
     return instance.request(config);
   });
 
-  return {
-    axios: instance,
-    invalidateToken: (): void => {
-      cachedToken = undefined;
-    },
-  };
+  return {axios: instance, invalidateToken};
 };

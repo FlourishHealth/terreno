@@ -711,3 +711,262 @@ describe("createAuthenticatedClient", () => {
     });
   });
 });
+
+describe("createAuthenticatedClient hardening", () => {
+  it("rejects without looping when the oauth2 token endpoint itself returns 401", async () => {
+    let tokenRequests = 0;
+    const server = await startTestServer((app) => {
+      app.post("/oauth/token", (_req, res) => {
+        tokenRequests += 1;
+        res.status(401).json({message: "invalid client credentials"});
+      });
+      app.get("/widgets", (_req, res) => {
+        res.json({ok: true});
+      });
+    });
+    try {
+      const client = createAuthenticatedClient({
+        auth: {
+          credentials: {clientId: "bad", clientSecret: "creds"},
+          refreshOn401: true,
+          tokenUrl: `${server.baseURL}/oauth/token`,
+          type: "oauth2",
+        },
+        baseURL: server.baseURL,
+      });
+      let caught: unknown;
+      try {
+        await client.axios.get("/widgets");
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).toBeInstanceOf(Error);
+      expect((caught as Error).message).toContain("token fetch");
+      expect(tokenRequests).toBe(1);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("rejects clearly when the token response has no access_token", async () => {
+    const server = await startTestServer((app) => {
+      app.post("/oauth/token", (_req, res) => {
+        res.json({unexpected: "shape"});
+      });
+    });
+    try {
+      const client = createAuthenticatedClient({
+        auth: {
+          credentials: {clientId: "client-id", clientSecret: "client-secret"},
+          refreshOn401: true,
+          tokenUrl: `${server.baseURL}/oauth/token`,
+          type: "oauth2",
+        },
+        baseURL: server.baseURL,
+      });
+      let caught: unknown;
+      try {
+        await client.axios.get("/widgets");
+      } catch (error) {
+        caught = error;
+      }
+      expect((caught as Error).message).toContain("access_token");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("shares a single token fetch across concurrent first requests", async () => {
+    const server = await startTestServer((app) => {
+      app.get("/widgets", (_req, res) => {
+        res.json({ok: true});
+      });
+    });
+    try {
+      let tokenFetches = 0;
+      const client = createAuthenticatedClient({
+        auth: {
+          getToken: async () => {
+            tokenFetches += 1;
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            return "token-shared";
+          },
+          type: "bearer",
+        },
+        baseURL: server.baseURL,
+      });
+      await Promise.all([client.axios.get("/widgets"), client.axios.get("/widgets")]);
+      expect(tokenFetches).toBe(1);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("retries network errors and logs the retry attempts", async () => {
+    const server = await startTestServer(() => {});
+    const {baseURL} = server;
+    await server.close();
+    const {logger, entries} = createRecordingLogger();
+    const client = createAuthenticatedClient({
+      auth: {getToken: async () => "t", type: "bearer"},
+      baseURL,
+      logger,
+      retry: {baseDelayMs: 1, maxAttempts: 2},
+    });
+    let caught: unknown;
+    try {
+      await client.axios.get("/gone");
+    } catch (error) {
+      caught = error;
+    }
+    expect(isAxiosError(caught)).toBe(true);
+    const retryLogs = entries.filter((entry) => entry.msg.includes("retrying attempt"));
+    expect(retryLogs).toHaveLength(1);
+    expect(retryLogs[0].msg).toContain("attempt 2/2");
+    expect(retryLogs[0].msg).toContain("network");
+  });
+
+  it("prefers a numeric Retry-After header over backoff", async () => {
+    let attempts = 0;
+    const server = await startTestServer((app) => {
+      app.get("/limited", (_req, res) => {
+        attempts += 1;
+        if (attempts === 1) {
+          res.set("Retry-After", "0").status(429).json({message: "slow down"});
+          return;
+        }
+        res.json({ok: true});
+      });
+    });
+    try {
+      const {logger, entries} = createRecordingLogger();
+      const client = createAuthenticatedClient({
+        auth: {getToken: async () => "t", type: "bearer"},
+        baseURL: server.baseURL,
+        logger,
+        // A base delay far above the Retry-After value: if backoff were used the log
+        // would show >=100ms, so "in 0ms" proves the header took precedence.
+        retry: {baseDelayMs: 100},
+      });
+      await client.axios.get("/limited");
+      const retryLog = entries.find((entry) => entry.msg.includes("retrying attempt"));
+      expect(retryLog?.msg).toContain("in 0ms");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("falls back to backoff for a non-numeric Retry-After header", async () => {
+    let attempts = 0;
+    const server = await startTestServer((app) => {
+      app.get("/limited", (_req, res) => {
+        attempts += 1;
+        if (attempts === 1) {
+          res
+            .set("Retry-After", "Wed, 21 Oct 2015 07:28:00 GMT")
+            .status(429)
+            .json({message: "slow down"});
+          return;
+        }
+        res.json({ok: true});
+      });
+    });
+    try {
+      const {logger, entries} = createRecordingLogger();
+      const client = createAuthenticatedClient({
+        auth: {getToken: async () => "t", type: "bearer"},
+        baseURL: server.baseURL,
+        logger,
+        retry: FAST_RETRY,
+      });
+      await client.axios.get("/limited");
+      const retryLog = entries.find((entry) => entry.msg.includes("retrying attempt"));
+      expect(retryLog?.msg).toMatch(/in [1-9]\d*ms/);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("caps an excessive Retry-After header at the delay ceiling", async () => {
+    let attempts = 0;
+    const server = await startTestServer((app) => {
+      app.get("/limited", (_req, res) => {
+        attempts += 1;
+        if (attempts === 1) {
+          res.set("Retry-After", "3600").status(429).json({message: "slow down"});
+          return;
+        }
+        res.json({ok: true});
+      });
+    });
+    try {
+      const {logger, entries} = createRecordingLogger();
+      const client = createAuthenticatedClient({
+        auth: {getToken: async () => "t", type: "bearer"},
+        baseURL: server.baseURL,
+        logger,
+        retry: {...FAST_RETRY, maxDelayMs: 2},
+      });
+      await client.axios.get("/limited");
+      const retryLog = entries.find((entry) => entry.msg.includes("retrying attempt"));
+      expect(retryLog?.msg).toContain("in 2ms");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("honors a custom retryOn list", async () => {
+    let attempts = 0;
+    const server = await startTestServer((app) => {
+      app.get("/missing", (_req, res) => {
+        attempts += 1;
+        if (attempts === 1) {
+          res.status(404).json({message: "not here yet"});
+          return;
+        }
+        res.json({ok: true});
+      });
+    });
+    try {
+      const client = createAuthenticatedClient({
+        auth: {getToken: async () => "t", type: "bearer"},
+        baseURL: server.baseURL,
+        retry: {...FAST_RETRY, retryOn: ["notFound"]},
+      });
+      const response = await client.axios.get("/missing");
+      expect(response.data.ok).toBe(true);
+      expect(attempts).toBe(2);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("uses the apiName option in normalized retry context instead of the baseURL", async () => {
+    let attempts = 0;
+    const server = await startTestServer((app) => {
+      app.get("/flaky", (_req, res) => {
+        attempts += 1;
+        if (attempts === 1) {
+          res.status(500).json({message: "boom"});
+          return;
+        }
+        res.json({ok: true});
+      });
+    });
+    try {
+      const {logger, entries} = createRecordingLogger();
+      const client = createAuthenticatedClient({
+        apiName: "widgetService",
+        auth: {getToken: async () => "t", type: "bearer"},
+        baseURL: server.baseURL,
+        logger,
+        retry: FAST_RETRY,
+      });
+      await client.axios.get("/flaky");
+      const retryLog = entries.find((entry) => entry.msg.includes("retrying attempt"));
+      expect(retryLog?.msg).toContain("[widgetService]");
+    } finally {
+      await server.close();
+    }
+  });
+});
