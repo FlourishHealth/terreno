@@ -77,6 +77,16 @@ export const SEED_FLAGS = [
     ],
     type: "boolean" as const,
   },
+  {
+    defaultVariant: "off",
+    description: "Use the @terreno/syncdb local-first data layer for the Todos screen",
+    enabled: false,
+    key: "use-syncdb",
+    name: "Use SyncDB",
+    rolloutPercentage: 100,
+    rules: [],
+    type: "boolean" as const,
+  },
 ];
 
 export const seedFeatureFlags = async (): Promise<{results: string[]; success: boolean}> => {

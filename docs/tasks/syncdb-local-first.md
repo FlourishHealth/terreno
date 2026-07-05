@@ -172,19 +172,19 @@
 
 ## Phase 7: Example integration + docs
 
-- [ ] **Task 7.1**: example-backend sync enablement
+- [x] **Task 7.1**: example-backend sync enablement
   - Description: Add `sync: {scope: {type: "owner"}}` to the todos router; **refactor `bulkComplete` off `Todo.updateMany`** (`example-backend/src/api/todos.ts:22`) to a per-doc loop — `updateMany` throws on synced models per Task 1.2; add a tenant-scoped example model (`projects` with `organizationId`) demonstrating `{type: "tenant"}` + `getUserStreams`; seed data for both.
   - Files: `example-backend/src/api/todos.ts`, `example-backend/src/models/project.ts` (new), `example-backend/src/api/projects.ts` (new), `example-backend/src/server.ts`, seed script
   - Depends on: Phase 2
   - Acceptance: backend boots; `bulkComplete` still works and every affected todo gets a fresh `_syncSeq`; snapshot/mutate/delta verified against todos + projects; OpenAPI snapshot updated.
 
-- [ ] **Task 7.2**: example-frontend syncdb integration behind USE_SYNCDB
+- [x] **Task 7.2**: example-frontend syncdb integration behind USE_SYNCDB
   - Description: Create the syncdb client (Better Auth adapter, default persisters/key provider); re-implement the Todos screen data layer on `useQuery`/`useMutate` behind the `USE_SYNCDB` OpenFeature flag (verify the example-frontend flag plumbing via `useTerrenoFeatureFlags` exists for this flag; add it if missing); flag off = RTK path unchanged.
   - Files: `example-frontend/store/syncdb.ts` (new), `example-frontend/app/(tabs)/index.tsx`, `example-frontend/app/_layout.tsx`
   - Depends on: Phase 6, 7.1
   - Acceptance: flag on — todos CRUD works offline-first (offline create appears instantly, syncs on reconnect); flag off — RTK behavior unchanged.
 
-- [ ] **Task 7.3**: SyncStatusBanner + ConflictSheet + dev panel
+- [x] **Task 7.3**: SyncStatusBanner + ConflictSheet + dev panel
   - Description: Banner (`sync-status-banner`, `sync-queued-count`, `sync-conflict-badge`); conflict sheet (`conflict-sheet`, `conflict-item-{id}`, `conflict-keep-mine-button`, `conflict-use-server-button`); dev-only panel (`syncdb-dev-panel`, `syncdb-offline-toggle`, `syncdb-wipe-button`). All from @terreno/ui primitives.
   - Files: `example-frontend/components/SyncStatusBanner.tsx` (new), `example-frontend/components/ConflictSheet.tsx` (new), `example-frontend/components/SyncDevPanel.tsx` (new)
   - Depends on: 7.2

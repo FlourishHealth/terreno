@@ -8,6 +8,7 @@
     "@sentry/react": "catalog:",
     "@terreno/admin-frontend": "workspace:*",
     "@terreno/rtk": "workspace:*",
+    "@terreno/syncdb": "workspace:*",
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",
     "expo-constants": "catalog:",
