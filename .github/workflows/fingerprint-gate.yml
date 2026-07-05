@@ -47,7 +47,7 @@ jobs:
       COMMENT_MARKER: "<!-- fingerprint-gate:example-frontend -->"
     steps:
       - name: Checkout PR head
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
         with:
           path: pr
 
@@ -72,7 +72,7 @@ jobs:
           restore-keys: |
             bun-fp-${{ runner.os }}-
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -96,7 +96,7 @@ jobs:
           echo "android=$android" >> "$GITHUB_OUTPUT"
 
       - name: Checkout master
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
         with:
           ref: master
           path: master

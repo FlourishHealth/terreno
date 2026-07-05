@@ -1,0 +1,47 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SparklesIcon renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "d": "M 200 72 Q 232 240 400 272 Q 232 304 200 472 Q 168 304 0 272 Q 168 240 200 72 Z M 420 4 Q 434.08 77.92 508 92 Q 434.08 106.08 420 180 Q 405.92 106.08 332 92 Q 405.92 77.92 420 4 Z M 420 348 Q 432.8 415.2 500 428 Q 432.8 440.8 420 508 Q 407.2 440.8 340 428 Q 407.2 415.2 420 348 Z",
+      },
+      "type": "Path",
+    },
+  ],
+  "props": {
+    "fill": "currentColor",
+    "height": 16,
+    "viewBox": "0 0 512 512",
+    "width": 16,
+  },
+  "type": "Svg",
+}
+`;
+
+exports[`SparklesIcon accepts custom props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "d": "M 200 72 Q 232 240 400 272 Q 232 304 200 472 Q 168 304 0 272 Q 168 240 200 72 Z M 420 4 Q 434.08 77.92 508 92 Q 434.08 106.08 420 180 Q 405.92 106.08 332 92 Q 405.92 77.92 420 4 Z M 420 348 Q 432.8 415.2 500 428 Q 432.8 440.8 420 508 Q 407.2 440.8 340 428 Q 407.2 415.2 420 348 Z",
+      },
+      "type": "Path",
+    },
+  ],
+  "props": {
+    "fill": "#0A0A0A",
+    "height": 24,
+    "viewBox": "0 0 512 512",
+    "width": 24,
+  },
+  "type": "Svg",
+}
+`;

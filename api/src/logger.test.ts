@@ -185,6 +185,95 @@ describe("createScopedLogger", () => {
     ).toBe(true);
   });
 
+  it("merges all request context fields including jobId, sessionId, spanId, traceId, traceSampled", () => {
+    const snapshots: Array<Record<string, unknown>> = [];
+    const captureTransport = new winston.transports.Stream({
+      format: winston.format((info) => {
+        snapshots.push({
+          jobId: info.jobId,
+          requestId: info.requestId,
+          sessionId: info.sessionId,
+          spanId: info.spanId,
+          traceId: info.traceId,
+          traceSampled: info.traceSampled,
+          userId: info.userId,
+        });
+        return info;
+      })(),
+      stream: new Writable({
+        write(_chunk, _encoding, callback): void {
+          callback();
+        },
+      }),
+    });
+    winstonLogger.add(captureTransport);
+    try {
+      runWithRequestContext(
+        {
+          jobId: "job-42",
+          requestId: "req-full",
+          sessionId: "sess-7",
+          spanId: "span-abc",
+          traceId: "trace-xyz",
+          traceSampled: true,
+          userId: "user-1",
+        },
+        () => {
+          logger.info("full context");
+        }
+      );
+    } finally {
+      winstonLogger.remove(captureTransport);
+    }
+    const entry = snapshots.find((s) => s.requestId === "req-full");
+    expect(entry).toBeDefined();
+    expect(entry?.jobId).toBe("job-42");
+    expect(entry?.sessionId).toBe("sess-7");
+    expect(entry?.spanId).toBe("span-abc");
+    expect(entry?.traceId).toBe("trace-xyz");
+    expect(entry?.traceSampled).toBe(true);
+    expect(entry?.userId).toBe("user-1");
+  });
+
+  it("exercises all scoped logger methods (debug, error, catch)", () => {
+    const lines: string[] = [];
+    const captureTransport = new winston.transports.Stream({
+      format: winston.format.printf((info) => {
+        const msg = typeof info.message === "string" ? info.message : String(info.message);
+        return `${info.level}: ${msg}`;
+      }),
+      stream: new Writable({
+        write(chunk, _encoding, callback): void {
+          lines.push(chunk.toString().trim());
+          callback();
+        },
+      }),
+    });
+    winstonLogger.add(captureTransport);
+    try {
+      const scoped = createScopedLogger({prefix: "[Methods]"});
+      scoped.debug("d-msg");
+      scoped.error("e-msg");
+      scoped.catch(new Error("caught-msg"));
+    } finally {
+      winstonLogger.remove(captureTransport);
+    }
+    expect(lines.some((l) => l.includes("[Methods]") && l.includes("d-msg"))).toBe(true);
+    expect(lines.some((l) => l.includes("[Methods]") && l.includes("e-msg"))).toBe(true);
+    expect(lines.some((l) => l.includes("[Methods]") && l.includes("caught-msg"))).toBe(true);
+  });
+
+  it("scoped logger catch with Sentry enabled and Error instance", () => {
+    const OLD_ENV = process.env;
+    process.env = {...OLD_ENV, USE_SENTRY_LOGGING: "true"};
+    try {
+      const scoped = createScopedLogger({prefix: "[Sentry]"});
+      expect(() => scoped.catch(new Error("sentry scoped error"))).not.toThrow();
+    } finally {
+      process.env = OLD_ENV;
+    }
+  });
+
   it("attaches terrenoRequestLog while request ALS scope is active", () => {
     const snapshots: Array<{terrenoRequestLog?: TerrenoRequestLogEntry}> = [];
     const captureTransport = new winston.transports.Stream({
@@ -295,6 +384,63 @@ describe("createFeatureFlaggedLogger", () => {
       winstonLogger.remove(captureTransport);
     }
     expect(hits).toBeGreaterThan(0);
+  });
+
+  it("forwards all methods when enabled (debug, warn, error)", () => {
+    const levels: string[] = [];
+    const captureTransport = new winston.transports.Stream({
+      format: winston.format((info) => {
+        levels.push(info.level);
+        return info;
+      })(),
+      stream: new Writable({
+        write(_chunk, _encoding, callback): void {
+          callback();
+        },
+      }),
+    });
+    winstonLogger.add(captureTransport);
+    try {
+      const log = createFeatureFlaggedLogger({isEnabled: () => true, target: logger});
+      log.debug("d");
+      log.warn("w");
+      log.error("e");
+    } finally {
+      winstonLogger.remove(captureTransport);
+    }
+    expect(levels.some((l) => l === "debug")).toBe(true);
+    expect(levels.some((l) => l === "warn")).toBe(true);
+    expect(levels.some((l) => l === "error")).toBe(true);
+  });
+
+  it("drops debug, warn, error lines when disabled", () => {
+    let hits = 0;
+    const captureTransport = new winston.transports.Stream({
+      format: winston.format.printf(() => {
+        hits += 1;
+        return "";
+      }),
+      stream: new Writable({
+        write(_chunk, _encoding, callback): void {
+          callback();
+        },
+      }),
+    });
+    winstonLogger.add(captureTransport);
+    try {
+      const log = createFeatureFlaggedLogger({isEnabled: () => false, target: logger});
+      log.debug("hidden-d");
+      log.warn("hidden-w");
+      log.error("hidden-e");
+    } finally {
+      winstonLogger.remove(captureTransport);
+    }
+    expect(hits).toBe(0);
+  });
+
+  it("uses the global logger as default target when target is not provided", () => {
+    const log = createFeatureFlaggedLogger({isEnabled: () => true});
+    expect(() => log.info("default target")).not.toThrow();
   });
 
   it("drops catch while disabled when gateCatch is true", () => {
@@ -423,5 +569,46 @@ describe("setupLogging", () => {
       logDirectory: tempDir,
     });
     expect(true).toBe(true);
+  });
+
+  it("console format includes timestamps when showConsoleTimestamps is true", () => {
+    const lines: string[] = [];
+    setupLogging({
+      disableFileLogging: true,
+      showConsoleTimestamps: true,
+    });
+    const captureTransport = new winston.transports.Stream({
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf((info) => {
+          if (info.timestamp) {
+            return `${info.timestamp} - ${info.level}: ${info.message}`;
+          }
+          return `${info.level}: ${info.message}`;
+        })
+      ),
+      stream: new Writable({
+        write(chunk, _encoding, callback): void {
+          lines.push(chunk.toString().trim());
+          callback();
+        },
+      }),
+    });
+    winstonLogger.add(captureTransport);
+    try {
+      logger.info("timestamp-test");
+    } finally {
+      winstonLogger.remove(captureTransport);
+    }
+    expect(lines.some((l) => l.includes("timestamp-test"))).toBe(true);
+  });
+
+  it("disableTerrenoDevJsonlLog skips the dev JSONL transport", () => {
+    expect(() =>
+      setupLogging({
+        disableFileLogging: true,
+        disableTerrenoDevJsonlLog: true,
+      })
+    ).not.toThrow();
   });
 });

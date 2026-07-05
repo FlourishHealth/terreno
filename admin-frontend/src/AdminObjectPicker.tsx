@@ -22,6 +22,7 @@ interface AdminObjectPickerProps {
   onChange: (value: string) => void;
   errorText?: string;
   helperText?: string;
+  readOnly?: boolean;
 }
 
 const DISPLAY_FIELDS = ["name", "title", "email", "label", "displayName"] as const;
@@ -65,6 +66,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   onChange,
   errorText,
   helperText,
+  readOnly,
 }) => {
   const [searchText, setSearchText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -118,7 +120,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   });
 
   // Fetch the currently selected item to display its name
-  const {data: selectedItem} = useReadQuery(value, {
+  const {data: selectedItem, isLoading: isSelectedLoading} = useReadQuery(value, {
     skip: !value,
   });
 
@@ -174,6 +176,22 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   const results = Array.isArray(searchData)
     ? searchData
     : ((searchData as {data?: unknown[]} | undefined)?.data ?? []);
+
+  if (readOnly) {
+    const roValue =
+      selectedDisplay || (value && isSelectedLoading ? "Loading…" : value ? String(value) : "");
+    return (
+      <TextField
+        disabled
+        errorText={errorText}
+        helperText={helperText}
+        onChange={() => {}}
+        testID={`admin-picker-${refModelName}-readonly`}
+        title={title}
+        value={roValue}
+      />
+    );
+  }
 
   return (
     <Box gap={1}>

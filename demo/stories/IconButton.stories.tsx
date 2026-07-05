@@ -160,6 +160,32 @@ export const DisabledIconButton = (props: Partial<IconButtonProps>) => {
   );
 };
 
+export const IconButtonSizes = (props: Partial<IconButtonProps>) => {
+  return (
+    <Box direction="row" gap={4} wrap>
+      <Box alignItems="center" gap={2}>
+        <Text>Default (32px)</Text>
+        <IconButton
+          accessibilityLabel="default size"
+          iconName="plus"
+          onClick={() => console.info("clicked")}
+          {...props}
+        />
+      </Box>
+      <Box alignItems="center" gap={2}>
+        <Text>Small (28px)</Text>
+        <IconButton
+          accessibilityLabel="small size"
+          iconName="plus"
+          onClick={() => console.info("clicked")}
+          size="sm"
+          {...props}
+        />
+      </Box>
+    </Box>
+  );
+};
+
 export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
   return (
     <Box direction="row" wrap>
@@ -206,6 +232,18 @@ export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
             iconName="trash"
             onClick={() => console.info("clicked")}
             variant="destructive"
+            {...props}
+          />
+        </Box>
+      </Box>
+      <Box alignItems="center" paddingX={2}>
+        <Text>Ghost</Text>
+        <Box padding={1}>
+          <IconButton
+            accessibilityLabel="ghost action"
+            iconName="plus"
+            onClick={() => console.info("clicked")}
+            variant="ghost"
             {...props}
           />
         </Box>

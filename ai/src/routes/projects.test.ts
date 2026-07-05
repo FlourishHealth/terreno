@@ -1,52 +1,20 @@
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
-import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
+import {TerrenoApp} from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
-import supertest from "supertest";
 
 import {Project} from "../models/project";
+import {authAsUser, ensureTestUsers, UserModel} from "../tests/helpers";
 import {addProjectRoutes} from "./projects";
-
-const userSchema = new mongoose.Schema({
-  admin: {default: false, type: Boolean},
-  email: {index: true, type: String},
-  name: String,
-});
-userSchema.plugin(
-  passportLocalMongoose as unknown as (
-    schema: mongoose.Schema,
-    options: {usernameField: string}
-  ) => void,
-  {usernameField: "email"}
-);
-userSchema.plugin(createdUpdatedPlugin);
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
-
-type PasswordedUser = {setPassword: (password: string) => Promise<void>};
-
-const authAsUser = async (appInstance: express.Application, type: "admin" | "notAdmin") => {
-  const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
-  const password = type === "admin" ? "securePassword" : "password";
-  const agent = supertest.agent(appInstance);
-  const res = await agent.post("/auth/login").send({email, password}).expect(200);
-  await agent.set("authorization", `Bearer ${res.body.data.token}`);
-  return agent;
-};
 
 describe("Project Routes", () => {
   let app: express.Application;
   let notAdminId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
-    await UserModel.deleteMany({});
-    const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as unknown as PasswordedUser).setPassword("securePassword");
-    await admin.save();
-    const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as unknown as PasswordedUser).setPassword("password");
-    await user.save();
-    notAdminId = user._id as mongoose.Types.ObjectId;
+    await ensureTestUsers();
+    const user = await UserModel.findOne({email: "notAdmin@example.com"});
+    notAdminId = user!._id as mongoose.Types.ObjectId;
   });
 
   beforeEach(async () => {

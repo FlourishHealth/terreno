@@ -6,6 +6,7 @@
 
 import {ConsentForm, logger} from "@terreno/api";
 import mongoose from "mongoose";
+import {Configuration} from "../models/configuration";
 import {User} from "../models/user";
 import {connectToMongoDB} from "../utils/database";
 
@@ -180,6 +181,7 @@ const main = async (): Promise<void> => {
 
     await seedConsentForms();
 
+    await Configuration.shutdown();
     await mongoose.disconnect();
     logger.info("Done.");
   } catch (error: unknown) {

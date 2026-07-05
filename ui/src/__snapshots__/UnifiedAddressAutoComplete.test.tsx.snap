@@ -556,6 +556,7 @@ exports[`UnifiedAddressAutoCompleteField renders with testID 1`] = `
           "fontWeight": 600,
           "lineHeight": 22.4,
         },
+        "testID": "address-field.label",
       },
       "type": "Text",
     },

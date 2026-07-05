@@ -5,6 +5,8 @@ import {
   BackgroundTask,
   type BackgroundTaskDocument,
   checkPermissions,
+  createOpenApiBuilder,
+  createScriptArgs,
   getOpenApiSpecForModel,
   type JSONValue,
   logger,
@@ -12,6 +14,9 @@ import {
   modelRouter,
   type OpenApiMiddleware,
   Permissions,
+  type PopulatePath,
+  type ScriptArgDef,
+  type ScriptArgValue,
   type ScriptContext,
   type ScriptResult,
   type ScriptRunner,
@@ -23,6 +28,21 @@ import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
+
+import {
+  ADMIN_SCHEMA_VERSION,
+  type AdminActionInput,
+  type AdminFieldsetInput,
+  type AdminHomeInput,
+  type AdminListFilter,
+  type AdminModelPermissionsInput,
+  buildAdminModelQueryFields,
+  defaultBulkPatchAllowlistFrom,
+  MAX_BULK_PATCH_IDS,
+  normalizeAdminHome,
+  SYSTEM_ADMIN_FIELDS,
+} from "./adminUiV2";
+import {RESERVED_SCRIPT_FLAGS} from "./scriptCli";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -50,6 +70,50 @@ export interface AdminModelConfig {
   fieldOrder?: string[];
   /** Fields to hide from admin forms/responses (e.g., password hash fields). */
   hiddenFields?: string[];
+  /** Optional sidebar / nav grouping label for schema v2 shells */
+  group?: string;
+  /** Changelist columns (defaults to listFields) */
+  listDisplay?: string[];
+  /** Subset of list columns rendered as links to detail */
+  listDisplayLinks?: string[];
+  /** Fields the changelist may sort by (informational + future enforcement) */
+  sortableFields?: string[];
+  /** Fields exposed to text / quick search in the admin UI */
+  searchFields?: string[];
+  /** Typed list filters (queryFields-compatible on the wire) */
+  filters?: AdminListFilter[];
+  /** Form layout: grouped fields */
+  fieldsets?: AdminFieldsetInput[];
+  /** Fields shown read-only in forms; stripped from PATCH bodies server-side */
+  readonlyFields?: string[];
+  /** Declarative row / selection actions */
+  actions?: AdminActionInput[];
+  /** Fine-grained CRUD toggles for admin UI + route wiring */
+  permissions?: AdminModelPermissionsInput;
+  /** Suggested page size for the changelist */
+  pageSize?: number;
+  /** Mongoose populate paths for list/read responses (e.g. populated refs on consent responses). */
+  populatePaths?: PopulatePath[];
+  /** UI-only hint that live updates may be available */
+  realtime?: boolean;
+  /**
+   * Field key used for the edit screen title (browser tab / stack header). When omitted, the
+   * admin UI derives a label from common keys (`name`, `title`, …) then the first scalar
+   * {@link listFields} column, matching audit label heuristics.
+   */
+  recordTitleField?: string;
+  /** Allowlisted keys for POST .../bulk-patch (defaults from listFields minus system/readonly/hidden) */
+  bulkPatchAllowlist?: string[];
+  /**
+   * Per-model `modelRouter` query filter (list and other query-shaped reads).
+   * Same contract as {@link ModelRouterOptions.queryFilter} in `@terreno/api`: merge into the
+   * Mongoose query, return the incoming `query` unchanged if allowed, or return `null` to yield
+   * an empty list without error.
+   */
+  queryFilter?: (
+    user?: User,
+    query?: Record<string, unknown>
+  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
 }
 
 /**
@@ -60,8 +124,38 @@ export interface AdminScriptConfig {
   name: string;
   /** Human-readable description shown in the admin UI */
   description: string;
+  /**
+   * Optional declarations for the arguments this script accepts. Drives CLI help,
+   * type coercion, defaults, and validation. Scripts may still read undeclared
+   * arguments via `ctx.args`.
+   */
+  args?: ScriptArgDef[];
   /** The function that executes the script. Must return string[] results. */
   runner: ScriptRunner;
+}
+
+/**
+ * Emitted after successful admin modelRouter mutations when {@link AdminOptions.onAdminAudit}
+ * is configured.
+ */
+export interface AdminAuditEvent {
+  /** Terreno user id performing the action, when available */
+  actorId?: string;
+  /** Mongoose model name (e.g. "Todo") */
+  modelName: string;
+  /** Target document id when known */
+  recordId?: string;
+  /** Short human-readable label derived from list fields */
+  recordLabel?: string;
+  verb: "created" | "deleted" | "updated";
+}
+
+/** Declares an extra admin UI screen route merged with built-ins (e.g. version-config). */
+export interface AdminCustomScreenConfig {
+  displayName: string;
+  name: string;
+  /** Optional subtitle or help text shown with the screen card in the admin UI */
+  description?: string;
 }
 
 /**
@@ -74,6 +168,15 @@ export interface AdminOptions {
   scripts?: AdminScriptConfig[];
   /** Base path for all admin routes. Defaults to "/admin". */
   basePath?: string;
+  /** Optional home dashboard layout (schema v2 slots) */
+  home?: AdminHomeInput;
+  /** Extra custom screens merged with built-ins (e.g. version-config) */
+  customScreens?: AdminCustomScreenConfig[];
+  /**
+   * Optional audit sink for admin CRUD after modelRouter succeeds.
+   * Consumers typically persist to an `AdminAuditLog` collection.
+   */
+  onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
 }
 
 interface AdminFieldMeta {
@@ -96,23 +199,41 @@ interface AdminFieldMeta {
 }
 
 interface AdminModelMeta {
-  name: string;
-  routePath: string;
-  displayName: string;
-  listFields: string[];
+  actions: AdminActionInput[];
+  bulkPatchAllowlist: string[];
   defaultSort: string;
-  fields: Record<string, AdminFieldMeta>;
+  displayName: string;
   fieldOrder?: string[];
+  fieldsets?: AdminFieldsetInput[];
+  fields: Record<string, AdminFieldMeta>;
+  filters: AdminListFilter[];
+  group?: string;
+  hiddenFields: string[];
+  listDisplay: string[];
+  listDisplayLinks: string[];
+  listFields: string[];
+  name: string;
+  pageSize?: number;
+  permissions: {create: boolean; delete: boolean; update: boolean};
+  readonlyFields: string[];
+  realtime: boolean;
+  recordTitleField?: string;
+  routePath: string;
+  searchFields: string[];
+  sortableFields: string[];
 }
 
 interface AdminScriptMeta {
   name: string;
   description: string;
+  args: ScriptArgDef[];
 }
 
 interface AdminConfigResponse {
-  customScreens?: {displayName: string; name: string}[];
+  customScreens?: AdminCustomScreenConfig[];
+  home: ReturnType<typeof normalizeAdminHome>;
   models: AdminModelMeta[];
+  schemaVersion: number;
   scripts: AdminScriptMeta[];
 }
 
@@ -143,6 +264,41 @@ const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknow
     }
   }
   return nextValue;
+};
+
+const auditDocumentToPlain = (value: unknown): Record<string, unknown> => {
+  if (
+    value &&
+    typeof value === "object" &&
+    "toObject" in value &&
+    typeof (value as {toObject?: unknown}).toObject === "function"
+  ) {
+    return (value as {toObject: () => Record<string, unknown>}).toObject();
+  }
+  return value as Record<string, unknown>;
+};
+
+const auditLabelFromListFields = (
+  doc: Record<string, unknown>,
+  listFields: string[]
+): string | undefined => {
+  for (const key of listFields) {
+    const fieldValue = doc[key];
+    if (fieldValue == null || typeof fieldValue === "object") {
+      continue;
+    }
+    return String(fieldValue);
+  }
+  const id = doc._id;
+  return id != null ? String(id) : undefined;
+};
+
+const auditActorId = (request: express.Request): string | undefined => {
+  const user = request.user as {_id?: unknown} | undefined;
+  if (!user || user._id == null) {
+    return undefined;
+  }
+  return String(user._id);
 };
 
 interface OpenApiProperty {
@@ -207,6 +363,18 @@ const extractFieldMeta = (
   return fields;
 };
 
+const asMiddlewareList = (
+  middleware: express.RequestHandler | express.RequestHandler[] | undefined
+): express.RequestHandler[] => {
+  if (middleware === undefined) {
+    return [];
+  }
+  if (Array.isArray(middleware)) {
+    return middleware;
+  }
+  return [middleware];
+};
+
 /**
  * TerrenoPlugin that auto-generates admin CRUD endpoints for Mongoose models.
  *
@@ -233,6 +401,8 @@ const extractFieldMeta = (
  *       routePath: "/todos",
  *       displayName: "Todos",
  *       listFields: ["title", "completed", "ownerId"],
+ *       // Optional: constrain admin list queries (e.g. tenant) — same as modelRouter queryFilter.
+ *       queryFilter: (_user, query) => ({...query, tenantId: "acme"}),
  *     },
  *   ],
  * });
@@ -277,7 +447,25 @@ export class AdminApp {
    */
   register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/admin";
+    const openApiMw = openApi as OpenApiMiddleware | undefined;
     const modelConfigs = this.options.models;
+    const onAdminAudit = this.options.onAdminAudit;
+
+    /** Audit is best-effort: failures must not change HTTP outcomes after mutations succeed. */
+    const safeOnAdminAudit = async (
+      request: express.Request,
+      event: AdminAuditEvent
+    ): Promise<void> => {
+      if (!onAdminAudit) {
+        return;
+      }
+      try {
+        await onAdminAudit(event, request);
+      } catch (err: unknown) {
+        const detail = err instanceof Error ? err.message : String(err);
+        logger.error(`onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`);
+      }
+    };
 
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
@@ -345,39 +533,110 @@ export class AdminApp {
         }
       }
 
+      const readonlyFields = config.readonlyFields ?? [];
+      const listFields = config.listFields.filter((field) => !hiddenFieldSet.has(field));
+      const listDisplay = config.listDisplay ?? listFields;
+      const derivedSearchFields = listFields.filter((field) => fields[field]?.searchable);
+      const searchFields = config.searchFields ?? derivedSearchFields;
+      const sortableFields = config.sortableFields ?? [...listDisplay, "_id"];
+      const schemaPathKeys = new Set(Object.keys(config.model.schema.paths));
+      const bulkPatchAllowlist =
+        config.bulkPatchAllowlist ??
+        defaultBulkPatchAllowlistFrom({
+          hiddenFieldSet,
+          listFields,
+          readonlyFields,
+          schemaPaths: schemaPathKeys,
+        });
+
       return {
+        actions: config.actions ?? [],
+        bulkPatchAllowlist,
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
         fieldOrder: config.fieldOrder,
         fields,
-        listFields: config.listFields.filter((field) => !hiddenFieldSet.has(field)),
+        fieldsets: config.fieldsets,
+        filters: config.filters ?? [],
+        group: config.group,
+        hiddenFields: [...hiddenFieldSet],
+        listDisplay,
+        listDisplayLinks: config.listDisplayLinks ?? [],
+        listFields,
         name: config.model.modelName,
+        pageSize: config.pageSize,
+        permissions: {
+          create: config.permissions?.create !== false,
+          delete: config.permissions?.delete !== false,
+          update: config.permissions?.update !== false,
+        },
+        readonlyFields,
+        realtime: config.realtime ?? false,
+        recordTitleField: config.recordTitleField,
         routePath: `${basePath}${config.routePath}`,
+        searchFields,
+        sortableFields,
       };
     });
 
     // Build script metadata for config response
     const scriptConfigs = this.options.scripts ?? [];
     const configScripts: AdminScriptMeta[] = scriptConfigs.map((script) => ({
+      args: script.args ?? [],
       description: script.description,
       name: script.name,
     }));
 
+    const defaultScreens = [{displayName: "Version Config", name: "version-config"}];
+    const mergedScreens = [...defaultScreens, ...(this.options.customScreens ?? [])];
+
     const configResponse: AdminConfigResponse = {
-      customScreens: [
-        {
-          displayName: "Version Config",
-          name: "version-config",
-        },
-      ],
+      customScreens: mergedScreens,
+      home: normalizeAdminHome(this.options.home),
       models: configModels,
+      schemaVersion: ADMIN_SCHEMA_VERSION,
       scripts: configScripts,
     };
+
+    const adminConfigOpenApi = openApiMw
+      ? createOpenApiBuilder({openApi: openApiMw})
+          .withTags(["admin"])
+          .withSummary("Admin panel configuration")
+          .withResponse(200, {
+            customScreens: {
+              items: {
+                properties: {
+                  description: {type: "string"},
+                  displayName: {type: "string"},
+                  name: {type: "string"},
+                },
+                type: "object",
+              },
+              type: "array",
+            },
+            home: {type: "object"},
+            models: {type: "array"},
+            schemaVersion: {type: "number"},
+            scripts: {
+              items: {
+                properties: {
+                  args: {type: "array"},
+                  description: {type: "string"},
+                  name: {type: "string"},
+                },
+                type: "object",
+              },
+              type: "array",
+            },
+          })
+          .build()
+      : undefined;
 
     // GET /admin/config
     app.get(
       `${basePath}/config`,
       authenticateMiddleware(),
+      ...asMiddlewareList(adminConfigOpenApi),
       asyncHandler(async (req, res) => {
         if (
           !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
@@ -385,6 +644,95 @@ export class AdminApp {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         return res.json(configResponse);
+      })
+    );
+
+    const backgroundTasksOpenApi = openApiMw
+      ? createOpenApiBuilder({openApi: openApiMw})
+          .withTags(["admin"])
+          .withSummary("Enqueue a generic admin background task")
+          .withRequestBody<{
+            ids?: string[];
+            kind: string;
+            metadata?: Record<string, unknown>;
+            resourceRoute?: string;
+          }>({
+            ids: {
+              description: "Optional target document ids",
+              items: {type: "string"},
+              type: "array",
+            },
+            kind: {
+              description: "Task kind label persisted as taskType",
+              required: true,
+              type: "string",
+            },
+            metadata: {description: "Opaque JSON metadata for workers", type: "object"},
+            resourceRoute: {
+              description: "Optional admin model route this task relates to",
+              type: "string",
+            },
+          })
+          .withResponse(201, {taskId: {type: "string"}})
+          .build()
+      : undefined;
+
+    app.post(
+      `${basePath}/background-tasks`,
+      authenticateMiddleware(),
+      ...asMiddlewareList(backgroundTasksOpenApi),
+      asyncHandler(async (req, res) => {
+        if (
+          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const user = req.user as {_id: unknown} | undefined;
+        const raw = req.body as {
+          ids?: unknown;
+          kind?: unknown;
+          metadata?: unknown;
+          resourceRoute?: unknown;
+        };
+        if (typeof raw.kind !== "string" || !raw.kind.trim()) {
+          throw new APIError({status: 400, title: "kind is required"});
+        }
+        const now = DateTime.now().toJSDate();
+        const summary = {
+          ids: Array.isArray(raw.ids) ? raw.ids : [],
+          metadata:
+            raw.metadata && typeof raw.metadata === "object" && !Array.isArray(raw.metadata)
+              ? raw.metadata
+              : {},
+          resourceRoute: typeof raw.resourceRoute === "string" ? raw.resourceRoute : undefined,
+        };
+        let task: BackgroundTaskDocument;
+        try {
+          task = (await BackgroundTask.create({
+            createdBy: user?._id as mongoose.Types.ObjectId,
+            isDryRun: false,
+            logs: [
+              {
+                level: "info",
+                message: `Queued background task ${raw.kind}: ${JSON.stringify(summary)}`,
+                timestamp: now,
+              },
+            ],
+            progress: {message: "Queued", percentage: 0, stage: "Queued"},
+            startedAt: now,
+            status: "pending",
+            taskType: raw.kind,
+          })) as BackgroundTaskDocument;
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          logger.error(`Failed to create admin background task: ${detail}`);
+          throw new APIError({
+            detail,
+            status: 500,
+            title: "Failed to enqueue background task",
+          });
+        }
+        return res.status(201).json({taskId: task._id.toString()});
       })
     );
 
@@ -474,10 +822,6 @@ export class AdminApp {
           }
         }
       }
-      logger.info(`Admin search fields for ${config.model.modelName}`, {
-        objectIdFields,
-        searchableFields,
-      });
 
       app.get(
         `${basePath}${config.routePath}/search`,
@@ -543,15 +887,132 @@ export class AdminApp {
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
+      const readonlySet = new Set(config.readonlyFields ?? []);
+      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
+
+      const adminPermission = (allowed: boolean | undefined): (typeof Permissions.IsAdmin)[] => {
+        if (allowed === false) {
+          return [];
+        }
+        return [Permissions.IsAdmin];
+      };
+
+      const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          return {};
+        }
+        const next = {...(body as Record<string, unknown>)};
+        for (const key of readonlySet) {
+          delete next[key];
+        }
+        for (const key of hiddenFieldSet) {
+          delete next[key];
+        }
+        for (const key of SYSTEM_ADMIN_FIELDS) {
+          delete next[key];
+        }
+        return next;
+      };
+
+      const bulkPatchOpenApi = openApiMw
+        ? createOpenApiBuilder({openApi: openApiMw})
+            .withTags(["admin"])
+            .withSummary(`Bulk patch ${config.model.modelName} documents`)
+            .withRequestBody<{ids: string[]; patch: Record<string, unknown>}>({
+              ids: {
+                description: "Document ids to update",
+                items: {type: "string"},
+                required: true,
+                type: "array",
+              },
+              patch: {
+                description: "Partial document; keys must be allowlisted for this model",
+                required: true,
+                type: "object",
+              },
+            })
+            .withResponse(200, {
+              failures: {type: "array"},
+              updated: {type: "number"},
+            })
+            .build()
+        : undefined;
+
+      const auditEligible = Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
+      const auditHooks = auditEligible
+        ? {
+            postCreate: async (value: unknown, request: express.Request): Promise<void> => {
+              const doc = auditDocumentToPlain(value);
+              const rid = doc._id;
+              await safeOnAdminAudit(request, {
+                actorId: auditActorId(request),
+                modelName: config.model.modelName,
+                recordId: rid != null ? String(rid) : undefined,
+                recordLabel: auditLabelFromListFields(doc, config.listFields),
+                verb: "created",
+              });
+            },
+            postDelete: async (request: express.Request, value: unknown): Promise<void> => {
+              const doc = auditDocumentToPlain(value);
+              const rid = doc._id;
+              await safeOnAdminAudit(request, {
+                actorId: auditActorId(request),
+                modelName: config.model.modelName,
+                recordId: rid != null ? String(rid) : undefined,
+                recordLabel: auditLabelFromListFields(doc, config.listFields),
+                verb: "deleted",
+              });
+            },
+            postUpdate: async (
+              value: unknown,
+              _cleanedBody: unknown,
+              request: express.Request,
+              _prev: unknown
+            ): Promise<void> => {
+              const doc = auditDocumentToPlain(value);
+              const rid = doc._id;
+              await safeOnAdminAudit(request, {
+                actorId: auditActorId(request),
+                modelName: config.model.modelName,
+                recordId: rid != null ? String(rid) : undefined,
+                recordLabel: auditLabelFromListFields(doc, config.listFields),
+                verb: "updated",
+              });
+            },
+          }
+        : {};
+
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
-        ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
+        ...(openApiMw ? {openApi: openApiMw} : {}),
+        defaultLimit: config.pageSize ?? 100,
+        maxLimit: 500,
         permissions: {
-          create: [Permissions.IsAdmin],
-          delete: [Permissions.IsAdmin],
+          create: adminPermission(config.permissions?.create),
+          delete: adminPermission(config.permissions?.delete),
           list: [Permissions.IsAdmin],
           read: [Permissions.IsAdmin],
-          update: [Permissions.IsAdmin],
+          update: adminPermission(config.permissions?.update),
+        },
+        queryFields: buildAdminModelQueryFields({
+          filters: config.filters,
+          listDisplay: config.listDisplay,
+          listFields: config.listFields,
+          searchFields: config.searchFields,
+        }),
+        ...(config.queryFilter ? {queryFilter: config.queryFilter} : {}),
+        preCreate: async (body, _req) => {
+          if (!body || typeof body !== "object") {
+            return body;
+          }
+          return stripProtectedFromBody(body) as typeof body;
+        },
+        preUpdate: async (body, _req) => {
+          if (!body || typeof body !== "object") {
+            return body;
+          }
+          return stripProtectedFromBody(body) as typeof body;
         },
         responseHandler:
           hiddenFieldSet.size > 0
@@ -559,9 +1020,82 @@ export class AdminApp {
                 removeHiddenFields(value, hiddenFieldSet) as JSONValue
             : undefined,
         sort: config.defaultSort ?? "-created",
+        ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
+        ...auditHooks,
       };
 
-      app.use(`${basePath}${config.routePath}`, modelRouter(config.model, routerOptions));
+      const modelBase = express.Router();
+      modelBase.post(
+        "/bulk-patch",
+        authenticateMiddleware(),
+        ...asMiddlewareList(bulkPatchOpenApi),
+        asyncHandler(async (req, res) => {
+          if (
+            !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+          ) {
+            throw new APIError({status: 403, title: "Admin access required"});
+          }
+          if (config.permissions?.update === false) {
+            throw new APIError({status: 403, title: "Updates are disabled for this model"});
+          }
+          const body = req.body as {ids?: unknown; patch?: unknown};
+          if (!Array.isArray(body.ids)) {
+            throw new APIError({status: 400, title: "Request body must include an ids array"});
+          }
+          if (typeof body.patch !== "object" || body.patch === null || Array.isArray(body.patch)) {
+            throw new APIError({status: 400, title: "Request body must include a patch object"});
+          }
+          const ids = [...new Set(body.ids.map((id) => String(id)))];
+          if (ids.length === 0) {
+            throw new APIError({status: 400, title: "ids must include at least one id"});
+          }
+          if (ids.length > MAX_BULK_PATCH_IDS) {
+            throw new APIError({
+              status: 400,
+              title: `At most ${MAX_BULK_PATCH_IDS} ids may be patched at once`,
+            });
+          }
+          const rawPatch = body.patch as Record<string, unknown>;
+          const unknownKeys = Object.keys(rawPatch).filter((key) => !allowlist.has(key));
+          if (unknownKeys.length > 0) {
+            throw new APIError({
+              detail: unknownKeys.join(", "),
+              status: 400,
+              title: "Patch contains keys that are not allowlisted for bulk patch",
+            });
+          }
+          const patch = stripProtectedFromBody(rawPatch);
+          if (Object.keys(patch).length === 0) {
+            throw new APIError({
+              status: 400,
+              title: "Patch must include at least one writable field",
+            });
+          }
+          let updated = 0;
+          const failures: {id: string; title: string}[] = [];
+          for (const id of ids) {
+            if (!mongoose.isValidObjectId(id)) {
+              failures.push({id, title: "Invalid id"});
+              continue;
+            }
+            try {
+              const resUpdate = await config.model.updateOne({_id: id}, {$set: patch});
+              if (resUpdate.matchedCount === 0) {
+                failures.push({id, title: "Not found"});
+              } else {
+                updated += 1;
+              }
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : String(err);
+              failures.push({id, title: message});
+            }
+          }
+          return res.json({failures: failures.length > 0 ? failures : undefined, updated});
+        })
+      );
+      modelBase.use(modelRouter(config.model, routerOptions));
+
+      app.use(`${basePath}${config.routePath}`, modelBase);
     }
 
     // Mount script routes
@@ -577,6 +1111,65 @@ export class AdminApp {
 
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
     const scriptsByName = new Map(scripts.map((s) => [s.name, s]));
+    const scriptNames = scripts.map((s) => s.name);
+
+    // GET /admin/scripts/runs — Paginated history of script runs (BackgroundTasks)
+    router.get(
+      "/runs",
+      asyncHandler(async (req: express.Request, res: express.Response) => {
+        const user = req.user as {admin?: boolean} | undefined;
+        if (!user?.admin) {
+          throw new APIError({status: 403, title: "Only admins can view run history"});
+        }
+
+        const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100);
+        const page = Math.max(Number(req.query.page) || 1, 1);
+        const skip = (page - 1) * limit;
+
+        // Scope history to currently-registered scripts. An optional `name` query
+        // narrows to a single script (used by the per-script "History" link). A
+        // provided-but-unregistered name resolves to an empty filter so callers can
+        // distinguish "unknown script" (no runs) from "show all".
+        const requestedName = typeof req.query.name === "string" ? req.query.name : undefined;
+        let taskTypeFilter: string[];
+        if (requestedName !== undefined) {
+          taskTypeFilter = scriptNames.includes(requestedName) ? [requestedName] : [];
+        } else {
+          taskTypeFilter = scriptNames;
+        }
+
+        const query =
+          taskTypeFilter.length > 0
+            ? {taskType: {$in: taskTypeFilter}}
+            : {taskType: {$in: [] as string[]}};
+
+        const [tasks, total] = await Promise.all([
+          BackgroundTask.find(query)
+            .sort({created: -1})
+            .skip(skip)
+            .limit(limit)
+            .populate({path: "createdBy", select: "name email"})
+            .lean(),
+          BackgroundTask.countDocuments(query),
+        ]);
+
+        const data = tasks.map((task) => {
+          const createdBy = task.createdBy as unknown as
+            | {name?: string; email?: string}
+            | mongoose.Types.ObjectId
+            | undefined;
+          const createdByName =
+            createdBy &&
+            typeof createdBy === "object" &&
+            !(createdBy instanceof mongoose.Types.ObjectId)
+              ? (createdBy.name ?? createdBy.email)
+              : undefined;
+          return {...task, createdByName};
+        });
+
+        return res.json({data, limit, more: skip + tasks.length < total, page, total});
+      })
+    );
 
     // POST /admin/scripts/:name/run — Execute a script
     router.post(
@@ -593,6 +1186,45 @@ export class AdminApp {
         }
 
         const isWetRun = req.query.wetRun === "true";
+
+        // Collect flexible arguments from the request. Query params and a JSON body
+        // are both accepted; an explicit `args` object in the body takes precedence.
+        // Reserved runner flags (wetRun, wet, dry, json, ...) are stripped so scripts
+        // read args identically over HTTP and via the CLI.
+        const argValues: Record<string, ScriptArgValue> = {};
+        for (const [key, value] of Object.entries(req.query)) {
+          if (RESERVED_SCRIPT_FLAGS.includes(key) || value === undefined) {
+            continue;
+          }
+          argValues[key] = value as ScriptArgValue;
+        }
+        const rawBody =
+          req.body && typeof req.body === "object" && !Array.isArray(req.body)
+            ? (req.body as Record<string, unknown>)
+            : {};
+        const bodyValues =
+          rawBody.args && typeof rawBody.args === "object" && !Array.isArray(rawBody.args)
+            ? (rawBody.args as Record<string, ScriptArgValue>)
+            : (rawBody as Record<string, ScriptArgValue>);
+        for (const [key, value] of Object.entries(bodyValues)) {
+          if (RESERVED_SCRIPT_FLAGS.includes(key)) {
+            continue;
+          }
+          argValues[key] = value;
+        }
+
+        const {args, errors: argErrors} = createScriptArgs({
+          defs: script.args ?? [],
+          values: argValues,
+        });
+        if (argErrors.length > 0) {
+          throw new APIError({
+            detail: argErrors.join("; "),
+            status: 400,
+            title: `Invalid arguments for script: ${script.name}`,
+          });
+        }
+
         const now = DateTime.now().toJSDate();
 
         let task: BackgroundTaskDocument;
@@ -618,7 +1250,7 @@ export class AdminApp {
           });
         }
 
-        // Build context for cancellation and progress reporting
+        // Build context for cancellation, progress reporting, and arguments
         const ctx: ScriptContext = {
           addLog: async (level, message) => {
             const current = await BackgroundTask.findById(task._id);
@@ -626,6 +1258,7 @@ export class AdminApp {
               await current.addLog(level, message);
             }
           },
+          args,
           checkCancellation: async () => {
             await BackgroundTask.checkCancellation(task._id.toString());
           },

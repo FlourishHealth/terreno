@@ -1,5 +1,4 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
-import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, spyOn} from "bun:test";
 import mongoose, {Schema} from "mongoose";
 
 import {Config} from "./config";
@@ -163,16 +162,15 @@ describe("envConfigurationPlugin", () => {
 
     // Override Model.find to simulate a DB error inside refreshFromDoc
     // (findOneOrNoneFor falls back to model.find when the findOneOrNone static is absent)
-    const originalFind = TestEnvConfig.find;
-    (TestEnvConfig as any).find = () => {
+    const findSpy = spyOn(TestEnvConfig, "find").mockImplementation(() => {
       throw new Error("Simulated DB error");
-    };
+    });
 
     // Trigger the post-findOneAndUpdate hook → refreshFromDoc → findOneOrNoneFor → throws
     await TestEnvConfig.findOneAndUpdate({_id: doc._id}, {$set: {__v: 2}});
 
     // Restore immediately
-    (TestEnvConfig as any).find = originalFind;
+    findSpy.mockRestore();
 
     // The catch block should have swallowed the error; cache keeps old value
     expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("cached");

@@ -6,18 +6,19 @@
   "dependencies": {
     "@openfeature/server-sdk": "catalog:",
     "@terreno/api": "workspace:*",
-    "express": "^5.2.1",
+    "express": "catalog:",
     "lodash": "catalog:"
   },
   "description": "Feature flags and A/B testing plugin for @terreno/api",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@types/bun": "^1.2.4",
-    "@types/express": "^5.0.6",
+    "@terreno/test": "workspace:*",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
     "@types/lodash": "catalog:",
-    "@types/supertest": "^6.0.2",
-    "passport-local-mongoose": "^9.0.1",
-    "supertest": "^7.0.0",
+    "@types/supertest": "catalog:",
+    "passport-local-mongoose": "catalog:",
+    "supertest": "catalog:",
     "typescript": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -52,5 +53,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.20.2"
+  "version": "0.24.0"
 }

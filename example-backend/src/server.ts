@@ -1,6 +1,6 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {LangfuseApp} from "@terreno/ai";
 import {
@@ -12,6 +12,7 @@ import {
   ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
+  consentResponsePopulatePaths,
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
@@ -24,6 +25,7 @@ import {HealthApp} from "@terreno/api-health";
 import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
+import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
@@ -31,11 +33,11 @@ import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
+import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
-import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
 
@@ -240,21 +242,115 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new AdminApp({
-          models: [
-            featureFlagAdminConfig,
+          customScreens: [
             {
+              description: "How this example wires Terreno admin UI v2",
+              displayName: "Admin UI v2 map",
+              name: "showcase",
+            },
+          ],
+          home: {
+            slots: {
+              contentTop: [],
+              main: ["modelStats"],
+              navGlobal: ["scriptRunner", "feature-flags-overrides"],
+              sidebar: ["versionConfig", "recentActivity"],
+            },
+            title: "Example administration",
+          },
+          models: [
+            {
+              ...featureFlagAdminConfig,
+              filters: [
+                {field: "enabled", kind: "boolean", label: "Enabled"},
+                {field: "archived", kind: "boolean", label: "Archived"},
+                {
+                  choices: [
+                    {label: "Boolean", value: "boolean"},
+                    {label: "Variant", value: "variant"},
+                  ],
+                  field: "type",
+                  kind: "choice",
+                  label: "Type",
+                },
+              ],
+              group: "Platform",
+              listDisplay: [
+                "key",
+                "name",
+                "type",
+                "enabled",
+                "archived",
+                "defaultVariant",
+                "created",
+              ],
+              pageSize: 50,
+              searchFields: ["key", "name", "description"],
+              sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
+            },
+            {
+              actions: [
+                {
+                  confirm: "Mark selected todos as completed?",
+                  id: "markComplete",
+                  label: "Mark completed",
+                  patchKeys: ["completed"],
+                },
+              ],
+              bulkPatchAllowlist: ["completed", "priority", "tags"],
+              defaultSort: "-created",
               displayName: "Todos",
-              listFields: ["title", "completed", "ownerId", "created"],
+              fieldsets: [
+                {fields: ["title", "tags", "priority", "completed"], title: "Task"},
+                {fields: ["ownerId"], title: "Ownership"},
+              ],
+              filters: [
+                {field: "completed", kind: "boolean", label: "Completed"},
+                {
+                  choices: [
+                    {label: "Low", value: "low"},
+                    {label: "Medium", value: "medium"},
+                    {label: "High", value: "high"},
+                  ],
+                  field: "priority",
+                  kind: "choice",
+                  label: "Priority",
+                },
+                {field: "created", kind: "dateRange", label: "Created"},
+                {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
+              ],
+              group: "Demo: shared app data",
+              listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
+              listDisplayLinks: ["title"],
+              listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
               model: Todo,
+              pageSize: 25,
+              permissions: {delete: false},
+              readonlyFields: ["ownerId"],
+              realtime: true,
               routePath: "/todos",
+              searchFields: ["title", "tags"],
+              sortableFields: ["title", "completed", "created", "priority"],
             },
             {
               displayName: "Users",
+              fieldsets: [
+                {fields: ["email", "name"], title: "Profile"},
+                {fields: ["admin", "oauthProvider"], title: "Access"},
+              ],
+              filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
+              group: "Demo: shared app data",
               hiddenFields: ["hash", "salt"],
+              listDisplayLinks: ["email"],
               listFields: ["email", "name", "admin", "created"],
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,
+              pageSize: 50,
+              readonlyFields: ["email"],
+              recordTitleField: "name",
               routePath: "/users",
+              searchFields: ["email", "name"],
+              sortableFields: ["email", "name", "admin", "created"],
             },
             {
               displayName: "Consent Forms",
@@ -280,79 +376,92 @@ export async function start(skipListen = false): Promise<express.Application> {
                 content: {widget: "locale-content"},
                 defaultLocale: {widget: "locale-default"},
               },
+              fieldsets: [
+                {
+                  fields: ["title", "slug", "type", "version", "order", "active", "required"],
+                  title: "Basics",
+                },
+                {
+                  fields: ["content", "defaultLocale", "requireScrollToBottom", "checkboxes"],
+                  title: "Content",
+                },
+                {
+                  fields: [
+                    "captureSignature",
+                    "agreeButtonText",
+                    "allowDecline",
+                    "declineButtonText",
+                  ],
+                  title: "Actions",
+                },
+              ],
+              filters: [
+                {field: "active", kind: "boolean", label: "Active"},
+                {
+                  choices: [
+                    {label: "Agreement", value: "agreement"},
+                    {label: "Privacy", value: "privacy"},
+                    {label: "HIPAA", value: "hipaa"},
+                    {label: "Research", value: "research"},
+                    {label: "Terms", value: "terms"},
+                    {label: "Custom", value: "custom"},
+                  ],
+                  field: "type",
+                  kind: "choice",
+                  label: "Type",
+                },
+              ],
+              group: "Compliance",
+              listDisplay: ["title", "type", "version", "active", "order"],
               listFields: ["title", "type", "version", "active", "order"],
               model: ConsentForm,
               routePath: "/consent-forms",
+              searchFields: ["title", "slug"],
+              sortableFields: ["title", "type", "version", "active", "order", "created"],
             },
             {
               displayName: "Consent Responses",
+              filters: [
+                {field: "agreed", kind: "boolean", label: "Agreed"},
+                {field: "locale", kind: "text", label: "Locale"},
+              ],
+              group: "Compliance",
               listFields: ["userId", "agreed", "locale", "agreedAt"],
               model: ConsentResponse,
+              permissions: {delete: false},
+              populatePaths: consentResponsePopulatePaths,
               routePath: "/consent-responses",
+              searchFields: ["locale"],
+              sortableFields: ["agreed", "locale", "agreedAt", "created"],
+            },
+            {
+              displayName: "Audit log",
+              group: "Platform",
+              listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
+              model: AdminAuditLog,
+              pageSize: 50,
+              permissions: {create: false, delete: false, update: false},
+              routePath: "/audit-logs",
+              searchFields: ["modelName", "recordLabel"],
+              sortableFields: ["verb", "modelName", "createdAt"],
             },
           ],
-          scripts: [
-            {
-              description: "Count all todos and users in the database",
-              name: "countRecords",
-              runner: async (wetRun) => {
-                const todoCount = await Todo.countDocuments();
-                const userCount = await User.countDocuments();
-                const results = [`Found ${todoCount} todos`, `Found ${userCount} users`];
-                if (wetRun) {
-                  results.push("Wet run: no additional changes made by this script");
-                } else {
-                  results.push("Dry run: no changes made");
-                }
-                return {results, success: true};
-              },
-            },
-            {
-              description:
-                "Sync consent forms (Terms of Service, Privacy Policy) from code definitions to the database",
-              name: "syncConsents",
-              runner: async (wetRun) => {
-                const result = await syncConsents(consentDefinitions, {
-                  deactivateRemoved: true,
-                  dryRun: !wetRun,
-                });
-                const results: string[] = [];
-                if (result.created.length > 0) {
-                  results.push(`Created: ${result.created.join(", ")}`);
-                }
-                if (result.updated.length > 0) {
-                  results.push(`Updated: ${result.updated.join(", ")}`);
-                }
-                if (result.deactivated.length > 0) {
-                  results.push(`Deactivated: ${result.deactivated.join(", ")}`);
-                }
-                if (result.unchanged.length > 0) {
-                  results.push(`Unchanged: ${result.unchanged.join(", ")}`);
-                }
-                if (results.length === 0) {
-                  results.push("Nothing to do");
-                }
-                return {results, success: true};
-              },
-            },
-            {
-              description:
-                "Seed example feature flags (boolean and variant). Skips flags that already exist.",
-              name: "seedFeatureFlags",
-              runner: async (wetRun) => {
-                if (!wetRun) {
-                  return {
-                    results: [
-                      "Dry run: would create up to 5 example feature flags",
-                      "Run as wet run to actually create them",
-                    ],
-                    success: true,
-                  };
-                }
-                return seedFeatureFlags();
-              },
-            },
-          ],
+          onAdminAudit: async (event: AdminAuditEvent) => {
+            await AdminAuditLog.create({
+              actorId:
+                event.actorId && mongoose.isValidObjectId(event.actorId)
+                  ? new mongoose.Types.ObjectId(event.actorId)
+                  : undefined,
+              modelName: event.modelName,
+              recordId:
+                event.recordId && mongoose.isValidObjectId(event.recordId)
+                  ? new mongoose.Types.ObjectId(event.recordId)
+                  : undefined,
+              recordLabel: event.recordLabel,
+              verb: event.verb,
+            });
+          },
+          scripts: adminScripts,
         })
       )
       .register(

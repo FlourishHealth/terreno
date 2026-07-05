@@ -60,6 +60,7 @@ exports[`Button renders correctly with default props 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -131,6 +132,7 @@ exports[`Button renders primary variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -202,6 +204,7 @@ exports[`Button renders secondary variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -273,6 +276,7 @@ exports[`Button renders muted variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -344,9 +348,10 @@ exports[`Button renders outline variant 1`] = `
       "borderRadius": 360,
       "borderWidth": 2,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
-      "paddingVertical": 8,
+      "paddingVertical": 6,
       "width": "auto",
     },
     "testID": undefined,
@@ -415,6 +420,7 @@ exports[`Button renders destructive variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -486,6 +492,7 @@ exports[`Button renders disabled state 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -557,6 +564,7 @@ exports[`Button applies disabled styles when disabled 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -651,6 +659,7 @@ exports[`Button renders loading state 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -722,6 +731,7 @@ exports[`Button renders fullWidth button 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -806,6 +816,7 @@ exports[`Button renders with icon on left 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -890,6 +901,7 @@ exports[`Button renders with icon on right 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -961,6 +973,7 @@ exports[`Button renders with confirmation modal props 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -1032,6 +1045,7 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -1103,6 +1117,174 @@ exports[`Button renders with custom confirmationText and modalSubTitle 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
+}
+`;
+
+exports[`Button shows loading indicator when loading prop is true 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Loading",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "color": "#FFFFFF",
+                "size": "small",
+              },
+              "type": "ActivityIndicator",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "marginLeft": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "accessibilityLabel": "Loading",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
+    "disabled": true,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "height": undefined,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders ghost variant with correct styles 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Ghost",
+              ],
+              "props": {
+                "style": {
+                  "color": "#2B6072",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "accessibilityLabel": "Ghost",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "transparent",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,

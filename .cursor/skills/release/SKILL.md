@@ -9,8 +9,8 @@ Cut a new Terreno release end-to-end: gather commits, write organized release no
 ## How releases work in this repo
 
 - Pushing a tag matching `X.Y.Z` (no `v` prefix, e.g. `0.18.0`) triggers `.github/workflows/publish-on-tag.yml`.
-- That workflow publishes **nine packages, all at the same version**: `@terreno/api`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/feature-flags`. (`mcp-server`, `demo`, and the example apps are not published.)
-- Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, and `feature-flags` depend on `publish-api`. A `ui` or `api` failure cascades.
+- That workflow publishes **ten packages, all at the same version**: `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/feature-flags`. (`mcp-server`, `demo`, and the example apps are not published.)
+- Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, and `feature-flags` depend on `publish-api`. `api`, `test`, and `ui` publish independently (no upstream `needs`). A `ui` or `api` failure cascades.
 - After successful publishes, the workflow commits `chore: bump package versions to X.Y.Z` back to master and sends a Zoom notification. Prerelease tags (`-beta`, `-alpha`) skip the master bump.
 
 ## Step 1: Preflight
@@ -118,12 +118,12 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 2. Verify every package is live on npm (allow a couple of minutes of registry lag):
 
    ```bash
-   for p in api ui rtk admin-backend admin-frontend admin-spa ai api-health feature-flags; do
+   for p in api test ui rtk admin-backend admin-frontend admin-spa ai api-health feature-flags; do
      echo "@terreno/$p: $(npm view "@terreno/$p" version)"
    done
    ```
 
-   All nine must report `$VERSION`.
+   All ten must report `$VERSION`.
 
 3. Confirm the `chore: bump package versions to $VERSION` commit landed on master (`git fetch origin master && git log origin/master -1 --oneline`). Skipped for prereleases.
 

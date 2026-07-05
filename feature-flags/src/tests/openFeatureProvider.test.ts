@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {ErrorCode, OpenFeature, StandardResolutionReasons} from "@openfeature/server-sdk";
-import {setupDb} from "@terreno/api/src/tests";
+import {setupDb} from "@terreno/api/testing";
 
 import {FeatureFlag} from "../featureFlagModel";
 import {MongoFeatureFlagProvider} from "../openFeatureProvider";

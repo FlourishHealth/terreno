@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: realtime config callbacks receive dynamic document shapes
 import type express from "express";
 
 /**
@@ -19,9 +18,9 @@ export interface RealtimeConfig {
     | "owner"
     | "model"
     | "broadcast"
-    | ((doc: any, method: string, req: express.Request) => string[]);
+    | ((doc: Record<string, unknown>, method: string, req: express.Request) => string[]);
   /** Custom serializer for real-time events. Falls back to the modelRouter responseHandler. */
-  realtimeResponseHandler?: (doc: any, method: string) => any;
+  realtimeResponseHandler?: (doc: Record<string, unknown>, method: string) => unknown;
 }
 
 /**
@@ -37,6 +36,7 @@ export interface RealtimeEvent {
   /** Document ID */
   id: string;
   /** Serialized document data (omitted for hard deletes) */
+  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: event data is a serialized document whose shape varies by model; consumers must narrow to their specific type
   data?: any;
   /** Fields that were updated (for update events from change streams) */
   updatedFields?: string[];
@@ -102,7 +102,7 @@ export interface QuerySubscription {
   /** Collection tag (e.g. "todos") */
   collection: string;
   /** MongoDB-style query filter (e.g. {completed: false}) */
-  query: Record<string, any>;
+  query: Record<string, unknown>;
   /** Client-provided queryId (ignored — server computes a canonical ID) */
   queryId?: string;
 }

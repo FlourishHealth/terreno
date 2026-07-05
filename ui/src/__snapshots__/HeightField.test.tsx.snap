@@ -259,6 +259,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "borderRadius": 360,
                                               "borderWidth": undefined,
                                               "flexDirection": "column",
+                                              "height": undefined,
                                               "justifyContent": "center",
                                               "paddingHorizontal": 20,
                                               "paddingVertical": 8,
@@ -1024,6 +1025,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "borderRadius": 360,
                                               "borderWidth": undefined,
                                               "flexDirection": "column",
+                                              "height": undefined,
                                               "justifyContent": "center",
                                               "paddingHorizontal": 20,
                                               "paddingVertical": 8,
@@ -1657,6 +1659,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
           "props": {
             "style": {
               "color": "#1C1C1C",
+              "flexShrink": 1,
               "fontSize": 12,
               "lineHeight": 16,
             },
@@ -1666,7 +1669,9 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
       ],
       "props": {
         "style": {
+          "alignSelf": "stretch",
           "marginTop": 2,
+          "maxWidth": "100%",
         },
         "testID": undefined,
       },
@@ -1886,6 +1891,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "borderRadius": 360,
                                               "borderWidth": undefined,
                                               "flexDirection": "column",
+                                              "height": undefined,
                                               "justifyContent": "center",
                                               "paddingHorizontal": 20,
                                               "paddingVertical": 8,
@@ -2683,6 +2689,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "borderRadius": 360,
                                               "borderWidth": undefined,
                                               "flexDirection": "column",
+                                              "height": undefined,
                                               "justifyContent": "center",
                                               "paddingHorizontal": 20,
                                               "paddingVertical": 8,
@@ -3519,6 +3526,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "borderRadius": 360,
                                               "borderWidth": undefined,
                                               "flexDirection": "column",
+                                              "height": undefined,
                                               "justifyContent": "center",
                                               "paddingHorizontal": 20,
                                               "paddingVertical": 8,

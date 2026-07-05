@@ -115,11 +115,28 @@ describe("parseAiJson", () => {
     }
   });
 
+  it("repairs trailing commas inside balanced extraction with backslash content", () => {
+    const input = `here {"a": "x\\\\y", "b": 1,}`;
+    const r = parseAiJson(input);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toEqual({a: "x\\y", b: 1});
+    }
+  });
+
   it("repairs smart quotes via whole-string repair when balanced extraction fails", () => {
-    // The balanced extraction can't parse this because the smart quotes break parsing,
-    // but the whole-string repair path replaces smart quotes outside strings.
     const r = parseAiJson(`\u201Ckey\u201D: \u201Cvalue\u201D`);
     expect(r.success).toBe(false);
+  });
+
+  it("repairs smart quotes on a full JSON object", () => {
+    const r = parseAiJson(`{\u201Ckey\u201D: \u201Cvalue\u201D}`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toEqual({key: "value"});
+    }
   });
 
   it("repairs escaped characters in repair path outside strings", () => {
@@ -135,6 +152,14 @@ describe("parseAiJson", () => {
     expect(r.success).toBe(true);
     if (r.success) {
       expect(r.data).toEqual({x: 1});
+    }
+  });
+
+  it("strips partial opening fence without full closure", () => {
+    const r = parseAiJson('```json\n{"a":1}');
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual({a: 1});
     }
   });
 
@@ -166,6 +191,35 @@ describe("parseAiJson", () => {
 
   it("returns failure when no brackets are present at all", () => {
     const r = parseAiJson("just plain text with no JSON");
+    expect(r.success).toBe(false);
+  });
+
+  it("returns failure for unterminated JSON", () => {
+    const r = parseAiJson('{"a": 1');
+    expect(r.success).toBe(false);
+  });
+
+  it("repairs smart quotes inside a balanced extraction (repairedSlice path)", () => {
+    const r = parseAiJson(`prefix {\u201Ckey\u201D: 1} suffix`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toEqual({key: 1});
+    }
+  });
+
+  it("repairs whole cleaned text when balanced extraction is not possible", () => {
+    const r = parseAiJson(`\u201Chello\u201D`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toBe("hello");
+    }
+  });
+
+  it("falls through balanced extraction when neither direct nor repaired parse succeeds", () => {
+    // extractBalancedJson finds {invalid: json broken} but neither parse nor repair can fix it
+    const r = parseAiJson("prefix {invalid: json broken} suffix");
     expect(r.success).toBe(false);
   });
 });

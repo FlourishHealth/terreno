@@ -45,6 +45,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   modalTitle = "Confirm",
   modalSubTitle,
   pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
+  size = "default",
   testID,
   text,
   variant = "primary",
@@ -79,6 +80,9 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       textColor = theme.text.secondaryDark;
     } else if (variant === "destructive") {
       bgColor = theme.surface.error;
+    } else if (variant === "ghost") {
+      bgColor = "transparent";
+      textColor = theme.surface.secondaryDark;
     }
 
     return {
@@ -142,9 +146,10 @@ const ButtonComponent: React.FC<ButtonProps> = ({
         borderRadius: theme.radius.rounded,
         borderWidth,
         flexDirection: "column",
+        height: size === "sm" ? 28 : undefined,
         justifyContent: "center",
-        paddingHorizontal: 20,
-        paddingVertical: 8,
+        paddingHorizontal: size === "sm" ? 16 : 20,
+        paddingVertical: size === "sm" ? 0 : 8 - (borderWidth ?? 0),
         width: fullWidth ? "100%" : "auto",
       }}
       testID={testID}
@@ -160,13 +165,13 @@ const ButtonComponent: React.FC<ButtonProps> = ({
               }}
             >
               {CustomIcon ? (
-                <CustomIcon color={color ?? theme.text.inverted} size={16} />
+                <CustomIcon color={color ?? theme.text.inverted} size={size === "sm" ? 12 : 16} />
               ) : (
-                <FontAwesome6 color={color} name={iconName} size={16} solid />
+                <FontAwesome6 color={color} name={iconName} size={size === "sm" ? 12 : 16} solid />
               )}
             </View>
           )}
-          <Text style={{color, fontSize: 16, fontWeight: "700"}}>{text}</Text>
+          <Text style={{color, fontSize: size === "sm" ? 14 : 16, fontWeight: "700"}}>{text}</Text>
         </View>
         {Boolean(loading) && (
           <Box marginLeft={2}>

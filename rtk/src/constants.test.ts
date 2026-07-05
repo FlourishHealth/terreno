@@ -5,10 +5,12 @@ import {
   baseTasksUrl,
   baseUrl,
   baseWebsocketsUrl,
+  DEFAULT_DEV_API_PORT,
   isWebsocketsDebugEnabled,
   logAuth,
   logSocket,
   resolveBaseUrls,
+  resolveDevApiPort,
   SAME_ORIGIN_SENTINEL,
   setRealtimeDebug,
 } from "./constants";
@@ -20,9 +22,9 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {}}},
       isDev: false,
     });
-    expect(urls.baseUrl).toBe("http://localhost:4000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
-    expect(urls.baseTasksUrl).toBe("http://localhost:4000/tasks");
+    expect(urls.baseUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}`);
+    expect(urls.baseWebsocketsUrl).toBe(`ws://localhost:${DEFAULT_DEV_API_PORT}/`);
+    expect(urls.baseTasksUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}/tasks`);
   });
 
   it("treats an empty BASE_URL extra as unset and falls back to localhost in non-dev", () => {
@@ -72,9 +74,9 @@ describe("resolveBaseUrls", () => {
       expoConstants: {expoConfig: {extra: {}}},
       isDev: true,
     });
-    expect(urls.baseUrl).toBe("http://localhost:4000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
-    expect(urls.baseTasksUrl).toBe("http://localhost:4000/tasks");
+    expect(urls.baseUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}`);
+    expect(urls.baseWebsocketsUrl).toBe(`ws://localhost:${DEFAULT_DEV_API_PORT}/`);
+    expect(urls.baseTasksUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}/tasks`);
   });
 
   it("uses BASE_URL from extra when not in dev mode", () => {
@@ -206,9 +208,9 @@ describe("resolveBaseUrls", () => {
       isDev: false,
       windowOrigin: "http://localhost:4000",
     });
-    expect(urls.baseUrl).toBe("http://localhost:4000");
-    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
-    expect(urls.baseTasksUrl).toBe("http://localhost:4000/tasks");
+    expect(urls.baseUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}`);
+    expect(urls.baseWebsocketsUrl).toBe(`ws://localhost:${DEFAULT_DEV_API_PORT}/`);
+    expect(urls.baseTasksUrl).toBe(`http://localhost:${DEFAULT_DEV_API_PORT}/tasks`);
   });
 
   it("resolves the same-origin sentinel even in dev mode when a window origin exists", () => {
@@ -251,6 +253,59 @@ describe("resolveBaseUrls", () => {
     });
     expect(urls.baseUrl).toBe("https://api.prod.com");
     expect(urls.baseWebsocketsUrl).toBe("https://ws.prod.com/");
+  });
+
+  it("uses a custom devApiPort for hostUri resolution in dev mode", () => {
+    const urls = resolveBaseUrls({
+      devApiPort: 9000,
+      expoConstants: {expoConfig: {extra: {}, hostUri: "10.0.0.12:8081"}},
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://10.0.0.12:9000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://10.0.0.12:9000/");
+    expect(urls.baseTasksUrl).toBe("http://10.0.0.12:9000/tasks");
+  });
+
+  it("uses a custom devApiPort for the localhost fallback", () => {
+    const urls = resolveBaseUrls({
+      devApiPort: 3000,
+      expoConstants: {expoConfig: {extra: {}}},
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://localhost:3000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:3000/");
+    expect(urls.baseTasksUrl).toBe("http://localhost:3000/tasks");
+  });
+});
+
+describe("resolveDevApiPort", () => {
+  it("defaults to DEFAULT_DEV_API_PORT when nothing is configured", () => {
+    expect(resolveDevApiPort({expoConstants: {expoConfig: {extra: {}}}})).toBe(
+      DEFAULT_DEV_API_PORT
+    );
+  });
+
+  it("reads the port from expoConfig.extra.DEV_API_PORT", () => {
+    expect(resolveDevApiPort({expoConstants: {expoConfig: {extra: {DEV_API_PORT: "3000"}}}})).toBe(
+      3000
+    );
+  });
+
+  it("prefers EXPO_PUBLIC_DEV_API_PORT over extra.DEV_API_PORT", () => {
+    expect(
+      resolveDevApiPort({
+        envDevApiPort: "9000",
+        expoConstants: {expoConfig: {extra: {DEV_API_PORT: "3000"}}},
+      })
+    ).toBe(9000);
+  });
+
+  it("falls back to the default for empty or invalid values", () => {
+    expect(resolveDevApiPort({envDevApiPort: "", expoConstants: {}})).toBe(DEFAULT_DEV_API_PORT);
+    expect(resolveDevApiPort({envDevApiPort: "not-a-number", expoConstants: {}})).toBe(
+      DEFAULT_DEV_API_PORT
+    );
+    expect(resolveDevApiPort({envDevApiPort: "-5", expoConstants: {}})).toBe(DEFAULT_DEV_API_PORT);
   });
 });
 
@@ -415,3 +470,36 @@ describe("SAME_ORIGIN_SENTINEL", () => {
 
 // Mock.module tests (expo tunnel warning, AUTH_DEBUG) moved to
 // src/isolated/constants.isolated.ts to avoid coverage tracking interference.
+
+describe("logSocket with runtime debug via setRealtimeDebug", () => {
+  const originalInfo = console.info;
+  const calls: unknown[][] = [];
+
+  beforeEach(() => {
+    calls.length = 0;
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+  });
+
+  afterEach(() => {
+    console.info = originalInfo;
+    setRealtimeDebug(false);
+  });
+
+  it("logSocket logs with user object when runtime debug is enabled", () => {
+    setRealtimeDebug(true);
+    logSocket({featureFlags: {debugWebsockets: {enabled: false}}}, "via runtime");
+    expect(calls).toEqual([["[websocket]", "via runtime"]]);
+  });
+
+  it("logSocket does not log when user featureFlags is undefined and runtime debug is off", () => {
+    logSocket({}, "no flags");
+    expect(calls).toEqual([]);
+  });
+
+  it("logSocket does not log with user featureFlags.debugWebsockets undefined", () => {
+    logSocket({featureFlags: {}}, "no ws");
+    expect(calls).toEqual([]);
+  });
+});

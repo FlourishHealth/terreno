@@ -56,6 +56,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
     const createKey = `adminCreate_${modelName}`;
     const updateKey = `adminUpdate_${modelName}`;
     const deleteKey = `adminDelete_${modelName}`;
+    const bulkPatchKey = `adminBulkPatch_${modelName}`;
 
     const tagType = `admin_${modelName}`;
     return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
@@ -103,6 +104,14 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
             url: `${routePath}/${id}`,
           }),
         }),
+        [bulkPatchKey]: build.mutation({
+          invalidatesTags: [`admin_${modelName}`],
+          query: ({ids, patch}: {ids: string[]; patch: Record<string, unknown>}) => ({
+            body: {ids, patch},
+            method: "POST",
+            url: `${routePath}/bulk-patch`,
+          }),
+        }),
       }),
       overrideExisting: true,
     });
@@ -115,11 +124,13 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
   const createKey = `adminCreate_${modelName}`;
   const updateKey = `adminUpdate_${modelName}`;
   const deleteKey = `adminDelete_${modelName}`;
+  const bulkPatchKey = `adminBulkPatch_${modelName}`;
 
   // noExplicitAny: RTK Query generates hook names dynamically from endpoint keys; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   return {
+    useBulkPatchMutation: enhanced[`use${capitalize(bulkPatchKey)}Mutation`],
     useCreateMutation: enhanced[`use${capitalize(createKey)}Mutation`],
     useDeleteMutation: enhanced[`use${capitalize(deleteKey)}Mutation`],
     useListQuery: enhanced[`use${capitalize(listKey)}Query`],

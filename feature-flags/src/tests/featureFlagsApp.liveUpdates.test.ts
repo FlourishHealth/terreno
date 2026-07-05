@@ -9,7 +9,7 @@ import {
   setupAuth,
   type UserModel as UserModelType,
 } from "@terreno/api";
-import {getBaseServer, setupDb, UserModel} from "@terreno/api/src/tests";
+import {getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
 import type express from "express";
 
 import {FeatureFlag} from "../featureFlagModel";

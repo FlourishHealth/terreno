@@ -8,7 +8,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_SPA_E2E_PASSWORD ?? "admin-spa-e2e-pass
  * Full-stack integration tests: the pre-built admin SPA is served by a real
  * example-backend (AdminSpaServeApp at /console) with Better Auth and the admin API
  * on the same origin. Exercises the serve plugin, app-config, Better Auth email
- * sign-in, the AdminGate authorization check, and the admin model list end-to-end.
+ * sign-in, the AdminGate authorization check, and the admin home end-to-end.
  */
 test.describe("admin SPA served by example-backend", () => {
   test("anonymous visitor is redirected to the backend-configured login screen", async ({page}) => {
@@ -20,7 +20,7 @@ test.describe("admin SPA served by example-backend", () => {
     await expect(page.getByTestId("admin-spa-login-email")).toBeVisible();
   });
 
-  test("admin signs in with Better Auth and sees the admin model list", async ({page}) => {
+  test("admin signs in with Better Auth and sees the admin home", async ({page}) => {
     await page.goto("/console/login");
     await expect(page.getByTestId("admin-spa-login-email")).toBeVisible();
 
@@ -28,10 +28,13 @@ test.describe("admin SPA served by example-backend", () => {
     await page.getByTestId("admin-spa-login-password").fill(ADMIN_PASSWORD);
     await page.getByTestId("admin-spa-login-submit").click();
 
-    // Successful sign-in routes back to the SPA root, which renders AdminModelList
+    // Successful sign-in routes back to the SPA root, which renders AdminHome
     // from the backend's /admin/config (only reachable as an admin).
     await page.waitForURL(/\/console\/?$/, {timeout: 30_000});
-    await expect(page.getByTestId("admin-model-card-Todo")).toBeVisible({timeout: 30_000});
-    await expect(page.getByTestId("admin-model-card-User")).toBeVisible();
+    // @terreno/ui Box with onClick exposes testID as `${id}-clickable` (see ui/src/Box.tsx).
+    await expect(page.getByTestId("admin-home-models-grid-Todo-clickable")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("admin-home-models-grid-User-clickable")).toBeVisible();
   });
 });

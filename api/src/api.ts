@@ -342,6 +342,75 @@ export interface ModelRouterOptions<T> {
   realtime?: RealtimeConfig;
 }
 
+/**
+ * Parses a date-range query bound from an ISO-8601 string using Luxon, throwing a 400
+ * APIError when the value cannot be parsed. Centralizes date-string parsing so the repo's
+ * Luxon convention is honored for admin changelist date-range filters.
+ */
+const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
+  const parsed = DateTime.fromISO(String(rawValue), {zone: "utc"});
+  if (!parsed.isValid) {
+    throw new APIError({
+      status: 400,
+      title: `Invalid date for query parameter ${queryKey}`,
+    });
+  }
+  return parsed.toJSDate();
+};
+
+/**
+ * Collapses `field_gte` / `field_lte` query pairs into `{ field: { $gte, $lte } }` for Date paths,
+ * so admin changelist date-range filters map to valid Mongoose range queries.
+ */
+const mergeDateRangeQueryParams = <T>(
+  model: Model<T>,
+  query: Record<string, unknown>
+): Record<string, unknown> => {
+  const schema = model.schema;
+  const result: Record<string, unknown> = {...query};
+  const dateRangeBases = new Set<string>();
+  for (const key of Object.keys(result)) {
+    const match = /^(.+)_(gte|lte)$/.exec(key);
+    if (!match) {
+      continue;
+    }
+    const baseField = match[1];
+    const path = schema.path(baseField);
+    if (!path || path.instance !== "Date") {
+      continue;
+    }
+    dateRangeBases.add(baseField);
+  }
+  for (const baseField of dateRangeBases) {
+    const gteKey = `${baseField}_gte`;
+    const lteKey = `${baseField}_lte`;
+    const gteRaw = result[gteKey];
+    const lteRaw = result[lteKey];
+    const bounds: {$gte?: Date; $lte?: Date} = {};
+    if (gteRaw !== undefined && gteRaw !== null && String(gteRaw).trim() !== "") {
+      bounds.$gte = parseDateRangeBound(gteRaw, gteKey);
+    }
+    if (lteRaw !== undefined && lteRaw !== null && String(lteRaw).trim() !== "") {
+      bounds.$lte = parseDateRangeBound(lteRaw, lteKey);
+    }
+    if (Object.keys(bounds).length === 0) {
+      continue;
+    }
+    delete result[gteKey];
+    delete result[lteKey];
+    const direct = result[baseField];
+    if (direct !== undefined && direct !== null && typeof direct !== "object") {
+      delete result[baseField];
+    }
+    if (typeof direct === "object" && direct !== null && !Array.isArray(direct)) {
+      result[baseField] = {...(direct as Record<string, unknown>), ...bounds};
+    } else {
+      result[baseField] = bounds;
+    }
+  }
+  return result;
+};
+
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
 const checkQueryParamAllowed = (
   queryParam: string,
@@ -710,6 +779,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           query[queryParam] = req.query[queryParam];
         }
       }
+
+      query = mergeDateRangeQueryParams(model, query);
 
       // Special operators. NOTE: these request Mongo Atlas.
       if (req.query.$search) {

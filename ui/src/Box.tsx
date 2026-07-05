@@ -62,6 +62,7 @@ const isValidWidthHeight = (value: number | string): boolean => {
 
 export const Box = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
+  const resolvedTestID = props.testID;
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -316,7 +317,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
           await props.onClick?.();
         }}
         style={propsToStyle()}
-        testID={props.testID ? `${props.testID}-clickable` : undefined}
+        testID={resolvedTestID ? `${resolvedTestID}-clickable` : undefined}
       >
         {props.children}
       </Pressable>
@@ -327,7 +328,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         style={propsToStyle()}
-        testID={props.testID}
+        testID={resolvedTestID}
       >
         {props.children}
       </View>

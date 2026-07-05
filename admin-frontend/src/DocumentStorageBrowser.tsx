@@ -600,7 +600,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   };
 
   return (
-    <Page maxWidth="100%" title={title}>
+    <Page color="transparent" maxWidth="100%" padding={0} title={title}>
       {headerRow}
       {renderContent()}
 

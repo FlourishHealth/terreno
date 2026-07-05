@@ -1,9 +1,8 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
+import {TerrenoApp} from "@terreno/api";
 import {jsonSchema, type LanguageModel, type Tool, tool} from "ai";
 import type express from "express";
 import mongoose from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
 import {AIRequest} from "../models/aiRequest";
@@ -11,10 +10,10 @@ import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
 import type {MCPService} from "../service/mcpService";
+import {authAsUser, ensureTestUsers, UserModel} from "../tests/helpers";
 import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
 import {addGptHistoryRoutes} from "./gptHistories";
 
-type PasswordedUser = {setPassword: (password: string) => Promise<void>};
 type SseResponse = supertest.Response & {body: string};
 
 // Mock langfuseVercelAi to avoid transitive langfuse SDK import in tests.
@@ -27,23 +26,6 @@ mock.module("../langfuseVercelAi", () => ({
 }));
 
 const {addGptRoutes} = await import("./gpt");
-
-// Test user schema
-const userSchema = new mongoose.Schema({
-  admin: {default: false, type: Boolean},
-  email: {index: true, type: String},
-  name: String,
-});
-userSchema.plugin(
-  passportLocalMongoose as unknown as (
-    schema: mongoose.Schema,
-    options: {usernameField: string}
-  ) => void,
-  {usernameField: "email"}
-);
-userSchema.plugin(createdUpdatedPlugin);
-
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
 // Create mock AI model (LanguageModelV2)
 const createMockModel = (modelId = "mock-model") => ({
@@ -107,6 +89,30 @@ const createImageModel = () => ({
   supportedUrls: {},
 });
 
+// Mock model that emits text without a finish event (no finish-step → post-loop flush)
+const createNoFinishModel = () => ({
+  doGenerate: mock(async () => ({
+    content: [{text: "unflushed", type: "text" as const}],
+    finishReason: "stop" as const,
+    usage: {inputTokens: 1, outputTokens: 1},
+  })),
+  doStream: mock(async () => ({
+    stream: new ReadableStream({
+      start(controller) {
+        controller.enqueue({id: "t1", type: "text-start" as const});
+        controller.enqueue({delta: "buffered text", id: "t1", type: "text-delta" as const});
+        controller.enqueue({id: "t1", type: "text-end" as const});
+        // Deliberately omit finish event so the SDK does not emit finish-step
+        controller.close();
+      },
+    }),
+  })),
+  modelId: "no-finish-model",
+  provider: "mock-provider",
+  specificationVersion: "v2" as const,
+  supportedUrls: {},
+});
+
 // Mock model that throws during doStream to exercise the inner catch
 const createErrorModel = () => ({
   doGenerate: mock(async () => ({
@@ -126,29 +132,11 @@ const createErrorModel = () => ({
 let app: express.Application;
 let aiService: AIService;
 
-const authAsUser = async (appInstance: express.Application, type: "admin" | "notAdmin") => {
-  const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
-  const password = type === "admin" ? "securePassword" : "password";
-  const agent = supertest.agent(appInstance);
-  const res = await agent.post("/auth/login").send({email, password}).expect(200);
-  await agent.set("authorization", `Bearer ${res.body.data.token}`);
-  return agent;
-};
-
 describe("AI Routes", () => {
   beforeAll(async () => {
-    // Clean up and create test users
-    await UserModel.deleteMany({});
+    await ensureTestUsers();
     await AIRequest.deleteMany({});
     await GptHistory.deleteMany({});
-
-    const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as unknown as PasswordedUser).setPassword("securePassword");
-    await admin.save();
-
-    const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as unknown as PasswordedUser).setPassword("password");
-    await user.save();
   });
 
   beforeEach(() => {
@@ -426,6 +414,28 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
+    });
+
+    it("flushes remaining buffered text when the stream ends without finish-step", async () => {
+      const noFinishService = new AIService({
+        model: createNoFinishModel() as unknown as LanguageModel,
+      });
+      const noFinishApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {aiService: noFinishService, openApiOptions: options});
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(noFinishApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("buffered text");
     });
 
     it("streams inline image events from the model", async () => {

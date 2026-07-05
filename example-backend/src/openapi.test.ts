@@ -27,7 +27,8 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/admin/todos/"].post).toBeDefined();
     expect(res.body.paths["/admin/todos/{id}"].get).toBeDefined();
     expect(res.body.paths["/admin/todos/{id}"].patch).toBeDefined();
-    expect(res.body.paths["/admin/todos/{id}"].delete).toBeDefined();
+    // Example backend registers Todos with permissions.delete false, so DELETE is omitted from OpenAPI.
+    expect(res.body.paths["/admin/todos/{id}"].delete).toBeUndefined();
   });
 
   it("includes admin user routes", async () => {
@@ -65,7 +66,7 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/settings/gcs"]).toBeDefined();
   });
 
-  it("has CRUD operations on admin todo routes", async () => {
+  it("has list/create/read/patch operations on admin todo routes", async () => {
     const server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);
     const todoList = res.body.paths["/admin/todos/"];
@@ -83,7 +84,7 @@ describe("OpenAPI spec generation", () => {
     // Detail endpoints should have id path parameter
     expect(todoDetail.get).toBeDefined();
     expect(todoDetail.patch).toBeDefined();
-    expect(todoDetail.delete).toBeDefined();
+    expect(todoDetail.delete).toBeUndefined();
   });
 
   it("has ETag caching on openapi.json", async () => {

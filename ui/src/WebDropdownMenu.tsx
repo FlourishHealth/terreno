@@ -144,7 +144,7 @@ export const WebDropdownMenu = ({
       return true;
     }
     const helper = item.helperText?.toLowerCase();
-    if (helper && helper.includes(normalizedQuery)) {
+    if (helper?.includes(normalizedQuery)) {
       return true;
     }
     return false;

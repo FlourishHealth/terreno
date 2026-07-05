@@ -754,6 +754,7 @@ exports[`Field renders boolean field 1`] = `
               "flexDirection": "row",
               "justifyContent": "center",
             },
+            "testID": undefined,
           },
           "type": "Pressable",
         },
@@ -1026,6 +1027,7 @@ exports[`Field renders date field 1`] = `
       "minWidth": 200,
       "paddingHorizontal": 6,
     },
+    "testID": undefined,
   },
   "type": "Pressable",
 }
@@ -1188,71 +1190,58 @@ exports[`Field renders time field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                  "flex": 1,
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "editable": false,
+                                    "multiline": true,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flex": 1,
+                                    },
+                                    "testID": "text_input",
+                                    "value": "am",
+                                  },
+                                  "type": "TextInput",
                                 },
-                                "testID": "text_input",
-                                "value": "am",
-                              },
-                              "type": "TextInput",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "pointerEvents": "none",
+                                    },
+                                    "testID": "icon_container",
+                                  },
+                                  "type": "View",
+                                },
+                              ],
                               "props": {
                                 "style": {
-                                  "pointerEvents": "none",
+                                  "alignItems": "center",
+                                  "flexDirection": "row",
+                                  "pointerEvents": "box-only",
+                                  "width": "100%",
                                 },
-                                "testID": "icon_container",
+                                "testID": undefined,
                               },
                               "type": "View",
                             },
                           ],
                           "props": {
+                            "disabled": false,
+                            "onPress": [Function],
                             "style": {
                               "alignItems": "center",
                               "flexDirection": "row",
-                              "pointerEvents": "box-only",
+                              "justifyContent": "center",
+                              "minHeight": 40,
+                              "paddingHorizontal": 8,
                               "width": "100%",
                             },
-                            "testID": undefined,
-                          },
-                          "type": "View",
-                        },
-                      ],
-                      "props": {
-                        "disabled": false,
-                        "onPress": [Function],
-                        "style": {
-                          "alignItems": "center",
-                          "flexDirection": "row",
-                          "justifyContent": "center",
-                          "minHeight": 40,
-                          "paddingHorizontal": 8,
-                          "width": "100%",
-                        },
-                        "testID": "ios_touchable_wrapper",
-                      },
-                      "type": "Pressable",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "aria-role": "button",
-                            "onPress": [Function],
-                            "style": {
-                              "flex": 1,
-                            },
-                            "testID": "ios_modal_top",
+                            "testID": "ios_touchable_wrapper",
                           },
                           "type": "Pressable",
                         },
@@ -1263,10 +1252,92 @@ exports[`Field renders time field 1`] = `
                               "$$typeof": Symbol(react.test.json),
                               "children": null,
                               "props": {
+                                "aria-role": "button",
+                                "onPress": [Function],
                                 "style": {
-                                  "flexDirection": "row",
+                                  "flex": 1,
                                 },
-                                "testID": undefined,
+                                "testID": "ios_modal_top",
+                              },
+                              "type": "Pressable",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "flexDirection": "row",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            "Done",
+                                          ],
+                                          "props": {
+                                            "allowFontScaling": false,
+                                            "style": [
+                                              {
+                                                "color": "#007aff",
+                                                "fontSize": 17,
+                                                "fontWeight": "600",
+                                                "paddingRight": 11,
+                                                "paddingTop": 1,
+                                              },
+                                              {},
+                                            ],
+                                            "testID": "done_text",
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "style": undefined,
+                                        "testID": "needed_for_touchable",
+                                      },
+                                      "type": "View",
+                                    },
+                                  ],
+                                  "props": {
+                                    "hitSlop": {
+                                      "bottom": 4,
+                                      "left": 4,
+                                      "right": 4,
+                                      "top": 4,
+                                    },
+                                    "onPress": [Function],
+                                    "onPressIn": [Function],
+                                    "onPressOut": [Function],
+                                    "testID": "done_button",
+                                  },
+                                  "type": "Pressable",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignItems": "center",
+                                  "backgroundColor": "#f8f8f8",
+                                  "borderTopColor": "#dedede",
+                                  "borderTopWidth": 1,
+                                  "flexDirection": "row",
+                                  "height": 45,
+                                  "justifyContent": "space-between",
+                                  "paddingHorizontal": 10,
+                                  "zIndex": 2,
+                                },
+                                "testID": "input_accessory_view",
                               },
                               "type": "View",
                             },
@@ -1278,146 +1349,91 @@ exports[`Field renders time field 1`] = `
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
-                                      "children": [
-                                        "Done",
-                                      ],
+                                      "children": null,
                                       "props": {
-                                        "allowFontScaling": false,
-                                        "style": [
-                                          {
-                                            "color": "#007aff",
-                                            "fontSize": 17,
-                                            "fontWeight": "600",
-                                            "paddingRight": 11,
-                                            "paddingTop": 1,
-                                          },
-                                          {},
-                                        ],
-                                        "testID": "done_text",
+                                        "color": undefined,
+                                        "label": "am",
+                                        "value": "am",
                                       },
-                                      "type": "Text",
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "pm",
+                                        "value": "pm",
+                                      },
+                                      "type": "Picker.Item",
                                     },
                                   ],
                                   "props": {
-                                    "style": undefined,
-                                    "testID": "needed_for_touchable",
+                                    "onValueChange": [Function],
+                                    "selectedValue": "am",
+                                    "testID": "ios_picker",
                                   },
-                                  "type": "View",
+                                  "type": "Picker",
                                 },
                               ],
                               "props": {
-                                "hitSlop": {
-                                  "bottom": 4,
-                                  "left": 4,
-                                  "right": 4,
-                                  "top": 4,
-                                },
-                                "onPress": [Function],
-                                "onPressIn": [Function],
-                                "onPressOut": [Function],
-                                "testID": "done_button",
+                                "style": [
+                                  {
+                                    "backgroundColor": "#d0d4da",
+                                    "justifyContent": "center",
+                                  },
+                                  {
+                                    "height": 215,
+                                  },
+                                ],
+                                "testID": undefined,
                               },
-                              "type": "Pressable",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "#f8f8f8",
-                              "borderTopColor": "#dedede",
-                              "borderTopWidth": 1,
-                              "flexDirection": "row",
-                              "height": 45,
-                              "justifyContent": "space-between",
-                              "paddingHorizontal": 10,
-                              "zIndex": 2,
-                            },
-                            "testID": "input_accessory_view",
-                          },
-                          "type": "View",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": [
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "am",
-                                    "value": "am",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "pm",
-                                    "value": "pm",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                              ],
-                              "props": {
-                                "onValueChange": [Function],
-                                "selectedValue": "am",
-                                "testID": "ios_picker",
-                              },
-                              "type": "Picker",
-                            },
-                          ],
-                          "props": {
-                            "style": [
-                              {
-                                "backgroundColor": "#d0d4da",
-                                "justifyContent": "center",
-                              },
-                              {
-                                "height": 215,
-                              },
+                            "animationType": undefined,
+                            "onOrientationChange": [Function],
+                            "supportedOrientations": [
+                              "portrait",
+                              "landscape",
                             ],
-                            "testID": undefined,
+                            "testID": "ios_modal",
+                            "transparent": true,
+                            "visible": false,
                           },
-                          "type": "View",
+                          "type": "Modal",
                         },
                       ],
                       "props": {
-                        "animationType": undefined,
-                        "onOrientationChange": [Function],
-                        "supportedOrientations": [
-                          "portrait",
-                          "landscape",
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "alignSelf": "stretch",
+                            "borderRadius": 4,
+                            "borderWidth": 1,
+                            "flexDirection": "row",
+                            "justifyContent": "flex-start",
+                            "minHeight": 40,
+                            "width": "100%",
+                          },
+                          {
+                            "backgroundColor": "#FFFFFF",
+                            "borderColor": "#9A9A9A",
+                          },
+                          false,
                         ],
-                        "testID": "ios_modal",
-                        "transparent": true,
-                        "visible": false,
+                        "testID": undefined,
                       },
-                      "type": "Modal",
+                      "type": "View",
                     },
                   ],
                   "props": {
-                    "style": [
-                      {
-                        "alignItems": "center",
-                        "alignSelf": "stretch",
-                        "borderRadius": 4,
-                        "borderWidth": 1,
-                        "flexDirection": "row",
-                        "justifyContent": "center",
-                        "minHeight": 40,
-                        "width": "100%",
-                      },
-                      {
-                        "backgroundColor": "#FFFFFF",
-                        "borderColor": "#9A9A9A",
-                      },
-                      false,
-                    ],
+                    "style": {
+                      "alignSelf": "stretch",
+                      "minWidth": 0,
+                      "width": "100%",
+                    },
                     "testID": undefined,
                   },
                   "type": "View",
@@ -1425,6 +1441,7 @@ exports[`Field renders time field 1`] = `
               ],
               "props": {
                 "style": {
+                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1463,71 +1480,58 @@ exports[`Field renders time field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                  "flex": 1,
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "editable": false,
+                                    "multiline": true,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flex": 1,
+                                    },
+                                    "testID": "text_input",
+                                    "value": "EDT",
+                                  },
+                                  "type": "TextInput",
                                 },
-                                "testID": "text_input",
-                                "value": "EDT",
-                              },
-                              "type": "TextInput",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "pointerEvents": "none",
+                                    },
+                                    "testID": "icon_container",
+                                  },
+                                  "type": "View",
+                                },
+                              ],
                               "props": {
                                 "style": {
-                                  "pointerEvents": "none",
+                                  "alignItems": "center",
+                                  "flexDirection": "row",
+                                  "pointerEvents": "box-only",
+                                  "width": "100%",
                                 },
-                                "testID": "icon_container",
+                                "testID": undefined,
                               },
                               "type": "View",
                             },
                           ],
                           "props": {
+                            "disabled": false,
+                            "onPress": [Function],
                             "style": {
                               "alignItems": "center",
                               "flexDirection": "row",
-                              "pointerEvents": "box-only",
+                              "justifyContent": "center",
+                              "minHeight": 40,
+                              "paddingHorizontal": 8,
                               "width": "100%",
                             },
-                            "testID": undefined,
-                          },
-                          "type": "View",
-                        },
-                      ],
-                      "props": {
-                        "disabled": false,
-                        "onPress": [Function],
-                        "style": {
-                          "alignItems": "center",
-                          "flexDirection": "row",
-                          "justifyContent": "center",
-                          "minHeight": 40,
-                          "paddingHorizontal": 8,
-                          "width": "100%",
-                        },
-                        "testID": "ios_touchable_wrapper",
-                      },
-                      "type": "Pressable",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "aria-role": "button",
-                            "onPress": [Function],
-                            "style": {
-                              "flex": 1,
-                            },
-                            "testID": "ios_modal_top",
+                            "testID": "ios_touchable_wrapper",
                           },
                           "type": "Pressable",
                         },
@@ -1538,10 +1542,92 @@ exports[`Field renders time field 1`] = `
                               "$$typeof": Symbol(react.test.json),
                               "children": null,
                               "props": {
+                                "aria-role": "button",
+                                "onPress": [Function],
                                 "style": {
-                                  "flexDirection": "row",
+                                  "flex": 1,
                                 },
-                                "testID": undefined,
+                                "testID": "ios_modal_top",
+                              },
+                              "type": "Pressable",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "flexDirection": "row",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            "Done",
+                                          ],
+                                          "props": {
+                                            "allowFontScaling": false,
+                                            "style": [
+                                              {
+                                                "color": "#007aff",
+                                                "fontSize": 17,
+                                                "fontWeight": "600",
+                                                "paddingRight": 11,
+                                                "paddingTop": 1,
+                                              },
+                                              {},
+                                            ],
+                                            "testID": "done_text",
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "style": undefined,
+                                        "testID": "needed_for_touchable",
+                                      },
+                                      "type": "View",
+                                    },
+                                  ],
+                                  "props": {
+                                    "hitSlop": {
+                                      "bottom": 4,
+                                      "left": 4,
+                                      "right": 4,
+                                      "top": 4,
+                                    },
+                                    "onPress": [Function],
+                                    "onPressIn": [Function],
+                                    "onPressOut": [Function],
+                                    "testID": "done_button",
+                                  },
+                                  "type": "Pressable",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignItems": "center",
+                                  "backgroundColor": "#f8f8f8",
+                                  "borderTopColor": "#dedede",
+                                  "borderTopWidth": 1,
+                                  "flexDirection": "row",
+                                  "height": 45,
+                                  "justifyContent": "space-between",
+                                  "paddingHorizontal": 10,
+                                  "zIndex": 2,
+                                },
+                                "testID": "input_accessory_view",
                               },
                               "type": "View",
                             },
@@ -1553,206 +1639,151 @@ exports[`Field renders time field 1`] = `
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
-                                      "children": [
-                                        "Done",
-                                      ],
+                                      "children": null,
                                       "props": {
-                                        "allowFontScaling": false,
-                                        "style": [
-                                          {
-                                            "color": "#007aff",
-                                            "fontSize": 17,
-                                            "fontWeight": "600",
-                                            "paddingRight": 11,
-                                            "paddingTop": 1,
-                                          },
-                                          {},
-                                        ],
-                                        "testID": "done_text",
+                                        "color": undefined,
+                                        "label": "Please select an option.",
+                                        "value": "",
                                       },
-                                      "type": "Text",
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "EDT",
+                                        "value": "America/New_York",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "CDT",
+                                        "value": "America/Chicago",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "MDT",
+                                        "value": "America/Denver",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "PDT",
+                                        "value": "America/Los_Angeles",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "AKDT",
+                                        "value": "America/Anchorage",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "HST",
+                                        "value": "Pacific/Honolulu",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "AZ",
+                                        "value": "America/Phoenix",
+                                      },
+                                      "type": "Picker.Item",
                                     },
                                   ],
                                   "props": {
-                                    "style": undefined,
-                                    "testID": "needed_for_touchable",
+                                    "onValueChange": [Function],
+                                    "selectedValue": "America/New_York",
+                                    "testID": "ios_picker",
                                   },
-                                  "type": "View",
+                                  "type": "Picker",
                                 },
                               ],
                               "props": {
-                                "hitSlop": {
-                                  "bottom": 4,
-                                  "left": 4,
-                                  "right": 4,
-                                  "top": 4,
-                                },
-                                "onPress": [Function],
-                                "onPressIn": [Function],
-                                "onPressOut": [Function],
-                                "testID": "done_button",
+                                "style": [
+                                  {
+                                    "backgroundColor": "#d0d4da",
+                                    "justifyContent": "center",
+                                  },
+                                  {
+                                    "height": 215,
+                                  },
+                                ],
+                                "testID": undefined,
                               },
-                              "type": "Pressable",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "#f8f8f8",
-                              "borderTopColor": "#dedede",
-                              "borderTopWidth": 1,
-                              "flexDirection": "row",
-                              "height": 45,
-                              "justifyContent": "space-between",
-                              "paddingHorizontal": 10,
-                              "zIndex": 2,
-                            },
-                            "testID": "input_accessory_view",
-                          },
-                          "type": "View",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": [
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "Please select an option.",
-                                    "value": "",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "EDT",
-                                    "value": "America/New_York",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "CDT",
-                                    "value": "America/Chicago",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "MDT",
-                                    "value": "America/Denver",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "PDT",
-                                    "value": "America/Los_Angeles",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "AKDT",
-                                    "value": "America/Anchorage",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "HST",
-                                    "value": "Pacific/Honolulu",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "AZ",
-                                    "value": "America/Phoenix",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                              ],
-                              "props": {
-                                "onValueChange": [Function],
-                                "selectedValue": "America/New_York",
-                                "testID": "ios_picker",
-                              },
-                              "type": "Picker",
-                            },
-                          ],
-                          "props": {
-                            "style": [
-                              {
-                                "backgroundColor": "#d0d4da",
-                                "justifyContent": "center",
-                              },
-                              {
-                                "height": 215,
-                              },
+                            "animationType": undefined,
+                            "onOrientationChange": [Function],
+                            "supportedOrientations": [
+                              "portrait",
+                              "landscape",
                             ],
-                            "testID": undefined,
+                            "testID": "ios_modal",
+                            "transparent": true,
+                            "visible": false,
                           },
-                          "type": "View",
+                          "type": "Modal",
                         },
                       ],
                       "props": {
-                        "animationType": undefined,
-                        "onOrientationChange": [Function],
-                        "supportedOrientations": [
-                          "portrait",
-                          "landscape",
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "alignSelf": "stretch",
+                            "borderRadius": 4,
+                            "borderWidth": 1,
+                            "flexDirection": "row",
+                            "justifyContent": "flex-start",
+                            "minHeight": 40,
+                            "width": "100%",
+                          },
+                          {
+                            "backgroundColor": "#FFFFFF",
+                            "borderColor": "#9A9A9A",
+                          },
+                          false,
                         ],
-                        "testID": "ios_modal",
-                        "transparent": true,
-                        "visible": false,
+                        "testID": undefined,
                       },
-                      "type": "Modal",
+                      "type": "View",
                     },
                   ],
                   "props": {
-                    "style": [
-                      {
-                        "alignItems": "center",
-                        "alignSelf": "stretch",
-                        "borderRadius": 4,
-                        "borderWidth": 1,
-                        "flexDirection": "row",
-                        "justifyContent": "center",
-                        "minHeight": 40,
-                        "width": "100%",
-                      },
-                      {
-                        "backgroundColor": "#FFFFFF",
-                        "borderColor": "#9A9A9A",
-                      },
-                      false,
-                    ],
+                    "style": {
+                      "alignSelf": "stretch",
+                      "minWidth": 0,
+                      "width": "100%",
+                    },
                     "testID": undefined,
                   },
                   "type": "View",
@@ -1760,6 +1791,7 @@ exports[`Field renders time field 1`] = `
               ],
               "props": {
                 "style": {
+                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1806,6 +1838,7 @@ exports[`Field renders time field 1`] = `
       "minWidth": 230,
       "paddingHorizontal": 6,
     },
+    "testID": undefined,
   },
   "type": "Pressable",
 }
@@ -2193,71 +2226,58 @@ exports[`Field renders datetime field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                  "flex": 1,
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "editable": false,
+                                    "multiline": true,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flex": 1,
+                                    },
+                                    "testID": "text_input",
+                                    "value": "am",
+                                  },
+                                  "type": "TextInput",
                                 },
-                                "testID": "text_input",
-                                "value": "am",
-                              },
-                              "type": "TextInput",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "pointerEvents": "none",
+                                    },
+                                    "testID": "icon_container",
+                                  },
+                                  "type": "View",
+                                },
+                              ],
                               "props": {
                                 "style": {
-                                  "pointerEvents": "none",
+                                  "alignItems": "center",
+                                  "flexDirection": "row",
+                                  "pointerEvents": "box-only",
+                                  "width": "100%",
                                 },
-                                "testID": "icon_container",
+                                "testID": undefined,
                               },
                               "type": "View",
                             },
                           ],
                           "props": {
+                            "disabled": false,
+                            "onPress": [Function],
                             "style": {
                               "alignItems": "center",
                               "flexDirection": "row",
-                              "pointerEvents": "box-only",
+                              "justifyContent": "center",
+                              "minHeight": 40,
+                              "paddingHorizontal": 8,
                               "width": "100%",
                             },
-                            "testID": undefined,
-                          },
-                          "type": "View",
-                        },
-                      ],
-                      "props": {
-                        "disabled": false,
-                        "onPress": [Function],
-                        "style": {
-                          "alignItems": "center",
-                          "flexDirection": "row",
-                          "justifyContent": "center",
-                          "minHeight": 40,
-                          "paddingHorizontal": 8,
-                          "width": "100%",
-                        },
-                        "testID": "ios_touchable_wrapper",
-                      },
-                      "type": "Pressable",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "aria-role": "button",
-                            "onPress": [Function],
-                            "style": {
-                              "flex": 1,
-                            },
-                            "testID": "ios_modal_top",
+                            "testID": "ios_touchable_wrapper",
                           },
                           "type": "Pressable",
                         },
@@ -2268,10 +2288,92 @@ exports[`Field renders datetime field 1`] = `
                               "$$typeof": Symbol(react.test.json),
                               "children": null,
                               "props": {
+                                "aria-role": "button",
+                                "onPress": [Function],
                                 "style": {
-                                  "flexDirection": "row",
+                                  "flex": 1,
                                 },
-                                "testID": undefined,
+                                "testID": "ios_modal_top",
+                              },
+                              "type": "Pressable",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "flexDirection": "row",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            "Done",
+                                          ],
+                                          "props": {
+                                            "allowFontScaling": false,
+                                            "style": [
+                                              {
+                                                "color": "#007aff",
+                                                "fontSize": 17,
+                                                "fontWeight": "600",
+                                                "paddingRight": 11,
+                                                "paddingTop": 1,
+                                              },
+                                              {},
+                                            ],
+                                            "testID": "done_text",
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "style": undefined,
+                                        "testID": "needed_for_touchable",
+                                      },
+                                      "type": "View",
+                                    },
+                                  ],
+                                  "props": {
+                                    "hitSlop": {
+                                      "bottom": 4,
+                                      "left": 4,
+                                      "right": 4,
+                                      "top": 4,
+                                    },
+                                    "onPress": [Function],
+                                    "onPressIn": [Function],
+                                    "onPressOut": [Function],
+                                    "testID": "done_button",
+                                  },
+                                  "type": "Pressable",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignItems": "center",
+                                  "backgroundColor": "#f8f8f8",
+                                  "borderTopColor": "#dedede",
+                                  "borderTopWidth": 1,
+                                  "flexDirection": "row",
+                                  "height": 45,
+                                  "justifyContent": "space-between",
+                                  "paddingHorizontal": 10,
+                                  "zIndex": 2,
+                                },
+                                "testID": "input_accessory_view",
                               },
                               "type": "View",
                             },
@@ -2283,146 +2385,91 @@ exports[`Field renders datetime field 1`] = `
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
-                                      "children": [
-                                        "Done",
-                                      ],
+                                      "children": null,
                                       "props": {
-                                        "allowFontScaling": false,
-                                        "style": [
-                                          {
-                                            "color": "#007aff",
-                                            "fontSize": 17,
-                                            "fontWeight": "600",
-                                            "paddingRight": 11,
-                                            "paddingTop": 1,
-                                          },
-                                          {},
-                                        ],
-                                        "testID": "done_text",
+                                        "color": undefined,
+                                        "label": "am",
+                                        "value": "am",
                                       },
-                                      "type": "Text",
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "pm",
+                                        "value": "pm",
+                                      },
+                                      "type": "Picker.Item",
                                     },
                                   ],
                                   "props": {
-                                    "style": undefined,
-                                    "testID": "needed_for_touchable",
+                                    "onValueChange": [Function],
+                                    "selectedValue": "am",
+                                    "testID": "ios_picker",
                                   },
-                                  "type": "View",
+                                  "type": "Picker",
                                 },
                               ],
                               "props": {
-                                "hitSlop": {
-                                  "bottom": 4,
-                                  "left": 4,
-                                  "right": 4,
-                                  "top": 4,
-                                },
-                                "onPress": [Function],
-                                "onPressIn": [Function],
-                                "onPressOut": [Function],
-                                "testID": "done_button",
+                                "style": [
+                                  {
+                                    "backgroundColor": "#d0d4da",
+                                    "justifyContent": "center",
+                                  },
+                                  {
+                                    "height": 215,
+                                  },
+                                ],
+                                "testID": undefined,
                               },
-                              "type": "Pressable",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "#f8f8f8",
-                              "borderTopColor": "#dedede",
-                              "borderTopWidth": 1,
-                              "flexDirection": "row",
-                              "height": 45,
-                              "justifyContent": "space-between",
-                              "paddingHorizontal": 10,
-                              "zIndex": 2,
-                            },
-                            "testID": "input_accessory_view",
-                          },
-                          "type": "View",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": [
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "am",
-                                    "value": "am",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "pm",
-                                    "value": "pm",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                              ],
-                              "props": {
-                                "onValueChange": [Function],
-                                "selectedValue": "am",
-                                "testID": "ios_picker",
-                              },
-                              "type": "Picker",
-                            },
-                          ],
-                          "props": {
-                            "style": [
-                              {
-                                "backgroundColor": "#d0d4da",
-                                "justifyContent": "center",
-                              },
-                              {
-                                "height": 215,
-                              },
+                            "animationType": undefined,
+                            "onOrientationChange": [Function],
+                            "supportedOrientations": [
+                              "portrait",
+                              "landscape",
                             ],
-                            "testID": undefined,
+                            "testID": "ios_modal",
+                            "transparent": true,
+                            "visible": false,
                           },
-                          "type": "View",
+                          "type": "Modal",
                         },
                       ],
                       "props": {
-                        "animationType": undefined,
-                        "onOrientationChange": [Function],
-                        "supportedOrientations": [
-                          "portrait",
-                          "landscape",
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "alignSelf": "stretch",
+                            "borderRadius": 4,
+                            "borderWidth": 1,
+                            "flexDirection": "row",
+                            "justifyContent": "flex-start",
+                            "minHeight": 40,
+                            "width": "100%",
+                          },
+                          {
+                            "backgroundColor": "#FFFFFF",
+                            "borderColor": "#9A9A9A",
+                          },
+                          false,
                         ],
-                        "testID": "ios_modal",
-                        "transparent": true,
-                        "visible": false,
+                        "testID": undefined,
                       },
-                      "type": "Modal",
+                      "type": "View",
                     },
                   ],
                   "props": {
-                    "style": [
-                      {
-                        "alignItems": "center",
-                        "alignSelf": "stretch",
-                        "borderRadius": 4,
-                        "borderWidth": 1,
-                        "flexDirection": "row",
-                        "justifyContent": "center",
-                        "minHeight": 40,
-                        "width": "100%",
-                      },
-                      {
-                        "backgroundColor": "#FFFFFF",
-                        "borderColor": "#9A9A9A",
-                      },
-                      false,
-                    ],
+                    "style": {
+                      "alignSelf": "stretch",
+                      "minWidth": 0,
+                      "width": "100%",
+                    },
                     "testID": undefined,
                   },
                   "type": "View",
@@ -2430,6 +2477,7 @@ exports[`Field renders datetime field 1`] = `
               ],
               "props": {
                 "style": {
+                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -2468,71 +2516,58 @@ exports[`Field renders datetime field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                  "flex": 1,
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "editable": false,
+                                    "multiline": true,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flex": 1,
+                                    },
+                                    "testID": "text_input",
+                                    "value": "EDT",
+                                  },
+                                  "type": "TextInput",
                                 },
-                                "testID": "text_input",
-                                "value": "EDT",
-                              },
-                              "type": "TextInput",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "pointerEvents": "none",
+                                    },
+                                    "testID": "icon_container",
+                                  },
+                                  "type": "View",
+                                },
+                              ],
                               "props": {
                                 "style": {
-                                  "pointerEvents": "none",
+                                  "alignItems": "center",
+                                  "flexDirection": "row",
+                                  "pointerEvents": "box-only",
+                                  "width": "100%",
                                 },
-                                "testID": "icon_container",
+                                "testID": undefined,
                               },
                               "type": "View",
                             },
                           ],
                           "props": {
+                            "disabled": false,
+                            "onPress": [Function],
                             "style": {
                               "alignItems": "center",
                               "flexDirection": "row",
-                              "pointerEvents": "box-only",
+                              "justifyContent": "center",
+                              "minHeight": 40,
+                              "paddingHorizontal": 8,
                               "width": "100%",
                             },
-                            "testID": undefined,
-                          },
-                          "type": "View",
-                        },
-                      ],
-                      "props": {
-                        "disabled": false,
-                        "onPress": [Function],
-                        "style": {
-                          "alignItems": "center",
-                          "flexDirection": "row",
-                          "justifyContent": "center",
-                          "minHeight": 40,
-                          "paddingHorizontal": 8,
-                          "width": "100%",
-                        },
-                        "testID": "ios_touchable_wrapper",
-                      },
-                      "type": "Pressable",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "aria-role": "button",
-                            "onPress": [Function],
-                            "style": {
-                              "flex": 1,
-                            },
-                            "testID": "ios_modal_top",
+                            "testID": "ios_touchable_wrapper",
                           },
                           "type": "Pressable",
                         },
@@ -2543,10 +2578,92 @@ exports[`Field renders datetime field 1`] = `
                               "$$typeof": Symbol(react.test.json),
                               "children": null,
                               "props": {
+                                "aria-role": "button",
+                                "onPress": [Function],
                                 "style": {
-                                  "flexDirection": "row",
+                                  "flex": 1,
                                 },
-                                "testID": undefined,
+                                "testID": "ios_modal_top",
+                              },
+                              "type": "Pressable",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "style": {
+                                      "flexDirection": "row",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            "Done",
+                                          ],
+                                          "props": {
+                                            "allowFontScaling": false,
+                                            "style": [
+                                              {
+                                                "color": "#007aff",
+                                                "fontSize": 17,
+                                                "fontWeight": "600",
+                                                "paddingRight": 11,
+                                                "paddingTop": 1,
+                                              },
+                                              {},
+                                            ],
+                                            "testID": "done_text",
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "style": undefined,
+                                        "testID": "needed_for_touchable",
+                                      },
+                                      "type": "View",
+                                    },
+                                  ],
+                                  "props": {
+                                    "hitSlop": {
+                                      "bottom": 4,
+                                      "left": 4,
+                                      "right": 4,
+                                      "top": 4,
+                                    },
+                                    "onPress": [Function],
+                                    "onPressIn": [Function],
+                                    "onPressOut": [Function],
+                                    "testID": "done_button",
+                                  },
+                                  "type": "Pressable",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignItems": "center",
+                                  "backgroundColor": "#f8f8f8",
+                                  "borderTopColor": "#dedede",
+                                  "borderTopWidth": 1,
+                                  "flexDirection": "row",
+                                  "height": 45,
+                                  "justifyContent": "space-between",
+                                  "paddingHorizontal": 10,
+                                  "zIndex": 2,
+                                },
+                                "testID": "input_accessory_view",
                               },
                               "type": "View",
                             },
@@ -2558,206 +2675,151 @@ exports[`Field renders datetime field 1`] = `
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
-                                      "children": [
-                                        "Done",
-                                      ],
+                                      "children": null,
                                       "props": {
-                                        "allowFontScaling": false,
-                                        "style": [
-                                          {
-                                            "color": "#007aff",
-                                            "fontSize": 17,
-                                            "fontWeight": "600",
-                                            "paddingRight": 11,
-                                            "paddingTop": 1,
-                                          },
-                                          {},
-                                        ],
-                                        "testID": "done_text",
+                                        "color": undefined,
+                                        "label": "Please select an option.",
+                                        "value": "",
                                       },
-                                      "type": "Text",
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "EDT",
+                                        "value": "America/New_York",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "CDT",
+                                        "value": "America/Chicago",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "MDT",
+                                        "value": "America/Denver",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "PDT",
+                                        "value": "America/Los_Angeles",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "AKDT",
+                                        "value": "America/Anchorage",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "HST",
+                                        "value": "Pacific/Honolulu",
+                                      },
+                                      "type": "Picker.Item",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "color": undefined,
+                                        "label": "AZ",
+                                        "value": "America/Phoenix",
+                                      },
+                                      "type": "Picker.Item",
                                     },
                                   ],
                                   "props": {
-                                    "style": undefined,
-                                    "testID": "needed_for_touchable",
+                                    "onValueChange": [Function],
+                                    "selectedValue": "America/New_York",
+                                    "testID": "ios_picker",
                                   },
-                                  "type": "View",
+                                  "type": "Picker",
                                 },
                               ],
                               "props": {
-                                "hitSlop": {
-                                  "bottom": 4,
-                                  "left": 4,
-                                  "right": 4,
-                                  "top": 4,
-                                },
-                                "onPress": [Function],
-                                "onPressIn": [Function],
-                                "onPressOut": [Function],
-                                "testID": "done_button",
+                                "style": [
+                                  {
+                                    "backgroundColor": "#d0d4da",
+                                    "justifyContent": "center",
+                                  },
+                                  {
+                                    "height": 215,
+                                  },
+                                ],
+                                "testID": undefined,
                               },
-                              "type": "Pressable",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "#f8f8f8",
-                              "borderTopColor": "#dedede",
-                              "borderTopWidth": 1,
-                              "flexDirection": "row",
-                              "height": 45,
-                              "justifyContent": "space-between",
-                              "paddingHorizontal": 10,
-                              "zIndex": 2,
-                            },
-                            "testID": "input_accessory_view",
-                          },
-                          "type": "View",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": [
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "Please select an option.",
-                                    "value": "",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "EDT",
-                                    "value": "America/New_York",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "CDT",
-                                    "value": "America/Chicago",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "MDT",
-                                    "value": "America/Denver",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "PDT",
-                                    "value": "America/Los_Angeles",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "AKDT",
-                                    "value": "America/Anchorage",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "HST",
-                                    "value": "Pacific/Honolulu",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                                {
-                                  "$$typeof": Symbol(react.test.json),
-                                  "children": null,
-                                  "props": {
-                                    "color": undefined,
-                                    "label": "AZ",
-                                    "value": "America/Phoenix",
-                                  },
-                                  "type": "Picker.Item",
-                                },
-                              ],
-                              "props": {
-                                "onValueChange": [Function],
-                                "selectedValue": "America/New_York",
-                                "testID": "ios_picker",
-                              },
-                              "type": "Picker",
-                            },
-                          ],
-                          "props": {
-                            "style": [
-                              {
-                                "backgroundColor": "#d0d4da",
-                                "justifyContent": "center",
-                              },
-                              {
-                                "height": 215,
-                              },
+                            "animationType": undefined,
+                            "onOrientationChange": [Function],
+                            "supportedOrientations": [
+                              "portrait",
+                              "landscape",
                             ],
-                            "testID": undefined,
+                            "testID": "ios_modal",
+                            "transparent": true,
+                            "visible": false,
                           },
-                          "type": "View",
+                          "type": "Modal",
                         },
                       ],
                       "props": {
-                        "animationType": undefined,
-                        "onOrientationChange": [Function],
-                        "supportedOrientations": [
-                          "portrait",
-                          "landscape",
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "alignSelf": "stretch",
+                            "borderRadius": 4,
+                            "borderWidth": 1,
+                            "flexDirection": "row",
+                            "justifyContent": "flex-start",
+                            "minHeight": 40,
+                            "width": "100%",
+                          },
+                          {
+                            "backgroundColor": "#FFFFFF",
+                            "borderColor": "#9A9A9A",
+                          },
+                          false,
                         ],
-                        "testID": "ios_modal",
-                        "transparent": true,
-                        "visible": false,
+                        "testID": undefined,
                       },
-                      "type": "Modal",
+                      "type": "View",
                     },
                   ],
                   "props": {
-                    "style": [
-                      {
-                        "alignItems": "center",
-                        "alignSelf": "stretch",
-                        "borderRadius": 4,
-                        "borderWidth": 1,
-                        "flexDirection": "row",
-                        "justifyContent": "center",
-                        "minHeight": 40,
-                        "width": "100%",
-                      },
-                      {
-                        "backgroundColor": "#FFFFFF",
-                        "borderColor": "#9A9A9A",
-                      },
-                      false,
-                    ],
+                    "style": {
+                      "alignSelf": "stretch",
+                      "minWidth": 0,
+                      "width": "100%",
+                    },
                     "testID": undefined,
                   },
                   "type": "View",
@@ -2765,6 +2827,7 @@ exports[`Field renders datetime field 1`] = `
               ],
               "props": {
                 "style": {
+                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -2824,6 +2887,7 @@ exports[`Field renders datetime field 1`] = `
       "minWidth": 230,
       "paddingHorizontal": 6,
     },
+    "testID": undefined,
   },
   "type": "Pressable",
 }
@@ -2844,71 +2908,58 @@ exports[`Field renders select field 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Please select an option.",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Please select an option.",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": false,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": false,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -2919,10 +2970,92 @@ exports[`Field renders select field 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -2934,156 +3067,101 @@ exports[`Field renders select field 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Please select an option.",
+                            "value": "",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "USA",
+                            "value": "us",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Canada",
+                            "value": "ca",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Please select an option.",
-                        "value": "",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "USA",
-                        "value": "us",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Canada",
-                        "value": "ca",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              false,
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          false,
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -3091,6 +3169,7 @@ exports[`Field renders select field 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,
@@ -3361,6 +3440,7 @@ exports[`Field renders address field 1`] = `
                 "fontWeight": 600,
                 "lineHeight": 22.4,
               },
+              "testID": "undefined-address1.label",
             },
             "type": "Text",
           },
@@ -3478,6 +3558,7 @@ exports[`Field renders address field 1`] = `
                 "fontWeight": 600,
                 "lineHeight": 22.4,
               },
+              "testID": "undefined-address2.label",
             },
             "type": "Text",
           },
@@ -3595,6 +3676,7 @@ exports[`Field renders address field 1`] = `
                 "fontWeight": 600,
                 "lineHeight": 22.4,
               },
+              "testID": "undefined-city.label",
             },
             "type": "Text",
           },
@@ -3726,71 +3808,58 @@ exports[`Field renders address field 1`] = `
                     "children": [
                       {
                         "$$typeof": Symbol(react.test.json),
-                        "children": null,
-                        "props": {
-                          "editable": false,
-                          "multiline": true,
-                          "style": {
-                            "color": "#1C1C1C",
-                            "flex": 1,
+                        "children": [
+                          {
+                            "$$typeof": Symbol(react.test.json),
+                            "children": null,
+                            "props": {
+                              "editable": false,
+                              "multiline": true,
+                              "style": {
+                                "color": "#1C1C1C",
+                                "flex": 1,
+                              },
+                              "testID": "text_input",
+                              "value": "Please select an option.",
+                            },
+                            "type": "TextInput",
                           },
-                          "testID": "text_input",
-                          "value": "Please select an option.",
-                        },
-                        "type": "TextInput",
-                      },
-                      {
-                        "$$typeof": Symbol(react.test.json),
-                        "children": null,
+                          {
+                            "$$typeof": Symbol(react.test.json),
+                            "children": null,
+                            "props": {
+                              "style": {
+                                "pointerEvents": "none",
+                              },
+                              "testID": "icon_container",
+                            },
+                            "type": "View",
+                          },
+                        ],
                         "props": {
                           "style": {
-                            "pointerEvents": "none",
+                            "alignItems": "center",
+                            "flexDirection": "row",
+                            "pointerEvents": "box-only",
+                            "width": "100%",
                           },
-                          "testID": "icon_container",
+                          "testID": undefined,
                         },
                         "type": "View",
                       },
                     ],
                     "props": {
+                      "disabled": false,
+                      "onPress": [Function],
                       "style": {
                         "alignItems": "center",
                         "flexDirection": "row",
-                        "pointerEvents": "box-only",
+                        "justifyContent": "center",
+                        "minHeight": 40,
+                        "paddingHorizontal": 8,
                         "width": "100%",
                       },
-                      "testID": undefined,
-                    },
-                    "type": "View",
-                  },
-                ],
-                "props": {
-                  "disabled": false,
-                  "onPress": [Function],
-                  "style": {
-                    "alignItems": "center",
-                    "flexDirection": "row",
-                    "justifyContent": "center",
-                    "minHeight": 40,
-                    "paddingHorizontal": 8,
-                    "width": "100%",
-                  },
-                  "testID": "ios_touchable_wrapper",
-                },
-                "type": "Pressable",
-              },
-              {
-                "$$typeof": Symbol(react.test.json),
-                "children": [
-                  {
-                    "$$typeof": Symbol(react.test.json),
-                    "children": null,
-                    "props": {
-                      "aria-role": "button",
-                      "onPress": [Function],
-                      "style": {
-                        "flex": 1,
-                      },
-                      "testID": "ios_modal_top",
+                      "testID": "ios_touchable_wrapper",
                     },
                     "type": "Pressable",
                   },
@@ -3801,10 +3870,92 @@ exports[`Field renders address field 1`] = `
                         "$$typeof": Symbol(react.test.json),
                         "children": null,
                         "props": {
+                          "aria-role": "button",
+                          "onPress": [Function],
                           "style": {
-                            "flexDirection": "row",
+                            "flex": 1,
                           },
-                          "testID": undefined,
+                          "testID": "ios_modal_top",
+                        },
+                        "type": "Pressable",
+                      },
+                      {
+                        "$$typeof": Symbol(react.test.json),
+                        "children": [
+                          {
+                            "$$typeof": Symbol(react.test.json),
+                            "children": null,
+                            "props": {
+                              "style": {
+                                "flexDirection": "row",
+                              },
+                              "testID": undefined,
+                            },
+                            "type": "View",
+                          },
+                          {
+                            "$$typeof": Symbol(react.test.json),
+                            "children": [
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": [
+                                  {
+                                    "$$typeof": Symbol(react.test.json),
+                                    "children": [
+                                      "Done",
+                                    ],
+                                    "props": {
+                                      "allowFontScaling": false,
+                                      "style": [
+                                        {
+                                          "color": "#007aff",
+                                          "fontSize": 17,
+                                          "fontWeight": "600",
+                                          "paddingRight": 11,
+                                          "paddingTop": 1,
+                                        },
+                                        {},
+                                      ],
+                                      "testID": "done_text",
+                                    },
+                                    "type": "Text",
+                                  },
+                                ],
+                                "props": {
+                                  "style": undefined,
+                                  "testID": "needed_for_touchable",
+                                },
+                                "type": "View",
+                              },
+                            ],
+                            "props": {
+                              "hitSlop": {
+                                "bottom": 4,
+                                "left": 4,
+                                "right": 4,
+                                "top": 4,
+                              },
+                              "onPress": [Function],
+                              "onPressIn": [Function],
+                              "onPressOut": [Function],
+                              "testID": "done_button",
+                            },
+                            "type": "Pressable",
+                          },
+                        ],
+                        "props": {
+                          "style": {
+                            "alignItems": "center",
+                            "backgroundColor": "#f8f8f8",
+                            "borderTopColor": "#dedede",
+                            "borderTopWidth": 1,
+                            "flexDirection": "row",
+                            "height": 45,
+                            "justifyContent": "space-between",
+                            "paddingHorizontal": 10,
+                            "zIndex": 2,
+                          },
+                          "testID": "input_accessory_view",
                         },
                         "type": "View",
                       },
@@ -3816,646 +3967,591 @@ exports[`Field renders address field 1`] = `
                             "children": [
                               {
                                 "$$typeof": Symbol(react.test.json),
-                                "children": [
-                                  "Done",
-                                ],
+                                "children": null,
                                 "props": {
-                                  "allowFontScaling": false,
-                                  "style": [
-                                    {
-                                      "color": "#007aff",
-                                      "fontSize": 17,
-                                      "fontWeight": "600",
-                                      "paddingRight": 11,
-                                      "paddingTop": 1,
-                                    },
-                                    {},
-                                  ],
-                                  "testID": "done_text",
+                                  "color": undefined,
+                                  "label": "Please select an option.",
+                                  "value": "",
                                 },
-                                "type": "Text",
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "AL",
+                                  "value": "Alabama",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "AK",
+                                  "value": "Alaska",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "AZ",
+                                  "value": "Arizona",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "AR",
+                                  "value": "Arkansas",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "CA",
+                                  "value": "California",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "CO",
+                                  "value": "Colorado",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "CT",
+                                  "value": "Connecticut",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "DE",
+                                  "value": "Delaware",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "DC",
+                                  "value": "District of Columbia",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "FL",
+                                  "value": "Florida",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "GA",
+                                  "value": "Georgia",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "HI",
+                                  "value": "Hawaii",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "ID",
+                                  "value": "Idaho",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "IL",
+                                  "value": "Illinois",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "IN",
+                                  "value": "Indiana",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "IA",
+                                  "value": "Iowa",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "KS",
+                                  "value": "Kansas",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "KY",
+                                  "value": "Kentucky",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "LA",
+                                  "value": "Louisiana",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "ME",
+                                  "value": "Maine",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MD",
+                                  "value": "Maryland",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MA",
+                                  "value": "Massachusetts",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MI",
+                                  "value": "Michigan",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MN",
+                                  "value": "Minnesota",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MS",
+                                  "value": "Mississippi",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MO",
+                                  "value": "Missouri",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "MT",
+                                  "value": "Montana",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NE",
+                                  "value": "Nebraska",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NV",
+                                  "value": "Nevada",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NH",
+                                  "value": "New Hampshire",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NJ",
+                                  "value": "New Jersey",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NM",
+                                  "value": "New Mexico",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NY",
+                                  "value": "New York",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "NC",
+                                  "value": "North Carolina",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "ND",
+                                  "value": "North Dakota",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "OH",
+                                  "value": "Ohio",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "OK",
+                                  "value": "Oklahoma",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "OR",
+                                  "value": "Oregon",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "PA",
+                                  "value": "Pennsylvania",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "RI",
+                                  "value": "Rhode Island",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "SC",
+                                  "value": "South Carolina",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "SD",
+                                  "value": "South Dakota",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "TN",
+                                  "value": "Tennessee",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "TX",
+                                  "value": "Texas",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "UT",
+                                  "value": "Utah",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "VT",
+                                  "value": "Vermont",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "VA",
+                                  "value": "Virginia",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "WA",
+                                  "value": "Washington",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "WV",
+                                  "value": "West Virginia",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "WI",
+                                  "value": "Wisconsin",
+                                },
+                                "type": "Picker.Item",
+                              },
+                              {
+                                "$$typeof": Symbol(react.test.json),
+                                "children": null,
+                                "props": {
+                                  "color": undefined,
+                                  "label": "WY",
+                                  "value": "Wyoming",
+                                },
+                                "type": "Picker.Item",
                               },
                             ],
                             "props": {
-                              "style": undefined,
-                              "testID": "needed_for_touchable",
+                              "onValueChange": [Function],
+                              "selectedValue": "",
+                              "testID": "ios_picker",
                             },
-                            "type": "View",
+                            "type": "Picker",
                           },
                         ],
                         "props": {
-                          "hitSlop": {
-                            "bottom": 4,
-                            "left": 4,
-                            "right": 4,
-                            "top": 4,
-                          },
-                          "onPress": [Function],
-                          "onPressIn": [Function],
-                          "onPressOut": [Function],
-                          "testID": "done_button",
+                          "style": [
+                            {
+                              "backgroundColor": "#d0d4da",
+                              "justifyContent": "center",
+                            },
+                            {
+                              "height": 215,
+                            },
+                          ],
+                          "testID": undefined,
                         },
-                        "type": "Pressable",
+                        "type": "View",
                       },
                     ],
                     "props": {
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#f8f8f8",
-                        "borderTopColor": "#dedede",
-                        "borderTopWidth": 1,
-                        "flexDirection": "row",
-                        "height": 45,
-                        "justifyContent": "space-between",
-                        "paddingHorizontal": 10,
-                        "zIndex": 2,
-                      },
-                      "testID": "input_accessory_view",
-                    },
-                    "type": "View",
-                  },
-                  {
-                    "$$typeof": Symbol(react.test.json),
-                    "children": [
-                      {
-                        "$$typeof": Symbol(react.test.json),
-                        "children": [
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "Please select an option.",
-                              "value": "",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "AL",
-                              "value": "Alabama",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "AK",
-                              "value": "Alaska",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "AZ",
-                              "value": "Arizona",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "AR",
-                              "value": "Arkansas",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "CA",
-                              "value": "California",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "CO",
-                              "value": "Colorado",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "CT",
-                              "value": "Connecticut",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "DE",
-                              "value": "Delaware",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "DC",
-                              "value": "District of Columbia",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "FL",
-                              "value": "Florida",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "GA",
-                              "value": "Georgia",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "HI",
-                              "value": "Hawaii",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "ID",
-                              "value": "Idaho",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "IL",
-                              "value": "Illinois",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "IN",
-                              "value": "Indiana",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "IA",
-                              "value": "Iowa",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "KS",
-                              "value": "Kansas",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "KY",
-                              "value": "Kentucky",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "LA",
-                              "value": "Louisiana",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "ME",
-                              "value": "Maine",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MD",
-                              "value": "Maryland",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MA",
-                              "value": "Massachusetts",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MI",
-                              "value": "Michigan",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MN",
-                              "value": "Minnesota",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MS",
-                              "value": "Mississippi",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MO",
-                              "value": "Missouri",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "MT",
-                              "value": "Montana",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NE",
-                              "value": "Nebraska",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NV",
-                              "value": "Nevada",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NH",
-                              "value": "New Hampshire",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NJ",
-                              "value": "New Jersey",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NM",
-                              "value": "New Mexico",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NY",
-                              "value": "New York",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "NC",
-                              "value": "North Carolina",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "ND",
-                              "value": "North Dakota",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "OH",
-                              "value": "Ohio",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "OK",
-                              "value": "Oklahoma",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "OR",
-                              "value": "Oregon",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "PA",
-                              "value": "Pennsylvania",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "RI",
-                              "value": "Rhode Island",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "SC",
-                              "value": "South Carolina",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "SD",
-                              "value": "South Dakota",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "TN",
-                              "value": "Tennessee",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "TX",
-                              "value": "Texas",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "UT",
-                              "value": "Utah",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "VT",
-                              "value": "Vermont",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "VA",
-                              "value": "Virginia",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "WA",
-                              "value": "Washington",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "WV",
-                              "value": "West Virginia",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "WI",
-                              "value": "Wisconsin",
-                            },
-                            "type": "Picker.Item",
-                          },
-                          {
-                            "$$typeof": Symbol(react.test.json),
-                            "children": null,
-                            "props": {
-                              "color": undefined,
-                              "label": "WY",
-                              "value": "Wyoming",
-                            },
-                            "type": "Picker.Item",
-                          },
-                        ],
-                        "props": {
-                          "onValueChange": [Function],
-                          "selectedValue": "",
-                          "testID": "ios_picker",
-                        },
-                        "type": "Picker",
-                      },
-                    ],
-                    "props": {
-                      "style": [
-                        {
-                          "backgroundColor": "#d0d4da",
-                          "justifyContent": "center",
-                        },
-                        {
-                          "height": 215,
-                        },
+                      "animationType": undefined,
+                      "onOrientationChange": [Function],
+                      "supportedOrientations": [
+                        "portrait",
+                        "landscape",
                       ],
-                      "testID": undefined,
+                      "testID": "ios_modal",
+                      "transparent": true,
+                      "visible": false,
                     },
-                    "type": "View",
+                    "type": "Modal",
                   },
                 ],
                 "props": {
-                  "animationType": undefined,
-                  "onOrientationChange": [Function],
-                  "supportedOrientations": [
-                    "portrait",
-                    "landscape",
+                  "style": [
+                    {
+                      "alignItems": "center",
+                      "alignSelf": "stretch",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "flexDirection": "row",
+                      "justifyContent": "flex-start",
+                      "minHeight": 40,
+                      "width": "100%",
+                    },
+                    {
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                    },
+                    false,
                   ],
-                  "testID": "ios_modal",
-                  "transparent": true,
-                  "visible": false,
+                  "testID": undefined,
                 },
-                "type": "Modal",
+                "type": "View",
               },
             ],
             "props": {
-              "style": [
-                {
-                  "alignItems": "center",
-                  "alignSelf": "stretch",
-                  "borderRadius": 4,
-                  "borderWidth": 1,
-                  "flexDirection": "row",
-                  "justifyContent": "center",
-                  "minHeight": 40,
-                  "width": "100%",
-                },
-                {
-                  "backgroundColor": "#FFFFFF",
-                  "borderColor": "#9A9A9A",
-                },
-                false,
-              ],
+              "style": {
+                "alignSelf": "stretch",
+                "minWidth": 0,
+                "width": "100%",
+              },
               "testID": undefined,
             },
             "type": "View",
@@ -4463,6 +4559,7 @@ exports[`Field renders address field 1`] = `
         ],
         "props": {
           "style": {
+            "minWidth": 0,
             "width": "100%",
           },
           "testID": undefined,
@@ -4496,6 +4593,7 @@ exports[`Field renders address field 1`] = `
                 "fontWeight": 600,
                 "lineHeight": 22.4,
               },
+              "testID": "undefined-zip.label",
             },
             "type": "Text",
           },
@@ -4712,71 +4810,58 @@ exports[`Field renders customSelect field 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "editable": false,
-                            "multiline": true,
-                            "style": {
-                              "color": "#1C1C1C",
-                              "flex": 1,
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": null,
+                              "props": {
+                                "editable": false,
+                                "multiline": true,
+                                "style": {
+                                  "color": "#1C1C1C",
+                                  "flex": 1,
+                                },
+                                "testID": "text_input",
+                                "value": "Option A",
+                              },
+                              "type": "TextInput",
                             },
-                            "testID": "text_input",
-                            "value": "Option A",
-                          },
-                          "type": "TextInput",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": null,
+                              "props": {
+                                "style": {
+                                  "pointerEvents": "none",
+                                },
+                                "testID": "icon_container",
+                              },
+                              "type": "View",
+                            },
+                          ],
                           "props": {
                             "style": {
-                              "pointerEvents": "none",
+                              "alignItems": "center",
+                              "flexDirection": "row",
+                              "pointerEvents": "box-only",
+                              "width": "100%",
                             },
-                            "testID": "icon_container",
+                            "testID": undefined,
                           },
                           "type": "View",
                         },
                       ],
                       "props": {
+                        "disabled": false,
+                        "onPress": [Function],
                         "style": {
                           "alignItems": "center",
                           "flexDirection": "row",
-                          "pointerEvents": "box-only",
+                          "justifyContent": "center",
+                          "minHeight": 40,
+                          "paddingHorizontal": 8,
                           "width": "100%",
                         },
-                        "testID": undefined,
-                      },
-                      "type": "View",
-                    },
-                  ],
-                  "props": {
-                    "disabled": false,
-                    "onPress": [Function],
-                    "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "justifyContent": "center",
-                      "minHeight": 40,
-                      "paddingHorizontal": 8,
-                      "width": "100%",
-                    },
-                    "testID": "ios_touchable_wrapper",
-                  },
-                  "type": "Pressable",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "aria-role": "button",
-                        "onPress": [Function],
-                        "style": {
-                          "flex": 1,
-                        },
-                        "testID": "ios_modal_top",
+                        "testID": "ios_touchable_wrapper",
                       },
                       "type": "Pressable",
                     },
@@ -4787,10 +4872,92 @@ exports[`Field renders customSelect field 1`] = `
                           "$$typeof": Symbol(react.test.json),
                           "children": null,
                           "props": {
+                            "aria-role": "button",
+                            "onPress": [Function],
                             "style": {
-                              "flexDirection": "row",
+                              "flex": 1,
                             },
-                            "testID": undefined,
+                            "testID": "ios_modal_top",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": null,
+                              "props": {
+                                "style": {
+                                  "flexDirection": "row",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        "Done",
+                                      ],
+                                      "props": {
+                                        "allowFontScaling": false,
+                                        "style": [
+                                          {
+                                            "color": "#007aff",
+                                            "fontSize": 17,
+                                            "fontWeight": "600",
+                                            "paddingRight": 11,
+                                            "paddingTop": 1,
+                                          },
+                                          {},
+                                        ],
+                                        "testID": "done_text",
+                                      },
+                                      "type": "Text",
+                                    },
+                                  ],
+                                  "props": {
+                                    "style": undefined,
+                                    "testID": "needed_for_touchable",
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "hitSlop": {
+                                  "bottom": 4,
+                                  "left": 4,
+                                  "right": 4,
+                                  "top": 4,
+                                },
+                                "onPress": [Function],
+                                "onPressIn": [Function],
+                                "onPressOut": [Function],
+                                "testID": "done_button",
+                              },
+                              "type": "Pressable",
+                            },
+                          ],
+                          "props": {
+                            "style": {
+                              "alignItems": "center",
+                              "backgroundColor": "#f8f8f8",
+                              "borderTopColor": "#dedede",
+                              "borderTopWidth": 1,
+                              "flexDirection": "row",
+                              "height": 45,
+                              "justifyContent": "space-between",
+                              "paddingHorizontal": 10,
+                              "zIndex": 2,
+                            },
+                            "testID": "input_accessory_view",
                           },
                           "type": "View",
                         },
@@ -4802,166 +4969,111 @@ exports[`Field renders customSelect field 1`] = `
                               "children": [
                                 {
                                   "$$typeof": Symbol(react.test.json),
-                                  "children": [
-                                    "Done",
-                                  ],
+                                  "children": null,
                                   "props": {
-                                    "allowFontScaling": false,
-                                    "style": [
-                                      {
-                                        "color": "#007aff",
-                                        "fontSize": 17,
-                                        "fontWeight": "600",
-                                        "paddingRight": 11,
-                                        "paddingTop": 1,
-                                      },
-                                      {},
-                                    ],
-                                    "testID": "done_text",
+                                    "color": undefined,
+                                    "label": "Please select an option.",
+                                    "value": "",
                                   },
-                                  "type": "Text",
+                                  "type": "Picker.Item",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "color": undefined,
+                                    "label": "Option A",
+                                    "value": "a",
+                                  },
+                                  "type": "Picker.Item",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "color": undefined,
+                                    "label": "Option B",
+                                    "value": "b",
+                                  },
+                                  "type": "Picker.Item",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "color": undefined,
+                                    "label": "Custom",
+                                    "value": "custom",
+                                  },
+                                  "type": "Picker.Item",
                                 },
                               ],
                               "props": {
-                                "style": undefined,
-                                "testID": "needed_for_touchable",
+                                "onValueChange": [Function],
+                                "selectedValue": "a",
+                                "testID": "ios_picker",
                               },
-                              "type": "View",
+                              "type": "Picker",
                             },
                           ],
                           "props": {
-                            "hitSlop": {
-                              "bottom": 4,
-                              "left": 4,
-                              "right": 4,
-                              "top": 4,
-                            },
-                            "onPress": [Function],
-                            "onPressIn": [Function],
-                            "onPressOut": [Function],
-                            "testID": "done_button",
+                            "style": [
+                              {
+                                "backgroundColor": "#d0d4da",
+                                "justifyContent": "center",
+                              },
+                              {
+                                "height": 215,
+                              },
+                            ],
+                            "testID": undefined,
                           },
-                          "type": "Pressable",
+                          "type": "View",
                         },
                       ],
                       "props": {
-                        "style": {
-                          "alignItems": "center",
-                          "backgroundColor": "#f8f8f8",
-                          "borderTopColor": "#dedede",
-                          "borderTopWidth": 1,
-                          "flexDirection": "row",
-                          "height": 45,
-                          "justifyContent": "space-between",
-                          "paddingHorizontal": 10,
-                          "zIndex": 2,
-                        },
-                        "testID": "input_accessory_view",
-                      },
-                      "type": "View",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "color": undefined,
-                                "label": "Please select an option.",
-                                "value": "",
-                              },
-                              "type": "Picker.Item",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "color": undefined,
-                                "label": "Option A",
-                                "value": "a",
-                              },
-                              "type": "Picker.Item",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "color": undefined,
-                                "label": "Option B",
-                                "value": "b",
-                              },
-                              "type": "Picker.Item",
-                            },
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "color": undefined,
-                                "label": "Custom",
-                                "value": "custom",
-                              },
-                              "type": "Picker.Item",
-                            },
-                          ],
-                          "props": {
-                            "onValueChange": [Function],
-                            "selectedValue": "a",
-                            "testID": "ios_picker",
-                          },
-                          "type": "Picker",
-                        },
-                      ],
-                      "props": {
-                        "style": [
-                          {
-                            "backgroundColor": "#d0d4da",
-                            "justifyContent": "center",
-                          },
-                          {
-                            "height": 215,
-                          },
+                        "animationType": undefined,
+                        "onOrientationChange": [Function],
+                        "supportedOrientations": [
+                          "portrait",
+                          "landscape",
                         ],
-                        "testID": undefined,
+                        "testID": "ios_modal",
+                        "transparent": true,
+                        "visible": false,
                       },
-                      "type": "View",
+                      "type": "Modal",
                     },
                   ],
                   "props": {
-                    "animationType": undefined,
-                    "onOrientationChange": [Function],
-                    "supportedOrientations": [
-                      "portrait",
-                      "landscape",
+                    "style": [
+                      {
+                        "alignItems": "center",
+                        "alignSelf": "stretch",
+                        "borderRadius": 4,
+                        "borderWidth": 1,
+                        "flexDirection": "row",
+                        "justifyContent": "flex-start",
+                        "minHeight": 40,
+                        "width": "100%",
+                      },
+                      {
+                        "backgroundColor": "#FFFFFF",
+                        "borderColor": "#9A9A9A",
+                      },
+                      false,
                     ],
-                    "testID": "ios_modal",
-                    "transparent": true,
-                    "visible": false,
+                    "testID": undefined,
                   },
-                  "type": "Modal",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": [
-                  {
-                    "alignItems": "center",
-                    "alignSelf": "stretch",
-                    "borderRadius": 4,
-                    "borderWidth": 1,
-                    "flexDirection": "row",
-                    "justifyContent": "center",
-                    "minHeight": 40,
-                    "width": "100%",
-                  },
-                  {
-                    "backgroundColor": "#FFFFFF",
-                    "borderColor": "#9A9A9A",
-                  },
-                  false,
-                ],
+                "style": {
+                  "alignSelf": "stretch",
+                  "minWidth": 0,
+                  "width": "100%",
+                },
                 "testID": undefined,
               },
               "type": "View",
@@ -4969,6 +5081,7 @@ exports[`Field renders customSelect field 1`] = `
           ],
           "props": {
             "style": {
+              "minWidth": 0,
               "width": "100%",
             },
             "testID": undefined,
