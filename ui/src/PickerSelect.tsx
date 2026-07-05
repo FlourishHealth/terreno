@@ -129,8 +129,8 @@ export interface RNPickerSelectProps {
   InputAccessoryView?: ComponentType<{testID?: string}>;
 
   /**
-   * When true the web trigger becomes a searchable text input that filters
-   * dropdown options by label as the user types. Only affects web.
+   * When true, options can be filtered as the user types. On web, search happens
+   * in the trigger field; on native, search appears in the dropdown menu.
    * @default true
    */
   searchable?: boolean;
@@ -703,10 +703,13 @@ export const RNPickerSelect = ({
     }
   }, [disabled, openWebMenu, showPicker]);
 
-  const renderWeb = () => {
+  const renderCustomDropdown = () => {
+    const searchInTrigger = searchable && Platform.OS === "web";
     const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
     const selectedOriginalIdx = getSelectedItem(itemKey, value).idx;
-    const webSelectedIndex = filteredWebMenuOptionIndexes.indexOf(selectedOriginalIdx);
+    const menuOptions = searchInTrigger ? filteredWebMenuOptions : webMenuOptions;
+    const menuOptionIndexes = searchInTrigger ? filteredWebMenuOptionIndexes : webMenuOptionIndexes;
+    const menuSelectedIndex = menuOptionIndexes.indexOf(selectedOriginalIdx);
     const triggerTextStyle = {
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
       flex: 1,
@@ -732,7 +735,7 @@ export const RNPickerSelect = ({
           },
         ]}
       >
-        {searchable ? (
+        {searchInTrigger ? (
           <View
             style={{
               alignItems: "center",
@@ -805,10 +808,10 @@ export const RNPickerSelect = ({
         )}
         <WebDropdownMenu
           anchor={webAnchor}
-          keepTriggerFocus={searchable}
+          keepTriggerFocus={searchInTrigger}
           onClose={closeWebMenu}
           onSelect={(_val, idx) => {
-            const originalIndex = filteredWebMenuOptionIndexes[idx] ?? idx;
+            const originalIndex = menuOptionIndexes[idx] ?? idx;
             // Pass the original (non-stringified) value through so lodash
             // `isEqual` matching in `getSelectedItem` works for number /
             // object values.
@@ -816,10 +819,11 @@ export const RNPickerSelect = ({
             onValueChangeEvent(originalValue, originalIndex);
             closeWebMenu();
           }}
-          options={filteredWebMenuOptions}
-          searchable={false}
-          selectedIndex={webSelectedIndex >= 0 ? webSelectedIndex : undefined}
-          showEmptyStateWhenNoOptions={searchable && webSearchQuery.trim().length > 0}
+          options={menuOptions}
+          presentation={Platform.OS === "android" ? "centered" : "anchored"}
+          searchable={searchable && !searchInTrigger}
+          selectedIndex={menuSelectedIndex >= 0 ? menuSelectedIndex : undefined}
+          showEmptyStateWhenNoOptions={searchInTrigger && webSearchQuery.trim().length > 0}
           testIDPrefix="web_dropdown"
           visible={showPicker}
         />
@@ -828,12 +832,16 @@ export const RNPickerSelect = ({
   };
 
   const render = () => {
+    if (searchable) {
+      return renderCustomDropdown();
+    }
+
     if (Platform.OS === "ios") {
       return renderIOS();
     }
 
     if (Platform.OS === "web") {
-      return renderWeb();
+      return renderCustomDropdown();
     }
 
     if (children || !useNativeAndroidPickerStyle) {

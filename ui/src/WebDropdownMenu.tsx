@@ -1,4 +1,4 @@
-import {type ReactElement, useEffect, useRef, useState} from "react";
+import {type ReactElement, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   Dimensions,
   type DimensionValue,
@@ -86,6 +86,11 @@ export interface WebDropdownMenuProps {
    * Web only.
    */
   keepTriggerFocus?: boolean;
+  /**
+   * `anchored` positions the menu below/above the trigger (web-style).
+   * `centered` shows a centered dialog, matching Android's native picker modal.
+   */
+  presentation?: "anchored" | "centered";
 }
 
 interface PressableWebState {
@@ -95,15 +100,15 @@ interface PressableWebState {
 }
 
 /**
- * Shared web-only popup used by `RNPickerSelect` and `SelectBadge` so every
- * browser renders the same styled dropdown instead of falling back to the
- * platform-native `<select>` UI. Must be anchored to a trigger element via
- * `useWebDropdownAnchor` (or an equivalent measurement).
+ * Shared popup used by `RNPickerSelect` and `SelectBadge` for a consistent
+ * styled dropdown across web and native. Must be anchored to a trigger element
+ * via `useWebDropdownAnchor` (or an equivalent measurement) when using anchored
+ * presentation.
  *
  * When `searchable` is true a text input appears at the top of the menu so
  * the user can type to filter options by label. `RNPickerSelect` handles
- * search in the trigger field instead and passes pre-filtered options with
- * `searchable={false}`.
+ * search in the trigger field on web instead and passes pre-filtered options
+ * with `searchable={false}`.
  */
 export const WebDropdownMenu = ({
   visible,
@@ -120,51 +125,111 @@ export const WebDropdownMenu = ({
   searchable = true,
   showEmptyStateWhenNoOptions = false,
   keepTriggerFocus = false,
+  presentation = "anchored",
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<TextInput>(null);
+  const listScrollRef = useRef<ScrollView>(null);
+  const listViewportHeightRef = useRef(0);
+  const optionLayoutsRef = useRef<Array<{height: number; offset: number}>>([]);
+
+  const normalizedQuery = searchQuery.toLowerCase();
+  const filteredOptions = useMemo(() => {
+    if (!searchable || normalizedQuery.length === 0) {
+      return options;
+    }
+    return options.filter((item) => {
+      if (item.label.toLowerCase().includes(normalizedQuery)) {
+        return true;
+      }
+      const helper = item.helperText?.toLowerCase();
+      if (helper?.includes(normalizedQuery)) {
+        return true;
+      }
+      return false;
+    });
+  }, [normalizedQuery, options, searchable]);
+
+  const selectedFilteredIndex = useMemo(() => {
+    if (selectedIndex === undefined) {
+      return -1;
+    }
+    return filteredOptions.findIndex((item) => options.indexOf(item) === selectedIndex);
+  }, [filteredOptions, options, selectedIndex]);
+
+  const scrollSelectedIntoView = useCallback((): void => {
+    if (selectedFilteredIndex < 0 || !listScrollRef.current) {
+      return;
+    }
+    const layout = optionLayoutsRef.current[selectedFilteredIndex];
+    const viewportHeight = listViewportHeightRef.current;
+    if (!layout || viewportHeight <= 0) {
+      return;
+    }
+    const centeredOffset = layout.offset - viewportHeight / 2 + layout.height / 2;
+    listScrollRef.current.scrollTo({
+      animated: false,
+      y: Math.max(0, centeredOffset),
+    });
+  }, [selectedFilteredIndex]);
 
   // Reset the search query each time the menu opens and auto-focus the
   // search input so the user can immediately start typing.
   useEffect(() => {
-    if (visible) {
-      setSearchQuery("");
-      if (searchable && Platform.OS === "web") {
+    if (!visible) {
+      return;
+    }
+    setSearchQuery("");
+    optionLayoutsRef.current = [];
+    if (searchable) {
+      scheduleAfterPaint(() => {
+        searchInputRef.current?.focus();
+      });
+    }
+  }, [searchable, visible]);
+
+  // Center the selected row in the list when the menu opens (native picker parity).
+  useEffect(() => {
+    if (!visible || selectedFilteredIndex < 0) {
+      return;
+    }
+    scheduleAfterPaint(() => {
+      scrollSelectedIntoView();
+    });
+  }, [filteredOptions, scrollSelectedIntoView, selectedFilteredIndex, visible]);
+
+  const handleOptionLayout = useCallback(
+    (index: number, offset: number, height: number): void => {
+      optionLayoutsRef.current[index] = {height, offset};
+      if (visible && index === selectedFilteredIndex) {
         scheduleAfterPaint(() => {
-          searchInputRef.current?.focus();
+          scrollSelectedIntoView();
         });
       }
-    }
-  }, [visible, searchable]);
+    },
+    [scrollSelectedIntoView, selectedFilteredIndex, visible]
+  );
 
-  const normalizedQuery = searchQuery.toLowerCase();
-  const optionMatchesQuery = (item: WebDropdownMenuOption): boolean => {
-    if (item.label.toLowerCase().includes(normalizedQuery)) {
-      return true;
-    }
-    const helper = item.helperText?.toLowerCase();
-    if (helper?.includes(normalizedQuery)) {
-      return true;
-    }
-    return false;
-  };
-  const filteredOptions =
-    searchable && normalizedQuery.length > 0 ? options.filter(optionMatchesQuery) : options;
-
-  const menuMaxHeight = 300;
-  const gap = 4;
   const windowHeight = Dimensions.get("window").height;
+  const windowWidth = Dimensions.get("window").width;
+  const isCenteredPresentation = presentation === "centered";
+
+  const menuMaxHeight = isCenteredPresentation ? Math.round(windowHeight * 0.55) : 300;
+  const gap = 4;
   const spaceBelow = windowHeight - (anchor.y + anchor.height + gap);
   // If not enough room below the trigger, open the menu above it instead.
-  const isOpenAbove = spaceBelow < menuMaxHeight && anchor.y > spaceBelow;
+  const isOpenAbove =
+    !isCenteredPresentation && spaceBelow < menuMaxHeight && anchor.y > spaceBelow;
   const menuTop = anchor.y + anchor.height + gap;
   const menuBottom = windowHeight - anchor.y + gap;
-  const clampedMaxHeight = isOpenAbove
-    ? Math.min(menuMaxHeight, anchor.y - gap)
-    : Math.min(menuMaxHeight, spaceBelow);
+  const clampedMaxHeight = isCenteredPresentation
+    ? menuMaxHeight
+    : isOpenAbove
+      ? Math.min(menuMaxHeight, anchor.y - gap)
+      : Math.min(menuMaxHeight, spaceBelow);
 
-  const menuLayoutStyle = {
+  const anchoredMenuLayoutStyle = {
     backgroundColor: theme.surface.base,
     borderColor: theme.border.dark,
     borderRadius: 4,
@@ -181,6 +246,24 @@ export const WebDropdownMenu = ({
     width: width ?? anchor.width,
     zIndex: 2,
   };
+
+  const centeredMenuLayoutStyle = {
+    backgroundColor: theme.surface.base,
+    borderRadius: 8,
+    elevation: 8,
+    maxHeight: clampedMaxHeight,
+    maxWidth: Math.min(400, windowWidth - 48),
+    overflow: "hidden" as const,
+    shadowColor: "#000",
+    shadowOffset: {height: 4, width: 0},
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    width: Math.min(400, windowWidth - 48),
+  };
+
+  const menuLayoutStyle = isCenteredPresentation
+    ? centeredMenuLayoutStyle
+    : anchoredMenuLayoutStyle;
 
   const menuContent = (
     <>
@@ -214,8 +297,17 @@ export const WebDropdownMenu = ({
           />
         </View>
       )}
-      <ScrollView keyboardShouldPersistTaps="handled">
-        {filteredOptions.map((item) => {
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        onLayout={(event) => {
+          listViewportHeightRef.current = event.nativeEvent.layout.height;
+          scheduleAfterPaint(() => {
+            scrollSelectedIntoView();
+          });
+        }}
+        ref={listScrollRef}
+      >
+        {filteredOptions.map((item, filteredIndex) => {
           const originalIdx = options.indexOf(item);
           const isSelected =
             selectedIndex !== undefined
@@ -225,6 +317,10 @@ export const WebDropdownMenu = ({
             <Pressable
               aria-role="button"
               key={item.key ?? originalIdx}
+              onLayout={(event) => {
+                const {height, y} = event.nativeEvent.layout;
+                handleOptionLayout(filteredIndex, y, height);
+              }}
               onPress={() => onSelect(item.value, originalIdx)}
               style={(state: PressableWebState) => ({
                 backgroundColor:
@@ -346,28 +442,58 @@ export const WebDropdownMenu = ({
 
   return (
     <Modal
-      animationType="none"
+      animationType="fade"
       onRequestClose={onClose}
       testID={`${testIDPrefix}_modal`}
       transparent
       visible={visible}
     >
-      <Pressable
-        aria-role="button"
-        onPress={onClose}
-        style={{flex: 1, zIndex: 0}}
-        testID={`${testIDPrefix}_backdrop`}
-      />
-      <View
-        style={{
-          ...menuLayoutStyle,
-          position: "absolute",
-          zIndex: 1,
-        }}
-        testID={`${testIDPrefix}_menu`}
-      >
-        {menuContent}
-      </View>
+      {isCenteredPresentation ? (
+        <View
+          style={{
+            alignItems: "center",
+            backgroundColor: "rgba(0, 0, 0, 0.45)",
+            flex: 1,
+            justifyContent: "center",
+            paddingHorizontal: 24,
+          }}
+        >
+          <Pressable
+            aria-role="button"
+            onPress={onClose}
+            style={{
+              bottom: 0,
+              left: 0,
+              position: "absolute",
+              right: 0,
+              top: 0,
+            }}
+            testID={`${testIDPrefix}_backdrop`}
+          />
+          <View style={menuLayoutStyle} testID={`${testIDPrefix}_menu`}>
+            {menuContent}
+          </View>
+        </View>
+      ) : (
+        <>
+          <Pressable
+            aria-role="button"
+            onPress={onClose}
+            style={{flex: 1, zIndex: 0}}
+            testID={`${testIDPrefix}_backdrop`}
+          />
+          <View
+            style={{
+              ...anchoredMenuLayoutStyle,
+              position: "absolute",
+              zIndex: 1,
+            }}
+            testID={`${testIDPrefix}_menu`}
+          >
+            {menuContent}
+          </View>
+        </>
+      )}
     </Modal>
   );
 };

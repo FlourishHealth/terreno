@@ -432,6 +432,36 @@ describe("WebDropdownMenu searchable", () => {
   });
 });
 
+describe("WebDropdownMenu centered presentation", () => {
+  const anchor = {height: 40, width: 200, x: 16, y: 32};
+  const options = [
+    {label: "Option A", value: "a"},
+    {label: "Option B", value: "b"},
+  ];
+
+  it("renders a centered dialog without anchor-based left/top positioning", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        presentation="centered"
+        searchable={false}
+        visible
+      />
+    );
+    const menu = getByTestId("web_dropdown_menu");
+    const style = Array.isArray(menu.props.style)
+      ? Object.assign({}, ...menu.props.style)
+      : menu.props.style;
+    expect(style.borderRadius).toBe(8);
+    expect(style.left).toBeUndefined();
+    expect(style.top).toBeUndefined();
+    expect(style.maxHeight).toBe(Math.round(812 * 0.55));
+  });
+});
+
 describe("useWebDropdownAnchor", () => {
   it("exposes a default zero-sized anchor before measuring", () => {
     const {result} = renderHook(() => useWebDropdownAnchor());

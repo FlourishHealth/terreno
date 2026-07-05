@@ -38,6 +38,36 @@ const searchableOptions: FieldOption[] = [
   {label: "Watermelon", value: "watermelon"},
 ];
 
+const MANY_OPTIONS_COUNT = 150;
+
+const manyOptions: FieldOption[] = Array.from({length: MANY_OPTIONS_COUNT}, (_, index) => {
+  const optionNumber = index + 1;
+  return {
+    label: `Option ${String(optionNumber).padStart(3, "0")}`,
+    value: `option-${optionNumber}`,
+  };
+});
+
+export const SelectFieldLongListDemo = (): ReactElement => {
+  const [value, setValue] = useState("");
+
+  return (
+    <Box gap={2} width="100%">
+      <Text color="secondaryLight" size="sm">
+        {MANY_OPTIONS_COUNT} options — open the menu to verify scrolling and search filtering.
+      </Text>
+      <SelectField
+        helperText="Opens a centered modal on Android with search and scroll-to-selected."
+        onChange={setValue}
+        options={manyOptions}
+        searchable
+        title={`Pick one of ${MANY_OPTIONS_COUNT} options`}
+        value={value}
+      />
+    </Box>
+  );
+};
+
 export const SelectFieldDemo = (props: {
   withErrorText: boolean;
   withHelperText: boolean;
@@ -76,11 +106,6 @@ export const SelectFieldSearchableDemo = (): ReactElement => {
 
   return (
     <Box gap={4} width="100%">
-      {Platform.OS !== "web" && (
-        <Text color="secondaryLight">
-          Searchable filtering only applies on web. Run the demo with `bun run web` to try it.
-        </Text>
-      )}
       <BooleanField
         onChange={setSearchable}
         title="Searchable"
@@ -88,7 +113,11 @@ export const SelectFieldSearchableDemo = (): ReactElement => {
         variant="title"
       />
       <SelectField
-        helperText="Type in the search box after opening the menu to filter options by label."
+        helperText={
+          Platform.OS === "web"
+            ? "Type in the field to filter options as you open the menu."
+            : "Open the menu and use the search box to filter options."
+        }
         key={searchable ? "searchable" : "plain"}
         onChange={setValue}
         options={searchableOptions}
@@ -102,23 +131,17 @@ export const SelectFieldSearchableDemo = (): ReactElement => {
 
 export const SelectFieldExamples = (): ReactElement => {
   return (
-    <Box>
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={4}>
-          <Heading size="md">Standard - No title, errorText, or helperText</Heading>
-        </Box>
+    <Box flex="grow" gap={4} height="100%" padding={2} scroll width="100%">
+      <Box gap={2} width="100%">
+        <Heading size="md">Standard - No title, errorText, or helperText</Heading>
         <SelectField onChange={() => {}} options={options} value="" />
       </Box>
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">With title</Heading>
-        </Box>
+      <Box gap={2} width="100%">
+        <Heading size="md">With title</Heading>
         <SelectField onChange={() => {}} options={options} title="Select field" value="" />
       </Box>
-      <Box marginBottom={4} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">With helperText</Heading>
-        </Box>
+      <Box gap={2} width="100%">
+        <Heading size="md">With helperText</Heading>
         <SelectField
           helperText="This is some helper text"
           onChange={() => {}}
@@ -127,11 +150,8 @@ export const SelectFieldExamples = (): ReactElement => {
           value="first"
         />
       </Box>
-
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">Disabled — long label wrapping test</Heading>
-        </Box>
+      <Box gap={2} width="100%">
+        <Heading size="md">Disabled — long label wrapping test</Heading>
         <SelectField
           disabled
           onChange={() => {}}
@@ -140,16 +160,16 @@ export const SelectFieldExamples = (): ReactElement => {
           value="third"
         />
       </Box>
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">Searchable (web)</Heading>
-        </Box>
+      <Box gap={2} width="100%">
+        <Heading size="md">Searchable</Heading>
         <SelectFieldSearchableDemo />
       </Box>
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">Disabled — long label wrapping test</Heading>
-        </Box>
+      <Box gap={2} width="100%">
+        <Heading size="md">Many options ({MANY_OPTIONS_COUNT})</Heading>
+        <SelectFieldLongListDemo />
+      </Box>
+      <Box gap={2} width="100%">
+        <Heading size="md">Disabled — long label wrapping test</Heading>
         <SelectField
           disabled
           onChange={() => {}}

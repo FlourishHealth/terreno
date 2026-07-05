@@ -17,6 +17,7 @@ describe("PickerSelect", () => {
     ],
     onValueChange: () => {},
     placeholder: {label: "Select an option", value: ""},
+    searchable: false,
   };
 
   it("renders correctly with default props", () => {
@@ -169,6 +170,8 @@ describe("PickerSelect", () => {
     let hadDocument = false;
     let savedDocument: any;
 
+    const searchableWebProps = {...defaultProps, searchable: true};
+
     const ensureDocument = () => {
       hadDocument = "document" in globalThis;
       savedDocument = (globalThis as any).document;
@@ -224,7 +227,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onOpen={onOpen} value="1" />
+          <RNPickerSelect {...searchableWebProps} onOpen={onOpen} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         expect(onOpen).toHaveBeenCalled();
@@ -260,7 +263,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} disabled onOpen={onOpen} />
+          <RNPickerSelect {...searchableWebProps} disabled onOpen={onOpen} />
         );
         await act(async () => {
           fireEvent(getByTestId("text_input"), "focus");
@@ -280,7 +283,7 @@ describe("PickerSelect", () => {
         const onClose = mock(() => {});
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onClose={onClose} onOpen={onOpen} value="1" />
+          <RNPickerSelect {...searchableWebProps} onClose={onClose} onOpen={onOpen} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         expect(onOpen).toHaveBeenCalled();
@@ -300,7 +303,7 @@ describe("PickerSelect", () => {
       try {
         PlatformModule.OS = "web";
         const {getByTestId, queryByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} value="1" />
+          <RNPickerSelect {...searchableWebProps} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         const input = getByTestId("text_input");
@@ -323,7 +326,7 @@ describe("PickerSelect", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "web";
-        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...searchableWebProps} value="1" />);
         await openSearchableWebPicker(getByTestId);
         const input = getByTestId("text_input");
         await act(async () => {
@@ -350,7 +353,7 @@ describe("PickerSelect", () => {
       try {
         PlatformModule.OS = "web";
         const {getByTestId, queryByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} value="1" />
+          <RNPickerSelect {...searchableWebProps} value="1" />
         );
         const input = getByTestId("text_input");
         await act(async () => {
@@ -375,7 +378,7 @@ describe("PickerSelect", () => {
           {label: "Melon", value: "m"},
         ];
         const props = {
-          ...defaultProps,
+          ...searchableWebProps,
           items: itemsWithHelper,
           placeholder: {label: "Select", value: ""},
         };
@@ -399,7 +402,7 @@ describe("PickerSelect", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "web";
-        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...searchableWebProps} value="1" />);
         await openSearchableWebPicker(getByTestId);
         await act(async () => {
           fireEvent.changeText(getByTestId("text_input"), "zzz");
@@ -465,7 +468,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const mockOnValueChange = mock(() => {});
         const {getByTestId, queryByTestId, rerender} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+          <RNPickerSelect {...searchableWebProps} onValueChange={mockOnValueChange} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         await act(async () => {
@@ -473,7 +476,9 @@ describe("PickerSelect", () => {
         });
         expect(mockOnValueChange).toHaveBeenCalledWith("2", 2);
         expect(queryByTestId("web_dropdown_backdrop")).toBeNull();
-        rerender(<RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="2" />);
+        rerender(
+          <RNPickerSelect {...searchableWebProps} onValueChange={mockOnValueChange} value="2" />
+        );
         expect(getByTestId("text_input").props.value).toBe("Option 2");
       } finally {
         PlatformModule.OS = savedOS;
@@ -488,7 +493,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const mockOnValueChange = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+          <RNPickerSelect {...searchableWebProps} onValueChange={mockOnValueChange} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         await act(async () => {
@@ -585,13 +590,74 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "android";
         const mockOnValueChange = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+          <RNPickerSelect
+            {...defaultProps}
+            onValueChange={mockOnValueChange}
+            searchable={false}
+            value="1"
+          />
         );
         const picker = getByTestId("android_picker");
         await act(async () => {
           picker.props.onValueChange?.("2", 1);
         });
         expect(mockOnValueChange).toHaveBeenCalledWith("2", 1);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+  });
+
+  describe("android searchable dropdown", () => {
+    const PlatformModule = require("react-native").Platform;
+    let savedOS: unknown;
+
+    it("opens a centered modal with menu search instead of the native picker", async () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const onOpen = mock(() => {});
+        const {getByTestId, queryByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onOpen={onOpen} searchable value="2" />
+        );
+        expect(queryByTestId("android_picker")).toBeNull();
+        await act(async () => {
+          fireEvent.press(getByTestId("web_picker"));
+        });
+        expect(onOpen).toHaveBeenCalled();
+        expect(getByTestId("web_dropdown_modal").props.visible).toBe(true);
+        expect(getByTestId("web_dropdown_search")).toBeTruthy();
+        const menu = getByTestId("web_dropdown_menu");
+        const style = Array.isArray(menu.props.style)
+          ? Object.assign({}, ...menu.props.style)
+          : menu.props.style;
+        expect(style.borderRadius).toBe(8);
+        expect(style.left).toBeUndefined();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("selects an option from the centered modal", async () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const mockOnValueChange = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect
+            {...defaultProps}
+            onValueChange={mockOnValueChange}
+            searchable
+            value="1"
+          />
+        );
+        await act(async () => {
+          fireEvent.press(getByTestId("web_picker"));
+        });
+        await act(async () => {
+          fireEvent.press(getByTestId("web_dropdown_option_2"));
+        });
+        expect(mockOnValueChange).toHaveBeenCalledWith("2", 2);
       } finally {
         PlatformModule.OS = savedOS;
       }

@@ -16,57 +16,33 @@ exports[`SelectField renders correctly with default props 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "editable": false,
-                        "multiline": true,
-                        "style": {
-                          "color": "#1C1C1C",
-                          "flex": 1,
-                        },
-                        "testID": "text_input",
-                        "value": "Please select an option.",
-                      },
-                      "type": "TextInput",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "style": {
-                          "pointerEvents": "none",
-                        },
-                        "testID": "icon_container",
-                      },
-                      "type": "View",
-                    },
+                    "Please select an option.",
                   ],
                   "props": {
+                    "numberOfLines": 1,
                     "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "pointerEvents": "box-only",
-                      "width": "100%",
+                      "color": "#1C1C1C",
+                      "flex": 1,
+                      "paddingRight": 8,
                     },
-                    "testID": undefined,
+                    "testID": "text_input",
                   },
-                  "type": "View",
+                  "type": "Text",
                 },
               ],
               "props": {
+                "aria-role": "button",
                 "disabled": false,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "center",
+                  "justifyContent": "space-between",
                   "minHeight": 40,
                   "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": "ios_touchable_wrapper",
+                "testID": "web_picker",
               },
               "type": "Pressable",
             },
@@ -81,8 +57,9 @@ exports[`SelectField renders correctly with default props 1`] = `
                     "onPress": [Function],
                     "style": {
                       "flex": 1,
+                      "zIndex": 0,
                     },
-                    "testID": "ios_modal_top",
+                    "testID": "web_dropdown_backdrop",
                   },
                   "type": "Pressable",
                 },
@@ -91,10 +68,39 @@ exports[`SelectField renders correctly with default props 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "autoFocus": true,
+                            "onChangeText": [Function: dispatchSetState],
+                            "placeholder": "Search...",
+                            "placeholderTextColor": "#686868",
+                            "ref": {
+                              "current": null,
+                            },
+                            "style": {
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 4,
+                              "borderWidth": 1,
+                              "color": "#1C1C1C",
+                              "fontSize": 14,
+                              "paddingHorizontal": 8,
+                              "paddingVertical": 4,
+                            },
+                            "testID": "web_dropdown_search",
+                            "value": "",
+                          },
+                          "type": "TextInput",
+                        },
+                      ],
                       "props": {
                         "style": {
-                          "flexDirection": "row",
+                          "borderBottomColor": "#CDCDCD",
+                          "borderBottomWidth": 1,
+                          "paddingHorizontal": 8,
+                          "paddingVertical": 6,
                         },
                         "testID": undefined,
                       },
@@ -109,141 +115,194 @@ exports[`SelectField renders correctly with default props 1`] = `
                             {
                               "$$typeof": Symbol(react.test.json),
                               "children": [
-                                "Done",
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Please select an option.",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "600",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
                               ],
                               "props": {
-                                "allowFontScaling": false,
-                                "style": [
-                                  {
-                                    "color": "#007aff",
-                                    "fontSize": 17,
-                                    "fontWeight": "600",
-                                    "paddingRight": 11,
-                                    "paddingTop": 1,
-                                  },
-                                  {},
-                                ],
-                                "testID": "done_text",
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
                               },
-                              "type": "Text",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": undefined,
-                            "testID": "needed_for_touchable",
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_",
                           },
-                          "type": "View",
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 1",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt1",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 2",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt2",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 3",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt3",
+                          },
+                          "type": "Pressable",
                         },
                       ],
                       "props": {
-                        "hitSlop": {
-                          "bottom": 4,
-                          "left": 4,
-                          "right": 4,
-                          "top": 4,
+                        "keyboardShouldPersistTaps": "handled",
+                        "onLayout": [Function],
+                        "ref": {
+                          "current": null,
                         },
-                        "onPress": [Function],
-                        "onPressIn": [Function],
-                        "onPressOut": [Function],
-                        "testID": "done_button",
                       },
-                      "type": "Pressable",
+                      "type": "ScrollView",
                     },
                   ],
                   "props": {
                     "style": {
-                      "alignItems": "center",
-                      "backgroundColor": "#f8f8f8",
-                      "borderTopColor": "#dedede",
-                      "borderTopWidth": 1,
-                      "flexDirection": "row",
-                      "height": 45,
-                      "justifyContent": "space-between",
-                      "paddingHorizontal": 10,
-                      "zIndex": 2,
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "left": 0,
+                      "maxHeight": 300,
+                      "minWidth": undefined,
+                      "overflow": "hidden",
+                      "position": "absolute",
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 2,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0.15,
+                      "shadowRadius": 8,
+                      "top": 4,
+                      "width": 0,
+                      "zIndex": 1,
                     },
-                    "testID": "input_accessory_view",
-                  },
-                  "type": "View",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Please select an option.",
-                            "value": "",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 1",
-                            "value": "opt1",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 2",
-                            "value": "opt2",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 3",
-                            "value": "opt3",
-                          },
-                          "type": "Picker.Item",
-                        },
-                      ],
-                      "props": {
-                        "onValueChange": [Function],
-                        "selectedValue": "",
-                        "testID": "ios_picker",
-                      },
-                      "type": "Picker",
-                    },
-                  ],
-                  "props": {
-                    "style": [
-                      {
-                        "backgroundColor": "#d0d4da",
-                        "justifyContent": "center",
-                      },
-                      {
-                        "height": 215,
-                      },
-                    ],
-                    "testID": undefined,
+                    "testID": "web_dropdown_menu",
                   },
                   "type": "View",
                 },
               ],
               "props": {
-                "animationType": undefined,
-                "onOrientationChange": [Function],
-                "supportedOrientations": [
-                  "portrait",
-                  "landscape",
-                ],
-                "testID": "ios_modal",
+                "animationType": "fade",
+                "onRequestClose": [Function],
+                "testID": "web_dropdown_modal",
                 "transparent": true,
                 "visible": false,
               },
@@ -251,6 +310,9 @@ exports[`SelectField renders correctly with default props 1`] = `
             },
           ],
           "props": {
+            "ref": {
+              "current": null,
+            },
             "style": [
               {
                 "alignItems": "center",
@@ -326,57 +388,33 @@ exports[`SelectField renders with title 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "editable": false,
-                        "multiline": true,
-                        "style": {
-                          "color": "#1C1C1C",
-                          "flex": 1,
-                        },
-                        "testID": "text_input",
-                        "value": "Please select an option.",
-                      },
-                      "type": "TextInput",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "style": {
-                          "pointerEvents": "none",
-                        },
-                        "testID": "icon_container",
-                      },
-                      "type": "View",
-                    },
+                    "Please select an option.",
                   ],
                   "props": {
+                    "numberOfLines": 1,
                     "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "pointerEvents": "box-only",
-                      "width": "100%",
+                      "color": "#1C1C1C",
+                      "flex": 1,
+                      "paddingRight": 8,
                     },
-                    "testID": undefined,
+                    "testID": "text_input",
                   },
-                  "type": "View",
+                  "type": "Text",
                 },
               ],
               "props": {
+                "aria-role": "button",
                 "disabled": false,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "center",
+                  "justifyContent": "space-between",
                   "minHeight": 40,
                   "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": "ios_touchable_wrapper",
+                "testID": "web_picker",
               },
               "type": "Pressable",
             },
@@ -391,8 +429,9 @@ exports[`SelectField renders with title 1`] = `
                     "onPress": [Function],
                     "style": {
                       "flex": 1,
+                      "zIndex": 0,
                     },
-                    "testID": "ios_modal_top",
+                    "testID": "web_dropdown_backdrop",
                   },
                   "type": "Pressable",
                 },
@@ -401,10 +440,39 @@ exports[`SelectField renders with title 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "autoFocus": true,
+                            "onChangeText": [Function: dispatchSetState],
+                            "placeholder": "Search...",
+                            "placeholderTextColor": "#686868",
+                            "ref": {
+                              "current": null,
+                            },
+                            "style": {
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 4,
+                              "borderWidth": 1,
+                              "color": "#1C1C1C",
+                              "fontSize": 14,
+                              "paddingHorizontal": 8,
+                              "paddingVertical": 4,
+                            },
+                            "testID": "web_dropdown_search",
+                            "value": "",
+                          },
+                          "type": "TextInput",
+                        },
+                      ],
                       "props": {
                         "style": {
-                          "flexDirection": "row",
+                          "borderBottomColor": "#CDCDCD",
+                          "borderBottomWidth": 1,
+                          "paddingHorizontal": 8,
+                          "paddingVertical": 6,
                         },
                         "testID": undefined,
                       },
@@ -419,141 +487,194 @@ exports[`SelectField renders with title 1`] = `
                             {
                               "$$typeof": Symbol(react.test.json),
                               "children": [
-                                "Done",
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Please select an option.",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "600",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
                               ],
                               "props": {
-                                "allowFontScaling": false,
-                                "style": [
-                                  {
-                                    "color": "#007aff",
-                                    "fontSize": 17,
-                                    "fontWeight": "600",
-                                    "paddingRight": 11,
-                                    "paddingTop": 1,
-                                  },
-                                  {},
-                                ],
-                                "testID": "done_text",
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
                               },
-                              "type": "Text",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": undefined,
-                            "testID": "needed_for_touchable",
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_",
                           },
-                          "type": "View",
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 1",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt1",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 2",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt2",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 3",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt3",
+                          },
+                          "type": "Pressable",
                         },
                       ],
                       "props": {
-                        "hitSlop": {
-                          "bottom": 4,
-                          "left": 4,
-                          "right": 4,
-                          "top": 4,
+                        "keyboardShouldPersistTaps": "handled",
+                        "onLayout": [Function],
+                        "ref": {
+                          "current": null,
                         },
-                        "onPress": [Function],
-                        "onPressIn": [Function],
-                        "onPressOut": [Function],
-                        "testID": "done_button",
                       },
-                      "type": "Pressable",
+                      "type": "ScrollView",
                     },
                   ],
                   "props": {
                     "style": {
-                      "alignItems": "center",
-                      "backgroundColor": "#f8f8f8",
-                      "borderTopColor": "#dedede",
-                      "borderTopWidth": 1,
-                      "flexDirection": "row",
-                      "height": 45,
-                      "justifyContent": "space-between",
-                      "paddingHorizontal": 10,
-                      "zIndex": 2,
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "left": 0,
+                      "maxHeight": 300,
+                      "minWidth": undefined,
+                      "overflow": "hidden",
+                      "position": "absolute",
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 2,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0.15,
+                      "shadowRadius": 8,
+                      "top": 4,
+                      "width": 0,
+                      "zIndex": 1,
                     },
-                    "testID": "input_accessory_view",
-                  },
-                  "type": "View",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Please select an option.",
-                            "value": "",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 1",
-                            "value": "opt1",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 2",
-                            "value": "opt2",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 3",
-                            "value": "opt3",
-                          },
-                          "type": "Picker.Item",
-                        },
-                      ],
-                      "props": {
-                        "onValueChange": [Function],
-                        "selectedValue": "",
-                        "testID": "ios_picker",
-                      },
-                      "type": "Picker",
-                    },
-                  ],
-                  "props": {
-                    "style": [
-                      {
-                        "backgroundColor": "#d0d4da",
-                        "justifyContent": "center",
-                      },
-                      {
-                        "height": 215,
-                      },
-                    ],
-                    "testID": undefined,
+                    "testID": "web_dropdown_menu",
                   },
                   "type": "View",
                 },
               ],
               "props": {
-                "animationType": undefined,
-                "onOrientationChange": [Function],
-                "supportedOrientations": [
-                  "portrait",
-                  "landscape",
-                ],
-                "testID": "ios_modal",
+                "animationType": "fade",
+                "onRequestClose": [Function],
+                "testID": "web_dropdown_modal",
                 "transparent": true,
                 "visible": false,
               },
@@ -561,6 +682,9 @@ exports[`SelectField renders with title 1`] = `
             },
           ],
           "props": {
+            "ref": {
+              "current": null,
+            },
             "style": [
               {
                 "alignItems": "center",
@@ -621,57 +745,33 @@ exports[`SelectField renders with selected value 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "editable": false,
-                        "multiline": true,
-                        "style": {
-                          "color": "#1C1C1C",
-                          "flex": 1,
-                        },
-                        "testID": "text_input",
-                        "value": "Option 2",
-                      },
-                      "type": "TextInput",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "style": {
-                          "pointerEvents": "none",
-                        },
-                        "testID": "icon_container",
-                      },
-                      "type": "View",
-                    },
+                    "Option 2",
                   ],
                   "props": {
+                    "numberOfLines": 1,
                     "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "pointerEvents": "box-only",
-                      "width": "100%",
+                      "color": "#1C1C1C",
+                      "flex": 1,
+                      "paddingRight": 8,
                     },
-                    "testID": undefined,
+                    "testID": "text_input",
                   },
-                  "type": "View",
+                  "type": "Text",
                 },
               ],
               "props": {
+                "aria-role": "button",
                 "disabled": false,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "center",
+                  "justifyContent": "space-between",
                   "minHeight": 40,
                   "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": "ios_touchable_wrapper",
+                "testID": "web_picker",
               },
               "type": "Pressable",
             },
@@ -686,8 +786,9 @@ exports[`SelectField renders with selected value 1`] = `
                     "onPress": [Function],
                     "style": {
                       "flex": 1,
+                      "zIndex": 0,
                     },
-                    "testID": "ios_modal_top",
+                    "testID": "web_dropdown_backdrop",
                   },
                   "type": "Pressable",
                 },
@@ -696,10 +797,39 @@ exports[`SelectField renders with selected value 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "autoFocus": true,
+                            "onChangeText": [Function: dispatchSetState],
+                            "placeholder": "Search...",
+                            "placeholderTextColor": "#686868",
+                            "ref": {
+                              "current": null,
+                            },
+                            "style": {
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 4,
+                              "borderWidth": 1,
+                              "color": "#1C1C1C",
+                              "fontSize": 14,
+                              "paddingHorizontal": 8,
+                              "paddingVertical": 4,
+                            },
+                            "testID": "web_dropdown_search",
+                            "value": "",
+                          },
+                          "type": "TextInput",
+                        },
+                      ],
                       "props": {
                         "style": {
-                          "flexDirection": "row",
+                          "borderBottomColor": "#CDCDCD",
+                          "borderBottomWidth": 1,
+                          "paddingHorizontal": 8,
+                          "paddingVertical": 6,
                         },
                         "testID": undefined,
                       },
@@ -714,141 +844,194 @@ exports[`SelectField renders with selected value 1`] = `
                             {
                               "$$typeof": Symbol(react.test.json),
                               "children": [
-                                "Done",
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Please select an option.",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
                               ],
                               "props": {
-                                "allowFontScaling": false,
-                                "style": [
-                                  {
-                                    "color": "#007aff",
-                                    "fontSize": 17,
-                                    "fontWeight": "600",
-                                    "paddingRight": 11,
-                                    "paddingTop": 1,
-                                  },
-                                  {},
-                                ],
-                                "testID": "done_text",
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
                               },
-                              "type": "Text",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": undefined,
-                            "testID": "needed_for_touchable",
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_",
                           },
-                          "type": "View",
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 1",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt1",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 2",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "600",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt2",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 3",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt3",
+                          },
+                          "type": "Pressable",
                         },
                       ],
                       "props": {
-                        "hitSlop": {
-                          "bottom": 4,
-                          "left": 4,
-                          "right": 4,
-                          "top": 4,
+                        "keyboardShouldPersistTaps": "handled",
+                        "onLayout": [Function],
+                        "ref": {
+                          "current": null,
                         },
-                        "onPress": [Function],
-                        "onPressIn": [Function],
-                        "onPressOut": [Function],
-                        "testID": "done_button",
                       },
-                      "type": "Pressable",
+                      "type": "ScrollView",
                     },
                   ],
                   "props": {
                     "style": {
-                      "alignItems": "center",
-                      "backgroundColor": "#f8f8f8",
-                      "borderTopColor": "#dedede",
-                      "borderTopWidth": 1,
-                      "flexDirection": "row",
-                      "height": 45,
-                      "justifyContent": "space-between",
-                      "paddingHorizontal": 10,
-                      "zIndex": 2,
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "left": 0,
+                      "maxHeight": 300,
+                      "minWidth": undefined,
+                      "overflow": "hidden",
+                      "position": "absolute",
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 2,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0.15,
+                      "shadowRadius": 8,
+                      "top": 4,
+                      "width": 0,
+                      "zIndex": 1,
                     },
-                    "testID": "input_accessory_view",
-                  },
-                  "type": "View",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Please select an option.",
-                            "value": "",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 1",
-                            "value": "opt1",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 2",
-                            "value": "opt2",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 3",
-                            "value": "opt3",
-                          },
-                          "type": "Picker.Item",
-                        },
-                      ],
-                      "props": {
-                        "onValueChange": [Function],
-                        "selectedValue": "opt2",
-                        "testID": "ios_picker",
-                      },
-                      "type": "Picker",
-                    },
-                  ],
-                  "props": {
-                    "style": [
-                      {
-                        "backgroundColor": "#d0d4da",
-                        "justifyContent": "center",
-                      },
-                      {
-                        "height": 215,
-                      },
-                    ],
-                    "testID": undefined,
+                    "testID": "web_dropdown_menu",
                   },
                   "type": "View",
                 },
               ],
               "props": {
-                "animationType": undefined,
-                "onOrientationChange": [Function],
-                "supportedOrientations": [
-                  "portrait",
-                  "landscape",
-                ],
-                "testID": "ios_modal",
+                "animationType": "fade",
+                "onRequestClose": [Function],
+                "testID": "web_dropdown_modal",
                 "transparent": true,
                 "visible": false,
               },
@@ -856,6 +1039,9 @@ exports[`SelectField renders with selected value 1`] = `
             },
           ],
           "props": {
+            "ref": {
+              "current": null,
+            },
             "style": [
               {
                 "alignItems": "center",
@@ -916,57 +1102,33 @@ exports[`SelectField renders with custom placeholder 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "editable": false,
-                        "multiline": true,
-                        "style": {
-                          "color": "#1C1C1C",
-                          "flex": 1,
-                        },
-                        "testID": "text_input",
-                        "value": "Choose one...",
-                      },
-                      "type": "TextInput",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "style": {
-                          "pointerEvents": "none",
-                        },
-                        "testID": "icon_container",
-                      },
-                      "type": "View",
-                    },
+                    "Choose one...",
                   ],
                   "props": {
+                    "numberOfLines": 1,
                     "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "pointerEvents": "box-only",
-                      "width": "100%",
+                      "color": "#1C1C1C",
+                      "flex": 1,
+                      "paddingRight": 8,
                     },
-                    "testID": undefined,
+                    "testID": "text_input",
                   },
-                  "type": "View",
+                  "type": "Text",
                 },
               ],
               "props": {
+                "aria-role": "button",
                 "disabled": false,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "center",
+                  "justifyContent": "space-between",
                   "minHeight": 40,
                   "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": "ios_touchable_wrapper",
+                "testID": "web_picker",
               },
               "type": "Pressable",
             },
@@ -981,8 +1143,9 @@ exports[`SelectField renders with custom placeholder 1`] = `
                     "onPress": [Function],
                     "style": {
                       "flex": 1,
+                      "zIndex": 0,
                     },
-                    "testID": "ios_modal_top",
+                    "testID": "web_dropdown_backdrop",
                   },
                   "type": "Pressable",
                 },
@@ -991,10 +1154,39 @@ exports[`SelectField renders with custom placeholder 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "autoFocus": true,
+                            "onChangeText": [Function: dispatchSetState],
+                            "placeholder": "Search...",
+                            "placeholderTextColor": "#686868",
+                            "ref": {
+                              "current": null,
+                            },
+                            "style": {
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 4,
+                              "borderWidth": 1,
+                              "color": "#1C1C1C",
+                              "fontSize": 14,
+                              "paddingHorizontal": 8,
+                              "paddingVertical": 4,
+                            },
+                            "testID": "web_dropdown_search",
+                            "value": "",
+                          },
+                          "type": "TextInput",
+                        },
+                      ],
                       "props": {
                         "style": {
-                          "flexDirection": "row",
+                          "borderBottomColor": "#CDCDCD",
+                          "borderBottomWidth": 1,
+                          "paddingHorizontal": 8,
+                          "paddingVertical": 6,
                         },
                         "testID": undefined,
                       },
@@ -1009,141 +1201,194 @@ exports[`SelectField renders with custom placeholder 1`] = `
                             {
                               "$$typeof": Symbol(react.test.json),
                               "children": [
-                                "Done",
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Choose one...",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "600",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
                               ],
                               "props": {
-                                "allowFontScaling": false,
-                                "style": [
-                                  {
-                                    "color": "#007aff",
-                                    "fontSize": 17,
-                                    "fontWeight": "600",
-                                    "paddingRight": 11,
-                                    "paddingTop": 1,
-                                  },
-                                  {},
-                                ],
-                                "testID": "done_text",
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
                               },
-                              "type": "Text",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": undefined,
-                            "testID": "needed_for_touchable",
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_",
                           },
-                          "type": "View",
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 1",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt1",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 2",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt2",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 3",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt3",
+                          },
+                          "type": "Pressable",
                         },
                       ],
                       "props": {
-                        "hitSlop": {
-                          "bottom": 4,
-                          "left": 4,
-                          "right": 4,
-                          "top": 4,
+                        "keyboardShouldPersistTaps": "handled",
+                        "onLayout": [Function],
+                        "ref": {
+                          "current": null,
                         },
-                        "onPress": [Function],
-                        "onPressIn": [Function],
-                        "onPressOut": [Function],
-                        "testID": "done_button",
                       },
-                      "type": "Pressable",
+                      "type": "ScrollView",
                     },
                   ],
                   "props": {
                     "style": {
-                      "alignItems": "center",
-                      "backgroundColor": "#f8f8f8",
-                      "borderTopColor": "#dedede",
-                      "borderTopWidth": 1,
-                      "flexDirection": "row",
-                      "height": 45,
-                      "justifyContent": "space-between",
-                      "paddingHorizontal": 10,
-                      "zIndex": 2,
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "left": 0,
+                      "maxHeight": 300,
+                      "minWidth": undefined,
+                      "overflow": "hidden",
+                      "position": "absolute",
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 2,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0.15,
+                      "shadowRadius": 8,
+                      "top": 4,
+                      "width": 0,
+                      "zIndex": 1,
                     },
-                    "testID": "input_accessory_view",
-                  },
-                  "type": "View",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Choose one...",
-                            "value": "",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 1",
-                            "value": "opt1",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 2",
-                            "value": "opt2",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 3",
-                            "value": "opt3",
-                          },
-                          "type": "Picker.Item",
-                        },
-                      ],
-                      "props": {
-                        "onValueChange": [Function],
-                        "selectedValue": "",
-                        "testID": "ios_picker",
-                      },
-                      "type": "Picker",
-                    },
-                  ],
-                  "props": {
-                    "style": [
-                      {
-                        "backgroundColor": "#d0d4da",
-                        "justifyContent": "center",
-                      },
-                      {
-                        "height": 215,
-                      },
-                    ],
-                    "testID": undefined,
+                    "testID": "web_dropdown_menu",
                   },
                   "type": "View",
                 },
               ],
               "props": {
-                "animationType": undefined,
-                "onOrientationChange": [Function],
-                "supportedOrientations": [
-                  "portrait",
-                  "landscape",
-                ],
-                "testID": "ios_modal",
+                "animationType": "fade",
+                "onRequestClose": [Function],
+                "testID": "web_dropdown_modal",
                 "transparent": true,
                 "visible": false,
               },
@@ -1151,6 +1396,9 @@ exports[`SelectField renders with custom placeholder 1`] = `
             },
           ],
           "props": {
+            "ref": {
+              "current": null,
+            },
             "style": [
               {
                 "alignItems": "center",
@@ -1211,57 +1459,33 @@ exports[`SelectField renders disabled state 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "editable": false,
-                        "multiline": true,
-                        "style": {
-                          "color": "#686868",
-                          "flex": 1,
-                        },
-                        "testID": "text_input",
-                        "value": "Please select an option.",
-                      },
-                      "type": "TextInput",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "style": {
-                          "pointerEvents": "none",
-                        },
-                        "testID": "icon_container",
-                      },
-                      "type": "View",
-                    },
+                    "Please select an option.",
                   ],
                   "props": {
+                    "numberOfLines": undefined,
                     "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "pointerEvents": "box-only",
-                      "width": "100%",
+                      "color": "#686868",
+                      "flex": 1,
+                      "paddingRight": 8,
                     },
-                    "testID": undefined,
+                    "testID": "text_input",
                   },
-                  "type": "View",
+                  "type": "Text",
                 },
               ],
               "props": {
+                "aria-role": "button",
                 "disabled": true,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "center",
+                  "justifyContent": "space-between",
                   "minHeight": 40,
                   "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": "ios_touchable_wrapper",
+                "testID": "web_picker",
               },
               "type": "Pressable",
             },
@@ -1276,8 +1500,9 @@ exports[`SelectField renders disabled state 1`] = `
                     "onPress": [Function],
                     "style": {
                       "flex": 1,
+                      "zIndex": 0,
                     },
-                    "testID": "ios_modal_top",
+                    "testID": "web_dropdown_backdrop",
                   },
                   "type": "Pressable",
                 },
@@ -1286,10 +1511,39 @@ exports[`SelectField renders disabled state 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "autoFocus": true,
+                            "onChangeText": [Function: dispatchSetState],
+                            "placeholder": "Search...",
+                            "placeholderTextColor": "#686868",
+                            "ref": {
+                              "current": null,
+                            },
+                            "style": {
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 4,
+                              "borderWidth": 1,
+                              "color": "#1C1C1C",
+                              "fontSize": 14,
+                              "paddingHorizontal": 8,
+                              "paddingVertical": 4,
+                            },
+                            "testID": "web_dropdown_search",
+                            "value": "",
+                          },
+                          "type": "TextInput",
+                        },
+                      ],
                       "props": {
                         "style": {
-                          "flexDirection": "row",
+                          "borderBottomColor": "#CDCDCD",
+                          "borderBottomWidth": 1,
+                          "paddingHorizontal": 8,
+                          "paddingVertical": 6,
                         },
                         "testID": undefined,
                       },
@@ -1304,141 +1558,194 @@ exports[`SelectField renders disabled state 1`] = `
                             {
                               "$$typeof": Symbol(react.test.json),
                               "children": [
-                                "Done",
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Please select an option.",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "600",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
                               ],
                               "props": {
-                                "allowFontScaling": false,
-                                "style": [
-                                  {
-                                    "color": "#007aff",
-                                    "fontSize": 17,
-                                    "fontWeight": "600",
-                                    "paddingRight": 11,
-                                    "paddingTop": 1,
-                                  },
-                                  {},
-                                ],
-                                "testID": "done_text",
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
                               },
-                              "type": "Text",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": undefined,
-                            "testID": "needed_for_touchable",
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_",
                           },
-                          "type": "View",
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 1",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt1",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 2",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt2",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 3",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt3",
+                          },
+                          "type": "Pressable",
                         },
                       ],
                       "props": {
-                        "hitSlop": {
-                          "bottom": 4,
-                          "left": 4,
-                          "right": 4,
-                          "top": 4,
+                        "keyboardShouldPersistTaps": "handled",
+                        "onLayout": [Function],
+                        "ref": {
+                          "current": null,
                         },
-                        "onPress": [Function],
-                        "onPressIn": [Function],
-                        "onPressOut": [Function],
-                        "testID": "done_button",
                       },
-                      "type": "Pressable",
+                      "type": "ScrollView",
                     },
                   ],
                   "props": {
                     "style": {
-                      "alignItems": "center",
-                      "backgroundColor": "#f8f8f8",
-                      "borderTopColor": "#dedede",
-                      "borderTopWidth": 1,
-                      "flexDirection": "row",
-                      "height": 45,
-                      "justifyContent": "space-between",
-                      "paddingHorizontal": 10,
-                      "zIndex": 2,
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "left": 0,
+                      "maxHeight": 300,
+                      "minWidth": undefined,
+                      "overflow": "hidden",
+                      "position": "absolute",
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 2,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0.15,
+                      "shadowRadius": 8,
+                      "top": 4,
+                      "width": 0,
+                      "zIndex": 1,
                     },
-                    "testID": "input_accessory_view",
-                  },
-                  "type": "View",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Please select an option.",
-                            "value": "",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 1",
-                            "value": "opt1",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 2",
-                            "value": "opt2",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 3",
-                            "value": "opt3",
-                          },
-                          "type": "Picker.Item",
-                        },
-                      ],
-                      "props": {
-                        "onValueChange": [Function],
-                        "selectedValue": "",
-                        "testID": "ios_picker",
-                      },
-                      "type": "Picker",
-                    },
-                  ],
-                  "props": {
-                    "style": [
-                      {
-                        "backgroundColor": "#d0d4da",
-                        "justifyContent": "center",
-                      },
-                      {
-                        "height": 215,
-                      },
-                    ],
-                    "testID": undefined,
+                    "testID": "web_dropdown_menu",
                   },
                   "type": "View",
                 },
               ],
               "props": {
-                "animationType": undefined,
-                "onOrientationChange": [Function],
-                "supportedOrientations": [
-                  "portrait",
-                  "landscape",
-                ],
-                "testID": "ios_modal",
+                "animationType": "fade",
+                "onRequestClose": [Function],
+                "testID": "web_dropdown_modal",
                 "transparent": true,
                 "visible": false,
               },
@@ -1446,6 +1753,9 @@ exports[`SelectField renders disabled state 1`] = `
             },
           ],
           "props": {
+            "ref": {
+              "current": null,
+            },
             "style": [
               {
                 "alignItems": "center",
@@ -1508,57 +1818,33 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "editable": false,
-                        "multiline": true,
-                        "style": {
-                          "color": "#1C1C1C",
-                          "flex": 1,
-                        },
-                        "testID": "text_input",
-                        "value": "Option 1",
-                      },
-                      "type": "TextInput",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "style": {
-                          "pointerEvents": "none",
-                        },
-                        "testID": "icon_container",
-                      },
-                      "type": "View",
-                    },
+                    "Option 1",
                   ],
                   "props": {
+                    "numberOfLines": 1,
                     "style": {
-                      "alignItems": "center",
-                      "flexDirection": "row",
-                      "pointerEvents": "box-only",
-                      "width": "100%",
+                      "color": "#1C1C1C",
+                      "flex": 1,
+                      "paddingRight": 8,
                     },
-                    "testID": undefined,
+                    "testID": "text_input",
                   },
-                  "type": "View",
+                  "type": "Text",
                 },
               ],
               "props": {
+                "aria-role": "button",
                 "disabled": false,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "center",
+                  "justifyContent": "space-between",
                   "minHeight": 40,
                   "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": "ios_touchable_wrapper",
+                "testID": "web_picker",
               },
               "type": "Pressable",
             },
@@ -1573,8 +1859,9 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                     "onPress": [Function],
                     "style": {
                       "flex": 1,
+                      "zIndex": 0,
                     },
-                    "testID": "ios_modal_top",
+                    "testID": "web_dropdown_backdrop",
                   },
                   "type": "Pressable",
                 },
@@ -1583,10 +1870,39 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "autoFocus": true,
+                            "onChangeText": [Function: dispatchSetState],
+                            "placeholder": "Search...",
+                            "placeholderTextColor": "#686868",
+                            "ref": {
+                              "current": null,
+                            },
+                            "style": {
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 4,
+                              "borderWidth": 1,
+                              "color": "#1C1C1C",
+                              "fontSize": 14,
+                              "paddingHorizontal": 8,
+                              "paddingVertical": 4,
+                            },
+                            "testID": "web_dropdown_search",
+                            "value": "",
+                          },
+                          "type": "TextInput",
+                        },
+                      ],
                       "props": {
                         "style": {
-                          "flexDirection": "row",
+                          "borderBottomColor": "#CDCDCD",
+                          "borderBottomWidth": 1,
+                          "paddingHorizontal": 8,
+                          "paddingVertical": 6,
                         },
                         "testID": undefined,
                       },
@@ -1601,131 +1917,156 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                             {
                               "$$typeof": Symbol(react.test.json),
                               "children": [
-                                "Done",
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 1",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "600",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
                               ],
                               "props": {
-                                "allowFontScaling": false,
-                                "style": [
-                                  {
-                                    "color": "#007aff",
-                                    "fontSize": 17,
-                                    "fontWeight": "600",
-                                    "paddingRight": 11,
-                                    "paddingTop": 1,
-                                  },
-                                  {},
-                                ],
-                                "testID": "done_text",
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
                               },
-                              "type": "Text",
+                              "type": "View",
                             },
                           ],
                           "props": {
-                            "style": undefined,
-                            "testID": "needed_for_touchable",
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt1",
                           },
-                          "type": "View",
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 2",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt2",
+                          },
+                          "type": "Pressable",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Option 3",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "fontWeight": "400",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "alignSelf": "stretch",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "aria-role": "button",
+                            "onLayout": [Function],
+                            "onPress": [Function],
+                            "style": [Function],
+                            "testID": "web_dropdown_option_opt3",
+                          },
+                          "type": "Pressable",
                         },
                       ],
                       "props": {
-                        "hitSlop": {
-                          "bottom": 4,
-                          "left": 4,
-                          "right": 4,
-                          "top": 4,
+                        "keyboardShouldPersistTaps": "handled",
+                        "onLayout": [Function],
+                        "ref": {
+                          "current": null,
                         },
-                        "onPress": [Function],
-                        "onPressIn": [Function],
-                        "onPressOut": [Function],
-                        "testID": "done_button",
                       },
-                      "type": "Pressable",
+                      "type": "ScrollView",
                     },
                   ],
                   "props": {
                     "style": {
-                      "alignItems": "center",
-                      "backgroundColor": "#f8f8f8",
-                      "borderTopColor": "#dedede",
-                      "borderTopWidth": 1,
-                      "flexDirection": "row",
-                      "height": 45,
-                      "justifyContent": "space-between",
-                      "paddingHorizontal": 10,
-                      "zIndex": 2,
+                      "backgroundColor": "#FFFFFF",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 4,
+                      "borderWidth": 1,
+                      "left": 0,
+                      "maxHeight": 300,
+                      "minWidth": undefined,
+                      "overflow": "hidden",
+                      "position": "absolute",
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 2,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0.15,
+                      "shadowRadius": 8,
+                      "top": 4,
+                      "width": 0,
+                      "zIndex": 1,
                     },
-                    "testID": "input_accessory_view",
-                  },
-                  "type": "View",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 1",
-                            "value": "opt1",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 2",
-                            "value": "opt2",
-                          },
-                          "type": "Picker.Item",
-                        },
-                        {
-                          "$$typeof": Symbol(react.test.json),
-                          "children": null,
-                          "props": {
-                            "color": undefined,
-                            "label": "Option 3",
-                            "value": "opt3",
-                          },
-                          "type": "Picker.Item",
-                        },
-                      ],
-                      "props": {
-                        "onValueChange": [Function],
-                        "selectedValue": "opt1",
-                        "testID": "ios_picker",
-                      },
-                      "type": "Picker",
-                    },
-                  ],
-                  "props": {
-                    "style": [
-                      {
-                        "backgroundColor": "#d0d4da",
-                        "justifyContent": "center",
-                      },
-                      {
-                        "height": 215,
-                      },
-                    ],
-                    "testID": undefined,
+                    "testID": "web_dropdown_menu",
                   },
                   "type": "View",
                 },
               ],
               "props": {
-                "animationType": undefined,
-                "onOrientationChange": [Function],
-                "supportedOrientations": [
-                  "portrait",
-                  "landscape",
-                ],
-                "testID": "ios_modal",
+                "animationType": "fade",
+                "onRequestClose": [Function],
+                "testID": "web_dropdown_modal",
                 "transparent": true,
                 "visible": false,
               },
@@ -1733,6 +2074,9 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
             },
           ],
           "props": {
+            "ref": {
+              "current": null,
+            },
             "style": [
               {
                 "alignItems": "center",

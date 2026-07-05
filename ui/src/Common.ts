@@ -1788,6 +1788,12 @@ export interface CustomSelectFieldProps extends WithTestID {
    * The title of the custom select field.
    */
   title?: string;
+
+  /**
+   * When true, options can be filtered as the user types. See `SelectFieldProps.searchable`.
+   * @default true
+   */
+  searchable?: boolean;
 }
 
 export interface DateTimeActionSheetProps {
@@ -2831,8 +2837,9 @@ export interface SelectFieldPropsBase extends WithTestID {
   placeholder?: string;
 
   /**
-   * When true, the web select field becomes a searchable input that filters
-   * options by label as the user types in the field itself. Only affects web.
+   * When true, options can be filtered as the user types. On web, search happens
+   * in the trigger field; on native, search appears in the dropdown menu and
+   * Android uses a centered modal similar to the platform picker.
    * @default true
    */
   searchable?: boolean;
