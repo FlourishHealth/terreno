@@ -1,4 +1,6 @@
 import {Box, Button, Heading, SelectField, Text, TextField, useStoredState} from "@terreno/ui";
+import * as Clipboard from "expo-clipboard";
+import {useLocalSearchParams} from "expo-router";
 import {DateTime} from "luxon";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
@@ -25,6 +27,7 @@ import {
   runContrastChecks,
   type StatusFamily,
 } from "./paletteTypes";
+import {buildShareUrl, decodeShareState} from "./shareState";
 
 /**
  * Top-level palette generator: a chat assistant (Gemini) plus manual color pickers on the left, and
@@ -52,8 +55,16 @@ export const PaletteGenerator: React.FC = () => {
   const [apiKey, setApiKey, apiKeyLoading] = useStoredState<string>("palette-gemini-key", "");
   const [model, setModel] = useStoredState<string>("palette-gemini-model", DEFAULT_GEMINI_MODEL);
 
-  const [anchors, setAnchors] = useState<PaletteAnchors>(DEFAULT_ANCHORS);
-  const [fonts, setFonts] = useState<FontSelection>(DEFAULT_FONTS);
+  // Restore a shared palette from the URL (?s=...) once at mount. Reading via a ref keeps later
+  // edits from being reset, and an invalid token simply falls back to the defaults.
+  const searchParams = useLocalSearchParams<{s?: string | string[]}>();
+  const sharedState = useRef(
+    decodeShareState(typeof searchParams.s === "string" ? searchParams.s : undefined)
+  ).current;
+
+  const [anchors, setAnchors] = useState<PaletteAnchors>(sharedState?.anchors ?? DEFAULT_ANCHORS);
+  const [fonts, setFonts] = useState<FontSelection>(sharedState?.fonts ?? DEFAULT_FONTS);
+  const [shareCopied, setShareCopied] = useState<boolean>(false);
   const [fontRationale, setFontRationale] = useState<string | undefined>(undefined);
   const [selectedFamily, setSelectedFamily] = useState<Family>("primary");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -159,12 +170,36 @@ export const PaletteGenerator: React.FC = () => {
     setError(undefined);
   }, []);
 
+  const handleShare = useCallback(async (): Promise<void> => {
+    const url = buildShareUrl({anchors, fonts});
+    if (!url) {
+      setError("Sharing is only available on the web build.");
+      return;
+    }
+    await Clipboard.setStringAsync(url);
+    // Reflect the shared state in the address bar so a copy/paste of the URL also works.
+    const history = (
+      globalThis as {history?: {replaceState?: (a: unknown, b: string, c: string) => void}}
+    ).history;
+    history?.replaceState?.(null, "", url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 1500);
+  }, [anchors, fonts]);
+
   return (
     <Box color="base" gap={5} height="100%" padding={4} scroll>
       <Box gap={2}>
         <Box alignItems="center" direction="row" gap={3} justifyContent="between" wrap>
           <Heading size="lg">AI Palette Generator</Heading>
-          <Button onClick={handleReset} text="Reset palette" variant="muted" />
+          <Box direction="row" gap={2} wrap>
+            <Button
+              iconName="link"
+              onClick={handleShare}
+              text={shareCopied ? "Link copied!" : "Share"}
+              variant="secondary"
+            />
+            <Button onClick={handleReset} text="Reset palette" variant="muted" />
+          </Box>
         </Box>
         <Text color="secondaryLight">
           Describe a vibe or set anchor colors, and Gemini builds a full Terreno palette. Every
