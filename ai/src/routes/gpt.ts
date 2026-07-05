@@ -8,6 +8,7 @@ import {
 import type {Tool} from "ai";
 import {stepCountIs, streamText} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 import {createTelemetryConfig, preparePromptForAI} from "../langfuseVercelAi";
 
@@ -301,7 +302,7 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
 
         let fullResponse = "";
         const generatedImages: Array<{mimeType: string; url: string}> = [];
-        const startTime = Date.now();
+        const startTime = DateTime.now().toMillis();
         try {
           logger.debug("Starting streamText", {model: modelId, supportsTools});
           const telemetry = createTelemetryConfig({
@@ -517,7 +518,7 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
               prompt,
               requestType: "general",
               response: fullResponse,
-              responseTime: Date.now() - startTime,
+              responseTime: DateTime.now().toMillis() - startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -565,7 +566,7 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
               error: error instanceof Error ? error.message : String(error),
               prompt,
               requestType: "general",
-              responseTime: Date.now() - startTime,
+              responseTime: DateTime.now().toMillis() - startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {

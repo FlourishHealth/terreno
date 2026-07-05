@@ -16,6 +16,7 @@ model instances.
 - **Permissions** — Fine-grained access control (IsAuthenticated, IsOwner, IsAdmin, etc.)
 - **OpenAPI** — Automatic spec generation from models and routes
 - **Logging** — Winston-based logging with scoped & feature-flagged loggers, automatic request correlation, and Google Cloud / Sentry support
+- **HTTP client** — Authenticated axios factory for third-party APIs with token caching, safe retries, and normalized error handling (see [Call external APIs](../docs/how-to/call-external-apis.md))
 
 ## Getting started
 

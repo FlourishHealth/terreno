@@ -888,4 +888,100 @@ describe("ActionSheet", () => {
       await expect((ref.current as any)._onScrollBegin()).resolves.toBeUndefined();
     });
   });
+
+  describe("handleChildScrollEnd additional coverage", () => {
+    it("recoils when within scroll threshold of initial position", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref} springOffset={100}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      instance.actionSheetHeight = 500;
+      instance.prevScroll = 300;
+      instance.offsetY = 250;
+      instance.isRecoiling = false;
+      instance.currentOffsetFromBottom = 1;
+
+      await act(async () => {
+        await instance.handleChildScrollEnd();
+      });
+      // After recoil, isRecoiling is set true then cleared after timeout
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect(instance.isRecoiling).toBe(false);
+    });
+
+    it("hides modal when scrolled far past threshold", async () => {
+      const ref = createRef<ActionSheet>();
+      const onClose = mock(() => {});
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled onClose={onClose} ref={ref} springOffset={50}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      instance.actionSheetHeight = 500;
+      instance.prevScroll = 300;
+      instance.offsetY = 100;
+      instance.isRecoiling = false;
+      instance.isClosing = false;
+
+      await act(async () => {
+        await instance.handleChildScrollEnd();
+      });
+      expect(instance.isClosing).toBe(true);
+    });
+
+    it("recoils back to previous position when not past threshold", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref} springOffset={100}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      instance.actionSheetHeight = 500;
+      instance.prevScroll = 300;
+      instance.offsetY = 290;
+      instance.isRecoiling = false;
+
+      await act(async () => {
+        await instance.handleChildScrollEnd();
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect(instance.isRecoiling).toBe(false);
+    });
+
+    it("bounces back when scrolling up beyond prevScroll", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const instance = ref.current as any;
+      instance.prevScroll = 200;
+      instance.offsetY = 195;
+      instance._scrollTo = mock(() => {});
+      await instance.handleChildScrollEnd();
+      expect(instance.isRecoiling).toBe(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect(instance.isRecoiling).toBe(false);
+    });
+  });
 });

@@ -9,7 +9,7 @@ import type mongoose from "mongoose";
 import type {Document, Model, Query, Schema} from "mongoose";
 
 // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
-export function upsertPlugin<T extends Document>(schema: Schema<T, any, any, any>): void {
+export const upsertPlugin = <T extends Document>(schema: Schema<T, any, any, any>): void => {
   schema.statics.upsert = async function (
     this: Model<T>,
     // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
@@ -40,10 +40,10 @@ export function upsertPlugin<T extends Document>(schema: Schema<T, any, any, any
       return newDoc.save();
     }
   };
-}
+};
 
 // This plugin modifies the find query to exclude archived documents by default.
-export function excludeArchivedPlugin<T>(schema: Schema<T>): void {
+export const excludeArchivedPlugin = <T>(schema: Schema<T>): void => {
   // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
   schema.pre<Query<any, any>>("find", function (next) {
     const conditions = this.getFilter();
@@ -59,13 +59,13 @@ export function excludeArchivedPlugin<T>(schema: Schema<T>): void {
       next();
     }
   });
-}
+};
 
 // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
-export function addDefaultPlugins(schema: mongoose.Schema<any, any, any, any>): void {
+export const addDefaultPlugins = (schema: mongoose.Schema<any, any, any, any>): void => {
   schema.plugin(createdUpdatedPlugin);
   schema.plugin(isDeletedPlugin);
   schema.plugin(findOneOrNone);
   schema.plugin(findExactlyOne);
   schema.plugin(upsertPlugin);
-}
+};
