@@ -350,16 +350,24 @@ export const createAuthenticatedClient = (
 
   const getCachedToken = (): Promise<string> => {
     if (!tokenPromise) {
-      tokenPromise = fetchToken().then(
+      // The promise-identity checks below keep an out-of-order resolution (a fetch that
+      // was invalidated and replaced while in flight) from clobbering the newer fetch's
+      // cache state.
+      const thisPromise: Promise<string> = fetchToken().then(
         (token) => {
-          resolvedToken = token;
+          if (tokenPromise === thisPromise) {
+            resolvedToken = token;
+          }
           return token;
         },
         (error) => {
           // Clear the failed fetch so the next request retries, and wrap the failure in
-          // a plain Error: the raw token-request AxiosError must never reach the response
-          // interceptor's refresh/retry logic (see __httpClientManaged).
-          invalidateToken();
+          // a plain Error. The wrapping is what keeps the raw token-request AxiosError
+          // out of the response interceptor's refresh/retry logic (a wrapped error fails
+          // the isAxiosError guard); __httpClientManaged is defense-in-depth behind it.
+          if (tokenPromise === thisPromise) {
+            invalidateToken();
+          }
           const normalized = normalizeApiError(error, {apiName, operation: "token fetch"});
           const wrapped = new Error(
             `[httpClient] ${apiName} token fetch failed: ${normalized.messages[0]}`
@@ -368,6 +376,7 @@ export const createAuthenticatedClient = (
           throw wrapped;
         }
       );
+      tokenPromise = thisPromise;
     }
     return tokenPromise;
   };
