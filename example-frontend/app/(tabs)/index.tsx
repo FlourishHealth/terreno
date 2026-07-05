@@ -4,6 +4,7 @@ import {
   useSelectCurrentUserId,
   useServerStatus,
 } from "@terreno/rtk";
+import {SyncDbProvider} from "@terreno/syncdb/react";
 import {
   Badge,
   Box,
@@ -21,6 +22,8 @@ import {
 import type React from "react";
 import {useCallback, useState} from "react";
 import {RefreshControl, ScrollView} from "react-native";
+import SyncTodosScreen from "@/components/SyncTodosScreen";
+import {useSyncDbEnabled} from "@/hooks/useSyncDbEnabled";
 import {
   type Todo,
   terrenoApi,
@@ -29,6 +32,7 @@ import {
   usePatchTodosByIdMutation,
   usePostTodosMutation,
 } from "@/store";
+import {syncDb} from "@/store/syncdb";
 
 const TodoItem: React.FC<{
   todo: Todo;
@@ -91,7 +95,7 @@ const TodoItem: React.FC<{
   );
 };
 
-const TodosScreen: React.FC = () => {
+const RtkTodosScreen: React.FC = () => {
   const [newTodoTitle, setNewTodoTitle] = useState<string>("");
   const [showCompleted, setShowCompleted] = useState<boolean>(true);
 
@@ -305,6 +309,23 @@ const TodosScreen: React.FC = () => {
       </Page>
     </ScrollView>
   );
+};
+
+/**
+ * USE_SYNCDB flag on → local-first @terreno/syncdb implementation; flag off → the
+ * original RTK Query path, unchanged.
+ */
+const TodosScreen: React.FC = () => {
+  const isSyncDbEnabled = useSyncDbEnabled();
+
+  if (isSyncDbEnabled) {
+    return (
+      <SyncDbProvider client={syncDb}>
+        <SyncTodosScreen />
+      </SyncDbProvider>
+    );
+  }
+  return <RtkTodosScreen />;
 };
 
 export default TodosScreen;

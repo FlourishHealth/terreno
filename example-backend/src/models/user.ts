@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       enum: ["google", "github", "apple", null],
       type: String,
     },
+    organizationIds: {
+      default: [],
+      description: "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+      type: [String],
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );

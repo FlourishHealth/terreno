@@ -21,8 +21,10 @@ import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
+import {useSyncDbEnabled} from "@/hooks/useSyncDbEnabled";
 import store, {logout, persistor, useAppDispatch} from "@/store";
 import {terrenoApi} from "@/store/sdk";
+import {syncDb} from "@/store/syncdb";
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
@@ -129,6 +131,28 @@ const RootLayoutNav = (): React.ReactElement => {
       setRealtimeSocket(null);
     };
   }, [socket]);
+
+  // Start the local-first syncdb client after login when the USE_SYNCDB flag is on;
+  // stop it on logout/unmount. Wipe-on-user-change is handled inside the client.
+  const syncDbEnabled = useSyncDbEnabled();
+  useEffect(() => {
+    if (!userId || !syncDbEnabled) {
+      return;
+    }
+    let stopped = false;
+    syncDb.start().catch((error: unknown) => {
+      console.error("[syncdb] Failed to start client", error);
+    });
+    return (): void => {
+      if (stopped) {
+        return;
+      }
+      stopped = true;
+      syncDb.stop().catch((error: unknown) => {
+        console.warn("[syncdb] Failed to stop client", error);
+      });
+    };
+  }, [userId, syncDbEnabled]);
 
   // Validate stored auth token on mount
   useEffect(() => {

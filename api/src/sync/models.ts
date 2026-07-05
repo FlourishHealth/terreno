@@ -12,19 +12,23 @@ export interface SyncCounterDocument {
   seq: number;
 }
 
-const syncCounterSchema = new Schema<SyncCounterDocument>({
-  seq: {
-    default: 0,
-    description: "The last sequence number claimed for this stream",
-    type: Number,
+const syncCounterSchema = new Schema<SyncCounterDocument>(
+  {
+    seq: {
+      default: 0,
+      description: "The last sequence number claimed for this stream",
+      type: Number,
+    },
+    stream: {
+      description: "Stream key this counter belongs to (e.g. 'todos|owner:123')",
+      required: true,
+      type: String,
+      unique: true,
+    },
   },
-  stream: {
-    description: "Stream key this counter belongs to (e.g. 'todos|owner:123')",
-    required: true,
-    type: String,
-    unique: true,
-  },
-});
+  // Consumer apps run checkModelsStrict() at startup; framework models must comply.
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
 
 export const SyncCounter: Model<SyncCounterDocument> =
   (mongoose.models.SyncCounter as Model<SyncCounterDocument>) ??
@@ -83,52 +87,56 @@ export interface SyncMutationDocument {
 /** Ledger rows are only needed while a client could still replay a mutation. */
 const SYNC_MUTATION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
-const syncMutationSchema = new Schema<SyncMutationDocument>({
-  created: {
-    default: () => new Date(),
-    description: "When the mutation was first claimed; TTL-indexed so rows expire after 30 days",
-    type: Date,
+const syncMutationSchema = new Schema<SyncMutationDocument>(
+  {
+    created: {
+      default: () => new Date(),
+      description: "When the mutation was first claimed; TTL-indexed so rows expire after 30 days",
+      type: Date,
+    },
+    error: {
+      description: "Error message recorded for rejected mutations",
+      type: String,
+    },
+    mutationId: {
+      description:
+        "Client-generated idempotency key; unique so concurrent deliveries claim exactly once",
+      required: true,
+      type: String,
+      unique: true,
+    },
+    nackCode: {
+      description:
+        "Nack code recorded for rejected mutations (conflict/unauthorized/validation/error)",
+      type: String,
+    },
+    resultId: {
+      description: "The affected document id, recorded when the mutation is applied",
+      type: String,
+    },
+    resultSeq: {
+      description: "The document's _syncSeq after apply (applied) or at conflict time (conflicted)",
+      type: Number,
+    },
+    serverDoc: {
+      description: "Canonical serialized server document, recorded for conflict nacks",
+      type: Schema.Types.Mixed,
+    },
+    status: {
+      description: "Lifecycle status: pending while applying, then applied, conflicted, or failed",
+      enum: ["pending", "applied", "conflicted", "failed"],
+      required: true,
+      type: String,
+    },
+    userId: {
+      description: "The user who submitted the mutation; replays from other users are rejected",
+      required: true,
+      type: String,
+    },
   },
-  error: {
-    description: "Error message recorded for rejected mutations",
-    type: String,
-  },
-  mutationId: {
-    description:
-      "Client-generated idempotency key; unique so concurrent deliveries claim exactly once",
-    required: true,
-    type: String,
-    unique: true,
-  },
-  nackCode: {
-    description:
-      "Nack code recorded for rejected mutations (conflict/unauthorized/validation/error)",
-    type: String,
-  },
-  resultId: {
-    description: "The affected document id, recorded when the mutation is applied",
-    type: String,
-  },
-  resultSeq: {
-    description: "The document's _syncSeq after apply (applied) or at conflict time (conflicted)",
-    type: Number,
-  },
-  serverDoc: {
-    description: "Canonical serialized server document, recorded for conflict nacks",
-    type: Schema.Types.Mixed,
-  },
-  status: {
-    description: "Lifecycle status: pending while applying, then applied, conflicted, or failed",
-    enum: ["pending", "applied", "conflicted", "failed"],
-    required: true,
-    type: String,
-  },
-  userId: {
-    description: "The user who submitted the mutation; replays from other users are rejected",
-    required: true,
-    type: String,
-  },
-});
+  // Consumer apps run checkModelsStrict() at startup; framework models must comply.
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
 syncMutationSchema.index({created: 1}, {expireAfterSeconds: SYNC_MUTATION_TTL_SECONDS});
 
 /**
@@ -149,24 +157,28 @@ export interface SyncKeyDocument {
   created: Date;
 }
 
-const syncKeySchema = new Schema<SyncKeyDocument>({
-  created: {
-    default: () => new Date(),
-    description: "When this key material was generated",
-    type: Date,
+const syncKeySchema = new Schema<SyncKeyDocument>(
+  {
+    created: {
+      default: () => new Date(),
+      description: "When this key material was generated",
+      type: Date,
+    },
+    keyMaterial: {
+      description: "Server-generated random key material (32 bytes, base64) for HKDF derivation",
+      required: true,
+      type: String,
+    },
+    userId: {
+      description: "The user this key material belongs to",
+      required: true,
+      type: String,
+      unique: true,
+    },
   },
-  keyMaterial: {
-    description: "Server-generated random key material (32 bytes, base64) for HKDF derivation",
-    required: true,
-    type: String,
-  },
-  userId: {
-    description: "The user this key material belongs to",
-    required: true,
-    type: String,
-    unique: true,
-  },
-});
+  // Consumer apps run checkModelsStrict() at startup; framework models must comply.
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
 
 export const SyncKey: Model<SyncKeyDocument> =
   (mongoose.models.SyncKey as Model<SyncKeyDocument>) ??

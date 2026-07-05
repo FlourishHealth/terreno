@@ -404,6 +404,7 @@
         "@reduxjs/toolkit": "catalog:",
         "@sentry/react": "catalog:",
         "@terreno/rtk": "workspace:*",
+        "@terreno/syncdb": "workspace:*",
         "@terreno/ui": "workspace:*",
         "expo": "catalog:",
         "expo-constants": "catalog:",

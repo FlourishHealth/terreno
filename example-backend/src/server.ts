@@ -17,6 +17,7 @@ import {
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
+  SyncApp,
   syncConsents,
   TerrenoApp,
   VersionCheckPlugin,
@@ -28,6 +29,7 @@ import mongoose from "mongoose";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
@@ -190,7 +192,18 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(todoRouter)
+      .register(projectRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
+      // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
+      // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
+      // resolve tenant streams (projects are scoped by the user's organizationIds).
+      .register(
+        new SyncApp({
+          getUserScopes: (user) => {
+            return (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
+          },
+        })
+      )
       .register(new VersionCheckPlugin())
       .register(
         new HealthApp({
@@ -323,7 +336,8 @@ export async function start(skipListen = false): Promise<express.Application> {
               listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
               listDisplayLinks: ["title"],
               listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
-              model: Todo,
+              // biome-ignore lint/suspicious/noExplicitAny: String _id model mismatches Model<any> variance
+              model: Todo as any,
               pageSize: 25,
               permissions: {delete: false},
               readonlyFields: ["ownerId"],

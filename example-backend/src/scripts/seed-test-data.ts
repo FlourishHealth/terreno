@@ -6,30 +6,50 @@
 
 import {ConsentForm, logger} from "@terreno/api";
 import mongoose from "mongoose";
+// Importing the routers registers the sync configs, so seeded todos/projects get a
+// real _syncSeq stamped instead of arriving to clients as legacy seq-0 documents.
+import "../api/projects";
+import "../api/todos";
 import {Configuration} from "../models/configuration";
+import {Project} from "../models/project";
+import {Todo} from "../models/todo";
 import {User} from "../models/user";
+import type {UserDocument} from "../types";
 import {connectToMongoDB} from "../utils/database";
 
 interface SeedUser {
   admin?: boolean;
   email: string;
   name: string;
+  organizationIds: string[];
   password: string;
 }
+
+// Shared organization so both seeded users demonstrate tenant-scoped project sync.
+const EXAMPLE_ORGANIZATION_ID = "org-example";
 
 const TEST_USERS: SeedUser[] = [
   {
     email: "test@example.com",
     name: "Test User",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
   {
     admin: true,
     email: "superuser@example.com",
     name: "Super User",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
 ];
+
+const SEED_PROJECTS = [
+  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Example Project"},
+  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Sync Rollout"},
+];
+
+const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
 
 const CONSENT_FORMS = [
   {
@@ -136,20 +156,59 @@ This consent is optional. You can decline without affecting your use of the appl
   },
 ];
 
-const seedUser = async (testUser: SeedUser): Promise<void> => {
+const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
     logger.info(`Test user already exists: ${testUser.email}`);
-    return;
+    // Backfill the organization membership for users seeded before tenant sync existed.
+    if ((existingUser.organizationIds ?? []).length === 0) {
+      existingUser.organizationIds = testUser.organizationIds;
+      await existingUser.save();
+      logger.info(`Backfilled organizationIds for ${testUser.email}`);
+    }
+    return existingUser;
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
   const user = await (User as any).register(
-    {admin: testUser.admin ?? false, email: testUser.email, name: testUser.name},
+    {
+      admin: testUser.admin ?? false,
+      email: testUser.email,
+      name: testUser.name,
+      organizationIds: testUser.organizationIds,
+    },
     testUser.password
   );
 
   logger.info(`Test user created: ${user.email} (id: ${user._id})`);
+  return user as UserDocument;
+};
+
+const seedProjects = async (): Promise<void> => {
+  for (const project of SEED_PROJECTS) {
+    const existing = await Project.findOneOrNone({
+      organizationId: project.organizationId,
+      title: project.title,
+    });
+    if (existing) {
+      logger.info(`Project already exists: ${project.title}`);
+      continue;
+    }
+    const created = await Project.create(project);
+    logger.info(`Project created: ${created.title} (id: ${created._id})`);
+  }
+};
+
+const seedTodos = async (owner: UserDocument): Promise<void> => {
+  for (const title of SEED_TODOS) {
+    const existing = await Todo.findOneOrNone({ownerId: owner._id, title});
+    if (existing) {
+      logger.info(`Todo already exists: ${title}`);
+      continue;
+    }
+    const created = await Todo.create({ownerId: owner._id, title});
+    logger.info(`Todo created: ${created.title} (id: ${created._id})`);
+  }
 };
 
 const seedConsentForms = async (): Promise<void> => {
@@ -175,8 +234,15 @@ const main = async (): Promise<void> => {
     logger.info("Connecting to MongoDB...");
     await connectToMongoDB();
 
+    const seededUsers: UserDocument[] = [];
     for (const testUser of TEST_USERS) {
-      await seedUser(testUser);
+      seededUsers.push(await seedUser(testUser));
+    }
+
+    await seedProjects();
+    // A couple of todos for the non-admin test user (owner-scoped sync stream).
+    if (seededUsers[0]) {
+      await seedTodos(seededUsers[0]);
     }
 
     await seedConsentForms();

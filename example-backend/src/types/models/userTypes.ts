@@ -24,4 +24,5 @@ export type UserDocument = DefaultDoc &
     email: string;
     name: string;
     oauthProvider?: "google" | "github" | "apple" | null;
+    organizationIds: string[];
   };
