@@ -536,6 +536,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
+        "@testing-library/react-native": "catalog:",
         "@types/bun": "catalog:",
         "@types/luxon": "catalog:",
         "@types/node": "catalog:",
@@ -543,6 +544,7 @@
         "expo-sqlite": "~15.2.14",
         "fake-indexeddb": "^6.0.0",
         "react": "catalog:",
+        "react-test-renderer": "catalog:",
         "socket.io": "catalog:",
         "typescript": "catalog:",
       },

@@ -8,6 +8,11 @@
  * data-synchronization concerns. See docs/implementationPlans/syncdb-local-first.md.
  */
 
+// React bindings intentionally live on the `@terreno/syncdb/react` subpath
+// (src/react/index.ts) rather than here: react is an optional peer dependency
+// and the main entry must stay importable without it.
+export * from "./auth/betterAuthAdapter";
+export * from "./auth/types";
 export * from "./client";
 export * from "./crypto/aesGcmCodec";
 export * from "./crypto/identityCodec";

@@ -89,6 +89,14 @@ export interface SyncDb {
   resolveConflict: (args: {mutationId: string; strategy: ConflictResolutionStrategy}) => void;
   /** Aggregate sync state for status UI. */
   getSyncStatus: () => SyncStatus;
+  /**
+   * Subscribe to non-store status inputs (connectivity, syncing activity).
+   * `getSyncStatus()` is a snapshot; store-backed inputs (outbox, conflicts,
+   * cursors) already emit through TinyBase listeners on `store.raw`, but
+   * `isOnline`/`isSyncing` live outside the store — this hook covers them.
+   * Returns an unsubscribe function.
+   */
+  onStatusChange: (callback: () => void) => () => void;
 }
 
 /**
@@ -128,6 +136,29 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   let reconcileTimer: ReturnType<typeof setInterval> | undefined;
   let unsubscribers: (() => void)[] = [];
   const lastSeqJumpReconcileAt = new Map<string, number>();
+  const statusListeners = new Set<() => void>();
+
+  const notifyStatusChange = (): void => {
+    for (const listener of statusListeners) {
+      listener();
+    }
+  };
+
+  const setConnected = (value: boolean): void => {
+    if (connected === value) {
+      return;
+    }
+    connected = value;
+    notifyStatusChange();
+  };
+
+  const addSyncing = (delta: number): void => {
+    const wasSyncing = syncingCount > 0;
+    syncingCount += delta;
+    if (wasSyncing !== syncingCount > 0) {
+      notifyStatusChange();
+    }
+  };
 
   // Prefer the socket for mutations; fall back to HTTP while disconnected.
   const sendMutation = async (request: SyncMutateRequest): Promise<SendMutationResult> => {
@@ -148,11 +179,11 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     if (!httpChannel) {
       return;
     }
-    syncingCount += 1;
+    addSyncing(1);
     try {
       await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
     } finally {
-      syncingCount -= 1;
+      addSyncing(-1);
     }
   };
 
@@ -160,11 +191,11 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     if (!currentUserId) {
       return;
     }
-    syncingCount += 1;
+    addSyncing(1);
     try {
       await coordinator.replay({userId: currentUserId});
     } finally {
-      syncingCount -= 1;
+      addSyncing(-1);
     }
   };
 
@@ -217,7 +248,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   const handleStatusChange = ({connected: isConnected}: {connected: boolean}): void => {
-    connected = isConnected;
+    setConnected(isConnected);
     if (!isConnected) {
       return;
     }
@@ -280,7 +311,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     }
     unsubscribers = [];
     transport.disconnect();
-    connected = false;
+    setConnected(false);
     if (persister) {
       // Flush any pending autosave so a clean stop never loses local writes.
       await persister.save();
@@ -362,9 +393,17 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     streams: getAllCursors({store}),
   });
 
+  const onStatusChange = (callback: () => void): (() => void) => {
+    statusListeners.add(callback);
+    return () => {
+      statusListeners.delete(callback);
+    };
+  };
+
   return {
     getSyncStatus,
     mutate,
+    onStatusChange,
     outbox,
     reconcile,
     replayOutbox,
