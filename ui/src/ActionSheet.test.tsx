@@ -916,6 +916,27 @@ describe("ActionSheet", () => {
   });
 
   describe("handleChildScrollEnd additional coverage", () => {
+    it("recoils when offset is near prevScroll", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={5}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).offsetY = 98;
+      (ref.current as any).prevScroll = 100;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect((ref.current as any).isRecoiling).toBe(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect((ref.current as any).isRecoiling).toBe(false);
+    });
+
     it("recoils when within scroll threshold of initial position", async () => {
       const ref = createRef<ActionSheet>();
       render(
@@ -935,7 +956,6 @@ describe("ActionSheet", () => {
       await act(async () => {
         await instance.handleChildScrollEnd();
       });
-      // After recoil, isRecoiling is set true then cleared after timeout
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });
