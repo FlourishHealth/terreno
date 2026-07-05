@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "luxon": "catalog:",
+    "socket.io-client": "catalog:",
     "tinybase": "^8.5.0"
   },
   "description": "Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence",
@@ -13,6 +14,7 @@
     "expo-sqlite": "~15.2.14",
     "fake-indexeddb": "^6.0.0",
     "react": "catalog:",
+    "socket.io": "catalog:",
     "typescript": "catalog:"
   },
   "exports": {

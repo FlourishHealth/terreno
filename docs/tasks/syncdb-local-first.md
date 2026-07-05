@@ -118,7 +118,7 @@
   - Depends on: 4.1
   - Acceptance: unit tests — deterministic derivation from the same material; cached key reused without network; local provider persists across fresh module init against the same fake IDB.
 
-- [ ] **Task 4.4**: Wipe-on-user-change
+- [x] **Task 4.4**: Wipe-on-user-change
   - Description: Client watches `authProvider.onAuthChange`; when userId differs from stored `lastUserId`, destroy persisted data, reset the store, clear cached keys, and re-bootstrap.
   - Files: `syncdb/src/client.ts`
   - Depends on: 4.3 (implemented alongside 5.4 client assembly)
@@ -126,25 +126,25 @@
 
 ## Phase 5: Client sync engine + transport
 
-- [ ] **Task 5.1**: SyncTransport interface + Socket.io transport
+- [x] **Task 5.1**: SyncTransport interface + Socket.io transport
   - Description: `SyncTransport` contract (connect/disconnect, subscribe, sendMutation→ack/nack promise with timeout, onDelta, onStatusChange). Socket.io implementation speaking the Phase 2 protocol with reconnection and auth-token refresh patterns modeled on `rtk/src/socket.ts`. `authProvider.getToken()` is called per connection attempt and per HTTP request (never cached by the transport) so Better Auth session refresh is picked up transparently; a 401 mid-replay or mid-bootstrap pauses and retries once after the next `onAuthChange`. Keep a `fakeTransport` for tests (harvest `sync/types.ts` + `sync/fakeTransport.ts` from #835).
   - Files: `syncdb/src/sync/types.ts` (new), `syncdb/src/sync/socketTransport.ts` (new), `syncdb/src/sync/fakeTransport.ts` (new)
   - Depends on: 3.4
   - Acceptance: unit tests against fakeTransport (send/ack/nack/timeout, delta delivery); socket transport exercised end-to-end in 5.5.
 
-- [ ] **Task 5.2**: HTTP bootstrap + fallback mutation channel
+- [x] **Task 5.2**: HTTP bootstrap + fallback mutation channel
   - Description: `bootstrap({collections})` paging `GET /sync/snapshot` per stream through the delta applier; HTTP `POST /sync/mutate` fallback used when the socket is unavailable; reconcile = snapshot-from-cursor.
   - Files: `syncdb/src/sync/bootstrap.ts` (new), `syncdb/src/sync/httpChannel.ts` (new)
   - Depends on: 5.1
   - Acceptance: unit tests — multi-page bootstrap advances each stream cursor exactly once; HTTP fallback engaged when socket down.
 
-- [ ] **Task 5.3**: Replay coordinator
+- [x] **Task 5.3**: Replay coordinator
   - Description: FIFO-per-collection outbox flush: mark inFlight → send → ack finalizes (clear `pendingMutationId`, apply server seq); conflict-nack records a `_conflicts` entry and pauses that entity; unauthorized-nack pauses replay until auth change; error-nack retries with backoff then failed. Triggered on start, reconnect, auth restore, and new enqueue. Harvest/adapt `sync/replayCoordinator.ts` from #835.
   - Files: `syncdb/src/sync/replayCoordinator.ts` (new)
   - Depends on: 5.1
   - Acceptance: unit tests — each ack/nack path, FIFO ordering under interleaved enqueues, backoff, auth-pause/resume.
 
-- [ ] **Task 5.4**: Conflict resolver + reconcile heuristics + client assembly
+- [x] **Task 5.4**: Conflict resolver + reconcile heuristics + client assembly
   - Description: `resolveConflict({mutationId, strategy})` — `useServer`: apply server doc, drop mutation; `keepMine`: re-enqueue with fresh baseVersion. Reconcile triggers: reconnect, seq-jump hints (**rate-limited to once per 30s per stream** — jumps can be legitimate permission-filtered gaps), and a **periodic reconcile** (visibility change / every few minutes while connected) so deltas missed with no observable jump still converge. Assemble `createSyncDb`: start/stop, mutate (local apply + enqueue + flush), getSyncStatus, wipe-on-user-change (4.4). On web, guard persister saves with the Web Locks API (single-writer across tabs; non-holders stay in-memory) to prevent multi-tab blob clobbering losing outbox rows.
   - Files: `syncdb/src/mutations/resolveConflict.ts` (new), `syncdb/src/client.ts` (new), `syncdb/src/index.ts`
   - Depends on: 5.2, 5.3, 4.3

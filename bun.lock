@@ -504,7 +504,7 @@
         "react-native": "catalog:",
         "react-redux": "catalog:",
         "redux-persist": "catalog:",
-        "socket.io-client": "^4.8.1",
+        "socket.io-client": "catalog:",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
@@ -531,6 +531,7 @@
       "version": "0.23.1",
       "dependencies": {
         "luxon": "catalog:",
+        "socket.io-client": "catalog:",
         "tinybase": "^8.5.0",
       },
       "devDependencies": {
@@ -542,6 +543,7 @@
         "expo-sqlite": "~15.2.14",
         "fake-indexeddb": "^6.0.0",
         "react": "catalog:",
+        "socket.io": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {
@@ -801,6 +803,7 @@
     "react-test-renderer": "19.1.0",
     "redux-persist": "^6.0.0",
     "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "supertest": "^7.2.2",
     "typedoc": "^0.28.17",
     "typescript": "~5.9.2",

@@ -8,11 +8,14 @@
  * data-synchronization concerns. See docs/implementationPlans/syncdb-local-first.md.
  */
 
+export * from "./client";
 export * from "./crypto/aesGcmCodec";
 export * from "./crypto/identityCodec";
 export * from "./crypto/keyProviders";
 export * from "./crypto/types";
+export * from "./mutations/conflicts";
 export * from "./mutations/outbox";
+export * from "./mutations/resolveConflict";
 export * from "./persisters/defaultPersisterFactory";
 export * from "./persisters/encryptedIndexedDbPersister";
 export * from "./persisters/memoryPersister";
@@ -22,6 +25,12 @@ export * from "./storage/schema";
 export * from "./storage/store";
 export * from "./storage/types";
 export * from "./storage/wipe";
+export * from "./sync/bootstrap";
 export * from "./sync/cursor";
 export * from "./sync/deltaApplier";
+export * from "./sync/fakeTransport";
+export * from "./sync/httpChannel";
+export * from "./sync/replayCoordinator";
+export * from "./sync/socketTransport";
+export * from "./sync/transport";
 export * from "./types";
