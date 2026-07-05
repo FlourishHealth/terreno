@@ -89,6 +89,30 @@ const createImageModel = () => ({
   supportedUrls: {},
 });
 
+// Mock model that emits text without a finish event (no finish-step → post-loop flush)
+const createNoFinishModel = () => ({
+  doGenerate: mock(async () => ({
+    content: [{text: "unflushed", type: "text" as const}],
+    finishReason: "stop" as const,
+    usage: {inputTokens: 1, outputTokens: 1},
+  })),
+  doStream: mock(async () => ({
+    stream: new ReadableStream({
+      start(controller) {
+        controller.enqueue({id: "t1", type: "text-start" as const});
+        controller.enqueue({delta: "buffered text", id: "t1", type: "text-delta" as const});
+        controller.enqueue({id: "t1", type: "text-end" as const});
+        // Deliberately omit finish event so the SDK does not emit finish-step
+        controller.close();
+      },
+    }),
+  })),
+  modelId: "no-finish-model",
+  provider: "mock-provider",
+  specificationVersion: "v2" as const,
+  supportedUrls: {},
+});
+
 // Mock model that throws during doStream to exercise the inner catch
 const createErrorModel = () => ({
   doGenerate: mock(async () => ({
@@ -390,6 +414,28 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
+    });
+
+    it("flushes remaining buffered text when the stream ends without finish-step", async () => {
+      const noFinishService = new AIService({
+        model: createNoFinishModel() as unknown as LanguageModel,
+      });
+      const noFinishApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {aiService: noFinishService, openApiOptions: options});
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(noFinishApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("buffered text");
     });
 
     it("streams inline image events from the model", async () => {

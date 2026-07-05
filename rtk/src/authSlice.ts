@@ -17,6 +17,24 @@ interface AuthState {
   lastTokenRefreshTimestamp: number | null;
 }
 
+interface AuthErrorData {
+  message?: string;
+}
+
+interface MutationFulfilledAction {
+  meta?: {
+    arg?: {
+      endpointName?: string;
+    };
+  };
+  payload?: {
+    refreshToken?: string;
+    token?: string;
+    userId?: string;
+  };
+  type: string;
+}
+
 export interface UserResponse {
   data: {
     userId: string;
@@ -117,9 +135,8 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       });
       builder.addMatcher(
         api.endpoints.emailLogin.matchRejected,
-        // biome-ignore lint/suspicious/noExplicitAny: Generic
-        (state, action: PayloadAction<{data: any}>) => {
-          state.error = action.payload?.data?.message;
+        (state, action: PayloadAction<{data?: AuthErrorData}>) => {
+          state.error = action.payload?.data?.message ?? null;
           state.isAuthenticating = false;
           console.debug("Login rejected", action.payload?.data?.message);
         }
@@ -136,9 +153,8 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       });
       builder.addMatcher(
         api.endpoints.emailSignUp.matchRejected,
-        // biome-ignore lint/suspicious/noExplicitAny: Generic
-        (state, action: PayloadAction<{data: any}>) => {
-          state.error = action.payload?.data?.message;
+        (state, action: PayloadAction<{data?: AuthErrorData}>) => {
+          state.error = action.payload?.data?.message ?? null;
           state.isAuthenticating = false;
           console.debug("Signup rejected", action.payload);
         }
@@ -158,9 +174,8 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       });
       builder.addMatcher(
         api.endpoints.googleLogin.matchRejected,
-        // biome-ignore lint/suspicious/noExplicitAny: Generic
-        (state, action: PayloadAction<{data: any}>) => {
-          state.error = action.payload?.data?.message;
+        (state, action: PayloadAction<{data?: AuthErrorData}>) => {
+          state.error = action.payload?.data?.message ?? null;
           state.isAuthenticating = false;
         }
       );
@@ -191,8 +206,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
   // we need to use a listener middleware.
   const loginListenerMiddleware = createListenerMiddleware();
   loginListenerMiddleware.startListening({
-    // biome-ignore lint/suspicious/noExplicitAny: Generic
-    effect: async (action: any, listenerApi) => {
+    effect: async (action: MutationFulfilledAction, listenerApi) => {
       if (
         action.payload?.token &&
         (action.meta?.arg?.endpointName === "emailLogin" ||
@@ -206,7 +220,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
           }
           try {
             await SecureStore.setItemAsync("AUTH_TOKEN", action.payload.token);
-            await SecureStore.setItemAsync("REFRESH_TOKEN", action.payload.refreshToken);
+            await SecureStore.setItemAsync("REFRESH_TOKEN", action.payload.refreshToken ?? "");
             console.debug("Saved auth token to secure storage.");
           } catch (error) {
             console.error(`Error setting auth token: ${error}`);
@@ -223,7 +237,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
             // Check if we're in a browser environment (not SSR)
             if (typeof window !== "undefined") {
               await AsyncStorage.setItem("AUTH_TOKEN", action.payload.token);
-              await AsyncStorage.setItem("REFRESH_TOKEN", action.payload.refreshToken);
+              await AsyncStorage.setItem("REFRESH_TOKEN", action.payload.refreshToken ?? "");
               console.debug("Saved auth token to async storage.");
             } else {
               console.warn("Cannot store auth token: window is not defined (SSR context)");
@@ -233,7 +247,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
             throw error;
           }
         }
-        listenerApi.dispatch(authSlice.actions.setUserId({userId: action.payload.userId}));
+        listenerApi.dispatch(authSlice.actions.setUserId({userId: action.payload.userId ?? ""}));
       }
     },
     type: "terreno-rtk/executeMutation/fulfilled",

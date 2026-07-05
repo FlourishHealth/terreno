@@ -39,7 +39,7 @@ jobs:
       - name: Check PR diff for docs-relevant changes
         id: check
         run: |
-          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          FILES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')
           CHANGES=$(echo "$FILES" | grep -cE '^(docs/|website/|api/src/|rtk/src/|demo/demoConfig\.tsx|demo/story-config/|ui/src/|netlify\.toml)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
         env:
