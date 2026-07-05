@@ -22,6 +22,7 @@ jobs:
   integration:
     name: Admin SPA Backend Integration E2E
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - uses: actions/checkout@v6.0.3
 
