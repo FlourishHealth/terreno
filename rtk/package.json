@@ -18,7 +18,7 @@
     "react-native": "catalog:",
     "react-redux": "catalog:",
     "redux-persist": "catalog:",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "catalog:"
   },
   "description": "Redux Toolkit Query utilities for @terreno/api backends",
   "devDependencies": {

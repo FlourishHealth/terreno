@@ -505,7 +505,7 @@
         "react-native": "catalog:",
         "react-redux": "catalog:",
         "redux-persist": "catalog:",
-        "socket.io-client": "^4.8.1",
+        "socket.io-client": "catalog:",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
@@ -532,6 +532,7 @@
       "version": "0.23.1",
       "dependencies": {
         "luxon": "catalog:",
+        "socket.io-client": "catalog:",
         "tinybase": "^8.5.0",
       },
       "devDependencies": {
@@ -543,6 +544,7 @@
         "expo-sqlite": "~15.2.14",
         "fake-indexeddb": "^6.0.0",
         "react": "catalog:",
+        "socket.io": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {
@@ -798,7 +800,13 @@
     "react-router-dom": "^6.30.1",
     "react-test-renderer": "19.2.3",
     "redux-persist": "^6.0.0",
-    "typescript": "~6.0.3",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.2.2",
+    "typedoc": "^0.28.17",
+    "typescript": "~5.9.2",
+    "winston": "^3.18.3",
+    "zod": "^4.4.3",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],

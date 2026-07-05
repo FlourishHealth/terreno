@@ -1,0 +1,129 @@
+import type {SyncAck, SyncDelta, SyncMutateRequest, SyncNack} from "../types";
+import type {SendMutationResult, SyncTransport, TransportStatus} from "./transport";
+
+/** Computes the reply for a sent mutation (may reject to simulate transport failure). */
+export type FakeMutationResponder = (
+  request: SyncMutateRequest
+) => SendMutationResult | Promise<SendMutationResult>;
+
+/** Test-facing controls layered on top of the {@link SyncTransport} contract. */
+export interface FakeTransport extends SyncTransport {
+  /** Every mutation sent through the transport, in order. */
+  readonly sentMutations: SyncMutateRequest[];
+  /** Distinct collections subscribed so far (union across subscribe calls). */
+  readonly subscribedCollections: string[];
+  /** Deliver a server delta to all onDelta listeners. */
+  deliverDelta: (delta: SyncDelta) => void;
+  /** Simulate a connect/disconnect; notifies status listeners on change. */
+  setConnected: (connected: boolean) => void;
+  /** Queue an ack for the next sendMutation (mutationId/id filled from the request). */
+  respondWithAck: (overrides?: Partial<SyncAck>) => void;
+  /** Queue a nack for the next sendMutation (mutationId filled from the request). */
+  respondWithNack: (nack: Partial<SyncNack> & Pick<SyncNack, "code">) => void;
+  /** Queue a one-shot responder for the next sendMutation (may throw/reject). */
+  respondWith: (responder: FakeMutationResponder) => void;
+  /** Replace the fallback responder used when the queue is empty (undefined = auto-ack). */
+  setDefaultResponder: (responder?: FakeMutationResponder) => void;
+}
+
+/**
+ * In-memory transport double for unit tests: records sent mutations and
+ * subscriptions, lets tests deliver deltas and flip connectivity, and answers
+ * `sendMutation` from a one-shot responder queue (falling back to a default
+ * responder that acks every mutation with a monotonically increasing seq).
+ */
+export const createFakeTransport = (): FakeTransport => {
+  const sentMutations: SyncMutateRequest[] = [];
+  const subscribed = new Set<string>();
+  const deltaListeners = new Set<(delta: SyncDelta) => void>();
+  const statusListeners = new Set<(status: TransportStatus) => void>();
+  const responderQueue: FakeMutationResponder[] = [];
+  let connected = false;
+  let nextSeq = 0;
+
+  const autoAck: FakeMutationResponder = (request) => {
+    nextSeq += 1;
+    return {
+      ack: {id: request.id ?? `server-${nextSeq}`, mutationId: request.mutationId, seq: nextSeq},
+      type: "ack",
+    };
+  };
+  let defaultResponder: FakeMutationResponder = autoAck;
+
+  const setConnected = (value: boolean): void => {
+    if (connected === value) {
+      return;
+    }
+    connected = value;
+    for (const listener of statusListeners) {
+      listener({connected: value});
+    }
+  };
+
+  return {
+    connect: async (): Promise<void> => {
+      setConnected(true);
+    },
+    deliverDelta: (delta: SyncDelta): void => {
+      for (const listener of deltaListeners) {
+        listener(delta);
+      }
+    },
+    disconnect: (): void => {
+      setConnected(false);
+    },
+    onDelta: (callback: (delta: SyncDelta) => void): (() => void) => {
+      deltaListeners.add(callback);
+      return () => {
+        deltaListeners.delete(callback);
+      };
+    },
+    onStatusChange: (callback: (status: TransportStatus) => void): (() => void) => {
+      statusListeners.add(callback);
+      return () => {
+        statusListeners.delete(callback);
+      };
+    },
+    respondWith: (responder: FakeMutationResponder): void => {
+      responderQueue.push(responder);
+    },
+    respondWithAck: (overrides?: Partial<SyncAck>): void => {
+      responderQueue.push((request) => {
+        nextSeq += 1;
+        return {
+          ack: {
+            id: request.id ?? `server-${nextSeq}`,
+            mutationId: request.mutationId,
+            seq: nextSeq,
+            ...overrides,
+          },
+          type: "ack",
+        };
+      });
+    },
+    respondWithNack: (nack: Partial<SyncNack> & Pick<SyncNack, "code">): void => {
+      responderQueue.push((request) => ({
+        nack: {mutationId: request.mutationId, ...nack},
+        type: "nack",
+      }));
+    },
+    sendMutation: async (request: SyncMutateRequest): Promise<SendMutationResult> => {
+      sentMutations.push(request);
+      const responder = responderQueue.shift() ?? defaultResponder;
+      return responder(request);
+    },
+    sentMutations,
+    setConnected,
+    setDefaultResponder: (responder?: FakeMutationResponder): void => {
+      defaultResponder = responder ?? autoAck;
+    },
+    subscribe: (collections: string[]): void => {
+      for (const collection of collections) {
+        subscribed.add(collection);
+      }
+    },
+    get subscribedCollections(): string[] {
+      return [...subscribed];
+    },
+  };
+};
