@@ -154,4 +154,38 @@ describe("createHttpChannel", () => {
     });
     await expect(channel.fetchSnapshotPage({collection: "todos", cursor: 0})).rejects.toThrow();
   });
+
+  describe("fetchKeyMaterial", () => {
+    it("fetches GET /sync/key with the bearer token and returns the material", async () => {
+      const {fetchImpl, requests} = makeFetch(() => json({keyMaterial: "material-abc"}));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchKeyMaterial()).resolves.toBe("material-abc");
+      expect(requests[0].input).toBe("http://api/sync/key");
+      expect((requests[0].init?.headers as Record<string, string>).Authorization).toBe(
+        "Bearer token-123"
+      );
+    });
+
+    it("rejects with AuthRequiredError on 401", async () => {
+      const {fetchImpl} = makeFetch(() => json({}, 401));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchKeyMaterial()).rejects.toBeInstanceOf(AuthRequiredError);
+    });
+
+    it("rejects on non-ok statuses and missing keyMaterial", async () => {
+      const bad = createHttpChannel({
+        authProvider,
+        baseUrl: "http://api",
+        fetchImpl: makeFetch(() => json({}, 500)).fetchImpl,
+      });
+      await expect(bad.fetchKeyMaterial()).rejects.toThrow(/status 500/);
+
+      const empty = createHttpChannel({
+        authProvider,
+        baseUrl: "http://api",
+        fetchImpl: makeFetch(() => json({})).fetchImpl,
+      });
+      await expect(empty.fetchKeyMaterial()).rejects.toThrow(/missing keyMaterial/);
+    });
+  });
 });

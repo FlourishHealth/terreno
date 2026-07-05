@@ -36,9 +36,14 @@ interface PendingMutation {
  * The handshake token is resolved via `authProvider.getToken()` inside the
  * Socket.io `auth` callback, which runs on **every** connection attempt — the
  * token is never cached, so session refreshes are picked up transparently on
- * reconnect. Reconnection is enabled; on every (re)connect the transport
- * re-emits `sync:subscribe` for all previously subscribed collections because
- * server-side subscription state is per-connection.
+ * reconnect. The raw provider token is sent with a `Bearer ` prefix (unless the
+ * provider already included one): the server's legacy JWT socket validator
+ * (`@thream/socketio-jwt` via @terreno/api `createSocketAuthMiddleware`)
+ * requires that exact format, and the Better Auth validator strips an optional
+ * prefix — so prefixing is correct for both. Reconnection is enabled; on every
+ * (re)connect the transport re-emits `sync:subscribe` for all previously
+ * subscribed collections because server-side subscription state is
+ * per-connection.
  */
 export const createSocketTransport = ({
   baseUrl,
@@ -53,8 +58,11 @@ export const createSocketTransport = ({
   const socket: Socket = io(baseUrl, {
     auth: (callback) => {
       // Called per connection attempt; never cache the token across attempts.
+      // The server's socket auth chain expects "Bearer <token>" (matching the
+      // Authorization header format the HTTP channel sends).
       void authProvider.getToken().then(
-        (token) => callback(token ? {token} : {}),
+        (token) =>
+          callback(token ? {token: token.startsWith("Bearer ") ? token : `Bearer ${token}`} : {}),
         () => callback({})
       );
     },
