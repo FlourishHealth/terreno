@@ -1,7 +1,21 @@
-import axios from "axios";
+import axios, {type AxiosInstance, type InternalAxiosRequestConfig} from "axios";
 
 import {APIError} from "./errors";
 import {logger as defaultLogger} from "./logger";
+
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    // Opts a non-idempotent request (POST/PUT/PATCH/DELETE) into the retry policy.
+    // Callers must be sure the operation is safe to repeat.
+    retryUnsafe?: boolean;
+  }
+}
+
+// Internal per-request state tracked on the axios config across interceptor retries.
+interface RetryState {
+  __httpClientRetryCount?: number;
+  __httpClientDidAuthRefresh?: boolean;
+}
 
 /**
  * Minimal logging surface used by the HTTP client utilities so consumers (and tests)
@@ -197,4 +211,185 @@ export const withApiErrorHandling = async <T>(
     log.error(`[${options.apiName}] ${options.operation} failed`, normalized);
     throw error;
   }
+};
+
+export type AuthStrategy =
+  | {type: "bearer"; getToken: () => Promise<string>}
+  | {
+      type: "oauth2";
+      tokenUrl: string;
+      credentials: {clientId: string; clientSecret: string};
+      // When true, a 401 response invalidates the cached token and the request is
+      // retried once with a freshly fetched token before the failure propagates.
+      refreshOn401: boolean;
+    }
+  | {type: "apiKey"; header: string; getKey: () => Promise<string>};
+
+export interface RetryPolicy {
+  // Total attempts including the first request.
+  maxAttempts: number;
+  retryOn: ApiErrorClassification[];
+  // Base for exponential backoff with jitter; a Retry-After response header takes
+  // precedence when present and parseable.
+  baseDelayMs: number;
+}
+
+const DEFAULT_RETRY_POLICY: RetryPolicy = {
+  baseDelayMs: 250,
+  maxAttempts: 3,
+  retryOn: ["rateLimited", "server", "network"],
+};
+
+// Retries apply only to these methods unless a request sets `retryUnsafe: true` —
+// repeating a failed POST against an external service can duplicate side effects.
+const IDEMPOTENT_METHODS = ["get", "head", "options"];
+
+export interface CreateAuthenticatedClientOptions {
+  baseURL: string;
+  auth: AuthStrategy;
+  retry?: Partial<RetryPolicy>;
+  logger?: HttpClientLogger;
+  // Rewrites the normalized error before it is logged — for consumers with bespoke
+  // redaction/classification needs.
+  redactError?: (normalized: NormalizedApiError) => NormalizedApiError;
+}
+
+export interface AuthenticatedClient {
+  axios: AxiosInstance;
+  // Drops the cached token so the next request re-authenticates.
+  invalidateToken: () => void;
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const parseRetryAfterMs = (headerValue: unknown): number | undefined => {
+  if (typeof headerValue !== "string") {
+    return undefined;
+  }
+  const seconds = Number(headerValue);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+  return undefined;
+};
+
+/**
+ * Creates an axios instance with a pluggable auth strategy, token caching, and a retry
+ * policy for transient failures.
+ *
+ * Auth: tokens/keys are fetched lazily on the first request and cached on the client;
+ * `invalidateToken()` drops the cache. The oauth2 strategy fetches a client-credentials
+ * token (HTTP Basic auth, form-encoded `grant_type=client_credentials`) and, with
+ * `refreshOn401`, refreshes and retries exactly once when a request returns 401.
+ *
+ * Retries: failures classified in `retry.retryOn` (default: rateLimited, server,
+ * network) are retried with exponential backoff and jitter up to `maxAttempts` total
+ * attempts, honoring a parseable Retry-After header. Only idempotent methods
+ * (GET/HEAD/OPTIONS) are retried unless the request sets `retryUnsafe: true`.
+ *
+ * Logging: the client logs retries and token refreshes at debug level only and always
+ * rejects with the original axios error — error-level logging is left to the call site
+ * (typically via withApiErrorHandling) so composed usage logs each failure exactly once.
+ */
+export const createAuthenticatedClient = (
+  options: CreateAuthenticatedClientOptions
+): AuthenticatedClient => {
+  const log = options.logger ?? defaultLogger;
+  const retryPolicy: RetryPolicy = {...DEFAULT_RETRY_POLICY, ...options.retry};
+  let cachedToken: string | undefined;
+
+  const fetchToken = async (): Promise<string> => {
+    const {auth} = options;
+    if (auth.type === "bearer") {
+      return auth.getToken();
+    }
+    if (auth.type === "apiKey") {
+      return auth.getKey();
+    }
+    const response = await axios.post(
+      auth.tokenUrl,
+      new URLSearchParams({grant_type: "client_credentials"}),
+      {
+        auth: {password: auth.credentials.clientSecret, username: auth.credentials.clientId},
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      }
+    );
+    return response.data.access_token;
+  };
+
+  const getCachedToken = async (): Promise<string> => {
+    if (cachedToken === undefined) {
+      cachedToken = await fetchToken();
+    }
+    return cachedToken;
+  };
+
+  const instance = axios.create({baseURL: options.baseURL});
+
+  instance.interceptors.request.use(async (config): Promise<InternalAxiosRequestConfig> => {
+    const token = await getCachedToken();
+    if (options.auth.type === "apiKey") {
+      config.headers.set(options.auth.header, token);
+    } else {
+      config.headers.set("Authorization", `Bearer ${token}`);
+    }
+    return config;
+  });
+
+  instance.interceptors.response.use(undefined, async (error: unknown) => {
+    if (!axios.isAxiosError(error) || !error.config) {
+      throw error;
+    }
+    const config = error.config as InternalAxiosRequestConfig & RetryState;
+    let normalized = normalizeApiError(error, {
+      apiName: options.baseURL,
+      operation: `${config.method ?? "request"} ${config.url ?? ""}`,
+    });
+    if (options.redactError) {
+      normalized = options.redactError(normalized);
+    }
+
+    // One-shot token refresh on 401 for oauth2 strategies.
+    if (
+      options.auth.type === "oauth2" &&
+      options.auth.refreshOn401 &&
+      error.response?.status === 401 &&
+      !config.__httpClientDidAuthRefresh
+    ) {
+      config.__httpClientDidAuthRefresh = true;
+      cachedToken = undefined;
+      log.debug(`[httpClient] ${normalized.operation} got 401, refreshing token and retrying`);
+      return instance.request(config);
+    }
+
+    const method = (config.method ?? "get").toLowerCase();
+    const isRetryableMethod = IDEMPOTENT_METHODS.includes(method) || config.retryUnsafe === true;
+    const attemptsSoFar = (config.__httpClientRetryCount ?? 0) + 1;
+    if (
+      !retryPolicy.retryOn.includes(normalized.classification) ||
+      !isRetryableMethod ||
+      attemptsSoFar >= retryPolicy.maxAttempts
+    ) {
+      throw error;
+    }
+
+    config.__httpClientRetryCount = attemptsSoFar;
+    const backoffMs =
+      retryPolicy.baseDelayMs * 2 ** (attemptsSoFar - 1) * (1 + Math.random() * 0.5);
+    const retryAfterMs = parseRetryAfterMs(error.response?.headers?.["retry-after"]);
+    const delayMs = retryAfterMs ?? backoffMs;
+    log.debug(
+      `[httpClient] ${normalized.operation} failed (${normalized.classification}), ` +
+        `retrying attempt ${attemptsSoFar + 1}/${retryPolicy.maxAttempts} in ${Math.round(delayMs)}ms`
+    );
+    await sleep(delayMs);
+    return instance.request(config);
+  });
+
+  return {
+    axios: instance,
+    invalidateToken: (): void => {
+      cachedToken = undefined;
+    },
+  };
 };

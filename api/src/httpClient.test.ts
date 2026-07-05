@@ -1,8 +1,37 @@
+import type {Server} from "node:http";
+import type {AddressInfo} from "node:net";
+
 import {describe, expect, it} from "bun:test";
-import {AxiosError, type AxiosRequestHeaders, type AxiosResponse} from "axios";
+import {AxiosError, type AxiosRequestHeaders, type AxiosResponse, isAxiosError} from "axios";
+import express from "express";
 
 import {APIError} from "./errors";
-import {type HttpClientLogger, normalizeApiError, withApiErrorHandling} from "./httpClient";
+import {
+  createAuthenticatedClient,
+  type HttpClientLogger,
+  normalizeApiError,
+  withApiErrorHandling,
+} from "./httpClient";
+
+const startTestServer = async (
+  configure: (app: express.Express) => void
+): Promise<{baseURL: string; close: () => Promise<void>}> => {
+  const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({extended: false}));
+  configure(app);
+  const server = await new Promise<Server>((resolve) => {
+    const listening = app.listen(0, () => resolve(listening));
+  });
+  const {port} = server.address() as AddressInfo;
+  return {
+    baseURL: `http://127.0.0.1:${port}`,
+    close: () => new Promise((resolve) => server.close(() => resolve())),
+  };
+};
+
+// Tests use a 1ms base delay so retry backoff doesn't slow the suite.
+const FAST_RETRY = {baseDelayMs: 1};
 
 const createRecordingLogger = (): {
   logger: HttpClientLogger;
@@ -320,5 +349,365 @@ describe("withApiErrorHandling", () => {
       caught = error;
     }
     expect((caught as APIError).detail).toBe("unknown error");
+  });
+});
+
+describe("createAuthenticatedClient", () => {
+  describe("bearer strategy", () => {
+    it("attaches the Authorization header and caches the token across requests", async () => {
+      const seenAuthHeaders: (string | undefined)[] = [];
+      const server = await startTestServer((app) => {
+        app.get("/widgets", (req, res) => {
+          seenAuthHeaders.push(req.headers.authorization);
+          res.json({ok: true});
+        });
+      });
+      try {
+        let tokenFetches = 0;
+        const client = createAuthenticatedClient({
+          auth: {
+            getToken: async () => {
+              tokenFetches += 1;
+              return "token-abc";
+            },
+            type: "bearer",
+          },
+          baseURL: server.baseURL,
+        });
+        await client.axios.get("/widgets");
+        await client.axios.get("/widgets");
+        expect(seenAuthHeaders).toEqual(["Bearer token-abc", "Bearer token-abc"]);
+        expect(tokenFetches).toBe(1);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("re-fetches the token after invalidateToken", async () => {
+      const server = await startTestServer((app) => {
+        app.get("/widgets", (_req, res) => {
+          res.json({ok: true});
+        });
+      });
+      try {
+        let tokenFetches = 0;
+        const client = createAuthenticatedClient({
+          auth: {
+            getToken: async () => {
+              tokenFetches += 1;
+              return `token-${tokenFetches}`;
+            },
+            type: "bearer",
+          },
+          baseURL: server.baseURL,
+        });
+        await client.axios.get("/widgets");
+        client.invalidateToken();
+        await client.axios.get("/widgets");
+        expect(tokenFetches).toBe(2);
+      } finally {
+        await server.close();
+      }
+    });
+  });
+
+  describe("apiKey strategy", () => {
+    it("attaches the key to the configured header", async () => {
+      const seenKeys: (string | undefined)[] = [];
+      const server = await startTestServer((app) => {
+        app.get("/widgets", (req, res) => {
+          seenKeys.push(req.headers["x-api-key"] as string | undefined);
+          res.json({ok: true});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: {getKey: async () => "secret-key", header: "X-Api-Key", type: "apiKey"},
+          baseURL: server.baseURL,
+        });
+        await client.axios.get("/widgets");
+        expect(seenKeys).toEqual(["secret-key"]);
+      } finally {
+        await server.close();
+      }
+    });
+  });
+
+  describe("oauth2 strategy", () => {
+    const configureOauthServer = (
+      app: express.Express,
+      state: {tokenFetches: number; validToken: string}
+    ): void => {
+      app.post("/oauth/token", (req, res) => {
+        state.tokenFetches += 1;
+        const authHeader = req.headers.authorization ?? "";
+        const decoded = Buffer.from(authHeader.replace("Basic ", ""), "base64").toString();
+        if (decoded !== "client-id:client-secret" || req.body.grant_type !== "client_credentials") {
+          res.status(400).json({message: "bad token request"});
+          return;
+        }
+        res.json({access_token: state.validToken});
+      });
+    };
+
+    it("fetches a client-credentials token and sends it as a bearer", async () => {
+      const state = {tokenFetches: 0, validToken: "oauth-token-1"};
+      const seenAuthHeaders: (string | undefined)[] = [];
+      const server = await startTestServer((app) => {
+        configureOauthServer(app, state);
+        app.get("/widgets", (req, res) => {
+          seenAuthHeaders.push(req.headers.authorization);
+          res.json({ok: true});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: {
+            credentials: {clientId: "client-id", clientSecret: "client-secret"},
+            refreshOn401: true,
+            tokenUrl: `${server.baseURL}/oauth/token`,
+            type: "oauth2",
+          },
+          baseURL: server.baseURL,
+        });
+        await client.axios.get("/widgets");
+        await client.axios.get("/widgets");
+        expect(seenAuthHeaders).toEqual(["Bearer oauth-token-1", "Bearer oauth-token-1"]);
+        expect(state.tokenFetches).toBe(1);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("refreshes the token and retries exactly once on a 401", async () => {
+      const state = {tokenFetches: 0, validToken: "stale-token"};
+      const server = await startTestServer((app) => {
+        configureOauthServer(app, state);
+        app.get("/widgets", (req, res) => {
+          if (req.headers.authorization === "Bearer fresh-token") {
+            res.json({ok: true});
+            return;
+          }
+          // Invalidate the stale token server-side so the refresh fetches a good one.
+          state.validToken = "fresh-token";
+          res.status(401).json({message: "expired"});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: {
+            credentials: {clientId: "client-id", clientSecret: "client-secret"},
+            refreshOn401: true,
+            tokenUrl: `${server.baseURL}/oauth/token`,
+            type: "oauth2",
+          },
+          baseURL: server.baseURL,
+        });
+        const response = await client.axios.get("/widgets");
+        expect(response.data.ok).toBe(true);
+        expect(state.tokenFetches).toBe(2);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("propagates a persistent 401 after a single refresh attempt", async () => {
+      const state = {tokenFetches: 0, validToken: "always-stale"};
+      let widgetRequests = 0;
+      const server = await startTestServer((app) => {
+        configureOauthServer(app, state);
+        app.get("/widgets", (_req, res) => {
+          widgetRequests += 1;
+          res.status(401).json({message: "still expired"});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: {
+            credentials: {clientId: "client-id", clientSecret: "client-secret"},
+            refreshOn401: true,
+            tokenUrl: `${server.baseURL}/oauth/token`,
+            type: "oauth2",
+          },
+          baseURL: server.baseURL,
+        });
+        let caught: unknown;
+        try {
+          await client.axios.get("/widgets");
+        } catch (error) {
+          caught = error;
+        }
+        expect(isAxiosError(caught)).toBe(true);
+        expect((caught as AxiosError).response?.status).toBe(401);
+        expect(widgetRequests).toBe(2);
+        expect(state.tokenFetches).toBe(2);
+      } finally {
+        await server.close();
+      }
+    });
+  });
+
+  describe("retry policy", () => {
+    const NO_AUTH = {getToken: async () => "t", type: "bearer"} as const;
+
+    it("retries an idempotent GET on 5xx and succeeds within maxAttempts", async () => {
+      let attempts = 0;
+      const server = await startTestServer((app) => {
+        app.get("/flaky", (_req, res) => {
+          attempts += 1;
+          if (attempts < 3) {
+            res.status(500).json({message: "boom"});
+            return;
+          }
+          res.json({ok: true});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: NO_AUTH,
+          baseURL: server.baseURL,
+          retry: FAST_RETRY,
+        });
+        const response = await client.axios.get("/flaky");
+        expect(response.data.ok).toBe(true);
+        expect(attempts).toBe(3);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("retries a GET on 429 rate limiting", async () => {
+      let attempts = 0;
+      const server = await startTestServer((app) => {
+        app.get("/limited", (_req, res) => {
+          attempts += 1;
+          if (attempts === 1) {
+            res.set("Retry-After", "0").status(429).json({message: "slow down"});
+            return;
+          }
+          res.json({ok: true});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: NO_AUTH,
+          baseURL: server.baseURL,
+          retry: FAST_RETRY,
+        });
+        const response = await client.axios.get("/limited");
+        expect(response.data.ok).toBe(true);
+        expect(attempts).toBe(2);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("rejects with the original error once maxAttempts is exhausted", async () => {
+      let attempts = 0;
+      const server = await startTestServer((app) => {
+        app.get("/down", (_req, res) => {
+          attempts += 1;
+          res.status(503).json({message: "unavailable"});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: NO_AUTH,
+          baseURL: server.baseURL,
+          retry: {...FAST_RETRY, maxAttempts: 2},
+        });
+        let caught: unknown;
+        try {
+          await client.axios.get("/down");
+        } catch (error) {
+          caught = error;
+        }
+        expect(isAxiosError(caught)).toBe(true);
+        expect((caught as AxiosError).response?.status).toBe(503);
+        expect(attempts).toBe(2);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("does not retry a POST by default even on 5xx", async () => {
+      let attempts = 0;
+      const server = await startTestServer((app) => {
+        app.post("/orders", (_req, res) => {
+          attempts += 1;
+          res.status(500).json({message: "boom"});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: NO_AUTH,
+          baseURL: server.baseURL,
+          retry: FAST_RETRY,
+        });
+        let caught: unknown;
+        try {
+          await client.axios.post("/orders", {widget: 1});
+        } catch (error) {
+          caught = error;
+        }
+        expect(isAxiosError(caught)).toBe(true);
+        expect(attempts).toBe(1);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("retries a POST when the request opts in with retryUnsafe", async () => {
+      let attempts = 0;
+      const server = await startTestServer((app) => {
+        app.post("/orders", (_req, res) => {
+          attempts += 1;
+          if (attempts === 1) {
+            res.status(500).json({message: "boom"});
+            return;
+          }
+          res.json({ok: true});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: NO_AUTH,
+          baseURL: server.baseURL,
+          retry: FAST_RETRY,
+        });
+        const response = await client.axios.post("/orders", {widget: 1}, {retryUnsafe: true});
+        expect(response.data.ok).toBe(true);
+        expect(attempts).toBe(2);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it("does not retry non-retryable classifications like validation errors", async () => {
+      let attempts = 0;
+      const server = await startTestServer((app) => {
+        app.get("/bad", (_req, res) => {
+          attempts += 1;
+          res.status(400).json({message: "bad request"});
+        });
+      });
+      try {
+        const client = createAuthenticatedClient({
+          auth: NO_AUTH,
+          baseURL: server.baseURL,
+          retry: FAST_RETRY,
+        });
+        let caught: unknown;
+        try {
+          await client.axios.get("/bad");
+        } catch (error) {
+          caught = error;
+        }
+        expect((caught as AxiosError).response?.status).toBe(400);
+        expect(attempts).toBe(1);
+      } finally {
+        await server.close();
+      }
+    });
   });
 });
