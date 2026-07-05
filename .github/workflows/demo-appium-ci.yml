@@ -116,7 +116,7 @@ jobs:
   appium-android:
     name: Demo Appium · Android
     needs: detect-mobile-build
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android') }}
     # Non-blocking unless the change is a mobile build feature (see detect-mobile-build).
     continue-on-error: ${{ needs.detect-mobile-build.outputs.is_mobile_build != 'true' }}
     runs-on: ubuntu-latest
@@ -215,7 +215,7 @@ jobs:
   appium-ios:
     name: Demo Appium · iOS
     needs: detect-mobile-build
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios') }}
     # Non-blocking unless the change is a mobile build feature (see detect-mobile-build).
     continue-on-error: ${{ needs.detect-mobile-build.outputs.is_mobile_build != 'true' }}
     # macos-latest resolves to macos-26 with iOS 26.x beta runtimes that break WDA (xcodebuild exit 70).
