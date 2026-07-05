@@ -92,7 +92,7 @@
   - Depends on: 3.3
   - Acceptance: unit tests — idempotency on duplicate/out-of-order deltas, pending-entity protection, seq-jump reporting, tombstone application.
 
-- [ ] **Task 3.5**: Persister factories (expo-sqlite, memory, platform resolution)
+- [x] **Task 3.5**: Persister factories (expo-sqlite, memory, platform resolution)
   - Description: `persisterFactory` abstraction; native default via TinyBase `ExpoSqlitePersister` (JSON mode); in-memory persister for tests/SSR; platform resolution via `.native.ts`/`.web.ts` files (web default lands in Task 4.2).
   - Files: `syncdb/src/persisters/types.ts` (new), `syncdb/src/persisters/memoryPersister.ts` (new), `syncdb/src/persisters/defaultPersisterFactory.ts` (+ `.native.ts`, `.web.ts`) (new)
   - Depends on: 3.2
@@ -100,19 +100,19 @@
 
 ## Phase 4: Client crypto
 
-- [ ] **Task 4.1**: AES-GCM payload codec
+- [x] **Task 4.1**: AES-GCM payload codec
   - Description: `PayloadCodec` interface + AES-256-GCM implementation over Web Crypto (`crypto.subtle`), fresh IV per encrypt, versioned envelope `{v, iv, ciphertext}`. Harvest/adapt `crypto/aesGcmCodec.ts` from #835.
   - Files: `syncdb/src/crypto/types.ts` (new), `syncdb/src/crypto/aesGcmCodec.ts` (new)
   - Depends on: 3.1
   - Acceptance: unit tests — round-trip, tamper detection (auth tag failure), distinct IVs per encrypt.
 
-- [ ] **Task 4.2**: EncryptedIndexedDbPersister (web default, encryption on)
+- [x] **Task 4.2**: EncryptedIndexedDbPersister (web default, encryption on)
   - Description: `createCustomPersister` that serializes mergeable content, encrypts via the codec, and stores a single blob in IndexedDB; decrypt-on-load with corrupt/undecryptable data treated as an empty store + `onDecryptFailure` callback (triggers wipe + re-bootstrap). Debounced saves (500ms trailing). Becomes the web default persister factory.
   - Files: `syncdb/src/persisters/encryptedIndexedDbPersister.ts` (new), `syncdb/src/persisters/defaultPersisterFactory.web.ts`
   - Depends on: 4.1, 3.5
   - Acceptance: unit tests (fake-indexeddb) — round-trip; encrypted-at-rest assertion (raw IDB blob contains no plaintext entity markers); decrypt-failure path invokes callback and yields empty store.
 
-- [ ] **Task 4.3**: Key providers
+- [x] **Task 4.3**: Key providers
   - Description: `KeyProvider` interface; `serverKeyProvider` (default): fetch `GET /sync/key`, HKDF-derive an AES-256-GCM key (salt = `{name}:{userId}`), import as a non-extractable CryptoKey, cache in IndexedDB for offline cold start, wipe+re-bootstrap on rotation-induced decrypt failure; `localKeyProvider`: generate + store a non-extractable CryptoKey locally.
   - Files: `syncdb/src/crypto/keyProviders.ts` (new)
   - Depends on: 4.1
