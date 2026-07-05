@@ -284,6 +284,7 @@ Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), sa
 
 ## Known limitations
 
+- **Synced models need a String `_id`** (or clients must mint ObjectId-format ids): offline clients generate entity ids (UUIDs) locally and the mutation channel writes them through as `_id`. A default ObjectId `_id` would cast-fail every client-side create. Declare `_id: {type: String, ...}` on synced schemas.
 - **Multi-tab web**: two tabs of the same user share one IndexedDB blob; concurrent persister saves are last-writer-wins at the blob level and can drop the other tab's queued outbox rows. Single-writer coordination (Web Locks) is not implemented yet — avoid relying on offline writes from multiple simultaneous tabs.
 - **`Model.bulkWrite` bypass**: bulkWrite skips Mongoose middleware, so it neither stamps seqs nor throws on synced models. Nothing can catch this server-side; it is a hard convention.
 - **Native plaintext by design**: no SQLCipher; the OS sandbox is deemed sufficient.

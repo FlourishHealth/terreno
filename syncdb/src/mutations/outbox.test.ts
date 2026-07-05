@@ -195,15 +195,23 @@ describe("state machine transitions", () => {
     expect(outbox.getMutation({mutationId: "m1"})?.attemptCount).toBe(2);
   });
 
-  it("conflicted → queued via requeue applies a fresh baseVersion (keepMine)", () => {
+  it("conflicted → queued via requeue mints a fresh mutationId with the new baseVersion (keepMine)", () => {
     const outbox = makeOutbox();
     enqueueDefault(outbox, {baseVersion: 3, mutationId: "m1"});
     outbox.markInFlight({mutationId: "m1"});
     outbox.markConflicted({mutationId: "m1"});
-    outbox.requeue({baseVersion: 9, mutationId: "m1"});
-    const mutation = outbox.getMutation({mutationId: "m1"});
+    const retry = outbox.requeue({baseVersion: 9, mutationId: "m1"});
+    // The original id is burned on the server's idempotency ledger — the retry is a new
+    // mutation under a new id, cloned from the conflicted row.
+    expect(retry.mutationId).not.toBe("m1");
+    expect(outbox.getMutation({mutationId: "m1"})).toBeUndefined();
+    const mutation = outbox.getMutation({mutationId: retry.mutationId});
     expect(mutation?.status).toBe("queued");
     expect(mutation?.baseVersion).toBe(9);
+    expect(mutation?.attemptCount).toBe(0);
+    expect(mutation?.collection).toBe("todos");
+    expect(mutation?.entityId).toBe("t1");
+    expect(mutation?.operation).toBe("update");
   });
 
   it("requeue keeps the previous baseVersion when none is provided", () => {
@@ -211,8 +219,19 @@ describe("state machine transitions", () => {
     enqueueDefault(outbox, {baseVersion: 3, mutationId: "m1"});
     outbox.markInFlight({mutationId: "m1"});
     outbox.markConflicted({mutationId: "m1"});
-    outbox.requeue({mutationId: "m1"});
-    expect(outbox.getMutation({mutationId: "m1"})?.baseVersion).toBe(3);
+    const retry = outbox.requeue({mutationId: "m1"});
+    expect(outbox.getMutation({mutationId: retry.mutationId})?.baseVersion).toBe(3);
+  });
+
+  it("requeue preserves the original FIFO position", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "t1", mutationId: "m1"});
+    enqueueDefault(outbox, {entityId: "t2", mutationId: "m2"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markConflicted({mutationId: "m1"});
+    const retry = outbox.requeue({mutationId: "m1"});
+    const queued = outbox.listQueued({userId: "user-1"});
+    expect(queued.map((mutation) => mutation.mutationId)).toEqual([retry.mutationId, "m2"]);
   });
 
   it("throws on illegal transitions from queued", () => {

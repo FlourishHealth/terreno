@@ -150,7 +150,7 @@
   - Depends on: 5.2, 5.3, 4.3
   - Acceptance: unit tests — both strategies, status aggregation, seq-jump triggers rate-limited reconcile, periodic reconcile fires, second concurrent client instance does not clobber the persisted outbox.
 
-- [ ] **Task 5.5**: End-to-end integration test against a real backend
+- [x] **Task 5.5**: End-to-end integration test against a real backend
   - Description: bun integration test spinning up a TerrenoApp (via `@terreno/test` in-memory Mongo replica set) with a synced model; syncdb client (memory persister + socket transport) performs: bootstrap; live delta receipt; offline mutate → replay → ack; stale-base conflict → nack → resolve both ways; duplicate mutationId idempotency.
   - Files: `api/src/sync/integration.test.ts` (new — lives in the api package by decision: the test needs TerrenoApp + `@terreno/test` Mongo, and syncdb must stay free of backend devDependencies; syncdb is consumed as a workspace dep of the test)
   - Depends on: 5.4, Phase 2 complete

@@ -66,8 +66,14 @@ export interface Outbox {
   markConflicted: (args: {mutationId: string}) => void;
   /** inFlight → failed (terminal, non-retryable rejection). */
   markFailed: (args: {mutationId: string}) => void;
-  /** conflicted → queued with a fresh baseVersion (keepMine resolution). */
-  requeue: (args: {mutationId: string; baseVersion?: number}) => void;
+  /**
+   * Re-enqueue a conflicted mutation under a FRESH mutationId with the given
+   * baseVersion (keepMine resolution). The server's idempotency ledger records
+   * a terminal outcome per mutationId, so retrying with the original id would
+   * only ever read back the recorded conflict nack — the retry is a new
+   * mutation and must carry a new id. Returns the re-enqueued mutation.
+   */
+  requeue: (args: {mutationId: string; baseVersion?: number}) => OutboxMutation;
   /** Remove every mutation belonging to the given user (wipe-on-user-change). */
   clearForUser: (args: {userId: string}) => void;
 }
@@ -195,16 +201,39 @@ export const createOutbox = ({
     transition(mutationId, "failed");
   };
 
-  const requeue = ({mutationId, baseVersion}: {mutationId: string; baseVersion?: number}): void => {
+  const requeue = ({
+    mutationId,
+    baseVersion,
+  }: {
+    mutationId: string;
+    baseVersion?: number;
+  }): OutboxMutation => {
     const row = requireRow(mutationId);
     const from = (row.status ?? "queued") as OutboxStatus;
     if (from !== "conflicted") {
       throw new Error(`Illegal outbox transition "${from}" → "queued" (mutation ${mutationId})`);
     }
-    store.raw.setCell(OUTBOX_TABLE, mutationId, "status", "queued");
-    if (baseVersion !== undefined) {
-      store.raw.setCell(OUTBOX_TABLE, mutationId, "baseVersion", baseVersion);
+    // Clone under a fresh id (fresh retry budget, original FIFO position) and drop the
+    // spent row — its mutationId is burned on the server's idempotency ledger.
+    const retryId = generateMutationId();
+    const retryRow: OutboxRow = {
+      args: row.args ?? "{}",
+      attemptCount: 0,
+      collection: row.collection ?? "",
+      createdAt: row.createdAt ?? now(),
+      enqueueOrder: row.enqueueOrder ?? 0,
+      entityId: row.entityId ?? "",
+      operation: row.operation ?? "update",
+      status: "queued",
+      userId: row.userId ?? "",
+    };
+    const retryBaseVersion = baseVersion ?? row.baseVersion;
+    if (retryBaseVersion !== undefined) {
+      retryRow.baseVersion = retryBaseVersion;
     }
+    store.raw.setRow(OUTBOX_TABLE, retryId, retryRow as unknown as Row);
+    store.raw.delRow(OUTBOX_TABLE, mutationId);
+    return rowToMutation(retryId, retryRow);
   };
 
   const clearForUser = ({userId}: {userId: string}): void => {

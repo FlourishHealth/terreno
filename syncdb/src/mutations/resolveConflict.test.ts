@@ -83,7 +83,7 @@ describe("resolveConflict", () => {
     expect(harness.store.getEntity({collection: "todos", id: "t1"})?.data).toBeNull();
   });
 
-  it("keepMine requeues with baseVersion = serverSeq and keeps the local entity", () => {
+  it("keepMine requeues under a fresh mutationId with baseVersion = serverSeq and keeps the local entity", () => {
     const harness = makeHarness();
     seedConflict(harness);
 
@@ -94,13 +94,20 @@ describe("resolveConflict", () => {
       strategy: "keepMine",
     });
 
-    const mutation = harness.outbox.getMutation({mutationId: "m1"});
-    expect(mutation?.status).toBe("queued");
-    expect(mutation?.baseVersion).toBe(9);
+    // The retry carries a fresh mutationId: the original id is burned on the server's
+    // idempotency ledger (it would replay the recorded conflict nack forever).
+    expect(harness.outbox.getMutation({mutationId: "m1"})).toBeUndefined();
+    const queued = harness.outbox.listQueued({userId: USER});
+    expect(queued).toHaveLength(1);
+    const retry = queued[0];
+    expect(retry.mutationId).not.toBe("m1");
+    expect(retry.status).toBe("queued");
+    expect(retry.baseVersion).toBe(9);
     expect(getConflict({mutationId: "m1", store: harness.store})).toBeUndefined();
     const entity = harness.store.getEntity({collection: "todos", id: "t1"});
     expect(entity?.data).toEqual({title: "local"});
-    expect(entity?.pendingMutationId).toBe("m1");
+    // The optimistic guard is re-pointed at the retry so its ack can release it.
+    expect(entity?.pendingMutationId).toBe(retry.mutationId);
   });
 
   it("throws for an unknown conflict", () => {

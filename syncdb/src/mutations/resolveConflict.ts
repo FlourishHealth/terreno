@@ -9,10 +9,13 @@ import type {Outbox} from "./outbox";
  * - `"useServer"`: overwrite the local entity with the canonical server data
  *   and seq, clear its `pendingMutationId`, and delete the conflict row. The
  *   outbox mutation stays `conflicted` (a terminal state — it never replays).
- * - `"keepMine"`: requeue the conflicted mutation with `baseVersion` set to
- *   the server seq recorded on the conflict so the retry passes the LWW check,
- *   and delete the conflict row. The entity keeps its optimistic local data
- *   and `pendingMutationId` until the retried mutation resolves.
+ * - `"keepMine"`: requeue the conflicted mutation under a FRESH mutationId
+ *   (the original id is burned on the server's idempotency ledger, which would
+ *   replay the recorded conflict nack forever) with `baseVersion` set to the
+ *   server seq recorded on the conflict so the retry passes the LWW check, and
+ *   delete the conflict row. The entity keeps its optimistic local data and
+ *   its `pendingMutationId` is re-pointed at the retry so the retry's ack can
+ *   release it.
  */
 export const resolveConflict = ({
   store,
@@ -48,7 +51,17 @@ export const resolveConflict = ({
     return;
   }
 
-  // keepMine: replay the local mutation against the latest server version.
-  outbox.requeue({baseVersion: conflict.serverSeq, mutationId});
+  // keepMine: replay the local mutation against the latest server version,
+  // under a fresh mutationId (see requeue).
+  const retry = outbox.requeue({baseVersion: conflict.serverSeq, mutationId});
+  const entity = store.getEntity({collection: conflict.collection, id: conflict.entityId});
+  if (entity?.pendingMutationId === mutationId) {
+    store.upsertEntity({
+      collection: conflict.collection,
+      data: entity.data,
+      id: conflict.entityId,
+      pendingMutationId: retry.mutationId,
+    });
+  }
   deleteConflict({mutationId, store});
 };
