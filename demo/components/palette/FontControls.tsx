@@ -8,8 +8,8 @@ import {
   FONT_PAIRINGS,
   type FontSelection,
   HEADING_FONTS,
-  loadWebFonts,
 } from "./fonts";
+import {loadWebFonts} from "./webFonts";
 
 /**
  * Font selection + live preview. The heading and body families can be chosen manually (or suggested
@@ -22,22 +22,28 @@ interface FontControlsProps {
   fonts: FontSelection;
   onChange: (fonts: FontSelection) => void;
   rationale?: string;
+  disabled?: boolean;
 }
 
 const PairingButton: React.FC<{
   name: string;
   fonts: FontSelection;
   active: boolean;
+  disabled?: boolean;
   onSelect: (fonts: FontSelection) => void;
-}> = ({name, fonts, active, onSelect}) => {
+}> = ({name, fonts, active, disabled, onSelect}) => {
   const handlePress = useCallback((): void => {
+    if (disabled) {
+      return;
+    }
     onSelect(fonts);
-  }, [fonts, onSelect]);
+  }, [disabled, fonts, onSelect]);
   return (
     <Box
       accessibilityHint={`Use the ${name} font pairing`}
       accessibilityLabel={name}
       border={active ? "activeAccent" : "default"}
+      dangerouslySetInlineStyle={{__style: {opacity: disabled ? 0.6 : 1}}}
       onClick={handlePress}
       paddingX={3}
       paddingY={2}
@@ -48,7 +54,12 @@ const PairingButton: React.FC<{
   );
 };
 
-export const FontControls: React.FC<FontControlsProps> = ({fonts, onChange, rationale}) => {
+export const FontControls: React.FC<FontControlsProps> = ({
+  fonts,
+  onChange,
+  rationale,
+  disabled,
+}) => {
   const headingOptions = useMemo(
     () => buildFontOptions(HEADING_FONTS, fonts.headingFont),
     [fonts.headingFont]
@@ -79,6 +90,7 @@ export const FontControls: React.FC<FontControlsProps> = ({fonts, onChange, rati
       <Box direction="column" gap={3} mdDirection="row">
         <Box flex="grow">
           <SelectField
+            disabled={disabled}
             onChange={handleHeading}
             options={headingOptions}
             requireValue
@@ -88,6 +100,7 @@ export const FontControls: React.FC<FontControlsProps> = ({fonts, onChange, rati
         </Box>
         <Box flex="grow">
           <SelectField
+            disabled={disabled}
             onChange={handleBody}
             options={bodyOptions}
             requireValue
@@ -104,6 +117,7 @@ export const FontControls: React.FC<FontControlsProps> = ({fonts, onChange, rati
               pairing.fonts.headingFont === fonts.headingFont &&
               pairing.fonts.bodyFont === fonts.bodyFont
             }
+            disabled={disabled}
             fonts={pairing.fonts}
             key={pairing.name}
             name={pairing.name}

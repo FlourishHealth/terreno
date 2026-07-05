@@ -1,6 +1,6 @@
-import {Box, Button, Heading, Text, TextField, useStoredState} from "@terreno/ui";
+import {Box, Button, Heading, SelectField, Text, TextField, useStoredState} from "@terreno/ui";
 import {DateTime} from "luxon";
-import React, {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
 import {AnchorControls} from "./AnchorControls";
 import {ChatPanel} from "./ChatPanel";
@@ -10,8 +10,13 @@ import {ContrastReport} from "./ContrastReport";
 import {generatePrimitivesFromAnchors, type PaletteAnchors} from "./colorUtils";
 import {DarkModeAudit} from "./DarkModeAudit";
 import {FontControls} from "./FontControls";
-import {DEFAULT_FONTS, type FontSelection} from "./fonts";
-import {DEFAULT_GEMINI_MODEL, generatePaletteFromChat} from "./geminiClient";
+import {buildFontOptions, DEFAULT_FONTS, type FontSelection} from "./fonts";
+import {
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_GEMINI_MODELS,
+  generatePaletteFromChat,
+  listGeminiModels,
+} from "./geminiClient";
 import {PaletteRamps} from "./PaletteRamps";
 import {
   type ChatMessage,
@@ -54,6 +59,24 @@ export const PaletteGenerator: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [availableModels, setAvailableModels] = useState<string[]>(DEFAULT_GEMINI_MODELS);
+
+  // Guards against overlapping generations: state updates are async, so a rapid second Send (or a
+  // starter prompt) could otherwise start a concurrent request before `isLoading` re-renders.
+  const generatingRef = useRef<boolean>(false);
+
+  const resolvedModel = model || DEFAULT_GEMINI_MODEL;
+  const modelOptions = useMemo(
+    () => buildFontOptions(availableModels, resolvedModel),
+    [availableModels, resolvedModel]
+  );
+
+  const handleModelChange = useCallback(
+    (value: string): void => {
+      void setModel(value);
+    },
+    [setModel]
+  );
 
   const primitives = useMemo(
     () => generatePrimitivesFromAnchors(anchors) as Record<string, string>,
@@ -61,6 +84,24 @@ export const PaletteGenerator: React.FC = () => {
   );
   const lightContrast = useMemo(() => runContrastChecks(primitives, "light"), [primitives]);
   const darkContrast = useMemo(() => runContrastChecks(primitives, "dark"), [primitives]);
+
+  // Populate the model dropdown with the live set of chat models for the current key, falling back
+  // to the curated defaults when no key is set or the listing fails.
+  useEffect(() => {
+    if (!apiKey) {
+      setAvailableModels(DEFAULT_GEMINI_MODELS);
+      return;
+    }
+    let cancelled = false;
+    void listGeminiModels({apiKey}).then((models) => {
+      if (!cancelled && models && models.length > 0) {
+        setAvailableModels(models);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey]);
 
   const handleChangeAnchor = useCallback((family: Family, hex: string): void => {
     setAnchors((prev) => ({...prev, [family]: hex}));
@@ -72,6 +113,12 @@ export const PaletteGenerator: React.FC = () => {
         setError("Add your Gemini API key above to use the assistant.");
         return;
       }
+      // Ignore overlapping sends; the ref updates synchronously, unlike isLoading.
+      if (generatingRef.current) {
+        return;
+      }
+      generatingRef.current = true;
+
       const userMessage = makeMessage("user", text);
       const history = [...messages, userMessage];
       setMessages(history);
@@ -97,6 +144,7 @@ export const PaletteGenerator: React.FC = () => {
         const message = caught instanceof Error ? caught.message : "Something went wrong.";
         setError(message);
       } finally {
+        generatingRef.current = false;
         setIsLoading(false);
       }
     },
@@ -142,12 +190,14 @@ export const PaletteGenerator: React.FC = () => {
               value={apiKey}
             />
           </Box>
-          <Box minWidth={220}>
-            <TextField
-              onChange={setModel}
-              placeholder={DEFAULT_GEMINI_MODEL}
+          <Box minWidth={240}>
+            <SelectField
+              helperText={apiKey ? undefined : "Add a key to load models"}
+              onChange={handleModelChange}
+              options={modelOptions}
+              requireValue
               title="Model"
-              value={model}
+              value={resolvedModel}
             />
           </Box>
         </Box>
@@ -172,6 +222,7 @@ export const PaletteGenerator: React.FC = () => {
             </Text>
             <AnchorControls
               anchors={anchors}
+              disabled={isLoading}
               onChangeAnchor={handleChangeAnchor}
               onSelectFamily={setSelectedFamily}
               selectedFamily={selectedFamily}
@@ -183,7 +234,12 @@ export const PaletteGenerator: React.FC = () => {
               Pick a heading + body pairing (or let the assistant suggest one). The preview uses the
               real typefaces on web; the export includes the theme.font config.
             </Text>
-            <FontControls fonts={fonts} onChange={setFonts} rationale={fontRationale} />
+            <FontControls
+              disabled={isLoading}
+              fonts={fonts}
+              onChange={setFonts}
+              rationale={fontRationale}
+            />
           </Box>
         </Box>
 

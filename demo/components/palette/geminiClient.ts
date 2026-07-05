@@ -13,6 +13,93 @@ import {ANCHOR_FAMILIES, type ChatMessage, FAMILY_LABELS} from "./paletteTypes";
 export const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
+/** Curated fallback models for the picker when the live model list cannot be fetched. */
+export const DEFAULT_GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.5-flash-lite",
+  "gemini-flash-latest",
+];
+
+const MAX_MODEL_LIST_PAGES = 10;
+const MODEL_LIST_PAGE_SIZE = "200";
+const GENERATE_CONTENT_METHOD = "generateContent";
+
+interface GeminiApiModel {
+  name?: string;
+  supportedGenerationMethods?: string[];
+}
+
+/** Strip the "models/" resource prefix from a Gemini model name. */
+export const normalizeGeminiModelId = (name: string): string => {
+  return name.trim().replace(/^models\//, "");
+};
+
+/**
+ * List chat-capable models available to a Gemini Developer API key, so the model picker reflects the
+ * live set for that key (mirrors `listGeminiApiModels` in `@terreno/ai`). Returns `undefined` when
+ * the list can't be retrieved (missing key, network error, non-200), so callers fall back to
+ * `DEFAULT_GEMINI_MODELS`.
+ */
+export const listGeminiModels = async ({
+  apiKey,
+  baseUrl,
+  fetchImpl,
+}: {
+  apiKey: string;
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<string[] | undefined> => {
+  if (!apiKey) {
+    return undefined;
+  }
+  const doFetch = fetchImpl ?? globalThis.fetch;
+  if (!doFetch) {
+    return undefined;
+  }
+
+  const resolvedBase = baseUrl ?? GEMINI_API_BASE_URL;
+  const models: string[] = [];
+  let pageToken: string | undefined;
+  let pages = 0;
+
+  try {
+    do {
+      const url = new URL(`${resolvedBase}/models`);
+      url.searchParams.set("key", apiKey);
+      url.searchParams.set("pageSize", MODEL_LIST_PAGE_SIZE);
+      if (pageToken) {
+        url.searchParams.set("pageToken", pageToken);
+      }
+
+      const response = await doFetch(url.toString());
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const body = (await response.json()) as {
+        models?: GeminiApiModel[];
+        nextPageToken?: string;
+      };
+      for (const model of body.models ?? []) {
+        if (!model.name) {
+          continue;
+        }
+        if (!(model.supportedGenerationMethods ?? []).includes(GENERATE_CONTENT_METHOD)) {
+          continue;
+        }
+        models.push(normalizeGeminiModelId(model.name));
+      }
+      pageToken = body.nextPageToken;
+      pages += 1;
+    } while (pageToken && pages < MAX_MODEL_LIST_PAGES);
+  } catch {
+    return undefined;
+  }
+
+  return models;
+};
+
 /** System instruction: describes the assistant's role, the required output, and worked examples. */
 export const COLOR_SYSTEM_PROMPT = `You are an expert product designer and color systemist who builds accessible UI color palettes.
 

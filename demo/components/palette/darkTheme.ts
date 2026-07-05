@@ -1,10 +1,16 @@
 import type {TerrenoThemeConfig} from "@terreno/ui";
 
+import type {RoleMap} from "./paletteTypes";
+
 /**
  * Dark-mode support for the palette preview. Terreno ships a single light theme, so a dark theme is
  * produced by REMAPPING semantic roles to darker primitives (not by inverting the neutral ramp).
  * `text.inverted` is intentionally kept light because many components use it as "text on a colored
  * surface" — see `DARK_MODE_AUDIT` for the components that do and do not adapt cleanly.
+ *
+ * `DARK_THEME_CONFIG` is the single source of truth for dark semantics: it is applied to the live
+ * preview via `setTheme`, and `DARK_ROLE_MAP` (used by the dark WCAG audit) is derived from it so
+ * the two can never drift.
  */
 
 type DeepPartial<T> = {
@@ -62,6 +68,30 @@ export const DARK_THEME_CONFIG: DeepPartial<TerrenoThemeConfig> = {
     secondaryLight: "neutral300",
     success: "success100",
     warning: "warning100",
+  },
+};
+
+/**
+ * Dark-mode role → primitive map used by the WCAG audit, DERIVED from `DARK_THEME_CONFIG` so the
+ * contrast checks always evaluate the same primitives the preview renders.
+ */
+export const DARK_ROLE_MAP: RoleMap = {
+  border: {default: DARK_THEME_CONFIG.border?.default as string},
+  surface: {
+    base: DARK_THEME_CONFIG.surface?.base as string,
+    error: DARK_THEME_CONFIG.surface?.error as string,
+    primary: DARK_THEME_CONFIG.surface?.primary as string,
+    secondaryDark: DARK_THEME_CONFIG.surface?.secondaryDark as string,
+    success: DARK_THEME_CONFIG.surface?.success as string,
+    warning: DARK_THEME_CONFIG.surface?.warning as string,
+  },
+  text: {
+    accent: DARK_THEME_CONFIG.text?.accent as string,
+    error: DARK_THEME_CONFIG.text?.error as string,
+    inverted: DARK_THEME_CONFIG.text?.inverted as string,
+    link: DARK_THEME_CONFIG.text?.link as string,
+    primary: DARK_THEME_CONFIG.text?.primary as string,
+    secondaryLight: DARK_THEME_CONFIG.text?.secondaryLight as string,
   },
 };
 

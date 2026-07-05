@@ -13,9 +13,10 @@ interface ColorPickerProps {
   value: string;
   onChange: (hex: string) => void;
   label?: string;
+  disabled?: boolean;
 }
 
-export const ColorPicker: React.FC<ColorPickerProps> = ({value, onChange, label}) => {
+export const ColorPicker: React.FC<ColorPickerProps> = ({value, onChange, label, disabled}) => {
   // Track raw hex text separately so partially-typed values don't get clobbered mid-edit.
   const [hexDraft, setHexDraft] = useState<string>(value);
 
@@ -62,8 +63,15 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({value, onChange, label}
           {normalizedValue.toUpperCase()}
         </Text>
       </Box>
-      <TextField onChange={handleHexChange} placeholder="#0086b3" title="Hex" value={hexDraft} />
+      <TextField
+        disabled={disabled}
+        onChange={handleHexChange}
+        placeholder="#0086b3"
+        title="Hex"
+        value={hexDraft}
+      />
       <Slider
+        disabled={disabled}
         inlineLabels
         labels={{min: "Hue"}}
         maximumValue={360}
@@ -74,6 +82,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({value, onChange, label}
         value={hsl.h}
       />
       <Slider
+        disabled={disabled}
         inlineLabels
         labels={{min: "Sat"}}
         maximumValue={100}
@@ -84,6 +93,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({value, onChange, label}
         value={Math.round(hsl.s * 100)}
       />
       <Slider
+        disabled={disabled}
         inlineLabels
         labels={{min: "Light"}}
         maximumValue={100}

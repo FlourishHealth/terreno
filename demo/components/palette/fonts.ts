@@ -1,10 +1,7 @@
-import {Platform} from "react-native";
-
 /**
  * Font selection support for the palette generator: curated Google Font choices for headings and
- * body, ready-made pairings, and a web-only loader that injects the chosen families so previews
- * render in the real typeface. On native the family name is still applied (and falls back to the
- * system font if the family is not bundled), since the demo's primary target is web.
+ * body, ready-made pairings, and helpers. This module is intentionally dependency-free (no
+ * react-native import) so it can be unit tested; the web font loader lives in `webFonts.ts`.
  */
 
 export interface FontSelection {
@@ -67,31 +64,6 @@ export const googleFontsUrl = (families: string[]): string => {
     .map((family) => `family=${encodeURIComponent(family)}:wght@400;500;600;700`)
     .join("&");
   return `https://fonts.googleapis.com/css2?${params}&display=swap`;
-};
-
-const WEB_FONT_LINK_ID = "palette-generator-fonts";
-
-/**
- * Inject (or update) a `<link>` in the document head so the chosen families are actually available
- * to the preview on web. No-op on native and during SSR.
- */
-export const loadWebFonts = (families: string[]): void => {
-  if (Platform.OS !== "web" || typeof document === "undefined") {
-    return;
-  }
-  const href = googleFontsUrl(families);
-  const existing = document.getElementById(WEB_FONT_LINK_ID) as HTMLLinkElement | null;
-  if (existing) {
-    if (existing.href !== href) {
-      existing.href = href;
-    }
-    return;
-  }
-  const link = document.createElement("link");
-  link.id = WEB_FONT_LINK_ID;
-  link.rel = "stylesheet";
-  link.href = href;
-  document.head.appendChild(link);
 };
 
 /** Merge a base option list with an extra value (e.g. an LLM suggestion) so it stays selectable. */

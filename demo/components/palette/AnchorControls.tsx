@@ -17,15 +17,19 @@ interface AnchorSwatchProps {
   family: Family;
   hex: string;
   selected: boolean;
+  disabled?: boolean;
   onSelect: (family: Family) => void;
 }
 
-const AnchorSwatch: React.FC<AnchorSwatchProps> = ({family, hex, selected, onSelect}) => {
+const AnchorSwatch: React.FC<AnchorSwatchProps> = ({family, hex, selected, disabled, onSelect}) => {
   const normalized = normalizeHex(hex) ?? "#000000";
   const textColor = readableTextColor(normalized) === "#ffffff" ? "inverted" : "primary";
   const handlePress = useCallback((): void => {
+    if (disabled) {
+      return;
+    }
     onSelect(family);
-  }, [family, onSelect]);
+  }, [disabled, family, onSelect]);
 
   return (
     <Box
@@ -33,7 +37,9 @@ const AnchorSwatch: React.FC<AnchorSwatchProps> = ({family, hex, selected, onSel
       accessibilityLabel={`${FAMILY_LABELS[family]} anchor`}
       alignItems="center"
       border={selected ? "activeAccent" : "default"}
-      dangerouslySetInlineStyle={{__style: {backgroundColor: normalized}}}
+      dangerouslySetInlineStyle={{
+        __style: {backgroundColor: normalized, opacity: disabled ? 0.6 : 1},
+      }}
       gap={1}
       justifyContent="center"
       onClick={handlePress}
@@ -54,6 +60,7 @@ const AnchorSwatch: React.FC<AnchorSwatchProps> = ({family, hex, selected, onSel
 interface AnchorControlsProps {
   anchors: PaletteAnchors;
   selectedFamily: Family;
+  disabled?: boolean;
   onSelectFamily: (family: Family) => void;
   onChangeAnchor: (family: Family, hex: string) => void;
 }
@@ -61,6 +68,7 @@ interface AnchorControlsProps {
 export const AnchorControls: React.FC<AnchorControlsProps> = ({
   anchors,
   selectedFamily,
+  disabled,
   onSelectFamily,
   onChangeAnchor,
 }) => {
@@ -76,6 +84,7 @@ export const AnchorControls: React.FC<AnchorControlsProps> = ({
       <Box direction="row" gap={2} wrap>
         {ANCHOR_FAMILIES.map((family) => (
           <AnchorSwatch
+            disabled={disabled}
             family={family}
             hex={anchors[family]}
             key={family}
@@ -85,6 +94,7 @@ export const AnchorControls: React.FC<AnchorControlsProps> = ({
         ))}
       </Box>
       <ColorPicker
+        disabled={disabled}
         label={FAMILY_LABELS[selectedFamily]}
         onChange={handleColorChange}
         value={anchors[selectedFamily]}

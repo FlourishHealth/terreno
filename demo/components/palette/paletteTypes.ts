@@ -6,6 +6,10 @@ import {
   STATUS_FAMILIES,
   type StatusFamily,
 } from "./colorUtils";
+// DARK_ROLE_MAP is derived from DARK_THEME_CONFIG (the source applied to the live preview) so the
+// dark-mode WCAG audit always evaluates the same primitives the preview renders. `import type` in
+// darkTheme keeps this from being a runtime import cycle.
+import {DARK_ROLE_MAP} from "./darkTheme";
 
 /**
  * Shared types and constants for the palette generator: chat messages, the anchor set the LLM and
@@ -97,30 +101,6 @@ export const LIGHT_ROLE_MAP: RoleMap = {
     link: "primary600",
     primary: "neutral900",
     secondaryLight: "neutral600",
-  },
-};
-
-/**
- * A dark theme mapping built by remapping roles (not inverting the neutral ramp). `text.inverted`
- * is deliberately kept light so text on colored surfaces stays legible — see the dark-mode audit.
- */
-export const DARK_ROLE_MAP: RoleMap = {
-  border: {default: "neutral700"},
-  surface: {
-    base: "neutral900",
-    error: "error100",
-    primary: "primary400",
-    secondaryDark: "secondary400",
-    success: "success100",
-    warning: "warning100",
-  },
-  text: {
-    accent: "accent200",
-    error: "error100",
-    inverted: "neutral000",
-    link: "primary200",
-    primary: "neutral000",
-    secondaryLight: "neutral300",
   },
 };
 
