@@ -2,6 +2,9 @@ import {describe, expect, it} from "bun:test";
 
 import {
   assessContrast,
+  clampHueToBand,
+  constrainAnchorsToFamilyTones,
+  constrainAnchorToFamilyTone,
   contrastRatio,
   generateColorScale,
   generatePrimitivesFromAnchors,
@@ -107,6 +110,118 @@ describe("generatePrimitivesFromAnchors", () => {
     expect(primitives.success000).toBeDefined();
     // 4 families * 11 shades + 3 status families * 3 shades = 53 keys
     expect(Object.keys(primitives).length).toBe(53);
+  });
+});
+
+describe("clampHueToBand", () => {
+  it("leaves an in-band hue unchanged", () => {
+    expect(clampHueToBand(130, 130, 45)).toBe(130);
+    expect(clampHueToBand(100, 130, 45)).toBe(100);
+  });
+
+  it("snaps an out-of-band hue to the nearest edge", () => {
+    expect(clampHueToBand(240, 130, 45)).toBe(175);
+    expect(clampHueToBand(60, 130, 45)).toBe(85);
+  });
+
+  it("wraps correctly around 0/360 for red", () => {
+    expect(clampHueToBand(350, 0, 18)).toBe(350);
+    expect(clampHueToBand(10, 0, 18)).toBe(10);
+    // Blue is far from red on both sides; snaps to the nearer edge (342).
+    expect(clampHueToBand(220, 0, 18)).toBe(342);
+    // Just past the warm edge snaps down to +18.
+    expect(clampHueToBand(90, 0, 18)).toBe(18);
+  });
+});
+
+describe("constrainAnchorToFamilyTone", () => {
+  // Circular distance (degrees) between two hues, tolerant of ±1° hex round-trip rounding.
+  const hueDistance = (hue: number, center: number): number => {
+    const diff = Math.abs((((hue - center) % 360) + 360) % 360);
+    return Math.min(diff, 360 - diff);
+  };
+  const hueOf = (hex: string): number => hexToHsl(hex)!.h;
+
+  it("keeps unlocked families (primary/secondary/accent) unchanged", () => {
+    expect(constrainAnchorToFamilyTone("primary", "#0000ff")).toBe("#0000ff");
+    expect(constrainAnchorToFamilyTone("accent", "#00ff00")).toBe("#00ff00");
+  });
+
+  it("returns an in-tone anchor verbatim", () => {
+    expect(constrainAnchorToFamilyTone("error", "#d33232")).toBe("#d33232");
+    expect(constrainAnchorToFamilyTone("success", "#3ea45c")).toBe("#3ea45c");
+    expect(constrainAnchorToFamilyTone("warning", "#f36719")).toBe("#f36719");
+  });
+
+  it("snaps a blue 'error' back into the red band", () => {
+    const result = constrainAnchorToFamilyTone("error", "#2b6cff");
+    // Red band is centered on 0 with an 18° tolerance (plus rounding slack).
+    expect(hueDistance(hueOf(result), 0)).toBeLessThanOrEqual(20);
+  });
+
+  it("snaps a purple 'success' back into the green band", () => {
+    const result = constrainAnchorToFamilyTone("success", "#8a2be2");
+    expect(hueDistance(hueOf(result), 130)).toBeLessThanOrEqual(47);
+  });
+
+  it("snaps a magenta 'warning' back into the amber band", () => {
+    const result = constrainAnchorToFamilyTone("warning", "#ff00ff");
+    expect(hueDistance(hueOf(result), 35)).toBeLessThanOrEqual(22);
+  });
+
+  it("caps neutral saturation to keep it gray", () => {
+    const result = constrainAnchorToFamilyTone("neutral", "#1e90ff");
+    expect(hexToHsl(result)!.s).toBeLessThanOrEqual(0.12 + 1e-6);
+  });
+
+  it("preserves lightness when snapping the hue", () => {
+    const result = constrainAnchorToFamilyTone("error", "#2b6cff");
+    expect(Math.abs(hexToHsl(result)!.l - hexToHsl("#2b6cff")!.l)).toBeLessThanOrEqual(0.01);
+  });
+
+  it("returns invalid input as-is", () => {
+    expect(constrainAnchorToFamilyTone("error", "nope")).toBe("nope");
+  });
+});
+
+describe("constrainAnchorsToFamilyTones", () => {
+  const hueDistance = (hue: number, center: number): number => {
+    const diff = Math.abs((((hue - center) % 360) + 360) % 360);
+    return Math.min(diff, 360 - diff);
+  };
+
+  it("locks status/neutral families but preserves brand families", () => {
+    const anchors: PaletteAnchors = {
+      accent: "#123456",
+      error: "#3355ff",
+      neutral: "#1e90ff",
+      primary: "#8a2be2",
+      secondary: "#00ffcc",
+      success: "#ff00ff",
+      warning: "#0000ff",
+    };
+    const locked = constrainAnchorsToFamilyTones(anchors);
+    // Brand families are untouched.
+    expect(locked.primary).toBe("#8a2be2");
+    expect(locked.secondary).toBe("#00ffcc");
+    expect(locked.accent).toBe("#123456");
+    // Neutral is desaturated toward gray.
+    expect(hexToHsl(locked.neutral)!.s).toBeLessThanOrEqual(0.12 + 1e-6);
+    // Success is forced into the green band.
+    expect(hueDistance(hexToHsl(locked.success)!.h, 130)).toBeLessThanOrEqual(47);
+  });
+
+  it("leaves the default anchors unchanged", () => {
+    const defaults: PaletteAnchors = {
+      accent: "#d69c0e",
+      error: "#d33232",
+      neutral: "#9a9a9a",
+      primary: "#0086b3",
+      secondary: "#2b6072",
+      success: "#3ea45c",
+      warning: "#f36719",
+    };
+    expect(constrainAnchorsToFamilyTones(defaults)).toEqual(defaults);
   });
 });
 
