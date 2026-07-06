@@ -9,7 +9,12 @@ import {ChatPanel} from "./ChatPanel";
 import {CodeOutput} from "./CodeOutput";
 import {ComponentPreview} from "./ComponentPreview";
 import {ContrastReport} from "./ContrastReport";
-import {generatePrimitivesFromAnchors, type PaletteAnchors} from "./colorUtils";
+import {
+  constrainAnchorsToFamilyTones,
+  constrainAnchorToFamilyTone,
+  generatePrimitivesFromAnchors,
+  type PaletteAnchors,
+} from "./colorUtils";
 import {DarkModeAudit} from "./DarkModeAudit";
 import {FontControls} from "./FontControls";
 import {buildFontOptions, DEFAULT_FONTS, type FontSelection} from "./fonts";
@@ -62,7 +67,9 @@ export const PaletteGenerator: React.FC = () => {
     decodeShareState(typeof searchParams.s === "string" ? searchParams.s : undefined)
   ).current;
 
-  const [anchors, setAnchors] = useState<PaletteAnchors>(sharedState?.anchors ?? DEFAULT_ANCHORS);
+  const [anchors, setAnchors] = useState<PaletteAnchors>(
+    constrainAnchorsToFamilyTones(sharedState?.anchors ?? DEFAULT_ANCHORS)
+  );
   const [fonts, setFonts] = useState<FontSelection>(sharedState?.fonts ?? DEFAULT_FONTS);
   const [shareCopied, setShareCopied] = useState<boolean>(false);
   const [fontRationale, setFontRationale] = useState<string | undefined>(undefined);
@@ -115,7 +122,9 @@ export const PaletteGenerator: React.FC = () => {
   }, [apiKey]);
 
   const handleChangeAnchor = useCallback((family: Family, hex: string): void => {
-    setAnchors((prev) => ({...prev, [family]: hex}));
+    // Semantic families (error/warning/success/neutral) are locked to their conventional tones so a
+    // manual edit can't turn "error" blue or "success" purple; other families are free brand colors.
+    setAnchors((prev) => ({...prev, [family]: constrainAnchorToFamilyTone(family, hex)}));
   }, []);
 
   const handleSend = useCallback(
@@ -144,7 +153,7 @@ export const PaletteGenerator: React.FC = () => {
           messages: history,
           model: model || DEFAULT_GEMINI_MODEL,
         });
-        setAnchors(result.anchors);
+        setAnchors(constrainAnchorsToFamilyTones(result.anchors));
         setFonts(result.fonts);
         setFontRationale(result.fontRationale);
         const reply = result.fontRationale

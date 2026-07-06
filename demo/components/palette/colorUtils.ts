@@ -289,6 +289,95 @@ export const generatePrimitivesFromAnchors = (
 };
 
 /**
+ * A tone constraint applied to a semantic family so its meaning stays legible: an optional hue band
+ * (center + max deviation, in degrees) plus optional saturation limits (0-1). Families without a
+ * lock (primary/secondary/accent) are free brand colors.
+ */
+export interface ToneLock {
+  /** Center hue in degrees the family should stay near. */
+  hueCenter?: number;
+  /** Maximum allowed deviation from `hueCenter` in degrees (circular). */
+  hueTolerance?: number;
+  /** Maximum saturation (0-1); values above are clamped down (keeps neutral gray). */
+  maxSaturation?: number;
+  /** Minimum saturation (0-1); values below are clamped up. */
+  minSaturation?: number;
+}
+
+/**
+ * The semantic families whose tone is locked so they keep conveying their meaning: error stays red,
+ * warning orange/amber, success green, and neutral a low-saturation gray. Bands are intentionally
+ * generous so users still have room to pick a specific shade within the correct tone.
+ */
+export const FAMILY_TONE_LOCKS: Partial<Record<MainFamily | StatusFamily, ToneLock>> = {
+  error: {hueCenter: 0, hueTolerance: 18},
+  neutral: {maxSaturation: 0.12},
+  success: {hueCenter: 130, hueTolerance: 45},
+  warning: {hueCenter: 35, hueTolerance: 20},
+};
+
+/**
+ * Snap a hue (degrees) into a band centered on `center` with a maximum deviation of `tolerance`,
+ * taking the shorter way around the color wheel so bands that straddle 0/360 (e.g. red) wrap
+ * correctly. Returns a value in [0, 360).
+ */
+export const clampHueToBand = (hue: number, center: number, tolerance: number): number => {
+  const normalized = ((hue % 360) + 360) % 360;
+  const signedDistance = ((normalized - center + 540) % 360) - 180;
+  if (Math.abs(signedDistance) <= tolerance) {
+    return normalized;
+  }
+  const edge = signedDistance > 0 ? center + tolerance : center - tolerance;
+  return ((edge % 360) + 360) % 360;
+};
+
+/**
+ * Constrain an anchor color to its family's locked tone: status families (error/warning/success)
+ * are snapped into their hue band (red/amber/green) and neutral is pulled toward gray by capping
+ * saturation. Unlocked families (primary/secondary/accent) and invalid input are returned as-is, and
+ * an already-in-tone color is returned verbatim so the exact anchor is preserved at its ramp step.
+ */
+export const constrainAnchorToFamilyTone = (
+  family: MainFamily | StatusFamily,
+  hex: string
+): string => {
+  const normalized = normalizeHex(hex);
+  const lock = FAMILY_TONE_LOCKS[family];
+  if (!normalized || !lock) {
+    return normalized ?? hex;
+  }
+  const hsl = hexToHsl(normalized);
+  if (!hsl) {
+    return normalized;
+  }
+  let hue = hsl.h;
+  let saturation = hsl.s;
+  // A pure gray has a meaningless hue, so only snap the hue when there is real chroma to place.
+  if (lock.hueCenter !== undefined && lock.hueTolerance !== undefined && saturation > 0) {
+    hue = clampHueToBand(hue, lock.hueCenter, lock.hueTolerance);
+  }
+  if (lock.maxSaturation !== undefined) {
+    saturation = Math.min(saturation, lock.maxSaturation);
+  }
+  if (lock.minSaturation !== undefined) {
+    saturation = Math.max(saturation, lock.minSaturation);
+  }
+  if (hue === hsl.h && saturation === hsl.s) {
+    return normalized;
+  }
+  return hslToHex({h: hue, l: hsl.l, s: saturation});
+};
+
+/** Apply {@link constrainAnchorToFamilyTone} to every family in an anchor set. */
+export const constrainAnchorsToFamilyTones = (anchors: PaletteAnchors): PaletteAnchors => {
+  const result = {...anchors};
+  for (const family of [...MAIN_FAMILIES, ...STATUS_FAMILIES]) {
+    result[family] = constrainAnchorToFamilyTone(family, anchors[family]);
+  }
+  return result;
+};
+
+/**
  * Relative luminance of an sRGB color per the WCAG 2.1 definition. Used as the basis for contrast
  * ratio computation.
  */

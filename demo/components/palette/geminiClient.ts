@@ -111,9 +111,14 @@ You design palettes for a React Native design system with seven color families:
 - primary: the main brand/action color used for buttons and links.
 - secondary: a supporting brand color for headers and secondary surfaces.
 - accent: a warm highlight color used sparingly for emphasis.
-- error: red-ish, for destructive/error states.
+- error: red, for destructive/error states.
 - warning: orange/amber, for cautionary states.
 - success: green, for positive states.
+
+The error, warning, success, and neutral families are automatically constrained to their
+conventional tones (red, orange/amber, green, and low-saturation gray, respectively), so keep their
+anchors within those tones — any out-of-tone hue you return will be snapped back. primary,
+secondary, and accent are free brand colors with no tone restriction.
 
 For EACH family you return exactly ONE anchor hex color. The design system will automatically
 generate the lighter and darker 000-900 shades from your anchor, so pick a mid-tone (~500 level)

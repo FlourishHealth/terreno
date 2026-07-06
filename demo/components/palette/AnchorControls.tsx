@@ -3,7 +3,13 @@ import React, {useCallback} from "react";
 import {ColorPicker} from "./ColorPicker";
 import type {PaletteAnchors} from "./colorUtils";
 import {normalizeHex, readableTextColor} from "./colorUtils";
-import {ANCHOR_FAMILIES, FAMILY_LABELS, type MainFamily, type StatusFamily} from "./paletteTypes";
+import {
+  ANCHOR_FAMILIES,
+  FAMILY_LABELS,
+  type MainFamily,
+  type StatusFamily,
+  TONE_LOCK_HINTS,
+} from "./paletteTypes";
 
 /**
  * The manual editing surface: a swatch per anchor family that you tap to select, plus the full
@@ -79,6 +85,8 @@ export const AnchorControls: React.FC<AnchorControlsProps> = ({
     [onChangeAnchor, selectedFamily]
   );
 
+  const toneHint = TONE_LOCK_HINTS[selectedFamily];
+
   return (
     <Box gap={4}>
       <Box direction="row" gap={2} wrap>
@@ -99,6 +107,11 @@ export const AnchorControls: React.FC<AnchorControlsProps> = ({
         onChange={handleColorChange}
         value={anchors[selectedFamily]}
       />
+      {toneHint ? (
+        <Text color="secondaryLight" size="sm">
+          {toneHint}
+        </Text>
+      ) : null}
     </Box>
   );
 };

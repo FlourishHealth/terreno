@@ -44,6 +44,17 @@ export const ANCHOR_FAMILIES: (MainFamily | StatusFamily)[] = [
   ...STATUS_FAMILIES,
 ];
 
+/**
+ * Short helper copy shown under the picker for the families whose tone is locked (see
+ * `FAMILY_TONE_LOCKS`), so users understand why an out-of-tone color snaps back.
+ */
+export const TONE_LOCK_HINTS: Partial<Record<MainFamily | StatusFamily, string>> = {
+  error: "Locked to red tones so error states stay recognizable.",
+  neutral: "Locked to low-saturation gray for text, borders, and backgrounds.",
+  success: "Locked to green tones so success states stay recognizable.",
+  warning: "Locked to orange/amber tones so warnings stay recognizable.",
+};
+
 /** The default anchor set, matching the stock Terreno theme so the tool opens on a known-good palette. */
 export const DEFAULT_ANCHORS: PaletteAnchors = {
   accent: "#d69c0e",
