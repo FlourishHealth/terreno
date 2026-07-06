@@ -249,6 +249,13 @@ export async function start(skipListen = false): Promise<express.Application> {
               name: "showcase",
             },
           ],
+          // Lets the very first visitor bootstrap admin access (no admin user exists
+          // yet) without a database console. Set ADMIN_SETUP_DISABLED=true to turn this
+          // off once the first admin has been created.
+          firstAdminSetup: {
+            // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+            userModel: User as any,
+          },
           home: {
             slots: {
               contentTop: [],
