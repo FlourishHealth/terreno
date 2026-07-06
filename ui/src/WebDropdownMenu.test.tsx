@@ -1,6 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
-import type {ComponentProps} from "react";
 import {act, fireEvent, renderHook} from "@testing-library/react-native";
+import type {ComponentProps} from "react";
 import {Dimensions} from "react-native";
 
 import {renderWithTheme} from "./test-utils";
