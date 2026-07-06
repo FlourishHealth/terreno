@@ -159,6 +159,19 @@ export interface AdminCustomScreenConfig {
 }
 
 /**
+ * Configuration for the "create the first admin" bootstrap flow.
+ * @see AdminOptions.firstAdminSetup
+ */
+export interface AdminFirstAdminSetupOptions {
+  /**
+   * Mongoose User model used to count existing admins and promote the first one.
+   * Must have an `admin: boolean` field (e.g. via `baseUserPlugin`).
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: Model<T> is invariant; must accept the consumer's User model shape.
+  userModel: Model<any>;
+}
+
+/**
  * Configuration options for the AdminApp plugin.
  */
 export interface AdminOptions {
@@ -177,6 +190,21 @@ export interface AdminOptions {
    * Consumers typically persist to an `AdminAuditLog` collection.
    */
   onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
+  /**
+   * Enables a "create the first admin" bootstrap flow for when no admin user exists yet
+   * (e.g. a fresh deploy). When configured, registers:
+   * - `GET {basePath}/setup-status` (public) — `{needsSetup: boolean}`
+   * - `POST {basePath}/setup-claim` (authenticated) — promotes the signed-in user to
+   *   `admin: true`, but only while no admin user exists yet.
+   *
+   * Account creation itself (sign up / sign in) is left to the app's existing auth flow
+   * (JWT signup, Better Auth email sign-up, OAuth, ...) — this only "claims" the admin
+   * flag for the first authenticated user while the app has zero admins.
+   *
+   * Set the `ADMIN_SETUP_DISABLED` environment variable to `"true"` to turn this off at
+   * runtime (e.g. after the first admin has been created) without a deploy.
+   */
+  firstAdminSetup?: AdminFirstAdminSetupOptions;
 }
 
 interface AdminFieldMeta {
@@ -450,6 +478,8 @@ export class AdminApp {
     const openApiMw = openApi as OpenApiMiddleware | undefined;
     const modelConfigs = this.options.models;
     const onAdminAudit = this.options.onAdminAudit;
+
+    this.registerFirstAdminSetupRoutes(app, basePath);
 
     /** Audit is best-effort: failures must not change HTTP outcomes after mutations succeed. */
     const safeOnAdminAudit = async (
@@ -1107,6 +1137,59 @@ export class AdminApp {
 
       app.use(`${basePath}/scripts`, scriptsRouter);
     }
+  }
+
+  /**
+   * Registers the optional "create the first admin" bootstrap routes when
+   * {@link AdminOptions.firstAdminSetup} is configured.
+   */
+  private registerFirstAdminSetupRoutes(app: express.Application, basePath: string): void {
+    const setupConfig = this.options.firstAdminSetup;
+    if (!setupConfig) {
+      return;
+    }
+    const {userModel} = setupConfig;
+
+    const isSetupNeeded = async (): Promise<boolean> => {
+      if (process.env.ADMIN_SETUP_DISABLED === "true") {
+        return false;
+      }
+      const adminCount = await userModel.countDocuments({admin: true});
+      return adminCount === 0;
+    };
+
+    // GET /admin/setup-status — public, so an anonymous first-run visitor can detect
+    // whether to show the setup flow before signing in.
+    app.get(
+      `${basePath}/setup-status`,
+      asyncHandler(async (_req, res) => {
+        return res.json({needsSetup: await isSetupNeeded()});
+      })
+    );
+
+    // POST /admin/setup-claim — promotes the calling (already authenticated) user to
+    // admin. Only succeeds while no admin user exists yet. This is a best-effort race
+    // guard (re-checked immediately before writing) rather than a hard atomic guarantee
+    // across documents, which is unnecessary for a one-time bootstrap flow.
+    app.post(
+      `${basePath}/setup-claim`,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await isSetupNeeded())) {
+          throw new APIError({status: 403, title: "An admin user already exists"});
+        }
+        const user = req.user as {_id?: unknown} | undefined;
+        if (!user?._id) {
+          throw new APIError({status: 401, title: "Sign in before claiming admin access"});
+        }
+        const result = await userModel.updateOne({_id: user._id}, {$set: {admin: true}});
+        if (result.matchedCount === 0) {
+          throw new APIError({status: 404, title: "User not found"});
+        }
+        logger.info(`Claimed first admin via setup flow: ${String(user._id)}`);
+        return res.status(200).json({admin: true});
+      })
+    );
   }
 
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
