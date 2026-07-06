@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import type {ComponentProps} from "react";
 import {act, fireEvent, renderHook} from "@testing-library/react-native";
 import {Dimensions} from "react-native";
 
@@ -429,6 +430,158 @@ describe("WebDropdownMenu searchable", () => {
     );
     expect(getByTestId("web_dropdown_no_results")).toBeTruthy();
     expect(queryByTestId("web_dropdown_search")).toBeNull();
+  });
+});
+
+describe("WebDropdownMenu keepTriggerFocus portal overlay", () => {
+  const PlatformModule = require("react-native").Platform;
+  const anchor = {height: 40, width: 200, x: 16, y: 32};
+  const options = [
+    {label: "Option A", value: "a"},
+    {label: "Option B", value: "b"},
+  ];
+
+  let savedOS: string;
+  let hadDocument = false;
+  let savedDocument: Document | undefined;
+  let keyupListeners: Array<(event: KeyboardEvent) => void> = [];
+
+  const ensureWebDocument = (): void => {
+    hadDocument = "document" in globalThis;
+    savedDocument = (globalThis as {document?: Document}).document;
+    keyupListeners = [];
+
+    if (typeof (globalThis as {HTMLElement?: typeof HTMLElement}).HTMLElement === "undefined") {
+      (globalThis as {HTMLElement: typeof HTMLElement}).HTMLElement =
+        class HTMLElement {} as typeof HTMLElement;
+    }
+
+    const activeElement = new (globalThis as {HTMLElement: typeof HTMLElement}).HTMLElement();
+    (activeElement as HTMLElement & {blur: () => void}).blur = () => {};
+
+    const body = {appendChild: () => {}, removeChild: () => {}};
+
+    (globalThis as {document: Document}).document = {
+      activeElement,
+      addEventListener: (type: string, listener: (event: KeyboardEvent) => void) => {
+        if (type === "keyup") {
+          keyupListeners.push(listener);
+        }
+      },
+      body: body as HTMLElement,
+      removeEventListener: (type: string, listener: (event: KeyboardEvent) => void) => {
+        if (type === "keyup") {
+          keyupListeners = keyupListeners.filter((registered) => registered !== listener);
+        }
+      },
+    } as unknown as Document;
+  };
+
+  const restoreWebDocument = (): void => {
+    if (hadDocument) {
+      (globalThis as {document: Document}).document = savedDocument as Document;
+    } else {
+      delete (globalThis as {document?: Document}).document;
+    }
+    keyupListeners = [];
+  };
+
+  const dispatchEscapeKey = (): void => {
+    const event = {key: "Escape", stopPropagation: mock(() => {})} as KeyboardEvent;
+    for (const listener of keyupListeners) {
+      listener(event);
+    }
+  };
+
+  const renderKeepFocusMenu = (
+    props: Partial<ComponentProps<typeof WebDropdownMenu>> = {}
+  ): ReturnType<typeof renderWithTheme> => {
+    return renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        keepTriggerFocus
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+        {...props}
+      />
+    );
+  };
+
+  it("renders fixed-position overlay instead of Modal when keepTriggerFocus is true on web", () => {
+    ensureWebDocument();
+    savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "web";
+      const {getByTestId, queryByTestId, root} = renderKeepFocusMenu();
+      expect(getByTestId("web_dropdown_backdrop")).toBeTruthy();
+      expect(getByTestId("web_dropdown_menu")).toBeTruthy();
+      expect(queryByTestId("web_dropdown_modal")).toBeNull();
+
+      const menu = getByTestId("web_dropdown_menu");
+      const style = Array.isArray(menu.props.style)
+        ? Object.assign({}, ...menu.props.style)
+        : menu.props.style;
+      expect(style.position).toBe("fixed");
+      expect(style.left).toBe(anchor.x);
+
+      const modals = root.findAll((node) => node.type === "Modal");
+      expect(modals.length).toBe(0);
+    } finally {
+      PlatformModule.OS = savedOS;
+      restoreWebDocument();
+    }
+  });
+
+  it("renders a placeholder view when keepTriggerFocus menu is closed on web", () => {
+    ensureWebDocument();
+    savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "web";
+      const {getByTestId, root} = renderKeepFocusMenu({visible: false});
+      const placeholder = getByTestId("web_dropdown_modal");
+      expect(placeholder.props.visible).toBeUndefined();
+
+      const modals = root.findAll((node) => node.type === "Modal");
+      expect(modals.length).toBe(0);
+    } finally {
+      PlatformModule.OS = savedOS;
+      restoreWebDocument();
+    }
+  });
+
+  it("invokes onClose when the portal backdrop is pressed on web", () => {
+    ensureWebDocument();
+    savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "web";
+      const onClose = mock(() => {});
+      const {getByTestId} = renderKeepFocusMenu({onClose});
+      fireEvent.press(getByTestId("web_dropdown_backdrop"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      PlatformModule.OS = savedOS;
+      restoreWebDocument();
+    }
+  });
+
+  it("invokes onClose when Escape is pressed in keepTriggerFocus mode on web", () => {
+    ensureWebDocument();
+    savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "web";
+      const onClose = mock(() => {});
+      renderKeepFocusMenu({onClose});
+      act(() => {
+        dispatchEscapeKey();
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      PlatformModule.OS = savedOS;
+      restoreWebDocument();
+    }
   });
 });
 
