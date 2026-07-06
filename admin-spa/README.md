@@ -20,6 +20,9 @@ does) remains supported and unchanged.
 Boot flow: `AppConfigGate` fetches `app-config.json` → `StoreProvider` builds the
 Better-Auth client + Redux store → `AdminGate` syncs the session and redirects
 anonymous users to `/login` and non-admins (admin API returns 403) to `/forbidden`.
+When the backend reports no admin user exists yet (see "First-admin setup" below),
+`AdminGate` redirects to `/setup` instead — including for already-authenticated,
+non-admin sessions — so it takes priority over both `/login` and `/forbidden`.
 
 ## Install
 
@@ -80,6 +83,22 @@ auth/admin API paths per consumer without rebuilding. Defaults:
 }
 ```
 
+## First-admin setup
+
+If the backend registers `AdminApp` with `firstAdminSetup: {userModel: User}` (see
+`@terreno/admin-backend`), the SPA shows a `/setup` screen instead of `/login` whenever
+no admin user exists yet:
+
+- **Anonymous visitor**: fills in name/email/password, which signs up via Better-Auth
+  (`authClient.signUp.email`) and then claims admin access (`POST {adminApiBasePath}/setup-claim`).
+- **Already signed-in, non-admin visitor** (e.g. signed up before anyone was ever
+  promoted to admin): sees a single "Claim admin access" button that calls the same
+  claim endpoint using the existing session — no re-entering credentials.
+
+`setup-claim` only succeeds while zero admin users exist, so the flow disappears (and
+`AdminGate` falls back to the normal login flow) as soon as the first admin is created.
+The backend can also disable the whole flow at runtime via `ADMIN_SETUP_DISABLED=true`.
+
 ## How serving works
 
 - `${basePath}/_expo` and `${basePath}/assets` are served with
@@ -109,7 +128,7 @@ bun run build:web    # produce the static export in dist/
 bun run dev          # expo start --web for local SPA development
 bun run test:ci      # serve-plugin unit tests (supertest)
 bun run smoke        # backend-free smoke over the built dist/
-bun run test:e2e     # Playwright e2e (anonymous -> login) over the built dist/
+bun run test:e2e     # Playwright e2e (anonymous -> login, first-admin setup) over the built dist/
 ```
 
 `dist/` is produced by `bun run build:web` and shipped via

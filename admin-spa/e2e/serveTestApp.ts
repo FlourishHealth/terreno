@@ -2,7 +2,7 @@ import path from "node:path";
 import express from "express";
 import {DateTime} from "luxon";
 import {AdminSpaServeApp} from "../src/serve";
-import {E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD} from "./credentials";
+import {E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, E2E_NEEDS_SETUP_COOKIE} from "./credentials";
 
 // Pre-built bundle lives at admin-spa/dist. Resolved explicitly (rather than relying on
 // the plugin's compiled-location default) so the e2e works when run from TS source.
@@ -103,6 +103,22 @@ export const createTestApp = (): express.Express => {
     });
   });
 
+  // Mock better-auth email sign-up: any new email/name/password succeeds and sets a
+  // session cookie, mirroring the real Better Auth flow the setup screen relies on.
+  app.post("/api/auth/sign-up/email", (req, res) => {
+    const {email, name} = req.body ?? {};
+    res.cookie(SESSION_COOKIE, SESSION_TOKEN, {httpOnly: true, path: "/", sameSite: "lax"});
+    res.json({
+      redirect: false,
+      token: SESSION_TOKEN,
+      user: {
+        ...E2E_ADMIN_USER,
+        email: email ?? E2E_ADMIN_USER.email,
+        name: name ?? E2E_ADMIN_USER.name,
+      },
+    });
+  });
+
   // Mock better-auth sign-out: clears the session cookie.
   app.post("/api/auth/sign-out", (_req, res) => {
     res.clearCookie(SESSION_COOKIE, {path: "/"});
@@ -117,6 +133,22 @@ export const createTestApp = (): express.Express => {
       return;
     }
     res.json(ADMIN_CONFIG);
+  });
+
+  // Mock the first-admin setup flow exposed by AdminApp's `firstAdminSetup` option.
+  // `needsSetup` is driven entirely by the per-context E2E_NEEDS_SETUP_COOKIE (set by
+  // the spec via `page.context().addCookies`) so parallel test workers sharing this
+  // server never interfere with each other.
+  app.get("/admin/setup-status", (req, res) => {
+    const needsSetup = (req.headers.cookie ?? "").includes(`${E2E_NEEDS_SETUP_COOKIE}=1`);
+    res.json({needsSetup});
+  });
+  app.post("/admin/setup-claim", (req, res) => {
+    if (!hasSession(req)) {
+      res.status(401).json({title: "Sign in before claiming admin access"});
+      return;
+    }
+    res.clearCookie(E2E_NEEDS_SETUP_COOKIE, {path: "/"}).json({admin: true});
   });
 
   const plugin = new AdminSpaServeApp({
