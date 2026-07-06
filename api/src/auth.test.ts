@@ -1214,6 +1214,61 @@ describe("PATCH /me route edge cases", () => {
   });
 });
 
+describe("JWT strategy createAnonymousUser path", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+
+    // Add createAnonymousUser static to exercise lines 254-257
+    (UserModel as unknown as Record<string, unknown>).createAnonymousUser = async () => {
+      const user = new UserModel({admin: false, email: `anon-${Date.now()}@example.com`});
+      await user.save();
+      return user;
+    };
+
+    app = new TerrenoApp({
+      configureApp: (router: express.Router) => {
+        router.use(
+          "/food",
+          modelRouter(FoodModel, {
+            allowAnonymous: true,
+            permissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAny],
+              read: [Permissions.IsAny],
+              update: [],
+            },
+          })
+        );
+      },
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    delete (UserModel as unknown as Record<string, unknown>).createAnonymousUser;
+  });
+
+  it("creates anonymous user when JWT user not found and createAnonymousUser exists", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    // Token with a non-existent user ID
+    const token = jwtLib.sign(
+      {id: "000000000000000000000099"},
+      process.env.TOKEN_SECRET as string,
+      {issuer: process.env.TOKEN_ISSUER}
+    );
+    const res = await agent.get("/food").set("authorization", `Bearer ${token}`);
+    // The request should succeed (anonymous user created by JWT strategy)
+    expect(res.status).toBe(200);
+  });
+});
 describe("generateTokens with SIGNUP_DISABLED and user.postCreate", () => {
   const OLD_ENV = process.env;
 
@@ -1238,7 +1293,7 @@ describe("generateTokens with SIGNUP_DISABLED and user.postCreate", () => {
   });
 });
 
-describe("JWT cookie extraction", () => {
+describe("decodeJWTMiddleware error paths", () => {
   let app: express.Application;
   let agent: TestAgent;
 
@@ -1269,6 +1324,26 @@ describe("JWT cookie extraction", () => {
 
   afterEach(() => {
     setSystemTime();
+  });
+
+  it("returns 401 with details when token has wrong issuer", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: "someuser"}, process.env.TOKEN_SECRET as string, {
+      issuer: "wrong-issuer",
+    });
+    const res = await agent.get("/food").set("authorization", `Bearer ${token}`);
+    expect(res.status).toBe(401);
+    expect(res.body.details).toContain("[jwt] Error decoding token");
+  });
+
+  it("returns 401 when token is signed with wrong secret", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: "someuser"}, "wrong-secret", {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent.get("/food").set("authorization", `Bearer ${token}`);
+    expect(res.status).toBe(401);
+    expect(res.body.details).toContain("[jwt] Error decoding token");
   });
 
   it("skips decode when token is the string null", async () => {
