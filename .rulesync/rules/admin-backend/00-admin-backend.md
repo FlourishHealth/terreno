@@ -83,6 +83,7 @@ All routes require `Permissions.IsAdmin`.
 interface AdminOptions {
   models: AdminModelConfig[];  // Array of model configurations
   basePath?: string;           // Base path for all admin routes (default: "/admin")
+  firstAdminSetup?: {userModel: Model<any>};  // Opt-in "create the first admin" flow
 }
 
 interface AdminModelConfig {
@@ -93,6 +94,26 @@ interface AdminModelConfig {
   defaultSort?: string;        // Default sort order (default: "-created")
 }
 ```
+
+## First-Admin Setup Flow
+
+When no admin user exists yet (e.g. a fresh deploy), pass `firstAdminSetup` to bootstrap the first admin account without a database console:
+
+```typescript
+const admin = new AdminApp({
+  basePath: "/admin",
+  models: [...],
+  firstAdminSetup: {userModel: User},
+});
+```
+
+This registers:
+- `GET {basePath}/setup-status` (public) — `{needsSetup: boolean}`, true only while `userModel.countDocuments({admin: true}) === 0`
+- `POST {basePath}/setup-claim` (authenticated) — promotes the calling (already signed-in) user to `admin: true`, but only while no admin user exists yet
+
+Account creation itself (sign up / sign in) is left to the app's existing auth flow (JWT signup, Better Auth email sign-up, OAuth, ...) — `setup-claim` only "claims" the admin flag for the first authenticated user while the app has zero admins. See `@terreno/admin-spa`'s `/setup` screen for a full frontend implementation of this flow.
+
+Set the `ADMIN_SETUP_DISABLED` environment variable to `"true"` to turn this off at runtime (e.g. once the first admin has been created) without a deploy.
 
 ## Field Metadata Extraction
 
