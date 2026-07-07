@@ -1,8 +1,17 @@
 import {describe, expect, it, mock} from "bun:test";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {act, fireEvent} from "@testing-library/react-native";
 
 import EmojiSelector, {Categories, charFromEmojiObject} from "./EmojiSelector";
 import {renderWithTheme} from "./test-utils";
+
+interface StoredEmoji {
+  category: string;
+  count?: number;
+  short_names: string[];
+  sort_order: number;
+  unified: string;
+}
 
 interface LayoutEvent {
   nativeEvent: {layout: {height: number; width: number; x: number; y: number}};
@@ -288,6 +297,150 @@ describe("EmojiSelector", () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
     expect(onEmojiSelected).toHaveBeenCalled();
+  });
+
+  it("loads persisted history on mount when showHistory is enabled", async () => {
+    const stored: StoredEmoji[] = [
+      {
+        category: "Smileys & Emotion",
+        count: 3,
+        short_names: ["smiley"],
+        sort_order: 1,
+        unified: "1F603",
+      },
+    ];
+    const getItemMock = mock(async () => JSON.stringify(stored));
+    const originalGetItem = AsyncStorage.getItem;
+    AsyncStorage.getItem = getItemMock as unknown as typeof AsyncStorage.getItem;
+    try {
+      const {toJSON} = renderWithTheme(
+        <EmojiSelector
+          category={Categories.history}
+          columns={6}
+          onEmojiSelected={mock(() => {})}
+          placeholder="Search"
+          showHistory
+          showSearchBar
+          showSectionTitles
+          showTabs
+          theme="#007AFF"
+        />
+      );
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(getItemMock).toHaveBeenCalled();
+      expect(toJSON()).toBeTruthy();
+    } finally {
+      AsyncStorage.getItem = originalGetItem;
+    }
+  });
+
+  it("prepends a newly selected emoji to existing stored history", async () => {
+    const onEmojiSelected = mock(() => {});
+    const existing: StoredEmoji[] = [
+      {
+        category: "Smileys & Emotion",
+        count: 9,
+        short_names: ["unrelated"],
+        sort_order: 999,
+        unified: "0000-DECOY",
+      },
+    ];
+    const getItemMock = mock(async () => JSON.stringify(existing));
+    const setItemMock = mock(async () => undefined);
+    const originalGetItem = AsyncStorage.getItem;
+    const originalSetItem = AsyncStorage.setItem;
+    AsyncStorage.getItem = getItemMock as unknown as typeof AsyncStorage.getItem;
+    AsyncStorage.setItem = setItemMock as unknown as typeof AsyncStorage.setItem;
+    try {
+      const {root, UNSAFE_getAllByType} = renderWithTheme(
+        <EmojiSelector
+          category={Categories.emotion}
+          columns={6}
+          onEmojiSelected={onEmojiSelected}
+          placeholder="Search"
+          showHistory
+          showSearchBar={false}
+          showSectionTitles
+          showTabs={false}
+          theme="#007AFF"
+        />
+      );
+      await act(async () => {
+        (root as LayoutRoot).props.onLayout?.({
+          nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
+        });
+      });
+      const {FlatList} = require("react-native");
+      const [list] = UNSAFE_getAllByType(FlatList);
+      const first = (list.props.data ?? [])[0];
+      const cell = list.props.renderItem({index: 0, item: first});
+      (cell.props as RenderItemCell["props"]).onPress?.();
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+      expect(onEmojiSelected).toHaveBeenCalled();
+      expect(setItemMock).toHaveBeenCalled();
+      const [, storedValue] = setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+      const parsed = JSON.parse(storedValue as string) as StoredEmoji[];
+      // Existing decoy is retained and the freshly selected emoji is prepended.
+      expect(parsed.length).toBe(2);
+      expect(parsed[1].unified).toBe("0000-DECOY");
+    } finally {
+      AsyncStorage.getItem = originalGetItem;
+      AsyncStorage.setItem = originalSetItem;
+    }
+  });
+
+  it("keeps stored history unchanged when the selected emoji already exists", async () => {
+    const onEmojiSelected = mock(() => {});
+    const originalGetItem = AsyncStorage.getItem;
+    const originalSetItem = AsyncStorage.setItem;
+    const setItemMock = mock(async () => undefined);
+    AsyncStorage.setItem = setItemMock as unknown as typeof AsyncStorage.setItem;
+    try {
+      const {root, UNSAFE_getAllByType} = renderWithTheme(
+        <EmojiSelector
+          category={Categories.emotion}
+          columns={6}
+          onEmojiSelected={onEmojiSelected}
+          placeholder="Search"
+          showHistory
+          showSearchBar={false}
+          showSectionTitles
+          showTabs={false}
+          theme="#007AFF"
+        />
+      );
+      await act(async () => {
+        (root as LayoutRoot).props.onLayout?.({
+          nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
+        });
+      });
+      const {FlatList} = require("react-native");
+      const [list] = UNSAFE_getAllByType(FlatList);
+      const first = (list.props.data ?? [])[0];
+      // Seed stored history so it already contains the emoji about to be selected.
+      const alreadyStored: StoredEmoji[] = [{...first.emoji, count: 5}];
+      AsyncStorage.getItem = mock(async () =>
+        JSON.stringify(alreadyStored)
+      ) as unknown as typeof AsyncStorage.getItem;
+      const cell = list.props.renderItem({index: 0, item: first});
+      (cell.props as RenderItemCell["props"]).onPress?.();
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+      expect(onEmojiSelected).toHaveBeenCalled();
+      const [, storedValue] = setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+      const parsed = JSON.parse(storedValue as string) as StoredEmoji[];
+      // History is left untouched (no duplicate appended) since the emoji is present.
+      expect(parsed.length).toBe(1);
+      expect(parsed[0].unified).toBe(first.emoji.unified);
+    } finally {
+      AsyncStorage.getItem = originalGetItem;
+      AsyncStorage.setItem = originalSetItem;
+    }
   });
 
   it("filters the emoji list when a search query is entered", async () => {

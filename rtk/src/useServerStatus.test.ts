@@ -235,6 +235,74 @@ describe("useServerStatus", () => {
     unmount();
   });
 
+  it("polls again after the online interval elapses", async () => {
+    const fetchFn = mock(async () => new Response("ok", {status: 200}));
+    globalThis.fetch = fetchFn as unknown as typeof fetch;
+
+    const {unmount} = renderHook(
+      () =>
+        useServerStatus({
+          healthUrl: "http://localhost:4000/health",
+          pollIntervalMs: 20,
+        }),
+      {wrapper: createWrapper(store)}
+    );
+
+    // Wait long enough for several interval ticks to fire the setInterval callback.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    });
+
+    expect(fetchFn.mock.calls.length).toBeGreaterThan(1);
+    unmount();
+  });
+
+  it("aborts the in-flight health check once the request timeout fires", async () => {
+    const originalSetTimeout = globalThis.setTimeout;
+    // Fire the 4000ms abort timer synchronously so controller.abort() runs.
+    globalThis.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+      if (timeout === 4_000 && typeof handler === "function") {
+        (handler as () => void)();
+        return 0;
+      }
+      return originalSetTimeout(handler, timeout as number, ...(args as []));
+    }) as unknown as typeof globalThis.setTimeout;
+
+    const fetchFn = mock(
+      (_url: string, init?: {signal?: AbortSignal}) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          if (signal?.aborted) {
+            reject(new Error("aborted"));
+            return;
+          }
+          signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        })
+    );
+    globalThis.fetch = fetchFn as unknown as typeof fetch;
+
+    try {
+      const {unmount} = renderHook(
+        () =>
+          useServerStatus({
+            healthUrl: "http://localhost:4000/health",
+            pollIntervalMs: 60_000,
+          }),
+        {wrapper: createWrapper(store)}
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => originalSetTimeout(resolve, 50));
+      });
+
+      expect(fetchFn).toHaveBeenCalled();
+      expect(store.getState().offline.isOnline).toBe(false);
+      unmount();
+    } finally {
+      globalThis.setTimeout = originalSetTimeout;
+    }
+  });
+
   it("triggers health check when browser fires online event", async () => {
     store.dispatch(setOnlineStatus(false));
     const fetchFn = mock(async () => new Response("ok", {status: 200}));
