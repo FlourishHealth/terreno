@@ -38,6 +38,8 @@ exports[`TimezonePicker renders correctly with default props 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -547,6 +549,8 @@ exports[`TimezonePicker hides title when hideTitle is true 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -1071,6 +1075,8 @@ exports[`TimezonePicker renders with selected timezone 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -1595,6 +1601,8 @@ exports[`TimezonePicker renders USA timezones by default 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -2119,6 +2127,8 @@ exports[`TimezonePicker renders with short timezone labels 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -2643,6 +2653,8 @@ exports[`TimezonePicker calls onChange when timezone is selected 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
