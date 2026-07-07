@@ -1,12 +1,14 @@
 import {DemoConfiguration} from "@config";
-import {SelectFieldDemo, SelectFieldExamples} from "@stories";
+import {SelectFieldDemo, SelectFieldExamples, SelectFieldLongListDemo, SelectFieldSearchableDemo} from "@stories";
 import {SelectField} from "@terreno/ui";
+import React from "react";
 
 export const SelectFieldConfiguration: DemoConfiguration = {
   name: "Select field",
   component: SelectField,
   related: ["Checkbox", "Radio field"],
-  description: "Displays a list of actions or options using the browser’s native select.",
+  description:
+    "Displays a list of options. Uses a custom dropdown with optional search on web and native (centered modal on Android).",
   a11yNotes: ["The list should be labeled so that screen readers know that the list is related."],
   category: "Component",
   status: {
@@ -48,9 +50,16 @@ export const SelectFieldConfiguration: DemoConfiguration = {
         type: "boolean",
         defaultValue: false,
       },
+      searchable: {
+        type: "boolean",
+        defaultValue: true,
+        title: "Searchable",
+      },
     },
   },
   stories: {
     "Select Field Examples": {render: SelectFieldExamples},
+    "Many options (150)": {render: SelectFieldLongListDemo},
+    "Searchable dropdown": {render: () => <SelectFieldSearchableDemo />},
   },
 };

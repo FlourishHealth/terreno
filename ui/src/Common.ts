@@ -1788,6 +1788,12 @@ export interface CustomSelectFieldProps extends WithTestID {
    * The title of the custom select field.
    */
   title?: string;
+
+  /**
+   * When true, options can be filtered as the user types. See `SelectFieldProps.searchable`.
+   * @default true
+   */
+  searchable?: boolean;
 }
 
 export interface DateTimeActionSheetProps {
@@ -2779,6 +2785,11 @@ export interface FieldOption {
   label: string;
 
   /**
+   * Optional secondary line shown under the label in custom web dropdown menus.
+   */
+  helperText?: string;
+
+  /**
    * The key of the option. Useful for uniquely identifying the option.
    */
   key?: string;
@@ -2824,6 +2835,14 @@ export interface SelectFieldPropsBase extends WithTestID {
    * The placeholder text to display when no option is selected.
    */
   placeholder?: string;
+
+  /**
+   * When true, options can be filtered as the user types. On web, search happens
+   * in the trigger field; on native, search appears in the dropdown menu and
+   * Android uses a centered modal similar to the platform picker.
+   * @default true
+   */
+  searchable?: boolean;
 
   /**
    * The title of the select field.

@@ -13,6 +13,7 @@ export const SelectField: FC<SelectFieldProps> = ({
   options,
   requireValue = false,
   placeholder = "Please select an option.",
+  searchable = true,
   title,
   value,
   onChange,
@@ -23,23 +24,26 @@ export const SelectField: FC<SelectFieldProps> = ({
   const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
 
   return (
-    <View style={{width: "100%"}}>
+    <View style={{minWidth: 0, width: "100%"}}>
       {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title!} />}
       {Boolean(errorText) && <FieldError testID={fieldTestIDs.error} text={errorText!} />}
-      <RNPickerSelect
-        disabled={disabled}
-        items={options}
-        onValueChange={(v) => {
-          if (v === undefined || v === null || v === "") {
-            onChange("");
-          } else {
-            onChange(String(v));
-          }
-        }}
-        placeholder={!requireValue ? clearOption : {}}
-        textInputProps={{testID: fieldTestIDs.input}}
-        value={value ?? ""}
-      />
+      <View style={{alignSelf: "stretch", minWidth: 0, width: "100%"}}>
+        <RNPickerSelect
+          disabled={disabled}
+          items={options}
+          onValueChange={(v) => {
+            if (v === undefined || v === null || v === "") {
+              onChange("");
+            } else {
+              onChange(String(v));
+            }
+          }}
+          placeholder={!requireValue ? clearOption : {}}
+          searchable={searchable}
+          textInputProps={{testID: fieldTestIDs.input}}
+          value={value ?? ""}
+        />
+      </View>
       {Boolean(helperText) && <FieldHelperText testID={fieldTestIDs.helper} text={helperText!} />}
     </View>
   );

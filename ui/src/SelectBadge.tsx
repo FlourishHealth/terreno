@@ -232,6 +232,7 @@ export const SelectBadge = ({
         onSelect={(val) => handleOnChange(val)}
         options={webMenuOptions}
         optionTextStyle={{fontFamily: "text", fontSize: 12}}
+        searchable={false}
         selectedValue={value}
         testIDPrefix="web_badge"
         visible={showPicker}
