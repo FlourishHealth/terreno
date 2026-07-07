@@ -479,8 +479,6 @@ export class AdminApp {
     const modelConfigs = this.options.models;
     const onAdminAudit = this.options.onAdminAudit;
 
-    this.registerFirstAdminSetupRoutes(app, basePath);
-
     /** Audit is best-effort: failures must not change HTTP outcomes after mutations succeed. */
     const safeOnAdminAudit = async (
       request: express.Request,
@@ -496,6 +494,8 @@ export class AdminApp {
         logger.error(`onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`);
       }
     };
+
+    this.registerFirstAdminSetupRoutes(app, basePath, safeOnAdminAudit);
 
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
@@ -1142,8 +1142,15 @@ export class AdminApp {
   /**
    * Registers the optional "create the first admin" bootstrap routes when
    * {@link AdminOptions.firstAdminSetup} is configured.
+   *
+   * @param onAudit - Shared `safeOnAdminAudit` from {@link register}, so a first-admin
+   * claim shows up in the same `onAdminAudit` trail as other AdminApp mutations.
    */
-  private registerFirstAdminSetupRoutes(app: express.Application, basePath: string): void {
+  private registerFirstAdminSetupRoutes(
+    app: express.Application,
+    basePath: string,
+    onAudit: (request: express.Request, event: AdminAuditEvent) => Promise<void>
+  ): void {
     const setupConfig = this.options.firstAdminSetup;
     if (!setupConfig) {
       return;
@@ -1178,7 +1185,7 @@ export class AdminApp {
         if (!(await isSetupNeeded())) {
           throw new APIError({status: 403, title: "An admin user already exists"});
         }
-        const user = req.user as {_id?: unknown} | undefined;
+        const user = req.user as {_id?: unknown; email?: string; name?: string} | undefined;
         if (!user?._id) {
           throw new APIError({status: 401, title: "Sign in before claiming admin access"});
         }
@@ -1186,7 +1193,15 @@ export class AdminApp {
         if (result.matchedCount === 0) {
           throw new APIError({status: 404, title: "User not found"});
         }
-        logger.info(`Claimed first admin via setup flow: ${String(user._id)}`);
+        const userId = String(user._id);
+        logger.info(`Claimed first admin via setup flow: ${userId}`);
+        await onAudit(req, {
+          actorId: userId,
+          modelName: userModel.modelName,
+          recordId: userId,
+          recordLabel: user.name ?? user.email,
+          verb: "updated",
+        });
         return res.status(200).json({admin: true});
       })
     );

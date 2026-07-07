@@ -11,7 +11,7 @@ import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import type {AdminOptions} from "./adminApp";
+import type {AdminAuditEvent, AdminOptions} from "./adminApp";
 import {AdminApp} from "./adminApp";
 
 const buildApp = (adminOverrides?: Partial<AdminOptions>): express.Application => {
@@ -165,6 +165,63 @@ describe("AdminApp first-admin setup flow", () => {
       expect(res.body.title).toInclude("An admin user already exists");
       const unchanged = await UserModel.findOne({email: "notAdmin@example.com"});
       expect(unchanged?.admin).toBe(false);
+    });
+  });
+
+  describe("POST /admin/setup-claim onAdminAudit", () => {
+    let app: express.Application;
+    let notAdminAgent: TestAgent;
+    const auditEvents: AdminAuditEvent[] = [];
+
+    beforeEach(async () => {
+      await setupDb();
+      auditEvents.length = 0;
+      app = buildApp({
+        firstAdminSetup: {userModel: UserModel as unknown as UserModelType},
+        onAdminAudit: async (event): Promise<void> => {
+          auditEvents.push(event);
+        },
+      });
+      notAdminAgent = await authAsUser(app, "notAdmin");
+    });
+
+    it("invokes onAdminAudit with verb updated after claiming", async () => {
+      await clearAllAdmins();
+      const notAdmin = await UserModel.findOne({email: "notAdmin@example.com"});
+
+      await notAdminAgent.post("/admin/setup-claim").expect(200);
+
+      expect(auditEvents).toHaveLength(1);
+      const [event] = auditEvents;
+      expect(event.verb).toBe("updated");
+      expect(event.modelName).toBe("User");
+      expect(event.recordId).toBe(String(notAdmin?._id));
+      expect(event.actorId).toBe(String(notAdmin?._id));
+    });
+
+    it("does not invoke onAdminAudit when the claim is rejected", async () => {
+      // An admin already exists (setupDb default), so the claim is rejected before
+      // any mutation or audit event.
+      await notAdminAgent.post("/admin/setup-claim").expect(403);
+
+      expect(auditEvents).toHaveLength(0);
+    });
+
+    it("still returns 200 when onAdminAudit throws (audit is best-effort)", async () => {
+      await clearAllAdmins();
+      const throwingApp = buildApp({
+        firstAdminSetup: {userModel: UserModel as unknown as UserModelType},
+        onAdminAudit: async (): Promise<void> => {
+          throw new Error("audit sink failure");
+        },
+      });
+      const agent = await authAsUser(throwingApp, "notAdmin");
+
+      const res = await agent.post("/admin/setup-claim").expect(200);
+
+      expect(res.body.admin).toBe(true);
+      const updated = await UserModel.findOne({email: "notAdmin@example.com"});
+      expect(updated?.admin).toBe(true);
     });
   });
 });
