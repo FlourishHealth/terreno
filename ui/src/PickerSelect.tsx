@@ -714,7 +714,7 @@ export const RNPickerSelect = ({
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
       flex: 1,
       fontFamily: "text" as const,
-      fontSize: 14,
+      fontSize: 16,
       paddingLeft: 0,
       paddingRight: 8,
       paddingVertical: 0,
@@ -793,6 +793,8 @@ export const RNPickerSelect = ({
               style={{
                 color: disabled ? theme.text.secondaryLight : theme.text.primary,
                 flex: 1,
+                fontFamily: "text",
+                fontSize: 16,
                 paddingRight: 8,
               }}
               testID="text_input"

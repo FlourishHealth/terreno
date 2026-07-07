@@ -23,6 +23,8 @@ exports[`SelectField renders correctly with default props 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -395,6 +397,8 @@ exports[`SelectField renders with title 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -752,6 +756,8 @@ exports[`SelectField renders with selected value 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -1109,6 +1115,8 @@ exports[`SelectField renders with custom placeholder 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -1466,6 +1474,8 @@ exports[`SelectField renders disabled state 1`] = `
                     "style": {
                       "color": "#686868",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",
@@ -1825,6 +1835,8 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                     "style": {
                       "color": "#1C1C1C",
                       "flex": 1,
+                      "fontFamily": "text",
+                      "fontSize": 16,
                       "paddingRight": 8,
                     },
                     "testID": "text_input",

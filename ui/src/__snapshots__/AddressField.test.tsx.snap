@@ -396,6 +396,8 @@ exports[`AddressField renders correctly with default props 1`] = `
                           "style": {
                             "color": "#1C1C1C",
                             "flex": 1,
+                            "fontFamily": "text",
+                            "fontSize": 16,
                             "paddingRight": 8,
                           },
                           "testID": "text_input",
