@@ -27,44 +27,37 @@ export interface AdminSetupClaimResponse {
  * admin-frontend hooks) since the setup gate needs typed hooks before any model config
  * is known.
  *
- * `claimFirstAdmin` both patches the cached `getAdminSetupStatus` result to
- * `needsSetup: false` synchronously on success (`onQueryStarted`) and invalidates the
- * `admin-setup-status` tag (background refetch, reconciling with the server as the
- * source of truth). The synchronous patch closes the race between the mutation
- * resolving and `AdminGate`'s immediate post-claim `router.replace("/")` — without it,
- * the gate would briefly re-derive `needsSetup: true` from stale cached data and bounce
- * back to `/setup`.
+ * On a successful claim, `claimFirstAdmin` resets the entire RTK Query cache
+ * (`api.util.resetApiState()`) rather than only invalidating `getAdminSetupStatus`.
+ * The visitor just transitioned from anonymous/non-admin to admin, so every other
+ * cached response is now stale too — most notably `@terreno/admin-frontend`'s
+ * dynamically-injected `adminConfig` query (`GET {apiBase}/config`, used by
+ * `AdminGate` to decide `isForbidden`/`isAdmin`), which was very likely cached as a
+ * 403 from before the claim and carries no tags this module could invalidate
+ * directly. Without the reset, `AdminGate` would derive `isForbidden` from that stale
+ * 403 and redirect the freshly-promoted admin to `/forbidden` instead of `/`. Active
+ * subscribers (AdminGate's `useGetAdminSetupStatusQuery` and `useAdminConfig`) refetch
+ * automatically once their cache entries are cleared, so the gate briefly shows its
+ * loading state instead of bouncing to the wrong screen.
  */
 export const openapi = createSessionApi()
   .enhanceEndpoints({
-    addTagTypes: [
-      "admin-models",
-      "admin-version-config",
-      "admin-scripts",
-      "admin-setup-status",
-      "profile",
-    ],
+    addTagTypes: ["admin-models", "admin-version-config", "admin-scripts", "profile"],
   })
   .injectEndpoints({
     endpoints: (build) => ({
       claimFirstAdmin: build.mutation<AdminSetupClaimResponse, {apiBase: string}>({
-        invalidatesTags: ["admin-setup-status"],
-        onQueryStarted: async ({apiBase}, {dispatch, queryFulfilled}) => {
+        onQueryStarted: async (_args, {dispatch, queryFulfilled}) => {
           try {
             await queryFulfilled;
-            dispatch(
-              openapi.util.updateQueryData("getAdminSetupStatus", {apiBase}, (draft) => {
-                draft.needsSetup = false;
-              })
-            );
+            dispatch(openapi.util.resetApiState());
           } catch {
-            // Claim failed; leave the cached setup-status untouched.
+            // Claim failed; leave the cache untouched.
           }
         },
         query: ({apiBase}) => ({method: "POST", url: `${apiBase}/setup-claim`}),
       }),
       getAdminSetupStatus: build.query<AdminSetupStatusResponse, {apiBase: string}>({
-        providesTags: ["admin-setup-status"],
         query: ({apiBase}) => ({method: "GET", url: `${apiBase}/setup-status`}),
       }),
     }),
