@@ -1,10 +1,16 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeAll, describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeAll, describe, expect, it, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
 import {createRef} from "react";
 import {Text} from "react-native";
 
-import {ActionSheet, getDeviceHeight, getElevation, waitAsync} from "./ActionSheet";
+import {
+  ActionSheet,
+  getDeviceHeight,
+  getElevation,
+  resetActionSheetDeviceHeightCacheForTests,
+  waitAsync,
+} from "./ActionSheet";
 import {ThemeProvider} from "./Theme";
 
 beforeAll(() => {
@@ -14,6 +20,10 @@ beforeAll(() => {
   (global as any).cancelAnimationFrame = (id: number) => {
     clearTimeout(id);
   };
+});
+
+afterAll(() => {
+  resetActionSheetDeviceHeightCacheForTests();
 });
 
 describe("ActionSheet", () => {
@@ -1032,6 +1042,9 @@ describe("ActionSheet", () => {
   });
 
   describe("_onDeviceLayout timeout callback execution", () => {
+    afterEach(() => {
+      resetActionSheetDeviceHeightCacheForTests();
+    });
     it("updates state after layout timeout fires with drawUnderStatusBar", async () => {
       const ref = createRef<ActionSheet>();
       render(
