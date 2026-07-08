@@ -12,10 +12,12 @@ import {
   baseUserPlugin,
   createdUpdatedPlugin,
   DateOnly,
+  excludeArchivedPlugin,
   findExactlyOne,
   findOneOrNone,
   findOneOrNoneFor,
   firebaseJWTPlugin,
+  type IsArchived,
   type IsDeleted,
   isDeletedPlugin,
   upsertPlugin,
@@ -385,6 +387,58 @@ describe("upsertPlugin", () => {
 
     expect(result.name).toBe("TestCondition");
     expect(result.ownerId).toBe("999");
+  });
+});
+
+interface ArchivableStuff extends IsArchived {
+  _id: string;
+  name: string;
+}
+
+const archivableSchema = new Schema<ArchivableStuff>({
+  name: {description: "The name of the item", type: String},
+});
+archivableSchema.plugin(excludeArchivedPlugin);
+const ArchivableModel = model<ArchivableStuff>("ArchivableStuff", archivableSchema);
+
+describe("excludeArchivedPlugin", () => {
+  beforeEach(async () => {
+    await ArchivableModel.deleteMany({});
+    await setupDb();
+  });
+
+  it("adds an archived field defaulting to false", () => {
+    const archivedPath = archivableSchema.path("archived");
+    expect(archivedPath).toBeDefined();
+    expect((archivedPath as unknown as {options: {default: boolean}}).options.default).toBe(false);
+    expect((archivedPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+
+  it("excludes archived documents from find() by default", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const results = await ArchivableModel.find({});
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Active");
+  });
+
+  it("includes archived documents when explicitly requested", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const results = await ArchivableModel.find({archived: true});
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Archived");
+  });
+
+  it("does not override an explicit archived filter of false", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const results = await ArchivableModel.find({archived: false});
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Active");
   });
 });
 

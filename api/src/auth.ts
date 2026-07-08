@@ -103,6 +103,72 @@ export const signupUser = async (
   }
 };
 
+/** A user document exposing passport-local-mongoose's `setPassword`. */
+export interface HasSetPassword {
+  setPassword: (
+    password: string,
+    callback?: (error?: unknown) => void
+  ) => Promise<unknown> | unknown;
+}
+
+/**
+ * Sets a password on a passport-local-mongoose user document, returning a Promise regardless of
+ * whether the installed version of `setPassword` is callback- or promise-based. Newer versions
+ * return a promise while older ones only invoke the callback; this helper normalizes both and
+ * rejects after `timeoutMs` (default 15s) if neither settles. Call `user.save()` afterwards to
+ * persist the new hash/salt.
+ */
+export const setPasswordForUser = async (
+  user: HasSetPassword,
+  password: string,
+  timeoutMs = 15_000
+): Promise<void> => {
+  await new Promise<void>((resolve, reject) => {
+    let isSettled = false;
+    const timeout = setTimeout(() => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      reject(new Error("Timed out while setting password"));
+    }, timeoutMs);
+
+    const resolveOnce = (): void => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    const rejectOnce = (error: unknown): void => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      clearTimeout(timeout);
+      reject(error);
+    };
+
+    try {
+      const maybePromise = user.setPassword(password, (error?: unknown) => {
+        if (error) {
+          rejectOnce(error);
+          return;
+        }
+        resolveOnce();
+      });
+
+      if (maybePromise && typeof (maybePromise as Promise<unknown>).then === "function") {
+        (maybePromise as Promise<unknown>).then(resolveOnce).catch(rejectOnce);
+      }
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+};
+
 /**
  * Generates both an access token (JWT) and a refresh token for a given user.
  *

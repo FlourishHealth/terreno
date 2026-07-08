@@ -6,7 +6,14 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
+import {
+  addAuthRoutes,
+  addMeRoutes,
+  generateTokens,
+  type HasSetPassword,
+  setPasswordForUser,
+  setupAuth,
+} from "./auth";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {TerrenoApp} from "./terrenoApp";
@@ -1308,5 +1315,64 @@ describe("signup disabled", () => {
   it("returns 404 when SIGNUP_DISABLED is true", async () => {
     const res = await agent.post("/auth/signup").send({email: "new@example.com", password: "123"});
     expect(res.status).toBe(404);
+  });
+});
+
+describe("setPasswordForUser", () => {
+  it("resolves when a callback-based setPassword invokes the callback with no error", async () => {
+    let receivedPassword: string | undefined;
+    const user: HasSetPassword = {
+      setPassword: (password, callback) => {
+        receivedPassword = password;
+        callback?.();
+      },
+    };
+
+    await setPasswordForUser(user, "new-password");
+    expect(receivedPassword).toBe("new-password");
+  });
+
+  it("resolves when setPassword returns a promise", async () => {
+    let receivedPassword: string | undefined;
+    const user: HasSetPassword = {
+      setPassword: async (password) => {
+        receivedPassword = password;
+      },
+    };
+
+    await setPasswordForUser(user, "promise-password");
+    expect(receivedPassword).toBe("promise-password");
+  });
+
+  it("rejects when the callback is invoked with an error", async () => {
+    const user: HasSetPassword = {
+      setPassword: (_password, callback) => {
+        callback?.(new Error("boom"));
+      },
+    };
+
+    await expect(setPasswordForUser(user, "pw")).rejects.toThrow("boom");
+  });
+
+  it("rejects when setPassword throws synchronously", async () => {
+    const user: HasSetPassword = {
+      setPassword: () => {
+        throw new Error("sync failure");
+      },
+    };
+
+    await expect(setPasswordForUser(user, "pw")).rejects.toThrow("sync failure");
+  });
+
+  it("rejects with a timeout when setPassword never settles", async () => {
+    const user: HasSetPassword = {
+      setPassword: () => {
+        // Never invokes the callback and returns nothing (no promise).
+      },
+    };
+
+    await expect(setPasswordForUser(user, "pw", 10)).rejects.toThrow(
+      "Timed out while setting password"
+    );
   });
 });
