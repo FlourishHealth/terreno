@@ -1,13 +1,29 @@
 import {generateMutationId} from "@terreno/syncdb";
-import {useMutate, useQuery, useSyncDbClient} from "@terreno/syncdb/react";
-import {Box, Button, Card, CheckBox, Heading, IconButton, Page, Text, TextField} from "@terreno/ui";
+import {
+  useConflicts,
+  useMutate,
+  useQuery,
+  useSyncDbClient,
+  useSyncStatus,
+} from "@terreno/syncdb/react";
+import {
+  Box,
+  Button,
+  Card,
+  CheckBox,
+  ConflictSheet,
+  Heading,
+  IconButton,
+  Page,
+  SyncStatusBanner,
+  Text,
+  TextField,
+} from "@terreno/ui";
 import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useState} from "react";
 import {ScrollView} from "react-native";
-import {ConflictSheet} from "@/components/ConflictSheet";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
-import {SyncStatusBanner} from "@/components/SyncStatusBanner";
 
 /**
  * Shape of a todo in the local syncdb store. Server documents carry the full model
@@ -82,6 +98,8 @@ const SyncTodosScreen: React.FC = () => {
 
   const todos = useQuery<SyncTodo>("todos", {sort: sortByCreatedDesc});
   const {update, remove} = useMutate("todos");
+  const syncStatus = useSyncStatus();
+  const {conflicts, resolve} = useConflicts();
 
   const incompleteTodos = todos.filter((todo) => !todo.completed);
   const completedTodos = todos.filter((todo) => Boolean(todo.completed));
@@ -129,9 +147,20 @@ const SyncTodosScreen: React.FC = () => {
     <ScrollView style={{flex: 1}} testID="todos-screen">
       <Page navigation={undefined} scroll={false}>
         <Box padding={4}>
-          <SyncStatusBanner onOpenConflicts={openConflictSheet} />
+          <SyncStatusBanner
+            conflictCount={syncStatus.conflictCount}
+            isOnline={syncStatus.isOnline}
+            isSyncing={syncStatus.isSyncing}
+            onOpenConflicts={openConflictSheet}
+            queuedCount={syncStatus.queuedCount}
+          />
           <SyncDevPanel />
-          <ConflictSheet onDismiss={closeConflictSheet} visible={isConflictSheetVisible} />
+          <ConflictSheet
+            conflicts={conflicts}
+            onDismiss={closeConflictSheet}
+            onResolve={resolve}
+            visible={isConflictSheetVisible}
+          />
 
           <Box marginBottom={6}>
             <Heading size="xl">My Todos</Heading>
