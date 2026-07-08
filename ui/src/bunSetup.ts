@@ -227,6 +227,10 @@ mock.module("react-native", () => {
     addChangeListener: mock(() => ({remove: mock(() => {})})),
     getColorScheme: mock(() => "light"),
   };
+  const AppState = {
+    addEventListener: mock(() => ({remove: mock(() => {})})),
+    currentState: "active",
+  };
   const Vibration = {
     cancel: mock(() => {}),
     vibrate: mock(() => {}),
@@ -359,6 +363,7 @@ mock.module("react-native", () => {
     Alert,
     Animated,
     Appearance,
+    AppState,
     BackHandler,
     Dimensions,
     default: {
@@ -367,6 +372,7 @@ mock.module("react-native", () => {
       Alert,
       Animated,
       Appearance,
+      AppState,
       BackHandler,
       Dimensions,
       Easing,
