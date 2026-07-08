@@ -11,10 +11,10 @@ Paired with [docs/implementationPlans/syncdb-codegen.md](../implementationPlans/
   - Acceptance: `maxAttempts: 1` fails terminally after one error nack; omitted preserves 5-attempt exponential backoff; existing tests unchanged.
 
 - [ ] **Task 1.2**: `createCollectionHooks` factory
-  - Description: New `createCollectionHooks<TData, TCreate, TUpdate>({collection, retries})` in `@terreno/syncdb/react` returning `{useQuery, useEntity, useMutate}` that delegate to the existing hooks and map `retries` (false → 1, number → n, omitted → undefined) to `maxAttempts`.
+  - Description: New `createCollectionHooks<TData, TCreate, TUpdate>({collection, retries})` in `@terreno/syncdb/react` returning the five per-operation hooks `{useListQuery, useReadQuery, useCreateMutation, useUpdateMutation, useDeleteMutation}`. Read hooks delegate to the existing `useQuery`/`useEntity`; mutation hooks return one-element `[trigger]` tuples (RTK call-site parity) whose triggers wrap `client.mutate`, mapping `retries` (false → 1, number → n, omitted → undefined) to `maxAttempts`.
   - Files: `syncdb/src/react/collectionHooks.ts` (new), `syncdb/src/react/collectionHooks.test.tsx` (new), `syncdb/src/react/index.ts`
   - Depends on: Task 1.1
-  - Acceptance: factory hooks behave identically to direct hook calls; typed create/update payloads compile; `retries` reaches the outbox row.
+  - Acceptance: factory hooks behave identically to direct hook calls; `const [create] = useCreateMutation()` destructuring compiles and works; typed create/update payloads compile; `retries` reaches the outbox row.
 
 ## Phase 2: OpenAPI extension in @terreno/api
 
@@ -39,10 +39,10 @@ Paired with [docs/implementationPlans/syncdb-codegen.md](../implementationPlans/
   - Acceptance: fixture spec yields `[{collection: "todos", entityRef, createRef, updateRef}]`; missing extensions + no flag exits non-zero.
 
 - [ ] **Task 3.3**: Type and SDK emitters
-  - Description: Emit TS interfaces from the OpenAPI schema subset produced by `mongoose-to-swagger` (objects, primitives, string-union enums, arrays, `$ref`, required lists), then assemble the output file: generated header, interfaces, `SYNC_COLLECTIONS as const`, and one destructured `createCollectionHooks` block per collection with per-collection `retries` overrides from `--config` JSON applied. Format via `bunx biome check --write` when available; `--no-format` skips.
+  - Description: Emit TS interfaces from the OpenAPI schema subset produced by `mongoose-to-swagger` (objects, primitives, string-union enums, arrays, `$ref`, required lists), then assemble the output file: generated header, interfaces, `SYNC_COLLECTIONS as const`, and one destructured `createCollectionHooks` block per collection renaming the factory keys to RTK-style hook names (`useListQuery: useGetTodosQuery`, `useReadQuery: useGetTodosByIdQuery`, `useCreateMutation: usePostTodosMutation`, `useUpdateMutation: usePatchTodosByIdMutation`, `useDeleteMutation: useDeleteTodosByIdMutation`), with per-collection `retries` overrides from `--config` JSON applied. Name derivation must match `@rtk-query/codegen-openapi`'s pascal-case of the route path. Format via `bunx biome check --write` when available; `--no-format` skips.
   - Files: `syncdb-codegen/src/emitTypes.ts` (new), `syncdb-codegen/src/emitSdk.ts` (new), snapshot tests
   - Depends on: Task 3.2
-  - Acceptance: snapshot output type-checks; `{overrides: {todos: {retries: false}}}` appears as `retries: false` in the emitted factory call.
+  - Acceptance: snapshot output type-checks; emitted hook names for the todos fixture are byte-identical to the RTK-generated names in `example-frontend/store/openApiSdk.ts`; `{overrides: {todos: {retries: false}}}` appears as `retries: false` in the emitted factory call.
 
 - [ ] **Task 3.4**: CLI entry and binary build
   - Description: `cli.ts` wires arg parsing (`util.parseArgs`) → load → discover → emit → write, with clear usage/error output and non-zero exit codes. Verify `build:binary` produces a standalone executable with identical output.
@@ -53,7 +53,7 @@ Paired with [docs/implementationPlans/syncdb-codegen.md](../implementationPlans/
 ## Phase 4: Integration and docs
 
 - [ ] **Task 4.1**: example-frontend integration
-  - Description: Add `sync-sdk` script and `syncdb-codegen.json`, check in generated `store/syncDbSdk.ts`, source `SYNC_COLLECTIONS` from it in `store/syncdb.ts`, and migrate `SyncTodosScreen` to the generated hooks (delete the local `SyncTodo` interface).
+  - Description: Add `sync-sdk` script and `syncdb-codegen.json`, check in generated `store/syncDbSdk.ts`, source `SYNC_COLLECTIONS` from it in `store/syncdb.ts`, and migrate `SyncTodosScreen` to the generated hooks (`useGetTodosQuery`, `usePostTodosMutation`, `usePatchTodosByIdMutation`, `useDeleteTodosByIdMutation`; delete the local `SyncTodo` interface). Imports come from `@/store/syncDbSdk` — never re-export these alongside `openApiSdk.ts` from a shared barrel, since the names intentionally collide.
   - Files: `example-frontend/package.json`, `example-frontend/syncdb-codegen.json` (new), `example-frontend/store/syncDbSdk.ts` (generated), `example-frontend/store/syncdb.ts`, `example-frontend/components/SyncTodosScreen.tsx`
   - Depends on: Task 1.2, Task 3.4
   - Acceptance: `bun run sync-sdk` regenerates with no diff against an unchanged backend; syncdb Playwright e2e suite passes; `compile` passes.
