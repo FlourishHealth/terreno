@@ -107,6 +107,7 @@ export * from "./Unifier";
 export * from "./UpgradeRequiredScreen";
 export * from "./UserInactivity";
 export * from "./Utilities";
+export * from "./useAppLaunchOrForeground";
 export * from "./useConsentForms";
 export * from "./useConsentHistory";
 export * from "./useStoredState";
