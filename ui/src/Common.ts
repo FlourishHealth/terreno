@@ -1958,9 +1958,8 @@ export interface IconButtonProps extends WithTestID {
   size?: "default" | "sm";
 
   /**
-   * The interaction state of the button. "active" applies the pressed/selected styling:
-   * the primary variant darkens its background, while all other variants adopt a
-   * surface-primary background with an inverted icon.
+   * Controls the button's interaction state. Use Default for standard button appearance
+   * and Active to indicate a selected or currently engaged state.
    * @default "default"
    */
   state?: "default" | "active";
