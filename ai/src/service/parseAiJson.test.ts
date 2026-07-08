@@ -217,6 +217,18 @@ describe("parseAiJson", () => {
     }
   });
 
+  it("repairs a closing smart quote via the whole-string aggressive replacement", () => {
+    // The closing smart quote sits where the conservative outside-strings repair
+    // still considers itself inside a string, so only the blind global
+    // smart-quote replacement recovers valid JSON.
+    const r = parseAiJson<{a: string}>(`{"a": "b\u201D}`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toEqual({a: "b"});
+    }
+  });
+
   it("falls through balanced extraction when neither direct nor repaired parse succeeds", () => {
     // extractBalancedJson finds {invalid: json broken} but neither parse nor repair can fix it
     const r = parseAiJson("prefix {invalid: json broken} suffix");
