@@ -1958,6 +1958,14 @@ export interface IconButtonProps extends WithTestID {
   size?: "default" | "sm";
 
   /**
+   * The interaction state of the button. "active" applies the pressed/selected styling:
+   * the primary variant darkens its background, while all other variants adopt a
+   * surface-primary background with an inverted icon.
+   * @default "default"
+   */
+  state?: "default" | "active";
+
+  /**
    * The ideal position of the tooltip.
    */
   tooltipIdealPosition?: TooltipPosition;
