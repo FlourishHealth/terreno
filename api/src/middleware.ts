@@ -10,11 +10,7 @@ import {getCurrentRequestContext} from "./requestContext";
  * populated, e.g. `[authenticateMiddleware(), requireAdminMiddleware]`. Use this for admin-only
  * custom routes instead of hand-rolling an inline admin guard.
  */
-export const requireAdminMiddleware = (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): void => {
+export const requireAdminMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
   const user = req.user as {admin?: boolean} | undefined;
   if (!user?.admin) {
     throw new APIError({status: 403, title: "Admin access required"});

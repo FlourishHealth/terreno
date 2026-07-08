@@ -259,8 +259,11 @@ export interface IsArchived {
  * @param schema Mongoose Schema
  * @param defaultValue Default value for the `archived` field (defaults to `false`)
  */
-// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-export const excludeArchivedPlugin = (schema: Schema<any, any, any, any>, defaultValue = false): void => {
+export const excludeArchivedPlugin = (
+  // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+  schema: Schema<any, any, any, any>,
+  defaultValue = false
+): void => {
   schema.add({
     archived: {
       default: defaultValue,

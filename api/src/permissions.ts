@@ -74,22 +74,6 @@ export const Permissions = {
     }
     return method === "list" || method === "read";
   },
-  IsOwner: (_method: RESTMethod, user?: User, obj?: unknown) => {
-    // When checking if we can possibly perform the action, return true.
-    if (!obj) {
-      return true;
-    }
-    if (!user) {
-      return false;
-    }
-    if (user?.admin) {
-      return true;
-    }
-    const withOwner = obj as {ownerId?: {_id?: unknown} | unknown};
-    const ownerObj = withOwner.ownerId as {_id?: unknown} | undefined;
-    const ownerId = ownerObj?._id ?? withOwner.ownerId;
-    return Boolean(user?.id && ownerId && String(ownerId) === String(user?.id));
-  },
   /**
    * Object-level permission for tenant-scoped documents: the caller must belong to the document's
    * organization (admins always pass). With no object (list/create checks) it returns true and
@@ -112,6 +96,22 @@ export const Permissions = {
       return false;
     }
     return getUserOrganizationIds(user).includes(organizationId);
+  },
+  IsOwner: (_method: RESTMethod, user?: User, obj?: unknown) => {
+    // When checking if we can possibly perform the action, return true.
+    if (!obj) {
+      return true;
+    }
+    if (!user) {
+      return false;
+    }
+    if (user?.admin) {
+      return true;
+    }
+    const withOwner = obj as {ownerId?: {_id?: unknown} | unknown};
+    const ownerObj = withOwner.ownerId as {_id?: unknown} | undefined;
+    const ownerId = ownerObj?._id ?? withOwner.ownerId;
+    return Boolean(user?.id && ownerId && String(ownerId) === String(user?.id));
   },
   IsOwnerOrReadOnly: (method: RESTMethod, user?: User, obj?: unknown) => {
     // When checking if we can possibly perform the action, return true.

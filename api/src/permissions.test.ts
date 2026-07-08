@@ -267,12 +267,16 @@ describe("permissions module", () => {
 
     it("returns true for admins regardless of membership", () => {
       const user = {admin: true, id: "admin-1", organizationIds: []} as any;
-      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-9"})).toBe(true);
+      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-9"})).toBe(
+        true
+      );
     });
 
     it("returns true when the user belongs to the document's organization", () => {
       const user = {id: "u1", organizationIds: ["org-1", "org-2"]} as any;
-      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-2"})).toBe(true);
+      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-2"})).toBe(
+        true
+      );
     });
 
     it("returns false when the user does not belong to the document's organization", () => {

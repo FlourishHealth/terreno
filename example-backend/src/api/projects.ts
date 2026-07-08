@@ -1,4 +1,4 @@
-import {modelRouter, type PermissionMethod, Permissions} from "@terreno/api";
+import {modelRouter, OrganizationQueryFilter, Permissions} from "@terreno/api";
 import {Project} from "../models";
 import type {ProjectDocument, UserDocument} from "../types";
 
@@ -7,35 +7,20 @@ const getUserOrganizationIds = (user?: unknown): string[] => {
 };
 
 /**
- * Object-level permission for tenant-scoped documents: the user must belong to the
- * project's organization (admins always pass). With no object (list/create checks)
- * it defers to the queryFilter/preCreate scoping.
- */
-const IsOrganizationMember: PermissionMethod<ProjectDocument> = (_method, user, obj) => {
-  if (!obj) {
-    return true;
-  }
-  if (!user) {
-    return false;
-  }
-  if (user.admin) {
-    return true;
-  }
-  return getUserOrganizationIds(user).includes(obj.organizationId);
-};
-
-/**
  * Tenant-scoped sync example: every member of a project's organization shares the
  * same stream (`projects|tenant:{organizationId}`), resolved through the SyncApp's
  * `getUserScopes` callback (see server.ts).
+ *
+ * Access is gated by the shared `Permissions.IsOrganizationMember` (object-level tenant check) and
+ * `OrganizationQueryFilter` (list scoping) from @terreno/api.
  */
 export const projectRouter = modelRouter("/projects", Project, {
   permissions: {
-    create: [Permissions.IsAuthenticated, IsOrganizationMember],
-    delete: [Permissions.IsAuthenticated, IsOrganizationMember],
+    create: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
+    delete: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
     list: [Permissions.IsAuthenticated],
-    read: [Permissions.IsAuthenticated, IsOrganizationMember],
-    update: [Permissions.IsAuthenticated, IsOrganizationMember],
+    read: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
+    update: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
   },
   preCreate: (body, req) => {
     const organizationIds = getUserOrganizationIds(req.user);
@@ -47,7 +32,7 @@ export const projectRouter = modelRouter("/projects", Project, {
   },
   queryFields: ["organizationId", "title"],
   // Restrict list queries to the caller's organizations.
-  queryFilter: (user) => ({organizationId: {$in: getUserOrganizationIds(user)}}),
+  queryFilter: OrganizationQueryFilter,
   sort: "-created",
   // Local-first sync (@terreno/syncdb): stream = projects|tenant:{organizationId}.
   sync: {scope: {field: "organizationId", type: "tenant"}},
