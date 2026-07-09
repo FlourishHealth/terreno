@@ -2,13 +2,12 @@
  * SyncDB storage guarantees: encryption at rest (AC-14) and the local wipe on user
  * switch (AC-7). Shared suite notes and helpers live in helpers/syncdbSuite.ts. Uses
  * a dedicated user so it can run in parallel with the other syncdb-*.spec.ts files
- * while the use-syncdb flag is on (SECOND_USER is only ever mutated here during this
- * phase, so the cross-user scenario stays isolated too).
+ * (SECOND_USER is only ever mutated here during this phase, so the cross-user scenario
+ * stays isolated too).
  */
 import {expect, test} from "./fixtures/test";
 import {SECOND_USER, SYNCDB_STORAGE_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
-import {setSyncDbFlag} from "./helpers/syncdbFlag";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
@@ -28,10 +27,6 @@ import {clearTodosAs, createTodoAs, listTodosAs} from "./helpers/todosApi";
 const USER = SYNCDB_STORAGE_USER;
 
 test.describe("SyncDB encryption at rest (AC-14)", () => {
-  test.beforeAll(async () => {
-    await setSyncDbFlag(true);
-  });
-
   test.beforeEach(async ({page, consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);
     await clearTodosAs(USER);
@@ -75,10 +70,6 @@ test.describe("SyncDB encryption at rest (AC-14)", () => {
 
 test.describe("SyncDB user switch wipe (AC-7)", () => {
   let seededForA: {_id: string; title: string};
-
-  test.beforeAll(async () => {
-    await setSyncDbFlag(true);
-  });
 
   test.beforeEach(async ({page, consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);

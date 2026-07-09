@@ -1,3 +1,4 @@
+import type {SyncDebugLog} from "../debug/debugLog";
 import {writeConflict} from "../mutations/conflicts";
 import type {Outbox} from "../mutations/outbox";
 import type {SyncStore} from "../storage/store";
@@ -47,12 +48,15 @@ export const createReplayCoordinator = ({
   outbox,
   sendMutation,
   now = () => Date.now(),
+  debug,
 }: {
   store: SyncStore;
   outbox: Outbox;
   sendMutation: (request: SyncMutateRequest) => Promise<SendMutationResult>;
   /** Millisecond clock, injectable for deterministic backoff tests. */
   now?: () => number;
+  /** Optional debug log; when present, each mutation outcome is recorded. */
+  debug?: SyncDebugLog;
 }): ReplayCoordinator => {
   const inFlightReplays = new Map<string, Promise<ReplayResult>>();
   /** mutationId → earliest epoch-ms the next attempt may run (error-nack backoff). */
@@ -101,6 +105,17 @@ export const createReplayCoordinator = ({
     outbox.markAcked({mutationId: mutation.mutationId});
     retryAt.delete(mutation.mutationId);
     releaseEntity(mutation, ack.seq);
+    debug?.record({
+      collection: mutation.collection,
+      direction: "inbound",
+      entityId: mutation.entityId,
+      label: `ack ${mutation.collection}/${mutation.entityId} @${ack.seq}`,
+      mutationId: mutation.mutationId,
+      ok: true,
+      operation: mutation.operation,
+      seq: ack.seq,
+      type: "ack",
+    });
   };
 
   const handleConflict = (mutation: OutboxMutation, nack: SyncNack): void => {
@@ -119,14 +134,36 @@ export const createReplayCoordinator = ({
       },
       store,
     });
+    debug?.record({
+      collection: mutation.collection,
+      detail: {message: nack.message, serverSeq: nack.serverSeq},
+      direction: "inbound",
+      entityId: mutation.entityId,
+      label: `conflict ${mutation.collection}/${mutation.entityId}`,
+      mutationId: mutation.mutationId,
+      ok: false,
+      operation: mutation.operation,
+      type: "conflict",
+    });
   };
 
-  const handleTerminalFailure = (mutation: OutboxMutation): void => {
+  const handleTerminalFailure = (mutation: OutboxMutation, reason: string): void => {
     outbox.markFailed({mutationId: mutation.mutationId});
     retryAt.delete(mutation.mutationId);
     // A failed mutation never replays; leaving pendingMutationId set would
     // block server deltas for this entity forever.
     releaseEntity(mutation);
+    debug?.record({
+      collection: mutation.collection,
+      detail: {reason},
+      direction: "inbound",
+      entityId: mutation.entityId,
+      label: `failed ${mutation.collection}/${mutation.entityId} (${reason})`,
+      mutationId: mutation.mutationId,
+      ok: false,
+      operation: mutation.operation,
+      type: "failed",
+    });
   };
 
   const drainCollection = async (
@@ -144,6 +181,16 @@ export const createReplayCoordinator = ({
         return;
       }
       outbox.markInFlight({mutationId: mutation.mutationId});
+      debug?.record({
+        collection: mutation.collection,
+        detail: {attempt: mutation.attemptCount + 1},
+        direction: "outbound",
+        entityId: mutation.entityId,
+        label: `send ${mutation.operation} ${mutation.collection}/${mutation.entityId}`,
+        mutationId: mutation.mutationId,
+        operation: mutation.operation,
+        type: "send",
+      });
       let result: SendMutationResult;
       try {
         result = await sendMutation(buildRequest(mutation));
@@ -151,6 +198,16 @@ export const createReplayCoordinator = ({
         // Transport failure (timeout, network, disconnect): keep the mutation
         // queued and stop draining this collection until the next replay.
         outbox.markQueued({mutationId: mutation.mutationId});
+        debug?.record({
+          collection: mutation.collection,
+          detail: {reason: "transport"},
+          direction: "system",
+          entityId: mutation.entityId,
+          label: `retry ${mutation.collection}/${mutation.entityId} (transport)`,
+          mutationId: mutation.mutationId,
+          operation: mutation.operation,
+          type: "retry",
+        });
         return;
       }
       if (result.type === "ack") {
@@ -165,10 +222,21 @@ export const createReplayCoordinator = ({
       if (nack.code === "unauthorized") {
         outbox.markQueued({mutationId: mutation.mutationId});
         state.authPaused = true;
+        debug?.record({
+          collection: mutation.collection,
+          detail: {code: "unauthorized", paused: true},
+          direction: "inbound",
+          entityId: mutation.entityId,
+          label: `nack ${mutation.collection}/${mutation.entityId} (unauthorized)`,
+          mutationId: mutation.mutationId,
+          ok: false,
+          operation: mutation.operation,
+          type: "nack",
+        });
         return;
       }
       if (nack.code === "validation") {
-        handleTerminalFailure(mutation);
+        handleTerminalFailure(mutation, "validation");
         continue;
       }
       // "error": transient server failure — exponential backoff, then terminal.
@@ -176,11 +244,22 @@ export const createReplayCoordinator = ({
         outbox.getMutation({mutationId: mutation.mutationId})?.attemptCount ??
         mutation.attemptCount + 1;
       if (attempts >= MAX_ERROR_NACK_ATTEMPTS) {
-        handleTerminalFailure(mutation);
+        handleTerminalFailure(mutation, "error");
         continue;
       }
       outbox.markQueued({mutationId: mutation.mutationId});
-      retryAt.set(mutation.mutationId, now() + ERROR_NACK_BASE_BACKOFF_MS * 2 ** (attempts - 1));
+      const backoffMs = ERROR_NACK_BASE_BACKOFF_MS * 2 ** (attempts - 1);
+      retryAt.set(mutation.mutationId, now() + backoffMs);
+      debug?.record({
+        collection: mutation.collection,
+        detail: {attempt: attempts, backoffMs, reason: "error"},
+        direction: "system",
+        entityId: mutation.entityId,
+        label: `retry ${mutation.collection}/${mutation.entityId} (error, ${backoffMs}ms)`,
+        mutationId: mutation.mutationId,
+        operation: mutation.operation,
+        type: "retry",
+      });
       // The backing-off mutation stays at the head of its collection's FIFO;
       // stop draining until its delay elapses.
       return;

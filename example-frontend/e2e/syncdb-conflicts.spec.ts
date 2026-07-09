@@ -2,13 +2,12 @@
  * SyncDB conflict resolution (AC-10, AC-11, AC-12): surfacing both versions and the
  * "use server" / "keep mine" resolutions. Shared suite notes and helpers live in
  * helpers/syncdbSuite.ts. Uses a dedicated user so it can run in parallel with the
- * other syncdb-*.spec.ts files while the use-syncdb flag is on.
+ * other syncdb-*.spec.ts files.
  */
 import type {Page} from "@playwright/test";
 import {expect, test} from "./fixtures/test";
 import {SYNCDB_CONFLICTS_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
-import {setSyncDbFlag} from "./helpers/syncdbFlag";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
@@ -23,10 +22,6 @@ const USER = SYNCDB_CONFLICTS_USER;
 
 test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
   let target: {_id: string; title: string};
-
-  test.beforeAll(async () => {
-    await setSyncDbFlag(true);
-  });
 
   test.beforeEach(async ({page, consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);

@@ -72,10 +72,58 @@ export const betterAuthAdapter = (
     return `${session?.user?.id ?? ""}|${session?.session?.token ?? ""}`;
   };
 
+  /**
+   * Classify a session-atom emission for the subscribe path:
+   * - "pending": an in-flight fetch state (`isPending: true`) — never a change;
+   * - `{key}`: a parseable session envelope reduced to its identity (userId|token);
+   * - null: an opaque value the adapter cannot interpret.
+   */
+  const classifyEmission = (value: unknown): {key: string} | "pending" | null => {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const emission = value as {isPending?: unknown; data?: unknown; user?: unknown};
+    if (emission.isPending === true) {
+      return "pending";
+    }
+    let payload: BetterAuthSessionDataLike | null = null;
+    if ("data" in emission) {
+      payload =
+        emission.data && typeof emission.data === "object"
+          ? (emission.data as BetterAuthSessionDataLike)
+          : null;
+    } else if ("user" in emission || "session" in emission) {
+      payload = emission as BetterAuthSessionDataLike;
+    } else {
+      return null;
+    }
+    return {key: `${payload?.user?.id ?? ""}|${payload?.session?.token ?? ""}`};
+  };
+
   const onAuthChange = (callback: () => void): (() => void) => {
     const subscribe = authClient.useSession?.subscribe;
     if (typeof subscribe === "function") {
-      const unsubscribe = subscribe(() => {
+      // Dedupe by session identity: Better Auth's session atom re-emits on EVERY
+      // get-session fetch (each settles with a fresh object), including fetches this
+      // adapter's own getToken/getUserId trigger. Forwarding every emission creates a
+      // feedback loop (auth change → getUserId → getSession → atom emission → auth
+      // change → ...), so only a genuine identity change (login/logout/user switch/
+      // token rotation) may fire the callback. In-flight (`isPending`) states are
+      // skipped; opaque values the adapter cannot parse are forwarded as before.
+      let lastKey: string | undefined;
+      const unsubscribe = subscribe((value) => {
+        const parsed = classifyEmission(value);
+        if (parsed === "pending") {
+          return;
+        }
+        if (parsed === null) {
+          callback();
+          return;
+        }
+        if (parsed.key === lastKey) {
+          return;
+        }
+        lastKey = parsed.key;
         callback();
       });
       return typeof unsubscribe === "function" ? unsubscribe : (): void => {};

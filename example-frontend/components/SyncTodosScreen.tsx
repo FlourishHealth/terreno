@@ -87,9 +87,8 @@ const SyncTodoItem: React.FC<{
 };
 
 /**
- * Local-first Todos screen backed by @terreno/syncdb (rendered when the USE_SYNCDB
- * flag is on). Reads come from the local store, writes apply optimistically and sync
- * through the durable outbox; the RTK implementation is untouched behind the flag.
+ * Local-first Todos screen backed by @terreno/syncdb. Reads come from the local store,
+ * writes apply optimistically and sync through the durable outbox.
  */
 const SyncTodosScreen: React.FC = () => {
   const client = useSyncDbClient();

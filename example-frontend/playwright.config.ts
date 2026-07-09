@@ -8,15 +8,14 @@ const chromium = {...devices["Desktop Chrome"]};
  * and cross-file interference is impossible.
  *
  * Locally all files share one backend, so files run in parallel (one worker per
- * file) and the suites that mutate backend-global state are phased via project
+ * file) and the suites that mutate shared backend state are phased via project
  * dependencies:
  *
  *   setup → app (everything else, parallel)
  *         → consents      (active consent forms gate every user's login)
- *         → syncdb-*      (backend-global use-syncdb flag on; one project per file,
- *                          chained — concurrent syncdb clients against one backend
- *                          race the client's start()/mutate() lifecycle)
- *         → syncdb-flag-off (verifies the RTK path and leaves the flag off)
+ *         → syncdb-*      (one project per file, chained — concurrent syncdb
+ *                          clients against one backend race the client's
+ *                          start()/mutate() lifecycle)
  *
  * Per-suite users (fixtures/testUsers.ts) keep the parallel files from clearing each
  * other's todos. To run a single consents/syncdb file without its dependency phases,
@@ -44,12 +43,6 @@ const localProjects: Project[] = [
     testMatch: new RegExp(`${file}\\.spec\\.ts`),
     use: chromium,
   })),
-  {
-    dependencies: [syncdbFiles[syncdbFiles.length - 1]],
-    name: "syncdb-flag-off",
-    testMatch: /syncdb-flag-off\.spec\.ts/,
-    use: chromium,
-  },
 ];
 
 const ciProjects: Project[] = [
@@ -84,6 +77,10 @@ export default defineConfig({
       // reuseExistingServer: true lets playwright use it instead of starting a second instance.
       command: "bun run --cwd ../example-backend src/index.ts",
       env: {
+        AUTH_PROVIDER: "better-auth",
+        BETTER_AUTH_SECRET:
+          process.env.BETTER_AUTH_SECRET ?? "terreno-example-e2e-better-auth-secret-32",
+        BETTER_AUTH_URL: "http://localhost:4000",
         MONGO_URI: process.env.MONGO_URI ?? "mongodb://127.0.0.1/terreno-e2e",
         PORT: "4000",
         REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET ?? "e2e-refresh-secret-dev",
