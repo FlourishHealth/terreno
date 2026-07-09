@@ -12,6 +12,7 @@
 
 import {useCallback, useRef, useSyncExternalStore} from "react";
 
+import type {SyncDebugEvent, SyncDebugLog, SyncDebugStats} from "../debug/debugLog";
 import {listConflicts} from "../mutations/conflicts";
 import {CONFLICTS_TABLE, CURSORS_TABLE, OUTBOX_TABLE} from "../storage/types";
 import type {ConflictResolutionStrategy, SyncConflict, SyncStatus} from "../types";
@@ -238,4 +239,60 @@ export const useConflicts = (): UseConflictsResult => {
   );
 
   return {conflicts, resolve};
+};
+
+export interface UseSyncDebugLogResult {
+  /** True when the client was created with `debug` enabled. */
+  enabled: boolean;
+  /** Recorded events, oldest → newest (empty when disabled). */
+  events: SyncDebugEvent[];
+  /** Aggregate counters (undefined when disabled). */
+  stats: SyncDebugStats | undefined;
+  /** The underlying log, for `snapshot()`/`clear()` (undefined when disabled). */
+  log: SyncDebugLog | undefined;
+  /** Drop all retained events. */
+  clear: () => void;
+}
+
+const EMPTY_EVENTS: SyncDebugEvent[] = [];
+
+/**
+ * Subscribe to the client's debug event log (see `createSyncDb({debug: true})`).
+ *
+ * Reactivity is driven by the log's monotonic revision through
+ * `useSyncExternalStore`, so a burst of events triggers at most one render per
+ * commit. `events` is read fresh from the ring buffer on each render (O(capacity),
+ * capacity defaults to 500) — cheap enough for a live debugger and stable when
+ * nothing changed because the revision is unchanged.
+ */
+export const useSyncDebugLog = (): UseSyncDebugLogResult => {
+  const client = useSyncDbClient();
+  const log = client.debug;
+
+  const subscribe = useCallback(
+    (onChange: () => void): (() => void) => {
+      if (!log) {
+        return () => {};
+      }
+      return log.subscribe(onChange);
+    },
+    [log]
+  );
+
+  const getRevision = useCallback((): number => log?.getRevision() ?? 0, [log]);
+
+  // The revision changes on every record/clear; reading it re-renders the hook.
+  useSyncExternalStore(subscribe, getRevision, getRevision);
+
+  const clear = useCallback((): void => {
+    log?.clear();
+  }, [log]);
+
+  return {
+    clear,
+    enabled: Boolean(log),
+    events: log ? log.getEvents() : EMPTY_EVENTS,
+    log,
+    stats: log?.getStats(),
+  };
 };

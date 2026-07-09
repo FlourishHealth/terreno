@@ -113,6 +113,84 @@ describe("betterAuthAdapter", () => {
       expect(bCount).toBe(2);
     });
 
+    it("dedupes emissions by session identity (re-fetches with the same session do not fire)", () => {
+      const atom = makeAtom();
+      const adapter = betterAuthAdapter(
+        makeClient(async () => null, {
+          subscribe: (listener) => {
+            atom.listeners.add(listener);
+            return () => atom.listeners.delete(listener);
+          },
+        })
+      );
+      let calls = 0;
+      adapter.onAuthChange(() => {
+        calls += 1;
+      });
+
+      // Initial session emission fires once...
+      atom.emit({data: {session: {token: "tok-a"}, user: {id: "u1"}}});
+      expect(calls).toBe(1);
+      // ...but re-emissions with the same identity (fresh objects per get-session
+      // fetch) are swallowed — this is what breaks the auth-change feedback loop.
+      atom.emit({data: {session: {token: "tok-a"}, user: {id: "u1"}}});
+      atom.emit({data: {session: {token: "tok-a"}, user: {id: "u1"}}});
+      expect(calls).toBe(1);
+
+      // Token rotation (same user) is a genuine identity change.
+      atom.emit({data: {session: {token: "tok-b"}, user: {id: "u1"}}});
+      expect(calls).toBe(2);
+
+      // Logout (null data) changes identity again.
+      atom.emit({data: null});
+      expect(calls).toBe(3);
+      atom.emit({data: null});
+      expect(calls).toBe(3);
+    });
+
+    it("ignores in-flight (isPending) emissions", () => {
+      const atom = makeAtom();
+      const adapter = betterAuthAdapter(
+        makeClient(async () => null, {
+          subscribe: (listener) => {
+            atom.listeners.add(listener);
+            return () => atom.listeners.delete(listener);
+          },
+        })
+      );
+      let calls = 0;
+      adapter.onAuthChange(() => {
+        calls += 1;
+      });
+
+      atom.emit({data: null, isPending: true});
+      expect(calls).toBe(0);
+      atom.emit({data: {session: {token: "tok"}, user: {id: "u1"}}, isPending: false});
+      expect(calls).toBe(1);
+      atom.emit({data: {session: {token: "tok"}, user: {id: "u1"}}, isPending: true});
+      expect(calls).toBe(1);
+    });
+
+    it("forwards opaque emissions it cannot parse (back-compat)", () => {
+      const atom = makeAtom();
+      const adapter = betterAuthAdapter(
+        makeClient(async () => null, {
+          subscribe: (listener) => {
+            atom.listeners.add(listener);
+            return () => atom.listeners.delete(listener);
+          },
+        })
+      );
+      let calls = 0;
+      adapter.onAuthChange(() => {
+        calls += 1;
+      });
+
+      atom.emit(true);
+      atom.emit(false);
+      expect(calls).toBe(2);
+    });
+
     it("tolerates a subscribe implementation that returns no unsubscribe function", () => {
       const adapter = betterAuthAdapter(
         makeClient(async () => null, {

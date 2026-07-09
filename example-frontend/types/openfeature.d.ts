@@ -9,8 +9,7 @@ declare module "@openfeature/core" {
     | "ai-features"
     | "dark-mode-toggle"
     | "todo-priority"
-    | "todo-summary-card"
-    | "use-syncdb";
+    | "todo-summary-card";
 
   export type StringFlagKey = "profile-layout";
 }

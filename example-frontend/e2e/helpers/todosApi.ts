@@ -1,9 +1,11 @@
 import {type APIRequestContext, request} from "@playwright/test";
+import {signUpOrSignInBetterAuth} from "./betterAuthSession";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
 export interface TodoApiUser {
   email: string;
+  name?: string;
   password: string;
 }
 
@@ -15,28 +17,17 @@ export interface TodoRecord {
   updated?: string;
 }
 
-/**
- * User-parameterized todos API helpers for the syncdb e2e suite. Unlike
- * clearTodos.ts these accept any test user, which the user-switch and
- * multi-session scenarios need.
- */
 const withAuthedContext = async <T>(
   user: TodoApiUser,
   fn: (ctx: APIRequestContext, headers: {authorization: string}) => Promise<T>
 ): Promise<T> => {
   const apiContext = await request.newContext({baseURL: API_URL});
   try {
-    const loginRes = await apiContext.post("/auth/login", {
-      data: {email: user.email, password: user.password},
+    const token = await signUpOrSignInBetterAuth(apiContext, {
+      email: user.email,
+      name: user.name ?? user.email,
+      password: user.password,
     });
-    if (!loginRes.ok()) {
-      throw new Error(`todosApi: login failed for ${user.email} with status ${loginRes.status()}`);
-    }
-    const loginData = (await loginRes.json()) as {data?: {token?: string}; token?: string};
-    const token = loginData?.data?.token ?? loginData?.token ?? "";
-    if (!token) {
-      throw new Error(`todosApi: no token in login response for ${user.email}`);
-    }
     return await fn(apiContext, {authorization: `Bearer ${token}`});
   } finally {
     await apiContext.dispose();

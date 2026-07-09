@@ -1,5 +1,6 @@
 import {createServerKeyProvider} from "./crypto/keyProviders";
 import type {KeyProvider} from "./crypto/types";
+import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
 import {listConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
@@ -51,6 +52,13 @@ export interface SyncDbConfig {
   seqJumpReconcileMinIntervalMs?: number;
   /** Millisecond clock, injectable for deterministic rate-limit tests. */
   now?: () => number;
+  /**
+   * Enable the in-memory debug event log (patches, mutations, acks/nacks,
+   * conflicts, reconcile/replay, connectivity). `true` uses defaults; pass
+   * options to size the buffer. Off by default — zero overhead when disabled.
+   * Powers the sync debugger UI and the future MCP introspection surface.
+   */
+  debug?: boolean | SyncDebugLogOptions;
 }
 
 export interface MutateArgs {
@@ -77,6 +85,20 @@ export interface SyncDb {
   /** Disconnect, stop persistence, clear timers, and remove listeners. */
   stop: () => Promise<void>;
   /**
+   * Simulate a network outage: disconnect the transport and pause replay,
+   * reconcile, and the periodic timer. Unlike stop(), the resolved user and
+   * persistence stay alive, so mutations keep applying locally and queueing
+   * in the durable outbox. `getSyncStatus().isOnline` reports false until
+   * goOnline() (or a stop()/start() cycle) restores connectivity.
+   */
+  goOffline: () => void;
+  /**
+   * End a simulated outage: reconnect the transport, resubscribe, and restart
+   * the periodic timer. The reconnect status event triggers a reconcile and
+   * replays the queued outbox.
+   */
+  goOnline: () => Promise<void>;
+  /**
    * Apply a mutation optimistically to the local store, enqueue it in the
    * outbox, and kick off a fire-and-forget replay. Returns the generated
    * mutation id and the entity id (generated for creates).
@@ -98,6 +120,12 @@ export interface SyncDb {
    * Returns an unsubscribe function.
    */
   onStatusChange: (callback: () => void) => () => void;
+  /**
+   * In-memory debug event log when `config.debug` is enabled; otherwise
+   * undefined. Its `snapshot()` is a plain serializable object suitable for
+   * returning directly over MCP.
+   */
+  readonly debug?: SyncDebugLog;
 }
 
 /**
@@ -129,10 +157,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
 
   const store = createSyncStore({collections: config.collections});
   const outbox = createOutbox({store});
+  const debugLog = resolveDebugLog(config.debug);
 
   let currentUserId: string | undefined;
   let persister: ReturnType<PersisterFactory> | undefined;
   let connected = false;
+  let simulatedOffline = false;
   let syncingCount = 0;
   let reconcileTimer: ReturnType<typeof setInterval> | undefined;
   let unsubscribers: (() => void)[] = [];
@@ -150,6 +180,11 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       return;
     }
     connected = value;
+    debugLog?.record({
+      direction: "system",
+      label: value ? "transport connected" : "transport disconnected",
+      type: value ? "connect" : "disconnect",
+    });
     notifyStatusChange();
   };
 
@@ -170,6 +205,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   const coordinator: ReplayCoordinator = createReplayCoordinator({
+    debug: debugLog,
     now,
     outbox,
     sendMutation,
@@ -177,26 +213,59 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   });
 
   const reconcile = async (): Promise<void> => {
-    if (!httpChannel) {
+    // Simulated offline severs all network activity, including the HTTP channel.
+    if (!httpChannel || simulatedOffline) {
       return;
     }
     addSyncing(1);
+    const startedAt = now();
+    debugLog?.record({
+      direction: "system",
+      label: "reconcile start",
+      phase: "start",
+      type: "reconcile",
+    });
     try {
       await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
     } finally {
       addSyncing(-1);
+      debugLog?.record({
+        direction: "system",
+        durationMs: now() - startedAt,
+        label: "reconcile end",
+        phase: "end",
+        type: "reconcile",
+      });
     }
   };
 
   const replayOutbox = async (): Promise<void> => {
-    if (!currentUserId) {
+    // While simulated-offline, mutations stay queued in the durable outbox
+    // (replay would otherwise fall back to the HTTP channel and succeed).
+    if (!currentUserId || simulatedOffline) {
       return;
     }
     addSyncing(1);
+    const startedAt = now();
+    const queued = outbox.listQueued({userId: currentUserId}).length;
+    debugLog?.record({
+      detail: {queued},
+      direction: "system",
+      label: `replay start (${queued} queued)`,
+      phase: "start",
+      type: "replay",
+    });
     try {
       await coordinator.replay({userId: currentUserId});
     } finally {
       addSyncing(-1);
+      debugLog?.record({
+        direction: "system",
+        durationMs: now() - startedAt,
+        label: "replay end",
+        phase: "end",
+        type: "replay",
+      });
     }
   };
 
@@ -241,7 +310,18 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   const handleDelta = (delta: SyncDelta): void => {
-    const {seqJump} = applyDelta({delta, store});
+    const {seqJump, applied} = applyDelta({delta, store});
+    debugLog?.record({
+      collection: delta.collection,
+      detail: {applied, data: delta.data, deleted: delta.deleted === true, seqJump},
+      direction: "inbound",
+      entityId: delta.id,
+      label: `delta ${delta.method} ${delta.collection}/${delta.id} @${delta.seq}`,
+      operation: delta.method,
+      seq: delta.seq,
+      stream: delta.stream,
+      type: "delta",
+    });
     if (!seqJump) {
       return;
     }
@@ -281,11 +361,30 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     })().catch(warn("auth change handling failed"));
   };
 
+  const startReconcileTimer = (): void => {
+    const interval = config.reconcileIntervalMs ?? DEFAULT_RECONCILE_INTERVAL_MS;
+    if (interval <= 0) {
+      return;
+    }
+    reconcileTimer = setInterval(() => {
+      void reconcile().catch(warn("periodic reconcile failed"));
+      void replayOutbox().catch(warn("periodic replay failed"));
+    }, interval);
+  };
+
+  const stopReconcileTimer = (): void => {
+    if (reconcileTimer !== undefined) {
+      clearInterval(reconcileTimer);
+      reconcileTimer = undefined;
+    }
+  };
+
   const start = async (): Promise<void> => {
     const userId = await config.authProvider.getUserId();
     if (!userId) {
       throw new Error("createSyncDb.start() requires an authenticated user");
     }
+    simulatedOffline = false;
     await createAndStartPersister(userId);
     await runUserCheck(userId);
 
@@ -301,21 +400,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       warn("transport connect failed; starting offline")(error);
     }
     transport.subscribe(config.collections);
-
-    const interval = config.reconcileIntervalMs ?? DEFAULT_RECONCILE_INTERVAL_MS;
-    if (interval > 0) {
-      reconcileTimer = setInterval(() => {
-        void reconcile().catch(warn("periodic reconcile failed"));
-        void replayOutbox().catch(warn("periodic replay failed"));
-      }, interval);
-    }
+    startReconcileTimer();
   };
 
   const stop = async (): Promise<void> => {
-    if (reconcileTimer !== undefined) {
-      clearInterval(reconcileTimer);
-      reconcileTimer = undefined;
-    }
+    stopReconcileTimer();
+    simulatedOffline = false;
     for (const unsubscribe of unsubscribers) {
       unsubscribe();
     }
@@ -329,6 +419,35 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       persister = undefined;
     }
     currentUserId = undefined;
+  };
+
+  const goOffline = (): void => {
+    if (simulatedOffline) {
+      return;
+    }
+    simulatedOffline = true;
+    stopReconcileTimer();
+    transport.disconnect();
+    // The transport's own status event may arrive asynchronously; report the
+    // disconnect now so status consumers (and the debug log) see it immediately.
+    setConnected(false);
+  };
+
+  const goOnline = async (): Promise<void> => {
+    if (!simulatedOffline) {
+      return;
+    }
+    simulatedOffline = false;
+    try {
+      await transport.connect();
+    } catch (error) {
+      // Local-first: goOnline never throws; the transport's background
+      // reconnection surfaces a later success through onStatusChange.
+      warn("transport reconnect failed; still offline")(error);
+    }
+    // The (re)connect status event triggers reconcile + outbox replay via
+    // handleStatusChange, and the transport re-subscribes its collections.
+    startReconcileTimer();
   };
 
   const mutate = ({
@@ -381,6 +500,16 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       operation,
       userId: currentUserId,
     });
+    debugLog?.record({
+      collection,
+      detail: {baseVersion: existing?.seq, data},
+      direction: "local",
+      entityId,
+      label: `${operation} ${collection}/${entityId}`,
+      mutationId,
+      operation,
+      type: "mutate",
+    });
     void replayOutbox().catch(warn("post-mutate replay failed"));
     return {id: entityId, mutationId};
   };
@@ -393,6 +522,13 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     strategy: ConflictResolutionStrategy;
   }): void => {
     applyConflictResolution({mutationId, outbox, store, strategy});
+    debugLog?.record({
+      detail: {strategy},
+      direction: "local",
+      label: `resolve conflict (${strategy})`,
+      mutationId,
+      type: "resolve",
+    });
     // keepMine re-enqueues the mutation with a fresh baseVersion — drain it now
     // rather than waiting for the next mutate/reconnect/periodic trigger.
     void replayOutbox().catch(warn("post-resolve replay failed"));
@@ -414,7 +550,10 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   return {
+    debug: debugLog,
     getSyncStatus,
+    goOffline,
+    goOnline,
     mutate,
     onStatusChange,
     outbox,

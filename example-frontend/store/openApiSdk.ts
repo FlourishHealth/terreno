@@ -1,4 +1,4 @@
-import {emptySplitApi as api} from "@terreno/rtk";
+import {emptySplitApi as api} from "./betterAuthApi";
 
 export const addTagTypes = ["todos", "users", "profile", "gptHistories"] as const;
 

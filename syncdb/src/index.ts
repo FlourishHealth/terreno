@@ -18,6 +18,7 @@ export * from "./crypto/aesGcmCodec";
 export * from "./crypto/identityCodec";
 export * from "./crypto/keyProviders";
 export * from "./crypto/types";
+export * from "./debug/debugLog";
 export * from "./mutations/conflicts";
 export * from "./mutations/outbox";
 export * from "./mutations/resolveConflict";

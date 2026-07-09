@@ -1,12 +1,14 @@
-import {getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
+import {selectBetterAuthUserId} from "@terreno/rtk";
 import {sentrySetUser} from "@utils";
 import axios from "axios";
 import {useEffect} from "react";
+import {useSelector} from "react-redux";
 
+import {getSessionToken} from "@/lib/betterAuth";
 import {useReadProfile} from "./useReadProfile";
 
 export const useSentryUserSetup = (): void => {
-  const currentUserId = useSelectCurrentUserId();
+  const currentUserId = useSelector(selectBetterAuthUserId);
   const profile = useReadProfile();
 
   // Update Sentry user context and axios authorization
@@ -18,11 +20,11 @@ export const useSentryUserSetup = (): void => {
 
     const setupSentryUser = async (): Promise<void> => {
       if (currentUserId && profile) {
-        const token = await getAuthToken();
-        axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+        const token = await getSessionToken();
+        if (token) {
+          axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+        }
         const sentryUser: {id: string; email?: string; username?: string} = {id: profile._id};
-        // We don't want to send PII for our patients to Sentry if we can avoid it.
-        // But nothing having to look up the _id for staff is nice.
         if (profile?.admin) {
           sentryUser.email = profile.email;
           sentryUser.username = profile.name;

@@ -4,15 +4,15 @@ import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {LangfuseApp} from "@terreno/ai";
 import {
-  type AuthProvider,
   BetterAuthApp,
-  type BetterAuthConfig,
   ConsentApp,
   ConsentForm,
   ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
   consentResponsePopulatePaths,
+  createBetterAuth,
+  getMongoClientFromMongoose,
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
@@ -29,6 +29,7 @@ import mongoose from "mongoose";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
@@ -40,6 +41,7 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
+import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
 
@@ -70,49 +72,6 @@ const createOpenApiAwareRouteRegistration = (
   return registration;
 };
 
-/**
- * Builds Better Auth configuration from environment variables.
- * Returns undefined if AUTH_PROVIDER is not set to "better-auth".
- */
-const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
-  const authProvider = process.env.AUTH_PROVIDER as AuthProvider | undefined;
-
-  if (authProvider !== "better-auth") {
-    return undefined;
-  }
-
-  const config: BetterAuthConfig = {
-    enabled: true,
-    trustedOrigins: ["terreno://", "exp://"],
-  };
-
-  // Add Google OAuth if configured
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    config.googleOAuth = {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    };
-  }
-
-  // Add GitHub OAuth if configured
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-    config.githubOAuth = {
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    };
-  }
-
-  // Add Apple OAuth if configured
-  if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
-    config.appleOAuth = {
-      clientId: process.env.APPLE_CLIENT_ID,
-      clientSecret: process.env.APPLE_CLIENT_SECRET,
-    };
-  }
-
-  return config;
-};
-
 export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
@@ -135,7 +94,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     },
   });
 
-  const authProvider = (process.env.AUTH_PROVIDER as AuthProvider) ?? "jwt";
+  const authProvider = getAuthProvider();
   logger.info(
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
@@ -159,11 +118,27 @@ export async function start(skipListen = false): Promise<express.Application> {
 
   try {
     const betterAuthConfig = buildBetterAuthConfig();
+    // Build the Better Auth instance eagerly (MongoDB is connected above). It is shared
+    // with the RealtimeApp socket auth validator. We cannot use BetterAuthApp.getAuth()
+    // for this: plugin.register() (which populates it) runs later inside terraApp.start(),
+    // so getAuth() is still undefined at construction time here — that left the socket with
+    // only the legacy JWT validator, rejecting Better Auth session tokens on (re)connect.
+    const betterAuthInstance = betterAuthConfig
+      ? createBetterAuth({
+          config: betterAuthConfig,
+          mongoClient: getMongoClientFromMongoose(),
+          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+          userModel: User as any,
+        })
+      : undefined;
 
     const adminWebsocketsDebug = await AppConfiguration.getConfig("debug.websocketsDebug");
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
     const terraApp = new TerrenoApp({
+      // Reflect specific web origins (never "*") so Better Auth's credentialed
+      // cross-origin requests from the Expo web frontend pass the browser CORS check.
+      corsOrigin: getWebOrigins(),
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -191,6 +166,7 @@ export async function start(skipListen = false): Promise<express.Application> {
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
+      .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
       .register(todoRouter)
       .register(projectRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
@@ -223,6 +199,13 @@ export async function start(skipListen = false): Promise<express.Application> {
     if (isWebsocketService) {
       terraApp.register(
         new RealtimeApp({
+          betterAuth: betterAuthInstance
+            ? {
+                auth: betterAuthInstance,
+                // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+                userModel: User as any,
+              }
+            : undefined,
           changeStream: {
             ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
           },

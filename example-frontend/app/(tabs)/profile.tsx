@@ -1,5 +1,5 @@
 import {useBooleanFlagDetails} from "@openfeature/react-sdk";
-import {useFeatureFlags, useSelectCurrentUserId} from "@terreno/rtk";
+import {selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
 import {
   Box,
   Button,
@@ -15,12 +15,13 @@ import {
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useEffect, useMemo, useState} from "react";
+import {useSelector} from "react-redux";
 import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId);
   const {data: profileResponse, isLoading, refetch} = useGetMeQuery(undefined, {skip: !userId});
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
   const {setPrimitives, resetTheme} = useTheme();

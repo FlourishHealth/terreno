@@ -15,6 +15,8 @@ import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
 import type {UserDocument} from "../types";
+import {getAuthProvider} from "../utils/betterAuthConfig";
+import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
 
 interface SeedUser {
@@ -156,15 +158,56 @@ This consent is optional. You can decline without affecting your use of the appl
   },
 ];
 
+/** Ensure the Mongoose user doc reflects the seed's admin flag and organizations. */
+const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
+  const user = await User.findByEmail(testUser.email);
+  if (!user) {
+    throw new Error(`User ${testUser.email} was not synced to Mongoose`);
+  }
+  let changed = false;
+  if (testUser.admin && !user.admin) {
+    user.admin = true;
+    changed = true;
+  }
+  if ((user.organizationIds ?? []).length === 0) {
+    user.organizationIds = testUser.organizationIds;
+    changed = true;
+  }
+  if (changed) {
+    await user.save();
+  }
+  return user;
+};
+
 const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
+  if (getAuthProvider() === "better-auth") {
+    // Idempotent credential provisioning: creates the Better Auth account when missing
+    // (sign-up), otherwise verifies it (sign-in), and syncs/links the Mongoose user by
+    // email. Runs even when a legacy Mongoose user already exists (e.g. seeded under the
+    // old passport/JWT flow) — otherwise that user would have no Better Auth password and
+    // every sign-in would 401.
+    await seedBetterAuthUserInProcess({
+      email: testUser.email,
+      name: testUser.name,
+      password: testUser.password,
+    });
+    const user = await reconcileMongooseUser(testUser);
+    logger.info(`Better Auth user ready: ${user.email} (id: ${user._id})`);
+    return user;
+  }
+
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
     logger.info(`Test user already exists: ${testUser.email}`);
-    // Backfill the organization membership for users seeded before tenant sync existed.
     if ((existingUser.organizationIds ?? []).length === 0) {
       existingUser.organizationIds = testUser.organizationIds;
       await existingUser.save();
       logger.info(`Backfilled organizationIds for ${testUser.email}`);
+    }
+    if (testUser.admin && !existingUser.admin) {
+      existingUser.admin = true;
+      await existingUser.save();
+      logger.info(`Promoted ${testUser.email} to admin`);
     }
     return existingUser;
   }

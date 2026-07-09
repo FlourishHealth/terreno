@@ -1,24 +1,13 @@
 /**
  * Shared helpers for the @terreno/syncdb local-first e2e suite (Tasks 7.2/7.3/7.4,
- * acceptance criteria AC-1..AC-15 in docs/implementationPlans/syncdb-local-first.md).
+ * acceptance criteria AC-1..AC-14 in docs/implementationPlans/syncdb-local-first.md).
  * The suite is split across the syncdb-*.spec.ts files so each file can run on its
  * own worker (and CI shard) with its own dedicated user.
  *
- * Flag mechanism: each spec toggles the backend "use-syncdb" feature flag at runtime
- * through the admin feature-flags API (see helpers/syncdbFlag.ts) in beforeAll,
- * creating the flag when the database was never seeded. EXPO_PUBLIC_USE_SYNCDB is
- * deliberately NOT used: the Expo web server (and its env) is shared by every spec in
- * the run, so baking the override into the bundle would flip all other suites onto
- * the syncdb path. Because the flag is backend-global, the syncdb specs run in their
- * own scheduling phase (see playwright.config.ts) and never overlap the RTK-path
- * suites; syncdb-flag-off.spec.ts runs last and leaves the flag disabled.
- *
  * Offline simulation severs the network instead of using the dev panel's
- * `syncdb-offline-toggle`: the toggle stops the whole client (client.stop()), and a
- * stopped client throws from mutate() ("mutate() requires start() to have resolved an
- * authenticated user"), so queued-offline-mutation scenarios cannot run through it —
- * reported as a product bug. The tests instead abort HTTP requests to the backend and
- * sever/refuse the socket.io WebSocket via page.routeWebSocket, which is also a truer
+ * `syncdb-offline-toggle` (which now uses the client's goOffline()/goOnline()
+ * transport-level simulation). The tests abort HTTP requests to the backend and
+ * sever/refuse the socket.io WebSocket via page.routeWebSocket, which is a truer
  * outage: the client stays started, mutations queue in the durable outbox, and the
  * transport reports disconnected. API seeding from the test runner (simulating
  * "another client") is unaffected because only the page's requests are blocked.
@@ -77,8 +66,8 @@ export const openSyncTodos = async (page: Page): Promise<void> => {
  * Network-level offline simulation. installOfflineControl must run before login so
  * the WebSocket route wraps every socket.io connection the page opens; goSyncOffline
  * then severs live sockets and refuses new connections + HTTP until goSyncOnline.
- * (The dev panel's syncdb-offline-toggle is not used: it stops the client outright,
- * and a stopped client cannot queue mutations — see the header note.)
+ * (The dev panel's syncdb-offline-toggle is not used: these tests exercise a real
+ * network outage rather than the client's built-in simulation — see the header note.)
  */
 const offlinePages = new WeakSet<Page>();
 const liveSockets = new WeakMap<Page, Set<WebSocketRoute>>();

@@ -37,7 +37,9 @@
         "projectId": "ddbe68d9-1142-4991-a02e-4ebb9fd83530"
       },
       "router": {},
-      "BASE_URL": "http://localhost:4000"
+      "BASE_URL": "http://localhost:4000",
+      "apiBaseUrl": "http://localhost:4000",
+      "authProvider": "better-auth"
     },
     "web": {
       "bundler": "metro",

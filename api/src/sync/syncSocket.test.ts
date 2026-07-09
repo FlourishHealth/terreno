@@ -1197,14 +1197,16 @@ describe("socketAuth", () => {
       expect(socket.decodedToken).toEqual({admin: false, id: "ba-user-1", isAnonymous: false});
     });
 
-    it("passes the token as bearer authorization and session cookie", async () => {
+    it("passes the token as a bearer authorization header only", async () => {
       const capture: {headers?: any} = {};
       const validator = createBetterAuthValidator({
         auth: stubAuth({session: {id: "s"}, user: {id: "u"}}, capture),
       });
       await validator(makeAuthSocket("Bearer session-token-xyz"));
       expect(capture.headers.authorization).toBe("Bearer session-token-xyz");
-      expect(capture.headers.cookie).toBe("better-auth.session_token=session-token-xyz");
+      // A raw (unsigned) token cookie fails signature verification and can shadow the
+      // bearer path, so the validator must not send one.
+      expect(capture.headers.cookie).toBeUndefined();
     });
 
     it("rejects when the session lookup returns null", async () => {

@@ -10,4 +10,9 @@ export const ADMIN_CUSTOM_SCREENS: AdminCustomScreen[] = [
     displayName: "AI Admin",
     name: "ai-admin",
   },
+  {
+    description: "Stress-test the local-first sync layer (bulk generate + live churn)",
+    displayName: "SyncDB Load Lab",
+    name: "sync-lab",
+  },
 ];

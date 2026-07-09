@@ -462,6 +462,101 @@ describe("createSyncDb", () => {
     });
   });
 
+  describe("simulated offline (goOffline/goOnline)", () => {
+    it("mutate while offline applies locally, queues, and reports offline", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      let statusChanges = 0;
+      const unsubscribe = client.onStatusChange(() => {
+        statusChanges += 1;
+      });
+
+      client.goOffline();
+      expect(client.getSyncStatus().isOnline).toBe(false);
+      expect(statusChanges).toBe(1);
+
+      const {id, mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "offline milk run"},
+        operation: "create",
+      });
+      await flush();
+      const entity = client.store.getEntity({collection: "todos", id});
+      expect(entity?.data).toEqual({title: "offline milk run"});
+      expect(entity?.pendingMutationId).toBe(mutationId);
+      expect(client.outbox.getMutation({mutationId})?.status).toBe("queued");
+      expect(client.getSyncStatus().queuedCount).toBe(1);
+      // Nothing is sent while offline — not even via the HTTP fallback.
+      expect(harness.transport.sentMutations).toHaveLength(0);
+
+      unsubscribe();
+      await client.stop();
+    });
+
+    it("goOnline reconnects and replays the queued mutation", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+
+      client.goOffline();
+      const {id} = client.mutate({
+        collection: "todos",
+        data: {title: "queued"},
+        operation: "create",
+      });
+      await flush();
+      expect(client.getSyncStatus().queuedCount).toBe(1);
+
+      await client.goOnline();
+      await flush();
+      expect(client.getSyncStatus().isOnline).toBe(true);
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      expect(harness.transport.sentMutations).toHaveLength(1);
+      expect(client.store.getEntity({collection: "todos", id})?.pendingMutationId).toBeUndefined();
+      await client.stop();
+    });
+
+    it("goOffline/goOnline are idempotent and record debug transitions", async () => {
+      const harness = makeHarness({debug: true});
+      const client = createSyncDb(harness.config);
+      await client.start();
+
+      // A no-op goOnline while already online must not double-connect.
+      await client.goOnline();
+      expect(client.getSyncStatus().isOnline).toBe(true);
+
+      client.goOffline();
+      client.goOffline();
+      expect(client.getSyncStatus().isOnline).toBe(false);
+      await client.goOnline();
+      await flush();
+      expect(client.getSyncStatus().isOnline).toBe(true);
+
+      const types = client.debug?.getEvents().map((event) => event.type) ?? [];
+      expect(types).toContain("disconnect");
+      expect(types.filter((type) => type === "connect").length).toBeGreaterThanOrEqual(2);
+      await client.stop();
+    });
+
+    it("the periodic timer pauses while offline and resumes on goOnline", async () => {
+      const harness = makeHarness({reconcileIntervalMs: 20});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      client.goOffline();
+      const baseline = harness.http.state.fetchCount;
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(harness.http.state.fetchCount).toBe(baseline);
+
+      await client.goOnline();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(harness.http.state.fetchCount).toBeGreaterThan(baseline);
+      await client.stop();
+    });
+  });
+
   describe("conflicts", () => {
     it("records conflicts from nacks and resolves them via the client", async () => {
       const harness = makeHarness();
@@ -558,5 +653,59 @@ describe("createSyncDb", () => {
     // Auth changes after stop are ignored too.
     harness.auth.emitAuthChange();
     await flush();
+  });
+
+  describe("debug log", () => {
+    it("is undefined by default and present when enabled", async () => {
+      const off = createSyncDb(makeHarness().config);
+      expect(off.debug).toBeUndefined();
+
+      const on = createSyncDb(makeHarness({debug: true}).config);
+      expect(on.debug).toBeDefined();
+    });
+
+    it("records local mutations, inbound deltas, sends and acks", async () => {
+      const harness = makeHarness({debug: true});
+      const client = createSyncDb(harness.config);
+      await client.start();
+
+      client.mutate({collection: "todos", data: {title: "a"}, operation: "create"});
+      await flush();
+      harness.transport.deliverDelta(makeDelta({id: "t9", seq: 1}));
+
+      const types = client.debug?.getEvents().map((e) => e.type) ?? [];
+      expect(types).toContain("mutate");
+      expect(types).toContain("send");
+      expect(types).toContain("ack");
+      expect(types).toContain("delta");
+
+      const mutateEvent = client.debug?.getEvents().find((e) => e.type === "mutate");
+      expect(mutateEvent?.collection).toBe("todos");
+      expect(mutateEvent?.operation).toBe("create");
+      await client.stop();
+    });
+
+    it("records conflict nacks", async () => {
+      const harness = makeHarness({debug: true});
+      harness.transport.setDefaultResponder((request) => ({
+        nack: {
+          code: "conflict",
+          mutationId: request.mutationId,
+          serverDoc: {title: "server wins"},
+          serverSeq: 7,
+        },
+        type: "nack",
+      }));
+      const client = createSyncDb(harness.config);
+      await client.start();
+
+      client.mutate({collection: "todos", data: {title: "mine"}, operation: "create"});
+      await flush();
+
+      const conflict = client.debug?.getEvents().find((e) => e.type === "conflict");
+      expect(conflict?.ok).toBe(false);
+      expect(conflict?.detail?.serverSeq).toBe(7);
+      await client.stop();
+    });
   });
 });

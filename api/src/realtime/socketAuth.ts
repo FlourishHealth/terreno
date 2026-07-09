@@ -20,9 +20,10 @@ import type {SocketWithDecodedToken} from "./socketUser";
  *    wrapped unchanged so accepted payloads, secret handling, and error shapes are
  *    byte-for-byte identical to the previous hardcoded setup.
  * 2. Better Auth session (optional) — enabled via `RealtimeAppOptions.betterAuth`. The
- *    handshake token is validated as a Better Auth session via `auth.api.getSession`,
- *    and `socket.decodedToken` is populated as `{id, admin, isAnonymous: false}` exactly
- *    like the JWT path.
+ *    handshake token is validated as a Better Auth session via `auth.api.getSession`
+ *    (presented as an `Authorization: Bearer` credential, resolved by Better Auth's
+ *    bearer plugin), and `socket.decodedToken` is populated as `{id, admin,
+ *    isAnonymous: false}` exactly like the JWT path.
  */
 
 /** The subset of a Socket.io socket the validators need. Lets tests pass a stub. */
@@ -99,11 +100,12 @@ export const createBetterAuthValidator = (
       throw new UnauthorizedError("credentials_required", {message: "no token provided"});
     }
 
+    // Validate as a bearer credential only. Better Auth's bearer plugin signs and
+    // resolves the raw session token from the Authorization header. We deliberately do
+    // NOT also present it as a session cookie: a raw (unsigned) token cookie fails
+    // signature verification and, when both are sent, can shadow the working bearer path.
     const session = await auth.api.getSession({
-      headers: {
-        authorization: `Bearer ${rawToken}`,
-        cookie: `better-auth.session_token=${rawToken}`,
-      } as Record<string, string>,
+      headers: {authorization: `Bearer ${rawToken}`} as Record<string, string>,
     });
 
     const betterAuthUserId = session?.user?.id;

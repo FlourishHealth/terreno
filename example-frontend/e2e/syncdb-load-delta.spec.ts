@@ -1,12 +1,11 @@
 /**
  * SyncDB local-first load (AC-1) and live delta sync (AC-8). Shared suite notes and
  * helpers live in helpers/syncdbSuite.ts. Uses a dedicated user so it can run in
- * parallel with the other syncdb-*.spec.ts files while the use-syncdb flag is on.
+ * parallel with the other syncdb-*.spec.ts files.
  */
 import {expect, test} from "./fixtures/test";
 import {SYNCDB_LOAD_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
-import {setSyncDbFlag} from "./helpers/syncdbFlag";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
@@ -21,10 +20,6 @@ const USER = SYNCDB_LOAD_USER;
 
 test.describe("SyncDB local-first load (AC-1)", () => {
   let seeded: Array<{_id: string; title: string}> = [];
-
-  test.beforeAll(async () => {
-    await setSyncDbFlag(true);
-  });
 
   test.beforeEach(async ({page, consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);
@@ -51,10 +46,6 @@ test.describe("SyncDB local-first load (AC-1)", () => {
 
 test.describe("SyncDB live delta sync (AC-8)", () => {
   let sentinel: {_id: string};
-
-  test.beforeAll(async () => {
-    await setSyncDbFlag(true);
-  });
 
   test.beforeEach(async ({page, consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);

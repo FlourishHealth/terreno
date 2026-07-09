@@ -1,4 +1,4 @@
-import {baseUrl, getAuthToken} from "@terreno/rtk";
+import {baseUrl} from "@terreno/rtk";
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useEffect, useState} from "react";
+import {getSessionToken} from "@/lib/betterAuth";
 
 interface GcsConfigStatus {
   bucketName: string | null;
@@ -60,7 +61,7 @@ const GcsSettingsScreen: React.FC = () => {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const token = await getAuthToken();
+      const token = await getSessionToken();
       const response = await fetch(`${baseUrl}/settings/gcs`, {
         headers: {Authorization: `Bearer ${token}`},
       });
@@ -100,7 +101,7 @@ const GcsSettingsScreen: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const token = await getAuthToken();
+      const token = await getSessionToken();
       const body: Record<string, string> = {bucketName: bucketInput.trim()};
       if (projectIdInput.trim()) {
         body.projectId = projectIdInput.trim();
@@ -156,7 +157,7 @@ const GcsSettingsScreen: React.FC = () => {
     setIsSaving(true);
 
     try {
-      const token = await getAuthToken();
+      const token = await getSessionToken();
       await fetch(`${baseUrl}/settings/gcs`, {
         headers: {Authorization: `Bearer ${token}`},
         method: "DELETE",

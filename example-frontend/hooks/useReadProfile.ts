@@ -1,4 +1,5 @@
-import {useSelectCurrentUserId} from "@terreno/rtk";
+import {selectBetterAuthUserId} from "@terreno/rtk";
+import {useSelector} from "react-redux";
 import {useGetMeQuery} from "@/store";
 
 export interface ProfileData {
@@ -10,7 +11,7 @@ export interface ProfileData {
 }
 
 export const useReadProfile = (): ProfileData | undefined => {
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId);
   const {data: profile} = useGetMeQuery(undefined, {skip: !userId});
 
   if (!profile) {

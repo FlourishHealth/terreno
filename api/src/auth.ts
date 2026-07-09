@@ -360,6 +360,14 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
         issuer: process.env.TOKEN_ISSUER,
       }) as jwt.JwtPayload;
     } catch (error: unknown) {
+      // A bearer token that is not a JWT (three dot-delimited segments) is not ours to
+      // reject — e.g. a Better Auth session token. Fall through so a later auth layer
+      // (Better Auth session middleware) or the route's own permissions can handle it.
+      // Genuine JWTs that fail verification (malformed/expired) still return 401 so the
+      // client's token-refresh flow is preserved.
+      if (token.split(".").length !== 3) {
+        return next();
+      }
       const userText = req.user?._id ? ` for user ${req.user._id} ` : "";
       const expiredAt =
         error && typeof error === "object" && "expiredAt" in error

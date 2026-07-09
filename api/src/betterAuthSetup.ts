@@ -8,6 +8,7 @@
 import {betterAuth} from "better-auth";
 import {mongodbAdapter} from "better-auth/adapters/mongodb";
 import {toNodeHandler} from "better-auth/node";
+import {bearer} from "better-auth/plugins";
 import type {Application, NextFunction, Request, Response} from "express";
 import mongoose from "mongoose";
 import type {UserModel} from "./auth";
@@ -91,6 +92,12 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     emailAndPassword: {
       enabled: true,
     },
+    // The bearer plugin lets clients authenticate with `Authorization: Bearer <sessionToken>`
+    // instead of the signed session cookie. Required for cross-origin/native clients and for
+    // websocket handshakes (RealtimeApp's Better Auth socket validator forwards the handshake
+    // token as a bearer header) — without it, a raw session token cannot be validated and
+    // socket auth silently fails (the sync client shows perpetually "offline").
+    plugins: [bearer()],
     secret,
     session: {
       cookieCache: {
@@ -102,7 +109,10 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     trustedOrigins: config.trustedOrigins ?? [],
   });
 
-  return auth as BetterAuthInstance;
+  // Cast through unknown: enabling the bearer plugin narrows betterAuth()'s inferred
+  // return type to a plugin-specific tuple that no longer matches the plugin-agnostic
+  // BetterAuthInstance alias, though the runtime instance is a valid better-auth instance.
+  return auth as unknown as BetterAuthInstance;
 };
 
 /**

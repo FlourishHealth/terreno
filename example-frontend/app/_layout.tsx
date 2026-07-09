@@ -2,27 +2,25 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, {type FC, type ReactNode, useEffect} from "react";
+import React, {type FC, type ReactNode, useCallback, useEffect} from "react";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
-  getAuthToken,
+  selectBetterAuthUserId,
   setRealtimeSocket,
   useRealtimeDebug,
-  useSelectCurrentUserId,
-  useServerStatus,
   useSocketConnection,
   useTerrenoFeatureFlags,
   useUpgradeCheck,
 } from "@terreno/rtk";
 import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
-import {Provider} from "react-redux";
+import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
-import {useSyncDbEnabled} from "@/hooks/useSyncDbEnabled";
-import store, {logout, persistor, useAppDispatch} from "@/store";
+import {getSessionToken} from "@/lib/betterAuth";
+import store, {persistor, syncBetterAuthSession} from "@/store";
 import {terrenoApi} from "@/store/sdk";
 import {syncDb} from "@/store/syncdb";
 
@@ -30,7 +28,7 @@ const OpenFeatureBridge: FC<{
   children: ReactNode;
   socket: ReturnType<typeof useSocketConnection>["socket"];
 }> = ({children, socket}) => {
-  const bridgeUserId = useSelectCurrentUserId();
+  const bridgeUserId = useSelector(selectBetterAuthUserId) ?? undefined;
   useTerrenoFeatureFlags(terrenoApi, {
     skip: !bridgeUserId,
     socket,
@@ -39,10 +37,7 @@ const OpenFeatureBridge: FC<{
   return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
 };
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
+export {ErrorBoundary} from "expo-router";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -66,14 +61,12 @@ const RootLayout = (): React.ReactElement | null => {
     "text-regular-italic": require("../assets/fonts/Nunito_400Regular_Italic.ttf"),
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) {
       throw error;
     }
   }, [error]);
 
-  // Hide splash screen once fonts are loaded
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -98,10 +91,8 @@ const RootLayout = (): React.ReactElement | null => {
 };
 
 const RootLayoutNav = (): React.ReactElement => {
-  const userId = useSelectCurrentUserId();
-  const {isOnline} = useServerStatus({skip: !userId});
+  const userId = useSelector(selectBetterAuthUserId) ?? undefined;
   const profile = useReadProfile();
-  const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
   const {
@@ -114,17 +105,18 @@ const RootLayoutNav = (): React.ReactElement => {
     warningMessage,
   } = useUpgradeCheck({pollingIntervalMs: 300_000, recheckOnForeground: true});
 
-  // Connect to WebSocket for real-time sync
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    return getSessionToken();
+  }, []);
+
   const {socket} = useSocketConnection({
     baseUrl,
     getAuthToken,
-    shouldConnect: !!userId && isOnline,
+    shouldConnect: Boolean(userId),
   });
 
-  // Sync frontend debug logging with backend debug.websocketsDebug (via /realtime/health)
   useRealtimeDebug(baseUrl, socket?.connected);
 
-  // Provide socket to per-endpoint realtime handlers (realtimeList / realtimeDocument)
   useEffect(() => {
     setRealtimeSocket(socket);
     return (): void => {
@@ -132,11 +124,14 @@ const RootLayoutNav = (): React.ReactElement => {
     };
   }, [socket]);
 
-  // Start the local-first syncdb client after login when the USE_SYNCDB flag is on;
-  // stop it on logout/unmount. Wipe-on-user-change is handled inside the client.
-  const syncDbEnabled = useSyncDbEnabled();
+  // Hydrate Better Auth session into Redux on startup.
   useEffect(() => {
-    if (!userId || !syncDbEnabled) {
+    void syncBetterAuthSession(store.dispatch);
+  }, []);
+
+  // Start the local-first syncdb client after login; stop on logout/unmount.
+  useEffect(() => {
+    if (!userId) {
       return;
     }
     let stopped = false;
@@ -152,23 +147,8 @@ const RootLayoutNav = (): React.ReactElement => {
         console.warn("[syncdb] Failed to stop client", error);
       });
     };
-  }, [userId, syncDbEnabled]);
+  }, [userId]);
 
-  // Validate stored auth token on mount
-  useEffect(() => {
-    if (!userId) {
-      return;
-    }
-    const checkToken = async (): Promise<void> => {
-      const token = await getAuthToken();
-      if (!token) {
-        dispatch(logout());
-      }
-    };
-    void checkToken();
-  }, [userId, dispatch]);
-
-  // Redirect based on auth state — keeps all routes declared so refresh works
   useEffect(() => {
     const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
 
@@ -208,6 +188,7 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="admin" />
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
+      <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
     </Stack>
   );
 

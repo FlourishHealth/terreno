@@ -2,12 +2,11 @@
  * SyncDB offline mutations (AC-4, AC-6): optimistic local apply, durable outbox
  * queueing, and replay on reconnect. Shared suite notes and helpers live in
  * helpers/syncdbSuite.ts. Uses a dedicated user so it can run in parallel with the
- * other syncdb-*.spec.ts files while the use-syncdb flag is on.
+ * other syncdb-*.spec.ts files.
  */
 import {expect, test} from "./fixtures/test";
 import {SYNCDB_OFFLINE_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
-import {setSyncDbFlag} from "./helpers/syncdbFlag";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
@@ -23,10 +22,6 @@ import {clearTodosAs, createTodoAs, listTodosAs} from "./helpers/todosApi";
 const USER = SYNCDB_OFFLINE_USER;
 
 test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
-  test.beforeAll(async () => {
-    await setSyncDbFlag(true);
-  });
-
   test.beforeEach(async ({page, consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);
     await clearTodosAs(USER);

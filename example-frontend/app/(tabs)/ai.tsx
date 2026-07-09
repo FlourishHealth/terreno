@@ -1,4 +1,4 @@
-import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
+import {baseUrl, selectBetterAuthUserId} from "@terreno/rtk";
 import {
   Box,
   GPTChat,
@@ -11,7 +11,8 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
-import {useDispatch} from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
+import {getSessionToken} from "@/lib/betterAuth";
 import {
   type GptHistory,
   terrenoApi,
@@ -92,7 +93,7 @@ const AiScreen: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_VALUE);
 
   const dispatch = useDispatch();
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId);
   const {data: modelsData} = useGetAiModelsQuery(undefined, {skip: !userId});
 
   // Prefer the live model list from the backend; fall back to the static list until it loads.
@@ -164,7 +165,7 @@ const AiScreen: React.FC = () => {
         return;
       }
       try {
-        const token = await getAuthToken();
+        const token = await getSessionToken();
         await fetch(`${baseUrl}/gpt/histories/${currentHistoryId}/rating`, {
           body: JSON.stringify({promptIndex, rating}),
           headers: {
@@ -226,7 +227,7 @@ const AiScreen: React.FC = () => {
           })
         );
 
-        const token = await getAuthToken();
+        const token = await getSessionToken();
         const headers: Record<string, string> = {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
