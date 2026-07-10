@@ -1,8 +1,5 @@
 import {afterAll, afterEach, beforeAll, beforeEach, jest, mock, setSystemTime} from "bun:test";
 import mongoose from "mongoose";
-
-import {testLogger} from "../logging/testLogger";
-
 import {setTerrenoTestEnv, type TerrenoTestEnvOptions} from "../env/setTerrenoTestEnv";
 import {
   createLogSilencer,
@@ -10,12 +7,13 @@ import {
   type SilenceLogsController,
   type SilenceLogsOptions,
 } from "../logging/silenceLogs";
+import {testLogger} from "../logging/testLogger";
 import {registerSentryBunMock} from "../mocks/sentryBun";
 import {
   initializeModels,
+  type MongoServerOptions,
   startMongoServer,
   stopMongoServer,
-  type MongoServerOptions,
 } from "../mongo/mongoServer";
 import {
   abortTestTransaction,
@@ -143,8 +141,10 @@ export interface SimpleMongoPreloadOptions
 
 export const registerSimpleMongoPreload = (options: SimpleMongoPreloadOptions = {}): void => {
   let memoryMongo: {getUri: () => string; stop: () => Promise<boolean>} | undefined;
-  const {defaultLocalMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000", ...preloadOptions} =
-    options;
+  const {
+    defaultLocalMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000",
+    ...preloadOptions
+  } = options;
 
   registerBackendPreload({
     ...preloadOptions,
