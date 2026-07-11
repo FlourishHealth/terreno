@@ -4,7 +4,7 @@ import {createSyncDb, type SyncDbConfig} from "./client";
 import {getConflict} from "./mutations/conflicts";
 import {memoryPersisterFactory} from "./persisters/memoryPersister";
 import {createFakeTransport, type FakeTransport} from "./sync/fakeTransport";
-import type {HttpChannel} from "./sync/httpChannel";
+import {AuthRequiredError, type HttpChannel} from "./sync/httpChannel";
 import type {AuthProvider, SyncDelta, SyncSnapshotResponse} from "./types";
 
 let nameCounter = 0;
@@ -132,6 +132,7 @@ describe("createSyncDb", () => {
     });
     expect(client.getSyncStatus()).toEqual({
       conflictCount: 0,
+      failedCount: 0,
       isOnline: false,
       isSyncing: false,
       queuedCount: 0,
@@ -437,6 +438,10 @@ describe("createSyncDb", () => {
       await flush();
       expect(client.getSyncStatus().queuedCount).toBe(1);
 
+      // The failed send armed a jittered transport-failure backoff (A3,
+      // unlimited retries) — advance past its cap so the retry is eligible
+      // again before the auth-change replay trigger runs.
+      harness.clock.value += 30_000;
       harness.transport.setDefaultResponder();
       harness.auth.emitAuthChange();
       await flush();
@@ -706,6 +711,409 @@ describe("createSyncDb", () => {
       expect(conflict?.ok).toBe(false);
       expect(conflict?.detail?.serverSeq).toBe(7);
       await client.stop();
+    });
+
+    it("skips the debug-only listQueued scan in replayOutbox() when debug is disabled (A3)", async () => {
+      const countListQueuedCalls = async (debug: boolean): Promise<number> => {
+        const harness = makeHarness({debug});
+        const client = createSyncDb(harness.config);
+        await client.start();
+        await flush();
+        const originalListQueued = client.outbox.listQueued;
+        let calls = 0;
+        // biome-ignore lint/suspicious/noExplicitAny: test-only spy shim
+        (client.outbox as any).listQueued = (...args: any[]) => {
+          calls += 1;
+          return originalListQueued(...(args as [{collection?: string; userId: string}]));
+        };
+        await client.replayOutbox();
+        await client.stop();
+        return calls;
+      };
+
+      const withoutDebug = await countListQueuedCalls(false);
+      const withDebug = await countListQueuedCalls(true);
+      // The debug label adds exactly one extra listQueued scan (the drain
+      // itself still calls listQueued to find work) — proving the debug-only
+      // scan is conditional, not unconditional.
+      expect(withDebug).toBe(withoutDebug + 1);
+    });
+  });
+
+  describe("startup recovery (A1)", () => {
+    it("recovers a stranded inFlight row on start(): it replays and the entity receives deltas again", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      // Hold every send indefinitely so the mutation is still inFlight when
+      // stop() is called (simulating a crash mid-send, not a clean stop).
+      harness.transport.respondWith(() => new Promise(() => {}));
+      const client = createSyncDb(harness.config);
+      await client.start();
+      const {id, mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "stranded"},
+        operation: "create",
+      });
+      await flush();
+      expect(client.outbox.getMutation({mutationId})?.status).toBe("inFlight");
+      // stop() itself never repairs outbox state (only start() does) — a
+      // clean stop() here still leaves the row inFlight in persisted content,
+      // standing in for a hard crash that never ran a graceful shutdown.
+      await client.stop();
+
+      const second = makeHarness({name});
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      await flush();
+      // Recovered to queued and replayed against the fresh (auto-acking)
+      // transport: the row acks and — per A5 — is pruned immediately, so its
+      // resolution shows up as a successful send, not a lingering outbox row.
+      expect(reopened.outbox.getMutation({mutationId})).toBeUndefined();
+      expect(second.transport.sentMutations.map((m) => m.mutationId)).toContain(mutationId);
+      expect(
+        reopened.store.getEntity({collection: "todos", id})?.pendingMutationId
+      ).toBeUndefined();
+      // The entity's pendingMutationId was released — a subsequent delta applies.
+      second.transport.deliverDelta({
+        collection: "todos",
+        data: {title: "from server"},
+        id,
+        method: "update",
+        seq: 99,
+        stream: "todos|owner:u1",
+      });
+      expect(reopened.store.getEntity({collection: "todos", id})?.data).toEqual({
+        title: "from server",
+      });
+      await reopened.stop();
+    });
+
+    it("clears a stale pendingMutationId for an acked-with-pending row on start()", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {title: "x"},
+        id: "t1",
+        pendingMutationId: "m1",
+      });
+      client.outbox.enqueue({
+        args: {title: "x"},
+        collection: "todos",
+        entityId: "t1",
+        mutationId: "m1",
+        operation: "create",
+        userId: "u1",
+      });
+      client.outbox.markInFlight({mutationId: "m1"});
+      client.outbox.markAcked({mutationId: "m1"});
+      // Simulate a crash between markAcked and releaseEntity.
+      await flush();
+      await client.stop();
+
+      const second = makeHarness({name});
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      expect(
+        reopened.store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId
+      ).toBeUndefined();
+      await reopened.stop();
+    });
+
+    it("writes a missing conflict row for a conflicted mutation on start()", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {title: "local"},
+        id: "t1",
+        pendingMutationId: "m1",
+      });
+      client.outbox.enqueue({
+        args: {title: "local"},
+        collection: "todos",
+        entityId: "t1",
+        mutationId: "m1",
+        operation: "create",
+        userId: "u1",
+      });
+      client.outbox.markInFlight({mutationId: "m1"});
+      client.outbox.markConflicted({mutationId: "m1"});
+      // Simulate a crash between markConflicted and writeConflict: no row yet.
+      expect(getConflict({mutationId: "m1", store: client.store})).toBeUndefined();
+      await flush();
+      await client.stop();
+
+      const second = makeHarness({name});
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      const conflict = getConflict({mutationId: "m1", store: reopened.store});
+      expect(conflict?.entityId).toBe("t1");
+      expect(conflict?.serverSeq).toBe(0);
+      await reopened.stop();
+    });
+  });
+
+  describe("outbox hygiene (A5)", () => {
+    it("prunes acked rows after a successful drain pass, driven end-to-end through mutate()", async () => {
+      const harness = makeHarness();
+      harness.transport.respondWithAck({seq: 1});
+      const client = createSyncDb(harness.config);
+      await client.start();
+
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+      // The mutation acked and was pruned in the same drain pass — no lingering row.
+      expect(client.outbox.getMutation({mutationId})).toBeUndefined();
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      await client.stop();
+    });
+
+    it("keeps failed rows visible in failedCount until pruned past the retention window", async () => {
+      const harness = makeHarness();
+      harness.transport.setDefaultResponder((request) => ({
+        nack: {code: "validation", mutationId: request.mutationId},
+        type: "nack",
+      }));
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "bad"}, operation: "create"});
+      await flush();
+      expect(client.getSyncStatus().failedCount).toBe(1);
+      await client.stop();
+    });
+  });
+
+  describe("auth-pause pipeline (A4)", () => {
+    /** Force sendMutation through the HTTP channel (offline transport) so AuthRequiredError surfaces. */
+    const makeAuthPauseHarness = (
+      overrides: Partial<SyncDbConfig> = {}
+    ): Harness & {offlineTransport: FakeTransport} => {
+      const harness = makeHarness(overrides);
+      const offlineTransport: FakeTransport = {
+        ...harness.transport,
+        connect: async () => {
+          throw new Error("no network");
+        },
+      };
+      harness.config.transport = offlineTransport;
+      return {...harness, offlineTransport};
+    };
+
+    it("AuthRequiredError from the HTTP channel pauses sync, leaves the outbox untouched, burns zero budget, and fires onAuthRequired once", async () => {
+      const harness = makeAuthPauseHarness();
+      let authRequiredCount = 0;
+      harness.config.onAuthRequired = () => {
+        authRequiredCount += 1;
+      };
+      harness.http.channel.sendMutation = async () => {
+        throw new AuthRequiredError();
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBe("auth");
+      const mutation = client.outbox.getMutation({mutationId});
+      expect(mutation?.status).toBe("queued");
+      expect(mutation?.errorNackCount).toBe(0);
+      expect(authRequiredCount).toBe(1);
+
+      // A second replay trigger while still paused must not re-fire the hook.
+      await client.replayOutbox();
+      expect(authRequiredCount).toBe(1);
+      await client.stop();
+    });
+
+    it("same-user re-auth clears the pause and drains the queue fully, entity converges", async () => {
+      const harness = makeAuthPauseHarness();
+      harness.http.channel.sendMutation = async () => {
+        throw new AuthRequiredError();
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      const {id, mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+      expect(client.getSyncStatus().paused).toBe("auth");
+
+      // Re-authenticate as the SAME user with a channel that now works.
+      harness.http.channel.sendMutation = async (request) => ({
+        ack: {id: request.id ?? "", mutationId: request.mutationId, seq: 1},
+        type: "ack",
+      });
+      harness.auth.emitAuthChange();
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      expect(client.outbox.getMutation({mutationId})).toBeUndefined();
+      expect(client.store.getEntity({collection: "todos", id})?.pendingMutationId).toBeUndefined();
+      await client.stop();
+    });
+
+    it("logout (userId -> undefined) retains local data; a later same-user login drains the queue", async () => {
+      const harness = makeAuthPauseHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "kept"}, id: "t1"});
+
+      harness.auth.setUserId(null);
+      harness.auth.emitAuthChange();
+      await flush();
+      expect(client.store.listEntities({collection: "todos"})).toHaveLength(1);
+      expect(client.getSyncStatus().paused).toBe("auth");
+
+      // Same user comes back — resumes fully, no wipe occurred.
+      harness.auth.setUserId("u1");
+      harness.auth.emitAuthChange();
+      await flush();
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      expect(client.store.listEntities({collection: "todos"})).toHaveLength(1);
+      await client.stop();
+    });
+
+    it("a different-user login still wipes local data (regression)", async () => {
+      const name = uniqueName();
+      const harness = makeAuthPauseHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "mine"}, id: "t1", seq: 1});
+
+      harness.auth.setUserId("u2");
+      harness.auth.emitAuthChange();
+      await flush();
+      expect(client.store.listEntities({collection: "todos"})).toEqual([]);
+      expect(client.store.getLastUserId()).toBe("u2");
+      await client.stop();
+    });
+
+    it("no reconcile/snapshot requests are issued while paused", async () => {
+      const harness = makeAuthPauseHarness();
+      harness.http.channel.sendMutation = async () => {
+        throw new AuthRequiredError();
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "x"}, operation: "create"});
+      await flush();
+      expect(client.getSyncStatus().paused).toBe("auth");
+
+      const baseline = harness.http.state.fetchCount;
+      await client.reconcile();
+      expect(harness.http.state.fetchCount).toBe(baseline);
+      await client.stop();
+    });
+
+    it("betterAuthAdapter's refresh() gets one silent attempt per pause episode, and a successful refresh resumes replay immediately", async () => {
+      const harness = makeAuthPauseHarness();
+      let refreshCalls = 0;
+      let shouldSucceed = false;
+      harness.config.authProvider = {
+        ...harness.auth.provider,
+        refresh: async () => {
+          refreshCalls += 1;
+          if (shouldSucceed) {
+            // A real adapter's refresh() renews the underlying token in place;
+            // simulate that by making the channel work again before reporting success.
+            harness.http.channel.sendMutation = async (request) => ({
+              ack: {id: request.id ?? "", mutationId: request.mutationId, seq: 1},
+              type: "ack",
+            });
+          }
+          return shouldSucceed;
+        },
+      };
+      harness.http.channel.sendMutation = async () => {
+        throw new AuthRequiredError();
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+      expect(refreshCalls).toBe(1);
+      expect(client.getSyncStatus().paused).toBe("auth");
+
+      // Further replay triggers within the SAME episode never re-attempt refresh.
+      await client.replayOutbox();
+      await client.replayOutbox();
+      expect(refreshCalls).toBe(1);
+
+      // The episode ends via same-user re-auth (not refresh) — the outbox is
+      // still intact and unpaused replay drains it.
+      harness.http.channel.sendMutation = async (request) => ({
+        ack: {id: request.id ?? "", mutationId: request.mutationId, seq: 1},
+        type: "ack",
+      });
+      harness.auth.emitAuthChange();
+      await flush();
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      expect(client.outbox.getMutation({mutationId})).toBeUndefined();
+
+      // A FRESH pause episode (new failing mutation) gets its own refresh
+      // attempt, and this time a successful refresh resumes replay immediately.
+      shouldSucceed = true;
+      harness.http.channel.sendMutation = async () => {
+        throw new AuthRequiredError();
+      };
+      const {mutationId: secondMutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "y"},
+        operation: "create",
+      });
+      await flush();
+      expect(refreshCalls).toBe(2);
+      // The refresh succeeded, so the pause clears and replay retried with the
+      // (now-working) channel rather than staying surfaced to the app.
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      expect(client.outbox.getMutation({mutationId: secondMutationId})).toBeUndefined();
+      await client.stop();
+    });
+  });
+
+  describe("signOut() (A4)", () => {
+    it("clears the current user without wiping when wipeOnSignOut is not set", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "kept"}, id: "t1"});
+
+      await client.signOut();
+      expect(client.store.listEntities({collection: "todos"})).toHaveLength(1);
+      expect(() => client.mutate({collection: "todos", operation: "create"})).toThrow(
+        "requires start()"
+      );
+    });
+
+    it("wipes local data when wipeOnSignOut is configured", async () => {
+      const harness = makeHarness({wipeOnSignOut: true});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "gone"}, id: "t1"});
+
+      await client.signOut();
+      expect(client.store.listEntities({collection: "todos", includeDeleted: true})).toEqual([]);
     });
   });
 });

@@ -40,6 +40,7 @@ export const buildTablesSchema = ({collections}: {collections: string[]}): Table
       createdAt: {type: "string"},
       enqueueOrder: {default: 0, type: "number"},
       entityId: {type: "string"},
+      errorNackCount: {default: 0, type: "number"},
       operation: {type: "string"},
       status: {default: "queued", type: "string"},
       userId: {default: "", type: "string"},
@@ -54,5 +55,7 @@ export const buildTablesSchema = ({collections}: {collections: string[]}): Table
 /** Store-level values schema: schema version + last authenticated user. */
 export const SYNC_VALUES_SCHEMA: ValuesSchema = {
   lastUserId: {default: "", type: "string"},
+  /** O(1) FIFO ordering cell: the highest `enqueueOrder` handed out so far. */
+  outboxMaxEnqueueOrder: {default: 0, type: "number"},
   schemaVersion: {default: SYNC_SCHEMA_VERSION, type: "number"},
 };

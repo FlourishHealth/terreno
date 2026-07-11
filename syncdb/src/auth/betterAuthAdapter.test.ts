@@ -66,6 +66,29 @@ describe("betterAuthAdapter", () => {
     });
   });
 
+  describe("refresh (A4)", () => {
+    it("returns true when a re-fetched session carries a token", async () => {
+      const adapter = betterAuthAdapter(
+        makeClient(async () => ({data: {session: {token: "tok-1"}, user: {id: "u1"}}}))
+      );
+      expect(await adapter.refresh?.()).toBe(true);
+    });
+
+    it("returns false when the re-fetched session has no token (still signed out)", async () => {
+      const adapter = betterAuthAdapter(makeClient(async () => ({data: null})));
+      expect(await adapter.refresh?.()).toBe(false);
+    });
+
+    it("returns false rather than throwing when getSession rejects", async () => {
+      const adapter = betterAuthAdapter(
+        makeClient(async () => {
+          throw new Error("network down");
+        })
+      );
+      await expect(adapter.refresh?.()).resolves.toBe(false);
+    });
+  });
+
   describe("onAuthChange via useSession subscription", () => {
     interface FakeAtom {
       listeners: Set<(value: unknown) => void>;

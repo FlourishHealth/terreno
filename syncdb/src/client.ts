@@ -11,7 +11,7 @@ import {wipeLocalData} from "./storage/wipe";
 import {bootstrapCollections} from "./sync/bootstrap";
 import {getAllCursors} from "./sync/cursor";
 import {applyDelta} from "./sync/deltaApplier";
-import {createHttpChannel, type HttpChannel} from "./sync/httpChannel";
+import {AuthRequiredError, createHttpChannel, type HttpChannel} from "./sync/httpChannel";
 import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
 import {createSocketTransport} from "./sync/socketTransport";
 import type {SendMutationResult, SyncTransport} from "./sync/transport";
@@ -52,6 +52,8 @@ export interface SyncDbConfig {
   seqJumpReconcileMinIntervalMs?: number;
   /** Millisecond clock, injectable for deterministic rate-limit tests. */
   now?: () => number;
+  /** Random source in [0, 1), injectable for deterministic backoff-jitter tests. */
+  random?: () => number;
   /**
    * Enable the in-memory debug event log (patches, mutations, acks/nacks,
    * conflicts, reconcile/replay, connectivity). `true` uses defaults; pass
@@ -59,6 +61,19 @@ export interface SyncDbConfig {
    * Powers the sync debugger UI and the future MCP introspection surface.
    */
   debug?: boolean | SyncDebugLogOptions;
+  /**
+   * Fired at most once per auth-pause episode when the client enters
+   * `paused: "auth"` (INV-2), so the host app can show a re-login prompt.
+   * Clears and can fire again after a subsequent pause episode.
+   */
+  onAuthRequired?: () => void;
+  /**
+   * When true, `client.signOut()` wipes local data for the current user (in
+   * addition to clearing auth state). Local data is otherwise NEVER wiped on
+   * logout or 401 (INV-2) — only on a confirmed different-user login, or via
+   * this explicit, host-app-initiated opt-in.
+   */
+  wipeOnSignOut?: boolean;
 }
 
 export interface MutateArgs {
@@ -110,6 +125,13 @@ export interface SyncDb {
   replayOutbox: () => Promise<void>;
   /** Resolve a recorded conflict with the given strategy. */
   resolveConflict: (args: {mutationId: string; strategy: ConflictResolutionStrategy}) => void;
+  /**
+   * Explicit, host-app-initiated sign-out. Always clears the in-memory
+   * current-user pointer; wipes local data ONLY when `wipeOnSignOut` is
+   * configured (INV-2 — a bare 401/logout event never triggers this on its
+   * own). Safe to call whether or not the client is currently paused.
+   */
+  signOut: () => Promise<void>;
   /** Aggregate sync state for status UI. */
   getSyncStatus: () => SyncStatus;
   /**
@@ -168,6 +190,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   let unsubscribers: (() => void)[] = [];
   const lastSeqJumpReconcileAt = new Map<string, number>();
   const statusListeners = new Set<() => void>();
+  // A4: auth-pause state. `authPaused` gates reconcile/replay/timer triggers
+  // (INV-2 — nothing else may unpause except a same-user auth change).
+  // `refreshAttempted` tracks whether the auth adapter's one-shot silent
+  // refresh has already run for the CURRENT pause episode.
+  let authPaused = false;
+  let refreshAttempted = false;
 
   const notifyStatusChange = (): void => {
     for (const listener of statusListeners) {
@@ -204,17 +232,57 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     return httpChannel.sendMutation(request);
   };
 
+  const setAuthPaused = (value: boolean): void => {
+    if (authPaused === value) {
+      return;
+    }
+    authPaused = value;
+    if (value) {
+      refreshAttempted = false;
+      config.onAuthRequired?.();
+    } else {
+      refreshAttempted = false;
+    }
+    notifyStatusChange();
+  };
+
+  const warn = (message: string): ((error: unknown) => void) => {
+    return (error: unknown): void => {
+      console.warn(`[syncdb] ${message}`, error);
+    };
+  };
+
   const coordinator: ReplayCoordinator = createReplayCoordinator({
     debug: debugLog,
     now,
+    onAuthPause: () => {
+      setAuthPaused(true);
+      // Fire from the coordinator hook (not a replayOutbox() return-value
+      // check): drain-until-empty's internal recheck/wake-timer continuations
+      // can be the call that actually observes the auth failure, orphaned
+      // from whichever replayOutbox() wrapper kicked off the original drain.
+      // The hook fires exactly once per new pause episode regardless of which
+      // internal call triggered it.
+      void attemptAuthRecovery();
+    },
+    onDrainPass: ({userId}) => {
+      outbox.prune({userId});
+    },
     outbox,
+    random: config.random,
     sendMutation,
+    // Internally-scheduled drains (armed wake-up timers, the mid-drain-enqueue
+    // recheck) must respect the same gating as an external replayOutbox()
+    // call: never send while simulated-offline or auth-paused.
+    shouldDrain: () => !simulatedOffline && !authPaused,
     store,
   });
 
   const reconcile = async (): Promise<void> => {
-    // Simulated offline severs all network activity, including the HTTP channel.
-    if (!httpChannel || simulatedOffline) {
+    // Simulated offline severs all network activity, including the HTTP
+    // channel; an auth pause stands down every network trigger (INV-2) until
+    // the same user re-authenticates.
+    if (!httpChannel || simulatedOffline || authPaused) {
       return;
     }
     addSyncing(1);
@@ -227,6 +295,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     });
     try {
       await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
+    } catch (error) {
+      if (error instanceof AuthRequiredError) {
+        setAuthPaused(true);
+        return;
+      }
+      throw error;
     } finally {
       addSyncing(-1);
       debugLog?.record({
@@ -240,22 +314,32 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   const replayOutbox = async (): Promise<void> => {
-    // While simulated-offline, mutations stay queued in the durable outbox
-    // (replay would otherwise fall back to the HTTP channel and succeed).
-    if (!currentUserId || simulatedOffline) {
+    // While simulated-offline or auth-paused, mutations stay queued in the
+    // durable outbox (INV-2: an auth pause stands down replay until the same
+    // user re-authenticates).
+    if (!currentUserId || simulatedOffline || authPaused) {
       return;
     }
     addSyncing(1);
     const startedAt = now();
-    const queued = outbox.listQueued({userId: currentUserId}).length;
-    debugLog?.record({
-      detail: {queued},
-      direction: "system",
-      label: `replay start (${queued} queued)`,
-      phase: "start",
-      type: "replay",
-    });
+    // A3: this listQueued scan exists purely to label a debug event — never
+    // pay for it when debug logging is disabled (the common case).
+    if (debugLog) {
+      const queued = outbox.listQueued({userId: currentUserId}).length;
+      debugLog.record({
+        detail: {queued},
+        direction: "system",
+        label: `replay start (${queued} queued)`,
+        phase: "start",
+        type: "replay",
+      });
+    }
     try {
+      // Auth-pause recovery (the one-shot silent refresh) is wired through
+      // the coordinator's onAuthPause hook, not this return value — it fires
+      // reliably regardless of which internal call (this one, the wake
+      // timer, or the mid-drain recheck) is the one that actually observes
+      // the auth failure.
       await coordinator.replay({userId: currentUserId});
     } finally {
       addSyncing(-1);
@@ -269,10 +353,25 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     }
   };
 
-  const warn = (message: string): ((error: unknown) => void) => {
-    return (error: unknown): void => {
-      console.warn(`[syncdb] ${message}`, error);
-    };
+  /**
+   * Give the auth adapter one chance to silently refresh before the pause is
+   * fully surfaced to the app (A4 step 5). Runs at most once per pause
+   * episode; a successful refresh immediately retries replay.
+   */
+  const attemptAuthRecovery = async (): Promise<void> => {
+    if (refreshAttempted || !config.authProvider.refresh) {
+      return;
+    }
+    refreshAttempted = true;
+    try {
+      const refreshed = await config.authProvider.refresh();
+      if (refreshed && authPaused) {
+        setAuthPaused(false);
+        void replayOutbox().catch(warn("post-refresh replay failed"));
+      }
+    } catch (error) {
+      warn("auth refresh attempt failed")(error);
+    }
   };
 
   const createAndStartPersister = async (userId: string): Promise<void> => {
@@ -350,13 +449,27 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     void (async (): Promise<void> => {
       const userId = await config.authProvider.getUserId();
       if (!userId) {
+        // Logged out: NEVER wipe (INV-2). Keep all local data, clear the
+        // current-user pointer (mutate() requires start() again), and remain
+        // paused — reconcile/replay stand down until the same user (or a
+        // different one, via the wipe path below) re-authenticates.
         currentUserId = undefined;
+        setAuthPaused(true);
         return;
       }
-      if (userId !== currentUserId) {
-        await runUserCheck(userId);
-        void reconcile().catch(warn("post-auth reconcile failed"));
+      if (userId === currentUserId) {
+        // Same-user re-auth: the pause (if any) clears fully and replay
+        // resumes with the outbox completely intact.
+        setAuthPaused(false);
+        void replayOutbox().catch(warn("post-auth replay failed"));
+        return;
       }
+      // Different userId: existing wipe-on-user-change behavior, or a first
+      // login after a logout (currentUserId undefined) — either way this is a
+      // confirmed identity change, never inferred from a bare 401.
+      await runUserCheck(userId);
+      setAuthPaused(false);
+      void reconcile().catch(warn("post-auth reconcile failed"));
       void replayOutbox().catch(warn("post-auth replay failed"));
     })().catch(warn("auth change handling failed"));
   };
@@ -385,8 +498,21 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       throw new Error("createSyncDb.start() requires an authenticated user");
     }
     simulatedOffline = false;
+    setAuthPaused(false);
     await createAndStartPersister(userId);
     await runUserCheck(userId);
+
+    // A1: startup crash recovery, before the first replayOutbox() — repair
+    // any outbox rows stranded mid-lifecycle by a prior crash/reload (inFlight
+    // never resolved, acked-with-still-pending entity, conflicted with no
+    // conflict row written).
+    const recovery = outbox.recoverStartupState({userId});
+    debugLog?.record({
+      detail: {...recovery},
+      direction: "system",
+      label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.repairedConflicts.length} conflicts repaired)`,
+      type: "reconcile",
+    });
 
     unsubscribers.push(transport.onDelta(handleDelta));
     unsubscribers.push(transport.onStatusChange(handleStatusChange));
@@ -401,6 +527,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     }
     transport.subscribe(config.collections);
     startReconcileTimer();
+    void replayOutbox().catch(warn("startup replay failed"));
   };
 
   const stop = async (): Promise<void> => {
@@ -412,6 +539,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     unsubscribers = [];
     transport.disconnect();
     setConnected(false);
+    coordinator.dispose(currentUserId ? {userId: currentUserId} : undefined);
     if (persister) {
       // Flush any pending autosave so a clean stop never loses local writes.
       await persister.save();
@@ -536,8 +664,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
 
   const getSyncStatus = (): SyncStatus => ({
     conflictCount: listConflicts({store}).length,
+    failedCount: currentUserId
+      ? outbox.countByStatus({status: "failed", userId: currentUserId})
+      : 0,
     isOnline: connected,
     isSyncing: syncingCount > 0,
+    ...(authPaused ? {paused: "auth" as const} : {}),
     queuedCount: currentUserId ? outbox.listQueued({userId: currentUserId}).length : 0,
     streams: getAllCursors({store}),
   });
@@ -547,6 +679,17 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     return () => {
       statusListeners.delete(callback);
     };
+  };
+
+  const signOut = async (): Promise<void> => {
+    const userId = currentUserId;
+    setAuthPaused(false);
+    currentUserId = undefined;
+    if (userId && config.wipeOnSignOut) {
+      coordinator.dispose({userId});
+      await wipeLocalData({databaseNames: [config.name], persister, store});
+      lastSeqJumpReconcileAt.clear();
+    }
   };
 
   return {
@@ -560,6 +703,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     reconcile,
     replayOutbox,
     resolveConflict,
+    signOut,
     start,
     stop,
     store,

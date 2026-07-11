@@ -89,7 +89,10 @@ export interface OutboxMutation {
   args: string;
   baseVersion?: number;
   status: OutboxStatus;
+  /** Diagnostic total attempt count across every send (transport + error-nack). */
   attemptCount: number;
+  /** Retry-budget counter incremented only on server error-nacks (see MAX_ERROR_NACK_ATTEMPTS). */
+  errorNackCount: number;
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   createdAt: string;
@@ -116,6 +119,14 @@ export interface SyncStatus {
   isSyncing: boolean;
   queuedCount: number;
   conflictCount: number;
+  /** Count of mutations in the terminal `failed` state. */
+  failedCount: number;
+  /**
+   * Set when replay is paused because the server rejected our auth (401 /
+   * AuthRequiredError / unauthorized nack / socket auth rejection). Clears
+   * automatically when the same user re-authenticates and replay resumes.
+   */
+  paused?: "auth";
   /** Per-stream cursors (stream key → highest applied seq). */
   streams: Record<string, number>;
 }
@@ -131,4 +142,12 @@ export interface AuthProvider {
   getUserId: () => Promise<string | null>;
   /** Subscribe to auth changes (login, logout, user switch). Returns unsubscribe. */
   onAuthChange: (callback: () => void) => () => void;
+  /**
+   * Optional silent token refresh. When present, the client calls it exactly
+   * once per auth-pause episode before surfacing the pause to the app;
+   * resolving `true` means the refresh likely succeeded and replay should be
+   * retried immediately. Adapters without a meaningful refresh path (or that
+   * refresh transparently inside `getToken`) may omit this.
+   */
+  refresh?: () => Promise<boolean>;
 }

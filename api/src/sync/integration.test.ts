@@ -492,6 +492,53 @@ describe("syncdb end-to-end integration", () => {
     expect(entity?.pendingMutationId).toBeUndefined();
   }, 20_000);
 
+  it("4c. offline create + update to the same entity never self-conflicts on reconnect (A2)", async () => {
+    await goOffline(a);
+    const {id, mutationId: createMutationId} = a.client.mutate({
+      collection: COLLECTION,
+      data: {title: "v1"},
+      operation: "create",
+    });
+    const {mutationId: updateMutationId} = a.client.mutate({
+      collection: COLLECTION,
+      data: {title: "v2"},
+      id,
+      operation: "update",
+    });
+    // Both mutations were enqueued against the same (pre-create) baseVersion —
+    // without A2's send-time refresh, the update would ship the create's stale
+    // base and manufacture a conflict against the server's strict equality
+    // check the instant the create acks.
+    await waitFor(
+      () => {
+        const create = a.client.outbox.getMutation({mutationId: createMutationId});
+        const update = a.client.outbox.getMutation({mutationId: updateMutationId});
+        return (
+          create?.status === "queued" &&
+          create.attemptCount >= 1 &&
+          update?.status === "queued" &&
+          update.attemptCount >= 1
+        );
+      },
+      {label: "offline create+update queued"}
+    );
+
+    a.setOffline(false);
+    await a.transport.connect();
+    await waitFor(() => a.client.outbox.getMutation({mutationId: updateMutationId}) === undefined, {
+      label: "update acked and pruned",
+    });
+
+    expect(a.client.getSyncStatus().conflictCount).toBe(0);
+    expect(a.client.getSyncStatus().queuedCount).toBe(0);
+    const saved = await IntTodoModel.findById(id);
+    expect(saved?.title).toBe("v2");
+    const entity = a.client.store.getEntity<{title?: string}>({collection: COLLECTION, id});
+    expect(entity?.data?.title).toBe("v2");
+    expect(entity?.pendingMutationId).toBeUndefined();
+    expect(entity?.seq).toBe(saved?._syncSeq ?? -1);
+  }, 20_000);
+
   it("5. returns the identical ack for a duplicate mutationId over POST /sync/mutate", async () => {
     const request: SyncMutateRequest = {
       collection: COLLECTION,

@@ -40,7 +40,14 @@ export interface EntityRow {
 export interface OutboxRow {
   /** JSON-encoded mutation args. */
   args: string;
+  /** Diagnostic total attempt count across every send (transport + error-nack). */
   attemptCount: number;
+  /**
+   * Retry budget counter incremented ONLY on server error-nacks; transport
+   * failures never touch this cell (they get unlimited retries). Terminality
+   * (`MAX_ERROR_NACK_ATTEMPTS`) is checked against this, not `attemptCount`.
+   */
+  errorNackCount: number;
   /** Absent when the mutation carries no base version (e.g. creates). */
   baseVersion?: number;
   collection: string;
