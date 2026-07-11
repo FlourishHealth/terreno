@@ -7,8 +7,8 @@ import {testLogger} from "../logging/testLogger";
 
 import {buildDatabaseUri} from "../mongo/connection";
 import {restartMongoServer, startMongoServer, waitForDatabaseReady} from "../mongo/mongoServer";
-import {ensureAllIndexes} from "../utils/ensureAllIndexes";
 import {resetTestSessionAfterReconnect} from "../transaction/testTransaction";
+import {ensureAllIndexes} from "../utils/ensureAllIndexes";
 
 const HASH_FILE = "source-hash.txt";
 const CACHED_DATA_FILE = "cached-data.json";
@@ -192,8 +192,8 @@ const loadTestDataIntoDb = async (cachedCollections: Record<string, unknown[]>):
     }
     const convertedDocs = docs.map((doc) => convertValue(doc));
     restorePromises.push(
-      mongoose.connection.db!
-        .collection(collectionName)
+      mongoose.connection
+        .db!.collection(collectionName)
         .insertMany(convertedDocs as Record<string, unknown>[], {ordered: false})
     );
   }

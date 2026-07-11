@@ -1,7 +1,6 @@
 import {describe, expect, it} from "bun:test";
-
-import {buildDatabaseUri, splitMongoUri} from "./connection";
 import {setTerrenoTestEnv} from "../env/setTerrenoTestEnv";
+import {buildDatabaseUri, splitMongoUri} from "./connection";
 
 describe("mongo connection helpers", () => {
   it("splitMongoUri separates base URI and query options", () => {

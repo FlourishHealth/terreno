@@ -90,11 +90,9 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
       ? String(response.userId?._id ?? response.userId?.id ?? response.userId)
       : String(response.userId ?? "");
 
-  const userName =
-    typeof response.userId === "object" ? (response.userId?.name ?? "") : "";
+  const userName = typeof response.userId === "object" ? (response.userId?.name ?? "") : "";
 
-  const userEmail =
-    typeof response.userId === "object" ? (response.userId?.email ?? "") : "";
+  const userEmail = typeof response.userId === "object" ? (response.userId?.email ?? "") : "";
 
   // checkboxValues is stored as a Map serialized to {index: boolean} by the backend
   const checkboxEntries: Array<{index: string; checked: boolean}> =

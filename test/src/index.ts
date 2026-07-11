@@ -1,31 +1,44 @@
 export {
-  ensureMongoBinary,
-} from "./mongo/ensureMongoBinary";
+  createMongoTestCache,
+  type MongoTestCacheController,
+  type MongoTestCacheOptions,
+} from "./cache/mongoTestCache";
 
 export {setTerrenoTestEnv, type TerrenoTestEnvOptions} from "./env/setTerrenoTestEnv";
-
+export {type AuthAsUserOptions, type AuthUserCredentials, authAsUser} from "./http/authAsUser";
+export {type GetBaseServerOptions, getBaseServer} from "./http/getBaseServer";
 export {
-  DEFAULT_LOCAL_MONGO_URI,
+  createLogSilencer,
+  registerLogSilencing,
+  type SilenceLogsController,
+  type SilenceLogsOptions,
+} from "./logging/silenceLogs";
+export {registerSentryBunMock} from "./mocks/sentryBun";
+export {
   buildDatabaseUri,
-  ensureTestMongooseConnected,
-  splitMongoUri,
+  DEFAULT_LOCAL_MONGO_URI,
   type EnsureTestMongooseConnectedOptions,
+  ensureTestMongooseConnected,
   type SplitMongoUriResult,
+  splitMongoUri,
 } from "./mongo/connection";
-
+export {ensureMongoBinary} from "./mongo/ensureMongoBinary";
 export {
   getMongoServerUri,
   initializeModels,
+  type MemoryMongoHandle,
+  type MongoServerOptions,
   restartMongoServer,
   startMongoServer,
   stopMongoServer,
   waitForDatabaseReady,
-  type MemoryMongoHandle,
-  type MongoServerOptions,
 } from "./mongo/mongoServer";
-
-export {createMongoTestCache, type MongoTestCacheController, type MongoTestCacheOptions} from "./cache/mongoTestCache";
-
+export {
+  type BackendPreloadOptions,
+  registerBackendPreload,
+  registerSimpleMongoPreload,
+  type SimpleMongoPreloadOptions,
+} from "./preload/registerBackendPreload";
 export {
   abortTestTransaction,
   getTestSession,
@@ -33,21 +46,10 @@ export {
   resetTestSessionAfterReconnect,
   startTestTransaction,
 } from "./transaction/testTransaction";
-
-export {createLogSilencer, registerLogSilencing, type SilenceLogsController, type SilenceLogsOptions} from "./logging/silenceLogs";
-
-export {registerSentryBunMock} from "./mocks/sentryBun";
-
-export {authAsUser, type AuthAsUserOptions, type AuthUserCredentials} from "./http/authAsUser";
-export {getBaseServer, type GetBaseServerOptions} from "./http/getBaseServer";
-
 export {ensureAllIndexes} from "./utils/ensureAllIndexes";
 export {timeout} from "./utils/timeout";
-export {waitForDocument, waitForDocuments, type WaitForDocumentsOptions} from "./utils/waitForDocuments";
-
 export {
-  registerBackendPreload,
-  registerSimpleMongoPreload,
-  type BackendPreloadOptions,
-  type SimpleMongoPreloadOptions,
-} from "./preload/registerBackendPreload";
+  type WaitForDocumentsOptions,
+  waitForDocument,
+  waitForDocuments,
+} from "./utils/waitForDocuments";

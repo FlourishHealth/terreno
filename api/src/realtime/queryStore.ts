@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: query filters are dynamic MongoDB query objects
 /**
  * Manages query subscriptions for Socket.io clients.
  *
@@ -9,7 +8,7 @@
 
 interface QuerySubscription {
   collection: string;
-  query: Record<string, any>;
+  query: Record<string, unknown>;
   queryId: string;
 }
 
@@ -17,9 +16,9 @@ interface QuerySubscription {
  * Compute a deterministic queryId from collection and query on the server side.
  * This prevents clients from hijacking other subscriptions by providing a colliding queryId.
  */
-export const computeQueryId = (collection: string, query: Record<string, any>): string => {
+export const computeQueryId = (collection: string, query: Record<string, unknown>): string => {
   const sortedKeys = Object.keys(query).sort();
-  const normalized: Record<string, any> = {};
+  const normalized: Record<string, unknown> = {};
   for (const key of sortedKeys) {
     normalized[key] = query[key];
   }
@@ -39,7 +38,7 @@ const socketQueries = new Map<string, Set<string>>();
 export const addQuerySubscription = (
   socketId: string,
   collection: string,
-  query: Record<string, any>,
+  query: Record<string, unknown>,
   queryId: string
 ): void => {
   querySubscriptions.set(queryId, {collection, query, queryId});
@@ -102,8 +101,8 @@ export const removeAllSocketQueries = (socketId: string): void => {
  */
 export const getQuerySubscriptionsForCollection = (
   collection: string
-): {queryId: string; query: Record<string, any>}[] => {
-  const result: {queryId: string; query: Record<string, any>}[] = [];
+): {queryId: string; query: Record<string, unknown>}[] => {
+  const result: {queryId: string; query: Record<string, unknown>}[] = [];
 
   for (const [queryId, sub] of querySubscriptions) {
     if (sub.collection === collection) {

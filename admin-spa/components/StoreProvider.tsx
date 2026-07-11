@@ -1,4 +1,4 @@
-import {configureStore} from "@reduxjs/toolkit";
+import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
 import {type BetterAuthClientInterface, generateBetterAuthSlice} from "@terreno/rtk";
 import {createAuthClient} from "better-auth/react";
 import React, {createContext, useContext, useMemo} from "react";
@@ -11,7 +11,7 @@ type AuthClient = ReturnType<typeof createAuthClient>;
 interface AuthContextValue {
   authClient: AuthClient;
   /** Sync the better-auth session into the Redux store. */
-  syncSession: (dispatch: unknown) => Promise<void>;
+  syncSession: (dispatch: (action: UnknownAction) => void) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
