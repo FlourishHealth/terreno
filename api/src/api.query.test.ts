@@ -213,9 +213,17 @@ describe("query and list methods", () => {
     expect(names).toEqual(["Pizza", "Spinach"]);
   });
 
-  it("returns 400 when a date-range bound is not a valid ISO date", async () => {
+  it("list returns 400 when created_gte is not a valid date", async () => {
     const res = await agent.get("/food").query({created_gte: "not-a-date", limit: 10}).expect(400);
     expect(res.body.title).toBe("Invalid date for query parameter created_gte");
+  });
+
+  it("list returns 400 when created_lte is not a valid date", async () => {
+    const res = await agent
+      .get("/food")
+      .query({created_lte: "also-not-a-date", limit: 10})
+      .expect(400);
+    expect(res.body.title).toBe("Invalid date for query parameter created_lte");
   });
 
   it("applies created_gte alone as a lower Date bound", async () => {
