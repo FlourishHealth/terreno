@@ -222,6 +222,17 @@ describe("parseAiJson", () => {
     const r = parseAiJson("prefix {invalid: json broken} suffix");
     expect(r.success).toBe(false);
   });
+
+  it("repairs a smart quote used as a delimiter via aggressive whole-string normalization", () => {
+    // The unbalanced real quote makes the outside-strings tracker treat the smart
+    // quote as string content, so only the blanket smart-quote replacement recovers it.
+    const r = parseAiJson<{a: number}>(`{"a\u201D: 1}`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toEqual({a: 1});
+    }
+  });
 });
 
 describe("normalizeLlmJsonTextForStructuredOutput", () => {

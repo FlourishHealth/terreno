@@ -102,6 +102,12 @@ describe("matchesQuery", () => {
       const doc = {user: {}};
       expect(matchesQuery(doc, {"user.name": "Alice"})).toBe(false);
     });
+
+    it("returns undefined when an intermediate path segment is null", () => {
+      const doc = {user: null};
+      expect(matchesQuery(doc, {"user.name": "Alice"})).toBe(false);
+      expect(matchesQuery(doc, {"user.name": {$exists: false}})).toBe(true);
+    });
   });
 
   describe("$eq operator", () => {
@@ -242,7 +248,7 @@ describe("matchesQuery", () => {
     });
 
     it("returns false when $and operand is not an array", () => {
-      expect(matchesQuery({status: "active"}, {$and: "invalid" as any})).toBe(false);
+      expect(matchesQuery({status: "active"}, {$and: "invalid"})).toBe(false);
     });
   });
 
@@ -260,7 +266,7 @@ describe("matchesQuery", () => {
     });
 
     it("returns false when $or operand is not an array", () => {
-      expect(matchesQuery({status: "active"}, {$or: "invalid" as any})).toBe(false);
+      expect(matchesQuery({status: "active"}, {$or: "invalid"})).toBe(false);
     });
   });
 
@@ -288,6 +294,26 @@ describe("matchesQuery", () => {
 
     it("returns false for different arrays", () => {
       expect(matchesQuery({tags: ["a", "b"]}, {tags: ["a", "c"]})).toBe(false);
+    });
+  });
+
+  describe("relational comparison across value types", () => {
+    it("compares strings lexicographically with $gt and $lt", () => {
+      expect(matchesQuery({name: "banana"}, {name: {$gt: "apple"}})).toBe(true);
+      expect(matchesQuery({name: "apple"}, {name: {$gt: "banana"}})).toBe(false);
+      expect(matchesQuery({name: "apple"}, {name: {$lt: "banana"}})).toBe(true);
+      expect(matchesQuery({name: "apple"}, {name: {$lte: "apple"}})).toBe(true);
+    });
+
+    it("coerces mixed-type operands numerically", () => {
+      expect(matchesQuery({count: 5}, {count: {$gt: "3"}})).toBe(true);
+      expect(matchesQuery({count: 5}, {count: {$lt: "10"}})).toBe(true);
+      expect(matchesQuery({count: 5}, {count: {$gte: true}})).toBe(true);
+    });
+
+    it("fails comparison when operands are not numerically comparable", () => {
+      expect(matchesQuery({count: 5}, {count: {$gt: "abc"}})).toBe(false);
+      expect(matchesQuery({count: 5}, {count: {$lt: "abc"}})).toBe(false);
     });
   });
 
