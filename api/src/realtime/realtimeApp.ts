@@ -74,9 +74,9 @@ const canSubscribe = async (
 
 const getAuthorizedQuery = async (
   entry: RealtimeRegistryEntry,
-  query: Record<string, any>,
+  query: Record<string, unknown>,
   user?: User
-): Promise<Record<string, any> | null> => {
+): Promise<Record<string, unknown> | null> => {
   if (!(await canSubscribe(entry, "list", user))) {
     return null;
   }
@@ -85,7 +85,7 @@ const getAuthorizedQuery = async (
     return query;
   }
 
-  let filteredQuery: Record<string, any> | null;
+  let filteredQuery: Record<string, unknown> | null;
   try {
     filteredQuery = await entry.options.queryFilter(user, query);
   } catch (error) {
