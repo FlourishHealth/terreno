@@ -5,11 +5,22 @@ import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {getSocketUser, type SocketWithDecodedToken} from "../realtime/socketUser";
-import {applySyncMutation, type SyncMutationOutcome} from "./mutationHandler";
+import {
+  applySyncMutation,
+  applySyncMutationBatch,
+  MAX_SYNC_MUTATIONS_PER_BATCH,
+  type SyncMutationOutcome,
+  validateSyncMutationBatch,
+} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import type {SyncAppOptions} from "./routes";
 import {streamForScopeValue} from "./streams";
-import type {SyncMutateRequest, SyncNack} from "./types";
+import type {
+  SyncMutateBatchRequest,
+  SyncMutateBatchResponse,
+  SyncMutateRequest,
+  SyncNack,
+} from "./types";
 
 /**
  * Socket handlers for the SyncDB local-first protocol:
@@ -144,9 +155,22 @@ export const installSyncSocketHandlers = (
   // collection tag -> joined sync rooms, for unsubscribe/disconnect cleanup.
   const subscriptions = new Map<string, Set<string>>();
 
-  // Rolling one-second window for the sync:mutate rate limit.
+  // Rolling one-second window for the sync:mutate / sync:mutateBatch rate limit —
+  // shared between both events so a batch counts each of its mutations against the
+  // same budget as individual sync:mutate calls (not once per batch).
   let mutationWindowStart = 0;
   let mutationCount = 0;
+
+  /** Returns true when `weight` more mutations would exceed the per-second budget. */
+  const consumeMutationRateLimit = (weight: number): boolean => {
+    const now = Date.now();
+    if (now - mutationWindowStart >= 1000) {
+      mutationWindowStart = now;
+      mutationCount = 0;
+    }
+    mutationCount += weight;
+    return mutationCount > MAX_SYNC_MUTATIONS_PER_SECOND;
+  };
 
   socket.on("sync:subscribe", async (payload: {collections?: unknown}): Promise<void> => {
     const collections = Array.isArray(payload?.collections) ? payload.collections : null;
@@ -244,13 +268,7 @@ export const installSyncSocketHandlers = (
         });
       };
 
-      const now = Date.now();
-      if (now - mutationWindowStart >= 1000) {
-        mutationWindowStart = now;
-        mutationCount = 0;
-      }
-      mutationCount += 1;
-      if (mutationCount > MAX_SYNC_MUTATIONS_PER_SECOND) {
+      if (consumeMutationRateLimit(1)) {
         logInfo(`[sync] User ${userId} hit the sync:mutate rate limit`);
         nack({
           code: "error",
@@ -269,6 +287,61 @@ export const installSyncSocketHandlers = (
       } catch (error: unknown) {
         logger.error(`[sync] sync:mutate failed for socket ${socket.id}: ${error}`);
         nack({code: "error", message: "Internal error applying mutation"});
+      }
+    }
+  );
+
+  socket.on(
+    "sync:mutateBatch",
+    async (payload: SyncMutateBatchRequest, ack?: (response: unknown) => void): Promise<void> => {
+      const respondBatch = (response: SyncMutateBatchResponse): void => {
+        if (typeof ack === "function") {
+          ack(response);
+        }
+      };
+      const singleNackBatch = (partial: Omit<SyncNack, "mutationId">, mutationId = ""): void => {
+        respondBatch({results: [{nack: {mutationId, ...partial}, type: "nack"}]});
+      };
+
+      const mutations = Array.isArray(payload?.mutations) ? payload.mutations : [];
+
+      // Batch size cap enforced before rate limiting or auth checks — an oversized
+      // batch is a client bug, rejected loudly with no side effects.
+      if (mutations.length > MAX_SYNC_MUTATIONS_PER_BATCH) {
+        const validation = validateSyncMutationBatch(mutations);
+        if (!validation.ok) {
+          respondBatch(validation.response);
+          return;
+        }
+      }
+
+      // The rate limiter counts each mutation in the batch (not the batch itself)
+      // against the same window sync:mutate uses.
+      if (consumeMutationRateLimit(mutations.length)) {
+        logInfo(`[sync] User ${userId} hit the sync:mutateBatch rate limit`);
+        singleNackBatch({
+          code: "error",
+          message: `Rate limit of ${MAX_SYNC_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+        });
+        return;
+      }
+
+      if (!user) {
+        singleNackBatch({code: "unauthorized", message: "Authentication required"});
+        return;
+      }
+
+      const validation = validateSyncMutationBatch(mutations);
+      if (!validation.ok) {
+        respondBatch(validation.response);
+        return;
+      }
+
+      try {
+        respondBatch(await applySyncMutationBatch({mutations, user}));
+      } catch (error: unknown) {
+        logger.error(`[sync] sync:mutateBatch failed for socket ${socket.id}: ${error}`);
+        singleNackBatch({code: "error", message: "Internal error applying batch"});
       }
     }
   );

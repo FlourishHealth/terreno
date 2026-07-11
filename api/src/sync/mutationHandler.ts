@@ -9,7 +9,13 @@ import {executeCreate, executeDelete, executeUpdate, isExecutorConflictError} fr
 import {SyncMutation, type SyncMutationDocument} from "./models";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import {serializeSyncDoc} from "./routes";
-import type {SyncAck, SyncMutateRequest, SyncNack, SyncNackCode} from "./types";
+import type {
+  SyncAck,
+  SyncMutateBatchResponse,
+  SyncMutateRequest,
+  SyncNack,
+  SyncNackCode,
+} from "./types";
 
 /**
  * Shared mutation handler for the sync channel: `POST /sync/mutate` (HTTP fallback)
@@ -32,6 +38,9 @@ export type SyncMutationOutcome = {type: "ack"; ack: SyncAck} | {type: "nack"; n
 const PENDING_POLL_ATTEMPTS = 10;
 const PENDING_POLL_INTERVAL_MS = 100;
 const VALID_OPERATIONS = new Set(["create", "update", "delete"]);
+
+/** Maximum mutations accepted in a single `sync:mutateBatch` / `POST /sync/mutate/batch` request. */
+export const MAX_SYNC_MUTATIONS_PER_BATCH = 100;
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -279,4 +288,90 @@ export const applySyncMutation = async ({
   } catch (error: unknown) {
     return finalizeNack({claimedId: claimed._id, entry, error, mutation, request});
   }
+};
+
+/** Outcome of a batch validation pre-check (before any mutation is attempted). */
+export type SyncBatchValidationOutcome =
+  | {ok: true}
+  | {ok: false; response: SyncMutateBatchResponse};
+
+/**
+ * Up-front validation shared by both batch transports (HTTP and socket): reject an
+ * oversized batch or one with intra-batch duplicate mutationIds before anything is
+ * applied. On failure, returns a single-element `results` array carrying a
+ * `validation` nack for the offending mutation (or an empty-batch guard) — mirroring
+ * the shape callers expect from `applySyncMutationBatch`, but produced without
+ * touching the idempotency ledger since nothing was attempted.
+ */
+export const validateSyncMutationBatch = (
+  mutations: SyncMutateRequest[]
+): SyncBatchValidationOutcome => {
+  if (mutations.length > MAX_SYNC_MUTATIONS_PER_BATCH) {
+    return {
+      ok: false,
+      response: {
+        results: [
+          makeNack({
+            code: "validation",
+            message: `Batch of ${mutations.length} exceeds the maximum of ${MAX_SYNC_MUTATIONS_PER_BATCH} mutations`,
+            mutationId: "",
+          }) as {type: "nack"; nack: SyncNack},
+        ],
+      },
+    };
+  }
+  const seen = new Set<string>();
+  for (const mutation of mutations) {
+    const mutationId = typeof mutation?.mutationId === "string" ? mutation.mutationId : "";
+    if (mutationId && seen.has(mutationId)) {
+      return {
+        ok: false,
+        response: {
+          results: [
+            makeNack({
+              code: "validation",
+              message: `Duplicate mutationId within batch: ${mutationId}`,
+              mutationId,
+            }) as {type: "nack"; nack: SyncNack},
+          ],
+        },
+      };
+    }
+    seen.add(mutationId);
+  }
+  return {ok: true};
+};
+
+/**
+ * Apply a batch of mutations strictly serially, in array order, reusing
+ * `applySyncMutation` per item — full reuse of the idempotency ledger, executors,
+ * permissions, and delta emission. Stops immediately at the first non-ack outcome
+ * (the user's hard requirement, INV-1): mutations after it are neither attempted nor
+ * ledgered, and are safe for the client to resend later (INV-3).
+ *
+ * Callers MUST run {@link validateSyncMutationBatch} first (oversized/duplicate
+ * rejection happens before any mutation is attempted); this function assumes the
+ * batch already passed that check.
+ */
+export const applySyncMutationBatch = async ({
+  user,
+  mutations,
+  req,
+}: {
+  user: User;
+  mutations: SyncMutateRequest[];
+  /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
+  req?: express.Request;
+}): Promise<SyncMutateBatchResponse> => {
+  const results: SyncMutateBatchResponse["results"] = [];
+  for (const mutation of mutations) {
+    const outcome = await applySyncMutation({mutation, req, user});
+    results.push(outcome);
+    if (outcome.type === "nack") {
+      // Stop-on-error: the client re-sends everything after this point, and
+      // INV-3's idempotency ledger makes that overlap safe.
+      break;
+    }
+  }
+  return {results};
 };

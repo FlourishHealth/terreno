@@ -1,11 +1,12 @@
 import type {
   AuthProvider,
   SyncAck,
+  SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNack,
   SyncSnapshotResponse,
 } from "../types";
-import type {SendMutationResult} from "./transport";
+import type {SendMutationBatchResult, SendMutationResult} from "./transport";
 
 /**
  * Thrown when the server answers 401: the bearer token is missing or expired.
@@ -39,6 +40,13 @@ export interface HttpChannel {
    * rejects with {@link AuthRequiredError}, anything else rejects.
    */
   sendMutation: (request: SyncMutateRequest) => Promise<SendMutationResult>;
+  /**
+   * POST the batch to `/sync/mutate/batch`; resolves `{type: "results", results}`
+   * on 200/422 (both carry a `results` array — see server contract), resolves
+   * `{type: "unsupported"}` on 404 (older server with no batch route), 401
+   * rejects with {@link AuthRequiredError}, anything else rejects.
+   */
+  sendMutationBatch?: (request: SyncMutateBatchRequest) => Promise<SendMutationBatchResult>;
   /**
    * Fetch the caller's per-user key material from `GET /sync/key` — feeds the
    * default server-derived encryption KeyProvider.
@@ -117,6 +125,29 @@ export const createHttpChannel = ({
     throw new Error(`Sync mutate failed with status ${response.status}`);
   };
 
+  const sendMutationBatch = async (
+    batch: SyncMutateBatchRequest
+  ): Promise<SendMutationBatchResult> => {
+    const response = await request("/sync/mutate/batch", {
+      body: JSON.stringify(batch),
+      method: "POST",
+    });
+    if (response.status === 404) {
+      return {type: "unsupported"};
+    }
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(`Sync mutate batch returned a non-JSON response (status ${response.status})`);
+    }
+    const parsed = body as {results?: SendMutationResult[]};
+    if (!Array.isArray(parsed.results)) {
+      throw new Error(`Sync mutate batch failed with status ${response.status}`);
+    }
+    return {results: parsed.results, type: "results"};
+  };
+
   const fetchKeyMaterial = async (): Promise<string> => {
     const response = await request("/sync/key");
     if (!response.ok) {
@@ -129,5 +160,5 @@ export const createHttpChannel = ({
     return body.keyMaterial;
   };
 
-  return {fetchKeyMaterial, fetchSnapshotPage, sendMutation};
+  return {fetchKeyMaterial, fetchSnapshotPage, sendMutation, sendMutationBatch};
 };

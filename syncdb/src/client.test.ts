@@ -131,12 +131,16 @@ describe("createSyncDb", () => {
       name: uniqueName(),
     });
     expect(client.getSyncStatus()).toEqual({
+      blockedEntities: 0,
       conflictCount: 0,
+      draining: false,
       failedCount: 0,
       isOnline: false,
       isSyncing: false,
       queuedCount: 0,
+      sentThisDrain: 0,
       streams: {},
+      totalThisDrain: 0,
     });
   });
 
@@ -589,6 +593,174 @@ describe("createSyncDb", () => {
       expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
         title: "server wins",
       });
+      await client.stop();
+    });
+  });
+
+  describe("batched drain (B3/B4/B5)", () => {
+    it("sends multiple queued mutations as a single batch via the socket transport", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+
+      client.mutate({collection: "todos", data: {title: "a"}, operation: "create"});
+      client.mutate({collection: "todos", data: {title: "b"}, operation: "create"});
+      client.mutate({collection: "todos", data: {title: "c"}, operation: "create"});
+      await flush();
+
+      expect(harness.transport.sentBatches.length).toBeGreaterThanOrEqual(1);
+      expect(harness.transport.sentBatches.flat()).toHaveLength(3);
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      await client.stop();
+    });
+
+    it("re-probes batch support on reconnect after a batch-unsupported determination", async () => {
+      const harness = makeHarness();
+      harness.transport.setBatchResponder(() => ({type: "unsupported"}));
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+
+      client.mutate({collection: "todos", data: {title: "a"}, operation: "create"});
+      client.mutate({collection: "todos", data: {title: "b"}, operation: "create"});
+      await flush();
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      expect(harness.transport.sentMutations).toHaveLength(2);
+
+      harness.transport.setBatchResponder();
+      // A reconnect re-probes batch support.
+      harness.transport.setConnected(false);
+      await flush();
+      harness.transport.setConnected(true);
+      await flush();
+      client.mutate({collection: "todos", data: {title: "c"}, operation: "create"});
+      client.mutate({collection: "todos", data: {title: "d"}, operation: "create"});
+      await flush();
+      expect(harness.transport.sentBatches.length).toBeGreaterThanOrEqual(1);
+      await client.stop();
+    });
+
+    it("retryFailed re-enables an entity's successors after a validation failure", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+
+      harness.transport.respondWithNack({code: "validation", message: "bad data"});
+      const {id} = client.mutate({collection: "todos", data: {title: "bad"}, operation: "create"});
+      await flush();
+      expect(client.getSyncStatus().failedCount).toBe(1);
+
+      client.mutate({collection: "todos", data: {title: "v2"}, id, operation: "update"});
+      await flush();
+      // The successor is blocked and surfaced, not sent.
+      expect(client.getSyncStatus().blockedEntities).toBe(1);
+      expect(client.getSyncStatus().queuedCount).toBe(1);
+
+      client.retryFailed({entityId: id});
+      await flush();
+      expect(client.getSyncStatus().blockedEntities).toBe(0);
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      await client.stop();
+    });
+
+    it("getSyncStatus reports draining and drain progress while a replay is in flight", async () => {
+      const harness = makeHarness();
+      let release: (() => void) | undefined;
+      harness.transport.respondWith(async (request) => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return {ack: {id: request.id ?? "", mutationId: request.mutationId, seq: 1}, type: "ack"};
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      // Let the startup no-op replay (empty queue) settle before enqueuing,
+      // so the drain this test observes is the one triggered by mutate().
+      await flush();
+
+      client.mutate({collection: "todos", data: {title: "a"}, operation: "create"});
+      await flush();
+      const midDrainStatus = client.getSyncStatus();
+      expect(midDrainStatus.draining).toBe(true);
+      expect(midDrainStatus.totalThisDrain).toBeGreaterThanOrEqual(1);
+
+      release?.();
+      await flush();
+      expect(client.getSyncStatus().draining).toBe(false);
+      await client.stop();
+    });
+
+    it("respects a configured batchSize", async () => {
+      const harness = makeHarness({batchSize: 2});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      // Let the startup no-op replay (empty queue) settle first.
+      await flush();
+
+      for (let i = 0; i < 5; i++) {
+        client.mutate({collection: "todos", data: {title: `t${i}`}, operation: "create"});
+      }
+      await flush();
+      await flush();
+      // 5 mutations at batchSize 2: two full batches of 2, then a lone
+      // eligible mutation reuses the single-send path (not a batch of one).
+      expect(harness.transport.sentBatches.map((b) => b.length)).toEqual([2, 2]);
+      expect(harness.transport.sentMutations).toHaveLength(1);
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      await client.stop();
+    });
+
+    it("haltQueueOnConflict config plumbs through to the coordinator: a conflict halts the whole batch", async () => {
+      const harness = makeHarness({haltQueueOnConflict: true});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      // Let the startup no-op replay (empty queue) settle first.
+      await flush();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      client.store.upsertEntity({collection: "todos", data: {title: "other"}, id: "t2"});
+
+      // Enqueue both mutations via the outbox directly (bypassing mutate()'s
+      // own fire-and-forget replay trigger, which would otherwise start
+      // draining synchronously — up to its first real await — before the
+      // second mutation exists, guaranteeing they land in separate chunks)
+      // so a single replayOutbox() call sees both together deterministically.
+      const mutationId = "halt-conflict-t1";
+      client.outbox.enqueue({
+        args: {title: "mine"},
+        baseVersion: 2,
+        collection: "todos",
+        entityId: "t1",
+        mutationId,
+        operation: "update",
+        userId: "u1",
+      });
+      client.outbox.enqueue({
+        args: {title: "other"},
+        collection: "todos",
+        entityId: "t2",
+        mutationId: "halt-conflict-t2",
+        operation: "update",
+        userId: "u1",
+      });
+
+      // Realistic server behavior (B2 stop-on-first-non-ack): t1 is first and
+      // conflicts, so "other" never gets attempted — truncated response.
+      harness.transport.setBatchResponder(() => ({
+        results: [{nack: {code: "conflict", mutationId, serverSeq: 7}, type: "nack"}],
+        type: "results",
+      }));
+      await client.replayOutbox();
+
+      expect(client.getSyncStatus().conflictCount).toBe(1);
+      // The second (distinct-entity) mutation never got a result and never
+      // sent again this pass — haltQueueOnConflict stopped the whole drain.
+      expect(client.getSyncStatus().queuedCount).toBe(1);
+      expect(client.outbox.getMutation({mutationId})?.status).toBe("conflicted");
       await client.stop();
     });
   });

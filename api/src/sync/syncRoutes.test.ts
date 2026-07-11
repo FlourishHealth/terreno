@@ -11,6 +11,7 @@ import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncKey, SyncMutation} from "./models";
+import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {clearSyncRegistry, registerSync} from "./registry";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
@@ -437,6 +438,76 @@ describe("sync routes", () => {
         })
         .expect(500);
       expect(res.body.nack.code).toBe("error");
+    });
+  });
+
+  describe("POST /sync/mutate/batch", () => {
+    const create = (mutationId: string, name: string) => ({
+      collection: "routeStuff",
+      data: {name, ownerId: notAdminId},
+      mutationId,
+      operation: "create",
+    });
+
+    it("requires authentication", async () => {
+      await server
+        .post("/sync/mutate/batch")
+        .send({mutations: [create("batch-http-noauth", "x")]})
+        .expect(401);
+    });
+
+    it("applies mutations strictly in order and returns one ack per mutation", async () => {
+      const mutations = Array.from({length: 5}, (_v, i) => create(`batch-http-${i}`, `item ${i}`));
+      const res = await agent.post("/sync/mutate/batch").send({mutations}).expect(200);
+      expect(res.body.results).toHaveLength(5);
+      expect(res.body.results.every((r: any) => r.type === "ack")).toBe(true);
+      const seqs = res.body.results.map((r: any) => r.ack.seq);
+      expect(seqs).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("stops at the first nack: results shorter than the request", async () => {
+      const mutations = [
+        create("batch-http-halt-1", "ok 1"),
+        {
+          collection: "routeStuff",
+          data: {name: "bad"},
+          mutationId: "batch-http-halt-2",
+          operation: "update", // no id supplied -> validation nack
+        },
+        create("batch-http-halt-3", "never applied"),
+      ];
+      const res = await agent.post("/sync/mutate/batch").send({mutations}).expect(200);
+      expect(res.body.results).toHaveLength(2);
+      expect(res.body.results[0].type).toBe("ack");
+      expect(res.body.results[1].type).toBe("nack");
+      expect(res.body.results[1].nack.code).toBe("validation");
+      expect(await RouteStuffModel.countDocuments({name: "never applied"})).toBe(0);
+    });
+
+    it("rejects an oversized batch with a 422 before processing anything", async () => {
+      const mutations = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH + 1}, (_v, i) =>
+        create(`batch-http-oversized-${i}`, `item ${i}`)
+      );
+      const res = await agent.post("/sync/mutate/batch").send({mutations}).expect(422);
+      expect(res.body.results).toHaveLength(1);
+      expect(res.body.results[0].nack.code).toBe("validation");
+      expect(await RouteStuffModel.countDocuments({})).toBe(0);
+    });
+
+    it("rejects intra-batch duplicate mutationIds with a 422", async () => {
+      const mutations = [create("batch-http-dup", "a"), create("batch-http-dup", "b")];
+      const res = await agent.post("/sync/mutate/batch").send({mutations}).expect(422);
+      expect(res.body.results[0].nack.code).toBe("validation");
+      expect(await RouteStuffModel.countDocuments({})).toBe(0);
+    });
+
+    it("a whole-batch duplicate resend is idempotent", async () => {
+      const mutations = [create("batch-http-idem-1", "once"), create("batch-http-idem-2", "twice")];
+      const first = await agent.post("/sync/mutate/batch").send({mutations}).expect(200);
+      const second = await agent.post("/sync/mutate/batch").send({mutations}).expect(200);
+      expect(second.body).toEqual(first.body);
+      expect(await RouteStuffModel.countDocuments({name: "once"})).toBe(1);
+      expect(await RouteStuffModel.countDocuments({name: "twice"})).toBe(1);
     });
   });
 

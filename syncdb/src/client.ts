@@ -14,11 +14,12 @@ import {applyDelta} from "./sync/deltaApplier";
 import {AuthRequiredError, createHttpChannel, type HttpChannel} from "./sync/httpChannel";
 import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
 import {createSocketTransport} from "./sync/socketTransport";
-import type {SendMutationResult, SyncTransport} from "./sync/transport";
+import type {SendMutationBatchResult, SendMutationResult, SyncTransport} from "./sync/transport";
 import type {
   AuthProvider,
   ConflictResolutionStrategy,
   SyncDelta,
+  SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncMutationOperation,
   SyncStatus,
@@ -74,6 +75,14 @@ export interface SyncDbConfig {
    * this explicit, host-app-initiated opt-in.
    */
   wipeOnSignOut?: boolean;
+  /** Max mutations per batched drain send (B3, default 50; server caps at 100). */
+  batchSize?: number;
+  /**
+   * B4: when true, a conflict halts the ENTIRE drain instead of just blocking
+   * its entity. Default false (per-entity blocking — see README "Conflict
+   * handling modes").
+   */
+  haltQueueOnConflict?: boolean;
 }
 
 export interface MutateArgs {
@@ -125,6 +134,13 @@ export interface SyncDb {
   replayOutbox: () => Promise<void>;
   /** Resolve a recorded conflict with the given strategy. */
   resolveConflict: (args: {mutationId: string; strategy: ConflictResolutionStrategy}) => void;
+  /**
+   * B4: re-enable an entity's queued successors after a terminal validation
+   * failure blocked them. Does not touch unresolved conflicts (those clear
+   * via `resolveConflict`); kicks off a replay so the re-enabled mutations
+   * drain immediately rather than waiting for the next trigger.
+   */
+  retryFailed: (args: {entityId: string}) => void;
   /**
    * Explicit, host-app-initiated sign-out. Always clears the in-memory
    * current-user pointer; wipes local data ONLY when `wipeOnSignOut` is
@@ -232,6 +248,22 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     return httpChannel.sendMutation(request);
   };
 
+  // B3: batched sends mirror the same socket-preferred/HTTP-fallback selection.
+  // Omitted entirely when neither channel supports batching, so the
+  // coordinator falls back to sendMutation for every send.
+  const sendMutationBatch =
+    transport.sendMutationBatch || httpChannel?.sendMutationBatch
+      ? async (request: SyncMutateBatchRequest): Promise<SendMutationBatchResult> => {
+          if ((connected || !httpChannel) && transport.sendMutationBatch) {
+            return transport.sendMutationBatch(request);
+          }
+          if (httpChannel?.sendMutationBatch) {
+            return httpChannel.sendMutationBatch(request);
+          }
+          return {type: "unsupported"};
+        }
+      : undefined;
+
   const setAuthPaused = (value: boolean): void => {
     if (authPaused === value) {
       return;
@@ -253,7 +285,9 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   const coordinator: ReplayCoordinator = createReplayCoordinator({
+    batchSize: config.batchSize,
     debug: debugLog,
+    haltQueueOnConflict: config.haltQueueOnConflict,
     now,
     onAuthPause: () => {
       setAuthPaused(true);
@@ -268,9 +302,16 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     onDrainPass: ({userId}) => {
       outbox.prune({userId});
     },
+    onProgress: () => {
+      // B5: drain progress (sentThisDrain/totalThisDrain) is exposed through
+      // getSyncStatus() — nudge status listeners so a progress UI re-renders
+      // as each chunk/mutation resolves, not just at the start/end of replay.
+      notifyStatusChange();
+    },
     outbox,
     random: config.random,
     sendMutation,
+    sendMutationBatch,
     // Internally-scheduled drains (armed wake-up timers, the mid-drain-enqueue
     // recheck) must respect the same gating as an external replayOutbox()
     // call: never send while simulated-offline or auth-paused.
@@ -441,6 +482,11 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     if (!isConnected) {
       return;
     }
+    // B3: re-probe batch support on every reconnect — a previous
+    // `batchUnsupported` determination may have been against an old server
+    // that has since been upgraded, or the reconnect landed on a different
+    // instance behind a load balancer.
+    coordinator.notifyReconnect();
     void reconcile().catch(warn("reconnect reconcile failed"));
     void replayOutbox().catch(warn("reconnect replay failed"));
   };
@@ -662,17 +708,39 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     void replayOutbox().catch(warn("post-resolve replay failed"));
   };
 
-  const getSyncStatus = (): SyncStatus => ({
-    conflictCount: listConflicts({store}).length,
-    failedCount: currentUserId
-      ? outbox.countByStatus({status: "failed", userId: currentUserId})
-      : 0,
-    isOnline: connected,
-    isSyncing: syncingCount > 0,
-    ...(authPaused ? {paused: "auth" as const} : {}),
-    queuedCount: currentUserId ? outbox.listQueued({userId: currentUserId}).length : 0,
-    streams: getAllCursors({store}),
-  });
+  const retryFailed = ({entityId}: {entityId: string}): void => {
+    coordinator.retryFailed({entityId});
+    debugLog?.record({
+      detail: {entityId},
+      direction: "local",
+      label: `retry failed (${entityId})`,
+      type: "resolve",
+    });
+    void replayOutbox().catch(warn("post-retryFailed replay failed"));
+  };
+
+  const getSyncStatus = (): SyncStatus => {
+    const drainProgress = currentUserId
+      ? coordinator.getDrainProgress({userId: currentUserId})
+      : {draining: false, sentThisDrain: 0, totalThisDrain: 0};
+    return {
+      blockedEntities: currentUserId
+        ? coordinator.getBlockedEntities({userId: currentUserId}).length
+        : 0,
+      conflictCount: listConflicts({store}).length,
+      draining: drainProgress.draining,
+      failedCount: currentUserId
+        ? outbox.countByStatus({status: "failed", userId: currentUserId})
+        : 0,
+      isOnline: connected,
+      isSyncing: syncingCount > 0,
+      ...(authPaused ? {paused: "auth" as const} : {}),
+      queuedCount: currentUserId ? outbox.listQueued({userId: currentUserId}).length : 0,
+      sentThisDrain: drainProgress.sentThisDrain,
+      streams: getAllCursors({store}),
+      totalThisDrain: drainProgress.totalThisDrain,
+    };
+  };
 
   const onStatusChange = (callback: () => void): (() => void) => {
     statusListeners.add(callback);
@@ -703,6 +771,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     reconcile,
     replayOutbox,
     resolveConflict,
+    retryFailed,
     signOut,
     start,
     stop,

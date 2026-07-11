@@ -1,12 +1,29 @@
 import {io, type Socket} from "socket.io-client";
 
-import type {AuthProvider, SyncAck, SyncDelta, SyncMutateRequest, SyncNack} from "../types";
+import type {
+  AuthProvider,
+  SyncAck,
+  SyncDelta,
+  SyncMutateBatchRequest,
+  SyncMutateRequest,
+  SyncNack,
+} from "../types";
 import {
   DEFAULT_MUTATION_TIMEOUT_MS,
+  type SendMutationBatchResult,
   type SendMutationResult,
   type SyncTransport,
   type TransportStatus,
 } from "./transport";
+
+/**
+ * Grace period to wait for a `sync:mutateBatch` ack callback before treating the
+ * server as not supporting the batch event. Socket.io silently drops emits to
+ * event names with no registered handler — there is no error to catch, only
+ * silence — so this must be much shorter than the full mutation timeout or every
+ * batch send against an old server would stall for the full 15s.
+ */
+export const BATCH_UNSUPPORTED_GRACE_MS = 2_000;
 
 export interface SocketTransportConfig {
   /** Server origin, e.g. "http://localhost:4000". */
@@ -15,6 +32,8 @@ export interface SocketTransportConfig {
   authProvider: Pick<AuthProvider, "getToken">;
   /** How long to wait for a mutation ack/nack before rejecting (default 15s). */
   timeoutMs?: number;
+  /** Grace period before a batch send is treated as unsupported (default 2s). */
+  batchUnsupportedGraceMs?: number;
 }
 
 interface PendingMutation {
@@ -49,10 +68,20 @@ export const createSocketTransport = ({
   baseUrl,
   authProvider,
   timeoutMs = DEFAULT_MUTATION_TIMEOUT_MS,
+  batchUnsupportedGraceMs = BATCH_UNSUPPORTED_GRACE_MS,
 }: SocketTransportConfig): SyncTransport => {
   const deltaListeners = new Set<(delta: SyncDelta) => void>();
   const statusListeners = new Set<(status: TransportStatus) => void>();
   const pending = new Map<string, PendingMutation>();
+  const pendingBatches = new Map<
+    number,
+    {
+      resolve: (result: SendMutationBatchResult) => void;
+      reject: (error: Error) => void;
+      graceTimer: ReturnType<typeof setTimeout>;
+    }
+  >();
+  let nextBatchId = 1;
   const subscribed = new Set<string>();
 
   const socket: Socket = io(baseUrl, {
@@ -87,6 +116,11 @@ export const createSocketTransport = ({
     for (const [mutationId, entry] of pending) {
       pending.delete(mutationId);
       clearTimeout(entry.timer);
+      entry.reject(new Error(reason));
+    }
+    for (const [batchId, entry] of pendingBatches) {
+      pendingBatches.delete(batchId);
+      clearTimeout(entry.graceTimer);
       entry.reject(new Error(reason));
     }
   };
@@ -184,6 +218,42 @@ export const createSocketTransport = ({
       });
     });
 
+  const sendMutationBatch = (
+    request: {mutations: SyncMutateRequest[]} & SyncMutateBatchRequest
+  ): Promise<SendMutationBatchResult> =>
+    new Promise<SendMutationBatchResult>((resolve, reject) => {
+      const batchId = nextBatchId++;
+      // A server without a sync:mutateBatch handler never invokes this ack
+      // callback (Socket.io silently drops emits to unregistered events) — a
+      // short grace timeout distinguishes "unsupported" from a genuine
+      // transport failure, so callers don't wait out the full mutation timeout
+      // on every batch send against an old server.
+      const graceTimer = setTimeout(() => {
+        pendingBatches.delete(batchId);
+        resolve({type: "unsupported"});
+      }, batchUnsupportedGraceMs);
+      pendingBatches.set(batchId, {graceTimer, reject, resolve});
+      socket.emit(
+        "sync:mutateBatch",
+        request,
+        (response: {
+          results?: ({type: "ack"; ack: SyncAck} | {type: "nack"; nack: SyncNack})[];
+        }) => {
+          const entry = pendingBatches.get(batchId);
+          if (!entry) {
+            return;
+          }
+          pendingBatches.delete(batchId);
+          clearTimeout(entry.graceTimer);
+          if (Array.isArray(response?.results)) {
+            entry.resolve({results: response.results, type: "results"});
+          } else {
+            entry.resolve({type: "unsupported"});
+          }
+        }
+      );
+    });
+
   return {
     connect,
     disconnect,
@@ -200,6 +270,7 @@ export const createSocketTransport = ({
       };
     },
     sendMutation,
+    sendMutationBatch,
     subscribe,
   };
 };

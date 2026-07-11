@@ -61,6 +61,30 @@ export interface SyncNack {
   message?: string;
 }
 
+/**
+ * A batch of client mutations sent via `sync:mutateBatch` or
+ * `POST /sync/mutate/batch`. The server applies strictly in array order and
+ * stops at the first non-ack outcome.
+ */
+export interface SyncMutateBatchRequest {
+  /** Ordered mutations; each still carries its own mutationId. */
+  mutations: SyncMutateRequest[];
+}
+
+/** One result per PROCESSED mutation in a batch, in request order. */
+export type SyncMutateBatchResult = {type: "ack"; ack: SyncAck} | {type: "nack"; nack: SyncNack};
+
+/**
+ * Response to a batch mutation request.
+ *
+ * `results.length < request.mutations.length` means the server halted at the
+ * first non-ack: `results[results.length - 1]` is that failing outcome, and
+ * every mutation after it was NOT attempted — still safe to resend later.
+ */
+export interface SyncMutateBatchResponse {
+  results: SyncMutateBatchResult[];
+}
+
 /** One entity in a `GET /sync/snapshot` page. */
 export interface SyncSnapshotEntity {
   id: string;
@@ -127,6 +151,18 @@ export interface SyncStatus {
    * automatically when the same user re-authenticates and replay resumes.
    */
   paused?: "auth";
+  /**
+   * Number of distinct entities currently blocked from draining (B4): an
+   * unresolved conflict, or a terminal validation failure whose successors
+   * are skipped-and-surfaced pending `client.retryFailed({entityId})`.
+   */
+  blockedEntities: number;
+  /** True while a replay/drain is actively in flight for the current user. */
+  draining: boolean;
+  /** Mutations attempted so far in the current (or most recent) drain call. */
+  sentThisDrain: number;
+  /** Queue length observed when the current (or most recent) drain call began. */
+  totalThisDrain: number;
   /** Per-stream cursors (stream key → highest applied seq). */
   streams: Record<string, number>;
 }

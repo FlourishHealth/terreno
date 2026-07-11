@@ -137,6 +137,8 @@ const client = createSyncDb({
   transport?, httpChannel?,       // test/DI overrides
   reconcileIntervalMs?,           // periodic reconcile (default 5 min; 0 disables)
   seqJumpReconcileMinIntervalMs?, // seq-jump reconcile rate limit (default 30s)
+  batchSize?,                     // max mutations per batched drain send (default 50; server caps at 100)
+  haltQueueOnConflict?,           // conflict policy — see "Conflict handling modes" below (default false)
 });
 
 client.start() / client.stop();
@@ -144,12 +146,33 @@ client.mutate({collection, operation, id?, data?}); // → {mutationId, id}
 client.reconcile();       // HTTP snapshot catch-up for every collection
 client.replayOutbox();    // drain queued mutations now
 client.resolveConflict({mutationId, strategy: "useServer" | "keepMine"});
-client.getSyncStatus();   // {isOnline, isSyncing, queuedCount, conflictCount, streams}
+client.retryFailed({entityId});  // re-enable an entity's queued successors after a terminal validation failure
+client.getSyncStatus();   // {isOnline, isSyncing, queuedCount, conflictCount, failedCount, blockedEntities,
+                           //  paused?, draining, sentThisDrain, totalThisDrain, streams}
 client.onStatusChange(cb);
 client.store / client.outbox; // low-level access
 ```
 
 React hooks (`@terreno/syncdb/react`): `SyncDbProvider`, `useSyncDbClient`, `useEntity(collection, id)`, `useQuery(collection, {filter?, sort?, includeDeleted?})`, `useMutate(collection)`, `useSyncStatus()`, `useConflicts()`.
+
+## Batched replay & stop-the-line policy
+
+Queued mutations drain in contiguous chunks (≤ `batchSize`, default 50) over `POST /sync/mutate/batch` (or `sync:mutateBatch` when the socket is connected) rather than one request per mutation — an offline session of hundreds of edits costs `~N/batchSize` round-trips instead of `N`. Ordering is never sacrificed for this: a chunk carries at most one mutation per entity (a second mutation for an entity already in the chunk cuts it short — the next chunk picks it up once the first has acked and the send-time `baseVersion` refresh has run), and the server applies a batch strictly in array order, stopping at the first non-ack (results shorter than the request means the client re-sends the untouched tail — safe by idempotency). If the server or transport doesn't support batching (HTTP 404, or a socket that never acknowledges `sync:mutateBatch`), the client falls back to single-mutation sends in the same global order and re-probes batch support on the next reconnect.
+
+Not every failure is handled the same way — the table below is the client's stop-the-line policy:
+
+| Outcome | Policy |
+|---|---|
+| `error` (transient), transport failure/timeout, `unauthorized` | **Halts the whole drain.** Jittered backoff (or auth-pause) applies; nothing after it sends until the retry/re-auth. |
+| `conflict` | **Blocks only that entity** by default: the entity's later queued mutations are skipped (stay `queued`, budgets untouched) until the user resolves the conflict via `resolveConflict`; other entities keep draining. Set `haltQueueOnConflict: true` to escalate a conflict into a whole-drain halt instead (for apps with cross-entity ordering dependencies where an unresolved conflict must not let anything past it). |
+| `validation` | Terminal for that mutation (existing `markFailed` behavior) and its entity's queued successors are skipped-and-surfaced the same way a conflict blocks — a successor built on a rejected write is likely also invalid. Re-enable them with `client.retryFailed({entityId})` once the underlying issue is fixed. |
+
+### Conflict handling modes
+
+- **Default (`haltQueueOnConflict: false`)** — per-entity blocking. A conflict on one entity never stalls unrelated entities; only that entity's own queue is paused pending `resolveConflict`. Best for apps where entities are largely independent (e.g. a todo list).
+- **`haltQueueOnConflict: true`** — whole-drain halt. Any conflict stops the ENTIRE drain until it's resolved, even for unrelated entities. Choose this when later-queued mutations (in any entity/collection) may depend on assumptions invalidated by the conflicting write, and blindly continuing risks compounding the problem.
+
+`client.getSyncStatus().blockedEntities` reports how many distinct entities are currently blocked (conflict or skipped validation failure) so the UI can surface it (see `SyncStatusBanner`'s failed/conflict badges).
 
 ## Stream scoping
 
@@ -201,6 +224,7 @@ Sequencing guarantees: validation failures never consume a seq (the claim happen
 |---|---|---|
 | `GET /sync/snapshot?collection=&cursor=&limit=` | Bootstrap + catch-up. Returns `{entities: [{id, data, seq, deleted}], cursor, hasMore}`. `cursor=0` = full snapshot (legacy docs without `_syncSeq` arrive in the first page with seq 0). Default page 500, max 1000. | Model `list` permissions + server-enforced scope filter |
 | `POST /sync/mutate` | HTTP fallback for outbox replay (same handler as the socket channel). Body: `{mutationId, collection, operation, id?, data?, baseVersion?}`. Returns `{ack}` or `{nack}` with status 409 (conflict), 403 (unauthorized), 422 (validation), 500 (error). | modelRouter create/update/delete write path |
+| `POST /sync/mutate/batch` | HTTP fallback for batched outbox replay. Body: `{mutations: SyncMutateRequest[]}` (max 100; intra-batch duplicate `mutationId`s rejected up front). Returns `{results: ({type:"ack",ack}\|{type:"nack",nack})[]}` — applied strictly in array order, stopping at the first non-ack (a shorter `results` array than the request means everything after it was never attempted). | modelRouter create/update/delete write path, per mutation |
 | `GET /sync/key` | Caller's per-user key material for the server key provider (32 random bytes, base64; created on first call). | Own key only |
 
 ### Socket events (on the `RealtimeApp` Socket.io server)
@@ -214,8 +238,9 @@ Sequencing guarantees: validation failures never consume a seq (the claim happen
 | `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` (+ optional Socket.io ack callback) |
 | `sync:ack` | server → client | `{mutationId, id, seq}` |
 | `sync:nack` | server → client | `{mutationId, code: "conflict"\|"unauthorized"\|"validation"\|"error", serverDoc?, serverSeq?, message?}` |
+| `sync:mutateBatch` | client → server | `{mutations: SyncMutateRequest[]}` (Socket.io ack callback carries `{results}`, same contract as the HTTP batch route) — a server with no handler for this event never invokes the ack callback, which the client treats as "batching unsupported" after a short grace timeout and falls back to single `sync:mutate` sends. |
 
-Limits: 50 collection subscriptions per socket; 100 `sync:mutate` per second per socket.
+Limits: 50 collection subscriptions per socket; 100 `sync:mutate` per second per socket, shared with `sync:mutateBatch` (each mutation in a batch counts individually against the same window); batches capped at 100 mutations.
 
 ### Conflicts and idempotency
 

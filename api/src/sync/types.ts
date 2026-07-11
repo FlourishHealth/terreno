@@ -117,6 +117,31 @@ export interface SyncNack {
   message?: string;
 }
 
+/**
+ * A batch of client mutations delivered via `sync:mutateBatch` or
+ * `POST /sync/mutate/batch`. The server MUST apply strictly in array order and
+ * stop at the first non-ack outcome (see `applySyncMutationBatch`).
+ */
+export interface SyncMutateBatchRequest {
+  /** Ordered mutations; each still carries its own mutationId. */
+  mutations: SyncMutateRequest[];
+}
+
+/** One result per PROCESSED mutation in a batch, in request order. */
+export type SyncMutateBatchResult = {type: "ack"; ack: SyncAck} | {type: "nack"; nack: SyncNack};
+
+/**
+ * Response to a batch mutation request.
+ *
+ * `results.length < request.mutations.length` means the server halted at the
+ * first non-ack: `results[results.length - 1]` is that failing outcome, and
+ * every mutation after it was NOT attempted (not ledgered, not applied) —
+ * still safe to resend in a later batch (INV-3).
+ */
+export interface SyncMutateBatchResponse {
+  results: SyncMutateBatchResult[];
+}
+
 /** A change event delivered to subscribed clients via `sync:delta`. */
 export interface SyncDelta {
   /** Collection tag (e.g. "todos"). */

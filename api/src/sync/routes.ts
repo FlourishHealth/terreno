@@ -6,16 +6,57 @@ import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware} from "../errors";
 import {checkPermissions} from "../permissions";
 import {getOrCreateSyncKeyMaterial} from "./models";
-import {applySyncMutation} from "./mutationHandler";
+import {
+  applySyncMutation,
+  applySyncMutationBatch,
+  MAX_SYNC_MUTATIONS_PER_BATCH,
+  validateSyncMutationBatch,
+} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import {serializeSyncPayload} from "./serialize";
 import {getScopeField} from "./streams";
 import type {
   SyncEntityPayload,
+  SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNackCode,
   SyncSnapshotResponse,
 } from "./types";
+
+/** Maximum `POST /sync/mutate` and `/sync/mutate/batch` requests per user per second (HTTP). */
+export const MAX_SYNC_HTTP_MUTATIONS_PER_SECOND = 100;
+
+/**
+ * Rolling one-second per-user mutation counter for the HTTP mutate routes, mirroring
+ * the socket path's rate limit (which counts each mutation in a batch, not each
+ * request/batch itself). Module-level so it survives across requests on the same
+ * process; per-userId windows keep one heavy user from limiting another.
+ */
+const httpMutationWindows = new Map<string, {windowStart: number; count: number}>();
+
+/**
+ * Returns true when `weight` more mutations would exceed the per-second budget for
+ * `userId`, WITHOUT consuming budget (callers decide whether to still count it).
+ */
+const wouldExceedHttpMutationRateLimit = (userId: string, weight: number): boolean => {
+  const now = Date.now();
+  const entry = httpMutationWindows.get(userId);
+  if (!entry || now - entry.windowStart >= 1000) {
+    return weight > MAX_SYNC_HTTP_MUTATIONS_PER_SECOND;
+  }
+  return entry.count + weight > MAX_SYNC_HTTP_MUTATIONS_PER_SECOND;
+};
+
+/** Consume `weight` mutations from the user's rolling one-second HTTP window. */
+const consumeHttpMutationRateLimit = (userId: string, weight: number): void => {
+  const now = Date.now();
+  const entry = httpMutationWindows.get(userId);
+  if (!entry || now - entry.windowStart >= 1000) {
+    httpMutationWindows.set(userId, {count: weight, windowStart: now});
+    return;
+  }
+  entry.count += weight;
+};
 
 /** Options for the SyncApp plugin's HTTP routes. */
 export interface SyncAppOptions {
@@ -190,6 +231,17 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       if (!user) {
         throw new APIError({status: 401, title: "Authentication required"});
       }
+      const userId = String(user.id);
+      if (wouldExceedHttpMutationRateLimit(userId, 1)) {
+        return res.status(NACK_HTTP_STATUS.error).json({
+          nack: {
+            code: "error",
+            message: `Rate limit of ${MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+            mutationId: String((req.body as SyncMutateRequest | undefined)?.mutationId ?? ""),
+          },
+        });
+      }
+      consumeHttpMutationRateLimit(userId, 1);
       const outcome = await applySyncMutation({
         mutation: req.body as SyncMutateRequest,
         req,
@@ -200,6 +252,55 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       }
       // Duplicate deliveries reading a recorded outcome map to the same statuses.
       return res.status(NACK_HTTP_STATUS[outcome.nack.code]).json({nack: outcome.nack});
+    })
+  );
+
+  router.post(
+    "/sync/mutate/batch",
+    authenticateMiddleware(),
+    asyncHandler(async (req, res) => {
+      const user = req.user as User | undefined;
+      if (!user) {
+        throw new APIError({status: 401, title: "Authentication required"});
+      }
+      const body = req.body as SyncMutateBatchRequest | undefined;
+      const mutations = Array.isArray(body?.mutations) ? body.mutations : [];
+
+      // Batch size cap enforced BEFORE anything else (including rate limiting) —
+      // an oversized batch is a client bug, rejected loudly with no side effects.
+      if (mutations.length > MAX_SYNC_MUTATIONS_PER_BATCH) {
+        const validation = validateSyncMutationBatch(mutations);
+        if (!validation.ok) {
+          return res.status(422).json(validation.response);
+        }
+      }
+
+      const userId = String(user.id);
+      // The socket path's rate limiter counts each mutation in the batch (not
+      // each batch) against the window; mirror that here.
+      if (wouldExceedHttpMutationRateLimit(userId, mutations.length)) {
+        return res.status(NACK_HTTP_STATUS.error).json({
+          results: [
+            {
+              nack: {
+                code: "error",
+                message: `Rate limit of ${MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+                mutationId: "",
+              },
+              type: "nack",
+            },
+          ],
+        });
+      }
+      consumeHttpMutationRateLimit(userId, mutations.length);
+
+      const validation = validateSyncMutationBatch(mutations);
+      if (!validation.ok) {
+        return res.status(422).json(validation.response);
+      }
+
+      const response = await applySyncMutationBatch({mutations, req, user});
+      return res.json(response);
     })
   );
 

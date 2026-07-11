@@ -27,6 +27,7 @@ import {
 } from "../realtime/socketAuth";
 import {setupDb} from "../tests";
 import {SyncCounter, SyncMutation} from "./models";
+import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {
   clearSyncRegistry,
   findSyncEntryByCollectionTag,
@@ -604,6 +605,126 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
       (e.payload as SyncNack).message?.includes("Rate limit")
     );
     expect(rateLimited).toHaveLength(5);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sync:mutateBatch
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("installSyncSocketHandlers — sync:mutateBatch", () => {
+  beforeAll(async () => {
+    await setupDb();
+  });
+
+  beforeEach(async () => {
+    registerAll();
+    await Promise.all([
+      SockStuffModel.collection.deleteMany({}),
+      SyncCounter.deleteMany({}),
+      SyncMutation.deleteMany({}),
+    ]);
+  });
+
+  afterEach(() => {
+    clearSyncRegistry();
+  });
+
+  const create = (mutationId: string, name: string) => ({
+    collection: "sockStuff",
+    data: {name, ownerId: "user1"},
+    mutationId,
+    operation: "create",
+  });
+
+  const triggerBatch = async (
+    socket: MockSocket,
+    mutations: unknown[]
+  ): Promise<{results: Array<{type: string; ack?: SyncAck; nack?: SyncNack}>}> => {
+    let response: any;
+    await socket.trigger("sync:mutateBatch", {mutations}, (res: unknown) => {
+      response = res;
+    });
+    return response;
+  };
+
+  it("applies a batch strictly in order via the ack callback", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = Array.from({length: 5}, (_v, i) => create(`sock-batch-${i}`, `item ${i}`));
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(5);
+    expect(response.results.every((r) => r.type === "ack")).toBe(true);
+    const seqs = response.results.map((r) => r.ack?.seq);
+    expect(seqs).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("stops at the first nack, leaving later mutations unattempted", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = [
+      create("sock-batch-halt-1", "ok"),
+      {collection: "nope", mutationId: "sock-batch-halt-2", operation: "create"},
+      create("sock-batch-halt-3", "never"),
+    ];
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(2);
+    expect(response.results[0].type).toBe("ack");
+    expect(response.results[1].type).toBe("nack");
+    expect(response.results[1].nack?.code).toBe("validation");
+    expect(await SockStuffModel.countDocuments({name: "never"})).toBe(0);
+  });
+
+  it("rejects an oversized batch before processing", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH + 1}, (_v, i) =>
+      create(`sock-batch-oversized-${i}`, `item ${i}`)
+    );
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.code).toBe("validation");
+    expect(await SockStuffModel.countDocuments({})).toBe(0);
+  });
+
+  it("rejects intra-batch duplicate mutationIds before processing", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = [create("sock-batch-dup", "a"), create("sock-batch-dup", "b")];
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.code).toBe("validation");
+    expect(await SockStuffModel.countDocuments({})).toBe(0);
+  });
+
+  it("nacks unauthorized for unauthenticated sockets", async () => {
+    const socket = createMockSocket(undefined);
+    install(socket);
+    const response = await triggerBatch(socket, [create("sock-batch-anon", "x")]);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.code).toBe("unauthorized");
+  });
+
+  it("rate-limits batch mutations against the same window as sync:mutate", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    // Two batches within the per-batch size cap, but together exceeding the
+    // per-second mutation budget — the shared window rejects the second batch
+    // before any of its mutations are attempted.
+    const firstBatch = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH}, (_v, i) => ({
+      collection: "nope",
+      mutationId: `flood-batch-a-${i}`,
+      operation: "create",
+    }));
+    const secondBatch = Array.from({length: 10}, (_v, i) => ({
+      collection: "nope",
+      mutationId: `flood-batch-b-${i}`,
+      operation: "create",
+    }));
+    await triggerBatch(socket, firstBatch);
+    const response = await triggerBatch(socket, secondBatch);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.message).toContain("Rate limit");
   });
 });
 
