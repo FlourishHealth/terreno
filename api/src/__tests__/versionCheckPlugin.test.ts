@@ -1,10 +1,12 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import supertest from "supertest";
+import type {UserModel as UserModelType} from "../auth";
 import {VersionConfig} from "../models/versionConfig";
 import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
 import {VersionCheckPlugin} from "../versionCheckPlugin";
+
+const typedUserModel = UserModel as unknown as UserModelType;
 
 describe("VersionCheckPlugin", () => {
   let app: ReturnType<typeof supertest>;
@@ -15,7 +17,7 @@ describe("VersionCheckPlugin", () => {
 
     const expressApp = new TerrenoApp({
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: typedUserModel,
     })
       .register(new VersionCheckPlugin())
       .build();
@@ -117,6 +119,39 @@ describe("VersionCheckPlugin", () => {
     const mobileRes = await app.get("/version-check").query({platform: "mobile", version: 100});
     expect(mobileRes.body.requestId).toBe(mobileRes.headers["x-request-id"]);
     expect(mobileRes.body.status).toBe("required");
+  });
+
+  it("returns warning when a mobile version is below the mobile warning threshold", async () => {
+    await VersionConfig.create({
+      mobileRequiredVersion: 100,
+      mobileWarningVersion: 200,
+      warningMessage: "Update the mobile app",
+    });
+
+    const res = await app.get("/version-check").query({platform: "mobile", version: 150});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        message: "Update the mobile app",
+        requiredVersion: 100,
+        status: "warning",
+        warningVersion: 200,
+      })
+    );
+  });
+
+  it("omits mobile thresholds when they are not configured", async () => {
+    await VersionConfig.create({});
+
+    const res = await app.get("/version-check").query({platform: "mobile", version: 1});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        status: "ok",
+      })
+    );
+    expect(res.body.requiredVersion).toBeUndefined();
+    expect(res.body.warningVersion).toBeUndefined();
   });
 
   it("defaults to web when platform is invalid", async () => {

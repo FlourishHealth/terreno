@@ -24,6 +24,20 @@ import type {
   MessageContentPart,
 } from "../types";
 
+interface GeneratedImageFile {
+  base64: string;
+  mediaType: string;
+}
+
+const isGeneratedImageFile = (value: unknown): value is GeneratedImageFile =>
+  typeof value === "object" &&
+  value !== null &&
+  "base64" in value &&
+  typeof value.base64 === "string" &&
+  "mediaType" in value &&
+  typeof value.mediaType === "string" &&
+  value.mediaType.startsWith("image/");
+
 const DEMO_RESPONSE =
   "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
 
@@ -345,7 +359,9 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
               logger.debug("Stream part", {
                 partCount,
                 type: part.type,
-                ...(part.type === "file" ? {mediaType: part.mediaType} : {}),
+                ...(part.type === "file" && isGeneratedImageFile(part.file)
+                  ? {mediaType: part.file.mediaType}
+                  : {}),
                 ...(part.type === "error" ? {error: String(part.error ?? part)} : {}),
               });
             }
@@ -383,12 +399,13 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
               continue;
             }
             if (part.type === "file") {
-              const mediaType = part.mediaType as string | undefined;
-              if (mediaType?.startsWith("image/")) {
-                const dataUrl = `data:${mediaType};base64,${part.base64}`;
-                generatedImages.push({mimeType: mediaType, url: dataUrl});
+              if (isGeneratedImageFile(part.file)) {
+                const dataUrl = `data:${part.file.mediaType};base64,${part.file.base64}`;
+                generatedImages.push({mimeType: part.file.mediaType, url: dataUrl});
                 res.write(
-                  `data: ${JSON.stringify({image: {mimeType: mediaType, url: dataUrl}})}\n\n`
+                  `data: ${JSON.stringify({
+                    image: {mimeType: part.file.mediaType, url: dataUrl},
+                  })}\n\n`
                 );
                 logger.debug("Sent inline image from stream");
               }

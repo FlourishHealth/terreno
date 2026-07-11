@@ -100,7 +100,7 @@ describe("GPT prompt streaming edge cases", () => {
     // and a file part with an image media type exercises the inline image path.
     streamParts = [
       {text: "Hello world", type: "text-delta"},
-      {base64: "aGVsbG8=", mediaType: "image/png", type: "file"},
+      {file: {base64: "aGVsbG8=", mediaType: "image/png"}, type: "file"},
     ];
     streamFiles = [];
 
@@ -122,7 +122,7 @@ describe("GPT prompt streaming edge cases", () => {
     // A non-image media type should skip the inline image branch entirely.
     streamParts = [
       {text: "Just text", type: "text-delta"},
-      {base64: "AAAA", mediaType: "application/pdf", type: "file"},
+      {file: {base64: "AAAA", mediaType: "application/pdf"}, type: "file"},
     ];
     streamFiles = [];
 

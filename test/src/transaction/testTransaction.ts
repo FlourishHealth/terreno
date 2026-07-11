@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: Mongoose prototype patches require dynamic signatures
 /**
  * Transaction-based test isolation for MongoDB.
  *
@@ -38,7 +39,7 @@
  *   NOT patched. Only Mongoose-level operations are covered.
  */
 
-import {AsyncLocalStorage} from "async_hooks";
+import {AsyncLocalStorage} from "node:async_hooks";
 import type {ClientSession} from "mongoose";
 import mongoose from "mongoose";
 
@@ -448,12 +449,12 @@ export const installTransactionPatches = (): void => {
     if (currentTestSession) {
       return {
         ...currentTestSession,
-        startTransaction: () => {},
-        commitTransaction: async () => {},
         abortTransaction: async () => {},
+        commitTransaction: async () => {},
         endSession: async () => {},
         id: currentTestSession.id,
         inTransaction: () => currentTestSession?.inTransaction() ?? false,
+        startTransaction: () => {},
       };
     }
     return originalStartSession.call(this, options);

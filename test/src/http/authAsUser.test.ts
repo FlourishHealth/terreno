@@ -33,8 +33,8 @@ describe("authAsUser", () => {
       res.json({data: {}});
     });
 
-    await expect(
-      authAsUser(app, {email: "user@test.com", password: "secret"})
-    ).rejects.toThrow('authAsUser: expected string token at response path "data.token"');
+    await expect(authAsUser(app, {email: "user@test.com", password: "secret"})).rejects.toThrow(
+      'authAsUser: expected string token at response path "data.token"'
+    );
   });
 });
