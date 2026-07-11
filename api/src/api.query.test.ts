@@ -213,6 +213,57 @@ describe("query and list methods", () => {
     expect(names).toEqual(["Pizza", "Spinach"]);
   });
 
+  it("returns 400 when a date-range bound is not a valid ISO date", async () => {
+    const res = await agent.get("/food").query({created_gte: "not-a-date", limit: 10}).expect(400);
+    expect(res.body.title).toBe("Invalid date for query parameter created_gte");
+  });
+
+  it("applies created_gte alone as a lower Date bound", async () => {
+    const res = await agent
+      .get("/food")
+      .query({created_gte: "2021-12-03T00:00:15.000Z", limit: 10})
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Spinach"]);
+  });
+
+  it("applies created_lte alone as an upper Date bound", async () => {
+    const res = await agent
+      .get("/food")
+      .query({created_lte: "2021-12-03T00:00:05.000Z", limit: 10})
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Carrots"]);
+  });
+
+  it("drops a scalar direct field value when a date range is also provided", async () => {
+    const res = await agent
+      .get("/food")
+      .query({
+        created: "2021-12-03T00:00:20.000Z",
+        created_gte: "2021-12-03T00:00:05.000Z",
+        created_lte: "2021-12-03T00:00:25.000Z",
+        limit: 10,
+      })
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Pizza", "Spinach"]);
+  });
+
+  it("merges date-range bounds into an existing object query for the field", async () => {
+    const res = await agent
+      .get(
+        `/food?${qs.stringify({
+          created: {$lte: "2021-12-03T00:00:25.000Z"},
+          created_gte: "2021-12-03T00:00:05.000Z",
+          limit: 10,
+        })}`
+      )
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Pizza", "Spinach"]);
+  });
+
   it("list query params not in list", async () => {
     const res = await agent.get(`/food?ownerId=${admin._id}`).expect(400);
     expect(res.body.title).toBe("ownerId is not allowed as a query param.");
