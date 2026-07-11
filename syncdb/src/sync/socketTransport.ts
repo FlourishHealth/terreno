@@ -125,11 +125,17 @@ export const createSocketTransport = ({
     }
   };
 
-  const notifyStatus = (connected: boolean): void => {
+  const notifyStatus = (connected: boolean, authExpired?: boolean): void => {
     for (const listener of statusListeners) {
-      listener({connected});
+      listener(authExpired ? {authExpired: true, connected} : {connected});
     }
   };
+
+  // D1: the server's session re-validation sweep emits `sync:auth-expired`
+  // immediately before calling `socket.disconnect(true)` — this flag survives just
+  // long enough for the subsequent `disconnect` handler to tag its status
+  // notification, then resets so a later, unrelated disconnect isn't misattributed.
+  let pendingAuthExpired = false;
 
   socket.on("sync:delta", (delta: SyncDelta) => {
     for (const listener of deltaListeners) {
@@ -141,6 +147,22 @@ export const createSocketTransport = ({
   });
   socket.on("sync:nack", (nack: SyncNack) => {
     settle(nack.mutationId, {nack, type: "nack"});
+  });
+  socket.on("sync:auth-expired", () => {
+    pendingAuthExpired = true;
+  });
+  // D1: Socket.io's own automatic background reconnection (reconnection: true,
+  // configured below) re-runs the handshake without going through this module's
+  // connect() promise — so an auth rejection on a RECONNECT attempt (token expired
+  // or session revoked while offline, discovered only when the client comes back)
+  // must be observed here, not just on the initial connect(). Any auth-shaped
+  // rejection (the server's auth middleware `next(error)`, matching the
+  // `UnauthorizedError` data shape from @thream/socketio-jwt / socketAuth.ts) maps
+  // into the same auth-pause path as an explicit sync:auth-expired disconnect.
+  socket.on("connect_error", (error: Error & {data?: {type?: string}}) => {
+    if (error?.data?.type === "UnauthorizedError") {
+      notifyStatus(false, true);
+    }
   });
   socket.on("connect", () => {
     // Server-side subscriptions are per-connection: re-subscribe on reconnect.
@@ -154,7 +176,9 @@ export const createSocketTransport = ({
     // reject now so the replay coordinator can requeue instead of waiting out
     // the full timeout.
     rejectAllPending("Socket disconnected before the mutation was acknowledged");
-    notifyStatus(false);
+    const authExpired = pendingAuthExpired;
+    pendingAuthExpired = false;
+    notifyStatus(false, authExpired);
   });
 
   const connect = (): Promise<void> =>

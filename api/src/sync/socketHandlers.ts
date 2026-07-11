@@ -149,11 +149,22 @@ export const installSyncSocketHandlers = (
   handlerOptions: {logInfo?: (msg: string) => void} = {}
 ): void => {
   const logInfo = handlerOptions.logInfo ?? ((): void => {});
-  const user = getSocketUser(socket);
   const userId = socket.decodedToken?.id;
 
-  // collection tag -> joined sync rooms, for unsubscribe/disconnect cleanup.
-  const subscriptions = new Map<string, Set<string>>();
+  // D2: re-derive the authorizing user on every event rather than capturing it once
+  // at install time — `socket.data.fullUser` is loaded at handshake and refreshed by
+  // D1's sweep, so a mutation sent after a refresh (e.g. after `organizationIds`
+  // changed) sees the current full user, not a handshake-time snapshot.
+  const currentUser = (): User | undefined => getSocketUser(socket);
+
+  // collection tag -> joined sync rooms, for unsubscribe/disconnect cleanup and D4's
+  // sweep-time re-resolution. Exposed on socket.data (when present — real sockets
+  // always have it; minimal test doubles may not) so the sweep, which runs outside
+  // this closure, can read and mutate it directly.
+  const subscriptions: Map<string, Set<string>> = socket.data?.syncSubscriptions ?? new Map();
+  if (socket.data) {
+    socket.data.syncSubscriptions = subscriptions;
+  }
 
   // Rolling one-second window for the sync:mutate / sync:mutateBatch rate limit —
   // shared between both events so a batch counts each of its mutations against the
@@ -198,6 +209,7 @@ export const installSyncSocketHandlers = (
         socket.emit("sync:error", {collection, message: `Unknown sync collection: ${collection}`});
         continue;
       }
+      const user = currentUser();
       if (!user) {
         socket.emit("sync:error", {collection, message: "Authentication required"});
         continue;
@@ -277,6 +289,7 @@ export const installSyncSocketHandlers = (
         return;
       }
 
+      const user = currentUser();
       if (!user) {
         nack({code: "unauthorized", message: "Authentication required"});
         return;
@@ -326,6 +339,7 @@ export const installSyncSocketHandlers = (
         return;
       }
 
+      const user = currentUser();
       if (!user) {
         singleNackBatch({code: "unauthorized", message: "Authentication required"});
         return;

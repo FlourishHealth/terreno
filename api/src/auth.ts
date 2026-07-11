@@ -105,10 +105,21 @@ export const signupUser = async (
 
 /** A user document exposing passport-local-mongoose's `setPassword`. */
 export interface HasSetPassword {
+  _id?: unknown;
+  id?: string;
   setPassword: (
     password: string,
     callback?: (error?: unknown) => void
   ) => Promise<unknown> | unknown;
+}
+
+/** Upper bound on password length accepted by {@link setPasswordForUser} (D5). */
+export const MAX_PASSWORD_LENGTH = 256;
+
+/** Optional audit context for {@link setPasswordForUser} — never includes the password itself. */
+export interface SetPasswordAuditContext {
+  /** The admin performing the change, when set via an admin-only route. */
+  adminId?: unknown;
 }
 
 /**
@@ -117,12 +128,31 @@ export interface HasSetPassword {
  * return a promise while older ones only invoke the callback; this helper normalizes both and
  * rejects after `timeoutMs` (default 15s) if neither settles. Call `user.save()` afterwards to
  * persist the new hash/salt.
+ *
+ * Rejects synchronously (before touching `setPassword`) when `password` exceeds
+ * {@link MAX_PASSWORD_LENGTH} characters. When `audit.adminId` is provided (an admin-initiated
+ * password change), logs a `logger.info` audit line with the admin id, target user id, and
+ * timestamp — NEVER the password itself.
  */
 export const setPasswordForUser = async (
   user: HasSetPassword,
   password: string,
-  timeoutMs = 15_000
+  timeoutMs = 15_000,
+  audit?: SetPasswordAuditContext
 ): Promise<void> => {
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new APIError({
+      status: 400,
+      title: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
+    });
+  }
+  if (audit?.adminId !== undefined) {
+    const targetUserId = user._id ?? user.id ?? "unknown";
+    logger.info(
+      `[auth] Admin ${String(audit.adminId)} set password for user ${String(targetUserId)} ` +
+        `at ${DateTime.now().toISO()}`
+    );
+  }
   await new Promise<void>((resolve, reject) => {
     let isSettled = false;
     const timeout = setTimeout(() => {
@@ -360,12 +390,17 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
         issuer: process.env.TOKEN_ISSUER,
       }) as jwt.JwtPayload;
     } catch (error: unknown) {
-      // A bearer token that is not a JWT (three dot-delimited segments) is not ours to
-      // reject — e.g. a Better Auth session token. Fall through so a later auth layer
-      // (Better Auth session middleware) or the route's own permissions can handle it.
+      // A bearer token that is not a JWT at all (e.g. a Better Auth opaque session
+      // token) is not ours to reject — fall through so a later auth layer (Better
+      // Auth session middleware) or the route's own permissions can handle it.
+      // Detect this by decoding the token's header/payload structure (D1) rather
+      // than counting dot-delimited segments: an opaque token can coincidentally
+      // contain exactly two dots, and a malformed-but-JWT-shaped string can fail
+      // this same check for the wrong reason — `jwt.decode` parses the actual
+      // base64url JSON structure of each segment, which dot-counting cannot.
       // Genuine JWTs that fail verification (malformed/expired) still return 401 so the
       // client's token-refresh flow is preserved.
-      if (token.split(".").length !== 3) {
+      if (jwt.decode(token, {complete: true}) === null) {
         return next();
       }
       const userText = req.user?._id ? ` for user ${req.user._id} ` : "";

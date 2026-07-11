@@ -30,6 +30,14 @@ export type SendMutationBatchResult =
 /** Transport connection status snapshot delivered to status listeners. */
 export interface TransportStatus {
   connected: boolean;
+  /**
+   * D1: set when this disconnect was caused by the server's session re-validation
+   * sweep (`sync:auth-expired`, emitted before `socket.disconnect(true)`) rather than
+   * a generic network drop. The client maps this into the existing A4 auth-pause path
+   * (INV-2 — no wipe, outbox intact) instead of treating it as a transient transport
+   * blip eligible for unlimited-retry backoff.
+   */
+  authExpired?: boolean;
 }
 
 /**

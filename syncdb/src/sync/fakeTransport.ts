@@ -34,6 +34,12 @@ export interface FakeTransport extends SyncTransport {
   deliverDelta: (delta: SyncDelta) => void;
   /** Simulate a connect/disconnect; notifies status listeners on change. */
   setConnected: (connected: boolean) => void;
+  /**
+   * Simulate the D1 server-side session re-validation sweep disconnecting this
+   * socket: a disconnect tagged `authExpired: true`, mirroring the real socket
+   * transport's `sync:auth-expired` + `disconnect` sequence.
+   */
+  disconnectWithAuthExpired: () => void;
   /** Queue an ack for the next sendMutation (mutationId/id filled from the request). */
   respondWithAck: (overrides?: Partial<SyncAck>) => void;
   /** Queue a nack for the next sendMutation (mutationId filled from the request). */
@@ -116,6 +122,12 @@ export const createFakeTransport = (): FakeTransport => {
     },
     disconnect: (): void => {
       setConnected(false);
+    },
+    disconnectWithAuthExpired: (): void => {
+      connected = false;
+      for (const listener of statusListeners) {
+        listener({authExpired: true, connected: false});
+      }
     },
     onDelta: (callback: (delta: SyncDelta) => void): (() => void) => {
       deltaListeners.add(callback);

@@ -477,9 +477,24 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     void reconcile().catch(warn("seq-jump reconcile failed"));
   };
 
-  const handleStatusChange = ({connected: isConnected}: {connected: boolean}): void => {
+  const handleStatusChange = ({
+    connected: isConnected,
+    authExpired,
+  }: {
+    connected: boolean;
+    authExpired?: boolean;
+  }): void => {
     setConnected(isConnected);
     if (!isConnected) {
+      // D1: the server's session re-validation sweep disconnected this socket
+      // (sync:auth-expired). Map straight into the existing A4 auth-pause path —
+      // INV-2: no wipe, outbox untouched, zero retry budget consumed. The
+      // reconnect attempt Socket.io makes on its own will keep failing the
+      // handshake with the same expired/invalid credentials until the host app
+      // re-authenticates (handleAuthChange clears the pause on same-user re-auth).
+      if (authExpired) {
+        setAuthPaused(true);
+      }
       return;
     }
     // B3: re-probe batch support on every reconnect — a previous

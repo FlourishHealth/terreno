@@ -4,11 +4,12 @@
  *   - socketHandlers.ts (sync:subscribe / sync:unsubscribe / sync:mutate, caps, rate limit)
  *   - changeStreamWatcher.ts sync:delta emission (mock change streams + real change
  *     streams gated on replica-set availability, following realtime.test.ts conventions)
- *   - socketAuth.ts (legacy JWT validator chain + Better Auth session validator)
+ *
+ * socketAuth.ts (legacy JWT validator chain + Better Auth session validator) has its own
+ * dedicated test file: realtime/socketAuth.test.ts.
  */
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
-import jwt from "jsonwebtoken";
 import mongoose, {model, Schema} from "mongoose";
 
 import type {ModelRouterOptions} from "../api";
@@ -19,12 +20,6 @@ import {
   stopChangeStreamWatcher,
 } from "../realtime/changeStreamWatcher";
 import {clearRealtimeRegistry, registerRealtime} from "../realtime/registry";
-import {
-  type AuthenticatableSocket,
-  createBetterAuthValidator,
-  createLegacyJwtValidator,
-  createSocketAuthMiddleware,
-} from "../realtime/socketAuth";
 import {setupDb} from "../tests";
 import {SyncCounter, SyncMutation} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
@@ -1243,215 +1238,5 @@ describe("sync:delta — change stream integration", () => {
     const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     expect(io.emissions.filter((e: any) => e.event === "sync")).toHaveLength(0);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// socketAuth — legacy JWT chain + Better Auth validator
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe("socketAuth", () => {
-  const tokenSecret = "socket-auth-test-secret";
-
-  const makeAuthSocket = (token?: string): AuthenticatableSocket & {decodedToken?: any} => ({
-    handshake: {auth: token === undefined ? {} : {token}},
-  });
-
-  const runMiddleware = (
-    middleware: (socket: any, next: (error?: Error) => void) => void,
-    socket: AuthenticatableSocket
-  ): Promise<Error | undefined> =>
-    new Promise((resolve) => {
-      middleware(socket, (error?: Error) => resolve(error));
-    });
-
-  describe("createLegacyJwtValidator", () => {
-    it("accepts a valid Bearer JWT and populates decodedToken", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      const token = jwt.sign({admin: true, id: "jwt-user"}, tokenSecret);
-      const socket = makeAuthSocket(`Bearer ${token}`);
-      await validator(socket);
-      expect(socket.decodedToken?.id).toBe("jwt-user");
-      expect(socket.decodedToken?.admin).toBe(true);
-    });
-
-    it("rejects a token signed with the wrong secret", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      const token = jwt.sign({id: "jwt-user"}, "wrong-secret");
-      await expect(validator(makeAuthSocket(`Bearer ${token}`))).rejects.toThrow(
-        "Token is missing or invalid Bearer"
-      );
-    });
-
-    it("rejects a token without the Bearer prefix", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      const token = jwt.sign({id: "jwt-user"}, tokenSecret);
-      await expect(validator(makeAuthSocket(token))).rejects.toThrow(
-        "Format is Authorization: Bearer [token]"
-      );
-    });
-
-    it("rejects when no token is provided", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      await expect(validator(makeAuthSocket(undefined))).rejects.toThrow("no token provided");
-    });
-  });
-
-  describe("createBetterAuthValidator", () => {
-    const stubAuth = (session: unknown, capture?: {headers?: unknown}): any => ({
-      api: {
-        getSession: async ({headers}: {headers: unknown}) => {
-          if (capture) {
-            capture.headers = headers;
-          }
-          return session;
-        },
-      },
-    });
-
-    it("populates decodedToken from a valid Better Auth session", async () => {
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "sess-1"}, user: {id: "ba-user-1"}}),
-      });
-      const socket = makeAuthSocket("session-token-abc");
-      await validator(socket);
-      expect(socket.decodedToken).toEqual({admin: false, id: "ba-user-1", isAnonymous: false});
-    });
-
-    it("passes the token as a bearer authorization header only", async () => {
-      const capture: {headers?: any} = {};
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "s"}, user: {id: "u"}}, capture),
-      });
-      await validator(makeAuthSocket("Bearer session-token-xyz"));
-      expect(capture.headers.authorization).toBe("Bearer session-token-xyz");
-      // A raw (unsigned) token cookie fails signature verification and can shadow the
-      // bearer path, so the validator must not send one.
-      expect(capture.headers.cookie).toBeUndefined();
-    });
-
-    it("rejects when the session lookup returns null", async () => {
-      const validator = createBetterAuthValidator({auth: stubAuth(null)});
-      await expect(validator(makeAuthSocket("bad-session"))).rejects.toThrow(
-        "Better Auth session is missing or invalid"
-      );
-    });
-
-    it("rejects when no token is provided", async () => {
-      const validator = createBetterAuthValidator({auth: stubAuth(null)});
-      await expect(validator(makeAuthSocket(undefined))).rejects.toThrow("no token provided");
-    });
-
-    it("resolves the app user for id and admin when a userModel is provided", async () => {
-      const userModel = {
-        find: () => {
-          throw new Error("unused");
-        },
-      };
-      const appUser = {_id: "app-user-1", admin: true};
-      const findOneOrNone = async (query: Record<string, unknown>) =>
-        query.betterAuthId === "ba-user-1" ? appUser : null;
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "s"}, user: {id: "ba-user-1"}}),
-        userModel: {...userModel, findOneOrNone} as any,
-      });
-      const socket = makeAuthSocket("session-token");
-      await validator(socket);
-      expect(socket.decodedToken).toEqual({admin: true, id: "app-user-1", isAnonymous: false});
-    });
-
-    it("rejects when the Better Auth user has no application user", async () => {
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "s"}, user: {id: "ba-orphan"}}),
-        userModel: {findOneOrNone: async () => null} as any,
-      });
-      await expect(validator(makeAuthSocket("session-token"))).rejects.toThrow(
-        "no application user"
-      );
-    });
-  });
-
-  describe("createSocketAuthMiddleware — validator chain", () => {
-    it("accepts a legacy JWT with the default chain", async () => {
-      const middleware = createSocketAuthMiddleware({tokenSecret});
-      const token = jwt.sign({admin: false, id: "chain-user"}, tokenSecret);
-      const socket = makeAuthSocket(`Bearer ${token}`);
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken?.id).toBe("chain-user");
-    });
-
-    it("rejects an invalid token with the default chain", async () => {
-      const middleware = createSocketAuthMiddleware({tokenSecret});
-      const socket = makeAuthSocket("Bearer not-a-jwt");
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeDefined();
-      expect(error?.message).toContain("invalid");
-      expect(socket.decodedToken).toBeUndefined();
-    });
-
-    it("falls through to the Better Auth validator when the JWT validator fails", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {
-          auth: {
-            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-user-2"}})},
-          } as any,
-        },
-        tokenSecret,
-      });
-      const socket = makeAuthSocket("better-auth-session-token");
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken).toEqual({admin: false, id: "ba-user-2", isAnonymous: false});
-    });
-
-    it("prefers the legacy JWT validator when both would work", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {
-          auth: {
-            api: {
-              getSession: async () => {
-                throw new Error("should not be called for a valid JWT");
-              },
-            },
-          } as any,
-        },
-        tokenSecret,
-      });
-      const token = jwt.sign({admin: true, id: "jwt-first"}, tokenSecret);
-      const socket = makeAuthSocket(`Bearer ${token}`);
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken?.id).toBe("jwt-first");
-      expect(socket.decodedToken?.admin).toBe(true);
-    });
-
-    it("rejects with the last validator's error when every validator fails", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {auth: {api: {getSession: async () => null}} as any},
-        tokenSecret,
-      });
-      const socket = makeAuthSocket("neither-jwt-nor-session");
-      const error = await runMiddleware(middleware, socket);
-      expect(error?.message).toContain("Better Auth session is missing or invalid");
-    });
-
-    it("supports extra validators appended to the chain", async () => {
-      const middleware = createSocketAuthMiddleware({
-        extraValidators: [
-          async (socket) => {
-            if (socket.handshake.auth.token !== "magic") {
-              throw new Error("not magic");
-            }
-            socket.decodedToken = {admin: false, id: "magic-user", isAnonymous: false};
-          },
-        ],
-        tokenSecret,
-      });
-      const socket = makeAuthSocket("magic");
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken?.id).toBe("magic-user");
-    });
   });
 });

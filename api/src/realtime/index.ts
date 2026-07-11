@@ -31,6 +31,18 @@ export {
   registerRealtime,
 } from "./registry";
 export {
+  DEFAULT_SESSION_REVALIDATION_INTERVAL_MS,
+  loadFullUserForSocket,
+  type RevalidatableSocket,
+  type RevalidationOutcome,
+  reresolveSyncRoomsForSocket,
+  revalidateSocketSession,
+  runSessionRevalidationSweep,
+  type SessionRevalidationHandle,
+  type SessionRevalidationOptions,
+  startSessionRevalidationSweep,
+} from "./sessionRevalidation";
+export {
   type AuthenticatableSocket,
   type BetterAuthSocketOptions,
   createBetterAuthValidator,
@@ -38,6 +50,12 @@ export {
   createSocketAuthMiddleware,
   type SocketAuthValidator,
 } from "./socketAuth";
+export {
+  type DecodedRealtimeToken,
+  getSocketUser,
+  type SocketDataBag,
+  type SocketWithDecodedToken,
+} from "./socketUser";
 export type {
   ChangeStreamConfig,
   DocumentSubscription,

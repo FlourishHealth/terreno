@@ -1264,6 +1264,99 @@ describe("createSyncDb", () => {
     });
   });
 
+  describe("socket session re-validation sweep mapping into auth-pause (D1)", () => {
+    it("sync:auth-expired disconnect pauses sync with the outbox intact and zero budget consumed", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      await flush();
+
+      harness.transport.disconnectWithAuthExpired();
+      await flush();
+      expect(client.getSyncStatus().paused).toBe("auth");
+      expect(client.getSyncStatus().isOnline).toBe(false);
+
+      // A mutation enqueued WHILE paused must stay queued untouched — replay
+      // stands down entirely until the pause clears (INV-2).
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+      const mutation = client.outbox.getMutation({mutationId});
+      expect(mutation?.status).toBe("queued");
+      expect(mutation?.errorNackCount).toBe(0);
+      expect(mutation?.attemptCount).toBe(0);
+      await client.stop();
+    });
+
+    it("a plain disconnect (no auth-expired tag) does NOT enter the auth-pause state", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      await flush();
+
+      harness.transport.setConnected(false);
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      expect(client.getSyncStatus().isOnline).toBe(false);
+      await client.stop();
+    });
+
+    it("same-user re-auth after a sync:auth-expired pause resumes replay with the outbox intact", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      await flush();
+
+      harness.transport.disconnectWithAuthExpired();
+      await flush();
+      expect(client.getSyncStatus().paused).toBe("auth");
+
+      // Enqueued while paused — stays queued (INV-2) until the pause clears.
+      const {id, mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+      expect(client.outbox.getMutation({mutationId})?.status).toBe("queued");
+
+      // Same-user re-auth clears the pause; the transport reconnects and drains
+      // the queue fully (the fake transport auto-acks by default).
+      harness.auth.emitAuthChange();
+      harness.transport.setConnected(true);
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      expect(client.outbox.getMutation({mutationId})).toBeUndefined();
+      expect(client.store.getEntity({collection: "todos", id})?.pendingMutationId).toBeUndefined();
+      await client.stop();
+    });
+
+    it("no reconcile/replay is issued while paused from a sync:auth-expired disconnect", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setConnected(true);
+      await flush();
+
+      harness.transport.disconnectWithAuthExpired();
+      await flush();
+      expect(client.getSyncStatus().paused).toBe("auth");
+
+      const baseline = harness.http.state.fetchCount;
+      await client.reconcile();
+      expect(harness.http.state.fetchCount).toBe(baseline);
+      await client.stop();
+    });
+  });
+
   describe("signOut() (A4)", () => {
     it("clears the current user without wiping when wipeOnSignOut is not set", async () => {
       const harness = makeHarness();

@@ -279,4 +279,51 @@ describe("createSocketTransport", () => {
     await expect(dead.connect()).rejects.toBeDefined();
     dead.disconnect();
   });
+
+  // D1: the server's session re-validation sweep emits sync:auth-expired
+  // immediately before disconnect(true) — the transport must tag the resulting
+  // status notification so the client maps it into the auth-pause path (not a
+  // generic transport blip eligible for unlimited-retry backoff).
+  it("tags the disconnect status as authExpired after a sync:auth-expired event", async () => {
+    const statuses: TransportStatus[] = [];
+    const connecting = makeTransport();
+    connecting.onStatusChange((status) => statuses.push(status));
+    await connecting.connect();
+
+    server.sockets[0]?.emit("sync:auth-expired", {reason: "expired"});
+    server.sockets[0]?.disconnect(true);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(statuses).toEqual([{connected: true}, {authExpired: true, connected: false}]);
+  });
+
+  it("does not tag an ordinary disconnect as authExpired", async () => {
+    const statuses: TransportStatus[] = [];
+    const connecting = makeTransport();
+    connecting.onStatusChange((status) => statuses.push(status));
+    await connecting.connect();
+
+    server.sockets[0]?.disconnect(true);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(statuses).toEqual([{connected: true}, {connected: false}]);
+  });
+
+  it("does not carry authExpired into a later, unrelated disconnect", async () => {
+    const statuses: TransportStatus[] = [];
+    const connecting = makeTransport();
+    connecting.onStatusChange((status) => statuses.push(status));
+    await connecting.connect();
+
+    server.sockets[0]?.emit("sync:auth-expired", {reason: "expired"});
+    server.sockets[0]?.disconnect(true);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    // Reconnect and disconnect again, ordinarily this time.
+    await connecting.connect();
+    server.sockets[server.sockets.length - 1]?.disconnect(true);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(statuses[statuses.length - 1]).toEqual({connected: false});
+  });
 });
