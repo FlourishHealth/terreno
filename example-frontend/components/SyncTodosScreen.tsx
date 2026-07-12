@@ -166,6 +166,9 @@ const SyncTodosScreen: React.FC = () => {
             <Text color="secondaryLight" size="sm">
               Local-first via @terreno/syncdb
             </Text>
+            <Text color="secondaryLight" size="sm" testID="todos-count">
+              {todos.length}
+            </Text>
           </Box>
 
           {/* Add new todo */}

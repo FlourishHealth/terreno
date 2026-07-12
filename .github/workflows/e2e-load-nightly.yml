@@ -1,53 +1,24 @@
-name: E2E Tests
+name: E2E Load Tests (nightly)
 
+# Dedicated, non-PR-blocking job for the syncdb-loadlab spec (Phase F4): generates
+# 2000 todos + churn rounds against the admin-guarded /loadtest routes, which is much
+# heavier than the rest of the syncdb-*.spec.ts suite and does not belong in the
+# PR-blocking matrix in e2e-ci.yml. Runs nightly on a schedule, on manual dispatch, or
+# on a PR carrying the `load-test` label — never unconditionally on every PR push.
 on:
-  push:
-    paths:
-      - "example-frontend/app/**"
-      - "example-frontend/constants/**"
-      - "example-frontend/hooks/**"
-      - "example-frontend/lib/**"
-      - "example-frontend/store/**"
-      - "example-frontend/utils/**"
-      - "example-frontend/e2e/**"
-      - "example-frontend/playwright.config.ts"
-      - "example-frontend/package.json"
-      - "example-backend/src/**"
-      - "bun.lock"
-      - "ui/src/**"
-      - "rtk/src/**"
-      - "api/src/**"
-      - "ai/src/**"
-      - "admin-backend/src/**"
-      - "admin-frontend/src/**"
-      - "feature-flags/src/**"
-      - "api-health/src/**"
-      - ".github/workflows/e2e-ci.yml"
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+  pull_request:
+    types: [labeled]
 
 jobs:
-  e2e:
-    name: "E2E · ${{ matrix.spec }}"
+  e2e-load:
+    name: "E2E Load · syncdb-loadlab"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # One shard per spec file. Keep this list in sync with example-frontend/e2e/
-        # so every spec runs in CI; a shard's playwright step should stay under ~2
-        # minutes — split the spec file if it grows past that.
-        spec:
-          - login
-          - signup
-          - todos
-          - profile
-          - admin
-          - consents
-          - ai-chat
-          - realtime
-          - syncdb-load-delta
-          - syncdb-offline
-          - syncdb-conflicts
-          - syncdb-storage
-          - syncdb-chaos
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.label.name == 'load-test'
     steps:
       - uses: actions/checkout@v6.0.3
 
@@ -132,8 +103,8 @@ jobs:
         run: bunx playwright install --with-deps chromium
         working-directory: example-frontend
 
-      - name: Run Playwright tests — ${{ matrix.spec }}
-        run: bunx playwright test ${{ matrix.spec }}.spec.ts
+      - name: Run Playwright tests — syncdb-loadlab
+        run: bunx playwright test syncdb-loadlab.spec.ts
         working-directory: example-frontend
         env:
           AUTH_PROVIDER: better-auth
@@ -150,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report-${{ matrix.spec }}
+          name: playwright-report-syncdb-loadlab
           path: example-frontend/playwright-report/
           if-no-files-found: ignore
           retention-days: 30
@@ -159,7 +130,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: playwright-test-results-${{ matrix.spec }}
+          name: playwright-test-results-syncdb-loadlab
           path: example-frontend/test-results/
           if-no-files-found: ignore
           retention-days: 30

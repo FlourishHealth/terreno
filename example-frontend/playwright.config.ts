@@ -21,7 +21,14 @@ const chromium = {...devices["Desktop Chrome"]};
  * other's todos. To run a single consents/syncdb file without its dependency phases,
  * pass --no-deps (each file's beforeAll ensures the flag state it needs).
  */
-const syncdbFiles = ["syncdb-load-delta", "syncdb-offline", "syncdb-conflicts", "syncdb-storage"];
+const syncdbFiles = [
+  "syncdb-load-delta",
+  "syncdb-offline",
+  "syncdb-conflicts",
+  "syncdb-storage",
+  "syncdb-chaos",
+  "syncdb-loadlab",
+];
 
 const localProjects: Project[] = [
   {name: "setup", testMatch: /auth\.setup\.ts/},

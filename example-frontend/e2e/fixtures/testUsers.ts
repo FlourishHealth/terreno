@@ -48,6 +48,13 @@ export const SYNCDB_LOAD_USER = suiteUser("syncdb-load", "E2E SyncDB Load User")
 export const SYNCDB_OFFLINE_USER = suiteUser("syncdb-offline", "E2E SyncDB Offline User");
 export const SYNCDB_CONFLICTS_USER = suiteUser("syncdb-conflicts", "E2E SyncDB Conflicts User");
 export const SYNCDB_STORAGE_USER = suiteUser("syncdb-storage", "E2E SyncDB Storage User");
+export const SYNCDB_CHAOS_USER = suiteUser("syncdb-chaos", "E2E SyncDB Chaos User");
+/**
+ * Admin-capable suite user for the SyncDB Load Lab e2e (Phase F4): the admin-guarded
+ * `/loadtest/todos/*` routes require `user.admin === true`, so this user is promoted
+ * to admin in auth.setup.ts alongside ADMIN_USER.
+ */
+export const SYNCDB_LOADLAB_USER = suiteUser("syncdb-loadlab", "E2E SyncDB LoadLab User");
 
 /** Every user auth.setup.ts must create (ADMIN_USER is additionally promoted). */
 export const ALL_E2E_USERS: E2EUser[] = [
@@ -63,4 +70,6 @@ export const ALL_E2E_USERS: E2EUser[] = [
   SYNCDB_OFFLINE_USER,
   SYNCDB_CONFLICTS_USER,
   SYNCDB_STORAGE_USER,
+  SYNCDB_CHAOS_USER,
+  SYNCDB_LOADLAB_USER,
 ];

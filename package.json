@@ -139,6 +139,7 @@
     "api-health:test": "bun run --filter '@terreno/api-health' test",
     "api:compile": "bun run --filter '@terreno/api' compile",
     "api:lint": "bun run --filter '@terreno/api' lint",
+    "api:load": "bun run --filter '@terreno/api' load",
     "api:test": "bun run --filter '@terreno/api' test",
     "backend:dev": "bun run --filter '@terreno/example-backend' dev",
     "backend:lint": "bun run --filter '@terreno/example-backend' lint",
