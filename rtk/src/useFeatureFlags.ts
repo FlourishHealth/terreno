@@ -1,4 +1,5 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
+import {DateTime} from "luxon";
 import {useCallback, useEffect, useMemo, useRef} from "react";
 import {useTerrenoFeatureFlags} from "./useTerrenoFeatureFlags";
 
@@ -104,7 +105,7 @@ export const useFeatureFlags = (
       return;
     }
 
-    fetchStartedAtRef.current = Date.now();
+    fetchStartedAtRef.current = DateTime.now().toMillis();
     console.debug("[feature-flags] flagConfiguration request started", {
       basePath,
     });
@@ -115,7 +116,7 @@ export const useFeatureFlags = (
       return;
     }
 
-    const durationMs = Date.now() - fetchStartedAtRef.current;
+    const durationMs = DateTime.now().toMillis() - fetchStartedAtRef.current;
     fetchStartedAtRef.current = null;
     console.debug("[feature-flags] flagConfiguration request failed", {
       basePath,
@@ -142,7 +143,7 @@ export const useFeatureFlags = (
       return;
     }
 
-    const durationMs = Date.now() - fetchStartedAtRef.current;
+    const durationMs = DateTime.now().toMillis() - fetchStartedAtRef.current;
     fetchStartedAtRef.current = null;
     console.debug("[feature-flags] flagConfiguration request completed", {
       basePath,

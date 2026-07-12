@@ -52,7 +52,8 @@ export const ensureTestMongooseConnected = async (
     return;
   }
 
-  const uri = process.env.TERRENO_TEST_MONGODB_URI?.trim() || options.defaultUri || DEFAULT_LOCAL_MONGO_URI;
+  const uri =
+    process.env.TERRENO_TEST_MONGODB_URI?.trim() || options.defaultUri || DEFAULT_LOCAL_MONGO_URI;
   try {
     await mongoose.connect(uri);
   } catch (error) {

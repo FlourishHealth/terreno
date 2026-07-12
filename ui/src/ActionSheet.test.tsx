@@ -1,10 +1,16 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeAll, describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeAll, describe, expect, it, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
 import {createRef} from "react";
 import {Text} from "react-native";
 
-import {ActionSheet, getDeviceHeight, getElevation, waitAsync} from "./ActionSheet";
+import {
+  ActionSheet,
+  getDeviceHeight,
+  getElevation,
+  resetActionSheetDeviceHeightCacheForTests,
+  waitAsync,
+} from "./ActionSheet";
 import {ThemeProvider} from "./Theme";
 
 beforeAll(() => {
@@ -14,6 +20,10 @@ beforeAll(() => {
   (global as any).cancelAnimationFrame = (id: number) => {
     clearTimeout(id);
   };
+});
+
+afterAll(() => {
+  resetActionSheetDeviceHeightCacheForTests();
 });
 
 describe("ActionSheet", () => {
@@ -889,7 +899,54 @@ describe("ActionSheet", () => {
     });
   });
 
+  describe("handleChildScrollEnd with setTimeout recoiling", () => {
+    it("resets isRecoiling after timeout when scrolling back to initial position", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled initialOffsetFromBottom={0.5} ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).actionSheetHeight = 100;
+      // scrollOffset ≈ 100*0.5 + deviceHeight*0.15 ≈ 150
+      // Need offsetY > scrollOffset - 100, so offsetY = 120 works
+      (ref.current as any).offsetY = 120;
+      (ref.current as any).prevScroll = 200;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect((ref.current as any).isRecoiling).toBe(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect((ref.current as any).isRecoiling).toBe(false);
+    });
+  });
+
   describe("handleChildScrollEnd additional coverage", () => {
+    it("recoils when offset is near prevScroll", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={5}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).offsetY = 98;
+      (ref.current as any).prevScroll = 100;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect((ref.current as any).isRecoiling).toBe(true);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 600));
+      });
+      expect((ref.current as any).isRecoiling).toBe(false);
+    });
+
     it("recoils when within scroll threshold of initial position", async () => {
       const ref = createRef<ActionSheet>();
       render(
@@ -909,7 +966,6 @@ describe("ActionSheet", () => {
       await act(async () => {
         await instance.handleChildScrollEnd();
       });
-      // After recoil, isRecoiling is set true then cleared after timeout
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });
@@ -982,6 +1038,50 @@ describe("ActionSheet", () => {
         await new Promise((r) => setTimeout(r, 600));
       });
       expect(instance.isRecoiling).toBe(false);
+    });
+  });
+
+  describe("_onDeviceLayout timeout callback execution", () => {
+    afterEach(() => {
+      resetActionSheetDeviceHeightCacheForTests();
+    });
+
+    it("updates state after layout timeout fires with drawUnderStatusBar", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet drawUnderStatusBar ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await act(async () => {
+        (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 800, width: 400}},
+        });
+        // measure() has a 100ms timeout on iOS; on android it uses StatusBar.currentHeight
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      // The callback should have run and set deviceLayoutCalled
+      expect((ref.current as any).deviceLayoutCalled).toBe(true);
+    });
+
+    it("updates state after layout timeout fires without drawUnderStatusBar on android", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} statusBarTranslucent>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await act(async () => {
+        (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 900, width: 400}},
+        });
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      expect((ref.current as any).deviceLayoutCalled).toBe(true);
     });
   });
 });

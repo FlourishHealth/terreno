@@ -3,7 +3,7 @@ import {TerrenoApp} from "@terreno/api";
 import {jsonSchema, type LanguageModel, type Tool, tool} from "ai";
 import type express from "express";
 import mongoose from "mongoose";
-import supertest from "supertest";
+import type supertest from "supertest";
 
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
@@ -457,7 +457,9 @@ describe("AI Routes", () => {
         .parse(sseCollect);
       expect(res.status).toBe(200);
       const body = (res as SseResponse).body;
-      expect(body).toContain("image");
+      expect(body).toContain(
+        '"image":{"mimeType":"image/png","url":"data:image/png;base64,aGVsbG8="}'
+      );
     });
 
     it("writes an SSE error event when the model stream throws", async () => {

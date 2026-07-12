@@ -357,6 +357,53 @@ describe("Modal", () => {
   });
 });
 
+describe("Modal web platform", () => {
+  const RN = require("react-native") as {Platform: {OS: string}};
+  const originalOS = RN.Platform.OS;
+  const globalScope = globalThis as {document?: unknown; HTMLElement?: unknown};
+  const originalDocument = globalScope.document;
+  const originalHTMLElement = globalScope.HTMLElement;
+
+  class FakeHTMLElement {
+    blur = mock(() => {});
+  }
+
+  afterEach(() => {
+    RN.Platform.OS = originalOS;
+    globalScope.document = originalDocument;
+    globalScope.HTMLElement = originalHTMLElement;
+  });
+
+  it("blurs the focused element when opened on web", () => {
+    RN.Platform.OS = "web";
+    globalScope.HTMLElement = FakeHTMLElement;
+    const active = new FakeHTMLElement();
+    globalScope.document = {activeElement: active};
+
+    renderWithTheme(
+      <Modal onDismiss={() => {}} title="Web Modal" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    expect(active.blur).toHaveBeenCalled();
+  });
+
+  it("does not blur when the active element is not an HTMLElement", () => {
+    RN.Platform.OS = "web";
+    globalScope.HTMLElement = FakeHTMLElement;
+    globalScope.document = {activeElement: {}};
+
+    const {toJSON} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Web Modal" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    expect(toJSON()).toBeTruthy();
+  });
+});
+
 describe("Modal mobile branch", () => {
   afterEach(() => {
     (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);

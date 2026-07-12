@@ -14,11 +14,7 @@ export const waitForDocuments = async <T>(
   model: Model<T>,
   query: FilterQuery<T>,
   count = 1,
-  {
-    timeoutMs = 5000,
-    intervalMs = 100,
-    sort,
-  }: WaitForDocumentsOptions = {}
+  {timeoutMs = 5000, intervalMs = 100, sort}: WaitForDocumentsOptions = {}
 ): Promise<T[]> => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {

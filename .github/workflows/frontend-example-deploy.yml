@@ -28,7 +28,7 @@ jobs:
       - name: Check PR diff for relevant changes
         id: check
         run: |
-          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          FILES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')
           CHANGES=$(echo "$FILES" | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
           BACKEND_CHANGES=$(echo "$FILES" | grep -cE '^(example-backend/|api/|api-health/|admin-backend/|ai/)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
@@ -51,7 +51,7 @@ jobs:
           bun-version: latest
 
       - name: Cache bun + node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.bun/install/cache

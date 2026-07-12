@@ -96,6 +96,10 @@ const dummyData = ["dummy"];
 let safeAreaPaddingTop = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 let calculatedDeviceHeight = Dimensions.get("window").height;
 
+export const resetActionSheetDeviceHeightCacheForTests = (): void => {
+  calculatedDeviceHeight = Dimensions.get("window").height;
+};
+
 type State = {
   modalVisible: boolean;
   scrollable: boolean;

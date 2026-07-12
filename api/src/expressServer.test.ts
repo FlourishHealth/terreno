@@ -5,6 +5,7 @@ import express from "express";
 import supertest from "supertest";
 import winston from "winston";
 
+import type {UserModel as UserModelType} from "./auth";
 import {
   createRouter,
   createRouterWithAuth,
@@ -16,6 +17,8 @@ import {
 import {logger, winstonLogger} from "./logger";
 import {TerrenoApp} from "./terrenoApp";
 import {UserModel} from "./tests";
+
+const typedUserModel = UserModel as unknown as UserModelType;
 
 describe("expressServer", () => {
   describe("setupEnvironment", () => {
@@ -821,7 +824,7 @@ describe("expressServer", () => {
         const app = new TerrenoApp({
           configureApp,
           skipListen: false,
-          userModel: UserModel as any,
+          userModel: typedUserModel,
         }).start();
         expect(app).toBeDefined();
       } finally {
@@ -829,21 +832,27 @@ describe("expressServer", () => {
       }
     });
 
-    it("handles listen error with invalid port", () => {
-      process.env.PORT = "-1";
+    it("handles listen errors", () => {
       const configureApp = (): void => {};
+      const http = require("node:http") as typeof import("node:http");
+      const originalListen = http.Server.prototype.listen;
       const originalExit = process.exit;
-      process.exit = (() => {}) as unknown as typeof process.exit;
+      const exit = mock(() => undefined);
+      process.exit = exit as unknown as typeof process.exit;
+      http.Server.prototype.listen = mock(() => {
+        throw new Error("listen failed");
+      }) as unknown as typeof originalListen;
       try {
         new TerrenoApp({
           configureApp,
           skipListen: false,
-          userModel: UserModel as any,
+          userModel: typedUserModel,
         }).start();
-      } catch {
-        // May throw
+        expect(exit).toHaveBeenCalledWith(1);
+      } finally {
+        http.Server.prototype.listen = originalListen;
+        process.exit = originalExit;
       }
-      process.exit = originalExit;
     });
   });
 

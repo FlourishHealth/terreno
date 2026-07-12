@@ -12,6 +12,7 @@ export * from "./envConfigurationPlugin";
 export * from "./errors";
 export * from "./expressServer";
 export * from "./githubAuth";
+export * from "./httpClient";
 export * from "./logger";
 export * from "./middleware";
 export * from "./models/consentForm";

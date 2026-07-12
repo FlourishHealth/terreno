@@ -234,4 +234,29 @@ describe("useTerrenoFeatureFlags ref-count cleanup", () => {
       {timeout: 5000}
     );
   });
+
+  it("keeps the provider installed while another hook instance is still mounted", async () => {
+    const {api} = buildApi({data: {alpha: boolDef("on")}});
+    // Two instances share the domain, so the ref count reaches 2.
+    const first = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u1"})
+    );
+    const second = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u1"})
+    );
+    await waitFor(
+      () => {
+        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(
+          true
+        );
+      },
+      {timeout: 5000}
+    );
+    // Unmounting one instance decrements the ref count to 1 (the else branch),
+    // so the provider must remain installed rather than falling back to NOOP.
+    first.unmount();
+    await new Promise((r) => setTimeout(r, 200));
+    expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(true);
+    second.unmount();
+  });
 });
