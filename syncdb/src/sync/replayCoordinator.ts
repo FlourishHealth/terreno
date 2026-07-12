@@ -28,6 +28,24 @@ export const TRANSPORT_FAILURE_BASE_BACKOFF_MS = 1_000;
 /** Cap applied to every jittered backoff (error-nack and transport-failure alike). */
 export const MAX_BACKOFF_MS = 30_000;
 
+/**
+ * FIX 5: consecutive `unsupported` batch results required before the
+ * per-connection `batchUnsupported` latch engages — a single slow-but-
+ * supported batch (grace elapsed with no receipt is impossible once a
+ * receipt lands, but a genuinely borderline network hiccup could still
+ * produce one stray `unsupported`) must never permanently downgrade the
+ * session to single-sends.
+ */
+export const BATCH_UNSUPPORTED_LATCH_THRESHOLD = 2;
+
+/**
+ * FIX 5: while latched `batchUnsupported`, re-probe batch support on this
+ * interval even without a reconnect — a load balancer could route later
+ * sends to an upgraded instance, or the original instance could itself be
+ * upgraded, without the connection ever dropping.
+ */
+export const BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS = 60_000;
+
 export interface ReplayResult {
   /** Set when replay stopped early because the server rejected our auth. */
   paused?: "auth";
@@ -47,6 +65,17 @@ export interface ReplayCoordinator {
    * `client.stop()` so no post-stop send can fire.
    */
   dispose: (args?: {userId?: string}) => void;
+  /**
+   * FIX 3: clear ALL in-memory coordinator state — every armed wake-up timer
+   * (all users), retry/backoff bookkeeping (`retryAt`, `transportFailures`),
+   * `authPauseNotified`, the batch-capability latch (`batchUnsupported`), drain
+   * progress counters, and `validationBlockedEntities` — so a lifecycle
+   * boundary (client `dispose()`, or a different-user login's wipe path)
+   * never leaks state across users or across a stop/start cycle. Unlike
+   * `dispose()` (which only clears one user's timer), this is a full reset:
+   * call it from `dispose()` itself AND from the different-user wipe path.
+   */
+  reset: () => void;
   /**
    * Re-probe batch support on the next drain (B3): called on transport
    * reconnect, since a previous `batchUnsupported` determination may have been
@@ -136,6 +165,10 @@ export interface CreateReplayCoordinatorArgs {
 
 const entityKey = (collection: string, entityId: string): string => `${collection}:${entityId}`;
 
+/** FIX 3: userId-scoped key for `validationBlockedEntities` — see its declaration comment. */
+const userEntityKey = (userId: string, collection: string, entityId: string): string =>
+  `${userId}|${entityKey(collection, entityId)}`;
+
 /**
  * Bridges the durable outbox and the send channel, resolving each mutation's
  * server outcome:
@@ -159,7 +192,12 @@ const entityKey = (collection: string, entityId: string): string => `${collectio
  * - **send rejection** (timeout / network / disconnect) → back to queued with
  *   unlimited jittered exponential backoff (never terminal, never burns the
  *   error-nack budget) and the drain parks until the backoff elapses. HALTS
- *   THE WHOLE DRAIN (B4).
+ *   THE WHOLE DRAIN (B4);
+ * - **nack rate_limited** → treated EXACTLY like a transport failure (FIX 1):
+ *   back to queued with the same unlimited jittered backoff (respecting the
+ *   server's `retryAfterMs` as a floor when present), NEVER touching
+ *   `errorNackCount` or `attemptCount`'s terminality — a rate limit is never
+ *   allowed to burn the durable-data retry budget. HALTS THE WHOLE DRAIN (B4).
  *
  * The drain is a SINGLE global FIFO over `enqueueOrder` (INV-1) — no more
  * per-collection parallelism. `replay()` keeps re-running drain passes until
@@ -213,8 +251,11 @@ export const createReplayCoordinator = ({
   /**
    * B4: entities blocked by a terminal validation failure whose queued
    * successors must be skipped until `retryFailed({entityId})`. Keyed by
-   * `${collection}:${entityId}`. Unresolved-conflict blocking is derived live
-   * from the `_conflicts` table instead (it already tracks resolution).
+   * `${userId}|${collection}:${entityId}` (FIX 3 — userId-scoped so a stale
+   * entry from one user can never falsely block a different user reusing the
+   * same deterministic entity id, e.g. a singleton settings doc). Unresolved-
+   * conflict blocking is derived live from the `_conflicts` table instead (it
+   * already tracks resolution).
    */
   const validationBlockedEntities = new Set<string>();
   /** userId → {sent, total} progress counters for the CURRENT replay() call (B5). */
@@ -232,12 +273,39 @@ export const createReplayCoordinator = ({
     onProgress({sentThisDrain: progress.sent, totalThisDrain: progress.total, userId});
   };
   /**
-   * B3: per-connection flag set when the batch transport reports
-   * `unsupported` (HTTP 404 / socket silence past the grace timeout).
-   * Cleared by `notifyReconnect()` so a later reconnect re-probes — the new
-   * connection may land on an upgraded server or a different instance.
+   * B3/FIX 5: per-connection flag set once {@link BATCH_UNSUPPORTED_LATCH_THRESHOLD}
+   * CONSECUTIVE batch sends report `unsupported` (HTTP 404, or socket grace
+   * elapsing with no `sync:batchReceived` receipt) — a single slow-but-
+   * supported batch must never trip this. Cleared by `notifyReconnect()` so
+   * a reconnect re-probes, and additionally re-probed every
+   * {@link BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS} while latched, even
+   * without a reconnect (a load balancer or in-place upgrade can flip
+   * support without the connection ever dropping).
    */
   let batchUnsupported = false;
+  /** FIX 5: consecutive `unsupported` results observed since the last successful/real batch response. */
+  let consecutiveUnsupported = 0;
+  /** FIX 5: armed only while `batchUnsupported` is latched; re-probes on a timer. */
+  let reprobeTimer: unknown;
+
+  const clearReprobeTimer = (): void => {
+    if (reprobeTimer !== undefined) {
+      clearTimeoutFn(reprobeTimer);
+      reprobeTimer = undefined;
+    }
+  };
+
+  const armReprobeTimer = (): void => {
+    clearReprobeTimer();
+    reprobeTimer = setTimeoutFn(() => {
+      reprobeTimer = undefined;
+      // Re-probe: clear the latch and let the next drain attempt a real
+      // batch send again. A fresh two-strikes count applies if it fails
+      // again, exactly like the original latch logic.
+      batchUnsupported = false;
+      consecutiveUnsupported = 0;
+    }, BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS);
+  };
 
   const clearWakeTimer = (userId: string): void => {
     const handle = wakeTimers.get(userId);
@@ -385,17 +453,140 @@ export const createReplayCoordinator = ({
     });
   };
 
-  /** True when `mutation`'s entity has an unresolved conflict recorded (B4). */
+  /** True when `mutation`'s entity has an unresolved conflict recorded (B4), scoped to its user. */
   const hasUnresolvedConflict = (mutation: OutboxMutation): boolean =>
     listConflicts({store}).some(
       (conflict) =>
         conflict.collection === mutation.collection && conflict.entityId === mutation.entityId
     );
 
-  /** True when `mutation`'s entity is blocked (unresolved conflict or skipped validation failure). */
-  const isEntityBlocked = (mutation: OutboxMutation): boolean =>
-    validationBlockedEntities.has(entityKey(mutation.collection, mutation.entityId)) ||
-    hasUnresolvedConflict(mutation);
+  /**
+   * FIX 4: an entity's validation block is garbage-collected once NO outbox
+   * row (queued OR still-unpruned failed) remains for it — the block exists
+   * only to protect the ordering of an already-queued successor (or to keep
+   * surfacing the failure until the user acts), not to quarantine the entity
+   * eternally. Checking "any row" rather than "queued only" matters: right
+   * after the validation failure itself, the failed row still exists (not
+   * yet pruned) with no successor queued yet — the block must survive that
+   * window so a successor enqueued moments later is still correctly blocked.
+   * Only once prune() removes the failed row AND nothing is queued for the
+   * entity does the block become stale and get dropped here. An entity WITH
+   * a queued successor, or an unpruned failed row, stays blocked until
+   * retryFailed/resolution — that remains intentional.
+   */
+  const gcStaleValidationBlocks = (userId: string): void => {
+    for (const key of [...validationBlockedEntities]) {
+      if (!key.startsWith(`${userId}|`)) {
+        continue;
+      }
+      const bare = key.slice(userId.length + 1);
+      const separatorIndex = bare.indexOf(":");
+      const collection = bare.slice(0, separatorIndex);
+      const entityId = bare.slice(separatorIndex + 1);
+      if (!outbox.hasAnyRowForEntity({collection, entityId, userId})) {
+        validationBlockedEntities.delete(key);
+      }
+    }
+  };
+
+  /** True when `mutation`'s entity itself is directly blocked (unresolved conflict or skipped validation failure). */
+  const isDirectlyBlocked = (mutation: OutboxMutation): boolean =>
+    validationBlockedEntities.has(
+      userEntityKey(mutation.userId, mutation.collection, mutation.entityId)
+    ) || hasUnresolvedConflict(mutation);
+
+  /**
+   * FIX 2: recursively scan a parsed JSON value for any string that exactly
+   * equals one of `blockedEntityIds` — used to detect a mutation in ANOTHER
+   * collection that references a currently-blocked entity's id (e.g. create
+   * project P conflicts → create todo T {projectId: P} must not drain while
+   * P is blocked). Conservative false positives are acceptable (INV-1: too
+   * much blocking is safe, too little is not).
+   */
+  const referencesBlockedId = (value: unknown, blockedEntityIds: ReadonlySet<string>): boolean => {
+    if (typeof value === "string") {
+      return blockedEntityIds.has(value);
+    }
+    if (Array.isArray(value)) {
+      return value.some((item) => referencesBlockedId(item, blockedEntityIds));
+    }
+    if (value && typeof value === "object") {
+      return Object.values(value as Record<string, unknown>).some((item) =>
+        referencesBlockedId(item, blockedEntityIds)
+      );
+    }
+    return false;
+  };
+
+  /**
+   * FIX 2: compute the full transitive block set for one drain pass, from
+   * current block state (never persisted — recomputed live each call so
+   * resolving a root via `resolveConflict`/`retryFailed` naturally unblocks
+   * its dependents on the NEXT drain). Starts from directly-blocked entities
+   * (unresolved conflict or skipped validation failure) and expands to any
+   * OTHER queued mutation belonging to the same user whose parsed `args`
+   * reference a blocked entity's id anywhere (recursively through nested
+   * objects/arrays) — repeated to a fixpoint so chains of references (P ← T
+   * ← further-mutation-referencing-T) are also blocked.
+   */
+  const computeBlockedEntityKeys = (userId: string): Set<string> => {
+    const queued = outbox.listQueued({userId});
+    const blockedKeys = new Set<string>();
+    const blockedIds = new Set<string>();
+    // Seed directly from recorded block state FIRST — a root entity (e.g. a
+    // validation failure with no queued successor of its own yet, or an
+    // entity whose only mutation already left `queued` — conflicted or
+    // failed) still needs to be in the reference set so OTHER queued
+    // mutations that reference its id are caught, even though the root
+    // itself has nothing queued to represent it in `queued` below.
+    for (const key of validationBlockedEntities) {
+      if (!key.startsWith(`${userId}|`)) {
+        continue;
+      }
+      const bare = key.slice(userId.length + 1);
+      blockedKeys.add(bare);
+      const separatorIndex = bare.indexOf(":");
+      blockedIds.add(bare.slice(separatorIndex + 1));
+    }
+    // Same seeding for unresolved conflicts (the store is scoped one-user-
+    // at-a-time — wiped on user switch — so `listConflicts` needs no
+    // additional userId filter here, matching `hasUnresolvedConflict`).
+    for (const conflict of listConflicts({store})) {
+      blockedKeys.add(entityKey(conflict.collection, conflict.entityId));
+      blockedIds.add(conflict.entityId);
+    }
+    for (const mutation of queued) {
+      if (isDirectlyBlocked(mutation)) {
+        blockedKeys.add(entityKey(mutation.collection, mutation.entityId));
+        blockedIds.add(mutation.entityId);
+      }
+    }
+    // Fixpoint expansion: a mutation whose args reference a currently-blocked
+    // id becomes blocked itself (its own entityId joins the reference set),
+    // which can in turn block a mutation referencing IT.
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const mutation of queued) {
+        const key = entityKey(mutation.collection, mutation.entityId);
+        if (blockedKeys.has(key)) {
+          continue;
+        }
+        let parsedArgs: unknown;
+        try {
+          parsedArgs = JSON.parse(mutation.args);
+        } catch {
+          continue;
+        }
+        if (referencesBlockedId(parsedArgs, blockedIds)) {
+          blockedKeys.add(key);
+          blockedIds.add(mutation.entityId);
+          changed = true;
+        }
+      }
+    }
+    return blockedKeys;
+  };
 
   /** Outcome of one drain pass over the full FIFO queue. */
   interface DrainPassResult {
@@ -455,7 +646,9 @@ export const createReplayCoordinator = ({
 
   const applyConflict = (mutation: OutboxMutation, nack: SyncNack): OutcomeDecision => {
     handleConflict(mutation, nack);
-    validationBlockedEntities.delete(entityKey(mutation.collection, mutation.entityId));
+    validationBlockedEntities.delete(
+      userEntityKey(mutation.userId, mutation.collection, mutation.entityId)
+    );
     // B4: per-entity blocking is the default; haltQueueOnConflict escalates to
     // a whole-drain halt for apps with cross-entity ordering dependencies.
     return {authPaused: false, haltDrain: haltQueueOnConflict, progressed: false};
@@ -466,7 +659,9 @@ export const createReplayCoordinator = ({
     // B4: the entity's queued successors are skipped-and-surfaced until the
     // user calls retryFailed({entityId}) or resolves the underlying issue —
     // other entities keep draining.
-    validationBlockedEntities.add(entityKey(mutation.collection, mutation.entityId));
+    validationBlockedEntities.add(
+      userEntityKey(mutation.userId, mutation.collection, mutation.entityId)
+    );
     return {authPaused: false, haltDrain: false, progressed: false};
   };
 
@@ -496,6 +691,66 @@ export const createReplayCoordinator = ({
     return {authPaused: false, haltDrain: true, nextWakeAt: wakeAt, progressed: false};
   };
 
+  /**
+   * Shared backoff-and-requeue path for outcomes that must NEVER burn a
+   * retry budget: transport failures and rate-limit nacks alike. Both track
+   * attempts in the same in-memory `transportFailures` map (unlimited
+   * retries, jittered capped backoff) and HALT THE WHOLE DRAIN (B4) — the
+   * remaining chunk/mutation is safe to resend (INV-3). `floorMs` (when
+   * present — a server-supplied `retryAfterMs`) raises the computed backoff
+   * so the client never retries before the server's own window clears.
+   */
+  const requeueWithUnlimitedBackoff = (
+    mutation: OutboxMutation,
+    {reason, floorMs}: {reason: string; floorMs?: number}
+  ): OutcomeDecision => {
+    outbox.markQueued({mutationId: mutation.mutationId});
+    const attempt = (transportFailures.get(mutation.mutationId) ?? 0) + 1;
+    transportFailures.set(mutation.mutationId, attempt);
+    const backoffMs = Math.max(
+      jitteredBackoff(attempt, TRANSPORT_FAILURE_BASE_BACKOFF_MS),
+      floorMs ?? 0
+    );
+    const wakeAt = now() + backoffMs;
+    retryAt.set(mutation.mutationId, wakeAt);
+    debug?.record({
+      collection: mutation.collection,
+      detail: {attempt, backoffMs, reason},
+      direction: "system",
+      entityId: mutation.entityId,
+      label: `retry ${mutation.collection}/${mutation.entityId} (${reason}, ${backoffMs}ms)`,
+      mutationId: mutation.mutationId,
+      operation: mutation.operation,
+      type: "retry",
+    });
+    return {authPaused: false, haltDrain: true, nextWakeAt: wakeAt, progressed: false};
+  };
+
+  /**
+   * `rate_limited` nacks (FIX 1): the server is asking the client to slow
+   * down, not reporting a durable-data problem — treat it EXACTLY like a
+   * transport failure. Requeue (never markFailed/terminal), never touch
+   * `errorNackCount`, unlimited retries with the same capped jittered
+   * backoff, respecting the server's `retryAfterMs` as a floor.
+   */
+  const applyRateLimited = (mutation: OutboxMutation, nack: SyncNack): OutcomeDecision => {
+    debug?.record({
+      collection: mutation.collection,
+      detail: {code: "rate_limited", message: nack.message, retryAfterMs: nack.retryAfterMs},
+      direction: "inbound",
+      entityId: mutation.entityId,
+      label: `nack ${mutation.collection}/${mutation.entityId} (rate_limited)`,
+      mutationId: mutation.mutationId,
+      ok: false,
+      operation: mutation.operation,
+      type: "nack",
+    });
+    return requeueWithUnlimitedBackoff(mutation, {
+      floorMs: nack.retryAfterMs,
+      reason: "rate_limited",
+    });
+  };
+
   /** Apply a resolved single-mutation SendMutationResult via the B4 outcome table. */
   const applyResult = (mutation: OutboxMutation, result: SendMutationResult): OutcomeDecision => {
     if (result.type === "ack") {
@@ -510,6 +765,9 @@ export const createReplayCoordinator = ({
     }
     if (nack.code === "validation") {
       return applyValidation(mutation);
+    }
+    if (nack.code === "rate_limited") {
+      return applyRateLimited(mutation, nack);
     }
     return applyErrorNack(mutation);
   };
@@ -537,23 +795,7 @@ export const createReplayCoordinator = ({
     // with jittered capped backoff, tracked separately from the error-nack
     // budget. HALTS THE WHOLE DRAIN (B4) — the whole batch is safe to resend
     // (INV-3).
-    outbox.markQueued({mutationId: mutation.mutationId});
-    const attempt = (transportFailures.get(mutation.mutationId) ?? 0) + 1;
-    transportFailures.set(mutation.mutationId, attempt);
-    const backoffMs = jitteredBackoff(attempt, TRANSPORT_FAILURE_BASE_BACKOFF_MS);
-    const wakeAt = now() + backoffMs;
-    retryAt.set(mutation.mutationId, wakeAt);
-    debug?.record({
-      collection: mutation.collection,
-      detail: {attempt, backoffMs, reason: "transport"},
-      direction: "system",
-      entityId: mutation.entityId,
-      label: `retry ${mutation.collection}/${mutation.entityId} (transport, ${backoffMs}ms)`,
-      mutationId: mutation.mutationId,
-      operation: mutation.operation,
-      type: "retry",
-    });
-    return {authPaused: false, haltDrain: true, nextWakeAt: wakeAt, progressed: false};
+    return requeueWithUnlimitedBackoff(mutation, {reason: "transport"});
   };
 
   /**
@@ -588,18 +830,30 @@ export const createReplayCoordinator = ({
 
   /**
    * Build the next contiguous chunk of the FIFO queue eligible for a batch
-   * send: skips mutations whose entity is currently blocked (B4) or backing
-   * off (retryAt in the future), stops BEFORE a backing-off mutation (INV-1 —
-   * it must remain the effective head once nothing ahead of it can send), and
-   * cuts the chunk short before a second mutation for an entity already
-   * included (B3.2) so per-entity chaining stays correct without guessing
-   * server-assigned seqs.
+   * send: skips mutations whose entity is currently blocked (B4, including
+   * FIX 2's transitive cross-collection reference blocks against entities
+   * blocked BEFORE this pass — `blockedKeys` is computed once per drain pass
+   * by the caller) or backing off (retryAt in the future), stops BEFORE a
+   * backing-off mutation (INV-1 — it must remain the effective head once
+   * nothing ahead of it can send), and cuts the chunk short before a second
+   * mutation for an entity already included (B3.2) so per-entity chaining
+   * stays correct without guessing server-assigned seqs.
+   *
+   * FIX 2 also guards the SAME-BATCH race: a mutation whose args reference
+   * the entity id of another mutation already placed EARLIER in this same
+   * chunk is excluded too, even though that referenced entity isn't blocked
+   * yet (its own outcome — ack or conflict/validation nack — isn't known
+   * until this very batch resolves). Without this, P (create) and T (create,
+   * referencing P) enqueued together would land in the same chunk and could
+   * both be sent before P's conflict is even discovered.
    */
   const buildChunk = (
-    queued: OutboxMutation[]
+    queued: OutboxMutation[],
+    blockedKeys: ReadonlySet<string>
   ): {chunk: OutboxMutation[]; blockedWakeAt?: number} => {
     const chunk: OutboxMutation[] = [];
     const seenEntities = new Set<string>();
+    const chunkEntityIds = new Set<string>();
     let blockedWakeAt: number | undefined;
     for (const mutation of queued) {
       if (chunk.length >= batchSize) {
@@ -613,17 +867,33 @@ export const createReplayCoordinator = ({
           blockedWakeAt === undefined ? nextAttemptAt : Math.min(blockedWakeAt, nextAttemptAt);
         break;
       }
-      if (isEntityBlocked(mutation)) {
-        // B4: this entity is blocked; skip it (stays queued) but keep
-        // scanning — other entities may still be eligible for this chunk.
+      const key = entityKey(mutation.collection, mutation.entityId);
+      if (blockedKeys.has(key)) {
+        // B4/FIX 2: this entity (directly or transitively, via a reference
+        // to another blocked entity) is blocked; skip it (stays queued) but
+        // keep scanning — other entities may still be eligible for this chunk.
         continue;
       }
-      const key = entityKey(mutation.collection, mutation.entityId);
+      if (chunkEntityIds.size > 0) {
+        let parsedArgs: unknown;
+        try {
+          parsedArgs = JSON.parse(mutation.args);
+        } catch {
+          parsedArgs = undefined;
+        }
+        if (parsedArgs !== undefined && referencesBlockedId(parsedArgs, chunkEntityIds)) {
+          // FIX 2 same-batch guard: this mutation references an entity whose
+          // outcome in THIS chunk is not yet known — skip it (stays queued)
+          // rather than risk sending it alongside a root that may conflict.
+          continue;
+        }
+      }
       if (seenEntities.has(key)) {
         // B3.2: at most one mutation per entity per chunk — cut here.
         break;
       }
       seenEntities.add(key);
+      chunkEntityIds.add(mutation.entityId);
       chunk.push(mutation);
     }
     return {blockedWakeAt, chunk};
@@ -728,10 +998,19 @@ export const createReplayCoordinator = ({
     let nextWakeAt: number | undefined;
 
     for (;;) {
+      // FIX 4: drop any validation block whose entity has no queued
+      // successor left (pruned/resolved-away) before computing this pass's
+      // eligibility — an entity must not stay quarantined once nothing
+      // queued depends on the ordering the block was protecting.
+      gcStaleValidationBlocks(userId);
       const queued = outbox.listQueued({userId});
       if (queued.length === 0) {
         return {authPaused: false, nextWakeAt, progressed};
       }
+      // FIX 2: transitive block set (direct blocks + cross-collection
+      // references to a blocked entity's id), recomputed fresh every pass so
+      // resolving a root naturally unblocks its dependents on the next drain.
+      const blockedKeys = computeBlockedEntityKeys(userId);
 
       const useBatch = Boolean(sendMutationBatch) && !batchUnsupported;
       if (!useBatch) {
@@ -745,7 +1024,7 @@ export const createReplayCoordinator = ({
               nextWakeAt === undefined ? nextAttemptAt : Math.min(nextWakeAt, nextAttemptAt);
             return {authPaused: false, nextWakeAt, progressed};
           }
-          if (isEntityBlocked(mutation)) {
+          if (blockedKeys.has(entityKey(mutation.collection, mutation.entityId))) {
             continue;
           }
           const decision = await sendSingle(userId, mutation);
@@ -790,7 +1069,7 @@ export const createReplayCoordinator = ({
         continue;
       }
 
-      const {chunk, blockedWakeAt} = buildChunk(queued);
+      const {chunk, blockedWakeAt} = buildChunk(queued, blockedKeys);
       if (chunk.length === 0) {
         if (blockedWakeAt !== undefined) {
           nextWakeAt =
@@ -831,11 +1110,22 @@ export const createReplayCoordinator = ({
 
       const {decisions, unsupported, haltedAt, shortResponse} = await sendChunk(userId, chunk);
       if (unsupported) {
-        // B3 capability detection: fall back to single-mutation sends for the
-        // rest of this connection's lifetime, re-probed on reconnect.
-        batchUnsupported = true;
+        // FIX 5: only latch after BATCH_UNSUPPORTED_LATCH_THRESHOLD
+        // consecutive unsupported results — a single slow-but-supported
+        // batch (grace elapsed without a receipt landing in time, but the
+        // server really does have a handler) must not permanently downgrade
+        // the connection to single-sends.
+        consecutiveUnsupported += 1;
+        if (consecutiveUnsupported >= BATCH_UNSUPPORTED_LATCH_THRESHOLD) {
+          batchUnsupported = true;
+          armReprobeTimer();
+        }
         continue;
       }
+      // A real (non-unsupported) batch response proves the server supports
+      // batching — reset the consecutive-failure counter so a later stray
+      // unsupported result starts counting from zero again.
+      consecutiveUnsupported = 0;
       let authPaused = false;
       for (const decision of decisions.values()) {
         progressed = progressed || decision.progressed;
@@ -958,18 +1248,36 @@ export const createReplayCoordinator = ({
     return tracked;
   };
 
-  const dispose = (args?: {userId?: string}): void => {
-    if (args?.userId !== undefined) {
-      clearWakeTimer(args.userId);
-      return;
-    }
+  /** FIX 3: full lifecycle reset — see the `ReplayCoordinator.reset` doc comment. */
+  const reset = (): void => {
     for (const userId of [...wakeTimers.keys()]) {
       clearWakeTimer(userId);
     }
+    clearReprobeTimer();
+    retryAt.clear();
+    transportFailures.clear();
+    authPauseNotified.clear();
+    validationBlockedEntities.clear();
+    drainProgress.clear();
+    recheckRequested.clear();
+    batchUnsupported = false;
+    consecutiveUnsupported = 0;
+  };
+
+  /**
+   * FIX 3: `dispose()` is the client-stop/sign-out teardown hook, so a full
+   * `reset()` is always safe here regardless of the (legacy) `userId` arg —
+   * nothing else uses this coordinator instance once dispose has run for the
+   * current lifecycle.
+   */
+  const dispose = (_args?: {userId?: string}): void => {
+    reset();
   };
 
   const notifyReconnect = (): void => {
+    clearReprobeTimer();
     batchUnsupported = false;
+    consecutiveUnsupported = 0;
   };
 
   const retryFailed = ({entityId}: {entityId: string}): void => {
@@ -981,16 +1289,13 @@ export const createReplayCoordinator = ({
   };
 
   const getBlockedEntities = ({userId}: {userId: string}): string[] => {
-    const blocked = new Set<string>();
-    for (const key of validationBlockedEntities) {
-      blocked.add(key);
-    }
-    for (const mutation of outbox.listQueued({userId})) {
-      if (hasUnresolvedConflict(mutation)) {
-        blocked.add(entityKey(mutation.collection, mutation.entityId));
-      }
-    }
-    return [...blocked];
+    // FIX 4: drop stale blocks (no queued successor left) before reporting.
+    gcStaleValidationBlocks(userId);
+    // FIX 2/3: report the full transitive block set (direct + cross-collection
+    // references), scoped to THIS user only — a different user's stale
+    // in-memory entry (or a same-id different-user block) must never surface
+    // here (FIX 3: getBlockedEntities({userId}) filters accordingly).
+    return [...computeBlockedEntityKeys(userId)];
   };
 
   const getDrainProgress = ({
@@ -1012,6 +1317,7 @@ export const createReplayCoordinator = ({
     getDrainProgress,
     notifyReconnect,
     replay,
+    reset,
     retryFailed,
   };
 };

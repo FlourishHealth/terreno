@@ -17,13 +17,27 @@ import {
 } from "./transport";
 
 /**
- * Grace period to wait for a `sync:mutateBatch` ack callback before treating the
- * server as not supporting the batch event. Socket.io silently drops emits to
- * event names with no registered handler — there is no error to catch, only
- * silence — so this must be much shorter than the full mutation timeout or every
- * batch send against an old server would stall for the full 15s.
+ * Grace period to wait for EITHER a `sync:mutateBatch` ack callback OR the
+ * `sync:batchReceived` receipt before treating the server as not supporting
+ * the batch event at all. Socket.io silently drops emits to event names with
+ * no registered handler — there is no error to catch, only silence — so this
+ * must be much shorter than the full batch timeout or every batch send
+ * against an old server would stall for that long. Once the receipt DOES
+ * arrive within this window, the server is known to support batching (it's
+ * just slow) and the client waits the full {@link batchTimeoutMs} instead of
+ * falling back (FIX 5).
  */
 export const BATCH_UNSUPPORTED_GRACE_MS = 2_000;
+
+/**
+ * Compute the batch send timeout once a `sync:batchReceived` receipt has
+ * confirmed the server is processing (as opposed to silent/unsupported): the
+ * existing per-mutation timeout scaled by chunk size, so a large batch isn't
+ * timed out prematurely just because it's slower than a single mutation
+ * (FIX 5).
+ */
+export const batchTimeoutMs = (mutationCount: number, perMutationTimeoutMs: number): number =>
+  Math.max(perMutationTimeoutMs, mutationCount * 1_000);
 
 export interface SocketTransportConfig {
   /** Server origin, e.g. "http://localhost:4000". */
@@ -74,11 +88,16 @@ export const createSocketTransport = ({
   const statusListeners = new Set<(status: TransportStatus) => void>();
   const pending = new Map<string, PendingMutation>();
   const pendingBatches = new Map<
-    number,
+    string,
     {
       resolve: (result: SendMutationBatchResult) => void;
       reject: (error: Error) => void;
-      graceTimer: ReturnType<typeof setTimeout>;
+      /** Cleared once a `sync:batchReceived` receipt arrives (FIX 5). */
+      graceTimer?: ReturnType<typeof setTimeout>;
+      /** Armed once the receipt lands, replacing the grace timer (FIX 5). */
+      fullTimer?: ReturnType<typeof setTimeout>;
+      /** Removes this batch's `sync:batchReceived` listener (FIX 5). */
+      offReceived: () => void;
     }
   >();
   let nextBatchId = 1;
@@ -120,7 +139,13 @@ export const createSocketTransport = ({
     }
     for (const [batchId, entry] of pendingBatches) {
       pendingBatches.delete(batchId);
-      clearTimeout(entry.graceTimer);
+      if (entry.graceTimer !== undefined) {
+        clearTimeout(entry.graceTimer);
+      }
+      if (entry.fullTimer !== undefined) {
+        clearTimeout(entry.fullTimer);
+      }
+      entry.offReceived();
       entry.reject(new Error(reason));
     }
   };
@@ -222,20 +247,73 @@ export const createSocketTransport = ({
     request: {mutations: SyncMutateRequest[]} & SyncMutateBatchRequest
   ): Promise<SendMutationBatchResult> =>
     new Promise<SendMutationBatchResult>((resolve, reject) => {
-      const batchId = nextBatchId++;
-      // A server without a sync:mutateBatch handler never invokes this ack
-      // callback (Socket.io silently drops emits to unregistered events) — a
-      // short grace timeout distinguishes "unsupported" from a genuine
-      // transport failure, so callers don't wait out the full mutation timeout
-      // on every batch send against an old server.
-      const graceTimer = setTimeout(() => {
+      const batchId = String(nextBatchId++);
+
+      // FIX 5: a server without a sync:mutateBatch handler never invokes the
+      // ack callback NOR emits sync:batchReceived (Socket.io silently drops
+      // emits to unregistered events) — a short grace timeout with NO
+      // receipt landing is the ONLY signal for "unsupported". Once a
+      // receipt (or the final ack callback, whichever arrives first) lands
+      // within that window, the server is known to support batching and is
+      // just slow — the full batch timeout (proportional to chunk size)
+      // takes over instead of resolving `unsupported` prematurely.
+      const cleanup = (): void => {
         pendingBatches.delete(batchId);
-        resolve({type: "unsupported"});
+        socket.off("sync:batchReceived", onReceived);
+      };
+      const finish = (result: SendMutationBatchResult): void => {
+        cleanup();
+        resolve(result);
+      };
+      const armFullTimer = (): void => {
+        const entry = pendingBatches.get(batchId);
+        if (!entry || entry.fullTimer !== undefined) {
+          return;
+        }
+        if (entry.graceTimer !== undefined) {
+          clearTimeout(entry.graceTimer);
+          entry.graceTimer = undefined;
+        }
+        entry.fullTimer = setTimeout(
+          () => {
+            // The server confirmed support (a receipt or ack landed) but never
+            // finished within the scaled batch timeout — this is a genuine
+            // transport failure (not "unsupported"), so reject: the
+            // coordinator applies its unlimited-backoff transport-failure
+            // path and resends the whole chunk (INV-3), rather than wrongly
+            // downgrading a merely-slow-but-supported server to single-sends.
+            cleanup();
+            reject(
+              new Error(`Timed out after the batch timeout waiting for batch ${batchId} to finish`)
+            );
+          },
+          batchTimeoutMs(request.mutations.length, timeoutMs)
+        );
+      };
+      const onReceived = ({batchId: receivedId}: {batchId?: string}): void => {
+        if (receivedId === batchId) {
+          armFullTimer();
+        }
+      };
+      socket.on("sync:batchReceived", onReceived);
+
+      const graceTimer = setTimeout(() => {
+        finish({type: "unsupported"});
       }, batchUnsupportedGraceMs);
-      pendingBatches.set(batchId, {graceTimer, reject, resolve});
+      // The pendingBatches entry MUST exist before the emit: on localhost the
+      // server's immediate sync:batchReceived echo can round-trip fast enough
+      // to race this same synchronous block, and armFullTimer/the ack
+      // callback both look up this entry by batchId.
+      pendingBatches.set(batchId, {
+        graceTimer,
+        offReceived: () => socket.off("sync:batchReceived", onReceived),
+        reject,
+        resolve,
+      });
+
       socket.emit(
         "sync:mutateBatch",
-        request,
+        {...request, batchId},
         (response: {
           results?: ({type: "ack"; ack: SyncAck} | {type: "nack"; nack: SyncNack})[];
         }) => {
@@ -243,12 +321,13 @@ export const createSocketTransport = ({
           if (!entry) {
             return;
           }
-          pendingBatches.delete(batchId);
-          clearTimeout(entry.graceTimer);
+          if (entry.fullTimer !== undefined) {
+            clearTimeout(entry.fullTimer);
+          }
           if (Array.isArray(response?.results)) {
-            entry.resolve({results: response.results, type: "results"});
+            finish({results: response.results, type: "results"});
           } else {
-            entry.resolve({type: "unsupported"});
+            finish({type: "unsupported"});
           }
         }
       );

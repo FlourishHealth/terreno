@@ -82,13 +82,28 @@ export interface SyncMutationDocument {
   serverDoc?: unknown;
   error?: string;
   created: Date;
+  claimedAt: Date;
 }
 
 /** Ledger rows are only needed while a client could still replay a mutation. */
 const SYNC_MUTATION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
+/**
+ * C5 (FIX 6): a `pending` row older than this may be taken over by a fresh
+ * delivery — the original claimant is assumed to have crashed between the
+ * claim and finalizing the ledger row.
+ */
+export const SYNC_MUTATION_LEASE_MS = 60 * 1_000;
+
 const syncMutationSchema = new Schema<SyncMutationDocument>(
   {
+    claimedAt: {
+      default: () => new Date(),
+      description:
+        "When this delivery claimed the mutation (lease); a pending row older than " +
+        "SYNC_MUTATION_LEASE_MS may be taken over by a fresh delivery via findOneAndUpdate",
+      type: Date,
+    },
     created: {
       default: () => new Date(),
       description: "When the mutation was first claimed; TTL-indexed so rows expire after 30 days",

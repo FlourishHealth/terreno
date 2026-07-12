@@ -161,15 +161,24 @@ export const installSyncSocketHandlers = (
   let mutationWindowStart = 0;
   let mutationCount = 0;
 
-  /** Returns true when `weight` more mutations would exceed the per-second budget. */
-  const consumeMutationRateLimit = (weight: number): boolean => {
+  /**
+   * Consumes `weight` mutations from the rolling one-second budget. Returns
+   * `undefined` when within budget, or the remaining window (ms) to wait
+   * before retrying when the budget would be exceeded — the caller nacks
+   * `rate_limited` with that as `retryAfterMs` rather than burning any
+   * retry budget (rate limiting must never look like a durable-data error).
+   */
+  const consumeMutationRateLimit = (weight: number): number | undefined => {
     const now = Date.now();
     if (now - mutationWindowStart >= 1000) {
       mutationWindowStart = now;
       mutationCount = 0;
     }
     mutationCount += weight;
-    return mutationCount > MAX_SYNC_MUTATIONS_PER_SECOND;
+    if (mutationCount <= MAX_SYNC_MUTATIONS_PER_SECOND) {
+      return undefined;
+    }
+    return Math.max(0, 1000 - (now - mutationWindowStart));
   };
 
   socket.on("sync:subscribe", async (payload: {collections?: unknown}): Promise<void> => {
@@ -268,11 +277,13 @@ export const installSyncSocketHandlers = (
         });
       };
 
-      if (consumeMutationRateLimit(1)) {
+      const retryAfterMs = consumeMutationRateLimit(1);
+      if (retryAfterMs !== undefined) {
         logInfo(`[sync] User ${userId} hit the sync:mutate rate limit`);
         nack({
-          code: "error",
+          code: "rate_limited",
           message: `Rate limit of ${MAX_SYNC_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+          retryAfterMs,
         });
         return;
       }
@@ -294,6 +305,16 @@ export const installSyncSocketHandlers = (
   socket.on(
     "sync:mutateBatch",
     async (payload: SyncMutateBatchRequest, ack?: (response: unknown) => void): Promise<void> => {
+      // FIX 5: emit the receipt IMMEDIATELY, before any processing (including
+      // rate-limit/auth checks) — this is what lets the client distinguish
+      // "no sync:mutateBatch handler at all" (silence past the grace period)
+      // from "the server is just slow finishing this batch" (a receipt
+      // arrived; the client then waits the full batch timeout instead of
+      // falling back to single sends and possibly double-processing).
+      if (typeof payload?.batchId === "string" && payload.batchId.length > 0) {
+        socket.emit("sync:batchReceived", {batchId: payload.batchId});
+      }
+
       const respondBatch = (response: SyncMutateBatchResponse): void => {
         if (typeof ack === "function") {
           ack(response);
@@ -317,11 +338,13 @@ export const installSyncSocketHandlers = (
 
       // The rate limiter counts each mutation in the batch (not the batch itself)
       // against the same window sync:mutate uses.
-      if (consumeMutationRateLimit(mutations.length)) {
+      const retryAfterMs = consumeMutationRateLimit(mutations.length);
+      if (retryAfterMs !== undefined) {
         logInfo(`[sync] User ${userId} hit the sync:mutateBatch rate limit`);
         singleNackBatch({
-          code: "error",
+          code: "rate_limited",
           message: `Rate limit of ${MAX_SYNC_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+          retryAfterMs,
         });
         return;
       }

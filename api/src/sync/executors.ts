@@ -43,6 +43,18 @@ export interface ExecutorResult<T> {
    * `options.populatePaths` for create/update, matching the REST handlers.
    */
   doc: ExecutorDoc<T>;
+  /**
+   * C5 (FIX 6): present only when `executeUpdate` was called with
+   * `skipPostHooks: true` — the cleaned/transformed update body, needed to
+   * run `postUpdate` later via `runPostUpdate`.
+   */
+  cleanedBody?: Partial<T>;
+  /**
+   * C5 (FIX 6): present only when `executeUpdate` was called with
+   * `skipPostHooks: true` — the pre-update document snapshot, needed to
+   * run `postUpdate` later via `runPostUpdate`.
+   */
+  prevDoc?: T;
 }
 
 /**
@@ -140,6 +152,7 @@ export const executeCreate = async <T>({
   user,
   body,
   req,
+  skipPostHooks,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -147,6 +160,13 @@ export const executeCreate = async <T>({
   body: unknown;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  /**
+   * C5 (FIX 6): when true, skip the built-in `postCreate` call — the caller
+   * (the sync mutation handler) runs it manually AFTER finalizing the
+   * idempotency ledger `applied`, so a post-hook throw can never make a
+   * committed write look like a failure. REST handlers never set this.
+   */
+  skipPostHooks?: boolean;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
@@ -235,7 +255,7 @@ export const executeCreate = async <T>({
     }
   }
 
-  if (options.postCreate) {
+  if (options.postCreate && !skipPostHooks) {
     try {
       await options.postCreate(data, request);
     } catch (error: unknown) {
@@ -248,6 +268,27 @@ export const executeCreate = async <T>({
     }
   }
   return {doc: data};
+};
+
+/**
+ * C5 (FIX 6): run `postCreate` outside the write transaction/ledger-finalize
+ * window. Errors are the caller's responsibility to catch — the sync mutation
+ * handler logs them and reports a warning, never converting them into a nack
+ * (the document write already committed and the ledger already finalized
+ * `applied`).
+ */
+export const runPostCreate = async <T>({
+  doc,
+  options,
+  request,
+}: {
+  doc: ExecutorDoc<T>;
+  options: ModelRouterOptions<T>;
+  request: express.Request;
+}): Promise<void> => {
+  if (options.postCreate) {
+    await options.postCreate(doc, request);
+  }
 };
 
 /**
@@ -266,6 +307,7 @@ export const executeUpdate = async <T>({
   concurrencyCheck,
   existingDoc,
   req,
+  skipPostHooks,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -280,6 +322,8 @@ export const executeUpdate = async <T>({
   existingDoc?: ExecutorDoc<T>;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  /** C5 (FIX 6): see `executeCreate`'s `skipPostHooks` doc comment. */
+  skipPostHooks?: boolean;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
@@ -434,7 +478,7 @@ export const executeUpdate = async <T>({
     doc = await populateQuery.exec();
   }
 
-  if (options.postUpdate) {
+  if (options.postUpdate && !skipPostHooks) {
     try {
       await options.postUpdate(doc, cleanedBody as Partial<T>, request, prevDoc as T);
     } catch (error: unknown) {
@@ -447,7 +491,26 @@ export const executeUpdate = async <T>({
     }
   }
 
-  return {doc};
+  return {cleanedBody: cleanedBody as Partial<T>, doc, prevDoc: prevDoc as T};
+};
+
+/** C5 (FIX 6): run `postUpdate` outside the write/ledger-finalize window — see `runPostCreate`. */
+export const runPostUpdate = async <T>({
+  doc,
+  cleanedBody,
+  prevDoc,
+  options,
+  request,
+}: {
+  doc: ExecutorDoc<T>;
+  cleanedBody: Partial<T>;
+  prevDoc: T;
+  options: ModelRouterOptions<T>;
+  request: express.Request;
+}): Promise<void> => {
+  if (options.postUpdate) {
+    await options.postUpdate(doc, cleanedBody, request, prevDoc);
+  }
 };
 
 /**
@@ -463,6 +526,7 @@ export const executeDelete = async <T>({
   id,
   existingDoc,
   req,
+  skipPostHooks,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -475,6 +539,8 @@ export const executeDelete = async <T>({
   existingDoc?: ExecutorDoc<T> & {deleted?: boolean};
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  /** C5 (FIX 6): see `executeCreate`'s `skipPostHooks` doc comment. */
+  skipPostHooks?: boolean;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
@@ -550,7 +616,7 @@ export const executeDelete = async <T>({
     }
   }
 
-  if (options.postDelete) {
+  if (options.postDelete && !skipPostHooks) {
     try {
       await options.postDelete(request, doc);
     } catch (error: unknown) {
@@ -564,4 +630,19 @@ export const executeDelete = async <T>({
   }
 
   return {doc};
+};
+
+/** C5 (FIX 6): run `postDelete` outside the write/ledger-finalize window — see `runPostCreate`. */
+export const runPostDelete = async <T>({
+  doc,
+  options,
+  request,
+}: {
+  doc: ExecutorDoc<T>;
+  options: ModelRouterOptions<T>;
+  request: express.Request;
+}): Promise<void> => {
+  if (options.postDelete) {
+    await options.postDelete(request, doc);
+  }
 };

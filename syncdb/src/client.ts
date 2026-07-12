@@ -441,6 +441,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   const runUserCheck = async (userId: string): Promise<void> => {
     const lastUserId = store.getLastUserId();
     if (lastUserId !== undefined && lastUserId !== userId) {
+      // FIX 3: a different-user login must not let the PREVIOUS user's
+      // in-memory coordinator state (validationBlockedEntities keyed
+      // user-scoped, retry/backoff bookkeeping, the batch-capability latch,
+      // armed timers) leak into the new user's session — reset before the
+      // new user's persister/outbox come online.
+      coordinator.reset();
       await wipeLocalData({databaseNames: [config.name], persister, store});
       lastSeqJumpReconcileAt.clear();
       await createAndStartPersister(userId);

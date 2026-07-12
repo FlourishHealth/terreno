@@ -587,7 +587,7 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
     expect(lastNack(socket)?.code).toBe("unauthorized");
   });
 
-  it("rate-limits mutations beyond the per-second cap with an error nack", async () => {
+  it("rate-limits mutations beyond the per-second cap with a rate_limited nack carrying retryAfterMs (FIX 1)", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);
     // Exceed the window with cheap validation nacks (unknown collection) — the rate limit
@@ -605,6 +605,14 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
       (e.payload as SyncNack).message?.includes("Rate limit")
     );
     expect(rateLimited).toHaveLength(5);
+    // FIX 1: the nack code is "rate_limited" (never "error") so the client
+    // never treats it as a durable-data failure, and it carries a
+    // retryAfterMs hint for the client's backoff floor.
+    for (const nack of rateLimited) {
+      const payload = nack.payload as SyncNack;
+      expect(payload.code).toBe("rate_limited");
+      expect(typeof (payload as {retryAfterMs?: number}).retryAfterMs).toBe("number");
+    }
   });
 });
 
@@ -705,7 +713,7 @@ describe("installSyncSocketHandlers — sync:mutateBatch", () => {
     expect(response.results[0].nack?.code).toBe("unauthorized");
   });
 
-  it("rate-limits batch mutations against the same window as sync:mutate", async () => {
+  it("rate-limits batch mutations against the same window as sync:mutate with a rate_limited nack carrying retryAfterMs (FIX 1)", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);
     // Two batches within the per-batch size cap, but together exceeding the
@@ -725,6 +733,29 @@ describe("installSyncSocketHandlers — sync:mutateBatch", () => {
     const response = await triggerBatch(socket, secondBatch);
     expect(response.results).toHaveLength(1);
     expect(response.results[0].nack?.message).toContain("Rate limit");
+    // FIX 1: rate limiting must never look like a durable-data error — the
+    // client treats "rate_limited" like a transport failure (never terminal).
+    expect(response.results[0].nack?.code).toBe("rate_limited");
+    expect(typeof (response.results[0].nack as {retryAfterMs?: number})?.retryAfterMs).toBe(
+      "number"
+    );
+  });
+
+  it("emits sync:batchReceived immediately, before any mutation is applied (FIX 5)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = [create("sock-batch-receipt-1", "a")];
+    await socket.trigger("sync:mutateBatch", {batchId: "b-123", mutations}, () => {});
+    const receipts = socket.emitted.filter((e) => e.event === "sync:batchReceived");
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0].payload).toEqual({batchId: "b-123"});
+  });
+
+  it("does not emit sync:batchReceived when the request has no batchId (HTTP-shaped payload)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    await triggerBatch(socket, [create("sock-batch-no-id", "a")]);
+    expect(socket.emitted.filter((e) => e.event === "sync:batchReceived")).toHaveLength(0);
   });
 });
 
