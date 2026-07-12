@@ -187,10 +187,16 @@ export interface TerrenoAccess<S extends Statements> {
   }): Promise<Record<string, unknown> | null>;
 
   // Field mask for a doc + user (see 4.6). Used by responseHandler, realtime, MCP.
+  // Mirrors fieldViews.select: `doc` is optional and `undefined` during create
+  // (no document exists yet), and `phase` tells the resolver which enforcement
+  // point is calling so the same selector yields read/write/create masks. Create
+  // resolves the mask from user + permissions alone (see 4.6 "Create-time view
+  // resolution"). modelRouter/realtime/MCP call sites pass `phase` explicitly.
   fieldMask(args: {
     user?: User;
     resource: keyof S & string;
-    doc: unknown;
+    doc?: unknown; // undefined during create
+    phase?: "read" | "write" | "create"; // default "read"
   }): Promise<FieldMask>;
 
   // Express middleware for custom routes (see 4.8)
@@ -261,6 +267,21 @@ export type RolePermissionSpec =
 // Terreno's default list; apps can extend via createAccess({readActions}).
 export const READ_ACTIONS = ["read", "list", "access", "view"] as const;
 
+// The read-only sentinel is *exactly* `{readOnly: true}`. It must not be confused
+// with a real PermissionSet that happens to declare a resource named "readOnly":
+// in a PermissionSet every value is a `readonly string[]` of actions, so a
+// "readOnly" resource maps to an array — never the boolean literal `true`. The
+// discriminator therefore checks `readOnly === true` on a single-key object, not
+// the mere presence of a `readOnly` key (`"readOnly" in spec`), which would
+// misread such a PermissionSet as the sentinel.
+const isReadOnlySentinel = (spec: RolePermissionSpec): spec is {readOnly: true} => {
+  if (typeof spec !== "object" || spec === null || Array.isArray(spec)) {
+    return false;
+  }
+  const keys = Object.keys(spec);
+  return keys.length === 1 && (spec as {readOnly?: unknown}).readOnly === true;
+};
+
 // Applied at seed time inside createAccess, using the merged statements as the source.
 export const expandRolePermissions = (
   spec: RolePermissionSpec,
@@ -270,7 +291,7 @@ export const expandRolePermissions = (
   if (spec === "*") {
     return mapValues(statements, (actions) => [...actions]);
   }
-  if (typeof spec === "object" && "readOnly" in spec) {
+  if (isReadOnlySentinel(spec)) {
     return filterMapValues(statements, (actions) =>
       actions.filter((a) => readActions.includes(a)),
     );
@@ -443,7 +464,11 @@ return rows a per-doc read would reject, or vice versa. The design forbids that 
      matches: (args: ScopeArgs<TDoc>) => Promise<Record<string, unknown> | null> | Record<string, unknown> | null;
      // Optional elevation that skips the constraint for both check and filter.
      adminBypass?: (args: ScopeArgs<TDoc>) => boolean | Promise<boolean>;
-     // How to read the field a fragment references off a loaded doc (defaults to dot-path lookup).
+     // How to read the field a fragment references off a loaded doc (defaults to
+     // dot-path lookup). The generated `check` compares each fragment value to
+     // the `fieldOf` result using String(...) equality, mirroring Mongo's
+     // ObjectId coercion; return a normalized (e.g. string-coerced, populated-ref
+     // unwrapped) value here when a field can hold ObjectIds or populated docs.
      fieldOf?: (doc: TDoc, path: string) => unknown;
    }
 
@@ -494,10 +519,16 @@ Semantics:
   websocket query subscriptions — replacing today's ad-hoc `queryFilter`/`OwnerQueryFilter`.
 
 Terreno ships the common scope as a helper, replacing `Permissions.IsOwner` + `OwnerQueryFilter`.
-It must preserve today's `IsOwner` semantics exactly: **admins bypass ownership** (`IsOwner`
-returns true for `user.admin === true` on any document, and `OwnerQueryFilter` returns `{}` — no
-narrowing — for admins). The helper reproduces that with an `adminBypass` predicate (default:
-the legacy `user.admin` flag), so migrated flows keep cross-owner read/update/delete access:
+Its per-document behavior must preserve today's `IsOwner` semantics exactly: **admins bypass
+ownership** — `IsOwner` returns `true` for `user.admin === true` on any document. Note the current
+`OwnerQueryFilter` does *not* share that bypass: it always narrows list queries to
+`{ownerId: user.id}` and never checks `user.admin`, so today an admin's per-document access and
+their list access disagree (admins can read/update any single owned-model doc but list endpoints
+still scope them to their own rows). `OwnerScope` deliberately unifies the two behind one
+`adminBypass` predicate (default: the legacy `user.admin` flag) applied to **both** the per-doc
+`check` and the list/subscription `filter` (where the bypass yields `{}` — no narrowing), so
+admins get consistent unrestricted read/update/delete/list access and migrated flows lose no
+privilege:
 
 ```typescript
 export interface OwnerScopeOptions {
@@ -514,8 +545,19 @@ export const OwnerScope = (options: string | OwnerScopeOptions = {}): ResourceSc
   return defineScope<unknown>({
     // One predicate drives both check and filter (see below); adminBypass short-circuits both.
     adminBypass,
+    // Mongo filter matches the raw stored ownerId (an ObjectId) against the user id.
     matches: ({user}) => (user ? {[field]: user.id} : null),
-    fieldOf: (doc) => (doc as Record<string, unknown> | undefined)?.[field],
+    // The in-memory check must mirror IsOwner exactly: unwrap a *populated*
+    // ownerId (`{_id}`) and normalize to a string so ObjectId, string, and
+    // populated-document shapes all compare equal. defineScope's generated
+    // `check` applies String(...) equality between the fragment value and this
+    // return (see fieldOf note in 4.5), matching Mongo's ObjectId coercion — so
+    // a populated `ownerId` is never falsely denied.
+    fieldOf: (doc) => {
+      const owner = (doc as Record<string, unknown> | undefined)?.[field];
+      const ownerId = (owner as {_id?: unknown} | null | undefined)?._id ?? owner;
+      return ownerId == null ? undefined : String(ownerId);
+    },
   });
 };
 
