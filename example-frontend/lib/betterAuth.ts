@@ -50,12 +50,37 @@ export const getSession = async () => {
   return betterAuthClient.getSession();
 };
 
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Number of `getSession()` attempts `getSessionToken()` makes before giving up.
+ * Callers (e.g. `useSocketConnection`'s `getAuthToken`) only call this once they
+ * believe the user is signed in — right after login/session-sync resolved a userId
+ * into Redux — so an empty session on the first attempt is more likely a transient
+ * race (the freshly-set session cookie not yet consistently queryable) than a real
+ * signed-out state. `useSocketConnection` has no retry of its own for this case (its
+ * token-refresh-driven reconnect only fires for the JWT auth slice, not Better Auth),
+ * so a transient empty result here would otherwise leave the socket connection
+ * permanently unattempted until some unrelated effect re-triggers it.
+ */
+const GET_SESSION_TOKEN_RETRY_ATTEMPTS = 3;
+const GET_SESSION_TOKEN_RETRY_DELAY_MS = 250;
+
 export const getSessionToken = async (): Promise<string | null> => {
-  try {
-    const result = await betterAuthClient.getSession();
-    const envelope = (result as {data?: {session?: {token?: string}}})?.data ?? result;
-    return (envelope as {session?: {token?: string}})?.session?.token ?? null;
-  } catch {
-    return null;
+  for (let attempt = 1; attempt <= GET_SESSION_TOKEN_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const result = await betterAuthClient.getSession();
+      const envelope = (result as {data?: {session?: {token?: string}}})?.data ?? result;
+      const token = (envelope as {session?: {token?: string}})?.session?.token ?? null;
+      if (token || attempt === GET_SESSION_TOKEN_RETRY_ATTEMPTS) {
+        return token;
+      }
+    } catch {
+      if (attempt === GET_SESSION_TOKEN_RETRY_ATTEMPTS) {
+        return null;
+      }
+    }
+    await sleep(GET_SESSION_TOKEN_RETRY_DELAY_MS);
   }
+  return null;
 };

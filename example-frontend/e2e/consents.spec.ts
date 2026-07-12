@@ -49,7 +49,6 @@ test.describe("Consent Flow", () => {
 
     // Navigate to consents tab
     await page.goto("/consents");
-    await page.waitForLoadState("networkidle");
     await page.getByTestId("consent-history-list").waitFor({state: "visible"});
     await expect(page.getByTestId("consent-history-list")).toBeVisible();
   });

@@ -23,4 +23,14 @@ export const GLOBAL_CONSOLE_ALLOWLIST: ReadonlyArray<string | RegExp> = [
   // exist — expected on signup/login flows (e.g. duplicate-email signup) before a
   // token is available. Broad substring covers the "No token found" message too.
   "terrenoFlagConfiguration rejected query",
+
+  // @terreno/syncdb is started globally by the root layout on every authenticated
+  // login (see app/_layout.tsx), not just in syncdb-focused specs. Its startup
+  // reconcile and the realtime socket's token warmup race the app's own auth-state
+  // propagation immediately after login/signup and can transiently
+  // warn/error before settling — expected noise on any authenticated screen, not
+  // just the syncdb suite (which additionally uses allowSyncDbNoise() for its
+  // offline-simulation-specific messages).
+  /\[syncdb\] (startup|reconnect) reconcile failed/,
+  "[SocketConnection] Attempting to connect socket, but getAuthToken returned no token.",
 ];
