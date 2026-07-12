@@ -1,11 +1,15 @@
-import {createServerKeyProvider} from "./crypto/keyProviders";
+import {DateTime} from "luxon";
+import type {AnyPersister} from "tinybase/persisters";
+
+import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyProviders";
 import type {KeyProvider} from "./crypto/types";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
 import {listConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
 import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
-import type {PersisterFactory} from "./persisters/types";
+import type {DefaultPersisterFactoryConfig, PersisterFactory} from "./persisters/types";
+import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {createSyncStore, type SyncStore} from "./storage/store";
 import {wipeLocalData} from "./storage/wipe";
 import {bootstrapCollections} from "./sync/bootstrap";
@@ -31,6 +35,9 @@ export const DEFAULT_RECONCILE_INTERVAL_MS = 5 * 60_000;
 /** Minimum interval between seq-jump-triggered reconciles per stream (30s). */
 export const DEFAULT_SEQ_JUMP_RECONCILE_MIN_INTERVAL_MS = 30_000;
 
+/** E5: default local tombstone retention window (90 days), matching the server's (C7). */
+export const DEFAULT_TOMBSTONE_RETENTION_MS = 90 * 24 * 60 * 60 * 1_000;
+
 export interface SyncDbConfig {
   /** App/store name; used as the persisted database name. */
   name: string;
@@ -47,6 +54,14 @@ export interface SyncDbConfig {
   persisterFactory?: PersisterFactory;
   /** Encryption key provider forwarded to the default persister factory (web). */
   keyProvider?: KeyProvider;
+  /**
+   * Test-only IndexedDB read/write overrides forwarded to the default web
+   * persister factory (e.g. to simulate a read error or a quota-exceeded
+   * write in tests without a real broken IndexedDB). Ignored on native and
+   * ignored entirely when `persisterFactory` is overridden.
+   */
+  idbGetImpl?: DefaultPersisterFactoryConfig["idbGetImpl"];
+  idbSetImpl?: DefaultPersisterFactoryConfig["idbSetImpl"];
   /** Periodic reconcile interval in ms; 0 disables (default 5 minutes). */
   reconcileIntervalMs?: number;
   /** Rate limit for seq-jump-triggered reconciles per stream (default 30s). */
@@ -83,6 +98,25 @@ export interface SyncDbConfig {
    * handling modes").
    */
   haltQueueOnConflict?: boolean;
+  /**
+   * E3(b): invoked when persisted local data cannot be decrypted (web only —
+   * corrupt data, or a rotated/lost encryption key). DEFAULT BEHAVIOR when
+   * omitted: wipe all local data for the current user, re-stamp the schema
+   * version, and run a full snapshot re-bootstrap — always preceded by a
+   * `console.warn`. Pass this to override that default (e.g. to prompt the
+   * user before wiping); when provided, the client's own wipe/re-bootstrap is
+   * skipped and the host app is fully responsible for recovery.
+   */
+  onDecryptFailure?: () => void;
+  /**
+   * E5: client-side compaction — local tombstone rows (`deleted: true`) older
+   * than this window (from their `deletedAt` stamp) are deleted after each
+   * successful reconcile. Default 90 days, matching the server's own
+   * tombstone retention (C7); keep the two in sync — compacting locally
+   * before the server's retention window elapses risks a client permanently
+   * missing a delete it hasn't converged on yet. 0 disables compaction.
+   */
+  tombstoneRetentionMs?: number;
 }
 
 export interface MutateArgs {
@@ -193,7 +227,10 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       ? createHttpChannel({authProvider: config.authProvider, baseUrl: config.baseUrl})
       : undefined);
 
-  const store = createSyncStore({collections: config.collections});
+  const store = createSyncStore({
+    collections: config.collections,
+    now: () => DateTime.fromMillis(now()).toISO() ?? new Date(now()).toISOString(),
+  });
   const outbox = createOutbox({store});
   const debugLog = resolveDebugLog(config.debug);
 
@@ -212,6 +249,39 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   // refresh has already run for the CURRENT pause episode.
   let authPaused = false;
   let refreshAttempted = false;
+  // E1: lifecycle serialization. `generation` bumps on every start()/stop() so
+  // an in-flight operation that resumes after an await can detect it has been
+  // superseded (a rapid stop()-then-start() for a new user) and abort instead
+  // of mutating state (persister, currentUserId, listeners) that a LATER
+  // operation already owns. `lifecycle` is a promise-chain mutex: every call
+  // to start()/stop()/handleAuthChange()/runUserCheck() (the latter only ever
+  // invoked FROM start()/handleAuthChange(), never directly) is appended to it
+  // so at most one of these runs at a time, in call order — this is what
+  // prevents the interleaving the mutex exists to fix, not the generation
+  // check alone (the generation check only guards against a stale resume
+  // AFTER an await; the chain prevents two lifecycle ops from running
+  // concurrently in the first place).
+  let generation = 0;
+  let lifecycle: Promise<void> = Promise.resolve();
+  /** True once a start() has completed without a matching stop() (E1 double-start guard). */
+  let isStarted = false;
+
+  /**
+   * Queue `op` onto the lifecycle mutex; resolves/rejects with `op`'s own
+   * outcome once every previously-queued op has settled. `lifecycle` itself
+   * NEVER rejects (see below), so chaining with a plain `.then` is safe — a
+   * prior op's failure never wedges the mutex or blocks later queued calls.
+   */
+  const withLifecycle = <T>(op: () => Promise<T>): Promise<T> => {
+    const result = lifecycle.then(op);
+    // Keep the chain alive regardless of this op's outcome; `result` itself
+    // (returned below) carries the outcome to THIS call's caller.
+    lifecycle = result.then(
+      () => {},
+      () => {}
+    );
+    return result;
+  };
 
   const notifyStatusChange = (): void => {
     for (const listener of statusListeners) {
@@ -336,6 +406,24 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     });
     try {
       await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
+      // E5: client-side compaction runs only after a successful reconcile —
+      // reconcile just proved the local store caught up with the server via
+      // a real network round trip, which is the signal that it is safe to
+      // age out old tombstones (never on a failed/incomplete reconcile).
+      const retentionMs = config.tombstoneRetentionMs ?? DEFAULT_TOMBSTONE_RETENTION_MS;
+      if (retentionMs > 0) {
+        // No explicit `now` override here — compactTombstones defaults to
+        // the same injected clock the store itself was created with above.
+        const {removed} = store.compactTombstones({olderThanMs: retentionMs});
+        if (removed > 0) {
+          debugLog?.record({
+            detail: {removed},
+            direction: "system",
+            label: `compacted ${removed} tombstone(s)`,
+            type: "reconcile",
+          });
+        }
+      }
     } catch (error) {
       if (error instanceof AuthRequiredError) {
         setAuthPaused(true);
@@ -415,7 +503,25 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     }
   };
 
+  /**
+   * E3(c): the web factory (`persisters/defaultPersisterFactory.web.ts`) falls
+   * back to the in-memory persister when `globalThis.indexedDB` is absent
+   * (private browsing / a locked-down embedded webview), emitting a one-time
+   * console.warn. That fallback is invisible to the caller unless it inspects
+   * the returned persister — surface it on the client's status instead so a
+   * host app can tell durable persistence apart from a session that silently
+   * never survives reload. Defaults to "durable"; a persister factory may
+   * report "memory" via `persister.persistenceMode` (see
+   * `defaultPersisterFactory.web.ts`), and a load failure (E3a) downgrades to
+   * "error" for the remainder of the session.
+   */
+  let persistenceMode: "durable" | "memory" | "error" = "durable";
+
   const createAndStartPersister = async (userId: string): Promise<void> => {
+    // Reset per-call: a fresh persister/load attempt starts optimistic even
+    // if a PRIOR persister instance (e.g. before a wipe-and-rebuild) had
+    // flagged a load failure.
+    persistenceMode = "durable";
     // Default key provider is SERVER-DERIVED (HKDF over GET /sync/key material) so the
     // server can rotate/revoke; pass keyProvider: createLocalKeyProvider() for a purely
     // device-local key with no server-side copy of the material.
@@ -427,16 +533,123 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
             fetchKeyMaterial: httpChannel.fetchKeyMaterial,
           })
         : undefined);
-    const factory = config.persisterFactory ?? createDefaultPersisterFactory({keyProvider, userId});
-    persister = factory({databaseName: config.name, store: store.raw});
+    // E3(b): decrypt/corrupt-data failures wipe + re-bootstrap by default
+    // (documented behavior) unless the host app overrides via
+    // `config.onDecryptFailure`. Either way it always warns.
+    const onDecryptFailure = (): void => {
+      console.warn(
+        `[syncdb] persisted data for "${config.name}" could not be decrypted; wiping and re-bootstrapping`
+      );
+      if (config.onDecryptFailure) {
+        config.onDecryptFailure();
+        return;
+      }
+      void wipeAndRebootstrap(userId).catch(warn("post-decrypt-failure wipe/rebootstrap failed"));
+    };
+    // E3(a): a read ERROR (not "no data") must never be treated as a fresh
+    // store — flag it so the caller skips autosave (which would otherwise
+    // overwrite the still-good persisted blob with an empty in-memory store).
+    const onLoadFailure = (): void => {
+      persistenceMode = "error";
+      console.warn(
+        `[syncdb] failed to read persisted data for "${config.name}"; leaving the stored snapshot untouched this session`
+      );
+      notifyStatusChange();
+    };
+    // E3(a): a save (write) failure — e.g. IndexedDB quota exceeded — is
+    // surfaced the same way: local writes are no longer reliably durable this
+    // session, so the host app should warn the user rather than silently
+    // losing data. Unlike a load failure this does NOT skip future save
+    // attempts (a transient quota issue may clear once the user frees space).
+    const onSaveFailure = (error: unknown): void => {
+      persistenceMode = "error";
+      console.warn(`[syncdb] failed to persist local data for "${config.name}"`, error);
+      notifyStatusChange();
+    };
+    const factory =
+      config.persisterFactory ??
+      createDefaultPersisterFactory({
+        idbGetImpl: config.idbGetImpl,
+        idbSetImpl: config.idbSetImpl,
+        keyProvider,
+        onDecryptFailure,
+        onLoadFailure,
+        onSaveFailure,
+        userId,
+      });
+    // `hooks` is always passed (even to a custom persisterFactory) so a host
+    // app supplying its own storage backend can still opt into E3 SyncStatus
+    // surfacing; the default factory already received the same callbacks
+    // above (at creation time) and ignores this second copy.
+    persister = factory({
+      databaseName: config.name,
+      hooks: {onDecryptFailure, onLoadFailure, onSaveFailure},
+      store: store.raw,
+    });
     await persister.startAutoLoad();
+    // Read through a function call: `onLoadFailure` (invoked synchronously
+    // from inside `startAutoLoad()`, not after it returns) mutates
+    // `persistenceMode` by closure, which TypeScript's control-flow narrowing
+    // cannot see across the awaited call above — without this indirection it
+    // would (wrongly) treat the "durable" assignment at the top of this
+    // function as still in effect here.
+    const getPersistenceMode = (): typeof persistenceMode => persistenceMode;
+    if (getPersistenceMode() === "error") {
+      // Do NOT startAutoSave(): the in-memory store is empty (load bailed out
+      // before touching it) and autosaving now would clobber the real blob.
+      return;
+    }
+    // E3(c): the web factory tags its returned persister with a
+    // `persistenceMode` marker when it fell back to in-memory (no
+    // globalThis.indexedDB) — surface that on SyncStatus.
+    const reportedMode = (persister as AnyPersister & {persistenceMode?: "durable" | "memory"})
+      .persistenceMode;
+    if (reportedMode === "memory") {
+      persistenceMode = "memory";
+      notifyStatusChange();
+    }
     await persister.startAutoSave();
+  };
+
+  /**
+   * Sanctioned wipe + fresh start for `userId`: clears every local table and
+   * the persisted databases (including cached encryption keys — E3f), stamps
+   * the current schema version and userId on the now-empty store, rebuilds
+   * the persister, and — when an HTTP channel is available — runs a full
+   * snapshot re-bootstrap so the app is immediately usable again rather than
+   * waiting for the next reconcile trigger. Shared by the E2 schema-mismatch
+   * path and the E3(b) decrypt-failure default handler; NOT used for the
+   * different-user wipe (that path's re-bootstrap comes from the caller's own
+   * subsequent reconcile()/replayOutbox() calls, matching pre-E2 behavior).
+   */
+  const wipeAndRebootstrap = async (userId: string): Promise<void> => {
+    coordinator.reset();
+    await wipeLocalData({
+      databaseNames: [config.name],
+      keyCacheDbNames: [DEFAULT_KEY_CACHE_DB_NAME],
+      persister,
+      store,
+    });
+    lastSeqJumpReconcileAt.clear();
+    persistenceMode = "durable";
+    await createAndStartPersister(userId);
+    store.raw.setValue("schemaVersion", SYNC_SCHEMA_VERSION);
+    store.setLastUserId({userId});
+    currentUserId = userId;
+    if (httpChannel) {
+      await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
+    }
   };
 
   /**
    * Wipe-on-user-change: when the persisted `lastUserId` differs from the
    * authenticated user, destroy all local data (entities, outbox, cursors,
    * conflicts, persisted databases) and start fresh for the new user.
+   *
+   * E2: also checked here (after the persister's autoload has populated the
+   * store from disk) is the persisted schema version — a mismatch is a
+   * sanctioned wipe (schema migration, not an auth event) distinct from the
+   * user-change wipe above, so it runs regardless of whether the user changed.
    */
   const runUserCheck = async (userId: string): Promise<void> => {
     const lastUserId = store.getLastUserId();
@@ -447,10 +660,32 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // armed timers) leak into the new user's session — reset before the
       // new user's persister/outbox come online.
       coordinator.reset();
-      await wipeLocalData({databaseNames: [config.name], persister, store});
+      // E3(f): also clear the cached derived encryption key for the key-cache
+      // database — the same rationale as wiping local data: nothing from the
+      // previous user's session should linger once a different user has
+      // authenticated (the new user's persister derives/caches its own key
+      // fresh via createAndStartPersister below).
+      await wipeLocalData({
+        databaseNames: [config.name],
+        keyCacheDbNames: [DEFAULT_KEY_CACHE_DB_NAME],
+        persister,
+        store,
+      });
       lastSeqJumpReconcileAt.clear();
       await createAndStartPersister(userId);
     }
+    // E2: schema version check. `getSchemaVersion()` reads the persisted
+    // value with a same-as-current default (so a genuinely fresh store never
+    // trips this), meaning a real mismatch can only come from a persisted
+    // store written under an OLDER `SYNC_SCHEMA_VERSION`. Always stamp the
+    // current version afterward so a fresh store (and one just wiped above)
+    // is never mistaken for stale on the next start().
+    const persistedVersion = store.getSchemaVersion();
+    if (persistedVersion !== SYNC_SCHEMA_VERSION) {
+      await wipeAndRebootstrap(userId);
+      return;
+    }
+    store.raw.setValue("schemaVersion", SYNC_SCHEMA_VERSION);
     store.setLastUserId({userId});
     currentUserId = userId;
   };
@@ -512,9 +747,27 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     void replayOutbox().catch(warn("reconnect replay failed"));
   };
 
+  /**
+   * E1: `handleAuthChange` goes through the SAME lifecycle mutex as
+   * `start`/`stop` — it mutates the same shared state (`currentUserId`,
+   * `persister` via `runUserCheck`) that a concurrent stop()/start() would.
+   * Queuing it here means a rapid stop()-then-start() for a new user can
+   * never interleave with an in-flight auth-change handler from the OLD
+   * user's session; whichever queued first fully completes before the next
+   * runs. The generation check additionally covers the case where THIS
+   * handler itself is stale — e.g. it was queued behind a stop() while
+   * `getUserId()` resolves, and by the time it runs a fresh generation has
+   * already started up for a different user.
+   */
   const handleAuthChange = (): void => {
-    void (async (): Promise<void> => {
+    void withLifecycle(async (): Promise<void> => {
+      const myGeneration = generation;
       const userId = await config.authProvider.getUserId();
+      if (generation !== myGeneration) {
+        // Superseded by a stop()/start() while awaiting the auth provider —
+        // that operation now owns currentUserId/persister; do nothing.
+        return;
+      }
       if (!userId) {
         // Logged out: NEVER wipe (INV-2). Keep all local data, clear the
         // current-user pointer (mutate() requires start() again), and remain
@@ -535,10 +788,13 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // login after a logout (currentUserId undefined) — either way this is a
       // confirmed identity change, never inferred from a bare 401.
       await runUserCheck(userId);
+      if (generation !== myGeneration) {
+        return;
+      }
       setAuthPaused(false);
       void reconcile().catch(warn("post-auth reconcile failed"));
       void replayOutbox().catch(warn("post-auth replay failed"));
-    })().catch(warn("auth change handling failed"));
+    }).catch(warn("auth change handling failed"));
   };
 
   const startReconcileTimer = (): void => {
@@ -559,62 +815,112 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     }
   };
 
-  const start = async (): Promise<void> => {
-    const userId = await config.authProvider.getUserId();
-    if (!userId) {
-      throw new Error("createSyncDb.start() requires an authenticated user");
-    }
-    simulatedOffline = false;
-    setAuthPaused(false);
-    await createAndStartPersister(userId);
-    await runUserCheck(userId);
+  /**
+   * E1: lifecycle serialization. `start`/`stop` both queue through the same
+   * `lifecycle` mutex as `handleAuthChange`, so at most one of these ever
+   * runs at a time, in call order — the bug this fixes was a `stop()`
+   * re-reading the module-level `persister` after awaiting a debounced
+   * `save()`, by which point an interleaved `start()` for a new user had
+   * already replaced it, destroying the NEW user's persister instead of the
+   * old one. On top of mutual exclusion, every operation captures its own
+   * `myGeneration` and re-checks `generation === myGeneration` after each
+   * `await` — belt-and-suspenders against any future call site that manages
+   * to bypass the mutex (e.g. a direct call from a test), and cheap enough to
+   * always do.
+   */
+  const start = async (): Promise<void> =>
+    withLifecycle(async (): Promise<void> => {
+      if (isStarted) {
+        // E1: double-start() is a no-op rather than a second full
+        // initialization — calling start() again would double-register the
+        // transport/auth-change listeners and leak a second reconcile timer.
+        // A caller that wants a hard restart should stop() first.
+        return;
+      }
+      generation += 1;
+      const myGeneration = generation;
+      const userId = await config.authProvider.getUserId();
+      if (!userId) {
+        throw new Error("createSyncDb.start() requires an authenticated user");
+      }
+      if (generation !== myGeneration) {
+        // A stop() (or another start()) ran while awaiting the auth
+        // provider — that operation now owns the lifecycle; abandon this one
+        // rather than initializing state a newer generation doesn't expect.
+        return;
+      }
+      simulatedOffline = false;
+      setAuthPaused(false);
+      await createAndStartPersister(userId);
+      if (generation !== myGeneration) {
+        return;
+      }
+      await runUserCheck(userId);
+      if (generation !== myGeneration) {
+        return;
+      }
 
-    // A1: startup crash recovery, before the first replayOutbox() — repair
-    // any outbox rows stranded mid-lifecycle by a prior crash/reload (inFlight
-    // never resolved, acked-with-still-pending entity, conflicted with no
-    // conflict row written).
-    const recovery = outbox.recoverStartupState({userId});
-    debugLog?.record({
-      detail: {...recovery},
-      direction: "system",
-      label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.repairedConflicts.length} conflicts repaired)`,
-      type: "reconcile",
+      // A1: startup crash recovery, before the first replayOutbox() — repair
+      // any outbox rows stranded mid-lifecycle by a prior crash/reload (inFlight
+      // never resolved, acked-with-still-pending entity, conflicted with no
+      // conflict row written).
+      const recovery = outbox.recoverStartupState({userId});
+      debugLog?.record({
+        detail: {...recovery},
+        direction: "system",
+        label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.repairedConflicts.length} conflicts repaired)`,
+        type: "reconcile",
+      });
+
+      unsubscribers.push(transport.onDelta(handleDelta));
+      unsubscribers.push(transport.onStatusChange(handleStatusChange));
+      unsubscribers.push(config.authProvider.onAuthChange(handleAuthChange));
+
+      try {
+        await transport.connect();
+      } catch (error) {
+        // Local-first: start succeeds offline; reconnection/status events pick
+        // up syncing when connectivity returns.
+        warn("transport connect failed; starting offline")(error);
+      }
+      if (generation !== myGeneration) {
+        return;
+      }
+      transport.subscribe(config.collections);
+      startReconcileTimer();
+      isStarted = true;
+      void replayOutbox().catch(warn("startup replay failed"));
     });
 
-    unsubscribers.push(transport.onDelta(handleDelta));
-    unsubscribers.push(transport.onStatusChange(handleStatusChange));
-    unsubscribers.push(config.authProvider.onAuthChange(handleAuthChange));
-
-    try {
-      await transport.connect();
-    } catch (error) {
-      // Local-first: start succeeds offline; reconnection/status events pick
-      // up syncing when connectivity returns.
-      warn("transport connect failed; starting offline")(error);
-    }
-    transport.subscribe(config.collections);
-    startReconcileTimer();
-    void replayOutbox().catch(warn("startup replay failed"));
-  };
-
-  const stop = async (): Promise<void> => {
-    stopReconcileTimer();
-    simulatedOffline = false;
-    for (const unsubscribe of unsubscribers) {
-      unsubscribe();
-    }
-    unsubscribers = [];
-    transport.disconnect();
-    setConnected(false);
-    coordinator.dispose(currentUserId ? {userId: currentUserId} : undefined);
-    if (persister) {
-      // Flush any pending autosave so a clean stop never loses local writes.
-      await persister.save();
-      await persister.destroy();
+  const stop = async (): Promise<void> =>
+    withLifecycle(async (): Promise<void> => {
+      generation += 1;
+      isStarted = false;
+      stopReconcileTimer();
+      simulatedOffline = false;
+      for (const unsubscribe of unsubscribers) {
+        unsubscribe();
+      }
+      unsubscribers = [];
+      transport.disconnect();
+      setConnected(false);
+      coordinator.dispose(currentUserId ? {userId: currentUserId} : undefined);
+      // Capture the persister into a local BEFORE the awaits below: this is
+      // the exact fix for the original bug (a later start() calling
+      // createAndStartPersister() reassigns the module-level `persister`
+      // binding, so re-reading it after the await would destroy the NEW
+      // user's persister instead of this stop()'s). The mutex already
+      // prevents that interleaving, but capturing the local costs nothing and
+      // remains correct even if that invariant is ever relaxed.
+      const persisterToStop = persister;
       persister = undefined;
-    }
-    currentUserId = undefined;
-  };
+      currentUserId = undefined;
+      if (persisterToStop) {
+        // Flush any pending autosave so a clean stop never loses local writes.
+        await persisterToStop.save();
+        await persisterToStop.destroy();
+      }
+    });
 
   const goOffline = (): void => {
     if (simulatedOffline) {
@@ -756,6 +1062,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       isOnline: connected,
       isSyncing: syncingCount > 0,
       ...(authPaused ? {paused: "auth" as const} : {}),
+      persistence: persistenceMode,
       queuedCount: currentUserId ? outbox.listQueued({userId: currentUserId}).length : 0,
       sentThisDrain: drainProgress.sentThisDrain,
       streams: getAllCursors({store}),

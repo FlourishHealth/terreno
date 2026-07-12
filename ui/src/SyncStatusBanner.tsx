@@ -128,6 +128,7 @@ export const SyncStatusBanner: React.FC<SyncStatusBannerProps> = ({
         <Box
           accessibilityHint="Opens the sync conflict resolution sheet"
           accessibilityLabel="View sync conflicts"
+          accessibilityRole="button"
           alignItems="center"
           direction="row"
           gap={1}

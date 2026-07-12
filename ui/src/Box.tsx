@@ -273,7 +273,11 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
       const value = props[prop];
       if (BOX_STYLE_MAP[prop]) {
         Object.assign(style, BOX_STYLE_MAP[prop](value, props));
-      } else if (prop !== "children" && prop !== "onClick") {
+      } else if (
+        prop !== "children" &&
+        prop !== "onClick" &&
+        (prop as string) !== "accessibilityRole"
+      ) {
         style[prop] = value;
         // console.warn(`Box: unknown property ${prop}`);
       }
@@ -302,11 +306,17 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   let box: React.ReactElement;
 
   // Adding the accessibilityRole of button throws a warning in React Native since we nest buttons
-  // within Box and RN does not support nested buttons
+  // within Box and RN does not support nested buttons — so this stays on `aria-role` (which RN
+  // itself translates to accessibilityRole under the hood) by default; an explicit
+  // `accessibilityRole` prop is only forwarded literally when the caller opts in.
   if (props.onClick) {
+    const explicitAccessibilityRole = (props as AccessibilityProps).accessibilityRole;
     box = (
       <Pressable
         accessibilityHint={(props as AccessibilityProps).accessibilityHint}
+        {...(explicitAccessibilityRole
+          ? {accessibilityRole: explicitAccessibilityRole as never}
+          : {})}
         aria-label={(props as AccessibilityProps).accessibilityLabel}
         aria-role="button"
         onLayout={props.onLayout}

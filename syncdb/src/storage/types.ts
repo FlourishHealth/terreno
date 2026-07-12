@@ -30,6 +30,16 @@ export interface EntityRow {
   data: string;
   /** Soft-delete tombstone flag. */
   deleted: boolean;
+  /**
+   * ISO-8601 timestamp stamped the moment a tombstone (`deleted: true`) is
+   * first applied locally (empty string when not a tombstone, or for
+   * tombstones applied before this cell existed). E5's client-side
+   * compaction ages tombstones out from this timestamp, not `updated`/
+   * `created`, since a tombstone's local arrival time is what determines when
+   * it is safe to drop (it must survive at least as long as the server's own
+   * retention window, C7).
+   */
+  deletedAt: string;
   /** Outbox mutation currently protecting this entity's optimistic state ("" = none). */
   pendingMutationId: string;
   /** Highest server seq applied to this entity (0 = local-only, never synced). */
@@ -85,6 +95,8 @@ export interface SyncEntity<TData = unknown> {
   data: TData;
   /** Soft-delete tombstone flag. */
   deleted: boolean;
+  /** ISO-8601 timestamp the tombstone was first applied; undefined when not a tombstone. */
+  deletedAt?: string;
   /** Entity id (the TinyBase row id). */
   id: string;
   /** Outbox mutation currently protecting this entity, if any. */

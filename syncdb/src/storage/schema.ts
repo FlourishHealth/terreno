@@ -8,6 +8,8 @@ export const SYNC_SCHEMA_VERSION = 1;
 const ENTITY_TABLE_SCHEMA: Record<string, CellSchema> = {
   data: {type: "string"},
   deleted: {default: false, type: "boolean"},
+  /** E5: stamped when a tombstone is first applied; "" otherwise. */
+  deletedAt: {default: "", type: "string"},
   pendingMutationId: {default: "", type: "string"},
   seq: {default: 0, type: "number"},
 };

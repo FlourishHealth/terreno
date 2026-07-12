@@ -33,32 +33,37 @@ export const applyDelta = ({
   store: SyncStore;
   delta: SyncDelta;
   now?: () => string;
-}): ApplyDeltaResult => {
-  const seqJump = delta.seq > getCursor({store, stream: delta.stream}) + 1;
-  const advanceCursor = (): void => {
-    setCursor({now, seq: delta.seq, store, stream: delta.stream});
-  };
+}): ApplyDeltaResult =>
+  // E4: one transaction per delta — the entity upsert and cursor advance land
+  // as a single store commit (one listener notification, one autosave
+  // attempt) instead of two, and the two writes can never be observed
+  // half-applied by a listener firing between them.
+  store.raw.transaction(() => {
+    const seqJump = delta.seq > getCursor({store, stream: delta.stream}) + 1;
+    const advanceCursor = (): void => {
+      setCursor({now, seq: delta.seq, store, stream: delta.stream});
+    };
 
-  const existing = store.getEntity({collection: delta.collection, id: delta.id});
-  if (existing && delta.seq <= existing.seq) {
-    advanceCursor();
-    return {applied: false, seqJump};
-  }
-  if (existing?.pendingMutationId) {
-    advanceCursor();
-    return {applied: false, seqJump};
-  }
+    const existing = store.getEntity({collection: delta.collection, id: delta.id});
+    if (existing && delta.seq <= existing.seq) {
+      advanceCursor();
+      return {applied: false, seqJump};
+    }
+    if (existing?.pendingMutationId) {
+      advanceCursor();
+      return {applied: false, seqJump};
+    }
 
-  const deleted = delta.deleted === true || delta.method === "delete";
-  store.upsertEntity({
-    collection: delta.collection,
-    // Tombstone deltas omit data; keep the last known payload for conflict UIs.
-    data: delta.data !== undefined ? delta.data : (existing?.data ?? null),
-    deleted,
-    id: delta.id,
-    pendingMutationId: "",
-    seq: delta.seq,
+    const deleted = delta.deleted === true || delta.method === "delete";
+    store.upsertEntity({
+      collection: delta.collection,
+      // Tombstone deltas omit data; keep the last known payload for conflict UIs.
+      data: delta.data !== undefined ? delta.data : (existing?.data ?? null),
+      deleted,
+      id: delta.id,
+      pendingMutationId: "",
+      seq: delta.seq,
+    });
+    advanceCursor();
+    return {applied: true, seqJump};
   });
-  advanceCursor();
-  return {applied: true, seqJump};
-};

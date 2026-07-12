@@ -183,6 +183,16 @@ export interface SyncStatus {
   totalThisDrain: number;
   /** Per-stream cursors (stream key → highest applied seq). */
   streams: Record<string, number>;
+  /**
+   * E3(c)/(a): local persistence health. `"durable"` (default) means the
+   * platform persister is backed by real storage (IndexedDB/SQLite);
+   * `"memory"` means the web factory fell back to in-memory persistence
+   * (no `globalThis.indexedDB` in this environment — data will not survive a
+   * reload); `"error"` means the last load attempt hit a storage READ error
+   * (distinct from "no data") and the client deliberately skipped autosave to
+   * avoid clobbering a still-possibly-intact persisted blob.
+   */
+  persistence: "durable" | "memory" | "error";
 }
 
 /**

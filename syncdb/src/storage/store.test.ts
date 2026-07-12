@@ -208,3 +208,86 @@ describe("clearCollection", () => {
     );
   });
 });
+
+describe("deletedAt stamping (E5)", () => {
+  it("upsertEntity stamps deletedAt on the transition into a tombstone, and only then", () => {
+    const store = makeStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeUndefined();
+
+    store.softDeleteEntity({collection: "todos", id: "t1"});
+    const firstStampedAt = store.getEntity({collection: "todos", id: "t1"})?.deletedAt;
+    expect(firstStampedAt).toBeTruthy();
+
+    // A second upsert that keeps deleted: true must NOT re-stamp deletedAt.
+    store.upsertEntity({collection: "todos", data: {title: "a"}, deleted: true, id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBe(firstStampedAt);
+  });
+
+  it("clears deletedAt on a resurrection (upsert back to deleted: false)", () => {
+    const store = makeStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+    store.softDeleteEntity({collection: "todos", id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeTruthy();
+
+    store.upsertEntity({collection: "todos", data: {title: "a"}, deleted: false, id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeUndefined();
+  });
+});
+
+describe("compactTombstones (E5)", () => {
+  it("removes tombstones older than the retention window, across all collections", () => {
+    const clock = {value: 1_000_000};
+    const store = createSyncStore({
+      collections: ["todos", "notes"],
+      now: () => new Date(clock.value).toISOString(),
+    });
+    store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1"});
+    store.upsertEntity({collection: "todos", data: {title: "recent"}, id: "t2"});
+    store.upsertEntity({collection: "notes", data: {body: "old note"}, id: "n1"});
+    store.upsertEntity({collection: "todos", data: {title: "kept, not deleted"}, id: "t3"});
+
+    // t1/n1 tombstoned "long ago"; t2 tombstoned "recently", relative to the
+    // clock the compaction call itself uses below.
+    store.upsertEntity({collection: "todos", data: null, deleted: true, id: "t1"});
+    store.upsertEntity({collection: "notes", data: null, deleted: true, id: "n1"});
+    clock.value += 100 * 24 * 60 * 60 * 1_000; // +100 days
+    store.upsertEntity({collection: "todos", data: null, deleted: true, id: "t2"});
+
+    // Advance the clock another 10 days: t1/n1 are now ~110 days old, t2 is
+    // ~10 days old. A 90-day retention window compacts t1/n1 but keeps t2.
+    clock.value += 10 * 24 * 60 * 60 * 1_000;
+    const result = store.compactTombstones({olderThanMs: 90 * 24 * 60 * 60 * 1_000});
+
+    expect(result.removed).toBe(2);
+    expect(store.getEntity({collection: "todos", id: "t1"})).toBeUndefined();
+    expect(store.getEntity({collection: "notes", id: "n1"})).toBeUndefined();
+    expect(store.getEntity({collection: "todos", id: "t2"})?.deleted).toBe(true);
+    expect(store.getEntity({collection: "todos", id: "t3"})?.deleted).toBe(false);
+  });
+
+  it("leaves tombstones with no deletedAt (pre-E5 rows) untouched", () => {
+    const store = makeStore();
+    store.upsertEntity({collection: "todos", data: {title: "legacy"}, id: "t1"});
+    // Simulate a tombstone written before deletedAt existed: set the cell
+    // directly, bypassing the stamping logic in upsertEntity/softDeleteEntity.
+    store.raw.setCell("todos", "t1", "deleted", true);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeUndefined();
+
+    const result = store.compactTombstones({olderThanMs: 0});
+    expect(result.removed).toBe(0);
+    expect(store.getEntity({collection: "todos", id: "t1"})).toBeDefined();
+  });
+
+  it("never removes non-tombstone rows regardless of age", () => {
+    const store = makeStore();
+    const clock = {value: 1_000_000};
+    store.upsertEntity({collection: "todos", data: {title: "alive"}, id: "t1"});
+    const result = store.compactTombstones({
+      now: () => new Date(clock.value + 1_000 * 60 * 60 * 24 * 365).toISOString(),
+      olderThanMs: 0,
+    });
+    expect(result.removed).toBe(0);
+    expect(store.getEntity({collection: "todos", id: "t1"})).toBeDefined();
+  });
+});

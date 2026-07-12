@@ -1,8 +1,13 @@
+import "fake-indexeddb/auto";
+
 import {describe, expect, it} from "bun:test";
 
 import {createSyncDb, type SyncDbConfig} from "./client";
+import {createLocalKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyProviders";
 import {getConflict} from "./mutations/conflicts";
+import {createDefaultPersisterFactory as createWebPersisterFactory} from "./persisters/defaultPersisterFactory.web";
 import {memoryPersisterFactory} from "./persisters/memoryPersister";
+import {idbGet} from "./storage/idb";
 import {createFakeTransport, type FakeTransport} from "./sync/fakeTransport";
 import {AuthRequiredError, type HttpChannel} from "./sync/httpChannel";
 import type {AuthProvider, SyncDelta, SyncSnapshotResponse} from "./types";
@@ -137,6 +142,7 @@ describe("createSyncDb", () => {
       failedCount: 0,
       isOnline: false,
       isSyncing: false,
+      persistence: "durable",
       queuedCount: 0,
       sentThisDrain: 0,
       streams: {},
@@ -603,11 +609,37 @@ describe("createSyncDb", () => {
       const client = createSyncDb(harness.config);
       await client.start();
       harness.transport.setConnected(true);
-
-      client.mutate({collection: "todos", data: {title: "a"}, operation: "create"});
-      client.mutate({collection: "todos", data: {title: "b"}, operation: "create"});
-      client.mutate({collection: "todos", data: {title: "c"}, operation: "create"});
       await flush();
+
+      // Enqueue directly (bypassing mutate()'s own per-call replay trigger,
+      // which would otherwise start draining synchronously — up to its first
+      // real await — before the second/third mutation exist, since each
+      // mutate() call's fire-and-forget replayOutbox() can independently
+      // observe the queue as it existed at that instant instead of all three
+      // landing in the same batch) so a single replayOutbox() call sees all
+      // three together deterministically.
+      client.outbox.enqueue({
+        args: {title: "a"},
+        collection: "todos",
+        entityId: "e1",
+        operation: "create",
+        userId: "u1",
+      });
+      client.outbox.enqueue({
+        args: {title: "b"},
+        collection: "todos",
+        entityId: "e2",
+        operation: "create",
+        userId: "u1",
+      });
+      client.outbox.enqueue({
+        args: {title: "c"},
+        collection: "todos",
+        entityId: "e3",
+        operation: "create",
+        userId: "u1",
+      });
+      await client.replayOutbox();
 
       expect(harness.transport.sentBatches.length).toBeGreaterThanOrEqual(1);
       expect(harness.transport.sentBatches.flat()).toHaveLength(3);
@@ -621,10 +653,23 @@ describe("createSyncDb", () => {
       const client = createSyncDb(harness.config);
       await client.start();
       harness.transport.setConnected(true);
-
-      client.mutate({collection: "todos", data: {title: "a"}, operation: "create"});
-      client.mutate({collection: "todos", data: {title: "b"}, operation: "create"});
       await flush();
+
+      client.outbox.enqueue({
+        args: {title: "a"},
+        collection: "todos",
+        entityId: "e1",
+        operation: "create",
+        userId: "u1",
+      });
+      client.outbox.enqueue({
+        args: {title: "b"},
+        collection: "todos",
+        entityId: "e2",
+        operation: "create",
+        userId: "u1",
+      });
+      await client.replayOutbox();
       expect(client.getSyncStatus().queuedCount).toBe(0);
       expect(harness.transport.sentMutations).toHaveLength(2);
 
@@ -634,9 +679,21 @@ describe("createSyncDb", () => {
       await flush();
       harness.transport.setConnected(true);
       await flush();
-      client.mutate({collection: "todos", data: {title: "c"}, operation: "create"});
-      client.mutate({collection: "todos", data: {title: "d"}, operation: "create"});
-      await flush();
+      client.outbox.enqueue({
+        args: {title: "c"},
+        collection: "todos",
+        entityId: "e3",
+        operation: "create",
+        userId: "u1",
+      });
+      client.outbox.enqueue({
+        args: {title: "d"},
+        collection: "todos",
+        entityId: "e4",
+        operation: "create",
+        userId: "u1",
+      });
+      await client.replayOutbox();
       expect(harness.transport.sentBatches.length).toBeGreaterThanOrEqual(1);
       await client.stop();
     });
@@ -1379,6 +1436,400 @@ describe("createSyncDb", () => {
 
       await client.signOut();
       expect(client.store.listEntities({collection: "todos", includeDeleted: true})).toEqual([]);
+    });
+  });
+
+  describe("lifecycle serialization (E1)", () => {
+    it("a rapid stop()-then-start() for a new user leaves the new user's persistence working", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "user one"}, operation: "create"});
+      await flush();
+
+      // Rapid stop() immediately followed by start() for a DIFFERENT user —
+      // this is the exact interleaving the original bug hit: stop() re-reads
+      // the module-level `persister` after awaiting a debounced save(), and
+      // an interleaved start() for the new user had already replaced it,
+      // destroying the NEW user's persister instead of the old one (leaving
+      // mutate() throwing for the new user). Do NOT await stop() before
+      // calling start() — that's the whole point of "rapid".
+      harness.auth.setUserId("u2");
+      const stopPromise = client.stop();
+      const startPromise = client.start();
+      await Promise.all([stopPromise, startPromise]);
+
+      // The new user's session must be fully functional: mutate() succeeds
+      // and the entity persists through its own persister.
+      const {id, mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "user two"},
+        operation: "create",
+      });
+      expect(client.store.getEntity({collection: "todos", id})?.data).toEqual({title: "user two"});
+      expect(client.outbox.getMutation({mutationId})).toBeDefined();
+      expect(client.store.getLastUserId()).toBe("u2");
+      await client.stop();
+
+      // Re-opening under the same name for u2 must load what was just
+      // written — proving the persister that survived the race was u2's, not
+      // a destroyed/half-wired one.
+      const reopened = createSyncDb({...harness.config, name});
+      harness.auth.setUserId("u2");
+      await reopened.start();
+      expect(reopened.store.listEntities({collection: "todos"}).map((e) => e.data)).toContainEqual({
+        title: "user two",
+      });
+      await reopened.stop();
+    });
+
+    it("double start() is a no-op: listeners are not double-registered", async () => {
+      const harness = makeHarness();
+      let onDeltaCalls = 0;
+      let onStatusChangeCalls = 0;
+      const countingTransport = {
+        ...harness.transport,
+        onDelta: (callback: (delta: SyncDelta) => void): (() => void) => {
+          onDeltaCalls += 1;
+          return harness.transport.onDelta(callback);
+        },
+        onStatusChange: (
+          callback: (status: {connected: boolean; authExpired?: boolean}) => void
+        ): (() => void) => {
+          onStatusChangeCalls += 1;
+          return harness.transport.onStatusChange(callback);
+        },
+      };
+      const client = createSyncDb({...harness.config, transport: countingTransport});
+      await client.start();
+      expect(onDeltaCalls).toBe(1);
+      expect(onStatusChangeCalls).toBe(1);
+
+      // A second start() while already started must be a no-op — no new
+      // listener registration, no thrown error.
+      await client.start();
+      expect(onDeltaCalls).toBe(1);
+      expect(onStatusChangeCalls).toBe(1);
+
+      // The client is still fully functional (the first start() "won").
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "still works"},
+        operation: "create",
+      });
+      expect(client.outbox.getMutation({mutationId})).toBeDefined();
+      await client.stop();
+    });
+
+    it("stop() disposes the coordinator's armed wake-up timer (A3) so no post-stop send fires", async () => {
+      const harness = makeHarness();
+      harness.transport.setDefaultResponder(() => {
+        throw new Error("transient failure");
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "x"}, operation: "create"});
+      await flush();
+      // The failed send armed a jittered backoff wake-up timer.
+      expect(client.getSyncStatus().queuedCount).toBe(1);
+
+      await client.stop();
+      const sentBeforeWait = harness.transport.sentMutations.length;
+      // Advance well past any plausible backoff window; if the timer were
+      // still armed post-stop it would fire another send here.
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(harness.transport.sentMutations.length).toBe(sentBeforeWait);
+    });
+  });
+
+  describe("schema versioning (E2)", () => {
+    it("wipes and re-bootstraps when the persisted schemaVersion is stale", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "v1 data"}, id: "t1", seq: 1});
+      // Simulate a persisted store written under an OLDER schema version.
+      client.store.raw.setValue("schemaVersion", 0);
+      await flush();
+      await client.stop();
+
+      // Seed a snapshot page so the re-bootstrap after the wipe has something
+      // to fetch and the test can prove it actually ran.
+      const second = makeHarness({name});
+      second.http.state.pages.todos = {
+        cursor: 5,
+        entities: [{data: {title: "from server"}, deleted: false, id: "server-1", seq: 5}],
+        hasMore: false,
+      };
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      await flush();
+
+      // The stale v1 data is gone (wiped, not merged) and the fresh
+      // re-bootstrap populated the store from the server instead.
+      expect(reopened.store.getEntity({collection: "todos", id: "t1"})).toBeUndefined();
+      expect(reopened.store.getEntity({collection: "todos", id: "server-1"})?.data).toEqual({
+        title: "from server",
+      });
+      expect(reopened.store.getSchemaVersion()).toBe(1);
+      await reopened.stop();
+    });
+
+    it("leaves data untouched when the persisted schemaVersion already matches", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "current"}, id: "t1", seq: 1});
+      await flush();
+      await client.stop();
+
+      const second = makeHarness({name});
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      await flush();
+
+      expect(reopened.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
+        title: "current",
+      });
+      expect(reopened.store.getSchemaVersion()).toBe(1);
+      await reopened.stop();
+    });
+
+    it("stamps the current schema version on a genuinely fresh store", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      expect(client.store.getSchemaVersion()).toBe(1);
+      await client.stop();
+    });
+  });
+
+  describe("persistence failure surfaces (E3)", () => {
+    // These tests exercise the REAL web persister factory (encrypted
+    // IndexedDB) rather than the memoryPersisterFactory default used
+    // elsewhere in this file: under plain bun/Node (no Metro/webpack platform
+    // resolution), importing "./persisters/defaultPersisterFactory" always
+    // resolves to the neutral in-memory fallback, never the `.web.ts`
+    // variant — so `client.ts`'s own E3 hooks (built for that default-factory
+    // branch) are unreachable unless the test supplies the web factory
+    // directly as `persisterFactory`. The client passes its hooks through to
+    // ANY factory via the `hooks` argument (see `PersisterFactory`), so a
+    // directly-supplied web factory still wires up SyncStatus surfacing
+    // exactly as production code would under Metro/webpack.
+    const makeWebPersisterFactory = (
+      overrides: Parameters<typeof createWebPersisterFactory>[0] = {}
+    ): SyncDbConfig["persisterFactory"] =>
+      createWebPersisterFactory({
+        keyProvider: createLocalKeyProvider({cacheDbName: uniqueName()}),
+        saveDebounceMs: 0,
+        ...overrides,
+      });
+
+    it("a quota-exceeded save surfaces persistence: 'error' on SyncStatus", async () => {
+      const harness = makeHarness({
+        persisterFactory: makeWebPersisterFactory({
+          idbSetImpl: async () => {
+            const error = new Error("The quota has been exceeded.");
+            error.name = "QuotaExceededError";
+            throw error;
+          },
+        }),
+      });
+      let statusChanges = 0;
+      const client = createSyncDb(harness.config);
+      const unsubscribe = client.onStatusChange(() => {
+        statusChanges += 1;
+      });
+      // The very first startAutoSave() save already goes through the failing
+      // idbSetImpl, so persistence surfaces "error" immediately on start() —
+      // this is the correct, intentional behavior (a save failure is a save
+      // failure regardless of whether the store was empty or not).
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "x"}, operation: "create"});
+      await flush();
+
+      expect(client.getSyncStatus().persistence).toBe("error");
+      expect(statusChanges).toBeGreaterThan(0);
+      unsubscribe();
+      await client.stop();
+    });
+
+    it("invokes the configured onDecryptFailure hook instead of the default wipe", async () => {
+      const name = uniqueName();
+      const keyProvider = createLocalKeyProvider({cacheDbName: uniqueName()});
+      const harness = makeHarness({
+        name,
+        persisterFactory: createWebPersisterFactory({keyProvider, saveDebounceMs: 0}),
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "keep"}, operation: "create"});
+      await flush();
+      await client.stop();
+
+      let decryptFailureCalls = 0;
+      const second = makeHarness({
+        name,
+        onDecryptFailure: () => {
+          decryptFailureCalls += 1;
+        },
+        persisterFactory: createWebPersisterFactory({
+          idbGetImpl: async <T>(): Promise<T | undefined> =>
+            new Uint8Array([1, 2, 3, 4, 5]) as unknown as T,
+          keyProvider,
+          saveDebounceMs: 0,
+        }),
+      });
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      await flush();
+
+      expect(decryptFailureCalls).toBe(1);
+      await reopened.stop();
+    });
+
+    it("a clean stop() flushes a pending write before destroying the persister", async () => {
+      const name = uniqueName();
+      const keyProvider = createLocalKeyProvider({cacheDbName: uniqueName()});
+      const harness = makeHarness({
+        name,
+        persisterFactory: createWebPersisterFactory({keyProvider, saveDebounceMs: 0}),
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "before stop"}, operation: "create"});
+      // Let the transaction-triggered autosave settle before stop()'s own
+      // flush — see encryptedIndexedDbPersister.test.ts's
+      // "destroy() flushes a pending debounced save and writes nothing after"
+      // for the narrower, race-free version of this same guarantee at the
+      // persister level.
+      await flush();
+      await client.stop();
+
+      const reopened = createSyncDb({
+        ...harness.config,
+        persisterFactory: createWebPersisterFactory({keyProvider, saveDebounceMs: 0}),
+      });
+      await reopened.start();
+      await flush();
+      expect(
+        reopened.store.listEntities({collection: "todos"}).map((entity) => entity.data)
+      ).toContainEqual({title: "before stop"});
+      await reopened.stop();
+    });
+
+    it("a different-user login clears the cached derived encryption key (E3f)", async () => {
+      // No custom keyProvider/cacheDbName here: `client.ts`'s different-user
+      // wipe path clears `DEFAULT_KEY_CACHE_DB_NAME` specifically (the
+      // default local key provider's cache database), so this test must
+      // exercise that exact default. The test builds the web persister
+      // factory directly (bypassing client.ts's own userId-aware factory
+      // construction — see the describe-level comment on why), so the
+      // cached key's scope key is "local:local" (no userId override) rather
+      // than the "local:{userId}" shape client.ts's own default path uses;
+      // either way it lives in the same DEFAULT_KEY_CACHE_DB_NAME database
+      // client.ts wipes.
+      const harness = makeHarness({
+        persisterFactory: createWebPersisterFactory({saveDebounceMs: 0}),
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      // The default local key provider derives and caches a key on first use
+      // (during the initial autoload/autosave above).
+      expect(
+        await idbGet<CryptoKey>({databaseName: DEFAULT_KEY_CACHE_DB_NAME, key: "local:local"})
+      ).toBeInstanceOf(CryptoKey);
+
+      harness.auth.setUserId("u2");
+      harness.auth.emitAuthChange();
+      await flush();
+
+      expect(
+        await idbGet<CryptoKey>({databaseName: DEFAULT_KEY_CACHE_DB_NAME, key: "local:local"})
+      ).toBeUndefined();
+      await client.stop();
+    });
+  });
+
+  describe("client-side tombstone compaction (E5)", () => {
+    it("a successful reconcile compacts tombstones older than the retention window", async () => {
+      const harness = makeHarness({tombstoneRetentionMs: 90 * 24 * 60 * 60 * 1_000});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      // A tombstone applied via a delta, stamped at the current (mocked) clock time.
+      harness.transport.deliverDelta({
+        collection: "todos",
+        deleted: true,
+        id: "old-tombstone",
+        method: "delete",
+        seq: 1,
+        stream: "todos|owner:u1",
+      });
+      expect(client.store.getEntity({collection: "todos", id: "old-tombstone"})?.deleted).toBe(
+        true
+      );
+
+      // Advance the clock past the retention window, then trigger a
+      // reconcile (which must succeed for compaction to run at all).
+      harness.clock.value += 91 * 24 * 60 * 60 * 1_000;
+      await client.reconcile();
+
+      expect(client.store.getEntity({collection: "todos", id: "old-tombstone"})).toBeUndefined();
+      await client.stop();
+    });
+
+    it("does not compact tombstones still within the retention window", async () => {
+      const harness = makeHarness({tombstoneRetentionMs: 90 * 24 * 60 * 60 * 1_000});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      harness.transport.deliverDelta({
+        collection: "todos",
+        deleted: true,
+        id: "fresh-tombstone",
+        method: "delete",
+        seq: 1,
+        stream: "todos|owner:u1",
+      });
+
+      harness.clock.value += 5 * 24 * 60 * 60 * 1_000;
+      await client.reconcile();
+
+      expect(client.store.getEntity({collection: "todos", id: "fresh-tombstone"})?.deleted).toBe(
+        true
+      );
+      await client.stop();
+    });
+
+    it("tombstoneRetentionMs: 0 disables compaction entirely", async () => {
+      const harness = makeHarness({tombstoneRetentionMs: 0});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      harness.transport.deliverDelta({
+        collection: "todos",
+        deleted: true,
+        id: "never-compacted",
+        method: "delete",
+        seq: 1,
+        stream: "todos|owner:u1",
+      });
+
+      harness.clock.value += 365 * 24 * 60 * 60 * 1_000;
+      await client.reconcile();
+
+      expect(client.store.getEntity({collection: "todos", id: "never-compacted"})?.deleted).toBe(
+        true
+      );
+      await client.stop();
     });
   });
 });

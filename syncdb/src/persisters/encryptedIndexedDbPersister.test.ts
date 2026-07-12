@@ -139,6 +139,78 @@ describe("createEncryptedIndexedDbPersister", () => {
     expect(onDecryptFailure).not.toHaveBeenCalled();
   });
 
+  describe("load failure (E3a)", () => {
+    it("a rejecting idbGet at load leaves the stored blob intact and reports onLoadFailure, not onDecryptFailure", async () => {
+      const databaseName = uniqueDbName();
+      const codec = createAesGcmCodec({key: await generateKey()});
+      const source = makeStore();
+      source.upsertEntity({collection: "todos", data: {title: "still here"}, id: "t1", seq: 3});
+      await createEncryptedIndexedDbPersister({
+        codec,
+        databaseName,
+        saveDebounceMs: 0,
+        store: source.raw,
+      }).save();
+
+      const onDecryptFailure = mock(() => {});
+      const onLoadFailure = mock(() => {});
+      const target = makeStore();
+      await createEncryptedIndexedDbPersister({
+        codec,
+        databaseName,
+        idbGetImpl: async () => {
+          throw new Error("simulated IndexedDB read failure");
+        },
+        onDecryptFailure,
+        onLoadFailure,
+        saveDebounceMs: 0,
+        store: target.raw,
+      }).load();
+
+      // The distinct load-failure hook fired, NOT the decrypt-failure one — a
+      // read error is not "corrupt/undecryptable data".
+      expect(onLoadFailure).toHaveBeenCalledTimes(1);
+      expect(onDecryptFailure).not.toHaveBeenCalled();
+      // The target store was never populated (load bailed out before
+      // touching it) — this is the state a caller must check before deciding
+      // to autosave (autosaving now would write this empty content over the
+      // still-good blob).
+      expect(target.listEntities({collection: "todos"})).toEqual([]);
+
+      // The persisted blob itself is untouched: reading it back normally
+      // (real idbGet) with a fresh store still recovers the original data —
+      // proving nothing was overwritten during the failed load.
+      const recovered = makeStore();
+      await createEncryptedIndexedDbPersister({
+        codec,
+        databaseName,
+        saveDebounceMs: 0,
+        store: recovered.raw,
+      }).load();
+      expect(recovered.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
+        title: "still here",
+      });
+      expect(recovered.getEntity({collection: "todos", id: "t1"})?.seq).toBe(3);
+    });
+
+    it("treats a genuinely missing record (no read error) as a fresh store, not a load failure", async () => {
+      const onLoadFailure = mock(() => {});
+      const onDecryptFailure = mock(() => {});
+      const store = makeStore();
+      await createEncryptedIndexedDbPersister({
+        codec: createAesGcmCodec({key: await generateKey()}),
+        databaseName: uniqueDbName(),
+        onDecryptFailure,
+        onLoadFailure,
+        saveDebounceMs: 0,
+        store: store.raw,
+      }).load();
+      expect(onLoadFailure).not.toHaveBeenCalled();
+      expect(onDecryptFailure).not.toHaveBeenCalled();
+      expect(store.listEntities({collection: "todos"})).toEqual([]);
+    });
+  });
+
   it("invokes onDecryptFailure and yields an empty store on undecryptable data", async () => {
     const databaseName = uniqueDbName();
     await idbSet({
@@ -228,6 +300,46 @@ describe("createEncryptedIndexedDbPersister", () => {
       store: target.raw,
     }).load();
     expect(target.getEntity({collection: "todos", id: "t1"})?.data).toEqual({title: "three"});
+  });
+
+  it("destroy() cancels a pending debounced save and writes nothing after (E3e)", async () => {
+    const databaseName = uniqueDbName();
+    let encodeCount = 0;
+    const countingCodec: PayloadCodec = {
+      decode: identityCodec.decode,
+      encode: (plaintext) => {
+        encodeCount += 1;
+        return identityCodec.encode(plaintext);
+      },
+    };
+    const source = makeStore();
+    const persister = createEncryptedIndexedDbPersister({
+      codec: countingCodec,
+      databaseName,
+      saveDebounceMs: 50,
+      store: source.raw,
+    });
+    await persister.startAutoSave();
+    const encodeCountAfterInitialSave = encodeCount;
+    source.upsertEntity({collection: "todos", data: {title: "pending"}, id: "t1"});
+    // The autosave listener's write is now debounced (50ms) and still
+    // pending — destroy immediately, before it can fire.
+    await persister.destroy();
+    // Wait well past the debounce window: if the timer were still armed
+    // (E3e regression), it would fire here and write "pending".
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(encodeCount).toBe(encodeCountAfterInitialSave);
+
+    const target = makeStore();
+    await createEncryptedIndexedDbPersister({
+      codec: countingCodec,
+      databaseName,
+      saveDebounceMs: 0,
+      store: target.raw,
+    }).load();
+    // Nothing was ever written after the initial (pre-mutation) autosave —
+    // the mutated content never landed.
+    expect(target.getEntity({collection: "todos", id: "t1"})).toBeUndefined();
   });
 
   it("propagates encode failures to the caller of save()", async () => {

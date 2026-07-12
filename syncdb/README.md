@@ -139,16 +139,19 @@ const client = createSyncDb({
   seqJumpReconcileMinIntervalMs?, // seq-jump reconcile rate limit (default 30s)
   batchSize?,                     // max mutations per batched drain send (default 50; server caps at 100)
   haltQueueOnConflict?,           // conflict policy — see "Conflict handling modes" below (default false)
+  onDecryptFailure?,              // override the default wipe+re-bootstrap on undecryptable data (web)
+  tombstoneRetentionMs?,          // client-side tombstone compaction window (default 90 days; 0 disables)
 });
 
-client.start() / client.stop();
+client.start() / client.stop();  // start() is idempotent while already started (a second call is a no-op)
 client.mutate({collection, operation, id?, data?}); // → {mutationId, id}
-client.reconcile();       // HTTP snapshot catch-up for every collection
+client.reconcile();       // HTTP snapshot catch-up for every collection; also runs tombstone compaction on success
 client.replayOutbox();    // drain queued mutations now
 client.resolveConflict({mutationId, strategy: "useServer" | "keepMine"});
 client.retryFailed({entityId});  // re-enable an entity's queued successors after a terminal validation failure
 client.getSyncStatus();   // {isOnline, isSyncing, queuedCount, conflictCount, failedCount, blockedEntities,
-                           //  paused?, draining, sentThisDrain, totalThisDrain, streams}
+                           //  paused?, draining, sentThisDrain, totalThisDrain, streams, persistence}
+                           //  persistence: "durable" | "memory" | "error" — see "Encryption at rest" below
 client.onStatusChange(cb);
 client.store / client.outbox; // low-level access
 ```
@@ -259,8 +262,10 @@ Every mutation is idempotent: the handler atomically claims a `SyncMutation` led
 
 Web persistence is **encrypted by default**: the store content is AES-256-GCM encrypted via Web Crypto before it touches IndexedDB. Key management is a pluggable `KeyProvider`:
 
-- `createServerKeyProvider({appName, fetchKeyMaterial})` (**the default**: `createSyncDb` wires it automatically to `GET /sync/key` through its authenticated HTTP channel): fetches per-user key material, derives a non-extractable AES-256-GCM key via HKDF-SHA256 (salt = `{appName}:{userId}`), and caches the derived CryptoKey in IndexedDB so offline cold starts still decrypt. Server rotation of key material makes decryption fail → hook `onDecryptFailure` to wipe and re-bootstrap.
+- `createServerKeyProvider({appName, fetchKeyMaterial})` (**the default**: `createSyncDb` wires it automatically to `GET /sync/key` through its authenticated HTTP channel): fetches per-user key material, derives a non-extractable AES-256-GCM key via HKDF-SHA256 (salt = `{appName}:{userId}`), and caches the derived CryptoKey in IndexedDB so offline cold starts still decrypt. Server rotation of key material makes decryption fail — the client wipes local data, re-stamps the schema version, and runs a full re-bootstrap by default (always preceded by a `console.warn`); pass `onDecryptFailure` in `createSyncDb`'s config to override that default (e.g. prompt the user before wiping) instead.
 - `createLocalKeyProvider()`: a random non-extractable CryptoKey generated on-device and cached in IndexedDB. No server dependency and no server-side copy of the key — strictly stronger for the at-rest case, at the cost of no server-driven rotation/revocation.
+
+A storage **read** error (IndexedDB itself throwing — unavailable, blocked, or corrupted) is a distinct failure mode from "no data yet" or "undecryptable data": the client leaves the persisted blob untouched (no autosave-over) and surfaces `persistence: "error"` on `SyncStatus` instead of wiping. When `globalThis.indexedDB` is unavailable entirely (private-browsing modes that disable it, a locked-down embedded webview), the web persister factory falls back to in-memory persistence for the session (warns once) and reports `persistence: "memory"`.
 
 ```typescript
 import {createLocalKeyProvider} from "@terreno/syncdb";
@@ -284,21 +289,30 @@ Native relies on the OS app sandbox: the expo-sqlite store is plaintext by desig
 
 ## Local store layout
 
-One TinyBase `MergeableStore` per `{app, userId}` (wiped and re-bootstrapped on user change):
+One TinyBase `MergeableStore` per `{app, userId}` (wiped and re-bootstrapped on user change, or on a schema-version mismatch — see below):
 
 ```
 tables:
-  {collection}   → rowId = doc _id; cells: data (JSON string), seq, deleted, pendingMutationId
+  {collection}   → rowId = doc _id; cells: data (JSON string), seq, deleted, deletedAt,
+                   pendingMutationId
   _outbox        → rowId = mutationId; cells: collection, operation, entityId, args (JSON),
                    baseVersion?, status (queued|inFlight|acked|conflicted|failed),
                    attemptCount, userId, createdAt, enqueueOrder
   _cursors       → rowId = stream; cells: seq, updatedAt
   _conflicts     → rowId = mutationId; cells: collection, entityId, localData, serverData,
                    serverSeq, dismissed
-values: schemaVersion, lastUserId
+values: schemaVersion, lastUserId, outboxMaxEnqueueOrder
 ```
 
 The outbox replays FIFO over the socket (HTTP fallback while disconnected), with per-user isolation: queued mutations record `userId` and replay skips on mismatch.
+
+### Schema versioning
+
+`SYNC_SCHEMA_VERSION` (`storage/schema.ts`) is stamped into the store's `schemaVersion` value on every `start()`. If a persisted store's stamped version doesn't match the running client's, the client treats it as a schema migration (not an auth event): wipe all local data, re-stamp the current version, and run a full snapshot re-bootstrap before `start()` resolves. Bump `SYNC_SCHEMA_VERSION` only when a table/cell shape change isn't safely backward-compatible (a new cell with a schema default, for example, does not need a bump).
+
+### Client-side tombstone compaction
+
+Deleted entities are kept locally as tombstones (`deleted: true`) with a `deletedAt` timestamp stamped the moment the tombstone is first applied (via a mutation, a delta, or a snapshot page). After each successful `reconcile()`, tombstones older than `tombstoneRetentionMs` (`createSyncDb` config, default 90 days) are deleted outright. Keep this in sync with the server's own tombstone retention (compaction script in `@terreno/api`) — compacting locally before the server's retention window elapses risks a client permanently missing a delete it hasn't converged on yet. Set `tombstoneRetentionMs: 0` to disable.
 
 ### Why MergeableStore (and the Yjs door)
 

@@ -230,6 +230,32 @@ describe("useQuery", () => {
       await client.stop();
     });
   });
+
+  it("skips a corrupt row (undecodable data) instead of throwing (E4)", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "healthy"}, id: "t1"});
+      // Write a raw row whose `data` cell is not valid JSON, bypassing the
+      // encoder — this is what a corrupt/legacy row looks like on disk.
+      // store.ts's decodeData already swallows the JSON.parse failure and
+      // returns null (with a console.warn) rather than throwing; useQuery
+      // must additionally skip that row from its results rather than handing
+      // list consumers a `null` entry that crashes on first field access.
+      client.store.raw.setRow("todos", "corrupt-1", {
+        data: "{not valid json",
+        deleted: false,
+        pendingMutationId: "",
+        seq: 1,
+      });
+    });
+    const {result} = renderHook(() => useQuery<TodoData>("todos"), {wrapper});
+    expect(() => result.current).not.toThrow();
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0]?.title).toBe("healthy");
+    await act(async () => {
+      await client.stop();
+    });
+  });
 });
 
 describe("useMutate", () => {
@@ -445,6 +471,56 @@ describe("useConflicts", () => {
       .find((mutation) => mutation.entityId === "t1");
     expect(retry?.status).toBe("queued");
     expect(retry?.baseVersion).toBe(7);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+});
+
+describe("listener cleanup on unmount (E4)", () => {
+  it("useEntity removes its row listener on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useEntity<TodoData>("todos", "t1"), {wrapper});
+    expect(client.store.raw.getListenerStats().row).toBe(baseline.row + 1);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useQuery removes its table listener on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useQuery<TodoData>("todos"), {wrapper});
+    expect(client.store.raw.getListenerStats().table).toBe(baseline.table + 1);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useSyncStatus removes its outbox/conflicts/cursors table listeners on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useSyncStatus(), {wrapper});
+    expect(client.store.raw.getListenerStats().table).toBe(baseline.table + 3);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useConflicts removes its conflicts table listener on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useConflicts(), {wrapper});
+    expect(client.store.raw.getListenerStats().table).toBe(baseline.table + 1);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
     await act(async () => {
       await client.stop();
     });

@@ -175,4 +175,40 @@ describe("bootstrapCollections", () => {
       {applied: 1, collection: "todos", cursor: 2, fetched: 2, hasMore: false},
     ]);
   });
+
+  it("applies a whole page inside one transaction: exactly one table-listener fire per page (E4)", async () => {
+    const store = makeStore();
+    const channel = makeChannel({
+      todos: {
+        0: {
+          cursor: 3,
+          entities: [
+            {data: {title: "a"}, deleted: false, id: "t1", seq: 1},
+            {data: {title: "b"}, deleted: false, id: "t2", seq: 2},
+            {data: {title: "c"}, deleted: false, id: "t3", seq: 3},
+          ],
+          hasMore: true,
+        },
+        3: {
+          cursor: 5,
+          entities: [
+            {data: {title: "d"}, deleted: false, id: "t4", seq: 4},
+            {data: {title: "e"}, deleted: false, id: "t5", seq: 5},
+          ],
+          hasMore: false,
+        },
+      },
+    });
+    let fireCount = 0;
+    const listenerId = store.raw.addTableListener("todos", () => {
+      fireCount += 1;
+    });
+    await bootstrapCollections({channel, collections: ["todos"], store});
+    store.raw.delListener(listenerId);
+    // Two pages fetched (hasMore then a final page) — one listener fire per
+    // page, not per row (5 entities total across both pages would mean 5
+    // fires if each upsert were its own transaction).
+    expect(fireCount).toBe(2);
+    expect(store.listEntities({collection: "todos"})).toHaveLength(5);
+  });
 });

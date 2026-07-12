@@ -95,15 +95,24 @@ export const bootstrapCollections = async ({
     let hasMore = true;
     while (hasMore) {
       const page = await channel.fetchSnapshotPage({collection, cursor, limit});
-      let applied = 0;
-      for (const entity of page.entities) {
-        if (applySnapshotEntity({collection, entity, store})) {
-          applied += 1;
+      // E4: apply the whole page inside one store transaction — TinyBase
+      // batches listener notifications (and the autosave persister's
+      // did-finish-transaction write) to fire ONCE per transaction rather
+      // than once per row. Without this, a page of N entities triggers N
+      // table-listener calls (and N autosave attempts) instead of one,
+      // which is O(N²) work across a full bootstrap of many pages.
+      const applied = store.raw.transaction(() => {
+        let count = 0;
+        for (const entity of page.entities) {
+          if (applySnapshotEntity({collection, entity, store})) {
+            count += 1;
+          }
         }
-      }
-      if (page.cursor > cursor) {
-        setCursor({now, seq: page.cursor, store, stream});
-      }
+        if (page.cursor > cursor) {
+          setCursor({now, seq: page.cursor, store, stream});
+        }
+        return count;
+      });
       // Guard against a server bug reporting hasMore without advancing the
       // cursor, which would loop forever re-fetching the same page.
       hasMore = page.hasMore && page.cursor > cursor;

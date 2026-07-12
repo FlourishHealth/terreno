@@ -60,6 +60,14 @@ describe("SyncStatusBanner", () => {
     expect(onOpenConflicts).toHaveBeenCalledTimes(1);
   });
 
+  it("gives the conflict badge an explicit accessibilityRole of button (E6)", () => {
+    const {getByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={1} isOnline={true} isSyncing={false} queuedCount={0} />
+    );
+    const badge = getByTestId("sync-conflict-badge-clickable");
+    expect(badge.props.accessibilityRole).toBe("button");
+  });
+
   it("hides the conflict badge when there are no conflicts", () => {
     const {queryByTestId} = renderWithTheme(
       <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={false} queuedCount={0} />

@@ -121,4 +121,46 @@ describe("createDefaultPersisterFactory (web)", () => {
     expect(onDecryptFailure).toHaveBeenCalledTimes(1);
     expect(target.listEntities({collection: "todos"})).toEqual([]);
   });
+
+  it("tags the returned persister with persistenceMode: 'durable' when IndexedDB is available", () => {
+    const persister = createWebFactory({saveDebounceMs: 0})({
+      databaseName: uniqueDbName(),
+      store: makeStore().raw,
+    });
+    expect((persister as unknown as {persistenceMode?: string}).persistenceMode).toBe("durable");
+  });
+
+  it("falls back to the in-memory persister and tags persistenceMode: 'memory' when indexedDB is unavailable (E3c)", async () => {
+    const originalIndexedDb = globalThis.indexedDB;
+    // Simulating an environment with no IndexedDB at all.
+    delete (globalThis as {indexedDB?: unknown}).indexedDB;
+    try {
+      const databaseName = uniqueDbName();
+      const source = makeStore();
+      source.upsertEntity({collection: "todos", data: {title: "memory only"}, id: "t1"});
+      const persister = createWebFactory({saveDebounceMs: 0})({
+        databaseName,
+        store: source.raw,
+      });
+      expect((persister as unknown as {persistenceMode?: string}).persistenceMode).toBe("memory");
+      await persister.save();
+
+      // The same databaseName round-trips through the in-memory backing —
+      // proving the fallback is a real, working persister, not a stub.
+      const target = makeStore();
+      const targetPersister = createWebFactory({saveDebounceMs: 0})({
+        databaseName,
+        store: target.raw,
+      });
+      expect((targetPersister as unknown as {persistenceMode?: string}).persistenceMode).toBe(
+        "memory"
+      );
+      await targetPersister.load();
+      expect(target.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
+        title: "memory only",
+      });
+    } finally {
+      globalThis.indexedDB = originalIndexedDb;
+    }
+  });
 });
