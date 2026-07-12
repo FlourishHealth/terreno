@@ -837,6 +837,19 @@ describe("syncdb end-to-end integration", () => {
         // in flight at the exact moment offline toggled false) — the load-
         // bearing assertion is that whatever remains queued burned ZERO
         // error-nack budget and is genuinely queued, not failed/conflicted.
+        //
+        // The pause can arrive via the direct socket auth-expired path while
+        // a send is still awaiting its transport timeout; that mutation
+        // settles and requeues (transport path, zero budget) on its own —
+        // wait for the transient "inFlight" window to drain before asserting.
+        await waitFor(
+          () =>
+            mutationIds.every((mutationId) => {
+              const status = client7c.outbox.getMutation({mutationId})?.status;
+              return status === undefined || status === "acked" || status === "queued";
+            }),
+          {label: "in-flight sends settled while paused", timeoutMs: 10_000}
+        );
         expect(client7c.getSyncStatus().queuedCount).toBeGreaterThan(0);
         expect(client7c.getSyncStatus().queuedCount).toBeLessThanOrEqual(5);
         for (const mutationId of mutationIds) {
