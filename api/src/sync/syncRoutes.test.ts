@@ -13,6 +13,7 @@ import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncKey, SyncMutation} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {clearSyncRegistry, registerSync} from "./registry";
+import {MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} from "./routes";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -439,6 +440,33 @@ describe("sync routes", () => {
         .expect(500);
       expect(res.body.nack.code).toBe("error");
     });
+
+    it("returns 429 with a rate_limited nack carrying retryAfterMs once the per-second budget is exceeded (FIX 1)", async () => {
+      // notAdminId is fresh per test (setupDb() runs in beforeEach), so this
+      // user's rolling window starts empty here. Fire the budget-filling
+      // requests CONCURRENTLY (not sequentially awaited) so 100 requests
+      // cannot spread across the 1-second rolling window under machine load
+      // (a sequential loop's wall-clock time is unbounded and would let the
+      // window reset mid-flood, making the final request wrongly succeed).
+      const body = (mutationId: string) => ({
+        collection: "routeStuff",
+        data: {name: "flood", ownerId: notAdminId},
+        mutationId,
+        operation: "create",
+      });
+      await Promise.all(
+        Array.from({length: MAX_SYNC_HTTP_MUTATIONS_PER_SECOND}, (_v, i) =>
+          agent
+            .post("/sync/mutate")
+            .send(body(`hm-flood-${i}`))
+            .expect(200)
+        )
+      );
+      const res = await agent.post("/sync/mutate").send(body("hm-flood-over")).expect(429);
+      expect(res.body.nack.code).toBe("rate_limited");
+      expect(typeof res.body.nack.retryAfterMs).toBe("number");
+      expect(res.body.nack.retryAfterMs).toBeGreaterThan(0);
+    });
   });
 
   describe("POST /sync/mutate/batch", () => {
@@ -508,6 +536,42 @@ describe("sync routes", () => {
       expect(second.body).toEqual(first.body);
       expect(await RouteStuffModel.countDocuments({name: "once"})).toBe(1);
       expect(await RouteStuffModel.countDocuments({name: "twice"})).toBe(1);
+    });
+
+    it("returns 429 with a rate_limited nack carrying retryAfterMs once the shared per-second budget is exceeded (FIX 1)", async () => {
+      // The batch route counts each mutation in the batch (not the batch
+      // itself) against the same per-user window as POST /sync/mutate. Two
+      // batches: the first (at the batch-size cap) nearly exhausts the
+      // per-second budget, the second (small) tips it over — a single batch
+      // over MAX_SYNC_HTTP_MUTATIONS_PER_SECOND would also exceed
+      // MAX_SYNC_MUTATIONS_PER_BATCH and get rejected as oversized first.
+      // A cheap validation nack (unknown collection, mirroring the sibling
+      // sync:mutateBatch rate-limit test) — no DB writes — keeps the first
+      // batch's wall-clock time well under the 1-second window even on a
+      // loaded machine, so it can't spuriously reset before the second
+      // request lands (100 real document creates would risk exactly that).
+      // The batch route always returns 200 with a `results` array (the
+      // client inspects each entry's type) — stop-on-first-nack means only
+      // the first mutation's validation nack comes back, but the FULL
+      // batch length (100) still counts against the rate-limit window
+      // (consumed before any mutation is applied).
+      const firstBatch = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH}, (_v, i) => ({
+        collection: "nope",
+        mutationId: `batch-http-flood-a-${i}`,
+        operation: "create",
+      }));
+      const firstRes = await agent
+        .post("/sync/mutate/batch")
+        .send({mutations: firstBatch})
+        .expect(200);
+      expect(firstRes.body.results[0].nack.code).toBe("validation");
+      const secondBatch = [create("batch-http-flood-b-0", "over budget")];
+      const res = await agent.post("/sync/mutate/batch").send({mutations: secondBatch}).expect(429);
+      expect(res.body.results).toHaveLength(1);
+      expect(res.body.results[0].nack.code).toBe("rate_limited");
+      expect(typeof res.body.results[0].nack.retryAfterMs).toBe("number");
+      expect(res.body.results[0].nack.retryAfterMs).toBeGreaterThan(0);
+      expect(await RouteStuffModel.countDocuments({name: "over budget"})).toBe(0);
     });
   });
 

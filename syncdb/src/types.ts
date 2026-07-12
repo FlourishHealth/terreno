@@ -46,9 +46,15 @@ export interface SyncAck {
   id: string;
   /** The document's new seq. */
   seq: number;
+  /**
+   * Set when the document write succeeded but the server's post-hook threw
+   * (informational only — never a reason to retry, roll back, or treat this
+   * as anything other than a full success).
+   */
+  warning?: string;
 }
 
-export type SyncNackCode = "conflict" | "unauthorized" | "validation" | "error";
+export type SyncNackCode = "conflict" | "unauthorized" | "validation" | "error" | "rate_limited";
 
 /** Rejected mutation. Conflict nacks carry the canonical server document. */
 export interface SyncNack {
@@ -59,6 +65,11 @@ export interface SyncNack {
   /** The server document's current seq (conflict nacks). */
   serverSeq?: number;
   message?: string;
+  /**
+   * Minimum time (ms) the client should wait before retrying, filled by the
+   * server with the remaining rate-limit window (`rate_limited` nacks only).
+   */
+  retryAfterMs?: number;
 }
 
 /**
@@ -69,6 +80,13 @@ export interface SyncNack {
 export interface SyncMutateBatchRequest {
   /** Ordered mutations; each still carries its own mutationId. */
   mutations: SyncMutateRequest[];
+  /**
+   * Client-generated correlation id, socket transport only (ignored over
+   * HTTP). Echoed back immediately via `sync:batchReceived {batchId}` before
+   * processing begins, distinguishing "unsupported" (silence past the grace
+   * period) from "slow" (a receipt arrived; keep waiting).
+   */
+  batchId?: string;
 }
 
 /** One result per PROCESSED mutation in a batch, in request order. */

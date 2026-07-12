@@ -288,6 +288,249 @@ describe("applySyncMutation", () => {
     });
   });
 
+  describe("C5 lease takeover (FIX 6)", () => {
+    /** Simulate a crash: a `pending` row whose claimedAt is older than the lease. */
+    const createStalePendingRow = async (mutationId: string, staleForMs: number): Promise<void> => {
+      await SyncMutation.create({
+        claimedAt: new Date(Date.now() - staleForMs),
+        mutationId,
+        status: "pending",
+        userId: String(owner.id),
+      });
+    };
+
+    it("retries and succeeds after the lease expires when the write never landed (create)", async () => {
+      await createStalePendingRow("m-lease-create", 90_000);
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "recovered", ownerId: owner.id},
+            mutationId: "m-lease-create",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      expect(ack.seq).toBe(1);
+      expect(await MutStuffModel.countDocuments({name: "recovered"})).toBe(1);
+      const row = await SyncMutation.findOne({mutationId: "m-lease-create"});
+      expect(row?.status).toBe("applied");
+    });
+
+    it("does NOT take over a pending row within the lease window (regression guard)", async () => {
+      await createStalePendingRow("m-lease-fresh", 5_000); // well under SYNC_MUTATION_LEASE_MS
+      const nack = expectNack(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "should not apply", ownerId: owner.id},
+            mutationId: "m-lease-fresh",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      expect(nack.code).toBe("error");
+      expect(nack.message).toContain("still in flight");
+      expect(await MutStuffModel.countDocuments({name: "should not apply"})).toBe(0);
+    });
+
+    it("create: tolerates the write having already landed (E11000 on the same _id) and reads back the doc as the ack", async () => {
+      const entityId = new mongoose.Types.ObjectId().toHexString();
+      // Simulate the crash: the doc write from the FIRST attempt landed, but
+      // the process died before finalizing the ledger row `applied`.
+      await MutStuffModel.create({_id: entityId, name: "already written", ownerId: owner.id});
+      await createStalePendingRow("m-lease-create-e11000", 90_000);
+
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "already written", ownerId: owner.id},
+            id: entityId,
+            mutationId: "m-lease-create-e11000",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      expect(ack.id).toBe(entityId);
+      expect(ack.seq).toBe(1);
+      // Exactly one document — the retry did not double-create.
+      expect(await MutStuffModel.countDocuments({_id: entityId})).toBe(1);
+      const row = await SyncMutation.findOne({mutationId: "m-lease-create-e11000"});
+      expect(row?.status).toBe("applied");
+      expect(row?.resultId).toBe(entityId);
+    });
+
+    it("update: tolerates the write having already landed (seq already advanced by exactly this mutation) and reads back the doc as the ack", async () => {
+      const doc = await MutStuffModel.create({name: "v1", ownerId: owner.id});
+      // Simulate the crash: the update write from the FIRST attempt landed
+      // (seq advanced 1 -> 2 with the new name), but the ledger row was
+      // never finalized.
+      doc.name = "v2 (already written)";
+      await doc.save();
+      expect(doc._syncSeq).toBe(2);
+      await createStalePendingRow("m-lease-update", 90_000);
+
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            baseVersion: 1, // the client's original (pre-write) baseVersion
+            collection: "mutStuff",
+            data: {name: "v2 (already written)"},
+            id: doc._id.toString(),
+            mutationId: "m-lease-update",
+            operation: "update",
+          },
+          user: owner,
+        })
+      );
+      expect(ack.seq).toBe(2);
+      const saved = await MutStuffModel.findById(doc._id);
+      expect(saved?.name).toBe("v2 (already written)");
+      expect(saved?._syncSeq).toBe(2); // not bumped again
+      const row = await SyncMutation.findOne({mutationId: "m-lease-update"});
+      expect(row?.status).toBe("applied");
+    });
+
+    it("update: a GENUINE conflict (someone else wrote, not this mutation) still nacks even via lease takeover", async () => {
+      const doc = await MutStuffModel.create({name: "v1", ownerId: owner.id});
+      doc.name = "someone else's edit";
+      await doc.save(); // seq 2, but NOT from this mutation
+      await createStalePendingRow("m-lease-genuine-conflict", 90_000);
+
+      const nack = expectNack(
+        await applySyncMutation({
+          mutation: {
+            baseVersion: 1,
+            collection: "mutStuff",
+            data: {name: "my conflicting edit"},
+            id: doc._id.toString(),
+            mutationId: "m-lease-genuine-conflict",
+            operation: "update",
+          },
+          user: owner,
+        })
+      );
+      expect(nack.code).toBe("conflict");
+      expect(nack.serverSeq).toBe(2);
+    });
+
+    it("replay after lease expiry returns the recorded ack for a subsequent duplicate delivery", async () => {
+      await createStalePendingRow("m-lease-replay", 90_000);
+      const first = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "replay me", ownerId: owner.id},
+            mutationId: "m-lease-replay",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      // A later duplicate delivery of the SAME mutationId (e.g. the
+      // original client's transport retry finally reaches the server) reads
+      // back the exact recorded outcome instead of double-applying.
+      const second = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "replay me", ownerId: owner.id},
+            mutationId: "m-lease-replay",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      expect(second).toEqual(first);
+      expect(await MutStuffModel.countDocuments({name: "replay me"})).toBe(1);
+    });
+
+    it("post-hook throw after a committed write: doc changed AND ack returned AND ledger applied (M5)", async () => {
+      registerMutStuff({
+        options: {
+          ...ownerOptions,
+          postCreate: () => {
+            throw new Error("webhook unreachable");
+          },
+        },
+      });
+      const outcome = await applySyncMutation({
+        mutation: {
+          collection: "mutStuff",
+          data: {name: "post-hook throws", ownerId: owner.id},
+          mutationId: "m-posthook-throw",
+          operation: "create",
+        },
+        user: owner,
+      });
+      // Still a full ack, not a nack — the write committed regardless of the
+      // post-hook's fate.
+      const ack = expectAck(outcome);
+      expect(ack.warning).toContain("webhook unreachable");
+      expect(await MutStuffModel.countDocuments({name: "post-hook throws"})).toBe(1);
+      const row = await SyncMutation.findOne({mutationId: "m-posthook-throw"});
+      expect(row?.status).toBe("applied");
+    });
+
+    it("post-hook throw on update also returns ack+warning with the ledger applied", async () => {
+      const doc = await MutStuffModel.create({name: "before", ownerId: owner.id});
+      registerMutStuff({
+        options: {
+          ...ownerOptions,
+          postUpdate: () => {
+            throw new Error("notification failed");
+          },
+        },
+      });
+      const outcome = await applySyncMutation({
+        mutation: {
+          baseVersion: 1,
+          collection: "mutStuff",
+          data: {name: "after"},
+          id: doc._id.toString(),
+          mutationId: "m-posthook-update-throw",
+          operation: "update",
+        },
+        user: owner,
+      });
+      const ack = expectAck(outcome);
+      expect(ack.warning).toContain("notification failed");
+      const saved = await MutStuffModel.findById(doc._id);
+      expect(saved?.name).toBe("after");
+      const row = await SyncMutation.findOne({mutationId: "m-posthook-update-throw"});
+      expect(row?.status).toBe("applied");
+    });
+
+    it("no warning field when the post-hook succeeds", async () => {
+      let called = false;
+      registerMutStuff({
+        options: {
+          ...ownerOptions,
+          postCreate: () => {
+            called = true;
+          },
+        },
+      });
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "clean post-hook", ownerId: owner.id},
+            mutationId: "m-posthook-ok",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      expect(called).toBe(true);
+      expect(ack.warning).toBeUndefined();
+    });
+  });
+
   describe("conflicts", () => {
     it("nacks conflict with the canonical server doc on a stale baseVersion", async () => {
       const doc = await MutStuffModel.create({name: "v1", ownerId: owner.id});

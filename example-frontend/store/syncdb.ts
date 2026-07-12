@@ -52,5 +52,16 @@ export const syncDb: SyncDb = createSyncDb({
   baseUrl,
   collections: SYNC_COLLECTIONS,
   debug: __DEV__ ? {capacity: 1000} : false,
+  // haltQueueOnConflict: true — the example app is a template other apps grow
+  // from, and it's common to add cross-collection references (e.g. a todo
+  // referencing a project id) as the schema grows. The default per-entity
+  // conflict policy already blocks a queued mutation whose args reference a
+  // currently-blocked entity's id (see the syncdb README "Cross-collection
+  // reference blocking"), but that only covers references present in `args`;
+  // opting into a whole-drain halt here is the stronger, simpler guarantee
+  // for a starter app whose data model isn't fixed yet. Flip to `false` (the
+  // package default) once your entities are truly independent and you want a
+  // conflict on one to never stall unrelated ones.
+  haltQueueOnConflict: true,
   name: SYNC_DB_NAME,
 });

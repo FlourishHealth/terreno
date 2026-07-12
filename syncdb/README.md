@@ -164,15 +164,22 @@ Not every failure is handled the same way — the table below is the client's st
 | Outcome | Policy |
 |---|---|
 | `error` (transient), transport failure/timeout, `unauthorized` | **Halts the whole drain.** Jittered backoff (or auth-pause) applies; nothing after it sends until the retry/re-auth. |
+| `rate_limited` | Treated **exactly like a transport failure**: back to `queued` with the same unlimited jittered backoff (the server's `retryAfterMs`, when present, is a floor on that backoff), never counted against the error-nack budget (`errorNackCount`). A rate limit is the server asking the client to slow down — it must never look like a durable-data error or push the client toward terminal `failed`. Halts the whole drain, same as a transport failure. |
 | `conflict` | **Blocks only that entity** by default: the entity's later queued mutations are skipped (stay `queued`, budgets untouched) until the user resolves the conflict via `resolveConflict`; other entities keep draining. Set `haltQueueOnConflict: true` to escalate a conflict into a whole-drain halt instead (for apps with cross-entity ordering dependencies where an unresolved conflict must not let anything past it). |
-| `validation` | Terminal for that mutation (existing `markFailed` behavior) and its entity's queued successors are skipped-and-surfaced the same way a conflict blocks — a successor built on a rejected write is likely also invalid. Re-enable them with `client.retryFailed({entityId})` once the underlying issue is fixed. |
+| `validation` | Terminal for that mutation (existing `markFailed` behavior) and its entity's queued successors are skipped-and-surfaced the same way a conflict blocks — a successor built on a rejected write is likely also invalid. Re-enable them with `client.retryFailed({entityId})` once the underlying issue is fixed. A block with no queued successor left (e.g. its failed row aged out via `prune()`) is garbage-collected automatically — a brand-new mutation for that entity is never quarantined forever. |
 
 ### Conflict handling modes
 
 - **Default (`haltQueueOnConflict: false`)** — per-entity blocking. A conflict on one entity never stalls unrelated entities; only that entity's own queue is paused pending `resolveConflict`. Best for apps where entities are largely independent (e.g. a todo list).
-- **`haltQueueOnConflict: true`** — whole-drain halt. Any conflict stops the ENTIRE drain until it's resolved, even for unrelated entities. Choose this when later-queued mutations (in any entity/collection) may depend on assumptions invalidated by the conflicting write, and blindly continuing risks compounding the problem.
+- **`haltQueueOnConflict: true`** — whole-drain halt. Any conflict stops the ENTIRE drain until it's resolved, even for unrelated entities. Choose this when later-queued mutations (in any entity/collection, or across collections via foreign-key-style references) may depend on assumptions invalidated by the conflicting write, and blindly continuing risks compounding the problem. This is the stronger guarantee when your data model has cross-collection references (e.g. a todo referencing a project id) and you want ordering correctness to trump availability of unrelated entities during a conflict.
 
 `client.getSyncStatus().blockedEntities` reports how many distinct entities are currently blocked (conflict or skipped validation failure) so the UI can surface it (see `SyncStatusBanner`'s failed/conflict badges).
+
+### Cross-collection reference blocking (per-entity mode)
+
+Under the default per-entity blocking mode, a conflict or validation failure on one entity does not, by itself, stop mutations for *unrelated* entities. But apps commonly have cross-collection references — e.g. creating a project P and then a todo T with `{projectId: P}` — where T is meaningless if P never lands on the server. To keep that case safe without requiring `haltQueueOnConflict: true` for the whole app, the coordinator also blocks a queued mutation whose parsed `args` contain, anywhere (recursively through nested objects/arrays), a string that exactly equals the entity id of a currently-blocked entity belonging to the same user. So if P conflicts, T (referencing P's id) stays `queued` and is never sent until P's conflict is resolved — even though T's own entity has no conflict of its own. This blocking is recomputed fresh on every drain pass from current block state (never a persisted dependency graph), so resolving P via `resolveConflict`/`retryFailed` naturally unblocks T on the next drain. It is intentionally conservative — a false-positive block (a string that happens to match a blocked id but isn't really a reference) is safe; a false negative is not.
+
+If your data model has enough cross-collection references that you want ordering guaranteed for ALL entities (not just ones whose args happen to reference a blocked id), use `haltQueueOnConflict: true` instead — see "Conflict handling modes" above.
 
 ## Stream scoping
 
@@ -223,7 +230,7 @@ Sequencing guarantees: validation failures never consume a seq (the claim happen
 | Endpoint | Purpose | Auth |
 |---|---|---|
 | `GET /sync/snapshot?collection=&cursor=&limit=` | Bootstrap + catch-up. Returns `{entities: [{id, data, seq, deleted}], cursor, hasMore}`. `cursor=0` = full snapshot (legacy docs without `_syncSeq` arrive in the first page with seq 0). Default page 500, max 1000. | Model `list` permissions + server-enforced scope filter |
-| `POST /sync/mutate` | HTTP fallback for outbox replay (same handler as the socket channel). Body: `{mutationId, collection, operation, id?, data?, baseVersion?}`. Returns `{ack}` or `{nack}` with status 409 (conflict), 403 (unauthorized), 422 (validation), 500 (error). | modelRouter create/update/delete write path |
+| `POST /sync/mutate` | HTTP fallback for outbox replay (same handler as the socket channel). Body: `{mutationId, collection, operation, id?, data?, baseVersion?}`. Returns `{ack}` or `{nack}` with status 409 (conflict), 403 (unauthorized), 422 (validation), 429 (rate_limited, carries `retryAfterMs`), 500 (error). | modelRouter create/update/delete write path |
 | `POST /sync/mutate/batch` | HTTP fallback for batched outbox replay. Body: `{mutations: SyncMutateRequest[]}` (max 100; intra-batch duplicate `mutationId`s rejected up front). Returns `{results: ({type:"ack",ack}\|{type:"nack",nack})[]}` — applied strictly in array order, stopping at the first non-ack (a shorter `results` array than the request means everything after it was never attempted). | modelRouter create/update/delete write path, per mutation |
 | `GET /sync/key` | Caller's per-user key material for the server key provider (32 random bytes, base64; created on first call). | Own key only |
 
@@ -237,7 +244,7 @@ Sequencing guarantees: validation failures never consume a seq (the claim happen
 | `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?}` — emitted by the change-stream watcher |
 | `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` (+ optional Socket.io ack callback) |
 | `sync:ack` | server → client | `{mutationId, id, seq}` |
-| `sync:nack` | server → client | `{mutationId, code: "conflict"\|"unauthorized"\|"validation"\|"error", serverDoc?, serverSeq?, message?}` |
+| `sync:nack` | server → client | `{mutationId, code: "conflict"\|"unauthorized"\|"validation"\|"error"\|"rate_limited", serverDoc?, serverSeq?, message?, retryAfterMs?}` — `rate_limited` (with `retryAfterMs`, the remaining window in ms) is never terminal: the client requeues and retries with unlimited backoff, exactly like a transport failure. |
 | `sync:mutateBatch` | client → server | `{mutations: SyncMutateRequest[]}` (Socket.io ack callback carries `{results}`, same contract as the HTTP batch route) — a server with no handler for this event never invokes the ack callback, which the client treats as "batching unsupported" after a short grace timeout and falls back to single `sync:mutate` sends. |
 
 Limits: 50 collection subscriptions per socket; 100 `sync:mutate` per second per socket, shared with `sync:mutateBatch` (each mutation in a batch counts individually against the same window); batches capped at 100 mutations.

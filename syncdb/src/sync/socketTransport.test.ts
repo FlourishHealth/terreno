@@ -3,7 +3,13 @@ import {createServer, type Server as HttpServer} from "node:http";
 import type {AddressInfo} from "node:net";
 import {Server, type Socket as ServerSocket} from "socket.io";
 
-import type {SyncAck, SyncDelta, SyncMutateRequest, SyncNack} from "../types";
+import type {
+  SyncAck,
+  SyncDelta,
+  SyncMutateBatchRequest,
+  SyncMutateRequest,
+  SyncNack,
+} from "../types";
 import {createSocketTransport} from "./socketTransport";
 import type {SyncTransport, TransportStatus} from "./transport";
 
@@ -17,6 +23,12 @@ interface TestServer {
   subscribes: {collections: string[]}[];
   /** Handler answering sync:mutate; replace per test. */
   mutateHandler: (request: SyncMutateRequest, socket: ServerSocket) => void;
+  /** Handler answering sync:mutateBatch; replace per test (no-op = unsupported). */
+  mutateBatchHandler?: (
+    request: SyncMutateBatchRequest,
+    socket: ServerSocket,
+    ack: (response: unknown) => void
+  ) => void;
   close: () => Promise<void>;
 }
 
@@ -47,6 +59,12 @@ const startServer = async (): Promise<TestServer> => {
     socket.on("sync:mutate", (request: SyncMutateRequest) => {
       server.mutateHandler(request, socket);
     });
+    socket.on(
+      "sync:mutateBatch",
+      (request: SyncMutateBatchRequest, ack: (response: unknown) => void) => {
+        server.mutateBatchHandler?.(request, socket, ack);
+      }
+    );
   });
   await new Promise<void>((resolve) => {
     httpServer.listen(0, () => resolve());
@@ -61,7 +79,7 @@ describe("createSocketTransport", () => {
   let transport: SyncTransport | undefined;
   const tokenCalls: number[] = [];
 
-  const makeTransport = (timeoutMs?: number): SyncTransport => {
+  const makeTransport = (timeoutMs?: number, batchUnsupportedGraceMs?: number): SyncTransport => {
     transport = createSocketTransport({
       authProvider: {
         getToken: async () => {
@@ -70,6 +88,7 @@ describe("createSocketTransport", () => {
         },
       },
       baseUrl: server.baseUrl,
+      batchUnsupportedGraceMs,
       timeoutMs,
     });
     return transport;
@@ -269,6 +288,71 @@ describe("createSocketTransport", () => {
     server.sockets[0]?.emit("sync:delta", {...delta, id: "t2"});
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(seen).toHaveLength(1);
+  });
+
+  it("sendMutationBatch resolves results from the Socket.io ack callback (FIX 5)", async () => {
+    server.mutateBatchHandler = (request, socket, ack) => {
+      socket.emit("sync:batchReceived", {batchId: request.batchId});
+      ack({
+        results: request.mutations.map((mutation) => ({
+          ack: {id: mutation.id ?? "x", mutationId: mutation.mutationId, seq: 1},
+          type: "ack" as const,
+        })),
+      });
+    };
+    const sender = makeTransport();
+    await sender.connect();
+    // biome-ignore lint/style/noNonNullAssertion: sendMutationBatch is always defined on the socket transport.
+    const result = await sender.sendMutationBatch!({
+      mutations: [{collection: "todos", id: "t1", mutationId: "m1", operation: "create"}],
+    });
+    expect(result).toEqual({
+      results: [{ack: {id: "t1", mutationId: "m1", seq: 1}, type: "ack"}],
+      type: "results",
+    });
+  });
+
+  it("sendMutationBatch resolves unsupported when the grace period elapses with NO receipt and NO ack (FIX 5)", async () => {
+    // No mutateBatchHandler registered at all — mirrors a server with no
+    // sync:mutateBatch listener (Socket.io silently drops the emit).
+    const sender = makeTransport(undefined, 30);
+    await sender.connect();
+    const start = Date.now();
+    // biome-ignore lint/style/noNonNullAssertion: sendMutationBatch is always defined on the socket transport.
+    const result = await sender.sendMutationBatch!({
+      mutations: [{collection: "todos", id: "t1", mutationId: "m1", operation: "create"}],
+    });
+    expect(result).toEqual({type: "unsupported"});
+    // Resolved close to the grace period, not the full mutation timeout.
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it("a receipt within the grace period prevents 'unsupported' even though the final response is slower than the grace window (FIX 5)", async () => {
+    server.mutateBatchHandler = (request, socket, ack) => {
+      // Emit the receipt immediately (well within the short grace window),
+      // then finish the actual batch AFTER the grace period would have
+      // elapsed — this must NOT be treated as unsupported, and must NOT
+      // fall back to single sends.
+      socket.emit("sync:batchReceived", {batchId: request.batchId});
+      setTimeout(() => {
+        ack({
+          results: request.mutations.map((mutation) => ({
+            ack: {id: mutation.id ?? "x", mutationId: mutation.mutationId, seq: 1},
+            type: "ack" as const,
+          })),
+        });
+      }, 60);
+    };
+    const sender = makeTransport(undefined, 30);
+    await sender.connect();
+    // biome-ignore lint/style/noNonNullAssertion: sendMutationBatch is always defined on the socket transport.
+    const result = await sender.sendMutationBatch!({
+      mutations: [{collection: "todos", id: "t1", mutationId: "m1", operation: "create"}],
+    });
+    expect(result).toEqual({
+      results: [{ack: {id: "t1", mutationId: "m1", seq: 1}, type: "ack"}],
+      type: "results",
+    });
   });
 
   it("connect() rejects when the server is unreachable", async () => {

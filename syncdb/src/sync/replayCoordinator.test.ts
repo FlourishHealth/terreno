@@ -7,6 +7,7 @@ import type {SyncMutateRequest} from "../types";
 import {createFakeTransport, type FakeTransport} from "./fakeTransport";
 import {AuthRequiredError} from "./httpChannel";
 import {
+  BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS,
   type CreateReplayCoordinatorArgs,
   createReplayCoordinator,
   ERROR_NACK_BASE_BACKOFF_MS,
@@ -666,6 +667,79 @@ describe("createReplayCoordinator", () => {
       expect(harness.outbox.getMutation({mutationId: "m1"})?.errorNackCount).toBe(1);
     });
 
+    it("rate_limited nacks are treated exactly like a transport failure: unlimited retries, zero errorNackCount burn (FIX 1)", async () => {
+      const harness = makeHarness();
+      enqueue(harness, {entityId: "t1", mutationId: "m1"});
+      harness.transport.setDefaultResponder((request) => ({
+        nack: {code: "rate_limited", mutationId: request.mutationId, retryAfterMs: 500},
+        type: "nack",
+      }));
+
+      // Five-plus rate-limit nacks — more than MAX_ERROR_NACK_ATTEMPTS would
+      // ever tolerate for a real error-nack — must never go terminal.
+      for (let i = 0; i < 6; i += 1) {
+        const result = await harness.coordinator.replay({userId: USER});
+        expect(result).toEqual({});
+        harness.clock.value += MAX_BACKOFF_MS;
+      }
+      const mutation = harness.outbox.getMutation({mutationId: "m1"});
+      expect(mutation?.status).toBe("queued");
+      expect(mutation?.errorNackCount).toBe(0);
+
+      // Once the server allows it through, the mutation drains successfully.
+      harness.transport.setDefaultResponder();
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("acked");
+    });
+
+    it("rate_limited respects retryAfterMs as a backoff floor — no retry before the server's window clears", async () => {
+      const harness = makeHarness();
+      enqueue(harness, {entityId: "t1", mutationId: "m1"});
+      harness.transport.respondWithNack({code: "rate_limited", retryAfterMs: 10_000});
+
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("queued");
+      expect(harness.transport.sentMutations).toHaveLength(1);
+
+      // A jittered backoff well under the server's floor must not fire yet.
+      harness.transport.setDefaultResponder();
+      harness.clock.value += 1_000;
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.transport.sentMutations).toHaveLength(1);
+
+      // Past the 10s floor, the armed wake-up (or an explicit replay) retries.
+      harness.clock.value += 10_000;
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("acked");
+    });
+
+    it("a rate_limited chunk response requeues the WHOLE batch untouched and halts the drain (FIX 1, batch path)", async () => {
+      const harness = makeBatchHarness();
+      enqueue(harness, {entityId: "e1", mutationId: "m1"});
+      enqueue(harness, {entityId: "e2", mutationId: "m2"});
+      harness.transport.setBatchResponder((request) => ({
+        results: request.mutations.map((mutation) => ({
+          nack: {code: "rate_limited" as const, mutationId: mutation.mutationId, retryAfterMs: 200},
+          type: "nack" as const,
+        })),
+        type: "results",
+      }));
+
+      await harness.coordinator.replay({userId: USER});
+      for (const id of ["m1", "m2"]) {
+        const mutation = harness.outbox.getMutation({mutationId: id});
+        expect(mutation?.status).toBe("queued");
+        expect(mutation?.errorNackCount).toBe(0);
+      }
+
+      harness.transport.setBatchResponder();
+      harness.clock.value += 1_000;
+      await harness.coordinator.replay({userId: USER});
+      for (const id of ["m1", "m2"]) {
+        expect(harness.outbox.getMutation({mutationId: id})?.status).toBe("acked");
+      }
+    });
+
     it("jitter: two backoffs for the same attempt differ under an injected seeded random source", async () => {
       const seeds = [0.1, 0.9];
       let call = 0;
@@ -840,15 +914,16 @@ describe("createReplayCoordinator", () => {
       expect(harness.transport.sentBatches.map((b) => b.length)).toEqual([10, 10, 5]);
     });
 
-    it("capability detection: HTTP-style unsupported response falls back to single sends in global order, re-probed after reconnect", async () => {
+    it("capability detection: HTTP-style unsupported response falls back to single sends after 2 CONSECUTIVE strikes (FIX 5), re-probed after reconnect", async () => {
       const harness = makeBatchHarness();
       harness.transport.setBatchResponder(() => ({type: "unsupported"}));
       enqueueN(harness, 5);
 
       await harness.coordinator.replay({userId: USER});
-      // The first attempt probes the batch endpoint once (unsupported), then
-      // every mutation falls back to single sends, still in FIFO order.
-      expect(harness.transport.sentBatches).toHaveLength(1);
+      // FIX 5: a single unsupported result must not latch — it takes 2
+      // CONSECUTIVE unsupported results (the same 5-mutation chunk retried
+      // once) before falling back to single sends, still in FIFO order.
+      expect(harness.transport.sentBatches).toHaveLength(2);
       expect(harness.transport.sentMutations.map((m) => m.mutationId)).toEqual([
         "m-0",
         "m-1",
@@ -861,22 +936,138 @@ describe("createReplayCoordinator", () => {
       }
 
       // Further mutations on the SAME connection keep using single sends —
-      // batching is not re-probed until a reconnect.
+      // batching is not re-probed until a reconnect (or the 60s timer).
       enqueueN(harness, 2, {prefix: "later"});
       await harness.coordinator.replay({userId: USER});
-      expect(harness.transport.sentBatches).toHaveLength(1);
+      expect(harness.transport.sentBatches).toHaveLength(2);
 
       // Re-probe after reconnect: batching works again.
       harness.transport.setBatchResponder();
       harness.coordinator.notifyReconnect();
       enqueueN(harness, 3, {prefix: "reconnected"});
       await harness.coordinator.replay({userId: USER});
-      expect(harness.transport.sentBatches).toHaveLength(2);
-      expect(harness.transport.sentBatches[1]).toEqual([
+      expect(harness.transport.sentBatches).toHaveLength(3);
+      expect(harness.transport.sentBatches[2]).toEqual([
         "reconnected-0",
         "reconnected-1",
         "reconnected-2",
       ]);
+    });
+
+    it("a single stray unsupported result does not latch — the very next batch send on the same connection succeeds normally (FIX 5)", async () => {
+      const harness = makeBatchHarness();
+      enqueueN(harness, 4);
+      let calls = 0;
+      harness.transport.setBatchResponder((request) => {
+        calls += 1;
+        if (calls === 1) {
+          return {type: "unsupported"};
+        }
+        return {
+          results: request.mutations.map((mutation) => ({
+            ack: {id: mutation.id ?? "", mutationId: mutation.mutationId, seq: 1},
+            type: "ack" as const,
+          })),
+          type: "results",
+        };
+      });
+
+      await harness.coordinator.replay({userId: USER});
+      // Two batch sends: the stray unsupported one, then a real one that
+      // succeeds — never falling back to single sends.
+      expect(harness.transport.sentBatches).toHaveLength(2);
+      expect(harness.transport.sentMutations).toHaveLength(0);
+      for (let i = 0; i < 4; i++) {
+        expect(harness.outbox.getMutation({mutationId: `m-${i}`})?.status).toBe("acked");
+      }
+
+      // A later stray unsupported result also doesn't latch, since the
+      // counter reset after the successful batch above.
+      enqueueN(harness, 2, {prefix: "later"});
+      calls = 0;
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.transport.sentMutations).toHaveLength(0);
+    });
+
+    it("FIX 5: while latched, batching is re-probed on a 60s timer even without a reconnect", async () => {
+      const store = createSyncStore({collections: ["todos"]});
+      const outbox = createOutbox({store});
+      const transport = createFakeTransport();
+      const clock = {value: 1_000_000};
+      const {timers, ...timerArgs} = makeFakeTimers(clock);
+      transport.setBatchResponder(() => ({type: "unsupported"}));
+      const coordinator = createReplayCoordinator({
+        ...timerArgs,
+        now: () => clock.value,
+        outbox,
+        sendMutation: transport.sendMutation,
+        sendMutationBatch: transport.sendMutationBatch,
+        store,
+      });
+      for (let i = 0; i < 3; i++) {
+        outbox.enqueue({
+          args: {title: `t${i}`},
+          collection: "todos",
+          entityId: `t${i}`,
+          mutationId: `m${i}`,
+          operation: "create",
+          userId: USER,
+        });
+      }
+
+      // Two consecutive unsupported batch sends latch batchUnsupported —
+      // the coordinator falls back to single sends for the same mutations
+      // (auto-ack default responder handles the single-send fallback).
+      await coordinator.replay({userId: USER});
+      expect(outbox.getMutation({mutationId: "m0"})?.status).toBe("acked");
+      expect(transport.sentBatches).toHaveLength(2);
+      expect(transport.sentMutations.map((m) => m.mutationId)).toEqual(["m0", "m1", "m2"]);
+
+      // Latched: further mutations on this connection use single sends only.
+      outbox.enqueue({
+        args: {title: "later"},
+        collection: "todos",
+        entityId: "later",
+        mutationId: "m-later",
+        operation: "create",
+        userId: USER,
+      });
+      await coordinator.replay({userId: USER});
+      expect(transport.sentBatches).toHaveLength(2);
+
+      // Advance past the 60s re-probe interval with NO reconnect — the armed
+      // timer clears the latch on its own.
+      clock.value += BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS;
+      timers.flush();
+      transport.setBatchResponder((request) => ({
+        results: request.mutations.map((mutation) => ({
+          ack: {id: mutation.id ?? "", mutationId: mutation.mutationId, seq: 1},
+          type: "ack" as const,
+        })),
+        type: "results",
+      }));
+      // Two mutations so the chunk genuinely exercises the batch path
+      // (a lone eligible mutation reuses the single-send path regardless of
+      // batchUnsupported — see the "lone chunk" comment in drainOnce).
+      outbox.enqueue({
+        args: {title: "reprobed-a"},
+        collection: "todos",
+        entityId: "reprobed-a",
+        mutationId: "m-reprobed-a",
+        operation: "create",
+        userId: USER,
+      });
+      outbox.enqueue({
+        args: {title: "reprobed-b"},
+        collection: "todos",
+        entityId: "reprobed-b",
+        mutationId: "m-reprobed-b",
+        operation: "create",
+        userId: USER,
+      });
+      await coordinator.replay({userId: USER});
+      expect(transport.sentBatches).toHaveLength(3);
+      expect(transport.sentBatches[2]).toEqual(["m-reprobed-a", "m-reprobed-b"]);
     });
 
     it("short response (server halted mid-batch) requeues the tail untouched, never burning error-nack budget; next drain resends from the halt point", async () => {
@@ -1124,6 +1315,246 @@ describe("createReplayCoordinator", () => {
       harness.transport.setBatchResponder();
       await harness.coordinator.replay({userId: USER});
       expect(harness.outbox.getMutation({mutationId: "b2"})?.status).toBe("acked");
+    });
+
+    it("FIX 2: a cross-collection reference to a blocked entity's id is also blocked, and unblocks with its root", async () => {
+      // P (create project, conflicts) and T (create todo in another collection,
+      // args reference P's id) — T must never drain while P is blocked, even
+      // though T's own entity has no conflict of its own. Y is an unrelated
+      // entity enqueued alongside P so P's own chunk has length >= 2 and
+      // genuinely exercises the batch path rather than degenerating into a
+      // lone single-send (the FIX 2 same-batch guard excludes T from P's
+      // chunk since T references P, whose outcome isn't known yet).
+      const harness = makeBatchHarness();
+      enqueue(harness, {collection: "notes", entityId: "p", mutationId: "p1"});
+      enqueue(harness, {entityId: "y", mutationId: "y1"});
+      harness.outbox.enqueue({
+        args: {projectId: "p", title: "todo referencing p"},
+        collection: "todos",
+        entityId: "t",
+        mutationId: "t1",
+        operation: "create",
+        userId: USER,
+      });
+      harness.store.upsertEntity({
+        collection: "todos",
+        data: {projectId: "p", title: "todo referencing p"},
+        id: "t",
+        pendingMutationId: "t1",
+      });
+
+      harness.transport.setBatchResponder((request) => ({
+        results: request.mutations.map((mutation) =>
+          mutation.mutationId === "p1"
+            ? {
+                nack: {code: "conflict" as const, mutationId: mutation.mutationId, serverSeq: 3},
+                type: "nack" as const,
+              }
+            : {
+                ack: {id: mutation.id ?? "", mutationId: mutation.mutationId, seq: 1},
+                type: "ack" as const,
+              }
+        ),
+        type: "results",
+      }));
+
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "p1"})?.status).toBe("conflicted");
+      expect(harness.outbox.getMutation({mutationId: "y1"})?.status).toBe("acked");
+      // t1 was never sent — it stays queued, budgets untouched.
+      expect(harness.outbox.getMutation({mutationId: "t1"})?.status).toBe("queued");
+      expect(harness.outbox.getMutation({mutationId: "t1"})?.errorNackCount).toBe(0);
+      expect(harness.transport.sentBatches.flat()).not.toContain("t1");
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("notes:p");
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:t");
+
+      // A further replay still skips t1 while p is blocked.
+      harness.transport.setBatchResponder();
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "t1"})?.status).toBe("queued");
+
+      // Resolving p (keepMine requeues under a fresh mutationId) naturally
+      // unblocks t on the next drain — no persisted dependency graph needed.
+      const {resolveConflict} = await import("../mutations/resolveConflict");
+      resolveConflict({
+        mutationId: "p1",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "keepMine",
+      });
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).not.toContain("todos:t");
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "t1"})?.status).toBe("acked");
+    });
+
+    it("FIX 2: reference blocking is conservative — a nested/array reference to a blocked id is also caught", async () => {
+      const harness = makeBatchHarness();
+      enqueue(harness, {collection: "notes", entityId: "p", mutationId: "p1"});
+      enqueue(harness, {entityId: "y", mutationId: "y1"});
+      harness.outbox.enqueue({
+        args: {meta: {tags: ["x", "p"]}, title: "nested ref"},
+        collection: "todos",
+        entityId: "t",
+        mutationId: "t1",
+        operation: "create",
+        userId: USER,
+      });
+
+      harness.transport.setBatchResponder((request) => ({
+        results: request.mutations.map((mutation) =>
+          mutation.mutationId === "p1"
+            ? {
+                nack: {code: "conflict" as const, mutationId: mutation.mutationId, serverSeq: 3},
+                type: "nack" as const,
+              }
+            : {
+                ack: {id: mutation.id ?? "", mutationId: mutation.mutationId, seq: 1},
+                type: "ack" as const,
+              }
+        ),
+        type: "results",
+      }));
+
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "t1"})?.status).toBe("queued");
+    });
+
+    it("FIX 3: coordinator lifecycle scoping — reset() clears all state so a different user reusing a blocked entity id is unaffected", async () => {
+      const harness = makeHarness();
+      enqueue(harness, {entityId: "singleton", mutationId: "m1"});
+      harness.transport.respondWithNack({code: "validation", message: "bad"});
+      await harness.coordinator.replay({userId: USER});
+      // A queued successor keeps the block observable (FIX 4: a block with no
+      // queued successor is GC'd immediately — see the FIX 4 tests below).
+      harness.outbox.enqueue({
+        args: {title: "v2"},
+        collection: "todos",
+        entityId: "singleton",
+        mutationId: "m1b",
+        operation: "update",
+        userId: USER,
+      });
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:singleton");
+
+      // Lifecycle boundary: dispose()/reset() as client.ts wires on a
+      // different-user login wipe path.
+      harness.coordinator.reset();
+
+      // A brand-new user reusing the same deterministic entity id must never
+      // be falsely blocked by the previous user's stale in-memory state.
+      const OTHER_USER = "user-2";
+      harness.outbox.enqueue({
+        args: {title: "fresh"},
+        collection: "todos",
+        entityId: "singleton",
+        mutationId: "m2",
+        operation: "create",
+        userId: OTHER_USER,
+      });
+      harness.transport.respondWithAck({seq: 1});
+      await harness.coordinator.replay({userId: OTHER_USER});
+      expect(harness.outbox.getMutation({mutationId: "m2"})?.status).toBe("acked");
+      expect(harness.coordinator.getBlockedEntities({userId: OTHER_USER})).toHaveLength(0);
+    });
+
+    it("FIX 3: validationBlockedEntities is keyed per-user — one user's block never leaks to another", async () => {
+      const harness = makeHarness();
+      const OTHER_USER = "user-2";
+      enqueue(harness, {entityId: "shared-id", mutationId: "m1", userId: USER});
+      harness.transport.respondWithNack({code: "validation", message: "bad"});
+      await harness.coordinator.replay({userId: USER});
+      // A queued successor keeps USER's block observable (FIX 4).
+      harness.outbox.enqueue({
+        args: {title: "v2"},
+        collection: "todos",
+        entityId: "shared-id",
+        mutationId: "m1b",
+        operation: "update",
+        userId: USER,
+      });
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:shared-id");
+
+      // Same entity id, different user: must drain freely, unaffected by
+      // USER's block, and must not appear in USER's blocked list.
+      harness.outbox.enqueue({
+        args: {title: "other user's doc"},
+        collection: "todos",
+        entityId: "shared-id",
+        mutationId: "m2",
+        operation: "create",
+        userId: OTHER_USER,
+      });
+      harness.transport.respondWithAck({seq: 7});
+      await harness.coordinator.replay({userId: OTHER_USER});
+      expect(harness.outbox.getMutation({mutationId: "m2"})?.status).toBe("acked");
+      expect(harness.coordinator.getBlockedEntities({userId: OTHER_USER})).toHaveLength(0);
+      // USER's own block is untouched by the other user's activity.
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:shared-id");
+    });
+
+    it("FIX 4: a validation block with no queued successor is GC'd once its failed row is pruned, letting a later NEW mutation for that entity drain", async () => {
+      const harness = makeHarness();
+      enqueue(harness, {entityId: "e1", mutationId: "m1"});
+      harness.transport.respondWithNack({code: "validation", message: "bad"});
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+      // The failed row still exists (not yet pruned) with no successor
+      // queued — the block surfaces the failure until the user acts or the
+      // row ages out, exactly like the pre-FIX-4 behavior.
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:e1");
+
+      // Prune (removes the failed row — keepFailed: 0 forces it out here;
+      // the default keepFailed of 50 would keep a single row around, which
+      // is exactly the realistic "not pruned yet" case already covered
+      // above): with NO queued successor left to protect the ordering of,
+      // the block is now stale — GC'd, so a brand new mutation for the same
+      // entity is free to drain rather than being quarantined forever
+      // pending an explicit retryFailed the user may never call.
+      harness.outbox.prune({keepFailed: 0, userId: USER});
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).not.toContain("todos:e1");
+      harness.outbox.enqueue({
+        args: {title: "fresh attempt"},
+        collection: "todos",
+        entityId: "e1",
+        mutationId: "m2",
+        operation: "create",
+        userId: USER,
+      });
+      harness.transport.respondWithAck({seq: 1});
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m2"})?.status).toBe("acked");
+    });
+
+    it("FIX 4: a validation block WITH a queued successor stays blocked until retryFailed, surviving prune of the failed row", async () => {
+      const harness = makeHarness();
+      enqueue(harness, {entityId: "e1", mutationId: "m1"});
+      harness.transport.respondWithNack({code: "validation", message: "bad"});
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+
+      // A successor is queued before anything prunes the failed row.
+      harness.outbox.enqueue({
+        args: {title: "v2"},
+        collection: "todos",
+        entityId: "e1",
+        mutationId: "m2",
+        operation: "update",
+        userId: USER,
+      });
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:e1");
+
+      // Pruning the failed row (keepFailed: 0 forces it out) must not drop
+      // the block while m2 is queued.
+      harness.outbox.prune({keepFailed: 0, userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m1"})).toBeUndefined();
+      expect(harness.coordinator.getBlockedEntities({userId: USER})).toContain("todos:e1");
+      harness.transport.setDefaultResponder();
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m2"})?.status).toBe("queued");
+
+      harness.coordinator.retryFailed({entityId: "e1"});
+      await harness.coordinator.replay({userId: USER});
+      expect(harness.outbox.getMutation({mutationId: "m2"})?.status).toBe("acked");
     });
 
     it("error nack halts the whole drain (transient — retry without user action)", async () => {

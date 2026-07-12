@@ -532,6 +532,56 @@ describe("prune (A5)", () => {
   });
 });
 
+describe("hasAnyRowForEntity (FIX 4)", () => {
+  it("returns true for a queued row matching user/collection/entity", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "e1", mutationId: "m1", userId: "user-1"});
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-1"})).toBe(
+      true
+    );
+  });
+
+  it("returns true for a failed (not yet pruned) row", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "e1", mutationId: "m1", userId: "user-1"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markFailed({mutationId: "m1"});
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-1"})).toBe(
+      true
+    );
+  });
+
+  it("returns false once the only row for the entity is pruned", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "e1", mutationId: "m1", userId: "user-1"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markFailed({mutationId: "m1"});
+    outbox.prune({keepFailed: 0, userId: "user-1"});
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-1"})).toBe(
+      false
+    );
+  });
+
+  it("is scoped by userId, collection, and entityId — no cross-matching", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {
+      collection: "todos",
+      entityId: "e1",
+      mutationId: "m1",
+      userId: "user-1",
+    });
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-2"})).toBe(
+      false
+    );
+    expect(outbox.hasAnyRowForEntity({collection: "notes", entityId: "e1", userId: "user-1"})).toBe(
+      false
+    );
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e2", userId: "user-1"})).toBe(
+      false
+    );
+  });
+});
+
 describe("enqueueOrder persistence (A5)", () => {
   it("survives a store reload via the outboxMaxEnqueueOrder meta cell", () => {
     const store = makeStore();

@@ -58,6 +58,15 @@ const consumeHttpMutationRateLimit = (userId: string, weight: number): void => {
   entry.count += weight;
 };
 
+/** Milliseconds remaining in `userId`'s current rate-limit window, for `retryAfterMs`. */
+const httpMutationRateLimitRetryAfterMs = (userId: string): number => {
+  const entry = httpMutationWindows.get(userId);
+  if (!entry) {
+    return 1000;
+  }
+  return Math.max(0, 1000 - (Date.now() - entry.windowStart));
+};
+
 /** Options for the SyncApp plugin's HTTP routes. */
 export interface SyncAppOptions {
   /**
@@ -77,6 +86,7 @@ const DEFAULT_SNAPSHOT_LIMIT = 500;
 const NACK_HTTP_STATUS: Record<SyncNackCode, number> = {
   conflict: 409,
   error: 500,
+  rate_limited: 429,
   unauthorized: 403,
   validation: 422,
 };
@@ -233,11 +243,12 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       }
       const userId = String(user.id);
       if (wouldExceedHttpMutationRateLimit(userId, 1)) {
-        return res.status(NACK_HTTP_STATUS.error).json({
+        return res.status(NACK_HTTP_STATUS.rate_limited).json({
           nack: {
-            code: "error",
+            code: "rate_limited",
             message: `Rate limit of ${MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} mutations per second exceeded`,
             mutationId: String((req.body as SyncMutateRequest | undefined)?.mutationId ?? ""),
+            retryAfterMs: httpMutationRateLimitRetryAfterMs(userId),
           },
         });
       }
@@ -279,13 +290,14 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       // The socket path's rate limiter counts each mutation in the batch (not
       // each batch) against the window; mirror that here.
       if (wouldExceedHttpMutationRateLimit(userId, mutations.length)) {
-        return res.status(NACK_HTTP_STATUS.error).json({
+        return res.status(NACK_HTTP_STATUS.rate_limited).json({
           results: [
             {
               nack: {
-                code: "error",
+                code: "rate_limited",
                 message: `Rate limit of ${MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} mutations per second exceeded`,
                 mutationId: "",
+                retryAfterMs: httpMutationRateLimitRetryAfterMs(userId),
               },
               type: "nack",
             },

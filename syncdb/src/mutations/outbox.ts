@@ -118,6 +118,17 @@ export interface Outbox {
   prune: (args: {userId: string; keepFailed?: number}) => void;
   /** Count of the user's mutations currently in the given status. */
   countByStatus: (args: {userId: string; status: OutboxStatus}) => number;
+  /**
+   * True when ANY outbox row (any status — queued, inFlight, conflicted, or
+   * failed) still exists for the given user/collection/entity. Used by the
+   * replay coordinator's FIX 4 GC to distinguish "the entity's failed row was
+   * pruned with nothing queued behind it" (block should be dropped) from "a
+   * successor is queued but the failed row itself was already pruned" (block
+   * must still hold) — checking queued-only would wrongly treat the latter
+   * as already-cleared during the narrow window between a validation failure
+   * and its successor's enqueue.
+   */
+  hasAnyRowForEntity: (args: {userId: string; collection: string; entityId: string}) => boolean;
 }
 
 /**
@@ -417,11 +428,34 @@ export const createOutbox = ({
     return count;
   };
 
+  const hasAnyRowForEntity = ({
+    userId,
+    collection,
+    entityId,
+  }: {
+    userId: string;
+    collection: string;
+    entityId: string;
+  }): boolean => {
+    for (const row of Object.values(store.raw.getTable(OUTBOX_TABLE))) {
+      const typedRow = row as Partial<OutboxRow>;
+      if (
+        (typedRow.userId ?? "") === userId &&
+        typedRow.collection === collection &&
+        typedRow.entityId === entityId
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   return {
     clearForUser,
     countByStatus,
     enqueue,
     getMutation,
+    hasAnyRowForEntity,
     listQueued,
     markAcked,
     markConflicted,
