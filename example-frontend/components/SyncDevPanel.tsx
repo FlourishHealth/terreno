@@ -1,4 +1,4 @@
-import {wipeLocalData} from "@terreno/syncdb";
+import {DEFAULT_KEY_CACHE_DB_NAME, wipeLocalData} from "@terreno/syncdb";
 import {useSyncDbClient} from "@terreno/syncdb/react";
 import {Box, Button, Heading, Text} from "@terreno/ui";
 import {useRouter} from "expo-router";
@@ -59,7 +59,14 @@ export const SyncDevPanel: React.FC = () => {
     setIsBusy(true);
     try {
       await client.stop();
-      await wipeLocalData({databaseNames: [SYNC_DB_NAME], store: client.store});
+      // Also drop the cached derived encryption key (web) — a full local
+      // wipe should leave nothing behind, including key material cached in
+      // its own IndexedDB database.
+      await wipeLocalData({
+        databaseNames: [SYNC_DB_NAME],
+        keyCacheDbNames: [DEFAULT_KEY_CACHE_DB_NAME],
+        store: client.store,
+      });
       await client.start();
       setIsOffline(false);
     } catch (error) {

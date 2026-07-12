@@ -34,7 +34,11 @@ export const serializeSyncPayload = async ({
     return entry.config.responseHandler(plain, method);
   }
   if (entry.options.responseHandler) {
-    return entry.options.responseHandler(doc as any, "list", req, entry.options);
+    // C8: sync serializes a SINGLE entity (snapshot row, conflict doc, or delta), so the
+    // modelRouter responseHandler must run with single-entity `"read"` semantics — not
+    // the hardcoded `"list"`, which can trigger list-only shaping (field trimming, array
+    // wrapping) that corrupts a single-doc payload.
+    return entry.options.responseHandler(doc as any, "read", req, entry.options);
   }
   if (typeof (doc as any).toJSON === "function") {
     return (doc as any).toJSON();

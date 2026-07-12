@@ -55,8 +55,62 @@ describe("createSyncDebugLog", () => {
     log.clear();
     expect(log.getRevision()).toBe(2);
     expect(log.getEvents()).toHaveLength(0);
-    // total is a lifetime counter and survives clear.
-    expect(log.getStats().total).toBe(1);
+    // E6: clear() resets every derived stat coherently — total (and
+    // everything else getStats() reports) describes only what happened
+    // since the last clear, not a lifetime count that would otherwise be
+    // inconsistent with retained: 0.
+    expect(log.getStats().total).toBe(0);
+  });
+
+  it("clear() resets total/dropped/byType/firstEventAt/lastEventAt, not just retained (E6)", () => {
+    const log = createSyncDebugLog({capacity: 2});
+    log.record({direction: "local", label: "a", type: "mutate"});
+    log.record({direction: "inbound", label: "b", type: "delta"});
+    // Overflow past capacity to also populate `dropped`.
+    log.record({direction: "inbound", label: "c", type: "ack"});
+
+    const beforeClear = log.getStats();
+    expect(beforeClear.total).toBe(3);
+    expect(beforeClear.dropped).toBe(1);
+    expect(beforeClear.byType.mutate).toBe(1);
+    expect(beforeClear.firstEventAt).toBeDefined();
+    expect(beforeClear.lastEventAt).toBeDefined();
+
+    log.clear();
+    const afterClear = log.getStats();
+    expect(afterClear).toEqual({
+      byType: {
+        ack: 0,
+        conflict: 0,
+        connect: 0,
+        delta: 0,
+        disconnect: 0,
+        failed: 0,
+        mutate: 0,
+        nack: 0,
+        reconcile: 0,
+        replay: 0,
+        resolve: 0,
+        retry: 0,
+        send: 0,
+      },
+      dropped: 0,
+      firstEventAt: undefined,
+      lastEventAt: undefined,
+      retained: 0,
+      total: 0,
+    });
+
+    // A fresh record after clear reports as if the log were brand new, and
+    // ids stay monotonic (not reset) across the clear.
+    const next = log.record({direction: "local", label: "d", type: "mutate"});
+    expect(next.id).toBe(4);
+    expect(log.getStats()).toMatchObject({
+      byType: {mutate: 1},
+      dropped: 0,
+      retained: 1,
+      total: 1,
+    });
   });
 
   it("snapshot returns a serializable events + stats view", () => {

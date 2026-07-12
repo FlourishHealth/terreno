@@ -516,6 +516,13 @@ export interface LayerProps {
 export interface AccessibilityProps {
   accessibilityLabel: string;
   accessibilityHint: string;
+  /**
+   * RN/RNW accessibility role (e.g. "button") for a clickable Box. Optional —
+   * most onClick Boxes get an implicit button role already (see Box.tsx); set
+   * this explicitly when a screen-reader-facing role needs to be guaranteed
+   * (e.g. a badge that opens a sheet).
+   */
+  accessibilityRole?: string;
 }
 
 export interface BoxPropsBase extends WithTestID {

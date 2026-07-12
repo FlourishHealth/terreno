@@ -4,11 +4,12 @@
  *   - socketHandlers.ts (sync:subscribe / sync:unsubscribe / sync:mutate, caps, rate limit)
  *   - changeStreamWatcher.ts sync:delta emission (mock change streams + real change
  *     streams gated on replica-set availability, following realtime.test.ts conventions)
- *   - socketAuth.ts (legacy JWT validator chain + Better Auth session validator)
+ *
+ * socketAuth.ts (legacy JWT validator chain + Better Auth session validator) has its own
+ * dedicated test file: realtime/socketAuth.test.ts.
  */
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
-import jwt from "jsonwebtoken";
 import mongoose, {model, Schema} from "mongoose";
 
 import type {ModelRouterOptions} from "../api";
@@ -19,14 +20,9 @@ import {
   stopChangeStreamWatcher,
 } from "../realtime/changeStreamWatcher";
 import {clearRealtimeRegistry, registerRealtime} from "../realtime/registry";
-import {
-  type AuthenticatableSocket,
-  createBetterAuthValidator,
-  createLegacyJwtValidator,
-  createSocketAuthMiddleware,
-} from "../realtime/socketAuth";
 import {setupDb} from "../tests";
-import {SyncCounter, SyncMutation} from "./models";
+import {SyncCounter, SyncMutation, SyncScopeMove} from "./models";
+import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {
   clearSyncRegistry,
   findSyncEntryByCollectionTag,
@@ -40,6 +36,7 @@ import {
   installSyncSocketHandlers,
   MAX_SYNC_COLLECTION_SUBSCRIPTIONS,
   MAX_SYNC_MUTATIONS_PER_SECOND,
+  MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH,
   type SyncSocketLike,
   setActiveSyncAppOptions,
   syncRoomForStream,
@@ -417,6 +414,22 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     expect(syncErrors(socket)).toHaveLength(3);
   });
 
+  it("C8: rejects an oversized sync:subscribe array before iterating (length check first)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    // An array over the cap must be rejected wholesale with a single sync:error and NO
+    // room joins — the length guard runs before any per-collection work.
+    const collections = Array.from(
+      {length: MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH + 1},
+      (_v, i) => `sockStuff${i}`
+    );
+    await socket.trigger("sync:subscribe", {collections});
+    expect(Array.from(socket.rooms).filter((r) => r.startsWith("sync:"))).toHaveLength(0);
+    const errors = syncErrors(socket);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toMatch(/at most/i);
+  });
+
   it("sync:unsubscribe leaves the rooms and frees the cap slot", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket, {getUserScopes: () => ["org1", "org2"]});
@@ -586,7 +599,7 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
     expect(lastNack(socket)?.code).toBe("unauthorized");
   });
 
-  it("rate-limits mutations beyond the per-second cap with an error nack", async () => {
+  it("rate-limits mutations beyond the per-second cap with a rate_limited nack carrying retryAfterMs (FIX 1)", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);
     // Exceed the window with cheap validation nacks (unknown collection) — the rate limit
@@ -604,6 +617,157 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
       (e.payload as SyncNack).message?.includes("Rate limit")
     );
     expect(rateLimited).toHaveLength(5);
+    // FIX 1: the nack code is "rate_limited" (never "error") so the client
+    // never treats it as a durable-data failure, and it carries a
+    // retryAfterMs hint for the client's backoff floor.
+    for (const nack of rateLimited) {
+      const payload = nack.payload as SyncNack;
+      expect(payload.code).toBe("rate_limited");
+      expect(typeof (payload as {retryAfterMs?: number}).retryAfterMs).toBe("number");
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sync:mutateBatch
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("installSyncSocketHandlers — sync:mutateBatch", () => {
+  beforeAll(async () => {
+    await setupDb();
+  });
+
+  beforeEach(async () => {
+    registerAll();
+    await Promise.all([
+      SockStuffModel.collection.deleteMany({}),
+      SyncCounter.deleteMany({}),
+      SyncMutation.deleteMany({}),
+    ]);
+  });
+
+  afterEach(() => {
+    clearSyncRegistry();
+  });
+
+  const create = (mutationId: string, name: string) => ({
+    collection: "sockStuff",
+    data: {name, ownerId: "user1"},
+    mutationId,
+    operation: "create",
+  });
+
+  const triggerBatch = async (
+    socket: MockSocket,
+    mutations: unknown[]
+  ): Promise<{results: Array<{type: string; ack?: SyncAck; nack?: SyncNack}>}> => {
+    let response: any;
+    await socket.trigger("sync:mutateBatch", {mutations}, (res: unknown) => {
+      response = res;
+    });
+    return response;
+  };
+
+  it("applies a batch strictly in order via the ack callback", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = Array.from({length: 5}, (_v, i) => create(`sock-batch-${i}`, `item ${i}`));
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(5);
+    expect(response.results.every((r) => r.type === "ack")).toBe(true);
+    const seqs = response.results.map((r) => r.ack?.seq);
+    expect(seqs).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("stops at the first nack, leaving later mutations unattempted", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = [
+      create("sock-batch-halt-1", "ok"),
+      {collection: "nope", mutationId: "sock-batch-halt-2", operation: "create"},
+      create("sock-batch-halt-3", "never"),
+    ];
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(2);
+    expect(response.results[0].type).toBe("ack");
+    expect(response.results[1].type).toBe("nack");
+    expect(response.results[1].nack?.code).toBe("validation");
+    expect(await SockStuffModel.countDocuments({name: "never"})).toBe(0);
+  });
+
+  it("rejects an oversized batch before processing", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH + 1}, (_v, i) =>
+      create(`sock-batch-oversized-${i}`, `item ${i}`)
+    );
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.code).toBe("validation");
+    expect(await SockStuffModel.countDocuments({})).toBe(0);
+  });
+
+  it("rejects intra-batch duplicate mutationIds before processing", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = [create("sock-batch-dup", "a"), create("sock-batch-dup", "b")];
+    const response = await triggerBatch(socket, mutations);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.code).toBe("validation");
+    expect(await SockStuffModel.countDocuments({})).toBe(0);
+  });
+
+  it("nacks unauthorized for unauthenticated sockets", async () => {
+    const socket = createMockSocket(undefined);
+    install(socket);
+    const response = await triggerBatch(socket, [create("sock-batch-anon", "x")]);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.code).toBe("unauthorized");
+  });
+
+  it("rate-limits batch mutations against the same window as sync:mutate with a rate_limited nack carrying retryAfterMs (FIX 1)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    // Two batches within the per-batch size cap, but together exceeding the
+    // per-second mutation budget — the shared window rejects the second batch
+    // before any of its mutations are attempted.
+    const firstBatch = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH}, (_v, i) => ({
+      collection: "nope",
+      mutationId: `flood-batch-a-${i}`,
+      operation: "create",
+    }));
+    const secondBatch = Array.from({length: 10}, (_v, i) => ({
+      collection: "nope",
+      mutationId: `flood-batch-b-${i}`,
+      operation: "create",
+    }));
+    await triggerBatch(socket, firstBatch);
+    const response = await triggerBatch(socket, secondBatch);
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].nack?.message).toContain("Rate limit");
+    // FIX 1: rate limiting must never look like a durable-data error — the
+    // client treats "rate_limited" like a transport failure (never terminal).
+    expect(response.results[0].nack?.code).toBe("rate_limited");
+    expect(typeof (response.results[0].nack as {retryAfterMs?: number})?.retryAfterMs).toBe(
+      "number"
+    );
+  });
+
+  it("emits sync:batchReceived immediately, before any mutation is applied (FIX 5)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    const mutations = [create("sock-batch-receipt-1", "a")];
+    await socket.trigger("sync:mutateBatch", {batchId: "b-123", mutations}, () => {});
+    const receipts = socket.emitted.filter((e) => e.event === "sync:batchReceived");
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0].payload).toEqual({batchId: "b-123"});
+  });
+
+  it("does not emit sync:batchReceived when the request has no batchId (HTTP-shaped payload)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    await triggerBatch(socket, [create("sock-batch-no-id", "a")]);
+    expect(socket.emitted.filter((e) => e.event === "sync:batchReceived")).toHaveLength(0);
   });
 });
 
@@ -760,7 +924,7 @@ describe("emitSyncDeltaForChange", () => {
     expect(receiver.decodedToken.id).toBe("user1");
   });
 
-  it("soft delete emits a delete delta with deleted true and tombstone data", async () => {
+  it("C7: soft delete emits a delete delta with deleted true and NO data (tombstone stripped)", async () => {
     const entry = ownerEntry();
     const io = makeTrackedIo();
     io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
@@ -783,11 +947,21 @@ describe("emitSyncDeltaForChange", () => {
     expect(delta.method).toBe("delete");
     expect(delta.deleted).toBe(true);
     expect(delta.seq).toBe(3);
-    expect((delta.data as any).name).toBe("gone");
+    // C7: a tombstone delta carries no data (privacy + payload growth).
+    expect(delta.data).toBeUndefined();
   });
 
-  it("scope move emits a data-less tombstone to the previous stream and a create to the new stream", async () => {
+  it("C4: scope move emits a data-less tombstone (from the durable marker) to the previous stream and a create to the new stream", async () => {
     const entry = ownerEntry();
+    await SyncScopeMove.deleteMany({});
+    // C4: the tombstone is driven by a durable SyncScopeMove marker, not _syncPrevStream.
+    await SyncScopeMove.create({
+      collectionTag: "sockStuff",
+      entityId: "doc-1",
+      fromStream: "sockStuff|owner:user1",
+      seq: 9,
+      toStream: "sockStuff|owner:user2",
+    });
     const io = makeTrackedIo();
     const oldRoom = syncRoomForStream("sockStuff|owner:user1");
     const newRoom = syncRoomForStream("sockStuff|owner:user2");
@@ -798,7 +972,6 @@ describe("emitSyncDeltaForChange", () => {
       change: makeChange({
         fullDocument: {
           _id: "doc-1",
-          _syncPrevStream: "sockStuff|owner:user1",
           _syncSeq: 9,
           name: "moved",
           ownerId: "user2",
@@ -826,10 +999,58 @@ describe("emitSyncDeltaForChange", () => {
     expect(create.method).toBe("create");
     expect(create.stream).toBe("sockStuff|owner:user2");
     expect((create.data as any).name).toBe("moved");
+    await SyncScopeMove.deleteMany({});
   });
 
-  it("ignores a stale _syncPrevStream equal to the current stream", async () => {
+  it("C4: a racing second write cannot suppress the tombstone (the marker is durable, not the post-image)", async () => {
+    // Simulates the race the design fixes: a second write reset _syncPrevStream to null
+    // before this change event was processed. With the OLD implementation the old stream
+    // would never get a tombstone; with the marker it still does.
     const entry = ownerEntry();
+    await SyncScopeMove.deleteMany({});
+    await SyncScopeMove.create({
+      collectionTag: "sockStuff",
+      entityId: "doc-1",
+      fromStream: "sockStuff|owner:user1",
+      seq: 11,
+      toStream: "sockStuff|owner:user2",
+    });
+    const io = makeTrackedIo();
+    const oldRoom = syncRoomForStream("sockStuff|owner:user1");
+    io.addSocketToRoom(oldRoom, {admin: true, id: "admin"});
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user2"), {admin: true, id: "admin"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {
+          _id: "doc-1",
+          // _syncPrevStream is null (overwritten by the racing second write) — irrelevant now.
+          _syncPrevStream: null,
+          _syncSeq: 12,
+          name: "moved then edited",
+          ownerId: "user2",
+        },
+        operationType: "update",
+        updateDescription: {updatedFields: {name: "moved then edited"}},
+      }),
+      docId: "doc-1",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const tombstone = deltas.find((e: any) => e.room === oldRoom)?.payload as SyncDelta;
+    expect(tombstone).toBeDefined();
+    expect(tombstone.method).toBe("delete");
+    expect(tombstone.stream).toBe("sockStuff|owner:user1");
+    expect(tombstone.seq).toBe(11);
+    await SyncScopeMove.deleteMany({});
+  });
+
+  it("C4: no marker for the current stream means a plain update (no spurious tombstone)", async () => {
+    const entry = ownerEntry();
+    await SyncScopeMove.deleteMany({});
     const io = makeTrackedIo();
     io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
 
@@ -837,7 +1058,6 @@ describe("emitSyncDeltaForChange", () => {
       change: makeChange({
         fullDocument: {
           _id: "doc-1",
-          _syncPrevStream: "sockStuff|owner:user1",
           _syncSeq: 4,
           name: "same stream",
           ownerId: "user1",
@@ -1122,215 +1342,5 @@ describe("sync:delta — change stream integration", () => {
     const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     expect(io.emissions.filter((e: any) => e.event === "sync")).toHaveLength(0);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// socketAuth — legacy JWT chain + Better Auth validator
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe("socketAuth", () => {
-  const tokenSecret = "socket-auth-test-secret";
-
-  const makeAuthSocket = (token?: string): AuthenticatableSocket & {decodedToken?: any} => ({
-    handshake: {auth: token === undefined ? {} : {token}},
-  });
-
-  const runMiddleware = (
-    middleware: (socket: any, next: (error?: Error) => void) => void,
-    socket: AuthenticatableSocket
-  ): Promise<Error | undefined> =>
-    new Promise((resolve) => {
-      middleware(socket, (error?: Error) => resolve(error));
-    });
-
-  describe("createLegacyJwtValidator", () => {
-    it("accepts a valid Bearer JWT and populates decodedToken", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      const token = jwt.sign({admin: true, id: "jwt-user"}, tokenSecret);
-      const socket = makeAuthSocket(`Bearer ${token}`);
-      await validator(socket);
-      expect(socket.decodedToken?.id).toBe("jwt-user");
-      expect(socket.decodedToken?.admin).toBe(true);
-    });
-
-    it("rejects a token signed with the wrong secret", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      const token = jwt.sign({id: "jwt-user"}, "wrong-secret");
-      await expect(validator(makeAuthSocket(`Bearer ${token}`))).rejects.toThrow(
-        "Token is missing or invalid Bearer"
-      );
-    });
-
-    it("rejects a token without the Bearer prefix", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      const token = jwt.sign({id: "jwt-user"}, tokenSecret);
-      await expect(validator(makeAuthSocket(token))).rejects.toThrow(
-        "Format is Authorization: Bearer [token]"
-      );
-    });
-
-    it("rejects when no token is provided", async () => {
-      const validator = createLegacyJwtValidator(tokenSecret);
-      await expect(validator(makeAuthSocket(undefined))).rejects.toThrow("no token provided");
-    });
-  });
-
-  describe("createBetterAuthValidator", () => {
-    const stubAuth = (session: unknown, capture?: {headers?: unknown}): any => ({
-      api: {
-        getSession: async ({headers}: {headers: unknown}) => {
-          if (capture) {
-            capture.headers = headers;
-          }
-          return session;
-        },
-      },
-    });
-
-    it("populates decodedToken from a valid Better Auth session", async () => {
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "sess-1"}, user: {id: "ba-user-1"}}),
-      });
-      const socket = makeAuthSocket("session-token-abc");
-      await validator(socket);
-      expect(socket.decodedToken).toEqual({admin: false, id: "ba-user-1", isAnonymous: false});
-    });
-
-    it("passes the token as a bearer authorization header only", async () => {
-      const capture: {headers?: any} = {};
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "s"}, user: {id: "u"}}, capture),
-      });
-      await validator(makeAuthSocket("Bearer session-token-xyz"));
-      expect(capture.headers.authorization).toBe("Bearer session-token-xyz");
-      // A raw (unsigned) token cookie fails signature verification and can shadow the
-      // bearer path, so the validator must not send one.
-      expect(capture.headers.cookie).toBeUndefined();
-    });
-
-    it("rejects when the session lookup returns null", async () => {
-      const validator = createBetterAuthValidator({auth: stubAuth(null)});
-      await expect(validator(makeAuthSocket("bad-session"))).rejects.toThrow(
-        "Better Auth session is missing or invalid"
-      );
-    });
-
-    it("rejects when no token is provided", async () => {
-      const validator = createBetterAuthValidator({auth: stubAuth(null)});
-      await expect(validator(makeAuthSocket(undefined))).rejects.toThrow("no token provided");
-    });
-
-    it("resolves the app user for id and admin when a userModel is provided", async () => {
-      const userModel = {
-        find: () => {
-          throw new Error("unused");
-        },
-      };
-      const appUser = {_id: "app-user-1", admin: true};
-      const findOneOrNone = async (query: Record<string, unknown>) =>
-        query.betterAuthId === "ba-user-1" ? appUser : null;
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "s"}, user: {id: "ba-user-1"}}),
-        userModel: {...userModel, findOneOrNone} as any,
-      });
-      const socket = makeAuthSocket("session-token");
-      await validator(socket);
-      expect(socket.decodedToken).toEqual({admin: true, id: "app-user-1", isAnonymous: false});
-    });
-
-    it("rejects when the Better Auth user has no application user", async () => {
-      const validator = createBetterAuthValidator({
-        auth: stubAuth({session: {id: "s"}, user: {id: "ba-orphan"}}),
-        userModel: {findOneOrNone: async () => null} as any,
-      });
-      await expect(validator(makeAuthSocket("session-token"))).rejects.toThrow(
-        "no application user"
-      );
-    });
-  });
-
-  describe("createSocketAuthMiddleware — validator chain", () => {
-    it("accepts a legacy JWT with the default chain", async () => {
-      const middleware = createSocketAuthMiddleware({tokenSecret});
-      const token = jwt.sign({admin: false, id: "chain-user"}, tokenSecret);
-      const socket = makeAuthSocket(`Bearer ${token}`);
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken?.id).toBe("chain-user");
-    });
-
-    it("rejects an invalid token with the default chain", async () => {
-      const middleware = createSocketAuthMiddleware({tokenSecret});
-      const socket = makeAuthSocket("Bearer not-a-jwt");
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeDefined();
-      expect(error?.message).toContain("invalid");
-      expect(socket.decodedToken).toBeUndefined();
-    });
-
-    it("falls through to the Better Auth validator when the JWT validator fails", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {
-          auth: {
-            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-user-2"}})},
-          } as any,
-        },
-        tokenSecret,
-      });
-      const socket = makeAuthSocket("better-auth-session-token");
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken).toEqual({admin: false, id: "ba-user-2", isAnonymous: false});
-    });
-
-    it("prefers the legacy JWT validator when both would work", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {
-          auth: {
-            api: {
-              getSession: async () => {
-                throw new Error("should not be called for a valid JWT");
-              },
-            },
-          } as any,
-        },
-        tokenSecret,
-      });
-      const token = jwt.sign({admin: true, id: "jwt-first"}, tokenSecret);
-      const socket = makeAuthSocket(`Bearer ${token}`);
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken?.id).toBe("jwt-first");
-      expect(socket.decodedToken?.admin).toBe(true);
-    });
-
-    it("rejects with the last validator's error when every validator fails", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {auth: {api: {getSession: async () => null}} as any},
-        tokenSecret,
-      });
-      const socket = makeAuthSocket("neither-jwt-nor-session");
-      const error = await runMiddleware(middleware, socket);
-      expect(error?.message).toContain("Better Auth session is missing or invalid");
-    });
-
-    it("supports extra validators appended to the chain", async () => {
-      const middleware = createSocketAuthMiddleware({
-        extraValidators: [
-          async (socket) => {
-            if (socket.handshake.auth.token !== "magic") {
-              throw new Error("not magic");
-            }
-            socket.decodedToken = {admin: false, id: "magic-user", isAnonymous: false};
-          },
-        ],
-        tokenSecret,
-      });
-      const socket = makeAuthSocket("magic");
-      const error = await runMiddleware(middleware, socket);
-      expect(error).toBeUndefined();
-      expect(socket.decodedToken?.id).toBe("magic-user");
-    });
   });
 });

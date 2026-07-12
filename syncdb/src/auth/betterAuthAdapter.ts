@@ -56,6 +56,18 @@ export const betterAuthAdapter = (
     }
   };
 
+  /**
+   * One-shot silent refresh consumed by the client's A4 auth-pause pipeline:
+   * re-fetch the session (Better Auth clients transparently refresh/renew the
+   * underlying token on `getSession()` when the client library supports it)
+   * and report whether a usable token now exists. Never throws — a failed
+   * refresh just means the pause surfaces to the app as usual.
+   */
+  const refresh = async (): Promise<boolean> => {
+    const session = await readSession();
+    return Boolean(session?.session?.token);
+  };
+
   const getToken = async (): Promise<string | null> => {
     const session = await readSession();
     return session?.session?.token ?? null;
@@ -160,5 +172,5 @@ export const betterAuthAdapter = (
     };
   };
 
-  return {getToken, getUserId, onAuthChange};
+  return {getToken, getUserId, onAuthChange, refresh};
 };

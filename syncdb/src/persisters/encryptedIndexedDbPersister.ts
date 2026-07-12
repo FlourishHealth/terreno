@@ -23,6 +23,15 @@ interface PendingSave {
  * (AES-GCM) → put blob. Corrupt or undecryptable data is treated as a fresh
  * store — `onDecryptFailure` fires so the caller can wipe and re-bootstrap.
  *
+ * A READ error from IndexedDB itself (as opposed to "no record yet") is a
+ * different failure mode (E3a): the blob may well still be intact, so it must
+ * NOT be treated as "fresh store" (which would let a subsequent autosave
+ * clobber it with empty content). `onLoadFailure` fires in that case instead
+ * of `onDecryptFailure`, and the underlying read error is re-thrown so
+ * TinyBase's own `getPersisted` error handling leaves the in-memory store
+ * exactly as it was (never calls `setContentOrChanges`) — callers key off
+ * `onLoadFailure` to additionally skip `startAutoSave()` for this session.
+ *
  * Saves are debounced with a trailing edge (default 500ms) since TinyBase's
  * autosave fires on every transaction: each write waits out the debounce
  * window, and follow-up saves whose serialized content matches the last
@@ -34,24 +43,52 @@ export const createEncryptedIndexedDbPersister = ({
   databaseName,
   codec,
   onDecryptFailure,
+  onLoadFailure,
+  onSaveFailure,
   saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS,
+  idbGetImpl = idbGet,
+  idbSetImpl = idbSet,
 }: {
   store: MergeableStore;
   databaseName: string;
   codec: PayloadCodec;
   onDecryptFailure?: () => void;
+  onLoadFailure?: () => void;
+  /**
+   * E3(a): invoked whenever a write to IndexedDB ultimately fails (e.g. a
+   * quota-exceeded `DOMException`) — TinyBase's own autosave scheduler
+   * otherwise swallows `setPersisted` errors silently via its internal
+   * `onIgnoredError`, so without this hook a failing save would be invisible.
+   */
+  onSaveFailure?: (error: unknown) => void;
   saveDebounceMs?: number;
+  /** Test-only override for the IndexedDB read (default: the real `idbGet`). */
+  idbGetImpl?: typeof idbGet;
+  /** Test-only override for the IndexedDB write (default: the real `idbSet`). */
+  idbSetImpl?: typeof idbSet;
 }): Persister<Persists.MergeableStoreOnly> => {
   let lastWrittenJson: string | undefined;
   let pendingSave: PendingSave | undefined;
+  // E3(e): the debounce timer scheduling `flushPendingSave` — tracked so
+  // `destroy()` can cancel it. Without this, a pending debounced save would
+  // still fire (and write) after destroy(), which is exactly the kind of
+  // "wrote something after we thought we were done" bug destroy() must
+  // prevent (e.g. a wipe immediately followed by destroy()).
+  let pendingSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  let destroyed = false;
   // Serializes writes so a slow encode/put can never land after (and clobber)
   // a newer snapshot's write.
   let writeChain: Promise<void> = Promise.resolve();
 
   const writeJson = (json: string): Promise<void> => {
     const write = writeChain.then(async () => {
+      // E3(e): destroy() may have run while this write was already chained
+      // behind an earlier one — never let it land after destroy() completes.
+      if (destroyed) {
+        return;
+      }
       const payload = await codec.encode(json);
-      await idbSet({databaseName, key: RECORD_KEY, value: payload});
+      await idbSetImpl({databaseName, key: RECORD_KEY, value: payload});
       lastWrittenJson = json;
     });
     // Keep the chain alive after a failed write; the failure still propagates
@@ -77,7 +114,20 @@ export const createEncryptedIndexedDbPersister = ({
   };
 
   const getPersisted = async (): Promise<MergeableContent | undefined> => {
-    const payload = await idbGet<unknown>({databaseName, key: RECORD_KEY});
+    let payload: unknown;
+    try {
+      payload = await idbGetImpl<unknown>({databaseName, key: RECORD_KEY});
+    } catch (error) {
+      // E3(a): the READ itself failed (IndexedDB unavailable/blocked/thrown) —
+      // this is NOT "no data" (undefined) and must not be treated as a fresh
+      // store: onDecryptFailure (whose default wipes and re-bootstraps) would
+      // be actively harmful here since the persisted blob may still be
+      // perfectly intact. Signal the distinct failure and re-throw so
+      // TinyBase's own error handling leaves the in-memory store untouched
+      // rather than defaulting it to empty.
+      onLoadFailure?.();
+      throw error;
+    }
     if (payload === undefined) {
       return undefined;
     }
@@ -95,7 +145,12 @@ export const createEncryptedIndexedDbPersister = ({
   const setPersisted = async (getContent: () => MergeableContent): Promise<void> => {
     const json = JSON.stringify(getContent());
     if (saveDebounceMs <= 0) {
-      await writeJson(json);
+      try {
+        await writeJson(json);
+      } catch (error) {
+        onSaveFailure?.(error);
+        throw error;
+      }
       return;
     }
     // TinyBase serializes setPersisted calls, so per-transaction autosaves
@@ -112,14 +167,20 @@ export const createEncryptedIndexedDbPersister = ({
         rejectPending = rej;
       });
       pendingSave = {promise, reject: rejectPending, resolve: resolvePending};
-      setTimeout(() => {
+      pendingSaveTimer = setTimeout(() => {
+        pendingSaveTimer = undefined;
         void flushPendingSave();
       }, saveDebounceMs);
     }
-    await pendingSave.promise;
+    try {
+      await pendingSave.promise;
+    } catch (error) {
+      onSaveFailure?.(error);
+      throw error;
+    }
   };
 
-  return createCustomPersister<number, Persists.MergeableStoreOnly>(
+  const persister = createCustomPersister<number, Persists.MergeableStoreOnly>(
     store,
     getPersisted,
     setPersisted,
@@ -130,4 +191,28 @@ export const createEncryptedIndexedDbPersister = ({
     undefined,
     Persists.MergeableStoreOnly
   );
+
+  // E3(e): wrap destroy() to cancel the debounce timer and drop (without
+  // writing) any pending save — TinyBase's own destroy()/stopAutoPersisting()
+  // has no idea this persister keeps its own setTimeout-based debounce state,
+  // so without this override a pending write fires (and lands in IndexedDB)
+  // even after the caller believes destroy() fully tore everything down.
+  const originalDestroy = persister.destroy.bind(persister);
+  return {
+    ...persister,
+    destroy: (): ReturnType<typeof originalDestroy> => {
+      destroyed = true;
+      if (pendingSaveTimer !== undefined) {
+        clearTimeout(pendingSaveTimer);
+        pendingSaveTimer = undefined;
+      }
+      // A pending save's awaiters (if any) must still settle — resolve
+      // rather than reject, since "destroyed before its debounce elapsed" is
+      // an expected lifecycle event, not a failure the caller needs to
+      // handle specially.
+      pendingSave?.resolve();
+      pendingSave = undefined;
+      return originalDestroy();
+    },
+  };
 };

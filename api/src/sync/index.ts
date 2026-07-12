@@ -3,6 +3,7 @@ export * from "./models";
 export * from "./mutationHandler";
 export * from "./registry";
 export * from "./routes";
+export * from "./scripts/compactTombstones";
 export * from "./serialize";
 export * from "./socketHandlers";
 export * from "./streams";

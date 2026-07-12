@@ -1,3 +1,4 @@
+import {createMergeableStore} from "tinybase";
 import type {AnyPersister} from "tinybase/persisters";
 
 import {clearMemoryPersisterData} from "../persisters/memoryPersister";
@@ -30,6 +31,14 @@ export const wipeLocalData = async ({
 }): Promise<void> => {
   store.raw.delTables();
   store.raw.delValues();
+  // A MergeableStore records CRDT (HLC) metadata for every cell it has ever held, and
+  // `delTables()` only tombstones rows — it does not drop that metadata. When the SAME
+  // store object is reused across a wipe (the different-user switch path, unlike the
+  // schema-mismatch/decrypt paths that build a fresh client), the residual metadata can be
+  // re-materialized as empty default rows the next time a persister loads and merges into
+  // the store. Reset the mergeable content outright so a wiped store carries no ghost rows
+  // into the next user's session.
+  store.raw.setMergeableContent(createMergeableStore().getMergeableContent());
   if (persister) {
     // Overwrite the snapshot with the emptied content (covers persisters whose
     // backing store is not named in databaseNames, e.g. native SQLite), then

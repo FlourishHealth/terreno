@@ -1,7 +1,16 @@
+import {DateTime} from "luxon";
 import {createMergeableStore, type MergeableStore, type Row} from "tinybase";
 
 import {buildTablesSchema, SYNC_SCHEMA_VERSION, SYNC_VALUES_SCHEMA} from "./schema";
-import {type EntityRow, RESERVED_TABLE_PREFIX, type SyncEntity} from "./types";
+import {
+  CURSORS_TABLE,
+  type EntityRow,
+  KNOWN_STREAMS_TABLE,
+  RESERVED_TABLE_PREFIX,
+  type SyncEntity,
+} from "./types";
+
+const defaultNow = (): string => DateTime.now().toISO();
 
 const encodeData = (data: unknown): string => JSON.stringify(data ?? null);
 
@@ -21,9 +30,11 @@ const decodeData = <TData>(raw: string | undefined): TData => {
 const rowToEntity = <TData>(id: string, row: Partial<EntityRow>): SyncEntity<TData> => ({
   data: decodeData<TData>(row.data),
   deleted: Boolean(row.deleted),
+  deletedAt: row.deletedAt ? row.deletedAt : undefined,
   id,
   pendingMutationId: row.pendingMutationId ? row.pendingMutationId : undefined,
   seq: row.seq ?? 0,
+  stream: row.stream ? row.stream : undefined,
 });
 
 export interface UpsertEntityArgs {
@@ -36,6 +47,13 @@ export interface UpsertEntityArgs {
   deleted?: boolean;
   /** Protecting outbox mutation; omitted = preserve existing, "" = clear. */
   pendingMutationId?: string;
+  /** C2: the stream this entity was written under; omitted = preserve existing. */
+  stream?: string;
+}
+
+export interface CompactTombstonesResult {
+  /** Number of tombstone rows removed (across all configured collections). */
+  removed: number;
 }
 
 export interface SyncStore {
@@ -57,6 +75,27 @@ export interface SyncStore {
   getSchemaVersion: () => number;
   getLastUserId: () => string | undefined;
   setLastUserId: (args: {userId: string}) => void;
+  /**
+   * E5: delete local tombstone rows (`deleted: true`) whose `deletedAt` is
+   * older than `olderThanMs` (from `now`), across every configured
+   * collection, in one transaction. Tombstones with no `deletedAt` (applied
+   * before this cell existed) are left alone — there is no reliable age to
+   * compare, and it is safer to under-compact than to drop a tombstone a
+   * client hasn't actually converged on yet.
+   */
+  compactTombstones: (args: {olderThanMs: number; now?: () => string}) => CompactTombstonesResult;
+  /** C2: stream keys the client has bootstrapped (the persisted membership set). */
+  getKnownStreams: () => string[];
+  /** C2: record a stream as bootstrapped (join). */
+  addKnownStream: (args: {stream: string; collection: string}) => void;
+  /** C2: forget a bootstrapped stream (leave). */
+  removeKnownStream: (args: {stream: string}) => void;
+  /**
+   * C2 leave-purge: delete every local entity written under `stream` (matched on the
+   * entity `stream` column) across all collections, and its cursor + known-stream entry.
+   * Returns the number of entities purged.
+   */
+  purgeStream: (args: {stream: string}) => number;
 }
 
 /**
@@ -66,7 +105,14 @@ export interface SyncStore {
  * Every accessor validates its collection against the configured list so a
  * typo'd collection fails loudly instead of silently writing to a stray table.
  */
-export const createSyncStore = ({collections}: {collections: string[]}): SyncStore => {
+export const createSyncStore = ({
+  collections,
+  now = defaultNow,
+}: {
+  collections: string[];
+  /** ISO clock, injectable for deterministic E5 tombstone-retention tests. */
+  now?: () => string;
+}): SyncStore => {
   for (const collection of collections) {
     if (collection.startsWith(RESERVED_TABLE_PREFIX)) {
       throw new Error(
@@ -94,11 +140,19 @@ export const createSyncStore = ({collections}: {collections: string[]}): SyncSto
     const existing = raw.hasRow(args.collection, args.id)
       ? (raw.getRow(args.collection, args.id) as Partial<EntityRow>)
       : undefined;
+    const deleted = args.deleted ?? existing?.deleted ?? false;
     const row: EntityRow = {
       data: encodeData(args.data),
-      deleted: args.deleted ?? existing?.deleted ?? false,
+      deleted,
+      // E5: stamp deletedAt the moment a row FIRST becomes a tombstone (not
+      // on every subsequent upsert while it stays deleted, and never on a
+      // resurrection back to deleted: false — clear it instead). Empty
+      // string (the schema default for a never-deleted row) must be treated
+      // the same as "absent" here — `??` alone does not do that.
+      deletedAt: deleted ? existing?.deletedAt || now() : "",
       pendingMutationId: args.pendingMutationId ?? existing?.pendingMutationId ?? "",
       seq: args.seq ?? existing?.seq ?? 0,
+      stream: args.stream ?? existing?.stream ?? "",
     };
     raw.setRow(args.collection, args.id, row as unknown as Row);
     return rowToEntity(args.id, row);
@@ -137,7 +191,16 @@ export const createSyncStore = ({collections}: {collections: string[]}): SyncSto
     if (!raw.hasRow(args.collection, args.id)) {
       return;
     }
-    raw.setCell(args.collection, args.id, "deleted", true);
+    raw.transaction(() => {
+      raw.setCell(args.collection, args.id, "deleted", true);
+      // E5: stamp deletedAt only on the transition into a tombstone — a
+      // second softDeleteEntity call on an already-deleted row (idempotent)
+      // must not push the age-out clock forward.
+      const currentDeletedAt = raw.getCell(args.collection, args.id, "deletedAt");
+      if (!currentDeletedAt) {
+        raw.setCell(args.collection, args.id, "deletedAt", now());
+      }
+    });
   };
 
   const clearCollection = (args: {collection: string}): void => {
@@ -159,14 +222,78 @@ export const createSyncStore = ({collections}: {collections: string[]}): SyncSto
     raw.setValue("lastUserId", userId);
   };
 
+  const compactTombstones = ({
+    olderThanMs,
+    now: compactionNow = now,
+  }: {
+    olderThanMs: number;
+    now?: () => string;
+  }): CompactTombstonesResult => {
+    const cutoff = DateTime.fromISO(compactionNow()).minus({milliseconds: olderThanMs});
+    return raw.transaction(() => {
+      let removed = 0;
+      for (const collection of collections) {
+        const table = raw.getTable(collection);
+        for (const [id, row] of Object.entries(table)) {
+          const typedRow = row as Partial<EntityRow>;
+          if (!typedRow.deleted || !typedRow.deletedAt) {
+            continue;
+          }
+          const deletedAt = DateTime.fromISO(typedRow.deletedAt);
+          if (!deletedAt.isValid || deletedAt < cutoff) {
+            raw.delRow(collection, id);
+            removed += 1;
+          }
+        }
+      }
+      return {removed};
+    });
+  };
+
+  const getKnownStreams = (): string[] => Object.keys(raw.getTable(KNOWN_STREAMS_TABLE));
+
+  const addKnownStream = ({stream, collection}: {stream: string; collection: string}): void => {
+    raw.setRow(KNOWN_STREAMS_TABLE, stream, {
+      addedAt: now(),
+      collection,
+    } as unknown as Row);
+  };
+
+  const removeKnownStream = ({stream}: {stream: string}): void => {
+    raw.delRow(KNOWN_STREAMS_TABLE, stream);
+  };
+
+  const purgeStream = ({stream}: {stream: string}): number => {
+    // C2 leave-purge deletes rows outright, so E5 deletedAt tombstone semantics
+    // do not apply here — a purged stream is gone locally, not soft-deleted.
+    let purged = 0;
+    for (const collection of collections) {
+      const table = raw.getTable(collection);
+      for (const [id, row] of Object.entries(table)) {
+        if ((row as Partial<EntityRow>).stream === stream) {
+          raw.delRow(collection, id);
+          purged += 1;
+        }
+      }
+    }
+    raw.delRow(CURSORS_TABLE, stream);
+    removeKnownStream({stream});
+    return purged;
+  };
+
   return {
+    addKnownStream,
     clearCollection,
     collections,
+    compactTombstones,
     getEntity,
+    getKnownStreams,
     getLastUserId,
     getSchemaVersion,
     listEntities,
+    purgeStream,
     raw,
+    removeKnownStream,
     setLastUserId,
     softDeleteEntity,
     upsertEntity,

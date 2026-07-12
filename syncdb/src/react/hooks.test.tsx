@@ -5,6 +5,7 @@ import React from "react";
 import {createSyncDb, type SyncDb} from "../client";
 import {memoryPersisterFactory} from "../persisters/memoryPersister";
 import {createFakeTransport, type FakeTransport} from "../sync/fakeTransport";
+import {AuthRequiredError} from "../sync/httpChannel";
 import type {AuthProvider, SyncDelta} from "../types";
 import {useConflicts, useEntity, useMutate, useQuery, useSyncStatus} from "./hooks";
 import {SyncDbProvider, useSyncDbClient} from "./provider";
@@ -24,22 +25,37 @@ const flush = async (): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 5));
 };
 
-const makeAuthProvider = (userId: string): AuthProvider => ({
-  getToken: async () => "token",
-  getUserId: async () => userId,
-  onAuthChange: () => () => {},
-});
+const makeAuthProvider = (userId: string): AuthProvider & {emitAuthChange: () => void} => {
+  const listeners = new Set<() => void>();
+  return {
+    emitAuthChange: (): void => {
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    getToken: async () => "token",
+    getUserId: async () => userId,
+    onAuthChange: (callback: () => void): (() => void) => {
+      listeners.add(callback);
+      return () => {
+        listeners.delete(callback);
+      };
+    },
+  };
+};
 
 interface Harness {
   client: SyncDb;
   transport: FakeTransport;
+  auth: ReturnType<typeof makeAuthProvider>;
   wrapper: React.FC<{children: React.ReactNode}>;
 }
 
 const setup = async (): Promise<Harness> => {
   const transport = createFakeTransport();
+  const auth = makeAuthProvider("u1");
   const client = createSyncDb({
-    authProvider: makeAuthProvider("u1"),
+    authProvider: auth,
     collections: ["todos"],
     name: uniqueName(),
     persisterFactory: memoryPersisterFactory,
@@ -50,7 +66,7 @@ const setup = async (): Promise<Harness> => {
   const wrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
     <SyncDbProvider client={client}>{children}</SyncDbProvider>
   );
-  return {client, transport, wrapper};
+  return {auth, client, transport, wrapper};
 };
 
 const makeDelta = (overrides: Partial<SyncDelta> = {}): SyncDelta => ({
@@ -214,6 +230,32 @@ describe("useQuery", () => {
       await client.stop();
     });
   });
+
+  it("skips a corrupt row (undecodable data) instead of throwing (E4)", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "healthy"}, id: "t1"});
+      // Write a raw row whose `data` cell is not valid JSON, bypassing the
+      // encoder — this is what a corrupt/legacy row looks like on disk.
+      // store.ts's decodeData already swallows the JSON.parse failure and
+      // returns null (with a console.warn) rather than throwing; useQuery
+      // must additionally skip that row from its results rather than handing
+      // list consumers a `null` entry that crashes on first field access.
+      client.store.raw.setRow("todos", "corrupt-1", {
+        data: "{not valid json",
+        deleted: false,
+        pendingMutationId: "",
+        seq: 1,
+      });
+    });
+    const {result} = renderHook(() => useQuery<TodoData>("todos"), {wrapper});
+    expect(() => result.current).not.toThrow();
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0]?.title).toBe("healthy");
+    await act(async () => {
+      await client.stop();
+    });
+  });
 });
 
 describe("useMutate", () => {
@@ -327,6 +369,32 @@ describe("useSyncStatus", () => {
       await client.stop();
     });
   });
+
+  it("reflects the auth-pause state reactively (A4)", async () => {
+    const {auth, client, transport, wrapper} = await setup();
+    transport.setDefaultResponder(() => {
+      throw new AuthRequiredError();
+    });
+    const {result} = renderHook(() => useSyncStatus(), {wrapper});
+    expect(result.current.paused).toBeUndefined();
+
+    await act(async () => {
+      client.mutate({collection: "todos", data: {title: "x"}, operation: "create"});
+      await flush();
+    });
+    expect(result.current.paused).toBe("auth");
+
+    // Same-user re-auth is the unpause path (no refresh() configured here).
+    transport.setDefaultResponder();
+    await act(async () => {
+      auth.emitAuthChange();
+      await flush();
+    });
+    expect(result.current.paused).toBeUndefined();
+    await act(async () => {
+      await client.stop();
+    });
+  });
 });
 
 describe("useConflicts", () => {
@@ -403,6 +471,56 @@ describe("useConflicts", () => {
       .find((mutation) => mutation.entityId === "t1");
     expect(retry?.status).toBe("queued");
     expect(retry?.baseVersion).toBe(7);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+});
+
+describe("listener cleanup on unmount (E4)", () => {
+  it("useEntity removes its row listener on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useEntity<TodoData>("todos", "t1"), {wrapper});
+    expect(client.store.raw.getListenerStats().row).toBe(baseline.row + 1);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useQuery removes its table listener on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useQuery<TodoData>("todos"), {wrapper});
+    expect(client.store.raw.getListenerStats().table).toBe(baseline.table + 1);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useSyncStatus removes its outbox/conflicts/cursors table listeners on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useSyncStatus(), {wrapper});
+    expect(client.store.raw.getListenerStats().table).toBe(baseline.table + 3);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useConflicts removes its conflicts table listener on unmount", async () => {
+    const {client, wrapper} = await setup();
+    const baseline = client.store.raw.getListenerStats();
+    const {unmount} = renderHook(() => useConflicts(), {wrapper});
+    expect(client.store.raw.getListenerStats().table).toBe(baseline.table + 1);
+    unmount();
+    expect(client.store.raw.getListenerStats()).toEqual(baseline);
     await act(async () => {
       await client.stop();
     });

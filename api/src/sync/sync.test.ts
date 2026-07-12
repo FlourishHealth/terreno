@@ -457,17 +457,19 @@ describe("claimSyncSeqs", () => {
   });
 
   it("claims monotonic seqs and batch ranges", async () => {
-    expect(await claimSyncSeqs({stream: "s|a"})).toBe(1);
-    expect(await claimSyncSeqs({count: 5, stream: "s|a"})).toBe(6);
-    expect(await claimSyncSeqs({stream: "s|a"})).toBe(7);
-    expect(await claimSyncSeqs({stream: "s|b"})).toBe(1);
+    expect((await claimSyncSeqs({stream: "s|a"})).lastSeq).toBe(1);
+    const batch = await claimSyncSeqs({count: 5, stream: "s|a"});
+    expect(batch.lastSeq).toBe(6);
+    expect(batch.seqs).toEqual([2, 3, 4, 5, 6]);
+    expect((await claimSyncSeqs({stream: "s|a"})).lastSeq).toBe(7);
+    expect((await claimSyncSeqs({stream: "s|b"})).lastSeq).toBe(1);
   });
 
   it("survives concurrent first claims for a new stream", async () => {
     const results = await Promise.all(
       Array.from({length: 5}, () => claimSyncSeqs({stream: "s|fresh"}))
     );
-    expect(results.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+    expect(results.map((r) => r.lastSeq).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
   });
 });
 

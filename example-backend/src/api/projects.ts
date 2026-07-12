@@ -1,4 +1,4 @@
-import {modelRouter, OrganizationQueryFilter, Permissions} from "@terreno/api";
+import {APIError, modelRouter, OrganizationQueryFilter, Permissions} from "@terreno/api";
 import {Project} from "../models";
 import type {ProjectDocument, UserDocument} from "../types";
 
@@ -24,10 +24,21 @@ export const projectRouter = modelRouter("/projects", Project, {
   },
   preCreate: (body, req) => {
     const organizationIds = getUserOrganizationIds(req.user);
+    // D3: spread body FIRST so a caller-supplied organizationId can never win by
+    // ordering, then force/validate it belongs to one of the caller's organizations.
+    // Without this, a client could POST an arbitrary organizationId and create a
+    // document in a tenant it does not belong to (a tenant create-escape).
+    const requested = (body as Partial<ProjectDocument>)?.organizationId;
+    const organizationId = requested ?? organizationIds[0];
+    if (!organizationId || !organizationIds.includes(organizationId)) {
+      throw new APIError({
+        status: 403,
+        title: "organizationId must be one of the caller's organizations",
+      });
+    }
     return {
-      // Default new projects into the user's first organization when unspecified.
-      organizationId: organizationIds[0],
       ...body,
+      organizationId,
     } as ProjectDocument;
   },
   queryFields: ["organizationId", "title"],

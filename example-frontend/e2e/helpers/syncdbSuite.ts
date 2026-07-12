@@ -34,6 +34,10 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow(/WebSocket/i);
   consoleGuard.allow(/websocket error/i);
   consoleGuard.allow(/socket\.io/i);
+  // The realtime feature-flags/notifications socket (@terreno/rtk's useSocketConnection,
+  // distinct from syncdb's own transport) also can't reach a severed network during
+  // chaos/offline simulation.
+  consoleGuard.allow(/\[SocketConnection\]/);
   consoleGuard.allow("Failed to load resource");
   consoleGuard.allow("Sentry not initialized");
   consoleGuard.allow("[useConsentForms] Failed to fetch pending consent forms");
@@ -41,6 +45,9 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow("rejected mutation: Network unavailable");
   consoleGuard.allow("rejected query");
   consoleGuard.allow("Error fetching OpenAPI spec");
+  // Logging out while offline (see syncdb-storage.spec.ts's user-switch scenario)
+  // legitimately fails Better Auth's sign-out network call.
+  consoleGuard.allow("Better Auth: Error signing out");
 };
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>
@@ -111,6 +118,198 @@ export const goSyncOnline = async (page: Page): Promise<void> => {
 export const restoreNetwork = async (page: Page): Promise<void> => {
   offlinePages.delete(page);
   await page.unroute(`${API_URL}/**`);
+};
+
+/**
+ * Chaos e2e (Phase F3): helpers that stress the syncdb transport with jitter,
+ * reordering, live-socket drops, and rapid offline/online flapping — distinct from
+ * (and additive to) installOfflineControl above, which stays untouched so the
+ * non-chaos syncdb-*.spec.ts files keep their simpler, deterministic outage model.
+ *
+ * These helpers exist to try to *forge* the failure modes the outbox/idempotency
+ * ledger is supposed to prevent: duplicate deliveries from a reconnect racing an
+ * in-flight ack, or a lost mutation from a frame dropped mid-flight. A chaos test
+ * runs these concurrently with real UI mutations, then stops the chaos and asserts
+ * the client converges to exactly the mutated set with no duplicates.
+ *
+ * Per-repo research already established that Chrome DevTools Protocol's
+ * `Network.emulateNetworkConditions` does NOT throttle WebSocket frames (only HTTP),
+ * so latency/reordering here is injected by hand in the page.routeWebSocket relay
+ * below rather than via CDP.
+ */
+
+/** Uniform random integer/float in [min, max). */
+const rand = (min: number, max: number): number => min + Math.random() * (max - min);
+
+export interface ChaosControl {
+  /** Force-close every currently-live chaos-proxied WebSocket (simulates a dead connection). */
+  dropSocket: () => void;
+  /** Toggle full network outage, reusing the same semantics as goSyncOffline/goSyncOnline. */
+  goOffline: () => Promise<void>;
+  goOnline: () => Promise<void>;
+  /** Stop chaos-proxying: HTTP jitter route is removed and sockets forward immediately. */
+  stop: () => Promise<void>;
+}
+
+export interface ChaosControlOptions {
+  /** Max per-frame WebSocket latency in ms; each frame sleeps rand(0, latencyMs). Default 150. */
+  latencyMs?: number;
+}
+
+/**
+ * Install ONE routeWebSocket handler (Playwright does not expect multiple overlapping
+ * handlers registered for the same URL pattern) that supersets installOfflineControl
+ * with per-frame latency injection and live-socket dropping, plus an HTTP jitter route
+ * for REST calls. Must be called before login/navigation, exactly like
+ * installOfflineControl, so it wraps every socket.io connection the page ever opens.
+ */
+export const installChaosControl = async (
+  page: Page,
+  options?: ChaosControlOptions
+): Promise<ChaosControl> => {
+  const latencyMs = options?.latencyMs ?? 150;
+  let offline = false;
+  let chaosActive = true;
+  const sockets = new Set<WebSocketRoute>();
+
+  // Per-frame latency + jitter in both directions: instead of forwarding immediately,
+  // each message is delayed by an independent random duration so frames can arrive
+  // out of order relative to one another (a truer approximation of a lossy network
+  // than a single fixed delay, and enough to race the outbox drain against acks).
+  const forwardWithJitter = (
+    send: (message: string | Buffer) => void,
+    message: string | Buffer
+  ): void => {
+    if (!chaosActive) {
+      send(message);
+      return;
+    }
+    setTimeout(() => send(message), rand(0, latencyMs));
+  };
+
+  await page.routeWebSocket(/\/socket\.io\//, (ws) => {
+    if (offline) {
+      ws.close();
+      return;
+    }
+    const server = ws.connectToServer();
+    ws.onMessage((message) => forwardWithJitter((m) => server.send(m), message));
+    server.onMessage((message) => forwardWithJitter((m) => ws.send(m), message));
+    sockets.add(ws);
+    ws.onClose(() => sockets.delete(ws));
+  });
+
+  const dropSocket = (): void => {
+    for (const ws of sockets) {
+      ws.close();
+    }
+  };
+
+  const goOffline = async (): Promise<void> => {
+    offline = true;
+    await page.route(`${API_URL}/**`, (route) => route.abort("connectionrefused"));
+    dropSocket();
+    await page.getByTestId("sync-offline-indicator").waitFor({state: "visible", timeout: 15_000});
+  };
+
+  const goOnline = async (): Promise<void> => {
+    offline = false;
+    await page.unroute(`${API_URL}/**`);
+    await page.getByTestId("sync-offline-indicator").waitFor({state: "hidden", timeout: 30_000});
+  };
+
+  const stop = async (): Promise<void> => {
+    chaosActive = false;
+    offline = false;
+    await page.unroute(`${API_URL}/**`);
+  };
+
+  return {dropSocket, goOffline, goOnline, stop};
+};
+
+/**
+ * HTTP-only latency injection (no outage): every REST call to the backend is delayed
+ * by a random duration in [minMs, maxMs) via route.continue(), so requests still
+ * succeed — this simulates a slow/jittery network rather than a severed one, and
+ * composes with installChaosControl's WebSocket jitter for full-stack chaos.
+ */
+export const installHttpJitter = async (
+  page: Page,
+  {minMs, maxMs}: {minMs: number; maxMs: number}
+): Promise<void> => {
+  await page.route(`${API_URL}/**`, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, rand(minMs, maxMs)));
+    await route.continue();
+  });
+};
+
+export interface SyncFlapLoopController {
+  /**
+   * Signal the loop to stop. Lets any in-flight goOffline/goOnline settle, then
+   * performs one final goOnline so callers can rely on ending online before running
+   * convergence assertions.
+   */
+  stop: () => Promise<void>;
+}
+
+/** Minimal shape a flap loop needs to toggle connectivity — satisfied by ChaosControl. */
+export interface SyncFlapToggle {
+  goOffline: () => Promise<void>;
+  goOnline: () => Promise<void>;
+}
+
+/**
+ * Repeatedly toggle connectivity via the given `toggle` (pass the ChaosControl
+ * returned by installChaosControl — its goOffline/goOnline share the chaos-proxied
+ * WebSocket state, unlike the plain module-level goSyncOffline/goSyncOnline, which
+ * only affect installOfflineControl's separate routing) with a random dwell between
+ * toggles (default 1-8s, per the chaos plan). Runs as a detached background loop the
+ * caller `void`s; call `stop()` to end it deterministically.
+ */
+export const startSyncFlapLoop = (
+  toggle: SyncFlapToggle,
+  options?: {minDwellMs?: number; maxDwellMs?: number}
+): SyncFlapLoopController => {
+  const minDwellMs = options?.minDwellMs ?? 1000;
+  const maxDwellMs = options?.maxDwellMs ?? 8000;
+  let stopped = false;
+  let resolveStopped: (() => void) | undefined;
+  const stoppedPromise = new Promise<void>((resolve) => {
+    resolveStopped = resolve;
+  });
+
+  const dwell = (): Promise<void> =>
+    new Promise((resolve) => setTimeout(resolve, rand(minDwellMs, maxDwellMs)));
+
+  const loop = async (): Promise<void> => {
+    while (!stopped) {
+      await toggle.goOffline();
+      if (stopped) {
+        break;
+      }
+      await dwell();
+      if (stopped) {
+        break;
+      }
+      await toggle.goOnline();
+      if (stopped) {
+        break;
+      }
+      await dwell();
+    }
+    resolveStopped?.();
+  };
+
+  void loop();
+
+  const stop = async (): Promise<void> => {
+    stopped = true;
+    await stoppedPromise;
+    // Guarantee a known, online end state regardless of which phase the loop was in.
+    await toggle.goOnline();
+  };
+
+  return {stop};
 };
 
 export const createTodoViaUi = async (page: Page, title: string): Promise<void> => {

@@ -1,8 +1,10 @@
 import {describe, expect, it} from "bun:test";
 
 import {createSyncStore, type SyncStore} from "../storage/store";
+import {CONFLICTS_TABLE} from "../storage/types";
 import type {OutboxStatus} from "../types";
-import {createOutbox, generateMutationId, type Outbox} from "./outbox";
+import {getConflict} from "./conflicts";
+import {createOutbox, DEFAULT_KEEP_FAILED, generateMutationId, type Outbox} from "./outbox";
 
 const makeStore = (): SyncStore => createSyncStore({collections: ["todos"]});
 
@@ -51,6 +53,7 @@ describe("enqueue / getMutation", () => {
       collection: "todos",
       createdAt: "2026-07-04T00:00:00.000Z",
       entityId: "t1",
+      errorNackCount: 0,
       mutationId: "m1",
       operation: "update",
       status: "queued",
@@ -88,23 +91,7 @@ describe("enqueue / getMutation", () => {
 });
 
 describe("listQueued", () => {
-  it("returns queued mutations FIFO by createdAt", () => {
-    const timestamps = ["2026-07-04T00:00:02Z", "2026-07-04T00:00:01Z", "2026-07-04T00:00:03Z"];
-    let call = 0;
-    const outbox = makeOutbox({
-      now: () => timestamps[call++] ?? "2026-07-04T00:00:09Z",
-    });
-    enqueueDefault(outbox, {mutationId: "m-second"});
-    enqueueDefault(outbox, {mutationId: "m-first"});
-    enqueueDefault(outbox, {mutationId: "m-third"});
-    expect(outbox.listQueued({userId: "user-1"}).map((mutation) => mutation.mutationId)).toEqual([
-      "m-first",
-      "m-second",
-      "m-third",
-    ]);
-  });
-
-  it("breaks createdAt ties by insertion order", () => {
+  it("returns queued mutations FIFO by enqueueOrder (insertion order)", () => {
     const outbox = makeOutbox({now: () => "2026-07-04T00:00:00Z"});
     enqueueDefault(outbox, {mutationId: "m-a"});
     enqueueDefault(outbox, {mutationId: "m-b"});
@@ -113,6 +100,41 @@ describe("listQueued", () => {
       "m-a",
       "m-b",
       "m-c",
+    ]);
+  });
+
+  it("enqueueOrder is the primary sort key — immune to createdAt traveling backward (DST/timezone offset changes)", () => {
+    // A locale-offset ISO createdAt can go "backward" across a DST transition
+    // even though real insertion order is forward; enqueueOrder (a monotonic
+    // integer) must still win so an update never sorts before its create.
+    const timestamps = ["2026-07-04T00:00:02Z", "2026-07-04T00:00:01Z", "2026-07-04T00:00:03Z"];
+    let call = 0;
+    const outbox = makeOutbox({
+      now: () => timestamps[call++] ?? "2026-07-04T00:00:09Z",
+    });
+    enqueueDefault(outbox, {mutationId: "m-first"});
+    enqueueDefault(outbox, {mutationId: "m-second"});
+    enqueueDefault(outbox, {mutationId: "m-third"});
+    expect(outbox.listQueued({userId: "user-1"}).map((mutation) => mutation.mutationId)).toEqual([
+      "m-first",
+      "m-second",
+      "m-third",
+    ]);
+  });
+
+  it("breaks enqueueOrder ties (legacy rows predating the cell) by createdAt", () => {
+    const store = makeStore();
+    const outbox = makeOutbox({now: () => "2026-07-04T00:00:00Z", store});
+    enqueueDefault(outbox, {mutationId: "m-a"});
+    enqueueDefault(outbox, {mutationId: "m-b"});
+    // Simulate two legacy rows that both default to enqueueOrder 0.
+    store.raw.setCell("_outbox", "m-a", "enqueueOrder", 0);
+    store.raw.setCell("_outbox", "m-a", "createdAt", "2026-07-04T00:00:02Z");
+    store.raw.setCell("_outbox", "m-b", "enqueueOrder", 0);
+    store.raw.setCell("_outbox", "m-b", "createdAt", "2026-07-04T00:00:01Z");
+    expect(outbox.listQueued({userId: "user-1"}).map((mutation) => mutation.mutationId)).toEqual([
+      "m-b",
+      "m-a",
     ]);
   });
 
@@ -290,5 +312,319 @@ describe("clearForUser", () => {
     expect(outbox.getMutation({mutationId: "m-queued"})).toBeUndefined();
     expect(outbox.getMutation({mutationId: "m-flying"})).toBeUndefined();
     expect(outbox.getMutation({mutationId: "m-other"})).toBeDefined();
+  });
+});
+
+describe("recoverStartupState (A1)", () => {
+  it("transitions stranded inFlight rows back to queued without incrementing attemptCount", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    outbox.markInFlight({mutationId: "m1"});
+    expect(outbox.getMutation({mutationId: "m1"})?.attemptCount).toBe(1);
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.recoveredInFlight).toEqual(["m1"]);
+    const mutation = outbox.getMutation({mutationId: "m1"});
+    expect(mutation?.status).toBe("queued");
+    // Recovery is not an attempt: attemptCount stays at its pre-crash value.
+    expect(mutation?.attemptCount).toBe(1);
+    // The mutation replays: it can transition inFlight again immediately.
+    expect(() => outbox.markInFlight({mutationId: "m1"})).not.toThrow();
+  });
+
+  it("clears a stale pendingMutationId when an acked row's entity is still pending", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "Buy milk"},
+      id: "t1",
+      pendingMutationId: "m1",
+    });
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markAcked({mutationId: "m1"});
+    // Simulate a crash between markAcked and releaseEntity: the entity still
+    // thinks m1 is pending even though the outbox row is already acked.
+    expect(store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId).toBe("m1");
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.releasedEntities).toEqual(["t1"]);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId).toBeUndefined();
+  });
+
+  it("does not touch an acked row's entity when a NEWER mutation owns pendingMutationId", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "v1"},
+      id: "t1",
+      pendingMutationId: "m1",
+    });
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markAcked({mutationId: "m1"});
+    // A second optimistic edit re-protects the entity before recovery runs.
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "v2"},
+      id: "t1",
+      pendingMutationId: "m2",
+    });
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.releasedEntities).toEqual([]);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId).toBe("m2");
+  });
+
+  it("writes a missing conflict row for a conflicted mutation with no matching _conflicts row", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "local edit"},
+      id: "t1",
+      pendingMutationId: "m1",
+    });
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markConflicted({mutationId: "m1"});
+    // Simulate a crash between markConflicted and writeConflict: no row yet.
+    expect(store.raw.hasRow(CONFLICTS_TABLE, "m1")).toBe(false);
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.repairedConflicts).toEqual(["m1"]);
+    const conflict = getConflict({mutationId: "m1", store});
+    expect(conflict).toEqual({
+      collection: "todos",
+      dismissed: false,
+      entityId: "t1",
+      localData: JSON.stringify({title: "local edit"}),
+      mutationId: "m1",
+      serverData: JSON.stringify(null),
+      serverSeq: 0,
+    });
+  });
+
+  it("leaves an existing conflict row untouched (repair is idempotent)", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markConflicted({mutationId: "m1"});
+    store.raw.setRow(CONFLICTS_TABLE, "m1", {
+      collection: "todos",
+      dismissed: false,
+      entityId: "t1",
+      localData: JSON.stringify({title: "already recorded"}),
+      serverData: JSON.stringify({title: "server"}),
+      serverSeq: 5,
+    });
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.repairedConflicts).toEqual([]);
+    expect(getConflict({mutationId: "m1", store})?.serverSeq).toBe(5);
+  });
+
+  it("only recovers rows belonging to the requested user", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m-mine", userId: "user-1"});
+    outbox.markInFlight({mutationId: "m-mine"});
+    enqueueDefault(outbox, {mutationId: "m-theirs", userId: "user-2"});
+    outbox.markInFlight({mutationId: "m-theirs"});
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.recoveredInFlight).toEqual(["m-mine"]);
+    expect(outbox.getMutation({mutationId: "m-theirs"})?.status).toBe("inFlight");
+  });
+
+  it("leaves queued, acked-without-pending, and failed rows untouched", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {mutationId: "m-queued"});
+    enqueueDefault(outbox, {mutationId: "m-acked"});
+    outbox.markInFlight({mutationId: "m-acked"});
+    outbox.markAcked({mutationId: "m-acked"});
+    enqueueDefault(outbox, {mutationId: "m-failed"});
+    outbox.markInFlight({mutationId: "m-failed"});
+    outbox.markFailed({mutationId: "m-failed"});
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result).toEqual({recoveredInFlight: [], releasedEntities: [], repairedConflicts: []});
+    expect(outbox.getMutation({mutationId: "m-queued"})?.status).toBe("queued");
+    expect(outbox.getMutation({mutationId: "m-acked"})?.status).toBe("acked");
+    expect(outbox.getMutation({mutationId: "m-failed"})?.status).toBe("failed");
+  });
+});
+
+describe("prune (A5)", () => {
+  it("deletes acked rows for the user", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {mutationId: "m-acked"});
+    outbox.markInFlight({mutationId: "m-acked"});
+    outbox.markAcked({mutationId: "m-acked"});
+    enqueueDefault(outbox, {mutationId: "m-queued"});
+
+    outbox.prune({userId: "user-1"});
+    expect(outbox.getMutation({mutationId: "m-acked"})).toBeUndefined();
+    expect(outbox.getMutation({mutationId: "m-queued"})).toBeDefined();
+  });
+
+  it("keeps only the most recent `keepFailed` failed rows, oldest first deleted", () => {
+    const outbox = makeOutbox();
+    for (let i = 0; i < 5; i += 1) {
+      const mutationId = `m-failed-${i}`;
+      enqueueDefault(outbox, {mutationId});
+      outbox.markInFlight({mutationId});
+      outbox.markFailed({mutationId});
+    }
+    outbox.prune({keepFailed: 2, userId: "user-1"});
+    expect(outbox.getMutation({mutationId: "m-failed-0"})).toBeUndefined();
+    expect(outbox.getMutation({mutationId: "m-failed-1"})).toBeUndefined();
+    expect(outbox.getMutation({mutationId: "m-failed-2"})).toBeUndefined();
+    // The two most recently enqueued (highest enqueueOrder) survive.
+    expect(outbox.getMutation({mutationId: "m-failed-3"})).toBeDefined();
+    expect(outbox.getMutation({mutationId: "m-failed-4"})).toBeDefined();
+  });
+
+  it("defaults keepFailed to DEFAULT_KEEP_FAILED", () => {
+    const outbox = makeOutbox();
+    for (let i = 0; i < DEFAULT_KEEP_FAILED + 3; i += 1) {
+      const mutationId = `m-failed-${i}`;
+      enqueueDefault(outbox, {mutationId});
+      outbox.markInFlight({mutationId});
+      outbox.markFailed({mutationId});
+    }
+    outbox.prune({userId: "user-1"});
+    let remaining = 0;
+    for (let i = 0; i < DEFAULT_KEEP_FAILED + 3; i += 1) {
+      if (outbox.getMutation({mutationId: `m-failed-${i}`})) {
+        remaining += 1;
+      }
+    }
+    expect(remaining).toBe(DEFAULT_KEEP_FAILED);
+  });
+
+  it("never prunes conflicted rows", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {mutationId: "m-conflicted"});
+    outbox.markInFlight({mutationId: "m-conflicted"});
+    outbox.markConflicted({mutationId: "m-conflicted"});
+
+    outbox.prune({keepFailed: 0, userId: "user-1"});
+    expect(outbox.getMutation({mutationId: "m-conflicted"})?.status).toBe("conflicted");
+  });
+
+  it("only prunes rows belonging to the requested user", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {mutationId: "m-mine", userId: "user-1"});
+    outbox.markInFlight({mutationId: "m-mine"});
+    outbox.markAcked({mutationId: "m-mine"});
+    enqueueDefault(outbox, {mutationId: "m-theirs", userId: "user-2"});
+    outbox.markInFlight({mutationId: "m-theirs"});
+    outbox.markAcked({mutationId: "m-theirs"});
+
+    outbox.prune({userId: "user-1"});
+    expect(outbox.getMutation({mutationId: "m-mine"})).toBeUndefined();
+    expect(outbox.getMutation({mutationId: "m-theirs"})).toBeDefined();
+  });
+});
+
+describe("hasAnyRowForEntity (FIX 4)", () => {
+  it("returns true for a queued row matching user/collection/entity", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "e1", mutationId: "m1", userId: "user-1"});
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-1"})).toBe(
+      true
+    );
+  });
+
+  it("returns true for a failed (not yet pruned) row", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "e1", mutationId: "m1", userId: "user-1"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markFailed({mutationId: "m1"});
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-1"})).toBe(
+      true
+    );
+  });
+
+  it("returns false once the only row for the entity is pruned", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {entityId: "e1", mutationId: "m1", userId: "user-1"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markFailed({mutationId: "m1"});
+    outbox.prune({keepFailed: 0, userId: "user-1"});
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-1"})).toBe(
+      false
+    );
+  });
+
+  it("is scoped by userId, collection, and entityId — no cross-matching", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {
+      collection: "todos",
+      entityId: "e1",
+      mutationId: "m1",
+      userId: "user-1",
+    });
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e1", userId: "user-2"})).toBe(
+      false
+    );
+    expect(outbox.hasAnyRowForEntity({collection: "notes", entityId: "e1", userId: "user-1"})).toBe(
+      false
+    );
+    expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e2", userId: "user-1"})).toBe(
+      false
+    );
+  });
+});
+
+describe("enqueueOrder persistence (A5)", () => {
+  it("survives a store reload via the outboxMaxEnqueueOrder meta cell", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    enqueueDefault(outbox, {mutationId: "m2"});
+
+    const rebound = createOutbox({store});
+    const mutation = rebound.enqueue({
+      args: {},
+      collection: "todos",
+      entityId: "t3",
+      mutationId: "m3",
+      operation: "create",
+      userId: "user-1",
+    });
+    // The rebound outbox must not restart the counter — m3 sorts after m1/m2.
+    expect(
+      rebound.listQueued({userId: "user-1"}).map((mutationEntry) => mutationEntry.mutationId)
+    ).toEqual(["m1", "m2", "m3"]);
+    expect(mutation.mutationId).toBe("m3");
+  });
+
+  it("rebuilds the counter from a table scan when the meta cell is absent (pre-A5 persisted store)", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {mutationId: "m1"});
+    enqueueDefault(outbox, {mutationId: "m2"});
+    // Simulate a store persisted before the meta cell existed.
+    store.raw.setValue("outboxMaxEnqueueOrder", 0);
+
+    const rebound = createOutbox({store});
+    const mutation = rebound.enqueue({
+      args: {},
+      collection: "todos",
+      entityId: "t3",
+      mutationId: "m3",
+      operation: "create",
+      userId: "user-1",
+    });
+    expect(
+      rebound.listQueued({userId: "user-1"}).map((mutationEntry) => mutationEntry.mutationId)
+    ).toEqual(["m1", "m2", "m3"]);
+    expect(mutation.mutationId).toBe("m3");
   });
 });

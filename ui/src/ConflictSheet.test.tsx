@@ -48,7 +48,7 @@ describe("ConflictSheet", () => {
         visible={true}
       />
     );
-    fireEvent.press(getByTestId("conflict-keep-mine-button"));
+    fireEvent.press(getByTestId("conflict-keep-mine-button-m-1"));
     await flush();
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toEqual({mutationId: "m-1", strategy: "keepMine"});
@@ -58,7 +58,7 @@ describe("ConflictSheet", () => {
   it("calls onResolve with useServer without dismissing when other conflicts remain", async () => {
     const onResolve = mock(() => {});
     const onDismiss = mock(() => {});
-    const {getAllByTestId} = renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <ConflictSheet
         conflicts={[buildConflict(), buildConflict({entityId: "todo-2", mutationId: "m-2"})]}
         onDismiss={onDismiss}
@@ -66,11 +66,29 @@ describe("ConflictSheet", () => {
         visible={true}
       />
     );
-    fireEvent.press(getAllByTestId("conflict-use-server-button")[0]);
+    fireEvent.press(getByTestId("conflict-use-server-button-m-1"));
     await flush();
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toEqual({mutationId: "m-1", strategy: "useServer"});
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("suffixes testIDs with mutationId so multiple conflicts never collide (E6, RN Testing Library strict-mode fix)", () => {
+    const {getByTestId} = renderWithTheme(
+      <ConflictSheet
+        conflicts={[buildConflict(), buildConflict({entityId: "todo-2", mutationId: "m-2"})]}
+        onDismiss={() => {}}
+        onResolve={() => {}}
+        visible={true}
+      />
+    );
+    // getByTestId throws if more than one match is found — this is exactly
+    // what would happen with the old shared "conflict-keep-mine-button" /
+    // "conflict-use-server-button" testIDs across two rendered conflicts.
+    expect(getByTestId("conflict-keep-mine-button-m-1")).toBeTruthy();
+    expect(getByTestId("conflict-keep-mine-button-m-2")).toBeTruthy();
+    expect(getByTestId("conflict-use-server-button-m-1")).toBeTruthy();
+    expect(getByTestId("conflict-use-server-button-m-2")).toBeTruthy();
   });
 
   it("falls back to a JSON summary when the payload has no title", () => {

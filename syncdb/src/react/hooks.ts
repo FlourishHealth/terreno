@@ -10,7 +10,7 @@
  * (and RNW) compatible.
  */
 
-import {useCallback, useRef, useSyncExternalStore} from "react";
+import {useCallback, useLayoutEffect, useRef, useSyncExternalStore} from "react";
 
 import type {SyncDebugEvent, SyncDebugLog, SyncDebugStats} from "../debug/debugLog";
 import {listConflicts} from "../mutations/conflicts";
@@ -108,7 +108,15 @@ export const useQuery = <TData = Record<string, unknown>>(
   // reading them through a ref keeps `select` stable so the snapshot cache and
   // the store subscription survive re-renders.
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  // E4: assigning a ref during render is a side effect against React's render
+  // model (StrictMode double-invokes render bodies specifically to surface
+  // this class of bug) — moved into a layout effect, which still runs before
+  // the browser paints (and before any synchronous store-listener callback
+  // triggered by an event between render and the passive-effect phase could
+  // observe a stale ref).
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
   const subscribe = useCallback(
     (onChange: () => void): (() => void) => {
@@ -126,7 +134,11 @@ export const useQuery = <TData = Record<string, unknown>>(
       collection,
       includeDeleted: current?.includeDeleted,
     });
-    let results = entities.map((entity) => entity.data);
+    // E4: a corrupt/legacy row decodes to `data: null` (store.ts's decodeData
+    // swallows JSON.parse failures and returns null rather than throwing) —
+    // skip it here rather than letting it crash list consumers that assume
+    // every row's data matches TData (e.g. destructuring a field off it).
+    let results = entities.filter((entity) => entity.data !== null).map((entity) => entity.data);
     if (current?.filter) {
       results = results.filter(current.filter);
     }
@@ -250,7 +262,7 @@ export interface UseSyncDebugLogResult {
   stats: SyncDebugStats | undefined;
   /** The underlying log, for `snapshot()`/`clear()` (undefined when disabled). */
   log: SyncDebugLog | undefined;
-  /** Drop all retained events. */
+  /** Drop all retained events and reset `stats` to describe the now-empty log (a no-op when disabled). */
   clear: () => void;
 }
 

@@ -108,7 +108,15 @@ export interface SyncDebugLog {
   getStats: () => SyncDebugStats;
   /** Serializable snapshot (events + stats) — safe to return over MCP. */
   snapshot: () => SyncDebugSnapshot;
-  /** Drop all retained events (stats.total is preserved as a lifetime counter). */
+  /**
+   * Drop all retained events AND reset every derived stat (`total`,
+   * `dropped`, `byType`, `firstEventAt`, `lastEventAt`) to match the
+   * now-empty buffer — `getStats()` immediately after `clear()` always
+   * describes exactly what the log currently holds (nothing), never a
+   * lifetime total left over from before the clear. The event id sequence
+   * (`nextId`) is the only thing that survives a clear, so ids stay
+   * monotonic across it.
+   */
   clear: () => void;
 }
 
@@ -224,6 +232,20 @@ export const createSyncDebugLog = (options: SyncDebugLogOptions = {}): SyncDebug
     buffer.fill(undefined);
     writeIndex = 0;
     retained = 0;
+    // E6: reset every derived stat to match the now-empty buffer, not just
+    // `retained` — leaving `total`/`dropped`/`byType`/`firstEventAt`/
+    // `lastEventAt` at their pre-clear values produced an incoherent
+    // snapshot (e.g. `retained: 0` alongside `byType.mutate: 5` and a
+    // `total` that no longer describes anything the log still holds).
+    // `nextId` is NOT reset: ids stay monotonic across a clear so a listener
+    // that cached an event by id never collides with a later one.
+    total = 0;
+    dropped = 0;
+    for (const type of Object.keys(byType) as SyncDebugEventType[]) {
+      byType[type] = 0;
+    }
+    firstEventAt = undefined;
+    lastEventAt = undefined;
     revision++;
   };
 

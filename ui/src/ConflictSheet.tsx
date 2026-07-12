@@ -97,13 +97,13 @@ const ConflictItem: React.FC<{
       <Box direction="row" gap={2}>
         <Button
           onClick={handleKeepMine}
-          testID="conflict-keep-mine-button"
+          testID={`conflict-keep-mine-button-${conflict.mutationId}`}
           text="Keep mine"
           variant="outline"
         />
         <Button
           onClick={handleUseServer}
-          testID="conflict-use-server-button"
+          testID={`conflict-use-server-button-${conflict.mutationId}`}
           text="Use server"
           variant="primary"
         />
