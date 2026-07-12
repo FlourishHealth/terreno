@@ -7,6 +7,7 @@ Tracks active and completed implementation plans (IP) for Terreno. File paths ar
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
+| [@terreno/syncdb-codegen](syncdb-codegen.md) | Draft | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
 
 ## Completed
 
