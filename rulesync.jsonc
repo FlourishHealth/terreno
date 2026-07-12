@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
-  "targets": ["cursor", "windsurf", "claudecode", "copilot", "agentsskills"],
-  "features": ["rules", "skills"],
+  "targets": ["cursor", "devin", "claudecode", "copilot", "agentsskills"],
+  "features": ["rules", "skills", "subagents"],
   "baseDirs": ["."],
   "delete": true,
   "verbose": false

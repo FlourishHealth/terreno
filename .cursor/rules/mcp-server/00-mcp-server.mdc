@@ -1,5 +1,5 @@
 ---
-description: @terreno/mcp - MCP server for AI assistant integration
+description: '@terreno/mcp - MCP server for AI assistant integration'
 globs: **/*
 ---
 

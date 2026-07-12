@@ -2,7 +2,8 @@
 name: check-watcher
 description: Monitor GitHub Actions checks and automatically fix failures
 disable-model-invocation: true
-model: haiku
+claudecode:
+  model: haiku
 ---
 
 # Check Watcher
@@ -31,7 +32,7 @@ Keep this skill scoped to CI only:
    - All passing or skipped → go to step 6
    - Failed → continue to step 3
 
-3. Get failure details:
+3. Investigate the failures. If your harness supports subagents, delegate to the `ci-investigator` subagent — pass it the PR number/URL and use its CI Investigation Report as the input to step 5. This keeps the raw CI logs out of your context. Otherwise, investigate inline:
    ```bash
    gh pr checks --json name,state,bucket,workflow,link
    ```
@@ -42,7 +43,7 @@ Keep this skill scoped to CI only:
      ```
    - If a failed check is from an external provider without readable logs, use the check name and link as the evidence.
 
-4. Determine if flaky or real:
+4. Determine if flaky or real (the `ci-investigator` report already classifies this):
    - Compare failed files/tests against `gh pr diff` — is the failure in code you changed?
    - Check for flaky signals: timeouts, race conditions, ECONNRESET, intermittent assertions
    - If flaky and unrelated to branch changes, report the flaky check, evidence, and link as a blocker. Do not create issues, rerun checks, or modify GitHub state.

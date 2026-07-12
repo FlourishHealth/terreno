@@ -1,5 +1,5 @@
 ---
-description: @terreno/rtk - Redux Toolkit Query utilities for Terreno frontends
+description: '@terreno/rtk - Redux Toolkit Query utilities for Terreno frontends'
 globs: **/*
 ---
 
