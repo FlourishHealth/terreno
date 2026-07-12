@@ -187,7 +187,39 @@ describe("createSyncDb", () => {
   });
 
   it("start() rejects without an authenticated user", async () => {
-    const harness = makeHarness();
+    // startAuthRetryAttempts: 1 disables retrying so this stays instant — the
+    // no-retry-attempts contract is tested here; retry behavior is tested below.
+    const harness = makeHarness({startAuthRetryAttempts: 1});
+    harness.auth.setUserId(null);
+    const client = createSyncDb(harness.config);
+    await expect(client.start()).rejects.toThrow("requires an authenticated user");
+  });
+
+  it("start() retries auth resolution before giving up", async () => {
+    const harness = makeHarness({startAuthRetryAttempts: 3, startAuthRetryDelayMs: 1});
+    harness.auth.setUserId(null);
+    const client = createSyncDb(harness.config);
+
+    // Transient failure: getUserId() only resolves on the 2nd attempt — start()
+    // should not throw on the first null, matching a host app that calls start()
+    // right after its own login flow resolved (see client.ts start() doc).
+    let calls = 0;
+    const originalGetUserId = harness.config.authProvider.getUserId;
+    harness.config.authProvider.getUserId = async () => {
+      calls += 1;
+      if (calls === 1) {
+        return null;
+      }
+      return originalGetUserId();
+    };
+    harness.auth.setUserId("retry-user");
+
+    await client.start();
+    expect(calls).toBeGreaterThanOrEqual(2);
+  });
+
+  it("start() rejects when auth never resolves after exhausting retries", async () => {
+    const harness = makeHarness({startAuthRetryAttempts: 2, startAuthRetryDelayMs: 1});
     harness.auth.setUserId(null);
     const client = createSyncDb(harness.config);
     await expect(client.start()).rejects.toThrow("requires an authenticated user");

@@ -24,6 +24,7 @@ import type React from "react";
 import {useCallback, useState} from "react";
 import {ScrollView} from "react-native";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
+import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 
 /**
  * Shape of a todo in the local syncdb store. Server documents carry the full model
@@ -92,6 +93,7 @@ const SyncTodoItem: React.FC<{
  */
 const SyncTodosScreen: React.FC = () => {
   const client = useSyncDbClient();
+  const isSyncDbReady = useSyncDbReady();
   const [newTodoTitle, setNewTodoTitle] = useState<string>("");
   const [isConflictSheetVisible, setIsConflictSheetVisible] = useState<boolean>(false);
 
@@ -105,7 +107,7 @@ const SyncTodosScreen: React.FC = () => {
 
   const handleCreateTodo = useCallback((): void => {
     const title = newTodoTitle.trim();
-    if (!title) {
+    if (!title || !isSyncDbReady) {
       return;
     }
     // Mint the entity id client-side and embed it in the data so the optimistic local
@@ -118,20 +120,26 @@ const SyncTodosScreen: React.FC = () => {
       operation: "create",
     });
     setNewTodoTitle("");
-  }, [client, newTodoTitle]);
+  }, [client, isSyncDbReady, newTodoTitle]);
 
   const handleToggleTodo = useCallback(
     (todo: SyncTodo): void => {
+      if (!isSyncDbReady) {
+        return;
+      }
       update({data: {completed: !todo.completed}, id: todo._id});
     },
-    [update]
+    [isSyncDbReady, update]
   );
 
   const handleDeleteTodo = useCallback(
     (todo: SyncTodo): void => {
+      if (!isSyncDbReady) {
+        return;
+      }
       remove({id: todo._id});
     },
-    [remove]
+    [isSyncDbReady, remove]
   );
 
   const openConflictSheet = useCallback((): void => {
@@ -184,7 +192,7 @@ const SyncTodosScreen: React.FC = () => {
                 value={newTodoTitle}
               />
               <Button
-                disabled={!newTodoTitle.trim()}
+                disabled={!newTodoTitle.trim() || !isSyncDbReady}
                 fullWidth
                 iconName="plus"
                 onClick={handleCreateTodo}

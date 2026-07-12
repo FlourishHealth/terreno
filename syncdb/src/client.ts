@@ -39,6 +39,20 @@ export const DEFAULT_SEQ_JUMP_RECONCILE_MIN_INTERVAL_MS = 30_000;
 /** E5: default local tombstone retention window (90 days), matching the server's (C7). */
 export const DEFAULT_TOMBSTONE_RETENTION_MS = 90 * 24 * 60 * 60 * 1_000;
 
+/**
+ * `start()` auth-resolution retry defaults. A host app only calls `start()` once it
+ * already believes the user is authenticated (e.g. right after its own login flow
+ * resolved), so a `null` from `authProvider.getUserId()` on the first attempt is far
+ * more likely a transient hiccup — the session cookie/token not yet queryable, or a
+ * one-off fetch failure racing a just-completed navigation — than a genuine
+ * logged-out state. Retrying briefly avoids `start()` giving up permanently on a call
+ * site that (by design, see the client.ts start() doc) never retries itself.
+ */
+export const DEFAULT_START_AUTH_RETRY_ATTEMPTS = 3;
+export const DEFAULT_START_AUTH_RETRY_DELAY_MS = 250;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 export interface SyncDbConfig {
   /** App/store name; used as the persisted database name. */
   name: string;
@@ -118,6 +132,18 @@ export interface SyncDbConfig {
    * missing a delete it hasn't converged on yet. 0 disables compaction.
    */
   tombstoneRetentionMs?: number;
+  /**
+   * Number of `authProvider.getUserId()` attempts `start()` makes before giving up
+   * with "requires an authenticated user" (default {@link DEFAULT_START_AUTH_RETRY_ATTEMPTS}).
+   * A host app calls `start()` only once it believes the user is signed in, so an
+   * initial `null` is usually a transient auth-provider hiccup (e.g. a session fetch
+   * racing a just-completed login) rather than a real logged-out state — retrying
+   * a few times avoids `start()` permanently failing on that race. Set to 1 to
+   * disable retrying.
+   */
+  startAuthRetryAttempts?: number;
+  /** Delay between `start()` auth-resolution retries (default {@link DEFAULT_START_AUTH_RETRY_DELAY_MS}). */
+  startAuthRetryDelayMs?: number;
 }
 
 export interface MutateArgs {
@@ -986,7 +1012,24 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       }
       generation += 1;
       const myGeneration = generation;
-      const userId = await config.authProvider.getUserId();
+      const authRetryAttempts = Math.max(
+        1,
+        config.startAuthRetryAttempts ?? DEFAULT_START_AUTH_RETRY_ATTEMPTS
+      );
+      const authRetryDelayMs = config.startAuthRetryDelayMs ?? DEFAULT_START_AUTH_RETRY_DELAY_MS;
+      let userId: string | null = null;
+      for (let attempt = 1; attempt <= authRetryAttempts; attempt += 1) {
+        userId = await config.authProvider.getUserId();
+        if (userId || attempt === authRetryAttempts) {
+          break;
+        }
+        await sleep(authRetryDelayMs);
+        if (generation !== myGeneration) {
+          // A stop() (or another start()) ran while we were retrying auth
+          // resolution — abandon this attempt, see the generation check below.
+          return;
+        }
+      }
       if (!userId) {
         throw new Error("createSyncDb.start() requires an authenticated user");
       }

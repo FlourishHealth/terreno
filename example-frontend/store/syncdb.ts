@@ -65,3 +65,34 @@ export const syncDb: SyncDb = createSyncDb({
   haltQueueOnConflict: true,
   name: SYNC_DB_NAME,
 });
+
+/**
+ * Tracks whether `syncDb.start()` has resolved for the current login. `start()` is
+ * fired from the root layout as soon as `userId` is set, but it awaits the auth
+ * provider resolving a user id before `mutate()` becomes safe to call — without this
+ * flag, screens can render (and users/tests can click "create") during that window,
+ * and `client.mutate()` throws "requires start() to have resolved an authenticated
+ * user". Module-level (not React state) so both the root layout, which flips it, and
+ * any screen calling `useSyncDbReady()`, which reads it, share one source of truth.
+ */
+let syncDbReady = false;
+const syncDbReadyListeners = new Set<() => void>();
+
+export const setSyncDbReady = (ready: boolean): void => {
+  if (syncDbReady === ready) {
+    return;
+  }
+  syncDbReady = ready;
+  for (const listener of syncDbReadyListeners) {
+    listener();
+  }
+};
+
+export const subscribeSyncDbReady = (listener: () => void): (() => void) => {
+  syncDbReadyListeners.add(listener);
+  return () => {
+    syncDbReadyListeners.delete(listener);
+  };
+};
+
+export const getSyncDbReadySnapshot = (): boolean => syncDbReady;

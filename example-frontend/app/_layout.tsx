@@ -22,7 +22,7 @@ import {useReadProfile} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession} from "@/store";
 import {terrenoApi} from "@/store/sdk";
-import {syncDb} from "@/store/syncdb";
+import {setSyncDbReady, syncDb} from "@/store/syncdb";
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
@@ -130,19 +130,29 @@ const RootLayoutNav = (): React.ReactElement => {
   }, []);
 
   // Start the local-first syncdb client after login; stop on logout/unmount.
+  // setSyncDbReady only flips true once start() resolves a user, so screens gated on
+  // useSyncDbReady() don't call mutate() during the window where it would throw.
   useEffect(() => {
     if (!userId) {
       return;
     }
     let stopped = false;
-    syncDb.start().catch((error: unknown) => {
-      console.error("[syncdb] Failed to start client", error);
-    });
+    syncDb
+      .start()
+      .then(() => {
+        if (!stopped) {
+          setSyncDbReady(true);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("[syncdb] Failed to start client", error);
+      });
     return (): void => {
       if (stopped) {
         return;
       }
       stopped = true;
+      setSyncDbReady(false);
       syncDb.stop().catch((error: unknown) => {
         console.warn("[syncdb] Failed to stop client", error);
       });
