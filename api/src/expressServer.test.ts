@@ -832,7 +832,7 @@ describe("expressServer", () => {
       }
     });
 
-    it("handles listen errors", () => {
+    it("handles listen errors", async () => {
       const configureApp = (): void => {};
       const http = require("node:http") as typeof import("node:http");
       const originalListen = http.Server.prototype.listen;
@@ -848,6 +848,12 @@ describe("expressServer", () => {
           skipListen: false,
           userModel: typedUserModel,
         }).start();
+        // start() defers listen behind an awaited ensureSyncIndexes(), so the
+        // exit-on-listen-error path settles asynchronously.
+        const deadline = Date.now() + 2_000;
+        while (exit.mock.calls.length === 0 && Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
         expect(exit).toHaveBeenCalledWith(1);
       } finally {
         http.Server.prototype.listen = originalListen;
