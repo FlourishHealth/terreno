@@ -21,6 +21,13 @@ export const CURSORS_TABLE = "_cursors";
 /** Reserved table holding unresolved conflicts; rowId = mutationId. */
 export const CONFLICTS_TABLE = "_conflicts";
 
+/**
+ * C2: reserved table recording the streams the client has bootstrapped (membership set);
+ * rowId = stream key. Diffed against `GET /sync/streams` to detect joins (backfill) and
+ * leaves (purge), the latter only on a confirmed HTTP-200 membership change (INV-2).
+ */
+export const KNOWN_STREAMS_TABLE = "_knownStreams";
+
 /** Prefix marking reserved (non-collection) tables. */
 export const RESERVED_TABLE_PREFIX = "_";
 
@@ -44,6 +51,20 @@ export interface EntityRow {
   pendingMutationId: string;
   /** Highest server seq applied to this entity (0 = local-only, never synced). */
   seq: number;
+  /**
+   * C2: the stream key this entity was last written under (delta/snapshot). Recorded at
+   * apply time so leave-purge can drop a stream's entities in O(stream) without
+   * recomputing scope. "" for local-only entities never synced from the server.
+   */
+  stream: string;
+}
+
+/** Primitive row shape for the `_knownStreams` table; rowId = stream key. */
+export interface KnownStreamRow {
+  /** The collection tag the stream belongs to. */
+  collection: string;
+  /** When the stream was first bootstrapped. */
+  addedAt: string;
 }
 
 /** Primitive row shape for the `_outbox` table; rowId = mutationId. */
@@ -103,4 +124,6 @@ export interface SyncEntity<TData = unknown> {
   pendingMutationId?: string;
   /** Highest server seq applied to this entity (0 = local-only). */
   seq: number;
+  /** C2: the stream key this entity was last written under ("" for local-only). */
+  stream?: string;
 }

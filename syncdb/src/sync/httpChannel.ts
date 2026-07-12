@@ -5,6 +5,7 @@ import type {
   SyncMutateRequest,
   SyncNack,
   SyncSnapshotResponse,
+  SyncStreamInfo,
 } from "../types";
 import type {SendMutationBatchResult, SendMutationResult} from "./transport";
 
@@ -21,11 +22,14 @@ export class AuthRequiredError extends Error {
 }
 
 export interface FetchSnapshotPageArgs {
-  collection: string;
+  /** C2: the stream key to page (e.g. "todos|owner:123"), not a collection. */
+  stream: string;
   /** Resume cursor (highest seq already applied); 0 = from the beginning. */
   cursor: number;
   /** Page size; server default applies when omitted. */
   limit?: number;
+  /** C3: opaque legacy-stratum token echoed back from a prior page. */
+  legacyCursor?: string;
 }
 
 /**
@@ -34,6 +38,13 @@ export interface FetchSnapshotPageArgs {
  */
 export interface HttpChannel {
   fetchSnapshotPage: (args: FetchSnapshotPageArgs) => Promise<SyncSnapshotResponse>;
+  /**
+   * C2: the authoritative set of streams the caller currently belongs to
+   * (`GET /sync/streams`). Drives join-backfill / leave-purge diffs; 401 rejects with
+   * {@link AuthRequiredError} so a transport/auth error is never mistaken for a
+   * membership change (INV-2).
+   */
+  fetchStreams: () => Promise<SyncStreamInfo[]>;
   /**
    * POST the mutation; 200 resolves `{type: "ack"}`, nack statuses
    * (409/403/422/500 with a `{nack}` body) resolve `{type: "nack"}`, 401
@@ -89,19 +100,32 @@ export const createHttpChannel = ({
   };
 
   const fetchSnapshotPage = async ({
-    collection,
+    stream,
     cursor,
     limit,
+    legacyCursor,
   }: FetchSnapshotPageArgs): Promise<SyncSnapshotResponse> => {
-    const query = new URLSearchParams({collection, cursor: String(cursor)});
+    const query = new URLSearchParams({cursor: String(cursor), stream});
     if (limit !== undefined) {
       query.set("limit", String(limit));
     }
+    if (legacyCursor !== undefined) {
+      query.set("legacyCursor", legacyCursor);
+    }
     const response = await request(`/sync/snapshot?${query.toString()}`);
     if (!response.ok) {
-      throw new Error(`Snapshot request for ${collection} failed with status ${response.status}`);
+      throw new Error(`Snapshot request for ${stream} failed with status ${response.status}`);
     }
     return (await response.json()) as SyncSnapshotResponse;
+  };
+
+  const fetchStreams = async (): Promise<SyncStreamInfo[]> => {
+    const response = await request("/sync/streams");
+    if (!response.ok) {
+      throw new Error(`Sync streams request failed with status ${response.status}`);
+    }
+    const body = (await response.json()) as {streams?: SyncStreamInfo[]};
+    return Array.isArray(body.streams) ? body.streams : [];
   };
 
   const sendMutation = async (mutation: SyncMutateRequest): Promise<SendMutationResult> => {
@@ -160,5 +184,5 @@ export const createHttpChannel = ({
     return body.keyMaterial;
   };
 
-  return {fetchKeyMaterial, fetchSnapshotPage, sendMutation, sendMutationBatch};
+  return {fetchKeyMaterial, fetchSnapshotPage, fetchStreams, sendMutation, sendMutationBatch};
 };

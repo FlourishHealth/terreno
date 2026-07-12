@@ -5,22 +5,30 @@ import {asyncHandler} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware} from "../errors";
 import {checkPermissions} from "../permissions";
-import {getOrCreateSyncKeyMaterial} from "./models";
+import {
+  computeStableFrontier,
+  getOrCreateSyncKeyMaterial,
+  SyncCounter,
+  SyncScopeMove,
+  type SyncScopeMoveDocument,
+} from "./models";
 import {
   applySyncMutation,
   applySyncMutationBatch,
   MAX_SYNC_MUTATIONS_PER_BATCH,
   validateSyncMutationBatch,
 } from "./mutationHandler";
-import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
+import {findSyncEntryByCollectionTag, getSyncRegistry, type SyncRegistryEntry} from "./registry";
 import {serializeSyncPayload} from "./serialize";
-import {getScopeField} from "./streams";
+import {getScopeField, parseStreamKey, resolveUserStreamsForEntry} from "./streams";
 import type {
   SyncEntityPayload,
   SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNackCode,
   SyncSnapshotResponse,
+  SyncStreamInfo,
+  SyncStreamsResponse,
 } from "./types";
 
 /** Maximum `POST /sync/mutate` and `/sync/mutate/batch` requests per user per second (HTTP). */
@@ -107,45 +115,39 @@ export const serializeSyncDoc = async ({
 }): Promise<unknown> =>
   serializeSyncPayload({doc: doc as unknown as Record<string, unknown>, entry, req});
 
-/** Build the server-enforced scope filter for a snapshot request. */
-export const buildSnapshotScopeFilter = async ({
+/**
+ * C2: build the server-enforced scope filter for a SINGLE stream. The stream's scope
+ * value has already been verified against the user's membership set by the caller, so
+ * this filters to exactly that one value (`{field: value}`), never an `$in`.
+ *
+ * Custom-resolver scopes cannot be inverted into a query field, so they still route
+ * through the required `snapshotFilter` (parameterized by the user, as before).
+ */
+export const buildSnapshotScopeFilter = ({
   entry,
-  user,
-  options,
+  scopeValue,
+  snapshotFilterResult,
 }: {
   entry: SyncRegistryEntry;
-  user: User;
-  options: SyncAppOptions;
-}): Promise<Record<string, unknown>> => {
-  const {scope, snapshotFilter} = entry.config;
-  if (snapshotFilter) {
-    return snapshotFilter({id: String(user.id)});
-  }
+  scopeValue: string | null;
+  snapshotFilterResult?: Record<string, unknown>;
+}): Record<string, unknown> => {
+  const {scope} = entry.config;
   if (typeof scope === "function") {
-    // Unreachable for registered models (validated at registration), kept as a guard.
-    throw new APIError({
-      status: 500,
-      title: `Sync collection ${entry.collectionTag} has a custom scope without a snapshotFilter`,
-    });
+    // Custom scope: snapshotFilter is required at registration.
+    if (!snapshotFilterResult) {
+      throw new APIError({
+        status: 500,
+        title: `Sync collection ${entry.collectionTag} has a custom scope without a snapshotFilter`,
+      });
+    }
+    return snapshotFilterResult;
   }
   if (scope.type === "broadcast") {
     return {};
   }
   const field = getScopeField(scope) as string;
-  if (scope.type === "owner") {
-    return {[field]: user.id};
-  }
-  // Tenant scope: restrict to the user's tenant memberships.
-  if (!options.getUserScopes) {
-    throw new APIError({
-      status: 500,
-      title:
-        `Sync collection ${entry.collectionTag} is tenant-scoped but SyncApp has no ` +
-        "getUserScopes resolver",
-    });
-  }
-  const scopes = await options.getUserScopes(user, entry);
-  return {[field]: {$in: scopes}};
+  return {[field]: scopeValue};
 };
 
 const parseNonNegativeInt = (raw: unknown, name: string, fallback: number): number => {
@@ -160,13 +162,160 @@ const parseNonNegativeInt = (raw: unknown, name: string, fallback: number): numb
 };
 
 /**
+ * C3: page the legacy (seq-0) stratum by `_id`. Legacy documents predate `syncPlugin`
+ * and carry no `_syncSeq` (or a literal 0). Returns a page + a forward `legacyCursor`
+ * while the stratum has more; returns `undefined` once the stratum is exhausted, at
+ * which point the caller switches to normal seq paging. Runs the same per-doc read
+ * check as the seq page (C6/M2).
+ */
+const pageLegacyStratum = async ({
+  model,
+  scopeFilter,
+  legacyCursorIn,
+  limit,
+  entry,
+  req,
+}: {
+  model: any;
+  scopeFilter: Record<string, unknown>;
+  legacyCursorIn?: string;
+  limit: number;
+  entry: SyncRegistryEntry;
+  req: express.Request;
+}): Promise<{entities: SyncEntityPayload[]; legacyCursor: string} | undefined> => {
+  const user = req.user as User | undefined;
+  // `deleted` MUST stay a TOP-LEVEL key so isDeletedPlugin does not re-inject its
+  // {deleted: {$ne: true}} exclusion (which only fires when the top-level filter has no
+  // `deleted` key) and hide legacy tombstones. See the seq-page query for the full note.
+  const legacyFilter: Record<string, unknown> = {
+    $and: [
+      scopeFilter,
+      {_syncSeq: {$in: [null, 0]}},
+      ...(legacyCursorIn ? [{_id: {$gt: new mongoose.Types.ObjectId(legacyCursorIn)}}] : []),
+    ],
+    deleted: {$in: [true, false]},
+  };
+  const docs = await model
+    .find(legacyFilter)
+    .sort({_id: 1})
+    .limit(limit + 1);
+  if (docs.length === 0) {
+    // Stratum exhausted (or never had legacy docs) — caller proceeds by seq.
+    return undefined;
+  }
+  const page = docs.slice(0, limit);
+  const entities: SyncEntityPayload[] = [];
+  for (const doc of page) {
+    if (!(await checkPermissions("read", entry.options.permissions.read, user, doc))) {
+      continue;
+    }
+    entities.push({
+      data: await serializeSyncDoc({doc, entry, req}),
+      deleted: Boolean(doc.deleted),
+      id: String(doc._id),
+      seq: 0,
+    });
+  }
+  const lastId = String(page[page.length - 1]._id);
+  return {entities, legacyCursor: lastId};
+};
+
+/**
+ * C7: the lowest `_syncSeq` still retained for this stream (the retention floor). A
+ * client whose stored cursor is below this may have missed compacted tombstones and must
+ * re-bootstrap. Computed as the minimum seq present among the stream's non-legacy docs
+ * and its scope-move markers; 0 when nothing has been compacted (no retention gap).
+ */
+const computeOldestRetainedSeq = async ({
+  model,
+  scopeFilter,
+  streamKey,
+}: {
+  model: any;
+  scopeFilter: Record<string, unknown>;
+  streamKey: string;
+}): Promise<number> => {
+  // `deleted` stays top-level so tombstones (retained rows too) are counted in the floor
+  // rather than hidden by isDeletedPlugin's injected exclusion.
+  const lowestDoc = await model
+    .findOne({$and: [scopeFilter, {_syncSeq: {$gt: 0}}], deleted: {$in: [true, false]}})
+    .sort({_syncSeq: 1})
+    .select({_syncSeq: 1})
+    .lean();
+  const lowestMarker = await SyncScopeMove.findOne({fromStream: streamKey})
+    .sort({seq: 1})
+    .select({seq: 1})
+    .lean();
+  const candidates: number[] = [];
+  if (lowestDoc && typeof (lowestDoc as {_syncSeq?: number})._syncSeq === "number") {
+    candidates.push((lowestDoc as {_syncSeq: number})._syncSeq);
+  }
+  if (lowestMarker && typeof (lowestMarker as {seq?: number}).seq === "number") {
+    candidates.push((lowestMarker as {seq: number}).seq);
+  }
+  // No retained rows → no retention floor to enforce.
+  return candidates.length > 0 ? Math.min(...candidates) : 0;
+};
+
+/**
+ * C1: true when the stream's head (highest claimed seq) exceeds the stable frontier —
+ * i.e. committed seqs are still coming once the in-flight writes below the frontier land.
+ */
+const frontierBelowStreamHead = async (
+  streamKey: string,
+  frontierSeq: number
+): Promise<boolean> => {
+  const counter = await SyncCounter.findOne({stream: streamKey}).select({seq: 1}).lean();
+  const head = counter ? ((counter as {seq?: number}).seq ?? 0) : 0;
+  return head > frontierSeq;
+};
+
+/**
  * Mount the SyncDB HTTP routes:
- * - GET /sync/snapshot — bootstrap/catch-up per collection with server-enforced scoping
+ * - GET /sync/streams — the authoritative set of streams the caller belongs to (C2)
+ * - GET /sync/snapshot — per-stream bootstrap/catch-up with server-enforced scoping
  * - POST /sync/mutate — HTTP fallback mutation channel over applySyncMutation
  * - GET /sync/key — per-user key material for the default encryption KeyProvider
  */
 export const addSyncRoutes = (app: express.Application, options: SyncAppOptions = {}): void => {
   const router = express.Router();
+
+  // C2: authoritative membership discovery. Runs against the full req.user (D2) so
+  // tenant memberships resolve from current organizationIds.
+  router.get(
+    "/sync/streams",
+    authenticateMiddleware(),
+    asyncHandler(async (req, res) => {
+      const user = req.user as User | undefined;
+      if (!user) {
+        throw new APIError({status: 401, title: "Authentication required"});
+      }
+      const streams: SyncStreamInfo[] = [];
+      for (const entry of getSyncRegistry()) {
+        if (!(await checkPermissions("list", entry.options.permissions.list, user))) {
+          continue;
+        }
+        try {
+          const entryStreams = await resolveUserStreamsForEntry({
+            entry,
+            getUserScopes: options.getUserScopes,
+            user,
+          });
+          for (const stream of entryStreams) {
+            streams.push({collection: entry.collectionTag, stream});
+          }
+        } catch (error: unknown) {
+          throw new APIError({
+            status: 500,
+            title: `Failed to resolve streams for ${entry.collectionTag}: ${String(error)}`,
+          });
+        }
+      }
+      const response: SyncStreamsResponse = {streams};
+      return res.json(response);
+    })
+  );
+
   router.get(
     "/sync/snapshot",
     authenticateMiddleware(),
@@ -175,18 +324,37 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       if (!user) {
         throw new APIError({status: 401, title: "Authentication required"});
       }
-      const collection = String(req.query.collection ?? "");
-      if (!collection) {
-        throw new APIError({status: 400, title: "collection query parameter is required"});
+      const streamKey = String(req.query.stream ?? "");
+      if (!streamKey) {
+        throw new APIError({status: 400, title: "stream query parameter is required"});
       }
-      const entry = findSyncEntryByCollectionTag(collection);
+      const parsed = parseStreamKey(streamKey);
+      if (!parsed) {
+        throw new APIError({status: 400, title: `Invalid stream key: ${streamKey}`});
+      }
+      const entry = findSyncEntryByCollectionTag(parsed.collectionTag);
       if (!entry) {
-        throw new APIError({status: 404, title: `Unknown sync collection: ${collection}`});
+        throw new APIError({
+          status: 404,
+          title: `Unknown sync collection: ${parsed.collectionTag}`,
+        });
       }
       if (!(await checkPermissions("list", entry.options.permissions.list, user))) {
         throw new APIError({
           status: 403,
-          title: `Access to sync snapshot for ${collection} denied for ${user.id}`,
+          title: `Access to sync snapshot for ${parsed.collectionTag} denied for ${user.id}`,
+        });
+      }
+      // C2: a client must not snapshot a stream it does not belong to.
+      const memberStreams = await resolveUserStreamsForEntry({
+        entry,
+        getUserScopes: options.getUserScopes,
+        user,
+      });
+      if (!memberStreams.includes(streamKey)) {
+        throw new APIError({
+          status: 403,
+          title: `User ${user.id} does not belong to stream ${streamKey}`,
         });
       }
 
@@ -197,37 +365,118 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         options.defaultSnapshotLimit ?? DEFAULT_SNAPSHOT_LIMIT
       );
       const limit = Math.min(Math.max(requestedLimit, 1), MAX_SNAPSHOT_LIMIT);
+      const legacyCursorIn =
+        typeof req.query.legacyCursor === "string" && req.query.legacyCursor.length > 0
+          ? req.query.legacyCursor
+          : undefined;
 
-      const scopeFilter = await buildSnapshotScopeFilter({entry, options, user});
+      const snapshotFilterResult = entry.config.snapshotFilter
+        ? await entry.config.snapshotFilter({id: String(user.id)})
+        : undefined;
+      const scopeFilter = buildSnapshotScopeFilter({
+        entry,
+        scopeValue: parsed.scopeValue,
+        snapshotFilterResult,
+      });
       const model = mongoose.model(entry.modelName);
-      // deleted must be explicitly matched: isDeletedPlugin auto-injects
-      // {deleted: {$ne: true}} into find() and would silently hide the tombstones
-      // that catch-up depends on. Legacy docs without a _syncSeq are included in the
-      // first page (cursor=0) and report seq 0.
-      const seqFilter =
-        cursor === 0
-          ? {$or: [{_syncSeq: {$gt: 0}}, {_syncSeq: {$exists: false}}]}
-          : {_syncSeq: {$gt: cursor}};
+      const frontierSeq = await computeStableFrontier({stream: streamKey});
+      const oldestRetainedSeq = await computeOldestRetainedSeq({model, scopeFilter, streamKey});
+
+      // C3: legacy (seq-0) stratum, paged by _id. Drained fully before seq paging begins.
+      if (cursor === 0) {
+        const legacyResult = await pageLegacyStratum({
+          entry,
+          legacyCursorIn,
+          limit,
+          model,
+          req,
+          scopeFilter,
+        });
+        if (legacyResult) {
+          const response: SyncSnapshotResponse = {
+            cursor: 0,
+            entities: legacyResult.entities,
+            frontierSeq,
+            hasMore: true,
+            legacyCursor: legacyResult.legacyCursor,
+            oldestRetainedSeq,
+            stream: streamKey,
+          };
+          return res.json(response);
+        }
+      }
+
+      // C1: never page past the stable frontier — a cursor must not cross an uncommitted hole.
+      const seqFilter = {_syncSeq: {$gt: cursor, $lte: frontierSeq}};
+      // M1: compose the scope + seq clauses with $and (never spread-merge, which lets a
+      // scopeFilter $or clobber the seq clause). `deleted` MUST stay a TOP-LEVEL key:
+      // isDeletedPlugin injects {deleted: {$ne: true}} only when the top-level filter has
+      // no `deleted` key — burying it inside $and would let the plugin re-inject its
+      // exclusion and hide the tombstones catch-up depends on.
+      const query = {$and: [scopeFilter, seqFilter], deleted: {$in: [true, false]}};
       const docs = await model
-        .find({...scopeFilter, deleted: {$in: [true, false]}, ...seqFilter})
+        .find(query)
         .sort({_syncSeq: 1})
         .limit(limit + 1);
 
+      // C4: merge SyncScopeMove markers for THIS (old) stream into the page as tombstones,
+      // so an offline old-stream client learns the doc left its stream.
+      const markers = await SyncScopeMove.find({
+        fromStream: streamKey,
+        seq: {$gt: cursor, $lte: frontierSeq},
+      })
+        .sort({seq: 1})
+        .limit(limit + 1)
+        .lean();
+
       const page = docs.slice(0, limit);
-      const entities: SyncEntityPayload[] = await Promise.all(
-        page.map(
-          async (doc: any): Promise<SyncEntityPayload> => ({
-            data: await serializeSyncDoc({doc, entry, req}),
-            deleted: Boolean(doc.deleted),
-            id: String(doc._id),
-            seq: doc._syncSeq ?? 0,
-          })
-        )
+      // C6 (M2): run the same per-doc read permission the delta path uses; drop denied
+      // docs but still advance the cursor past them (parity with delta behavior).
+      const docEntities: SyncEntityPayload[] = [];
+      for (const doc of page as any[]) {
+        const allowed = await checkPermissions("read", entry.options.permissions.read, user, doc);
+        if (!allowed) {
+          continue;
+        }
+        const isTombstone = Boolean(doc.deleted);
+        docEntities.push({
+          // C7: tombstones carry no data (privacy + payload growth) — only id/seq/deleted.
+          data: isTombstone ? null : await serializeSyncDoc({doc, entry, req}),
+          deleted: isTombstone,
+          id: String(doc._id),
+          seq: doc._syncSeq ?? 0,
+        });
+      }
+      const markerEntities: SyncEntityPayload[] = markers.map(
+        (m: SyncScopeMoveDocument): SyncEntityPayload => ({
+          data: null,
+          deleted: true,
+          id: m.entityId,
+          seq: m.seq,
+        })
       );
+      // Union doc page + marker tombstones, sort by seq, page by frontier/limit.
+      const merged = [...docEntities, ...markerEntities].sort((a, b) => a.seq - b.seq);
+      const entities = merged.slice(0, limit);
+
+      // hasMore when: a full doc page was returned, extra markers remain, or the frontier
+      // sits below the head (more committed seqs are coming once in-flight writes land).
+      const docsHaveMore = docs.length > limit;
+      const markersHaveMore = markers.length > limit || merged.length > entities.length;
+      const frontierBelowHead = await frontierBelowStreamHead(streamKey, frontierSeq);
+      const hasMore = docsHaveMore || markersHaveMore || frontierBelowHead;
+
+      // C1: never advance the client past an uncommitted hole — clamp the returned cursor
+      // to the frontier (and to the highest entity seq actually included).
+      const lastEntitySeq = entities.length > 0 ? entities[entities.length - 1].seq : cursor;
+      const nextCursor = Math.min(Math.max(lastEntitySeq, cursor), frontierSeq);
       const response: SyncSnapshotResponse = {
-        cursor: entities.length > 0 ? entities[entities.length - 1].seq : cursor,
+        cursor: nextCursor,
         entities,
-        hasMore: docs.length > limit,
+        frontierSeq,
+        hasMore,
+        oldestRetainedSeq,
+        stream: streamKey,
       };
       return res.json(response);
     })

@@ -11,8 +11,9 @@ import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactor
 import type {DefaultPersisterFactoryConfig, PersisterFactory} from "./persisters/types";
 import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {createSyncStore, type SyncStore} from "./storage/store";
+import {CURSORS_TABLE} from "./storage/types";
 import {wipeLocalData} from "./storage/wipe";
-import {bootstrapCollections} from "./sync/bootstrap";
+import {bootstrapStream} from "./sync/bootstrap";
 import {getAllCursors} from "./sync/cursor";
 import {applyDelta} from "./sync/deltaApplier";
 import {AuthRequiredError, createHttpChannel, type HttpChannel} from "./sync/httpChannel";
@@ -389,6 +390,87 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     store,
   });
 
+  /**
+   * C2: discover the streams the user currently belongs to (`GET /sync/streams`), then
+   * diff against the persisted `_knownStreams` set to detect joins and leaves.
+   *
+   * INV-2 (the whole ballgame): the leave-purge only runs when `fetchStreams` returned
+   * HTTP 200. A 401 (AuthRequiredError) or any transport error is NOT a membership
+   * change — it enters auth-pause (401) or is rethrown (transport) with every local
+   * entity, cursor, and known-stream entry left intact. Joins backfill from cursor 0;
+   * leaves purge that stream's local entities + cursor + known-stream entry.
+   *
+   * Returns the current membership set (stream → collection) on success so the caller
+   * can bootstrap each; returns `undefined` when auth-paused (no membership known).
+   */
+  const syncStreams = async ({
+    isSuperseded,
+  }: {
+    /**
+     * Optional lifecycle guard checked AFTER the network fetch resolves but BEFORE any
+     * store mutation. A fired-and-forgotten reconcile's `fetchStreams()` await can straddle
+     * a stop()/start() or different-user wipe; without this, the post-await store reads and
+     * purges/joins below run against the swapped-in store and can resurrect wiped rows via
+     * TinyBase's mergeable-schema re-materialization. Returns undefined when superseded.
+     */
+    isSuperseded?: () => boolean;
+  } = {}): Promise<Map<string, string> | undefined> => {
+    if (!httpChannel) {
+      // No HTTP channel: fall back to the configured collections' streams are unknown;
+      // bootstrap cannot run. Callers treat undefined as "skip stream sync".
+      return undefined;
+    }
+    let serverStreams: {stream: string; collection: string}[];
+    try {
+      serverStreams = await httpChannel.fetchStreams();
+    } catch (error) {
+      if (error instanceof AuthRequiredError) {
+        // INV-2: a 401 is NOT a leave. Pause; leave every stream/entity intact.
+        setAuthPaused(true);
+        return undefined;
+      }
+      // Transport error: also not a membership change — leave data intact, rethrow so
+      // the caller's catch handles retry/backoff.
+      throw error;
+    }
+    if (isSuperseded?.()) {
+      // A newer lifecycle/user took over during the fetch — do not touch the store.
+      return undefined;
+    }
+
+    const serverSet = new Map<string, string>();
+    for (const {stream, collection} of serverStreams) {
+      serverSet.set(stream, collection);
+    }
+    const known = new Set(store.getKnownStreams());
+
+    // Leaves: known locally but absent from the (HTTP-200) server set → purge.
+    for (const stream of known) {
+      if (!serverSet.has(stream)) {
+        const purged = store.purgeStream({stream});
+        debugLog?.record({
+          detail: {purged, stream},
+          direction: "system",
+          label: `stream leave: purged ${stream} (${purged} entities)`,
+          type: "reconcile",
+        });
+      }
+    }
+    // Joins: in the server set but not yet known → mark known (cursor 0 bootstrap follows).
+    for (const [stream, collection] of serverSet) {
+      if (!known.has(stream)) {
+        store.addKnownStream({collection, stream});
+        debugLog?.record({
+          detail: {collection, stream},
+          direction: "system",
+          label: `stream join: ${stream}`,
+          type: "reconcile",
+        });
+      }
+    }
+    return serverSet;
+  };
+
   const reconcile = async (): Promise<void> => {
     // Simulated offline severs all network activity, including the HTTP
     // channel; an auth pause stands down every network trigger (INV-2) until
@@ -396,6 +478,16 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     if (!httpChannel || simulatedOffline || authPaused) {
       return;
     }
+    // E1 + C2: reconcile is fired-and-forgotten (startup, reconnect, periodic,
+    // post-auth) and its network awaits below can straddle a stop()/start() (bumps
+    // `generation`) or a different-user switch (changes `currentUserId` + swaps the
+    // persister, via runUserCheck). Capture both at entry and re-check after every await
+    // so a stale reconcile never writes discovered streams or snapshot pages into a store
+    // that now belongs to a different lifecycle or user — the resurrection bug where an
+    // in-flight reconcile for the previous user re-materialized purged rows after a wipe.
+    const myGeneration = generation;
+    const myUserId = currentUserId;
+    const isSuperseded = (): boolean => generation !== myGeneration || currentUserId !== myUserId;
     addSyncing(1);
     const startedAt = now();
     debugLog?.record({
@@ -405,15 +497,26 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       type: "reconcile",
     });
     try {
-      await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
-      // E5: client-side compaction runs only after a successful reconcile —
-      // reconcile just proved the local store caught up with the server via
-      // a real network round trip, which is the signal that it is safe to
-      // age out old tombstones (never on a failed/incomplete reconcile).
+      const streams = await syncStreams({isSuperseded});
+      if (!streams || isSuperseded()) {
+        // Auth-paused during discovery (401 → INV-2), or superseded by a newer
+        // lifecycle/user while awaiting discovery.
+        return;
+      }
+      for (const [stream, collection] of streams) {
+        await bootstrapStream({channel: httpChannel, collection, store, stream});
+        if (isSuperseded()) {
+          return;
+        }
+      }
+      // E5: client-side compaction runs only after a successful per-stream reconcile —
+      // reconcile just proved the local store caught up with the server via real network
+      // round trips (discovery + each stream), which is the signal that it is safe to age
+      // out old tombstones (never on a failed/incomplete reconcile).
       const retentionMs = config.tombstoneRetentionMs ?? DEFAULT_TOMBSTONE_RETENTION_MS;
       if (retentionMs > 0) {
-        // No explicit `now` override here — compactTombstones defaults to
-        // the same injected clock the store itself was created with above.
+        // No explicit `now` override here — compactTombstones defaults to the same
+        // injected clock the store itself was created with above.
         const {removed} = store.compactTombstones({olderThanMs: retentionMs});
         if (removed > 0) {
           debugLog?.record({
@@ -437,6 +540,42 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         durationMs: now() - startedAt,
         label: "reconcile end",
         phase: "end",
+        type: "reconcile",
+      });
+    }
+  };
+
+  /**
+   * C2 migration: deployed clients hold legacy `snapshot:{collection}` pseudo-cursors.
+   * On start, delete all of them and clear `_knownStreams` so the normal discovery path
+   * re-bootstraps every stream from cursor 0. Idempotent upserts + seq guards make
+   * re-bootstrap cheap and non-destructive (existing entities keep their data). Runs once.
+   *
+   * NOTE (Phase E merge): Phase E is adding the schema-version wipe machinery in the main
+   * worktree. Ideally this migration gates behind that version bump so it runs exactly
+   * once. That hook does not exist in this worktree, so this implements the minimal
+   * standalone cursor-migration path — it is self-idempotent (after the first run there
+   * are no `snapshot:` keys left, so subsequent runs are no-ops). When merging, this can
+   * be moved behind the E2 version bump.
+   */
+  const migrateLegacySnapshotCursors = (): void => {
+    const cursorRows = store.raw.getTable(CURSORS_TABLE);
+    let migrated = 0;
+    for (const key of Object.keys(cursorRows)) {
+      if (key.startsWith("snapshot:")) {
+        store.raw.delRow(CURSORS_TABLE, key);
+        migrated += 1;
+      }
+    }
+    if (migrated > 0) {
+      // Clear the known-streams set so discovery re-bootstraps every stream from 0.
+      for (const stream of store.getKnownStreams()) {
+        store.removeKnownStream({stream});
+      }
+      debugLog?.record({
+        detail: {migrated},
+        direction: "system",
+        label: `migrated ${migrated} legacy snapshot cursors`,
         type: "reconcile",
       });
     }
@@ -637,7 +776,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     store.setLastUserId({userId});
     currentUserId = userId;
     if (httpChannel) {
-      await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
+      // C2: after a wipe the known-streams set is empty, so discover the user's current
+      // stream membership and bootstrap each from cursor 0. syncStreams() handles the
+      // INV-2 auth-pause case (returns undefined on a 401) — skip bootstrap then.
+      const streams = await syncStreams();
+      if (streams) {
+        for (const [stream, collection] of streams) {
+          await bootstrapStream({channel: httpChannel, collection, store, stream});
+        }
+      }
     }
   };
 
@@ -860,6 +1007,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         return;
       }
 
+      // C2: migrate any legacy snapshot:{collection} cursors before the first discovery
+      // so the per-stream bootstrap path starts from a clean cursor set. This is a cheap,
+      // idempotent fast-path — Phase E's schema-version wipe (runUserCheck ->
+      // wipeAndRebootstrap) already re-bootstraps any store still on v1, so in practice no
+      // v2 store carries legacy `snapshot:` cursors. Kept because it costs one table scan
+      // and lets a v2-with-legacy-cursors store (which should not exist) recover without a
+      // full wipe; after the first run there are no `snapshot:` keys left, so it no-ops.
+      migrateLegacySnapshotCursors();
+
       // A1: startup crash recovery, before the first replayOutbox() — repair
       // any outbox rows stranded mid-lifecycle by a prior crash/reload (inFlight
       // never resolved, acked-with-still-pending entity, conflicted with no
@@ -887,6 +1043,10 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         return;
       }
       transport.subscribe(config.collections);
+      // C2: run an initial stream discovery + per-stream bootstrap on start (not only via
+      // the reconnect status event) so a client that starts offline-then-online, or with a
+      // warm socket, still backfills newly-joined streams and drains legacy cursors.
+      void reconcile().catch(warn("startup reconcile failed"));
       startReconcileTimer();
       isStarted = true;
       void replayOutbox().catch(warn("startup replay failed"));

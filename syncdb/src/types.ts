@@ -21,6 +21,12 @@ export interface SyncDelta {
   seq: number;
   /** Stream key this delta belongs to (e.g. "todos|owner:123"). */
   stream: string;
+  /**
+   * C1: the stream's stable frontier at emit time. The client advances its cursor to
+   * `min(seq, frontierSeq)` so a delta observed out of commit order never advances a
+   * cursor past an uncommitted hole. Absent from older servers (treated as `seq`).
+   */
+  frontierSeq?: number;
   /** True when the entity is soft-deleted. */
   deleted?: boolean;
 }
@@ -111,11 +117,34 @@ export interface SyncSnapshotEntity {
   deleted: boolean;
 }
 
-/** Response shape of `GET /sync/snapshot`. */
+/** Response shape of `GET /sync/snapshot` (C2: one stream per request). */
 export interface SyncSnapshotResponse {
+  /** The stream this page belongs to (echoed from the request). */
+  stream: string;
   entities: SyncSnapshotEntity[];
+  /** Highest seq in this page (never above `frontierSeq`); pass back as `cursor`. */
   cursor: number;
   hasMore: boolean;
+  /** C1: the stream's stable frontier — the client must not advance its cursor beyond this. */
+  frontierSeq: number;
+  /**
+   * C7: the lowest seq still retained for the stream. A stored cursor below this means
+   * compacted tombstones may have been missed → re-bootstrap the stream from 0.
+   */
+  oldestRetainedSeq: number;
+  /**
+   * C3: opaque forward token for paging the legacy (seq-0) stratum by `_id`. Echoed back
+   * verbatim until absent (stratum exhausted), then paging proceeds by seq.
+   */
+  legacyCursor?: string;
+}
+
+/** One stream a user currently belongs to, from `GET /sync/streams`. */
+export interface SyncStreamInfo {
+  /** Stream key (e.g. "todos|owner:123"). */
+  stream: string;
+  /** Collection tag the stream belongs to. */
+  collection: string;
 }
 
 /** Durable outbox mutation lifecycle. */

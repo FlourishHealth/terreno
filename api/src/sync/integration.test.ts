@@ -288,8 +288,9 @@ describe("syncdb end-to-end integration", () => {
     expect(status.isOnline).toBe(true);
     expect(status.queuedCount).toBe(0);
     expect(status.conflictCount).toBe(0);
-    // The snapshot cursor advanced to the highest applied seq.
-    expect(status.streams[`snapshot:${COLLECTION}`]).toBe(3);
+    // C2: the per-stream cursor (keyed by the REAL stream key, not the old
+    // snapshot:{collection} pseudo-cursor) advanced to the highest applied seq.
+    expect(status.streams[`${COLLECTION}|owner:${userAId}`]).toBe(3);
   }, 15_000);
 
   it("2. applies a live change-stream delta without reconcile", async () => {

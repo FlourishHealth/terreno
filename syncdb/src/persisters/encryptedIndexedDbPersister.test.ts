@@ -6,6 +6,7 @@ import {createAesGcmCodec} from "../crypto/aesGcmCodec";
 import {identityCodec} from "../crypto/identityCodec";
 import type {PayloadCodec} from "../crypto/types";
 import {idbSet} from "../storage/idb";
+import {SYNC_SCHEMA_VERSION} from "../storage/schema";
 import {createSyncStore, type SyncStore} from "../storage/store";
 import {createEncryptedIndexedDbPersister} from "./encryptedIndexedDbPersister";
 
@@ -375,6 +376,6 @@ describe("createEncryptedIndexedDbPersister", () => {
       saveDebounceMs: 0,
       store: target.raw,
     }).load();
-    expect(target.getSchemaVersion()).toBe(1);
+    expect(target.getSchemaVersion()).toBe(SYNC_SCHEMA_VERSION);
   });
 });

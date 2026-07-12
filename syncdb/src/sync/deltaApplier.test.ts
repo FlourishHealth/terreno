@@ -30,6 +30,7 @@ describe("applyDelta", () => {
       id: "t1",
       pendingMutationId: undefined,
       seq: 1,
+      stream: STREAM,
     });
     expect(getCursor({store, stream: STREAM})).toBe(1);
   });
@@ -181,6 +182,47 @@ describe("applyDelta", () => {
     const store = makeStore();
     applyDelta({delta: makeDelta(), now: () => "2026-07-04T12:00:00Z", store});
     expect(store.raw.getCell("_cursors", STREAM, "updatedAt")).toBe("2026-07-04T12:00:00Z");
+  });
+
+  it("C1: clamps the cursor to min(seq, frontierSeq) when the frontier lags the seq", () => {
+    const store = makeStore();
+    // The delta is for seq 5 but the stream frontier sits at 3 (seq 4's owning write is
+    // still uncommitted) — the entity applies at seq 5, but the cursor must not advance
+    // past the frontier or catch-up would skip the still-pending hole at 4.
+    const result = applyDelta({delta: makeDelta({frontierSeq: 3, seq: 5}), store});
+    expect(result.applied).toBe(true);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.seq).toBe(5);
+    expect(getCursor({store, stream: STREAM})).toBe(3);
+  });
+
+  it("C1: advances the cursor to the delta seq when frontierSeq is absent (older server)", () => {
+    const store = makeStore();
+    const result = applyDelta({delta: makeDelta({seq: 4}), store});
+    expect(result.applied).toBe(true);
+    expect(getCursor({store, stream: STREAM})).toBe(4);
+  });
+
+  it("C1: clamps the cursor even on a skipped (pending-protected) delta", () => {
+    const store = makeStore();
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "optimistic"},
+      id: "t1",
+      pendingMutationId: "m1",
+      seq: 1,
+    });
+    const result = applyDelta({
+      delta: makeDelta({frontierSeq: 2, method: "update", seq: 6}),
+      store,
+    });
+    expect(result.applied).toBe(false);
+    expect(getCursor({store, stream: STREAM})).toBe(2);
+  });
+
+  it("C2: records the stream on the entity so leave-purge can find it", () => {
+    const store = makeStore();
+    applyDelta({delta: makeDelta({stream: "todos|tenant:org7"}), store});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.stream).toBe("todos|tenant:org7");
   });
 
   it("throws for a delta targeting an unknown collection", () => {

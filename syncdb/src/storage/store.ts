@@ -2,7 +2,13 @@ import {DateTime} from "luxon";
 import {createMergeableStore, type MergeableStore, type Row} from "tinybase";
 
 import {buildTablesSchema, SYNC_SCHEMA_VERSION, SYNC_VALUES_SCHEMA} from "./schema";
-import {type EntityRow, RESERVED_TABLE_PREFIX, type SyncEntity} from "./types";
+import {
+  CURSORS_TABLE,
+  type EntityRow,
+  KNOWN_STREAMS_TABLE,
+  RESERVED_TABLE_PREFIX,
+  type SyncEntity,
+} from "./types";
 
 const defaultNow = (): string => DateTime.now().toISO();
 
@@ -28,6 +34,7 @@ const rowToEntity = <TData>(id: string, row: Partial<EntityRow>): SyncEntity<TDa
   id,
   pendingMutationId: row.pendingMutationId ? row.pendingMutationId : undefined,
   seq: row.seq ?? 0,
+  stream: row.stream ? row.stream : undefined,
 });
 
 export interface UpsertEntityArgs {
@@ -40,6 +47,8 @@ export interface UpsertEntityArgs {
   deleted?: boolean;
   /** Protecting outbox mutation; omitted = preserve existing, "" = clear. */
   pendingMutationId?: string;
+  /** C2: the stream this entity was written under; omitted = preserve existing. */
+  stream?: string;
 }
 
 export interface CompactTombstonesResult {
@@ -75,6 +84,18 @@ export interface SyncStore {
    * client hasn't actually converged on yet.
    */
   compactTombstones: (args: {olderThanMs: number; now?: () => string}) => CompactTombstonesResult;
+  /** C2: stream keys the client has bootstrapped (the persisted membership set). */
+  getKnownStreams: () => string[];
+  /** C2: record a stream as bootstrapped (join). */
+  addKnownStream: (args: {stream: string; collection: string}) => void;
+  /** C2: forget a bootstrapped stream (leave). */
+  removeKnownStream: (args: {stream: string}) => void;
+  /**
+   * C2 leave-purge: delete every local entity written under `stream` (matched on the
+   * entity `stream` column) across all collections, and its cursor + known-stream entry.
+   * Returns the number of entities purged.
+   */
+  purgeStream: (args: {stream: string}) => number;
 }
 
 /**
@@ -131,6 +152,7 @@ export const createSyncStore = ({
       deletedAt: deleted ? existing?.deletedAt || now() : "",
       pendingMutationId: args.pendingMutationId ?? existing?.pendingMutationId ?? "",
       seq: args.seq ?? existing?.seq ?? 0,
+      stream: args.stream ?? existing?.stream ?? "",
     };
     raw.setRow(args.collection, args.id, row as unknown as Row);
     return rowToEntity(args.id, row);
@@ -228,15 +250,50 @@ export const createSyncStore = ({
     });
   };
 
+  const getKnownStreams = (): string[] => Object.keys(raw.getTable(KNOWN_STREAMS_TABLE));
+
+  const addKnownStream = ({stream, collection}: {stream: string; collection: string}): void => {
+    raw.setRow(KNOWN_STREAMS_TABLE, stream, {
+      addedAt: now(),
+      collection,
+    } as unknown as Row);
+  };
+
+  const removeKnownStream = ({stream}: {stream: string}): void => {
+    raw.delRow(KNOWN_STREAMS_TABLE, stream);
+  };
+
+  const purgeStream = ({stream}: {stream: string}): number => {
+    // C2 leave-purge deletes rows outright, so E5 deletedAt tombstone semantics
+    // do not apply here — a purged stream is gone locally, not soft-deleted.
+    let purged = 0;
+    for (const collection of collections) {
+      const table = raw.getTable(collection);
+      for (const [id, row] of Object.entries(table)) {
+        if ((row as Partial<EntityRow>).stream === stream) {
+          raw.delRow(collection, id);
+          purged += 1;
+        }
+      }
+    }
+    raw.delRow(CURSORS_TABLE, stream);
+    removeKnownStream({stream});
+    return purged;
+  };
+
   return {
+    addKnownStream,
     clearCollection,
     collections,
     compactTombstones,
     getEntity,
+    getKnownStreams,
     getLastUserId,
     getSchemaVersion,
     listEntities,
+    purgeStream,
     raw,
+    removeKnownStream,
     setLastUserId,
     softDeleteEntity,
     upsertEntity,

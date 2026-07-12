@@ -17,7 +17,7 @@
 import type express from "express";
 import cloneDeep from "lodash/cloneDeep";
 import {DateTime} from "luxon";
-import type {Document, Model} from "mongoose";
+import mongoose, {type Document, type Model} from "mongoose";
 
 import {addPopulateToQuery, type ModelRouterOptions} from "../api";
 import type {User} from "../auth";
@@ -551,11 +551,31 @@ export const executeDelete = async <T>({
     });
   }
 
-  const doc =
-    existingDoc ??
-    ((await loadDocOr404<T>(model, id, options.populatePaths)) as ExecutorDoc<T> & {
-      deleted?: boolean;
-    });
+  // C8: delete of an already-deleted doc is idempotent — loadDocOr404 auto-filters
+  // soft-deleted docs and would 404 (a `validation` nack over sync). Load the tombstone
+  // directly and return it as an idempotent success (its existing seq) instead.
+  let doc = existingDoc;
+  if (!doc) {
+    try {
+      doc = (await loadDocOr404<T>(model, id, options.populatePaths)) as ExecutorDoc<T> & {
+        deleted?: boolean;
+      };
+    } catch (error: unknown) {
+      const alreadyDeleted =
+        isAPIError(error) &&
+        error.status === 404 &&
+        (error.meta as {deleted?: string} | undefined)?.deleted === "true";
+      if (alreadyDeleted) {
+        // Hydrate the tombstone bypassing the isDeletedPlugin find filter.
+        const tombstone = await model
+          .find({_id: new mongoose.Types.ObjectId(id), deleted: {$in: [true, false]}})
+          .limit(1);
+        const resolved = tombstone[0] as ExecutorDoc<T> & {deleted?: boolean};
+        return {doc: resolved};
+      }
+      throw error;
+    }
+  }
 
   if (!(await checkPermissions("delete", options.permissions.delete, user, doc))) {
     throw new APIError({
