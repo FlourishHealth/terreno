@@ -1,7 +1,8 @@
 ---
 name: submit
 description: Lightweight pre-commit + commit + push + create/update PR, then spawn check-watcher in the background. Use /fullsend for the full pipeline with code review.
-model: haiku
+claudecode:
+  model: haiku
 ---
 
 # Submit: Quick Commit & PR
@@ -28,6 +29,8 @@ Use the `Agent` tool:
 - `prompt`: instruct it to run lint, compile, and related tests for the current project, fix any issues, and report back. Mention this is being run as part of `/submit` for an upcoming commit.
 
 Wait for the subagent to return its Pre-Commit Report. If it surfaces unfixable failures, STOP and report them — do not commit or push.
+
+If your harness does not support subagents, run the same checks inline instead: `bun run lint`, `bun run compile`, and tests related to the changed files.
 
 If invoked from `/fullsend` (which already ran pre-commit), skip this step.
 
@@ -130,6 +133,8 @@ Spawn `/check-watcher` as a **background sub-agent** so CI monitoring runs auton
 - `prompt`: instruct the sub-agent to invoke the `/check-watcher` skill for the current PR, fix any failures, and report back when checks are green or max attempts are hit. Include the PR number/URL from Step 5 so the sub-agent has context.
 
 Do **not** wait on the sub-agent — return control immediately after spawning. The user will be notified when it completes.
+
+If your harness does not support background subagents, run the `/check-watcher` skill directly instead (blocking), or report the PR link and tell the user CI is unwatched.
 
 By the time you reach this step, a PR is guaranteed to exist — either it pre-existed (from Step 1) or Step 4 just created it. Always spawn check-watcher.
 

@@ -107,7 +107,7 @@
     "@biomejs/biome": "catalog:",
     "@types/chai": "^5.2.3",
     "chai": "^6.2.2",
-    "rulesync": "^8.18.0",
+    "rulesync": "^9.6.3",
     "zod": "catalog:"
   },
   "name": "@terreno/root",

@@ -3,6 +3,7 @@ name: verify-ui-changes
 description: >-
   Use automatically when making, reviewing, or validating UI changes in React,
   React Native, Expo, CSS, HTML, or component/story files.
+model: haiku
 ---
 # Verify UI Changes
 
@@ -153,7 +154,7 @@ Post UI verification evidence to GitHub through the PR body so reviewers can see
 
 ## Cursor Cloud Notes
 
-- Use the `computerUse` subagent for GUI-driven verification.
+- Delegate GUI-driven verification to the `ui-verifier` subagent when your harness supports subagents; in Cursor Cloud, fall back to its built-in browser/GUI capability.
 - Use `RecordScreen` for user-facing video walkthroughs of interactive UI changes.
 - Leave test servers running after verification so the user can continue testing.
 

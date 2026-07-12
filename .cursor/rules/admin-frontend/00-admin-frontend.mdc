@@ -1,5 +1,5 @@
 ---
-description: @terreno/admin-frontend - Admin panel frontend screens for @terreno/api backends
+description: '@terreno/admin-frontend - Admin panel frontend screens for @terreno/api backends'
 globs: **/*
 ---
 

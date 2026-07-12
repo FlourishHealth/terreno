@@ -1,5 +1,5 @@
 ---
-description: @terreno/api - Express/Mongoose REST API framework
+description: '@terreno/api - Express/Mongoose REST API framework'
 globs: **/*
 ---
 

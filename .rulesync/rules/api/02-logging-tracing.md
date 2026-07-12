@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
+targets: ["cursor", "devin", "copilot", "claudecode"]
 description: "Traceable backend logging, scoped loggers, Google Cloud Logging"
 globs: ["api/**/*.ts", "example-backend/**/*.ts", "**/server.ts"]
 ---
