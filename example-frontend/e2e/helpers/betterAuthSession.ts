@@ -1,6 +1,19 @@
 import type {APIRequestContext} from "@playwright/test";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? "http://localhost:8082";
+
+/**
+ * Better Auth's origin-check middleware forces origin validation whenever a request
+ * carries a `Cookie` header (see `validateOrigin` in better-auth's origin-check
+ * middleware). Playwright's `request` fixture is a single shared cookie jar across an
+ * entire test/setup file, so once any Better Auth call sets a session cookie, every
+ * later call in that same context — sign-up or sign-in, for any user — automatically
+ * forwards that cookie and must present a trusted `Origin` header or it 403s with
+ * `MISSING_OR_NULL_ORIGIN`. Sending this on every request keeps auth.setup.ts's
+ * multi-user loop working regardless of cookie state.
+ */
+const originHeaders = {origin: FRONTEND_ORIGIN};
 
 export interface BetterAuthCredentials {
   email: string;
@@ -30,6 +43,7 @@ export const signUpOrSignInBetterAuth = async (
 ): Promise<string> => {
   const signUpRes = await request.post(`${API_URL}/api/auth/sign-up/email`, {
     data: {email: user.email, name: user.name, password: user.password},
+    headers: originHeaders,
   });
   if (signUpRes.ok()) {
     return readSessionToken(await signUpRes.json());
@@ -37,6 +51,7 @@ export const signUpOrSignInBetterAuth = async (
 
   const signInRes = await request.post(`${API_URL}/api/auth/sign-in/email`, {
     data: {email: user.email, password: user.password},
+    headers: originHeaders,
   });
   if (!signInRes.ok()) {
     throw new Error(
@@ -46,7 +61,7 @@ export const signUpOrSignInBetterAuth = async (
   const token = readSessionToken(await signInRes.json());
   // Ensure the Mongoose User row exists for owner-scoped routes.
   await request.get(`${API_URL}/auth/me`, {
-    headers: {authorization: `Bearer ${token}`},
+    headers: {authorization: `Bearer ${token}`, ...originHeaders},
   });
   return token;
 };
