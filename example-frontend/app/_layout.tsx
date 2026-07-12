@@ -16,12 +16,19 @@ import {
   useTerrenoFeatureFlags,
   useUpgradeCheck,
 } from "@terreno/rtk";
-import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
+import {
+  Banner,
+  Box,
+  ConsentNavigator,
+  Spinner,
+  TerrenoProvider,
+  UpgradeRequiredScreen,
+} from "@terreno/ui";
 import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import {useReadProfile} from "@/hooks/useReadProfile";
+import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
-import store, {persistor, syncBetterAuthSession} from "@/store";
+import store, {persistor, syncBetterAuthSession, useGetMeQuery} from "@/store";
 import {terrenoApi} from "@/store/sdk";
 import {setSyncDbReady, syncDb} from "@/store/syncdb";
 
@@ -102,7 +109,10 @@ const RootLayoutNav = (): React.ReactElement => {
   // /(tabs) root once it does, silently discarding the originally requested
   // route.
   const isAuthLoading = useSelector(selectBetterAuthIsLoading);
-  const profile = useReadProfile();
+  const {data: profileData, isLoading: isProfileLoading} = useGetMeQuery(undefined, {
+    skip: !userId,
+  });
+  const profile = profileData as ProfileData | undefined;
   const segments = useSegments();
   const router = useRouter();
   const {
@@ -187,6 +197,20 @@ const RootLayoutNav = (): React.ReactElement => {
       router.replace("/(tabs)");
     }
   }, [userId, segments, router, isAuthLoading]);
+
+  // Hold the navigator until the session (and, for signed-in users, the profile that
+  // decides the ConsentNavigator wrapper below) has settled. The wrapper choice changes
+  // the Stack's position in the React tree, and re-parenting unmounts and remounts the
+  // Stack — a remounted Stack resets to initialRouteName "(tabs)", silently discarding
+  // a deep-linked route like /profile or /admin. Rendering only once the tree shape is
+  // final means the Stack mounts exactly once per auth state and keeps the requested URL.
+  if (isAuthLoading || (Boolean(userId) && isProfileLoading)) {
+    return (
+      <Box alignItems="center" flex="grow" justifyContent="center" testID="app-auth-loading">
+        <Spinner />
+      </Box>
+    );
+  }
 
   if (isRequired) {
     return (
