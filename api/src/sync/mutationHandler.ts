@@ -3,7 +3,7 @@ import type express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import type {User} from "../auth";
-import {isAPIError} from "../errors";
+import {APIError, isAPIError} from "../errors";
 import {logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
 import {
@@ -18,6 +18,7 @@ import {
 import {SYNC_MUTATION_LEASE_MS, SyncMutation, type SyncMutationDocument} from "./models";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import {serializeSyncDoc} from "./routes";
+import {getScopeField} from "./streams";
 import type {
   SyncAck,
   SyncMutateBatchResponse,
@@ -25,6 +26,82 @@ import type {
   SyncNack,
   SyncNackCode,
 } from "./types";
+
+/**
+ * C6 (M6): the sync-boundary write-scope backstop. Resolve `getUserScopes` lazily from
+ * the active SyncApp options (registered once, regardless of plugin order) so the check
+ * runs against the same membership resolver the snapshot/subscribe paths use.
+ */
+let scopeResolver:
+  | ((user: User, entry: SyncRegistryEntry) => Promise<string[]> | string[])
+  | undefined;
+
+/** Called by SyncApp.register so the mutation-scope check can resolve tenant memberships. */
+export const setSyncMutationScopeResolver = (
+  resolver: ((user: User, entry: SyncRegistryEntry) => Promise<string[]> | string[]) | undefined
+): void => {
+  scopeResolver = resolver;
+};
+
+/**
+ * C6 (M6): enforce write scope at the sync boundary regardless of consumer `preCreate`
+ * quality. For `owner` strategy, force/verify the owner field equals the authenticated
+ * user id; for `tenant` strategy, verify the incoming tenant value is in the user's
+ * memberships. Throws a 403 APIError (mapped to `unauthorized`) otherwise. A no-op for
+ * broadcast/custom scopes and for update data that does not touch the scope field.
+ */
+const enforceWriteScope = async ({
+  entry,
+  user,
+  operation,
+  data,
+}: {
+  entry: SyncRegistryEntry;
+  user: User;
+  operation: "create" | "update" | "delete";
+  data: Record<string, unknown> | undefined;
+}): Promise<void> => {
+  if (operation === "delete") {
+    return;
+  }
+  const {scope} = entry.config;
+  if (typeof scope === "function" || scope.type === "broadcast") {
+    return;
+  }
+  const field = getScopeField(scope) as string;
+  const incoming = data?.[field];
+  if (scope.type === "owner") {
+    // Create must belong to the caller; an update may not move ownership to someone else.
+    if (operation === "create" && (incoming === undefined || incoming === null)) {
+      // preCreate typically injects ownerId; nothing to verify if absent here.
+      return;
+    }
+    if (incoming !== undefined && incoming !== null && String(incoming) !== String(user.id)) {
+      throw new APIError({
+        status: 403,
+        title: `Write scope violation on ${entry.collectionTag}: ${field} must be the caller`,
+      });
+    }
+    return;
+  }
+  // Tenant: the incoming value (create) or the changed value (update) must be a membership.
+  if (incoming === undefined || incoming === null) {
+    return;
+  }
+  if (!scopeResolver) {
+    throw new APIError({
+      status: 500,
+      title: `Sync collection ${entry.collectionTag} is tenant-scoped but SyncApp has no getUserScopes resolver`,
+    });
+  }
+  const memberships = await scopeResolver(user, entry);
+  if (!memberships.map(String).includes(String(incoming))) {
+    throw new APIError({
+      status: 403,
+      title: `Write scope violation on ${entry.collectionTag}: ${field} ${String(incoming)} is not a membership`,
+    });
+  }
+};
 
 /**
  * Shared mutation handler for the sync channel: `POST /sync/mutate` (HTTP fallback)
@@ -374,6 +451,14 @@ const applyClaimedMutation = async ({
   const model = mongoose.model(entry.modelName);
 
   try {
+    // C6 (M6): sync-boundary write-scope backstop before any write pipeline runs.
+    await enforceWriteScope({
+      data: mutation.data,
+      entry,
+      operation: mutation.operation,
+      user,
+    });
+
     let doc: mongoose.Document;
     let postHook: (() => Promise<void>) | undefined;
     if (mutation.operation === "create") {
@@ -543,6 +628,12 @@ export const applySyncMutation = async ({
   }
   if ((mutation.operation === "update" || mutation.operation === "delete") && !mutation.id) {
     return validationNack(`id is required for ${mutation.operation} mutations`);
+  }
+  // C8: an update MUST carry an explicit baseVersion — omitting it would silently become
+  // a `baseSeq: 0` check (an accidental conflict against every non-fresh doc, or an
+  // accidental success against a seq-0 doc). Reject it as a client bug up front.
+  if (mutation.operation === "update" && typeof mutation.baseVersion !== "number") {
+    return validationNack("baseVersion is required for update mutations");
   }
 
   const entry = findSyncEntryByCollectionTag(mutation.collection);

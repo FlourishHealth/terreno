@@ -56,6 +56,7 @@ describe("upsertEntity / getEntity", () => {
       id: "t1",
       pendingMutationId: undefined,
       seq: 3,
+      stream: undefined,
     });
   });
 
@@ -206,5 +207,49 @@ describe("clearCollection", () => {
     expect(() => store.clearCollection({collection: CONFLICTS_TABLE})).toThrow(
       /Unknown collection/
     );
+  });
+});
+
+describe("known streams + purgeStream (C2)", () => {
+  it("round-trips known streams (add / get / remove)", () => {
+    const store = makeStore();
+    expect(store.getKnownStreams()).toEqual([]);
+    store.addKnownStream({collection: "todos", stream: "todos|owner:u1"});
+    store.addKnownStream({collection: "todos", stream: "todos|tenant:org1"});
+    expect(store.getKnownStreams().sort()).toEqual(["todos|owner:u1", "todos|tenant:org1"]);
+    store.removeKnownStream({stream: "todos|owner:u1"});
+    expect(store.getKnownStreams()).toEqual(["todos|tenant:org1"]);
+  });
+
+  it("purgeStream deletes only the matching stream's entities, its cursor, and its known-stream row", () => {
+    const store = makeStore();
+    const leaving = "todos|tenant:org1";
+    const staying = "todos|owner:u1";
+    // Two entities on the leaving stream (one in each collection), one on the staying stream.
+    store.upsertEntity({collection: "todos", data: {t: 1}, id: "a", seq: 3, stream: leaving});
+    store.upsertEntity({collection: "notes", data: {n: 1}, id: "b", seq: 4, stream: leaving});
+    store.upsertEntity({collection: "todos", data: {t: 2}, id: "c", seq: 5, stream: staying});
+    store.addKnownStream({collection: "todos", stream: leaving});
+    store.addKnownStream({collection: "todos", stream: staying});
+    store.raw.setRow(CURSORS_TABLE, leaving, {seq: 3, updatedAt: "x"});
+    store.raw.setRow(CURSORS_TABLE, staying, {seq: 5, updatedAt: "y"});
+
+    const purged = store.purgeStream({stream: leaving});
+
+    expect(purged).toBe(2);
+    expect(store.getEntity({collection: "todos", id: "a"})).toBeUndefined();
+    expect(store.getEntity({collection: "notes", id: "b"})).toBeUndefined();
+    // The staying stream's entity and cursor and known-stream row are untouched.
+    expect(store.getEntity({collection: "todos", id: "c"})?.data).toEqual({t: 2});
+    expect(store.raw.getCell(CURSORS_TABLE, staying, "seq")).toBe(5);
+    expect(store.raw.hasRow(CURSORS_TABLE, leaving)).toBe(false);
+    expect(store.getKnownStreams()).toEqual([staying]);
+  });
+
+  it("purgeStream returns 0 and is a no-op for a stream with no entities", () => {
+    const store = makeStore();
+    store.addKnownStream({collection: "todos", stream: "todos|owner:ghost"});
+    expect(store.purgeStream({stream: "todos|owner:ghost"})).toBe(0);
+    expect(store.getKnownStreams()).toEqual([]);
   });
 });

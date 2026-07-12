@@ -87,11 +87,12 @@ describe("sync routes", () => {
   let agent: TestAgent;
   let adminAgent: TestAgent;
   let notAdminId: string;
+  let adminId: string;
 
   beforeEach(async () => {
     const [admin, notAdmin] = await setupDb();
     notAdminId = String(notAdmin._id);
-    void admin;
+    adminId = String(admin._id);
 
     clearSyncRegistry();
     registerSync({
@@ -127,23 +128,42 @@ describe("sync routes", () => {
     adminAgent = await authAsUser(app, "admin");
   });
 
+  // C2: the snapshot endpoint is now per-STREAM. The owner stream for notAdmin is
+  // `routeStuff|owner:{notAdminId}`; the tenant stream (getUserScopes -> ["org1"]) is
+  // `routeProjects|tenant:org1`.
   describe("GET /sync/snapshot", () => {
+    const ownerStream = (): string => `routeStuff|owner:${notAdminId}`;
+
     it("requires authentication", async () => {
-      await server.get("/sync/snapshot?collection=routeStuff").expect(401);
+      await server
+        .get(`/sync/snapshot?stream=${encodeURIComponent("routeStuff|owner:x")}`)
+        .expect(401);
     });
 
-    it("requires a collection parameter", async () => {
+    it("requires a stream parameter", async () => {
       const res = await agent.get("/sync/snapshot").expect(400);
-      expect(res.body.title).toMatch(/collection/);
+      expect(res.body.title).toMatch(/stream/);
+    });
+
+    it("400s for an unparseable stream key", async () => {
+      await agent.get("/sync/snapshot?stream=notAStreamKey").expect(400);
     });
 
     it("404s for unknown collections", async () => {
-      await agent.get("/sync/snapshot?collection=nope").expect(404);
+      await agent.get(`/sync/snapshot?stream=${encodeURIComponent("nope|owner:x")}`).expect(404);
+    });
+
+    it("403s when the caller does not belong to the requested stream", async () => {
+      // notAdmin's own owner stream is keyed by their id; someoneElse's is not theirs.
+      await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent("routeStuff|owner:someoneElse")}`)
+        .expect(403);
     });
 
     it("400s for invalid cursor and limit", async () => {
-      await agent.get("/sync/snapshot?collection=routeStuff&cursor=abc").expect(400);
-      await agent.get("/sync/snapshot?collection=routeStuff&limit=-2").expect(400);
+      const s = encodeURIComponent(ownerStream());
+      await agent.get(`/sync/snapshot?stream=${s}&cursor=abc`).expect(400);
+      await agent.get(`/sync/snapshot?stream=${s}&limit=-2`).expect(400);
     });
 
     it("enforces the model's list permissions", async () => {
@@ -154,8 +174,14 @@ describe("sync routes", () => {
         options: adminOnlyOptions,
         routePath: "/routeStuff",
       });
-      await agent.get("/sync/snapshot?collection=routeStuff").expect(403);
-      await adminAgent.get("/sync/snapshot?collection=routeStuff").expect(200);
+      // notAdmin is denied at the list-permission gate; admin's own owner stream is allowed.
+      await agent.get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`).expect(403);
+      const admin = await UserModel.findOne({email: "admin@example.com"});
+      await adminAgent
+        .get(
+          `/sync/snapshot?stream=${encodeURIComponent(`routeStuff|owner:${String(admin?._id)}`)}`
+        )
+        .expect(200);
     });
 
     it("returns a full owner-scoped snapshot at cursor 0", async () => {
@@ -163,19 +189,27 @@ describe("sync routes", () => {
       await RouteStuffModel.create({name: "mine 2", ownerId: notAdminId});
       await RouteStuffModel.create({name: "theirs", ownerId: "someoneElse"});
 
-      const res = await agent.get("/sync/snapshot?collection=routeStuff").expect(200);
+      const res = await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`)
+        .expect(200);
+      expect(res.body.stream).toBe(ownerStream());
       expect(res.body.entities).toHaveLength(2);
       expect(res.body.entities.map((e: any) => e.data.name)).toEqual(["mine 1", "mine 2"]);
       expect(res.body.entities.map((e: any) => e.seq)).toEqual([1, 2]);
       expect(res.body.cursor).toBe(2);
       expect(res.body.hasMore).toBe(false);
+      // C1/C7 response fields present.
+      expect(res.body.frontierSeq).toBe(2);
+      expect(typeof res.body.oldestRetainedSeq).toBe("number");
     });
 
     it("returns incremental changes and tombstones past a cursor", async () => {
       const doc1 = await RouteStuffModel.create({name: "first", ownerId: notAdminId});
       const doc2 = await RouteStuffModel.create({name: "second", ownerId: notAdminId});
 
-      const initial = await agent.get("/sync/snapshot?collection=routeStuff").expect(200);
+      const initial = await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`)
+        .expect(200);
       const cursor = initial.body.cursor;
 
       doc1.name = "first updated";
@@ -184,7 +218,7 @@ describe("sync routes", () => {
       await doc2.save();
 
       const res = await agent
-        .get(`/sync/snapshot?collection=routeStuff&cursor=${cursor}`)
+        .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}&cursor=${cursor}`)
         .expect(200);
       expect(res.body.entities).toHaveLength(2);
       const updated = res.body.entities.find((e: any) => e.id === String(doc1._id));
@@ -192,6 +226,8 @@ describe("sync routes", () => {
       expect(updated.data.name).toBe("first updated");
       expect(updated.deleted).toBe(false);
       expect(tombstone.deleted).toBe(true);
+      // C7: tombstones carry no data.
+      expect(tombstone.data).toBeNull();
       expect(tombstone.seq).toBeGreaterThan(cursor);
     });
 
@@ -199,18 +235,19 @@ describe("sync routes", () => {
       for (let i = 1; i <= 5; i++) {
         await RouteStuffModel.create({name: `item ${i}`, ownerId: notAdminId});
       }
-      const page1 = await agent.get("/sync/snapshot?collection=routeStuff&limit=2").expect(200);
+      const s = encodeURIComponent(ownerStream());
+      const page1 = await agent.get(`/sync/snapshot?stream=${s}&limit=2`).expect(200);
       expect(page1.body.entities).toHaveLength(2);
       expect(page1.body.hasMore).toBe(true);
 
       const page2 = await agent
-        .get(`/sync/snapshot?collection=routeStuff&limit=2&cursor=${page1.body.cursor}`)
+        .get(`/sync/snapshot?stream=${s}&limit=2&cursor=${page1.body.cursor}`)
         .expect(200);
       expect(page2.body.entities).toHaveLength(2);
       expect(page2.body.hasMore).toBe(true);
 
       const page3 = await agent
-        .get(`/sync/snapshot?collection=routeStuff&limit=2&cursor=${page2.body.cursor}`)
+        .get(`/sync/snapshot?stream=${s}&limit=2&cursor=${page2.body.cursor}`)
         .expect(200);
       expect(page3.body.entities).toHaveLength(1);
       expect(page3.body.hasMore).toBe(false);
@@ -221,28 +258,23 @@ describe("sync routes", () => {
       expect(names).toEqual(["item 1", "item 2", "item 3", "item 4", "item 5"]);
     });
 
-    it("delivers legacy docs without _syncSeq in the first page only", async () => {
-      // Bypass mongoose entirely to simulate documents created before sync was enabled.
-      await RouteStuffModel.collection.insertMany([
-        {deleted: false, name: "legacy", ownerId: notAdminId},
-      ]);
-      await RouteStuffModel.create({name: "modern", ownerId: notAdminId});
-
-      const first = await agent.get("/sync/snapshot?collection=routeStuff").expect(200);
-      expect(first.body.entities.map((e: any) => e.data.name)).toEqual(["legacy", "modern"]);
-      expect(first.body.entities[0].seq).toBe(0);
-
-      const incremental = await agent
-        .get(`/sync/snapshot?collection=routeStuff&cursor=${first.body.cursor}`)
+    it("never advances the returned cursor beyond the stable frontier (C1)", async () => {
+      await RouteStuffModel.create({name: "committed 1", ownerId: notAdminId});
+      await RouteStuffModel.create({name: "committed 2", ownerId: notAdminId});
+      const res = await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`)
         .expect(200);
-      expect(incremental.body.entities).toHaveLength(0);
+      // With no in-flight writes, frontier == head and the cursor equals the frontier.
+      expect(res.body.cursor).toBeLessThanOrEqual(res.body.frontierSeq);
     });
 
-    it("scopes tenant collections to the user's tenants", async () => {
+    it("scopes tenant collections to the requested tenant stream only", async () => {
       await RouteProjectModel.create({orgId: "org1", title: "visible"});
       await RouteProjectModel.create({orgId: "org2", title: "hidden"});
 
-      const res = await agent.get("/sync/snapshot?collection=routeProjects").expect(200);
+      const res = await agent
+        .get("/sync/snapshot?stream=routeProjects%7Ctenant%3Aorg1")
+        .expect(200);
       expect(res.body.entities).toHaveLength(1);
       expect(res.body.entities[0].data.title).toBe("visible");
     });
@@ -253,7 +285,7 @@ describe("sync routes", () => {
       addAuthRoutes(bareApp as any, UserModel as any);
       new SyncApp().register(bareApp);
       const bareAgent = await authAsUser(bareApp, "notAdmin");
-      await bareAgent.get("/sync/snapshot?collection=routeProjects").expect(500);
+      await bareAgent.get("/sync/snapshot?stream=routeProjects%7Ctenant%3Aorg1").expect(500);
     });
 
     it("uses the sync responseHandler to serialize entities", async () => {
@@ -268,7 +300,9 @@ describe("sync routes", () => {
         routePath: "/routeStuff",
       });
       await RouteStuffModel.create({name: "secret", ownerId: notAdminId});
-      const res = await agent.get("/sync/snapshot?collection=routeStuff").expect(200);
+      const res = await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`)
+        .expect(200);
       expect(res.body.entities[0].data).toEqual({redactedName: "x-secret"});
     });
   });
@@ -370,15 +404,17 @@ describe("sync routes", () => {
         options: adminOnlyOptions,
         routePath: "/routeStuff",
       });
-      const body = (mutationId: string) => ({
+      // Each caller writes to their OWN owner scope (C6 rejects a foreign ownerId with a
+      // separate scope-violation nack — exercised in the C6 tests, not here).
+      const body = (mutationId: string, ownerId: string) => ({
         collection: "routeStuff",
-        data: {name: "admin only", ownerId: notAdminId},
+        data: {name: "admin only", ownerId},
         mutationId,
         operation: "create",
       });
-      const res = await agent.post("/sync/mutate").send(body("hm-perm-1")).expect(403);
+      const res = await agent.post("/sync/mutate").send(body("hm-perm-1", notAdminId)).expect(403);
       expect(res.body.nack.code).toBe("unauthorized");
-      await adminAgent.post("/sync/mutate").send(body("hm-perm-2")).expect(200);
+      await adminAgent.post("/sync/mutate").send(body("hm-perm-2", adminId)).expect(200);
     });
 
     it("returns 422 with a validation nack for invalid mutations", async () => {

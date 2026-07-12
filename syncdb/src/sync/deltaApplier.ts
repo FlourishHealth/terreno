@@ -34,9 +34,15 @@ export const applyDelta = ({
   delta: SyncDelta;
   now?: () => string;
 }): ApplyDeltaResult => {
+  // C1: never advance the cursor past the stream's stable frontier. A delta can arrive
+  // for seq N while N-1's claim is still uncommitted (out-of-commit-order); clamping to
+  // min(seq, frontierSeq) means the cursor never skips the still-pending hole. Older
+  // servers omit frontierSeq — treat it as the delta's own seq (no clamp).
+  const frontier = typeof delta.frontierSeq === "number" ? delta.frontierSeq : delta.seq;
+  const cursorTarget = Math.min(delta.seq, frontier);
   const seqJump = delta.seq > getCursor({store, stream: delta.stream}) + 1;
   const advanceCursor = (): void => {
-    setCursor({now, seq: delta.seq, store, stream: delta.stream});
+    setCursor({now, seq: cursorTarget, store, stream: delta.stream});
   };
 
   const existing = store.getEntity({collection: delta.collection, id: delta.id});
@@ -58,6 +64,8 @@ export const applyDelta = ({
     id: delta.id,
     pendingMutationId: "",
     seq: delta.seq,
+    // C2: record the stream so leave-purge can drop this entity in O(stream).
+    stream: delta.stream,
   });
   advanceCursor();
   return {applied: true, seqJump};

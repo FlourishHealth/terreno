@@ -21,7 +21,7 @@ import {
 } from "../realtime/changeStreamWatcher";
 import {clearRealtimeRegistry, registerRealtime} from "../realtime/registry";
 import {setupDb} from "../tests";
-import {SyncCounter, SyncMutation} from "./models";
+import {SyncCounter, SyncMutation, SyncScopeMove} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {
   clearSyncRegistry,
@@ -36,6 +36,7 @@ import {
   installSyncSocketHandlers,
   MAX_SYNC_COLLECTION_SUBSCRIPTIONS,
   MAX_SYNC_MUTATIONS_PER_SECOND,
+  MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH,
   type SyncSocketLike,
   setActiveSyncAppOptions,
   syncRoomForStream,
@@ -411,6 +412,22 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     const syncRooms = Array.from(socket.rooms).filter((r) => r.startsWith("sync:"));
     expect(syncRooms).toHaveLength(MAX_SYNC_COLLECTION_SUBSCRIPTIONS);
     expect(syncErrors(socket)).toHaveLength(3);
+  });
+
+  it("C8: rejects an oversized sync:subscribe array before iterating (length check first)", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    // An array over the cap must be rejected wholesale with a single sync:error and NO
+    // room joins — the length guard runs before any per-collection work.
+    const collections = Array.from(
+      {length: MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH + 1},
+      (_v, i) => `sockStuff${i}`
+    );
+    await socket.trigger("sync:subscribe", {collections});
+    expect(Array.from(socket.rooms).filter((r) => r.startsWith("sync:"))).toHaveLength(0);
+    const errors = syncErrors(socket);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toMatch(/at most/i);
   });
 
   it("sync:unsubscribe leaves the rooms and frees the cap slot", async () => {
@@ -907,7 +924,7 @@ describe("emitSyncDeltaForChange", () => {
     expect(receiver.decodedToken.id).toBe("user1");
   });
 
-  it("soft delete emits a delete delta with deleted true and tombstone data", async () => {
+  it("C7: soft delete emits a delete delta with deleted true and NO data (tombstone stripped)", async () => {
     const entry = ownerEntry();
     const io = makeTrackedIo();
     io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
@@ -930,11 +947,21 @@ describe("emitSyncDeltaForChange", () => {
     expect(delta.method).toBe("delete");
     expect(delta.deleted).toBe(true);
     expect(delta.seq).toBe(3);
-    expect((delta.data as any).name).toBe("gone");
+    // C7: a tombstone delta carries no data (privacy + payload growth).
+    expect(delta.data).toBeUndefined();
   });
 
-  it("scope move emits a data-less tombstone to the previous stream and a create to the new stream", async () => {
+  it("C4: scope move emits a data-less tombstone (from the durable marker) to the previous stream and a create to the new stream", async () => {
     const entry = ownerEntry();
+    await SyncScopeMove.deleteMany({});
+    // C4: the tombstone is driven by a durable SyncScopeMove marker, not _syncPrevStream.
+    await SyncScopeMove.create({
+      collectionTag: "sockStuff",
+      entityId: "doc-1",
+      fromStream: "sockStuff|owner:user1",
+      seq: 9,
+      toStream: "sockStuff|owner:user2",
+    });
     const io = makeTrackedIo();
     const oldRoom = syncRoomForStream("sockStuff|owner:user1");
     const newRoom = syncRoomForStream("sockStuff|owner:user2");
@@ -945,7 +972,6 @@ describe("emitSyncDeltaForChange", () => {
       change: makeChange({
         fullDocument: {
           _id: "doc-1",
-          _syncPrevStream: "sockStuff|owner:user1",
           _syncSeq: 9,
           name: "moved",
           ownerId: "user2",
@@ -973,10 +999,58 @@ describe("emitSyncDeltaForChange", () => {
     expect(create.method).toBe("create");
     expect(create.stream).toBe("sockStuff|owner:user2");
     expect((create.data as any).name).toBe("moved");
+    await SyncScopeMove.deleteMany({});
   });
 
-  it("ignores a stale _syncPrevStream equal to the current stream", async () => {
+  it("C4: a racing second write cannot suppress the tombstone (the marker is durable, not the post-image)", async () => {
+    // Simulates the race the design fixes: a second write reset _syncPrevStream to null
+    // before this change event was processed. With the OLD implementation the old stream
+    // would never get a tombstone; with the marker it still does.
     const entry = ownerEntry();
+    await SyncScopeMove.deleteMany({});
+    await SyncScopeMove.create({
+      collectionTag: "sockStuff",
+      entityId: "doc-1",
+      fromStream: "sockStuff|owner:user1",
+      seq: 11,
+      toStream: "sockStuff|owner:user2",
+    });
+    const io = makeTrackedIo();
+    const oldRoom = syncRoomForStream("sockStuff|owner:user1");
+    io.addSocketToRoom(oldRoom, {admin: true, id: "admin"});
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user2"), {admin: true, id: "admin"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {
+          _id: "doc-1",
+          // _syncPrevStream is null (overwritten by the racing second write) — irrelevant now.
+          _syncPrevStream: null,
+          _syncSeq: 12,
+          name: "moved then edited",
+          ownerId: "user2",
+        },
+        operationType: "update",
+        updateDescription: {updatedFields: {name: "moved then edited"}},
+      }),
+      docId: "doc-1",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const tombstone = deltas.find((e: any) => e.room === oldRoom)?.payload as SyncDelta;
+    expect(tombstone).toBeDefined();
+    expect(tombstone.method).toBe("delete");
+    expect(tombstone.stream).toBe("sockStuff|owner:user1");
+    expect(tombstone.seq).toBe(11);
+    await SyncScopeMove.deleteMany({});
+  });
+
+  it("C4: no marker for the current stream means a plain update (no spurious tombstone)", async () => {
+    const entry = ownerEntry();
+    await SyncScopeMove.deleteMany({});
     const io = makeTrackedIo();
     io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
 
@@ -984,7 +1058,6 @@ describe("emitSyncDeltaForChange", () => {
       change: makeChange({
         fullDocument: {
           _id: "doc-1",
-          _syncPrevStream: "sockStuff|owner:user1",
           _syncSeq: 4,
           name: "same stream",
           ownerId: "user1",

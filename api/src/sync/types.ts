@@ -55,6 +55,12 @@ export interface SyncConfig {
   snapshotFilter?: (user: {
     id: string;
   }) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  /**
+   * C7: tombstone retention window in days (default 90). Tombstones older than this may
+   * be hard-deleted by the `compactTombstones` maintenance script; a client whose cursor
+   * predates the retained floor re-bootstraps (see `oldestRetainedSeq`).
+   */
+  retentionDays?: number;
 }
 
 export type SyncMutationOperation = "create" | "update" | "delete";
@@ -71,13 +77,47 @@ export interface SyncEntityPayload {
   deleted: boolean;
 }
 
-/** Response shape for `GET /sync/snapshot`. */
+/**
+ * Response shape for `GET /sync/snapshot` (C2: one stream per request).
+ */
 export interface SyncSnapshotResponse {
+  /** The stream this page belongs to (echoed from the request). */
+  stream: string;
   entities: SyncEntityPayload[];
-  /** Highest seq included in this page; pass back as `cursor` to continue. */
+  /**
+   * Highest seq included in this page (C1: never above `frontierSeq`); pass back as
+   * `cursor` to continue.
+   */
   cursor: number;
-  /** True when more pages remain past `cursor`. */
+  /** True when more pages remain past `cursor` (more committed OR uncommitted seqs). */
   hasMore: boolean;
+  /** C1: the stream's stable frontier — the client must not advance its cursor beyond this. */
+  frontierSeq: number;
+  /**
+   * C7: the lowest seq still retained for this stream after tombstone compaction. A
+   * client whose stored cursor is below this may have missed compacted tombstones and
+   * must re-bootstrap the stream from 0 (sanctioned wipe: retention gap, not auth).
+   */
+  oldestRetainedSeq: number;
+  /**
+   * C3: opaque forward token for paging the legacy (seq-0) stratum by `_id`. Present
+   * while unstamped legacy documents remain; absent once the stratum is exhausted and
+   * paging proceeds by seq. The client echoes it back verbatim.
+   */
+  legacyCursor?: string;
+}
+
+/** One stream a user currently belongs to, from `GET /sync/streams`. */
+export interface SyncStreamInfo {
+  /** The stream key (e.g. "todos|owner:123"). */
+  stream: string;
+  /** The collection tag the stream belongs to. */
+  collection: string;
+}
+
+/** Response shape for `GET /sync/streams`. */
+export interface SyncStreamsResponse {
+  streams: SyncStreamInfo[];
 }
 
 /** A client mutation delivered via `sync:mutate` or `POST /sync/mutate`. */
@@ -163,7 +203,20 @@ export interface SyncMutateBatchResponse {
   results: SyncMutateBatchResult[];
 }
 
-/** A change event delivered to subscribed clients via `sync:delta`. */
+/**
+ * A change event delivered to subscribed clients via `sync:delta`.
+ *
+ * ## Per-entity ordering & the LWW-by-seq contract (C8)
+ *
+ * The server serializes delta dispatch PER entity (`{collection}:{id}`): two deltas for
+ * the same document are always emitted in change-stream (commit) order, so their `seq`
+ * values arrive monotonically for that entity. Deltas for DIFFERENT entities may arrive
+ * in any order (they dispatch concurrently). Clients therefore apply last-writer-wins
+ * BY SEQ within an entity: a delta whose `seq` is at or below the entity's applied seq is
+ * an idempotent no-op; only a strictly higher `seq` mutates local state. Combined with
+ * the C1 frontier (`frontierSeq`), a cursor never advances past an uncommitted seq, so no
+ * committed delta is ever permanently skipped.
+ */
 export interface SyncDelta {
   /** Collection tag (e.g. "todos"). */
   collection: string;
@@ -176,6 +229,12 @@ export interface SyncDelta {
   seq: number;
   /** Stream key this delta belongs to (e.g. "todos|owner:123"). */
   stream: string;
+  /**
+   * C1: the stream's stable frontier at emit time. The client advances its cursor to
+   * `min(seq, frontierSeq)` so a delta observed out of commit order never advances a
+   * cursor past an uncommitted hole.
+   */
+  frontierSeq?: number;
   /** True when the entity is soft-deleted. */
   deleted?: boolean;
 }

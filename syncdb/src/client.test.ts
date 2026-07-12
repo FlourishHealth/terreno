@@ -3,9 +3,10 @@ import {describe, expect, it} from "bun:test";
 import {createSyncDb, type SyncDbConfig} from "./client";
 import {getConflict} from "./mutations/conflicts";
 import {memoryPersisterFactory} from "./persisters/memoryPersister";
+import {CURSORS_TABLE} from "./storage/types";
 import {createFakeTransport, type FakeTransport} from "./sync/fakeTransport";
 import {AuthRequiredError, type HttpChannel} from "./sync/httpChannel";
-import type {AuthProvider, SyncDelta, SyncSnapshotResponse} from "./types";
+import type {AuthProvider, SyncDelta, SyncSnapshotResponse, SyncStreamInfo} from "./types";
 
 let nameCounter = 0;
 const uniqueName = (): string => {
@@ -48,21 +49,55 @@ const makeAuthProvider = (initialUserId: string | null = "u1"): FakeAuth => {
   };
 };
 
+/** The single stream the default harness advertises via GET /sync/streams. */
+const DEFAULT_STREAM = "todos|owner:u1";
+
 interface FakeChannel {
   channel: HttpChannel;
-  state: {fetchCount: number; pages: Record<string, SyncSnapshotResponse>};
+  state: {
+    fetchCount: number;
+    streamsCount: number;
+    /** Snapshot pages keyed by stream key. */
+    pages: Record<string, SyncSnapshotResponse>;
+    /** The membership set GET /sync/streams returns; mutate in a test to model join/leave. */
+    streams: SyncStreamInfo[];
+    /** When set, fetchStreams throws this instead of returning (401/transport tests). */
+    streamsError?: Error;
+  };
 }
 
+/** An empty snapshot page carrying the C1/C7 fields (no more data, no retention gap). */
+const emptyPage = (stream: string, cursor = 0): SyncSnapshotResponse => ({
+  cursor,
+  entities: [],
+  frontierSeq: cursor,
+  hasMore: false,
+  oldestRetainedSeq: 0,
+  stream,
+});
+
 const makeChannel = (): FakeChannel => {
-  const state: FakeChannel["state"] = {fetchCount: 0, pages: {}};
+  const state: FakeChannel["state"] = {
+    fetchCount: 0,
+    pages: {},
+    streams: [{collection: "todos", stream: DEFAULT_STREAM}],
+    streamsCount: 0,
+  };
   return {
     channel: {
       fetchKeyMaterial: async () => {
         throw new Error("key material not expected in this test");
       },
-      fetchSnapshotPage: async ({collection}) => {
+      fetchSnapshotPage: async ({stream}) => {
         state.fetchCount += 1;
-        return state.pages[collection] ?? {cursor: 0, entities: [], hasMore: false};
+        return state.pages[stream] ?? emptyPage(stream);
+      },
+      fetchStreams: async () => {
+        state.streamsCount += 1;
+        if (state.streamsError) {
+          throw state.streamsError;
+        }
+        return state.streams;
       },
       sendMutation: async () => {
         throw new Error("HTTP mutate not expected in this test");
@@ -369,6 +404,164 @@ describe("createSyncDb", () => {
       const client = createSyncDb({...harness.config, httpChannel: undefined});
       await client.start();
       await expect(client.reconcile()).resolves.toBeUndefined();
+      await client.stop();
+    });
+  });
+
+  describe("stream discovery, join & leave (C2)", () => {
+    it("join: a newly-returned stream is bootstrapped from 0 and recorded as known", async () => {
+      const harness = makeHarness();
+      const joined = "todos|tenant:org1";
+      // Server advertises the default owner stream plus a new tenant stream, and serves a
+      // one-entity page for the joined stream.
+      harness.http.state.streams = [
+        {collection: "todos", stream: DEFAULT_STREAM},
+        {collection: "todos", stream: joined},
+      ];
+      harness.http.state.pages[joined] = {
+        cursor: 4,
+        entities: [{data: {title: "tenant doc"}, deleted: false, id: "tj", seq: 4}],
+        frontierSeq: 4,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: joined,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      expect(client.store.getKnownStreams().sort()).toEqual([DEFAULT_STREAM, joined].sort());
+      expect(client.store.getEntity({collection: "todos", id: "tj"})?.data).toEqual({
+        title: "tenant doc",
+      });
+      await client.stop();
+    });
+
+    it("leave (HTTP 200): a stream absent from the server set is purged locally", async () => {
+      const harness = makeHarness();
+      const leaving = "todos|tenant:org1";
+      // First discovery advertises both streams so org1 becomes known and its entity lands.
+      harness.http.state.streams = [
+        {collection: "todos", stream: DEFAULT_STREAM},
+        {collection: "todos", stream: leaving},
+      ];
+      harness.http.state.pages[leaving] = {
+        cursor: 2,
+        entities: [{data: {title: "org doc"}, deleted: false, id: "og", seq: 2}],
+        frontierSeq: 2,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: leaving,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      expect(client.store.getEntity({collection: "todos", id: "og"})?.data).toEqual({
+        title: "org doc",
+      });
+      expect(client.store.getKnownStreams()).toContain(leaving);
+
+      // Membership changes: org1 is gone. A successful (HTTP 200) discovery purges it.
+      harness.http.state.streams = [{collection: "todos", stream: DEFAULT_STREAM}];
+      await client.reconcile();
+      await flush();
+
+      expect(client.store.getEntity({collection: "todos", id: "og"})).toBeUndefined();
+      expect(client.store.getKnownStreams()).not.toContain(leaving);
+      await client.stop();
+    });
+
+    it("leave under 401 (INV-2): NO purge, auth-pause, local data intact", async () => {
+      const harness = makeHarness();
+      const stream = "todos|tenant:org1";
+      harness.http.state.streams = [
+        {collection: "todos", stream: DEFAULT_STREAM},
+        {collection: "todos", stream},
+      ];
+      harness.http.state.pages[stream] = {
+        cursor: 2,
+        entities: [{data: {title: "org doc"}, deleted: false, id: "og", seq: 2}],
+        frontierSeq: 2,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      expect(client.store.getEntity({collection: "todos", id: "og"})).toBeDefined();
+
+      // A 401 during discovery is NOT a membership change: pause, purge NOTHING.
+      harness.http.state.streamsError = new AuthRequiredError();
+      await client.reconcile();
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBe("auth");
+      expect(client.store.getEntity({collection: "todos", id: "og"})?.data).toEqual({
+        title: "org doc",
+      });
+      expect(client.store.getKnownStreams()).toContain(stream);
+      await client.stop();
+    });
+
+    it("transport error during discovery: NO purge, data intact (not a membership change)", async () => {
+      const harness = makeHarness();
+      const stream = "todos|tenant:org1";
+      harness.http.state.streams = [
+        {collection: "todos", stream: DEFAULT_STREAM},
+        {collection: "todos", stream},
+      ];
+      harness.http.state.pages[stream] = {
+        cursor: 1,
+        entities: [{data: {x: 1}, deleted: false, id: "og", seq: 1}],
+        frontierSeq: 1,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      expect(client.store.getEntity({collection: "todos", id: "og"})).toBeDefined();
+
+      harness.http.state.streamsError = new Error("network down");
+      // reconcile rethrows a transport error; the client's warn() wrapper swallows it, but
+      // either way no purge happens and the pause state is NOT auth.
+      await client.reconcile().catch(() => {});
+      await flush();
+
+      expect(client.store.getEntity({collection: "todos", id: "og"})).toBeDefined();
+      expect(client.store.getKnownStreams()).toContain(stream);
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      await client.stop();
+    });
+
+    it("legacy migration: a snapshot:{collection} cursor is dropped and streams re-bootstrap", async () => {
+      const harness = makeHarness();
+      harness.http.state.pages[DEFAULT_STREAM] = {
+        cursor: 3,
+        entities: [{data: {title: "fresh"}, deleted: false, id: "f1", seq: 3}],
+        frontierSeq: 3,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: DEFAULT_STREAM,
+      };
+      const client = createSyncDb(harness.config);
+      // Seed a legacy snapshot cursor + a stale known-stream entry BEFORE start(), as a
+      // deployed client would hold. (The store is shared with the client instance.)
+      client.store.raw.setRow(CURSORS_TABLE, "snapshot:todos", {seq: 42, updatedAt: "old"});
+      client.store.addKnownStream({collection: "todos", stream: "todos|owner:stale"});
+
+      await client.start();
+      await flush();
+
+      // The legacy pseudo-cursor is gone...
+      expect(client.store.raw.hasRow(CURSORS_TABLE, "snapshot:todos")).toBe(false);
+      // ...and the streams were re-bootstrapped from the current membership set.
+      expect(client.store.getEntity({collection: "todos", id: "f1"})?.data).toEqual({
+        title: "fresh",
+      });
+      expect(client.store.getKnownStreams()).toContain(DEFAULT_STREAM);
       await client.stop();
     });
   });
@@ -777,6 +970,7 @@ describe("createSyncDb", () => {
     const http: HttpChannel = {
       fetchKeyMaterial: harness.http.channel.fetchKeyMaterial,
       fetchSnapshotPage: harness.http.channel.fetchSnapshotPage,
+      fetchStreams: harness.http.channel.fetchStreams,
       sendMutation: async (request) => {
         httpMutations += 1;
         return {ack: {id: request.id ?? "", mutationId: request.mutationId, seq: 5}, type: "ack"};

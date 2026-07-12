@@ -31,48 +31,89 @@ const json = (body: unknown, status = 200): Response =>
 
 describe("createHttpChannel", () => {
   describe("fetchSnapshotPage", () => {
-    it("requests the snapshot with bearer token, collection, cursor, and limit", async () => {
-      const page = {cursor: 5, entities: [], hasMore: false};
+    it("requests the snapshot with bearer token, stream, cursor, and limit", async () => {
+      const page = {
+        cursor: 5,
+        entities: [],
+        frontierSeq: 5,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: "todos|owner:u1",
+      };
       const {fetchImpl, requests} = makeFetch(() => json(page));
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
-      const result = await channel.fetchSnapshotPage({collection: "todos", cursor: 3, limit: 10});
+      const result = await channel.fetchSnapshotPage({
+        cursor: 3,
+        limit: 10,
+        stream: "todos|owner:u1",
+      });
       expect(result).toEqual(page);
       expect(requests[0]?.input).toBe(
-        "http://api/sync/snapshot?collection=todos&cursor=3&limit=10"
+        "http://api/sync/snapshot?cursor=3&stream=todos%7Cowner%3Au1&limit=10"
       );
       expect((requests[0]?.init?.headers as Record<string, string>).Authorization).toBe(
         "Bearer token-123"
       );
     });
 
+    it("forwards the legacyCursor token (C3) when provided", async () => {
+      const page = {
+        cursor: 0,
+        entities: [],
+        frontierSeq: 0,
+        hasMore: true,
+        legacyCursor: "abc123",
+        oldestRetainedSeq: 0,
+        stream: "todos|owner:u1",
+      };
+      const {fetchImpl, requests} = makeFetch(() => json(page));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      const result = await channel.fetchSnapshotPage({
+        cursor: 0,
+        legacyCursor: "prev-id",
+        stream: "todos|owner:u1",
+      });
+      expect(result.legacyCursor).toBe("abc123");
+      expect(requests[0]?.input).toContain("legacyCursor=prev-id");
+    });
+
     it("omits the limit parameter and the auth header when absent", async () => {
       const {fetchImpl, requests} = makeFetch(() =>
-        json({cursor: 0, entities: [], hasMore: false})
+        json({
+          cursor: 0,
+          entities: [],
+          frontierSeq: 0,
+          hasMore: false,
+          oldestRetainedSeq: 0,
+          stream: "todos|owner:u1",
+        })
       );
       const channel = createHttpChannel({
         authProvider: {getToken: async () => null},
         baseUrl: "http://api",
         fetchImpl,
       });
-      await channel.fetchSnapshotPage({collection: "todos", cursor: 0});
-      expect(requests[0]?.input).toBe("http://api/sync/snapshot?collection=todos&cursor=0");
+      await channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"});
+      expect(requests[0]?.input).toBe(
+        "http://api/sync/snapshot?cursor=0&stream=todos%7Cowner%3Au1"
+      );
       expect((requests[0]?.init?.headers as Record<string, string>).Authorization).toBeUndefined();
     });
 
     it("rejects with AuthRequiredError on 401", async () => {
       const {fetchImpl} = makeFetch(() => json({}, 401));
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
-      await expect(channel.fetchSnapshotPage({collection: "todos", cursor: 0})).rejects.toThrow(
-        AuthRequiredError
-      );
+      await expect(
+        channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"})
+      ).rejects.toThrow(AuthRequiredError);
     });
 
     it("rejects on non-ok statuses", async () => {
       const {fetchImpl} = makeFetch(() => json({}, 404));
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
-      await expect(channel.fetchSnapshotPage({collection: "todos", cursor: 0})).rejects.toThrow(
-        "status 404"
-      );
+      await expect(
+        channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"})
+      ).rejects.toThrow("status 404");
     });
 
     it("propagates network errors", async () => {
@@ -80,9 +121,43 @@ describe("createHttpChannel", () => {
         throw new Error("offline");
       });
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
-      await expect(channel.fetchSnapshotPage({collection: "todos", cursor: 0})).rejects.toThrow(
-        "offline"
+      await expect(
+        channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"})
+      ).rejects.toThrow("offline");
+    });
+  });
+
+  describe("fetchStreams", () => {
+    it("GETs /sync/streams and returns the membership set", async () => {
+      const streams = [
+        {collection: "todos", stream: "todos|owner:u1"},
+        {collection: "todos", stream: "todos|tenant:org1"},
+      ];
+      const {fetchImpl, requests} = makeFetch(() => json({streams}));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchStreams()).resolves.toEqual(streams);
+      expect(requests[0]?.input).toBe("http://api/sync/streams");
+      expect((requests[0]?.init?.headers as Record<string, string>).Authorization).toBe(
+        "Bearer token-123"
       );
+    });
+
+    it("returns an empty array when the body has no streams field", async () => {
+      const {fetchImpl} = makeFetch(() => json({}));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchStreams()).resolves.toEqual([]);
+    });
+
+    it("rejects with AuthRequiredError on 401 (INV-2: never treated as a leave)", async () => {
+      const {fetchImpl} = makeFetch(() => json({}, 401));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchStreams()).rejects.toBeInstanceOf(AuthRequiredError);
+    });
+
+    it("rejects on non-ok statuses", async () => {
+      const {fetchImpl} = makeFetch(() => json({}, 500));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchStreams()).rejects.toThrow("status 500");
     });
   });
 
@@ -152,7 +227,9 @@ describe("createHttpChannel", () => {
       // Port 9 (discard) is never listening locally; fetch fails fast.
       baseUrl: "http://127.0.0.1:9",
     });
-    await expect(channel.fetchSnapshotPage({collection: "todos", cursor: 0})).rejects.toThrow();
+    await expect(
+      channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"})
+    ).rejects.toThrow();
   });
 
   describe("fetchKeyMaterial", () => {

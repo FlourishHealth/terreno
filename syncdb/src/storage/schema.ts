@@ -1,15 +1,19 @@
 import type {CellSchema, TablesSchema, ValuesSchema} from "tinybase";
 
-import {CONFLICTS_TABLE, CURSORS_TABLE, OUTBOX_TABLE} from "./types";
+import {CONFLICTS_TABLE, CURSORS_TABLE, KNOWN_STREAMS_TABLE, OUTBOX_TABLE} from "./types";
 
-/** Current local schema version. Bump when the table shapes change. */
-export const SYNC_SCHEMA_VERSION = 1;
+/**
+ * Current local schema version. Bump when the table shapes change.
+ * v2 (C2): entity rows gained a `stream` column; added the `_knownStreams` table.
+ */
+export const SYNC_SCHEMA_VERSION = 2;
 
 const ENTITY_TABLE_SCHEMA: Record<string, CellSchema> = {
   data: {type: "string"},
   deleted: {default: false, type: "boolean"},
   pendingMutationId: {default: "", type: "string"},
   seq: {default: 0, type: "number"},
+  stream: {default: "", type: "string"},
 };
 
 /**
@@ -31,6 +35,10 @@ export const buildTablesSchema = ({collections}: {collections: string[]}): Table
     [CURSORS_TABLE]: {
       seq: {default: 0, type: "number"},
       updatedAt: {type: "string"},
+    },
+    [KNOWN_STREAMS_TABLE]: {
+      addedAt: {type: "string"},
+      collection: {type: "string"},
     },
     [OUTBOX_TABLE]: {
       args: {type: "string"},

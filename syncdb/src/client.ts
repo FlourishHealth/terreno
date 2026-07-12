@@ -7,8 +7,9 @@ import {resolveConflict as applyConflictResolution} from "./mutations/resolveCon
 import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
 import type {PersisterFactory} from "./persisters/types";
 import {createSyncStore, type SyncStore} from "./storage/store";
+import {CURSORS_TABLE} from "./storage/types";
 import {wipeLocalData} from "./storage/wipe";
-import {bootstrapCollections} from "./sync/bootstrap";
+import {bootstrapStream} from "./sync/bootstrap";
 import {getAllCursors} from "./sync/cursor";
 import {applyDelta} from "./sync/deltaApplier";
 import {AuthRequiredError, createHttpChannel, type HttpChannel} from "./sync/httpChannel";
@@ -319,6 +320,72 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     store,
   });
 
+  /**
+   * C2: discover the streams the user currently belongs to (`GET /sync/streams`), then
+   * diff against the persisted `_knownStreams` set to detect joins and leaves.
+   *
+   * INV-2 (the whole ballgame): the leave-purge only runs when `fetchStreams` returned
+   * HTTP 200. A 401 (AuthRequiredError) or any transport error is NOT a membership
+   * change — it enters auth-pause (401) or is rethrown (transport) with every local
+   * entity, cursor, and known-stream entry left intact. Joins backfill from cursor 0;
+   * leaves purge that stream's local entities + cursor + known-stream entry.
+   *
+   * Returns the current membership set (stream → collection) on success so the caller
+   * can bootstrap each; returns `undefined` when auth-paused (no membership known).
+   */
+  const syncStreams = async (): Promise<Map<string, string> | undefined> => {
+    if (!httpChannel) {
+      // No HTTP channel: fall back to the configured collections' streams are unknown;
+      // bootstrap cannot run. Callers treat undefined as "skip stream sync".
+      return undefined;
+    }
+    let serverStreams: {stream: string; collection: string}[];
+    try {
+      serverStreams = await httpChannel.fetchStreams();
+    } catch (error) {
+      if (error instanceof AuthRequiredError) {
+        // INV-2: a 401 is NOT a leave. Pause; leave every stream/entity intact.
+        setAuthPaused(true);
+        return undefined;
+      }
+      // Transport error: also not a membership change — leave data intact, rethrow so
+      // the caller's catch handles retry/backoff.
+      throw error;
+    }
+
+    const serverSet = new Map<string, string>();
+    for (const {stream, collection} of serverStreams) {
+      serverSet.set(stream, collection);
+    }
+    const known = new Set(store.getKnownStreams());
+
+    // Leaves: known locally but absent from the (HTTP-200) server set → purge.
+    for (const stream of known) {
+      if (!serverSet.has(stream)) {
+        const purged = store.purgeStream({stream});
+        debugLog?.record({
+          detail: {purged, stream},
+          direction: "system",
+          label: `stream leave: purged ${stream} (${purged} entities)`,
+          type: "reconcile",
+        });
+      }
+    }
+    // Joins: in the server set but not yet known → mark known (cursor 0 bootstrap follows).
+    for (const [stream, collection] of serverSet) {
+      if (!known.has(stream)) {
+        store.addKnownStream({collection, stream});
+        debugLog?.record({
+          detail: {collection, stream},
+          direction: "system",
+          label: `stream join: ${stream}`,
+          type: "reconcile",
+        });
+      }
+    }
+    return serverSet;
+  };
+
   const reconcile = async (): Promise<void> => {
     // Simulated offline severs all network activity, including the HTTP
     // channel; an auth pause stands down every network trigger (INV-2) until
@@ -335,7 +402,14 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       type: "reconcile",
     });
     try {
-      await bootstrapCollections({channel: httpChannel, collections: config.collections, store});
+      const streams = await syncStreams();
+      if (!streams) {
+        // Auth-paused during discovery (401) — stand down (INV-2).
+        return;
+      }
+      for (const [stream, collection] of streams) {
+        await bootstrapStream({channel: httpChannel, collection, store, stream});
+      }
     } catch (error) {
       if (error instanceof AuthRequiredError) {
         setAuthPaused(true);
@@ -349,6 +423,42 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         durationMs: now() - startedAt,
         label: "reconcile end",
         phase: "end",
+        type: "reconcile",
+      });
+    }
+  };
+
+  /**
+   * C2 migration: deployed clients hold legacy `snapshot:{collection}` pseudo-cursors.
+   * On start, delete all of them and clear `_knownStreams` so the normal discovery path
+   * re-bootstraps every stream from cursor 0. Idempotent upserts + seq guards make
+   * re-bootstrap cheap and non-destructive (existing entities keep their data). Runs once.
+   *
+   * NOTE (Phase E merge): Phase E is adding the schema-version wipe machinery in the main
+   * worktree. Ideally this migration gates behind that version bump so it runs exactly
+   * once. That hook does not exist in this worktree, so this implements the minimal
+   * standalone cursor-migration path — it is self-idempotent (after the first run there
+   * are no `snapshot:` keys left, so subsequent runs are no-ops). When merging, this can
+   * be moved behind the E2 version bump.
+   */
+  const migrateLegacySnapshotCursors = (): void => {
+    const cursorRows = store.raw.getTable(CURSORS_TABLE);
+    let migrated = 0;
+    for (const key of Object.keys(cursorRows)) {
+      if (key.startsWith("snapshot:")) {
+        store.raw.delRow(CURSORS_TABLE, key);
+        migrated += 1;
+      }
+    }
+    if (migrated > 0) {
+      // Clear the known-streams set so discovery re-bootstraps every stream from 0.
+      for (const stream of store.getKnownStreams()) {
+        store.removeKnownStream({stream});
+      }
+      debugLog?.record({
+        detail: {migrated},
+        direction: "system",
+        label: `migrated ${migrated} legacy snapshot cursors`,
         type: "reconcile",
       });
     }
@@ -569,6 +679,10 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     await createAndStartPersister(userId);
     await runUserCheck(userId);
 
+    // C2: migrate any legacy snapshot:{collection} cursors before the first discovery so
+    // the per-stream bootstrap path starts from a clean cursor set.
+    migrateLegacySnapshotCursors();
+
     // A1: startup crash recovery, before the first replayOutbox() — repair
     // any outbox rows stranded mid-lifecycle by a prior crash/reload (inFlight
     // never resolved, acked-with-still-pending entity, conflicted with no
@@ -593,6 +707,10 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       warn("transport connect failed; starting offline")(error);
     }
     transport.subscribe(config.collections);
+    // C2: run an initial stream discovery + per-stream bootstrap on start (not only via
+    // the reconnect status event) so a client that starts offline-then-online, or with a
+    // warm socket, still backfills newly-joined streams and drains legacy cursors.
+    void reconcile().catch(warn("startup reconcile failed"));
     startReconcileTimer();
     void replayOutbox().catch(warn("startup replay failed"));
   };

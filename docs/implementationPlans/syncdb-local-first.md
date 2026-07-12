@@ -549,3 +549,91 @@ None user-facing. Server-side `logger` instrumentation: applied mutations at `in
 *Structured task breakdown for automated implementation. The canonical copy lives at `docs/tasks/syncdb-local-first.md`; keep the two in sync.*
 
 See `docs/tasks/syncdb-local-first.md` for the full 26-task breakdown across the 7 phases above (including Task 2.0, the modelRouter executor extraction).
+
+---
+
+## Phase C — Sync protocol correctness (updated contract)
+
+Phase C hardened the wire protocol. The rules below OVERRIDE the earlier descriptions of
+the snapshot endpoint, cursor advancement, and scope-move handling.
+
+### C1 — Stable frontier (seq commit fence)
+
+A client cursor for a stream may advance to seq N **only when the server reports N ≤ that
+stream's *stable frontier***: every seq ≤ N in the stream is committed (its owning write
+durably landed, or its claim was reclaimed after the crash lease expired).
+
+- The `SyncCounter` carries an in-flight `pending: [{seq, claimedAt}]` registry. A claim
+  registers its seq(s); the post-write hook (`confirmSyncSeqs`) clears them. The frontier
+  is `min(live pending.seq) − 1`, or the head `seq` when no live pending entries remain.
+  A pending entry older than `PENDING_CLAIM_LEASE_MS` (60s) is treated as abandoned
+  (crashed writer) and excluded — a crash can never freeze the frontier forever.
+- A **session-backed** claim commits atomically with its write, so it skips the pending
+  registry entirely (nothing to confirm; frontier = head).
+- **Snapshots** never return a `cursor` above `frontierSeq`. `hasMore` is true when a full
+  page returned, extra scope-move markers remain, OR the frontier sits below the stream
+  head (more committed seqs are coming). A client at the frontier with `hasMore: true`
+  and no new entities polls/reconciles (rate-limited) until the frontier moves.
+- **Deltas** carry `frontierSeq`; the client advances its cursor to
+  `min(delta.seq, delta.frontierSeq)`, closing the delta-side commit-order inversion with
+  no server round-trip.
+- **Consequence:** no committed document is ever permanently skipped by cursor catch-up.
+
+Write-path guards landed with C1: a query-write on a synced model MUST target a single
+document by `_id` (m9 — a non-`_id` filter could stamp the wrong stream's seq); a save
+whose only modified paths are auto-managed metadata (`_syncSeq`, `_syncPrevStream`,
+`updated`) claims no seq (m10 — no-op saves do not burn seqs).
+
+### C2 — Per-stream snapshots + stream discovery
+
+- `GET /sync/streams` → `{streams: [{stream, collection}]}` — the authoritative set of
+  streams the caller currently belongs to (resolved against the full user so tenant
+  memberships reflect current `organizationIds`).
+- `GET /sync/snapshot?stream={streamKey}&cursor={n}&limit={n}&legacyCursor={opaque}` →
+  `{stream, entities, cursor, hasMore, frontierSeq, oldestRetainedSeq, legacyCursor?}`.
+  One stream per request. The old `?collection=` param and the single flattened cursor are
+  **removed**. The server verifies the caller belongs to the requested stream (403
+  otherwise) and filters to the single scope value (`{field: value}`, never `$in`).
+- The client keeps `_cursors` rows keyed by the **real stream key** (the same key deltas
+  use). It persists a `_knownStreams` set and, on `start()`/`reconcile()`, diffs
+  `GET /sync/streams` against it:
+  - **New stream** → bootstrap from cursor 0 (tenant-join backfill).
+  - **Removed stream** → purge that stream's local entities + cursor + known-stream entry —
+    **only when `GET /sync/streams` returned HTTP 200** (INV-2). A 401 (AuthRequiredError)
+    enters auth-pause and leaves everything intact; a transport error rethrows without
+    purging. A 401/403/transport error is NEVER a membership change.
+- Each local entity row records the `stream` it was written under, so leave-purge is
+  O(stream).
+- **Migration:** a client holding legacy `snapshot:{collection}` cursors deletes them and
+  clears `_knownStreams` on start, then re-bootstraps every stream from 0 (idempotent
+  upserts + seq guards make this cheap and non-destructive; local entities are not wiped).
+
+### C3 — Legacy-doc pagination
+
+Documents predating the seq plugin (no `_syncSeq`, or a literal 0) are paged as a separate
+stratum by `_id`. While the stratum has more, the snapshot returns `cursor: 0` plus an
+opaque `legacyCursor` (the last `_id` seen); the client echoes it back verbatim. When the
+stratum is exhausted the server omits `legacyCursor` and paging proceeds by seq. This
+terminates deterministically — no infinite loop when `> limit` unstamped docs exist.
+
+### C4 — Scope-move markers (durable, not `_syncPrevStream`)
+
+A scope move (owner/tenant change) writes a durable `SyncScopeMove` marker
+`{collectionTag, entityId, fromStream, toStream, seq, created}` in the same op-scope as the
+move, with the `seq` claimed from the OLD stream's counter. The change-stream watcher and
+old-stream snapshot catch-up emit the old-stream tombstone **from the marker**, not from
+the racy `_syncPrevStream` post-image — so a racing second write that resets
+`_syncPrevStream` can no longer erase the tombstone. Markers share the tombstone retention
+window (TTL). An offline old-stream client learns of the move because the marker is merged
+into its snapshot page as a `{deleted: true, data: null}` entity.
+
+### C7 — Retention + re-bootstrap
+
+Tombstone deltas and snapshot tombstones carry **no data** (only id/seq/deleted). The sync
+bookkeeping collections (`synccounters`, `syncmutations`, `syncscopemoves`, `synckeys`) are
+in `DEFAULT_IGNORED_COLLECTIONS` so their own change events drive no fan-out. Tombstones and
+markers older than the model's `retentionDays` (default 90) may be hard-deleted by the
+`compactTombstones` maintenance script. The snapshot response reports `oldestRetainedSeq`;
+a client whose stored cursor for a stream is **below** it may have missed compacted
+tombstones → it purges that stream and re-bootstraps from 0 (a sanctioned retention-gap
+wipe, distinct from an auth wipe — INV-2).

@@ -14,7 +14,7 @@ import {
 } from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import type {SyncAppOptions} from "./routes";
-import {streamForScopeValue} from "./streams";
+import {MissingScopeResolverError, resolveUserStreamsForEntry} from "./streams";
 import type {
   SyncMutateBatchRequest,
   SyncMutateBatchResponse,
@@ -47,6 +47,13 @@ import type {
 
 /** Maximum distinct collection subscriptions per socket (DoS protection). */
 export const MAX_SYNC_COLLECTION_SUBSCRIPTIONS = 50;
+
+/**
+ * C8: maximum entries accepted in a single `sync:subscribe`/`sync:unsubscribe`
+ * `collections` array — checked BEFORE iterating so an oversized array is rejected
+ * with no per-entry work.
+ */
+export const MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH = 100;
 
 /** Maximum `sync:mutate` requests accepted per socket per second. */
 export const MAX_SYNC_MUTATIONS_PER_SECOND = 100;
@@ -102,37 +109,25 @@ const resolveUserStreams = async ({
   options: SyncAppOptions;
   socket: SyncSocketLike;
 }): Promise<string[] | null> => {
-  const {scope} = entry.config;
   const collection = entry.collectionTag;
   const emitError = (message: string): void => {
     socket.emit("sync:error", {collection, message});
   };
-
-  if (typeof scope !== "function" && scope.type === "broadcast") {
-    return [streamForScopeValue({collectionTag: collection, scope, scopeValue: null})];
-  }
-  if (typeof scope !== "function" && scope.type === "owner") {
-    // Owner streams are always keyed by the authenticated socket's own userId — a
-    // client-supplied id must never select the stream.
-    return [streamForScopeValue({collectionTag: collection, scope, scopeValue: user.id})];
-  }
-
-  // Tenant and custom scopes need the server-configured membership resolver.
-  if (!options.getUserScopes) {
-    emitError(`Sync collection ${collection} requires a getUserScopes resolver on SyncApp`);
-    return null;
-  }
-  let scopeValues: string[];
   try {
-    scopeValues = await options.getUserScopes(user, entry);
+    return await resolveUserStreamsForEntry({
+      entry,
+      getUserScopes: options.getUserScopes,
+      user,
+    });
   } catch (error: unknown) {
+    if (error instanceof MissingScopeResolverError) {
+      emitError(error.message);
+      return null;
+    }
     logger.error(`[sync] getUserScopes threw for ${collection}: ${error}`);
     emitError(`Failed to resolve scopes for ${collection}`);
     return null;
   }
-  return scopeValues.map((scopeValue) =>
-    streamForScopeValue({collectionTag: collection, scope, scopeValue})
-  );
 };
 
 /**
@@ -195,6 +190,15 @@ export const installSyncSocketHandlers = (
   socket.on("sync:subscribe", async (payload: {collections?: unknown}): Promise<void> => {
     const collections = Array.isArray(payload?.collections) ? payload.collections : null;
     if (!collections) {
+      return;
+    }
+    // C8: reject an oversized array up front (length check before iterating).
+    if (collections.length > MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH) {
+      logInfo(`[sync] User ${userId} sent an oversized sync:subscribe array`);
+      socket.emit("sync:error", {
+        collection: "",
+        message: `sync:subscribe accepts at most ${MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH} collections`,
+      });
       return;
     }
     for (const collection of collections) {
