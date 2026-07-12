@@ -8,6 +8,7 @@ import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
+  selectBetterAuthIsLoading,
   selectBetterAuthUserId,
   setRealtimeSocket,
   useRealtimeDebug,
@@ -15,14 +16,21 @@ import {
   useTerrenoFeatureFlags,
   useUpgradeCheck,
 } from "@terreno/rtk";
-import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
+import {
+  Banner,
+  Box,
+  ConsentNavigator,
+  Spinner,
+  TerrenoProvider,
+  UpgradeRequiredScreen,
+} from "@terreno/ui";
 import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import {useReadProfile} from "@/hooks/useReadProfile";
+import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
-import store, {persistor, syncBetterAuthSession} from "@/store";
+import store, {persistor, syncBetterAuthSession, useGetMeQuery} from "@/store";
 import {terrenoApi} from "@/store/sdk";
-import {syncDb} from "@/store/syncdb";
+import {setSyncDbReady, syncDb} from "@/store/syncdb";
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
@@ -92,7 +100,19 @@ const RootLayout = (): React.ReactElement | null => {
 
 const RootLayoutNav = (): React.ReactElement => {
   const userId = useSelector(selectBetterAuthUserId) ?? undefined;
-  const profile = useReadProfile();
+  // The initial syncBetterAuthSession() call below is async (it awaits
+  // authClient.getSession()), so userId is undefined for one or more render
+  // passes on every fresh page load — including a deep link straight to a
+  // route like /profile or /admin. Without gating on this flag, the auth
+  // redirect effect below sees "no user yet" and replaces the URL with
+  // /login before the session resolves, then bounces to the hardcoded
+  // /(tabs) root once it does, silently discarding the originally requested
+  // route.
+  const isAuthLoading = useSelector(selectBetterAuthIsLoading);
+  const {data: profileData, isLoading: isProfileLoading} = useGetMeQuery(undefined, {
+    skip: !userId,
+  });
+  const profile = profileData as ProfileData | undefined;
   const segments = useSegments();
   const router = useRouter();
   const {
@@ -130,19 +150,29 @@ const RootLayoutNav = (): React.ReactElement => {
   }, []);
 
   // Start the local-first syncdb client after login; stop on logout/unmount.
+  // setSyncDbReady only flips true once start() resolves a user, so screens gated on
+  // useSyncDbReady() don't call mutate() during the window where it would throw.
   useEffect(() => {
     if (!userId) {
       return;
     }
     let stopped = false;
-    syncDb.start().catch((error: unknown) => {
-      console.error("[syncdb] Failed to start client", error);
-    });
+    syncDb
+      .start()
+      .then(() => {
+        if (!stopped) {
+          setSyncDbReady(true);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("[syncdb] Failed to start client", error);
+      });
     return (): void => {
       if (stopped) {
         return;
       }
       stopped = true;
+      setSyncDbReady(false);
       syncDb.stop().catch((error: unknown) => {
         console.warn("[syncdb] Failed to stop client", error);
       });
@@ -150,6 +180,15 @@ const RootLayoutNav = (): React.ReactElement => {
   }, [userId]);
 
   useEffect(() => {
+    // Don't redirect while the initial Better Auth session sync is still in
+    // flight: userId is momentarily undefined on every fresh load (including
+    // deep links to routes like /profile or /admin), and redirecting to
+    // /login now would bounce straight back to the hardcoded /(tabs) root
+    // once the session resolves, losing the originally requested route.
+    if (isAuthLoading) {
+      return;
+    }
+
     const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
 
     if (!userId && !isOnAuthPage) {
@@ -157,7 +196,21 @@ const RootLayoutNav = (): React.ReactElement => {
     } else if (userId && isOnAuthPage) {
       router.replace("/(tabs)");
     }
-  }, [userId, segments, router]);
+  }, [userId, segments, router, isAuthLoading]);
+
+  // Hold the navigator until the session (and, for signed-in users, the profile that
+  // decides the ConsentNavigator wrapper below) has settled. The wrapper choice changes
+  // the Stack's position in the React tree, and re-parenting unmounts and remounts the
+  // Stack — a remounted Stack resets to initialRouteName "(tabs)", silently discarding
+  // a deep-linked route like /profile or /admin. Rendering only once the tree shape is
+  // final means the Stack mounts exactly once per auth state and keeps the requested URL.
+  if (isAuthLoading || (Boolean(userId) && isProfileLoading)) {
+    return (
+      <Box alignItems="center" flex="grow" justifyContent="center" testID="app-auth-loading">
+        <Spinner />
+      </Box>
+    );
+  }
 
   if (isRequired) {
     return (

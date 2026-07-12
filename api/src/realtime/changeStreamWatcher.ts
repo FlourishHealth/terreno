@@ -22,6 +22,7 @@ import type {User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
 import {checkPermissions, type PermissionMethod} from "../permissions";
+import {computeStableFrontier, SyncScopeMove} from "../sync/models";
 import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
 import {serializeSyncPayload} from "../sync/serialize";
 import {syncRoomForStream} from "../sync/socketHandlers";
@@ -35,7 +36,41 @@ import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
 let changeWatcher: ChangeStream | null = null;
 
-const DEFAULT_IGNORED_COLLECTIONS = ["socketio", "sessions"];
+/**
+ * C8: per-entity serialized dispatch. The change-stream `"change"` handler is async and
+ * multiple events can be in flight at once; without ordering, two events for the SAME
+ * document could emit their deltas out of order (a client would then see LWW-by-seq
+ * violated within an entity). This keeps a promise chain PER entity key
+ * (`{collection}:{docId}`) so same-entity deltas dispatch strictly in change-stream
+ * order, while different entities still run concurrently. Chains self-clean when idle.
+ */
+const entityDispatchChains = new Map<string, Promise<void>>();
+
+const serializePerEntity = (key: string, task: () => Promise<void>): void => {
+  const prior = entityDispatchChains.get(key) ?? Promise.resolve();
+  const next = prior.then(task, task);
+  entityDispatchChains.set(key, next);
+  void next.finally(() => {
+    // Drop the chain once this was the last queued task, so the map does not grow.
+    if (entityDispatchChains.get(key) === next) {
+      entityDispatchChains.delete(key);
+    }
+  });
+};
+
+/**
+ * C7: the sync bookkeeping collections must never drive fan-out — their own change
+ * events are internal (counters/ledger/markers/keys), and processing them would emit
+ * spurious deltas or reprocess scope-move markers. Exported for testing.
+ */
+export const DEFAULT_IGNORED_COLLECTIONS = [
+  "socketio",
+  "sessions",
+  "synccounters",
+  "syncmutations",
+  "syncscopemoves",
+  "synckeys",
+];
 
 /**
  * Map MongoDB change stream operation types to our method names.
@@ -520,11 +555,18 @@ const processRealtimeChange = async ({
  * Soft deletes (an update setting `deleted: true`, reclassified by `mapOperationType`)
  * produce a `method: "delete"` delta with `deleted: true` and the tombstone data intact.
  *
- * Scope moves: when the post-image carries a `_syncPrevStream` differing from the current
- * stream (stamped by `syncPlugin` at write time — change streams run with
- * `fullDocumentBeforeChange: "off"`, so the old scope is not otherwise available), a
- * data-less tombstone delta is emitted to the previous stream and the delta to the new
- * stream is reported as `method: "create"` so new-stream subscribers materialize the doc.
+ * Scope moves (C4): the old-stream tombstone is derived from durable `SyncScopeMove`
+ * markers (written by `syncPlugin` in the same op-scope as the move), NOT from the racy
+ * `_syncPrevStream` post-image — a second write racing this event's processing can reset
+ * `_syncPrevStream`, but it cannot erase the durable marker. For each marker on this
+ * document, a data-less tombstone is emitted to the marker's `fromStream` (carrying the
+ * marker's old-stream seq), and the new-stream delta is reported as `method: "create"`.
+ * Client tombstone application is idempotent by seq, so re-emitting a marker on a later
+ * change of the same doc is harmless.
+ *
+ * Every emitted delta carries `frontierSeq` (the emitting stream's stable frontier at
+ * emit time, C1); the client advances its cursor to `min(delta.seq, delta.frontierSeq)`
+ * so a delta observed out of commit order never advances a cursor past an uncommitted hole.
  *
  * A model with both `realtime` and `sync` configs emits both the legacy "sync" event and
  * "sync:delta" — distinct event names, no interference (documented as transitional).
@@ -573,20 +615,26 @@ export const emitSyncDeltaForChange = async ({
     scope: entry.config.scope,
   });
 
-  const prevStreamRaw = fullDocument._syncPrevStream;
-  const prevStream =
-    typeof prevStreamRaw === "string" && prevStreamRaw.length > 0 && prevStreamRaw !== stream
-      ? prevStreamRaw
-      : null;
-  if (prevStream) {
-    // Scope move: tombstone the old stream (no data) so its subscribers drop the doc...
+  // C4: emit old-stream tombstones from durable markers, not the racy _syncPrevStream.
+  const markers = await SyncScopeMove.find({
+    collectionTag: entry.collectionTag,
+    entityId: docId,
+  }).lean();
+  let movedAway = false;
+  for (const marker of markers) {
+    if (marker.fromStream === stream) {
+      continue;
+    }
+    movedAway = true;
+    const markerFrontier = await computeStableFrontier({stream: marker.fromStream});
     const tombstone: SyncDelta = {
       collection: entry.collectionTag,
       deleted: true,
+      frontierSeq: markerFrontier,
       id: docId,
       method: "delete",
-      seq,
-      stream: prevStream,
+      seq: marker.seq,
+      stream: marker.fromStream,
     };
     await emitPayloadToAuthorizedRoom({
       buildPayload: () => tombstone,
@@ -595,20 +643,22 @@ export const emitSyncDeltaForChange = async ({
       fullDocument,
       io,
       logDebug,
-      room: syncRoomForStream(prevStream),
+      room: syncRoomForStream(marker.fromStream),
     });
     logDebug(
-      `[sync] Emitted scope-move tombstone for ${entry.collectionTag}/${docId} to ${prevStream}`
+      `[sync] Emitted scope-move tombstone for ${entry.collectionTag}/${docId} to ${marker.fromStream} seq=${marker.seq}`
     );
-    // ...and the new stream sees the doc for the first time: report it as a create
-    // (unless the same write also soft-deleted the doc, in which case the tombstone wins).
-    if (method !== "delete") {
-      method = "create";
-    }
+  }
+  // The new stream sees a moved-away doc for the first time: report it as a create
+  // (unless the same write also soft-deleted the doc, in which case the tombstone wins).
+  if (movedAway && method !== "delete") {
+    method = "create";
   }
 
+  const frontierSeq = await computeStableFrontier({stream});
   const delta: SyncDelta = {
     collection: entry.collectionTag,
+    frontierSeq,
     id: docId,
     method,
     seq,
@@ -616,13 +666,16 @@ export const emitSyncDeltaForChange = async ({
     ...(deleted ? {deleted: true} : {}),
   };
   await emitPayloadToAuthorizedRoom({
-    buildPayload: async (user) => {
-      const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
-      const data = ensureApiId(
-        await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
-      );
-      return {...delta, data};
-    },
+    // C7: tombstone deltas carry no data (only id/seq/deleted); live deltas serialize.
+    buildPayload: deleted
+      ? () => delta
+      : async (user) => {
+          const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
+          const data = ensureApiId(
+            await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
+          );
+          return {...delta, data};
+        },
     entry,
     eventName: "sync:delta",
     fullDocument,
@@ -631,7 +684,7 @@ export const emitSyncDeltaForChange = async ({
     room: syncRoomForStream(stream),
   });
   logDebug(
-    `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${stream}`
+    `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${stream} frontier=${frontierSeq}`
   );
 };
 
@@ -745,12 +798,17 @@ export const startChangeStreamWatcher = (
         }
 
         if (syncEntry) {
-          try {
-            await emitSyncDeltaForChange({change, docId, entry: syncEntry, io, logDebug});
-          } catch (error) {
-            logger.error(`[sync] Error emitting sync delta: ${error}`);
-            Sentry.captureException(error);
-          }
+          // C8: serialize per entity so same-doc deltas emit in change-stream order;
+          // different docs still dispatch concurrently. See serializePerEntity + the
+          // per-entity LWW-by-seq contract documented in sync/types.ts (SyncDelta).
+          serializePerEntity(`${collectionName}:${docId}`, async () => {
+            try {
+              await emitSyncDeltaForChange({change, docId, entry: syncEntry, io, logDebug});
+            } catch (error) {
+              logger.error(`[sync] Error emitting sync delta: ${error}`);
+              Sentry.captureException(error);
+            }
+          });
         }
       } catch (error) {
         logger.error(`[realtime] Error processing change event: ${error}`);

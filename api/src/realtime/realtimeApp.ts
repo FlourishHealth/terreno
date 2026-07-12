@@ -17,8 +17,13 @@ import {
   removeQuerySubscription,
 } from "./queryStore";
 import {findRegistryEntryByRoutePath, type RealtimeRegistryEntry} from "./registry";
+import {
+  loadFullUserForSocket,
+  type SessionRevalidationHandle,
+  startSessionRevalidationSweep,
+} from "./sessionRevalidation";
 import {createSocketAuthMiddleware} from "./socketAuth";
-import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
+import {getSocketUser, type SocketDataBag, type SocketWithDecodedToken} from "./socketUser";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
@@ -122,7 +127,9 @@ export const installRealtimeSocketHandlers = (
   const logInfo = options.logInfo ?? ((): void => {});
   const userId = socket.decodedToken?.id;
   const isAdmin = socket.decodedToken?.admin === true;
-  const user = getSocketUser(socket);
+  // D2: re-derive per event rather than capturing once at install time, so a
+  // handshake-time-loaded full user (or one refreshed by D1's sweep) is always used.
+  const currentUser = (): User | undefined => getSocketUser(socket);
 
   const counts = {document: 0, model: 0, query: 0};
 
@@ -169,7 +176,7 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    if (!(await canSubscribe(entry, "list", user))) {
+    if (!(await canSubscribe(entry, "list", currentUser()))) {
       logInfo(
         `[realtime] User ${userId} denied model subscription for ${modelName}: list permission denied`
       );
@@ -212,7 +219,7 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    if (!(await canSubscribe(entry, "read", user))) {
+    if (!(await canSubscribe(entry, "read", currentUser()))) {
       logInfo(
         `[realtime] User ${userId} denied document subscription for ` +
           `${payload.collection}/${payload.id}: read permission denied`
@@ -267,7 +274,7 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    let query = await getAuthorizedQuery(entry, {...payload.query}, user);
+    let query = await getAuthorizedQuery(entry, {...payload.query}, currentUser());
     if (!query) {
       logInfo(
         `[realtime] User ${userId} denied query subscription for ${payload.collection}: ` +
@@ -338,6 +345,7 @@ export const installRealtimeSocketHandlers = (
 export class RealtimeApp implements TerrenoPlugin {
   private io: Server | null = null;
   private config: RealtimeAppOptions;
+  private sessionRevalidation: SessionRevalidationHandle | null = null;
 
   constructor(config: RealtimeAppOptions = {}) {
     this.config = config;
@@ -389,9 +397,19 @@ export class RealtimeApp implements TerrenoPlugin {
         );
       }
 
+      // D1: pass the issuer through for parity with the HTTP JWT path
+      // (jwt.verify(token, secret, {issuer})) — without it a validly-signed token
+      // issued for a different TOKEN_ISSUER was silently accepted over sockets. A
+      // thunk (not a value captured once here) so a later change to
+      // process.env.TOKEN_ISSUER — or to an explicitly configured tokenIssuer — is
+      // honored on every handshake, matching the HTTP path's per-request env read.
+      const resolveTokenIssuer = (): string | undefined =>
+        this.config.tokenIssuer ?? process.env.TOKEN_ISSUER;
+
       this.io.use(
         createSocketAuthMiddleware({
           betterAuth: this.config.betterAuth,
+          issuer: resolveTokenIssuer,
           tokenSecret,
         })
       );
@@ -406,6 +424,15 @@ export class RealtimeApp implements TerrenoPlugin {
       // Connection handling
       this.io.on("connection", (socket: Socket): void => {
         try {
+          // D2: load the full user document once at handshake (by the decoded
+          // token's id) and cache it on socket.data.fullUser — getSocketUser prefers
+          // it over the synthetic {_id, admin, id} shape for every authorization
+          // check below. Fire-and-forget: handlers install synchronously and fall
+          // back to the synthetic shape until this resolves.
+          void loadFullUserForSocket(
+            socket as unknown as Socket & {data: SocketDataBag},
+            this.config.userModel
+          );
           // The auth middleware adds `decodedToken` at runtime; cast through
           // RealtimeSocketLike (a structural subset) to keep socket handler logic testable.
           installRealtimeSocketHandlers(socket as unknown as RealtimeSocketLike, {logInfo});
@@ -432,6 +459,21 @@ export class RealtimeApp implements TerrenoPlugin {
       // Start the change stream watcher
       startChangeStreamWatcher(this.io, this.config.changeStream, debug);
 
+      // D1: periodic session re-validation sweep — disconnects sockets whose JWT has
+      // expired, whose Better Auth session is no longer valid, or whose user has
+      // since been disabled; also refreshes socket.data.fullUser (D2) and
+      // re-resolves sync room membership (D4) for sockets that remain valid.
+      // A thunk (not a snapshot) so `sync` — the SyncApp plugin's published options,
+      // read by the connection handler fresh per socket too — never goes stale if
+      // SyncApp registers after RealtimeApp.onServerCreated() runs.
+      this.sessionRevalidation = startSessionRevalidationSweep(this.io, () => ({
+        betterAuth: this.config.betterAuth,
+        intervalMs: this.config.sessionRevalidationIntervalMs,
+        logInfo,
+        sync: this.config.sync ?? getActiveSyncAppOptions() ?? undefined,
+        userModel: this.config.userModel,
+      }));
+
       logInfo("[realtime] Socket.io server setup complete");
     } catch (error) {
       logger.error(`[realtime] Failed to set up Socket.io: ${error}`);
@@ -452,6 +494,8 @@ export class RealtimeApp implements TerrenoPlugin {
    */
   async close(): Promise<void> {
     try {
+      this.sessionRevalidation?.stop();
+      this.sessionRevalidation = null;
       await stopChangeStreamWatcher();
       if (this.io) {
         await this.io.close();

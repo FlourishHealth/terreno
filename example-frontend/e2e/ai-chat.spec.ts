@@ -6,7 +6,6 @@ test.describe("AI Chat", () => {
   test.beforeEach(async ({page}) => {
     await loginAs(page);
     await page.goto("/ai");
-    await page.waitForLoadState("networkidle");
     await page.getByTestId("gpt-input").waitFor({state: "visible"});
   });
 

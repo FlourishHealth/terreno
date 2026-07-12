@@ -1,5 +1,5 @@
 import {type APIRequestContext, test as setup} from "@playwright/test";
-import {ADMIN_USER, ALL_E2E_USERS} from "./fixtures/testUsers";
+import {ADMIN_USER, ALL_E2E_USERS, SYNCDB_LOADLAB_USER} from "./fixtures/testUsers";
 import {setUserAdmin} from "./helpers/adminAuth";
 import {signUpOrSignInBetterAuth} from "./helpers/betterAuthSession";
 
@@ -10,6 +10,9 @@ setup("create test users", async ({request}) => {
     await createUser(request, user);
     if (user.email === ADMIN_USER.email) {
       await setUserAdmin(ADMIN_USER.email);
+    }
+    if (user.email === SYNCDB_LOADLAB_USER.email) {
+      await setUserAdmin(SYNCDB_LOADLAB_USER.email);
     }
     await acceptPendingConsentForms(request, user);
   }

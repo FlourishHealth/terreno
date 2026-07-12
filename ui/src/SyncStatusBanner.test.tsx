@@ -60,10 +60,120 @@ describe("SyncStatusBanner", () => {
     expect(onOpenConflicts).toHaveBeenCalledTimes(1);
   });
 
+  it("gives the conflict badge an explicit accessibilityRole of button (E6)", () => {
+    const {getByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={1} isOnline={true} isSyncing={false} queuedCount={0} />
+    );
+    const badge = getByTestId("sync-conflict-badge-clickable");
+    expect(badge.props.accessibilityRole).toBe("button");
+  });
+
   it("hides the conflict badge when there are no conflicts", () => {
     const {queryByTestId} = renderWithTheme(
       <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={false} queuedCount={0} />
     );
     expect(queryByTestId("sync-conflict-badge")).toBeNull();
+  });
+
+  it("renders a pressable paused-for-auth indicator and calls onAuthRequired when pressed", async () => {
+    const onAuthRequired = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <SyncStatusBanner
+        conflictCount={0}
+        isOnline={true}
+        isSyncing={false}
+        onAuthRequired={onAuthRequired}
+        paused="auth"
+        queuedCount={0}
+      />
+    );
+    const badge = getByTestId("sync-paused-auth-indicator-clickable");
+    expect(badge).toBeTruthy();
+    fireEvent.press(badge);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onAuthRequired).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the paused-for-auth indicator when not paused", () => {
+    const {queryByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={false} queuedCount={0} />
+    );
+    expect(queryByTestId("sync-paused-auth-indicator")).toBeNull();
+    expect(queryByTestId("sync-paused-auth-indicator-clickable")).toBeNull();
+  });
+
+  it("renders a pressable failed badge and calls onOpenFailed when pressed", async () => {
+    const onOpenFailed = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <SyncStatusBanner
+        conflictCount={0}
+        failedCount={2}
+        isOnline={true}
+        isSyncing={false}
+        onOpenFailed={onOpenFailed}
+        queuedCount={0}
+      />
+    );
+    const badge = getByTestId("sync-failed-badge-clickable");
+    expect(badge).toBeTruthy();
+    fireEvent.press(badge);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onOpenFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the failed badge when there are no failed mutations", () => {
+    const {queryByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={false} queuedCount={0} />
+    );
+    expect(queryByTestId("sync-failed-badge")).toBeNull();
+  });
+
+  it("shows queued count when queued is at or below the progress threshold, even while draining", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <SyncStatusBanner
+        conflictCount={0}
+        draining={true}
+        isOnline={true}
+        isSyncing={true}
+        queuedCount={5}
+        sentThisDrain={1}
+        totalThisDrain={5}
+      />
+    );
+    expect(getByTestId("sync-queued-count")).toBeTruthy();
+    expect(queryByTestId("sync-drain-progress")).toBeNull();
+  });
+
+  it("switches to numeric drain progress once queued exceeds the progress threshold while draining", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <SyncStatusBanner
+        conflictCount={0}
+        draining={true}
+        isOnline={true}
+        isSyncing={true}
+        queuedCount={40}
+        sentThisDrain={12}
+        totalThisDrain={40}
+      />
+    );
+    const progress = getByTestId("sync-drain-progress");
+    expect(progress).toBeTruthy();
+    expect(queryByTestId("sync-queued-count")).toBeNull();
+  });
+
+  it("does not show drain progress when queued is large but not currently draining", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <SyncStatusBanner
+        conflictCount={0}
+        draining={false}
+        isOnline={true}
+        isSyncing={false}
+        queuedCount={40}
+        sentThisDrain={0}
+        totalThisDrain={0}
+      />
+    );
+    expect(getByTestId("sync-queued-count")).toBeTruthy();
+    expect(queryByTestId("sync-drain-progress")).toBeNull();
   });
 });

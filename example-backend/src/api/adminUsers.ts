@@ -55,7 +55,8 @@ export const addAdminUserRoutes = (
         throw new APIError({status: 404, title: "User not found"});
       }
 
-      await setPasswordForUser(user, password);
+      const admin = req.user as {_id?: unknown; id?: string} | undefined;
+      await setPasswordForUser(user, password, undefined, {adminId: admin?._id ?? admin?.id});
       await user.save();
 
       return res.json({data: {_id: user._id.toString(), message: "Password updated"}});

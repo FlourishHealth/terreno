@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
 import type express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
@@ -11,9 +11,11 @@ import {
   addMeRoutes,
   generateTokens,
   type HasSetPassword,
+  MAX_PASSWORD_LENGTH,
   setPasswordForUser,
   setupAuth,
 } from "./auth";
+import {logger} from "./logger";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {TerrenoApp} from "./terrenoApp";
@@ -1287,6 +1289,40 @@ describe("JWT cookie extraction", () => {
     const res = await agent.get("/food").set("authorization", "Bearer undefined").expect(200);
     expect(res.body.data).toBeDefined();
   });
+
+  // D1: the JWT-vs-non-JWT fallthrough now decodes the token's header/payload
+  // structure (jwt.decode with complete: true) instead of counting dots, so it is
+  // robust to opaque tokens that coincidentally contain two dots and to malformed
+  // strings that happen to have three dot-delimited segments without real JWT
+  // structure.
+  it("falls through (200, no 401) for an opaque non-JWT bearer token with two dots", async () => {
+    // An opaque token shaped like a Better Auth session id — has exactly two dots
+    // but is not base64url-encoded JSON in any segment.
+    const res = await agent
+      .get("/food")
+      .set("authorization", "Bearer not.a.jwt-at-all")
+      .expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("falls through (200, no 401) for a three-dot string with no real JWT header/payload structure", async () => {
+    // Exactly three dot-delimited segments (would have been treated as "a JWT" by
+    // the old dot-counting check) but none are valid base64url JSON.
+    const res = await agent.get("/food").set("authorization", "Bearer abc.def.ghi").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("returns 401 for a genuinely malformed JWT-shaped token (decodable header, bad signature)", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    // A well-formed JWT (decodable header/payload) but signed with the wrong
+    // secret — jwt.verify throws, and jwt.decode succeeds (it is a real JWT), so
+    // this must still 401 rather than fall through.
+    const badToken = jwtLib.sign({id: "someone"}, "wrong-secret", {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent.get("/food").set("authorization", `Bearer ${badToken}`);
+    expect(res.status).toBe(401);
+  });
 });
 
 describe("signup disabled", () => {
@@ -1374,5 +1410,66 @@ describe("setPasswordForUser", () => {
     await expect(setPasswordForUser(user, "pw", 10)).rejects.toThrow(
       "Timed out while setting password"
     );
+  });
+
+  it("rejects passwords longer than MAX_PASSWORD_LENGTH without calling setPassword", async () => {
+    let called = false;
+    const user: HasSetPassword = {
+      setPassword: (_password, callback) => {
+        called = true;
+        callback?.();
+      },
+    };
+    const tooLong = "x".repeat(MAX_PASSWORD_LENGTH + 1);
+
+    await expect(setPasswordForUser(user, tooLong)).rejects.toThrow(
+      `Password must be at most ${MAX_PASSWORD_LENGTH} characters`
+    );
+    expect(called).toBe(false);
+  });
+
+  it("accepts a password exactly at MAX_PASSWORD_LENGTH", async () => {
+    let receivedPassword: string | undefined;
+    const user: HasSetPassword = {
+      setPassword: (password, callback) => {
+        receivedPassword = password;
+        callback?.();
+      },
+    };
+    const atLimit = "x".repeat(MAX_PASSWORD_LENGTH);
+
+    await setPasswordForUser(user, atLimit);
+    expect(receivedPassword).toBe(atLimit);
+  });
+
+  it("logs an audit line with the admin id and target user id when audit context is provided", async () => {
+    const infoSpy = spyOn(logger, "info");
+    infoSpy.mockClear();
+    const user: HasSetPassword = {
+      _id: "target-user-id",
+      setPassword: (_password, callback) => callback?.(),
+    };
+
+    await setPasswordForUser(user, "new-password", undefined, {adminId: "admin-id-123"});
+
+    expect(infoSpy).toHaveBeenCalledTimes(1);
+    const [message] = infoSpy.mock.calls[0] as [string];
+    expect(message).toContain("admin-id-123");
+    expect(message).toContain("target-user-id");
+    expect(message).not.toContain("new-password");
+    infoSpy.mockRestore();
+  });
+
+  it("does not log an audit line when no audit context is provided", async () => {
+    const infoSpy = spyOn(logger, "info");
+    infoSpy.mockClear();
+    const user: HasSetPassword = {
+      setPassword: (_password, callback) => callback?.(),
+    };
+
+    await setPasswordForUser(user, "new-password");
+
+    expect(infoSpy).not.toHaveBeenCalled();
+    infoSpy.mockRestore();
   });
 });

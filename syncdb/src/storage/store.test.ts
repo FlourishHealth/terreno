@@ -56,6 +56,7 @@ describe("upsertEntity / getEntity", () => {
       id: "t1",
       pendingMutationId: undefined,
       seq: 3,
+      stream: undefined,
     });
   });
 
@@ -206,5 +207,132 @@ describe("clearCollection", () => {
     expect(() => store.clearCollection({collection: CONFLICTS_TABLE})).toThrow(
       /Unknown collection/
     );
+  });
+});
+
+describe("deletedAt stamping (E5)", () => {
+  it("upsertEntity stamps deletedAt on the transition into a tombstone, and only then", () => {
+    const store = makeStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeUndefined();
+
+    store.softDeleteEntity({collection: "todos", id: "t1"});
+    const firstStampedAt = store.getEntity({collection: "todos", id: "t1"})?.deletedAt;
+    expect(firstStampedAt).toBeTruthy();
+
+    // A second upsert that keeps deleted: true must NOT re-stamp deletedAt.
+    store.upsertEntity({collection: "todos", data: {title: "a"}, deleted: true, id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBe(firstStampedAt);
+  });
+
+  it("clears deletedAt on a resurrection (upsert back to deleted: false)", () => {
+    const store = makeStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+    store.softDeleteEntity({collection: "todos", id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeTruthy();
+
+    store.upsertEntity({collection: "todos", data: {title: "a"}, deleted: false, id: "t1"});
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeUndefined();
+  });
+});
+
+describe("compactTombstones (E5)", () => {
+  it("removes tombstones older than the retention window, across all collections", () => {
+    const clock = {value: 1_000_000};
+    const store = createSyncStore({
+      collections: ["todos", "notes"],
+      now: () => new Date(clock.value).toISOString(),
+    });
+    store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1"});
+    store.upsertEntity({collection: "todos", data: {title: "recent"}, id: "t2"});
+    store.upsertEntity({collection: "notes", data: {body: "old note"}, id: "n1"});
+    store.upsertEntity({collection: "todos", data: {title: "kept, not deleted"}, id: "t3"});
+
+    // t1/n1 tombstoned "long ago"; t2 tombstoned "recently", relative to the
+    // clock the compaction call itself uses below.
+    store.upsertEntity({collection: "todos", data: null, deleted: true, id: "t1"});
+    store.upsertEntity({collection: "notes", data: null, deleted: true, id: "n1"});
+    clock.value += 100 * 24 * 60 * 60 * 1_000; // +100 days
+    store.upsertEntity({collection: "todos", data: null, deleted: true, id: "t2"});
+
+    // Advance the clock another 10 days: t1/n1 are now ~110 days old, t2 is
+    // ~10 days old. A 90-day retention window compacts t1/n1 but keeps t2.
+    clock.value += 10 * 24 * 60 * 60 * 1_000;
+    const result = store.compactTombstones({olderThanMs: 90 * 24 * 60 * 60 * 1_000});
+
+    expect(result.removed).toBe(2);
+    expect(store.getEntity({collection: "todos", id: "t1"})).toBeUndefined();
+    expect(store.getEntity({collection: "notes", id: "n1"})).toBeUndefined();
+    expect(store.getEntity({collection: "todos", id: "t2"})?.deleted).toBe(true);
+    expect(store.getEntity({collection: "todos", id: "t3"})?.deleted).toBe(false);
+  });
+
+  it("leaves tombstones with no deletedAt (pre-E5 rows) untouched", () => {
+    const store = makeStore();
+    store.upsertEntity({collection: "todos", data: {title: "legacy"}, id: "t1"});
+    // Simulate a tombstone written before deletedAt existed: set the cell
+    // directly, bypassing the stamping logic in upsertEntity/softDeleteEntity.
+    store.raw.setCell("todos", "t1", "deleted", true);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.deletedAt).toBeUndefined();
+
+    const result = store.compactTombstones({olderThanMs: 0});
+    expect(result.removed).toBe(0);
+    expect(store.getEntity({collection: "todos", id: "t1"})).toBeDefined();
+  });
+
+  it("never removes non-tombstone rows regardless of age", () => {
+    const store = makeStore();
+    const clock = {value: 1_000_000};
+    store.upsertEntity({collection: "todos", data: {title: "alive"}, id: "t1"});
+    const result = store.compactTombstones({
+      now: () => new Date(clock.value + 1_000 * 60 * 60 * 24 * 365).toISOString(),
+      olderThanMs: 0,
+    });
+    expect(result.removed).toBe(0);
+    expect(store.getEntity({collection: "todos", id: "t1"})).toBeDefined();
+  });
+});
+
+describe("known streams + purgeStream (C2)", () => {
+  it("round-trips known streams (add / get / remove)", () => {
+    const store = makeStore();
+    expect(store.getKnownStreams()).toEqual([]);
+    store.addKnownStream({collection: "todos", stream: "todos|owner:u1"});
+    store.addKnownStream({collection: "todos", stream: "todos|tenant:org1"});
+    expect(store.getKnownStreams().sort()).toEqual(["todos|owner:u1", "todos|tenant:org1"]);
+    store.removeKnownStream({stream: "todos|owner:u1"});
+    expect(store.getKnownStreams()).toEqual(["todos|tenant:org1"]);
+  });
+
+  it("purgeStream deletes only the matching stream's entities, its cursor, and its known-stream row", () => {
+    const store = makeStore();
+    const leaving = "todos|tenant:org1";
+    const staying = "todos|owner:u1";
+    // Two entities on the leaving stream (one in each collection), one on the staying stream.
+    store.upsertEntity({collection: "todos", data: {t: 1}, id: "a", seq: 3, stream: leaving});
+    store.upsertEntity({collection: "notes", data: {n: 1}, id: "b", seq: 4, stream: leaving});
+    store.upsertEntity({collection: "todos", data: {t: 2}, id: "c", seq: 5, stream: staying});
+    store.addKnownStream({collection: "todos", stream: leaving});
+    store.addKnownStream({collection: "todos", stream: staying});
+    store.raw.setRow(CURSORS_TABLE, leaving, {seq: 3, updatedAt: "x"});
+    store.raw.setRow(CURSORS_TABLE, staying, {seq: 5, updatedAt: "y"});
+
+    const purged = store.purgeStream({stream: leaving});
+
+    expect(purged).toBe(2);
+    expect(store.getEntity({collection: "todos", id: "a"})).toBeUndefined();
+    expect(store.getEntity({collection: "notes", id: "b"})).toBeUndefined();
+    // The staying stream's entity and cursor and known-stream row are untouched.
+    expect(store.getEntity({collection: "todos", id: "c"})?.data).toEqual({t: 2});
+    expect(store.raw.getCell(CURSORS_TABLE, staying, "seq")).toBe(5);
+    expect(store.raw.hasRow(CURSORS_TABLE, leaving)).toBe(false);
+    expect(store.getKnownStreams()).toEqual([staying]);
+  });
+
+  it("purgeStream returns 0 and is a no-op for a stream with no entities", () => {
+    const store = makeStore();
+    store.addKnownStream({collection: "todos", stream: "todos|owner:ghost"});
+    expect(store.purgeStream({stream: "todos|owner:ghost"})).toBe(0);
+    expect(store.getKnownStreams()).toEqual([]);
   });
 });

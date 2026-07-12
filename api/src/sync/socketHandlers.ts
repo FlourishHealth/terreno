@@ -5,11 +5,22 @@ import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {getSocketUser, type SocketWithDecodedToken} from "../realtime/socketUser";
-import {applySyncMutation, type SyncMutationOutcome} from "./mutationHandler";
+import {
+  applySyncMutation,
+  applySyncMutationBatch,
+  MAX_SYNC_MUTATIONS_PER_BATCH,
+  type SyncMutationOutcome,
+  validateSyncMutationBatch,
+} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import type {SyncAppOptions} from "./routes";
-import {streamForScopeValue} from "./streams";
-import type {SyncMutateRequest, SyncNack} from "./types";
+import {MissingScopeResolverError, resolveUserStreamsForEntry} from "./streams";
+import type {
+  SyncMutateBatchRequest,
+  SyncMutateBatchResponse,
+  SyncMutateRequest,
+  SyncNack,
+} from "./types";
 
 /**
  * Socket handlers for the SyncDB local-first protocol:
@@ -36,6 +47,13 @@ import type {SyncMutateRequest, SyncNack} from "./types";
 
 /** Maximum distinct collection subscriptions per socket (DoS protection). */
 export const MAX_SYNC_COLLECTION_SUBSCRIPTIONS = 50;
+
+/**
+ * C8: maximum entries accepted in a single `sync:subscribe`/`sync:unsubscribe`
+ * `collections` array — checked BEFORE iterating so an oversized array is rejected
+ * with no per-entry work.
+ */
+export const MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH = 100;
 
 /** Maximum `sync:mutate` requests accepted per socket per second. */
 export const MAX_SYNC_MUTATIONS_PER_SECOND = 100;
@@ -91,37 +109,25 @@ const resolveUserStreams = async ({
   options: SyncAppOptions;
   socket: SyncSocketLike;
 }): Promise<string[] | null> => {
-  const {scope} = entry.config;
   const collection = entry.collectionTag;
   const emitError = (message: string): void => {
     socket.emit("sync:error", {collection, message});
   };
-
-  if (typeof scope !== "function" && scope.type === "broadcast") {
-    return [streamForScopeValue({collectionTag: collection, scope, scopeValue: null})];
-  }
-  if (typeof scope !== "function" && scope.type === "owner") {
-    // Owner streams are always keyed by the authenticated socket's own userId — a
-    // client-supplied id must never select the stream.
-    return [streamForScopeValue({collectionTag: collection, scope, scopeValue: user.id})];
-  }
-
-  // Tenant and custom scopes need the server-configured membership resolver.
-  if (!options.getUserScopes) {
-    emitError(`Sync collection ${collection} requires a getUserScopes resolver on SyncApp`);
-    return null;
-  }
-  let scopeValues: string[];
   try {
-    scopeValues = await options.getUserScopes(user, entry);
+    return await resolveUserStreamsForEntry({
+      entry,
+      getUserScopes: options.getUserScopes,
+      user,
+    });
   } catch (error: unknown) {
+    if (error instanceof MissingScopeResolverError) {
+      emitError(error.message);
+      return null;
+    }
     logger.error(`[sync] getUserScopes threw for ${collection}: ${error}`);
     emitError(`Failed to resolve scopes for ${collection}`);
     return null;
   }
-  return scopeValues.map((scopeValue) =>
-    streamForScopeValue({collectionTag: collection, scope, scopeValue})
-  );
 };
 
 /**
@@ -138,19 +144,61 @@ export const installSyncSocketHandlers = (
   handlerOptions: {logInfo?: (msg: string) => void} = {}
 ): void => {
   const logInfo = handlerOptions.logInfo ?? ((): void => {});
-  const user = getSocketUser(socket);
   const userId = socket.decodedToken?.id;
 
-  // collection tag -> joined sync rooms, for unsubscribe/disconnect cleanup.
-  const subscriptions = new Map<string, Set<string>>();
+  // D2: re-derive the authorizing user on every event rather than capturing it once
+  // at install time — `socket.data.fullUser` is loaded at handshake and refreshed by
+  // D1's sweep, so a mutation sent after a refresh (e.g. after `organizationIds`
+  // changed) sees the current full user, not a handshake-time snapshot.
+  const currentUser = (): User | undefined => getSocketUser(socket);
 
-  // Rolling one-second window for the sync:mutate rate limit.
+  // collection tag -> joined sync rooms, for unsubscribe/disconnect cleanup and D4's
+  // sweep-time re-resolution. Exposed on socket.data (when present — real sockets
+  // always have it; minimal test doubles may not) so the sweep, which runs outside
+  // this closure, can read and mutate it directly.
+  const subscriptions: Map<string, Set<string>> = socket.data?.syncSubscriptions ?? new Map();
+  if (socket.data) {
+    socket.data.syncSubscriptions = subscriptions;
+  }
+
+  // Rolling one-second window for the sync:mutate / sync:mutateBatch rate limit —
+  // shared between both events so a batch counts each of its mutations against the
+  // same budget as individual sync:mutate calls (not once per batch).
   let mutationWindowStart = 0;
   let mutationCount = 0;
+
+  /**
+   * Consumes `weight` mutations from the rolling one-second budget. Returns
+   * `undefined` when within budget, or the remaining window (ms) to wait
+   * before retrying when the budget would be exceeded — the caller nacks
+   * `rate_limited` with that as `retryAfterMs` rather than burning any
+   * retry budget (rate limiting must never look like a durable-data error).
+   */
+  const consumeMutationRateLimit = (weight: number): number | undefined => {
+    const now = Date.now();
+    if (now - mutationWindowStart >= 1000) {
+      mutationWindowStart = now;
+      mutationCount = 0;
+    }
+    mutationCount += weight;
+    if (mutationCount <= MAX_SYNC_MUTATIONS_PER_SECOND) {
+      return undefined;
+    }
+    return Math.max(0, 1000 - (now - mutationWindowStart));
+  };
 
   socket.on("sync:subscribe", async (payload: {collections?: unknown}): Promise<void> => {
     const collections = Array.isArray(payload?.collections) ? payload.collections : null;
     if (!collections) {
+      return;
+    }
+    // C8: reject an oversized array up front (length check before iterating).
+    if (collections.length > MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH) {
+      logInfo(`[sync] User ${userId} sent an oversized sync:subscribe array`);
+      socket.emit("sync:error", {
+        collection: "",
+        message: `sync:subscribe accepts at most ${MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH} collections`,
+      });
       return;
     }
     for (const collection of collections) {
@@ -174,6 +222,7 @@ export const installSyncSocketHandlers = (
         socket.emit("sync:error", {collection, message: `Unknown sync collection: ${collection}`});
         continue;
       }
+      const user = currentUser();
       if (!user) {
         socket.emit("sync:error", {collection, message: "Authentication required"});
         continue;
@@ -244,21 +293,18 @@ export const installSyncSocketHandlers = (
         });
       };
 
-      const now = Date.now();
-      if (now - mutationWindowStart >= 1000) {
-        mutationWindowStart = now;
-        mutationCount = 0;
-      }
-      mutationCount += 1;
-      if (mutationCount > MAX_SYNC_MUTATIONS_PER_SECOND) {
+      const retryAfterMs = consumeMutationRateLimit(1);
+      if (retryAfterMs !== undefined) {
         logInfo(`[sync] User ${userId} hit the sync:mutate rate limit`);
         nack({
-          code: "error",
+          code: "rate_limited",
           message: `Rate limit of ${MAX_SYNC_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+          retryAfterMs,
         });
         return;
       }
 
+      const user = currentUser();
       if (!user) {
         nack({code: "unauthorized", message: "Authentication required"});
         return;
@@ -269,6 +315,74 @@ export const installSyncSocketHandlers = (
       } catch (error: unknown) {
         logger.error(`[sync] sync:mutate failed for socket ${socket.id}: ${error}`);
         nack({code: "error", message: "Internal error applying mutation"});
+      }
+    }
+  );
+
+  socket.on(
+    "sync:mutateBatch",
+    async (payload: SyncMutateBatchRequest, ack?: (response: unknown) => void): Promise<void> => {
+      // FIX 5: emit the receipt IMMEDIATELY, before any processing (including
+      // rate-limit/auth checks) — this is what lets the client distinguish
+      // "no sync:mutateBatch handler at all" (silence past the grace period)
+      // from "the server is just slow finishing this batch" (a receipt
+      // arrived; the client then waits the full batch timeout instead of
+      // falling back to single sends and possibly double-processing).
+      if (typeof payload?.batchId === "string" && payload.batchId.length > 0) {
+        socket.emit("sync:batchReceived", {batchId: payload.batchId});
+      }
+
+      const respondBatch = (response: SyncMutateBatchResponse): void => {
+        if (typeof ack === "function") {
+          ack(response);
+        }
+      };
+      const singleNackBatch = (partial: Omit<SyncNack, "mutationId">, mutationId = ""): void => {
+        respondBatch({results: [{nack: {mutationId, ...partial}, type: "nack"}]});
+      };
+
+      const mutations = Array.isArray(payload?.mutations) ? payload.mutations : [];
+
+      // Batch size cap enforced before rate limiting or auth checks — an oversized
+      // batch is a client bug, rejected loudly with no side effects.
+      if (mutations.length > MAX_SYNC_MUTATIONS_PER_BATCH) {
+        const validation = validateSyncMutationBatch(mutations);
+        if (!validation.ok) {
+          respondBatch(validation.response);
+          return;
+        }
+      }
+
+      // The rate limiter counts each mutation in the batch (not the batch itself)
+      // against the same window sync:mutate uses.
+      const retryAfterMs = consumeMutationRateLimit(mutations.length);
+      if (retryAfterMs !== undefined) {
+        logInfo(`[sync] User ${userId} hit the sync:mutateBatch rate limit`);
+        singleNackBatch({
+          code: "rate_limited",
+          message: `Rate limit of ${MAX_SYNC_MUTATIONS_PER_SECOND} mutations per second exceeded`,
+          retryAfterMs,
+        });
+        return;
+      }
+
+      const user = currentUser();
+      if (!user) {
+        singleNackBatch({code: "unauthorized", message: "Authentication required"});
+        return;
+      }
+
+      const validation = validateSyncMutationBatch(mutations);
+      if (!validation.ok) {
+        respondBatch(validation.response);
+        return;
+      }
+
+      try {
+        respondBatch(await applySyncMutationBatch({mutations, user}));
+      } catch (error: unknown) {
+        logger.error(`[sync] sync:mutateBatch failed for socket ${socket.id}: ${error}`);
+        singleNackBatch({code: "error", message: "Internal error applying batch"});
       }
     }
   );

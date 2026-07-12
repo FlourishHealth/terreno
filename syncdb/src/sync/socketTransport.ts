@@ -1,12 +1,43 @@
 import {io, type Socket} from "socket.io-client";
 
-import type {AuthProvider, SyncAck, SyncDelta, SyncMutateRequest, SyncNack} from "../types";
+import type {
+  AuthProvider,
+  SyncAck,
+  SyncDelta,
+  SyncMutateBatchRequest,
+  SyncMutateRequest,
+  SyncNack,
+} from "../types";
 import {
   DEFAULT_MUTATION_TIMEOUT_MS,
+  type SendMutationBatchResult,
   type SendMutationResult,
   type SyncTransport,
   type TransportStatus,
 } from "./transport";
+
+/**
+ * Grace period to wait for EITHER a `sync:mutateBatch` ack callback OR the
+ * `sync:batchReceived` receipt before treating the server as not supporting
+ * the batch event at all. Socket.io silently drops emits to event names with
+ * no registered handler — there is no error to catch, only silence — so this
+ * must be much shorter than the full batch timeout or every batch send
+ * against an old server would stall for that long. Once the receipt DOES
+ * arrive within this window, the server is known to support batching (it's
+ * just slow) and the client waits the full {@link batchTimeoutMs} instead of
+ * falling back (FIX 5).
+ */
+export const BATCH_UNSUPPORTED_GRACE_MS = 2_000;
+
+/**
+ * Compute the batch send timeout once a `sync:batchReceived` receipt has
+ * confirmed the server is processing (as opposed to silent/unsupported): the
+ * existing per-mutation timeout scaled by chunk size, so a large batch isn't
+ * timed out prematurely just because it's slower than a single mutation
+ * (FIX 5).
+ */
+export const batchTimeoutMs = (mutationCount: number, perMutationTimeoutMs: number): number =>
+  Math.max(perMutationTimeoutMs, mutationCount * 1_000);
 
 export interface SocketTransportConfig {
   /** Server origin, e.g. "http://localhost:4000". */
@@ -15,6 +46,8 @@ export interface SocketTransportConfig {
   authProvider: Pick<AuthProvider, "getToken">;
   /** How long to wait for a mutation ack/nack before rejecting (default 15s). */
   timeoutMs?: number;
+  /** Grace period before a batch send is treated as unsupported (default 2s). */
+  batchUnsupportedGraceMs?: number;
 }
 
 interface PendingMutation {
@@ -49,10 +82,25 @@ export const createSocketTransport = ({
   baseUrl,
   authProvider,
   timeoutMs = DEFAULT_MUTATION_TIMEOUT_MS,
+  batchUnsupportedGraceMs = BATCH_UNSUPPORTED_GRACE_MS,
 }: SocketTransportConfig): SyncTransport => {
   const deltaListeners = new Set<(delta: SyncDelta) => void>();
   const statusListeners = new Set<(status: TransportStatus) => void>();
   const pending = new Map<string, PendingMutation>();
+  const pendingBatches = new Map<
+    string,
+    {
+      resolve: (result: SendMutationBatchResult) => void;
+      reject: (error: Error) => void;
+      /** Cleared once a `sync:batchReceived` receipt arrives (FIX 5). */
+      graceTimer?: ReturnType<typeof setTimeout>;
+      /** Armed once the receipt lands, replacing the grace timer (FIX 5). */
+      fullTimer?: ReturnType<typeof setTimeout>;
+      /** Removes this batch's `sync:batchReceived` listener (FIX 5). */
+      offReceived: () => void;
+    }
+  >();
+  let nextBatchId = 1;
   const subscribed = new Set<string>();
 
   const socket: Socket = io(baseUrl, {
@@ -89,13 +137,30 @@ export const createSocketTransport = ({
       clearTimeout(entry.timer);
       entry.reject(new Error(reason));
     }
-  };
-
-  const notifyStatus = (connected: boolean): void => {
-    for (const listener of statusListeners) {
-      listener({connected});
+    for (const [batchId, entry] of pendingBatches) {
+      pendingBatches.delete(batchId);
+      if (entry.graceTimer !== undefined) {
+        clearTimeout(entry.graceTimer);
+      }
+      if (entry.fullTimer !== undefined) {
+        clearTimeout(entry.fullTimer);
+      }
+      entry.offReceived();
+      entry.reject(new Error(reason));
     }
   };
+
+  const notifyStatus = (connected: boolean, authExpired?: boolean): void => {
+    for (const listener of statusListeners) {
+      listener(authExpired ? {authExpired: true, connected} : {connected});
+    }
+  };
+
+  // D1: the server's session re-validation sweep emits `sync:auth-expired`
+  // immediately before calling `socket.disconnect(true)` — this flag survives just
+  // long enough for the subsequent `disconnect` handler to tag its status
+  // notification, then resets so a later, unrelated disconnect isn't misattributed.
+  let pendingAuthExpired = false;
 
   socket.on("sync:delta", (delta: SyncDelta) => {
     for (const listener of deltaListeners) {
@@ -107,6 +172,22 @@ export const createSocketTransport = ({
   });
   socket.on("sync:nack", (nack: SyncNack) => {
     settle(nack.mutationId, {nack, type: "nack"});
+  });
+  socket.on("sync:auth-expired", () => {
+    pendingAuthExpired = true;
+  });
+  // D1: Socket.io's own automatic background reconnection (reconnection: true,
+  // configured below) re-runs the handshake without going through this module's
+  // connect() promise — so an auth rejection on a RECONNECT attempt (token expired
+  // or session revoked while offline, discovered only when the client comes back)
+  // must be observed here, not just on the initial connect(). Any auth-shaped
+  // rejection (the server's auth middleware `next(error)`, matching the
+  // `UnauthorizedError` data shape from @thream/socketio-jwt / socketAuth.ts) maps
+  // into the same auth-pause path as an explicit sync:auth-expired disconnect.
+  socket.on("connect_error", (error: Error & {data?: {type?: string}}) => {
+    if (error?.data?.type === "UnauthorizedError") {
+      notifyStatus(false, true);
+    }
   });
   socket.on("connect", () => {
     // Server-side subscriptions are per-connection: re-subscribe on reconnect.
@@ -120,7 +201,9 @@ export const createSocketTransport = ({
     // reject now so the replay coordinator can requeue instead of waiting out
     // the full timeout.
     rejectAllPending("Socket disconnected before the mutation was acknowledged");
-    notifyStatus(false);
+    const authExpired = pendingAuthExpired;
+    pendingAuthExpired = false;
+    notifyStatus(false, authExpired);
   });
 
   const connect = (): Promise<void> =>
@@ -184,6 +267,96 @@ export const createSocketTransport = ({
       });
     });
 
+  const sendMutationBatch = (
+    request: {mutations: SyncMutateRequest[]} & SyncMutateBatchRequest
+  ): Promise<SendMutationBatchResult> =>
+    new Promise<SendMutationBatchResult>((resolve, reject) => {
+      const batchId = String(nextBatchId++);
+
+      // FIX 5: a server without a sync:mutateBatch handler never invokes the
+      // ack callback NOR emits sync:batchReceived (Socket.io silently drops
+      // emits to unregistered events) — a short grace timeout with NO
+      // receipt landing is the ONLY signal for "unsupported". Once a
+      // receipt (or the final ack callback, whichever arrives first) lands
+      // within that window, the server is known to support batching and is
+      // just slow — the full batch timeout (proportional to chunk size)
+      // takes over instead of resolving `unsupported` prematurely.
+      const cleanup = (): void => {
+        pendingBatches.delete(batchId);
+        socket.off("sync:batchReceived", onReceived);
+      };
+      const finish = (result: SendMutationBatchResult): void => {
+        cleanup();
+        resolve(result);
+      };
+      const armFullTimer = (): void => {
+        const entry = pendingBatches.get(batchId);
+        if (!entry || entry.fullTimer !== undefined) {
+          return;
+        }
+        if (entry.graceTimer !== undefined) {
+          clearTimeout(entry.graceTimer);
+          entry.graceTimer = undefined;
+        }
+        entry.fullTimer = setTimeout(
+          () => {
+            // The server confirmed support (a receipt or ack landed) but never
+            // finished within the scaled batch timeout — this is a genuine
+            // transport failure (not "unsupported"), so reject: the
+            // coordinator applies its unlimited-backoff transport-failure
+            // path and resends the whole chunk (INV-3), rather than wrongly
+            // downgrading a merely-slow-but-supported server to single-sends.
+            cleanup();
+            reject(
+              new Error(`Timed out after the batch timeout waiting for batch ${batchId} to finish`)
+            );
+          },
+          batchTimeoutMs(request.mutations.length, timeoutMs)
+        );
+      };
+      const onReceived = ({batchId: receivedId}: {batchId?: string}): void => {
+        if (receivedId === batchId) {
+          armFullTimer();
+        }
+      };
+      socket.on("sync:batchReceived", onReceived);
+
+      const graceTimer = setTimeout(() => {
+        finish({type: "unsupported"});
+      }, batchUnsupportedGraceMs);
+      // The pendingBatches entry MUST exist before the emit: on localhost the
+      // server's immediate sync:batchReceived echo can round-trip fast enough
+      // to race this same synchronous block, and armFullTimer/the ack
+      // callback both look up this entry by batchId.
+      pendingBatches.set(batchId, {
+        graceTimer,
+        offReceived: () => socket.off("sync:batchReceived", onReceived),
+        reject,
+        resolve,
+      });
+
+      socket.emit(
+        "sync:mutateBatch",
+        {...request, batchId},
+        (response: {
+          results?: ({type: "ack"; ack: SyncAck} | {type: "nack"; nack: SyncNack})[];
+        }) => {
+          const entry = pendingBatches.get(batchId);
+          if (!entry) {
+            return;
+          }
+          if (entry.fullTimer !== undefined) {
+            clearTimeout(entry.fullTimer);
+          }
+          if (Array.isArray(response?.results)) {
+            finish({results: response.results, type: "results"});
+          } else {
+            finish({type: "unsupported"});
+          }
+        }
+      );
+    });
+
   return {
     connect,
     disconnect,
@@ -200,6 +373,7 @@ export const createSocketTransport = ({
       };
     },
     sendMutation,
+    sendMutationBatch,
     subscribe,
   };
 };
