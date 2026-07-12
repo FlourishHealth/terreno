@@ -34,6 +34,10 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow(/WebSocket/i);
   consoleGuard.allow(/websocket error/i);
   consoleGuard.allow(/socket\.io/i);
+  // The realtime feature-flags/notifications socket (@terreno/rtk's useSocketConnection,
+  // distinct from syncdb's own transport) also can't reach a severed network during
+  // chaos/offline simulation.
+  consoleGuard.allow(/\[SocketConnection\]/);
   consoleGuard.allow("Failed to load resource");
   consoleGuard.allow("Sentry not initialized");
   consoleGuard.allow("[useConsentForms] Failed to fetch pending consent forms");
@@ -41,6 +45,9 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow("rejected mutation: Network unavailable");
   consoleGuard.allow("rejected query");
   consoleGuard.allow("Error fetching OpenAPI spec");
+  // Logging out while offline (see syncdb-storage.spec.ts's user-switch scenario)
+  // legitimately fails Better Auth's sign-out network call.
+  consoleGuard.allow("Better Auth: Error signing out");
 };
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>

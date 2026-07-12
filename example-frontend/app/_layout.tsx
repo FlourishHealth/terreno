@@ -8,6 +8,7 @@ import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
+  selectBetterAuthIsLoading,
   selectBetterAuthUserId,
   setRealtimeSocket,
   useRealtimeDebug,
@@ -92,6 +93,15 @@ const RootLayout = (): React.ReactElement | null => {
 
 const RootLayoutNav = (): React.ReactElement => {
   const userId = useSelector(selectBetterAuthUserId) ?? undefined;
+  // The initial syncBetterAuthSession() call below is async (it awaits
+  // authClient.getSession()), so userId is undefined for one or more render
+  // passes on every fresh page load — including a deep link straight to a
+  // route like /profile or /admin. Without gating on this flag, the auth
+  // redirect effect below sees "no user yet" and replaces the URL with
+  // /login before the session resolves, then bounces to the hardcoded
+  // /(tabs) root once it does, silently discarding the originally requested
+  // route.
+  const isAuthLoading = useSelector(selectBetterAuthIsLoading);
   const profile = useReadProfile();
   const segments = useSegments();
   const router = useRouter();
@@ -160,6 +170,15 @@ const RootLayoutNav = (): React.ReactElement => {
   }, [userId]);
 
   useEffect(() => {
+    // Don't redirect while the initial Better Auth session sync is still in
+    // flight: userId is momentarily undefined on every fresh load (including
+    // deep links to routes like /profile or /admin), and redirecting to
+    // /login now would bounce straight back to the hardcoded /(tabs) root
+    // once the session resolves, losing the originally requested route.
+    if (isAuthLoading) {
+      return;
+    }
+
     const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
 
     if (!userId && !isOnAuthPage) {
@@ -167,7 +186,7 @@ const RootLayoutNav = (): React.ReactElement => {
     } else if (userId && isOnAuthPage) {
       router.replace("/(tabs)");
     }
-  }, [userId, segments, router]);
+  }, [userId, segments, router, isAuthLoading]);
 
   if (isRequired) {
     return (
