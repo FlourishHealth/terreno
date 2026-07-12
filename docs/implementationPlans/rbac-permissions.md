@@ -246,6 +246,39 @@ export interface RbacRoleDocument {
 }
 ```
 
+Default-role `permissions` accept a `RolePermissionSpec`: either a concrete `PermissionSet`, or
+one of two **seed-time expansion sentinels** resolved against the *merged* statements when the
+role is upserted, so app-defined resources are covered without the app editing Terreno's roles:
+
+```typescript
+// api/src/rbac/roleModel.ts
+export type RolePermissionSpec =
+  | PermissionSet
+  | "*" // every action of every resource (superadmin)
+  | {readOnly: true}; // every "read-ish" action of every resource (auditor)
+
+// "read-ish" = the intersection of each resource's actions with READ_ACTIONS.
+// Terreno's default list; apps can extend via createAccess({readActions}).
+export const READ_ACTIONS = ["read", "list", "access", "view"] as const;
+
+// Applied at seed time inside createAccess, using the merged statements as the source.
+export const expandRolePermissions = (
+  spec: RolePermissionSpec,
+  statements: Statements,
+  readActions: readonly string[],
+): PermissionSet => {
+  if (spec === "*") {
+    return mapValues(statements, (actions) => [...actions]);
+  }
+  if (typeof spec === "object" && "readOnly" in spec) {
+    return filterMapValues(statements, (actions) =>
+      actions.filter((a) => readActions.includes(a)),
+    );
+  }
+  return spec;
+};
+```
+
 Terreno ships default roles (generic names — app-agnostic):
 
 ```typescript
@@ -271,13 +304,19 @@ export const terrenoDefaultRoles: RoleDefinition[] = [
   {
     name: "auditor",
     displayName: "Auditor",
-    // Read-only everywhere: expands to every resource's read-ish actions
-    permissions: {user: ["list", "read"], admin: ["access"], configuration: ["read"]},
+    // Read-only *everywhere*, including app resources: expands at seed time to
+    // every resource's read-ish actions from the merged statements (parallel to
+    // superadmin's "*"). Not a hand-listed subset — see expandRolePermissions.
+    permissions: {readOnly: true},
     isLocked: true,
   },
   {name: "member", displayName: "Member", permissions: {}, isLocked: true},
 ];
 ```
+
+Because expansion runs against the merged statements at seed/upsert time, the stored
+`RbacRoleDocument.permissions` is always a concrete `PermissionSet` (the sentinel is never
+persisted), so runtime checks, the admin matrix, and diffs all see the fully expanded set.
 
 At check time, roles resolve through Better Auth:
 
@@ -346,11 +385,18 @@ export interface UserPermissionDiff {
 
 Guardrails baked into `RoleManager` (borrowed from Better Auth's dynamic access control):
 
-- **No escalation**: an actor cannot grant a role (or edit a role to include) permissions the
-  actor does not themselves hold, unless the actor has `rbac:manageRoles` via `superadmin`.
+- **No escalation**: an actor can only grant (or edit a role to include, or assign) permissions
+  the actor **themselves currently holds**. Holding `rbac:manageRoles` lets an actor *manage*
+  roles but never lets them hand out actions they lack — a role editor cannot bootstrap
+  privileges they do not have. The **only** exception is `superadmin`, which (via its `"*"`
+  expansion) holds every permission and so can grant anything; this is a property of *what
+  superadmin holds*, not a special "manageRoles can escalate" rule. Concretely: the check is
+  `actorPermissions ⊇ permissionsBeingGranted`, evaluated against the actor's effective set.
 - **Vocabulary validation**: every `resource:action` in `permissions` must exist in
   `access.statements` — writes with unknown pairs are 400s.
-- **Managing roles requires** `rbac:manageRoles`; assigning requires `rbac:assignRoles`.
+- **Managing roles requires** `rbac:manageRoles`; assigning requires `rbac:assignRoles`. These
+  gate *access* to the operation and are additive to (not a substitute for) the no-escalation
+  subset check above.
 
 ### 4.5 Document-level scopes (the dynamic layer)
 
@@ -381,6 +427,36 @@ export type ResourceScopes<S extends Statements> = {
   [key: string]: ResourceScope;
 };
 ```
+
+**Coupling `check` and `filter` (no drift).** A per-document `check` and a list/subscription
+`filter` that express *different* constraints silently corrupt authorization: a list could
+return rows a per-doc read would reject, or vice versa. The design forbids that two ways:
+
+1. **`defineScope` factory (preferred).** A scope is derived from a single predicate expressed
+   once as a Mongo query fragment. The factory produces the `filter` (the fragment) and the
+   `check` (the same fragment evaluated against the in-memory doc via a lightweight matcher),
+   so the two can never disagree:
+
+   ```typescript
+   export interface ScopeDefinition<TDoc> {
+     // The one source of truth: the constraint as a query fragment (null = no access).
+     matches: (args: ScopeArgs<TDoc>) => Promise<Record<string, unknown> | null> | Record<string, unknown> | null;
+     // Optional elevation that skips the constraint for both check and filter.
+     adminBypass?: (args: ScopeArgs<TDoc>) => boolean | Promise<boolean>;
+     // How to read the field a fragment references off a loaded doc (defaults to dot-path lookup).
+     fieldOf?: (doc: TDoc, path: string) => unknown;
+   }
+
+   // Returns {check, filter} whose logic is guaranteed identical.
+   export const defineScope = <TDoc>(def: ScopeDefinition<TDoc>): ResourceScope<TDoc>;
+   ```
+
+2. **Parity tests for hand-written scopes.** When an app supplies a raw `{check, filter}` pair
+   (needed for constraints not expressible as a static fragment), Terreno ships a
+   `assertScopeParity(scope, {samples})` test helper and requires each such scope key to have a
+   conformance test that feeds sample docs/users through both `check` and the `filter`-derived
+   query and asserts they agree. `createAccess` warns (dev) when a scope defines both `check`
+   and `filter` by hand without a registered parity test.
 
 Consuming-app example (the PatientGuide panel case):
 
@@ -417,14 +493,38 @@ Semantics:
 - `filter` is merged (`$and`) with `queryFields`/`defaultQueryParams` in list handlers and
   websocket query subscriptions — replacing today's ad-hoc `queryFilter`/`OwnerQueryFilter`.
 
-Terreno ships the common scope as a helper, replacing `Permissions.IsOwner` + `OwnerQueryFilter`:
+Terreno ships the common scope as a helper, replacing `Permissions.IsOwner` + `OwnerQueryFilter`.
+It must preserve today's `IsOwner` semantics exactly: **admins bypass ownership** (`IsOwner`
+returns true for `user.admin === true` on any document, and `OwnerQueryFilter` returns `{}` — no
+narrowing — for admins). The helper reproduces that with an `adminBypass` predicate (default:
+the legacy `user.admin` flag), so migrated flows keep cross-owner read/update/delete access:
 
 ```typescript
-export const OwnerScope = (field = "ownerId"): ResourceScope => ({
-  check: ({user, doc}) => matchesId((doc as any)?.[field], user?.id),
-  filter: async ({user}) => (user ? {[field]: user.id} : null),
-});
+export interface OwnerScopeOptions {
+  field?: string; // owner id path, default "ownerId"
+  // Elevated actors that skip the ownership constraint entirely.
+  // Default preserves legacy IsOwner behavior (user.admin === true) and also
+  // treats holders of the superadmin role as unrestricted.
+  adminBypass?: (args: {user?: User}) => boolean | Promise<boolean>;
+}
+
+export const OwnerScope = (options: string | OwnerScopeOptions = {}): ResourceScope => {
+  const {field = "ownerId", adminBypass = defaultAdminBypass} =
+    typeof options === "string" ? {field: options} : options;
+  return defineScope<unknown>({
+    // One predicate drives both check and filter (see below); adminBypass short-circuits both.
+    adminBypass,
+    matches: ({user}) => (user ? {[field]: user.id} : null),
+    fieldOf: (doc) => (doc as Record<string, unknown> | undefined)?.[field],
+  });
+};
+
+// defaultAdminBypass = ({user}) => Boolean((user as any)?.admin) || hasRole(user, "superadmin")
 ```
+
+Because `OwnerScope` bypasses for admins, the "superadmin does not bypass scopes by default"
+rule in 4.5 is a rule about *generic* scopes; ownership-style scopes opt into elevation
+explicitly through `adminBypass` so no privilege is silently lost during migration.
 
 ### 4.6 Field-level views (attribute permissions)
 
@@ -442,16 +542,39 @@ export interface FieldMask {
 export interface ResourceFieldViews<S extends Statements> {
   [resource: string]: {
     views: Record<string, FieldMask>;
-    // Pick a view for this user+doc. Function escape hatch: return a
+    // Pick a view for this user + (maybe) doc. Function escape hatch: return a
     // FieldMask directly for fully dynamic cases.
+    //
+    // `doc` is OPTIONAL because it is absent at create time (no document exists
+    // yet). `phase` tells the selector which enforcement point is calling:
+    //   - "read"  : serializing a loaded doc (doc always present)
+    //   - "write" : validating an update body against an existing doc (doc present)
+    //   - "create": validating a create body — doc is undefined; the selector
+    //               must decide from user + permissions alone.
+    // Selectors that branch on `doc` fields must handle `doc === undefined` for
+    // the create phase (see create-time resolution below).
     select: (args: {
       user?: User;
-      doc: unknown;
+      doc?: unknown; // undefined during create
       permissions: PermissionSet; // the user's effective set, pre-resolved
+      phase: "read" | "write" | "create";
     }) => string | FieldMask | Promise<string | FieldMask>;
   };
 }
 ```
+
+**Create-time view resolution.** Because no document exists yet, create validation resolves the
+write mask from the user's permissions only:
+
+- The selector is called with `phase: "create"` and `doc: undefined`. It should return a view
+  keyed off `user`/`permissions` (the common case — the `patient` example below already does
+  this, since its branches read only `permissions`).
+- If a selector *needs* a doc and returns nothing usable when `doc` is undefined, `createAccess`
+  requires an explicit `createView?: string | FieldMask` (or `createView: "deny"`) per resource
+  as the fallback; omitting it while a selector dereferences `doc` is a boot-time config error,
+  not a silent full-access default.
+- The chosen mask's `write` paths are the create allow-list; body keys outside it are rejected
+  exactly as in update. `read`/`omit` from the same mask then shape the create response.
 
 Consuming-app example (Patient vs Staff vs SuperUser views):
 
@@ -481,7 +604,9 @@ Enforcement points:
 - **Read**: `defaultResponseHandler` and `realtimeResponseHandler` call
   `access.fieldMask()` and strip; MCP handlers do the same.
 - **Write**: create/update handlers reject (400 with field-level errors) any body key outside
-  the mask's `write` — replacing the deprecated `TerrenoTransformer.transform`.
+  the mask's `write` — replacing the deprecated `TerrenoTransformer.transform`. Update resolves
+  the mask with the loaded doc (`phase: "write"`); create resolves it without a doc
+  (`phase: "create"`) per the create-time rule above.
 - The OpenAPI spec documents the superset; masks are runtime behavior (same as today's
   responseHandler stripping).
 
