@@ -3,7 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import {asyncHandler} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
-import {APIError, apiErrorMiddleware} from "../errors";
+import {APIError, apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
 import {checkPermissions} from "../permissions";
 import {
   computeStableFrontier,
@@ -584,6 +584,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
     })
   );
 
+  router.use(apiUnauthorizedMiddleware);
   router.use(apiErrorMiddleware);
   app.use(router);
 };
