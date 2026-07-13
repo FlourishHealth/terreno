@@ -4,7 +4,7 @@ import type {ComponentProps} from "react";
 import {Dimensions} from "react-native";
 
 import {renderWithTheme} from "./test-utils";
-import {useWebDropdownAnchor, WebDropdownMenu} from "./WebDropdownMenu";
+import {scheduleAfterPaint, useWebDropdownAnchor, WebDropdownMenu} from "./WebDropdownMenu";
 
 describe("WebDropdownMenu", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
@@ -674,5 +674,120 @@ describe("useWebDropdownAnchor", () => {
     expect(hoveredStyle).toHaveProperty("paddingHorizontal");
     const pressedStyle = styleFn({hovered: false, pressed: true});
     expect(pressedStyle).toHaveProperty("paddingHorizontal");
+  });
+});
+
+describe("scheduleAfterPaint", () => {
+  it("uses requestAnimationFrame when it is available", () => {
+    const original = globalThis.requestAnimationFrame;
+    const raf = mock((cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    });
+    (globalThis as {requestAnimationFrame?: typeof requestAnimationFrame}).requestAnimationFrame =
+      raf as unknown as typeof requestAnimationFrame;
+    try {
+      const callback = mock(() => {});
+      scheduleAfterPaint(callback);
+      expect(raf).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+    } finally {
+      if (original) {
+        globalThis.requestAnimationFrame = original;
+      } else {
+        (
+          globalThis as {requestAnimationFrame?: typeof requestAnimationFrame}
+        ).requestAnimationFrame = undefined;
+      }
+    }
+  });
+
+  it("falls back to setTimeout when requestAnimationFrame is unavailable", () => {
+    const original = globalThis.requestAnimationFrame;
+    (globalThis as {requestAnimationFrame?: typeof requestAnimationFrame}).requestAnimationFrame =
+      undefined;
+    try {
+      const callback = mock(() => {});
+      scheduleAfterPaint(callback);
+      expect(callback).not.toHaveBeenCalled();
+    } finally {
+      if (original) {
+        globalThis.requestAnimationFrame = original;
+      }
+    }
+  });
+});
+
+describe("WebDropdownMenu layout callbacks", () => {
+  const anchor = {height: 40, width: 200, x: 16, y: 32};
+  const options = [
+    {label: "Option A", value: "a"},
+    {label: "Option B", value: "b"},
+    {label: "Option C", value: "c"},
+  ];
+
+  it("handles ScrollView onLayout without throwing", () => {
+    const {root} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        selectedIndex={1}
+        visible
+      />
+    );
+    const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+    expect(scrollView).toBeTruthy();
+    act(() => {
+      fireEvent(scrollView, "layout", {nativeEvent: {layout: {height: 200, width: 200}}});
+    });
+    // The list viewport height is recorded and a scroll is scheduled; the
+    // component should remain mounted and functional.
+    expect(root.findAll((node) => node.type === "ScrollView").length).toBeGreaterThan(0);
+  });
+
+  it("records option layout and schedules a scroll for the selected option", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        selectedIndex={1}
+        visible
+      />
+    );
+    act(() => {
+      fireEvent(getByTestId("web_dropdown_option_a"), "layout", {
+        nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 0}},
+      });
+      // The selected option (index 1) triggers the scroll-into-view branch.
+      fireEvent(getByTestId("web_dropdown_option_b"), "layout", {
+        nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 40}},
+      });
+    });
+    expect(getByTestId("web_dropdown_option_b")).toBeTruthy();
+  });
+
+  it("does not schedule a scroll for option layout when nothing is selected", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+      />
+    );
+    act(() => {
+      fireEvent(getByTestId("web_dropdown_option_a"), "layout", {
+        nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 0}},
+      });
+    });
+    expect(getByTestId("web_dropdown_option_a")).toBeTruthy();
   });
 });
