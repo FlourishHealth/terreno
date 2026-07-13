@@ -27,21 +27,10 @@ import type {
   SyncNackCode,
 } from "./types";
 
-/**
- * C6 (M6): the sync-boundary write-scope backstop. Resolve `getUserScopes` lazily from
- * the active SyncApp options (registered once, regardless of plugin order) so the check
- * runs against the same membership resolver the snapshot/subscribe paths use.
- */
-let scopeResolver:
-  | ((user: User, entry: SyncRegistryEntry) => Promise<string[]> | string[])
-  | undefined;
-
-/** Called by SyncApp.register so the mutation-scope check can resolve tenant memberships. */
-export const setSyncMutationScopeResolver = (
-  resolver: ((user: User, entry: SyncRegistryEntry) => Promise<string[]> | string[]) | undefined
-): void => {
-  scopeResolver = resolver;
-};
+export type SyncMutationScopeResolver = (
+  user: User,
+  entry: SyncRegistryEntry
+) => Promise<string[]> | string[];
 
 /**
  * C6 (M6): enforce write scope at the sync boundary regardless of consumer `preCreate`
@@ -55,11 +44,13 @@ const enforceWriteScope = async ({
   user,
   operation,
   data,
+  scopeResolver,
 }: {
   entry: SyncRegistryEntry;
   user: User;
   operation: "create" | "update" | "delete";
   data: Record<string, unknown> | undefined;
+  scopeResolver?: SyncMutationScopeResolver;
 }): Promise<void> => {
   if (operation === "delete") {
     return;
@@ -437,6 +428,7 @@ const applyClaimedMutation = async ({
   mutation,
   request,
   user,
+  scopeResolver,
   isLeaseTakeover = false,
 }: {
   claimed: SyncMutationDocument;
@@ -444,6 +436,7 @@ const applyClaimedMutation = async ({
   mutation: SyncMutateRequest;
   request: express.Request;
   user: User;
+  scopeResolver?: SyncMutationScopeResolver;
   /** True when `claimed` was re-claimed from a stale lease rather than freshly inserted. */
   isLeaseTakeover?: boolean;
 }): Promise<SyncMutationOutcome> => {
@@ -456,6 +449,7 @@ const applyClaimedMutation = async ({
       data: mutation.data,
       entry,
       operation: mutation.operation,
+      scopeResolver,
       user,
     });
 
@@ -605,11 +599,13 @@ export const applySyncMutation = async ({
   user,
   mutation,
   req,
+  scopeResolver,
 }: {
   user: User;
   mutation: SyncMutateRequest;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  scopeResolver?: SyncMutationScopeResolver;
 }): Promise<SyncMutationOutcome> => {
   const mutationId = typeof mutation?.mutationId === "string" ? mutation.mutationId : "";
   const validationNack = (message: string): SyncMutationOutcome =>
@@ -663,13 +659,14 @@ export const applySyncMutation = async ({
           isLeaseTakeover: true,
           mutation,
           request,
+          scopeResolver,
           user,
         }),
       user,
     });
   }
 
-  return applyClaimedMutation({claimed, entry, mutation, request, user});
+  return applyClaimedMutation({claimed, entry, mutation, request, scopeResolver, user});
 };
 
 /** Outcome of a batch validation pre-check (before any mutation is attempted). */
@@ -739,15 +736,17 @@ export const applySyncMutationBatch = async ({
   user,
   mutations,
   req,
+  scopeResolver,
 }: {
   user: User;
   mutations: SyncMutateRequest[];
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  scopeResolver?: SyncMutationScopeResolver;
 }): Promise<SyncMutateBatchResponse> => {
   const results: SyncMutateBatchResponse["results"] = [];
   for (const mutation of mutations) {
-    const outcome = await applySyncMutation({mutation, req, user});
+    const outcome = await applySyncMutation({mutation, req, scopeResolver, user});
     results.push(outcome);
     if (outcome.type === "nack") {
       // Stop-on-error: the client re-sends everything after this point, and

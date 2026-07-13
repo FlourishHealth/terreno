@@ -505,6 +505,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       const outcome = await applySyncMutation({
         mutation: req.body as SyncMutateRequest,
         req,
+        scopeResolver: options.getUserScopes,
         user,
       });
       if (outcome.type === "ack") {
@@ -560,7 +561,12 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         return res.status(422).json(validation.response);
       }
 
-      const response = await applySyncMutationBatch({mutations, req, user});
+      const response = await applySyncMutationBatch({
+        mutations,
+        req,
+        scopeResolver: options.getUserScopes,
+        user,
+      });
       return res.json(response);
     })
   );
