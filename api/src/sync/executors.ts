@@ -17,7 +17,7 @@
 import type express from "express";
 import cloneDeep from "lodash/cloneDeep";
 import {DateTime} from "luxon";
-import {type Document, type Model} from "mongoose";
+import type {Document, Model} from "mongoose";
 
 import {addPopulateToQuery, type ModelRouterOptions} from "../api";
 import type {User} from "../auth";
@@ -567,9 +567,7 @@ export const executeDelete = async <T>({
         (error.meta as {deleted?: string} | undefined)?.deleted === "true";
       if (alreadyDeleted) {
         // Hydrate the tombstone bypassing the isDeletedPlugin find filter.
-        const tombstone = await model
-          .find({_id: id, deleted: {$in: [true, false]}})
-          .limit(1);
+        const tombstone = await model.find({_id: id, deleted: {$in: [true, false]}}).limit(1);
         const resolved = tombstone[0] as ExecutorDoc<T> & {deleted?: boolean};
         if (!resolved) {
           throw error;

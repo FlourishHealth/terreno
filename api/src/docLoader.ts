@@ -35,8 +35,11 @@ export const loadDocOr404 = async <T>(
     });
   }
   if (!data) {
+    const idSchemaType = model.schema.path("_id");
+    const hiddenId =
+      idSchemaType?.instance === "ObjectId" ? new mongoose.Types.ObjectId(id) : id;
     const hiddenDoc = await model.collection.findOne({
-      _id: new mongoose.Types.ObjectId(id),
+      _id: hiddenId as never,
     });
 
     const notFoundDetail = `Document ${id} not found for model ${model.modelName}`;
