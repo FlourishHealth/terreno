@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
+targets: ["cursor", "devin", "copilot", "claudecode"]
 description: "Use Bun catalog for dependencies shared across packages"
 globs: ["**/package.json"]
 ---

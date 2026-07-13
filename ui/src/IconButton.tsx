@@ -57,6 +57,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   indicatorText,
   loading: propsLoading = false,
   size = "default",
+  state = "default",
   testID,
   variant = "primary",
   withConfirmation = false,
@@ -97,6 +98,15 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   } else if (variant === "ghost") {
     backgroundColor = "transparent";
     color = theme.surface.secondaryDark;
+  }
+
+  if (!disabled && state === "active") {
+    if (variant === "primary") {
+      backgroundColor = theme.primitives.primary600;
+    } else {
+      backgroundColor = theme.surface.primary;
+      color = theme.text.inverted;
+    }
   }
 
   const indicatorColor = indicator ? theme.surface[indicator] : undefined;

@@ -3,6 +3,7 @@ name: fix-conflicts
 description: >-
   Pull latest from master, resolve merge conflicts, validate with lint/compile
   checks, and monitor CI
+disable-model-invocation: true
 ---
 # Fix Conflicts
 

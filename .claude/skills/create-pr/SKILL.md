@@ -1,6 +1,8 @@
 ---
 name: create-pr
 description: Create a draft pull request for the current branch
+model: haiku
+disable-model-invocation: true
 ---
 # Create Pull Request
 

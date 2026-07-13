@@ -5,6 +5,7 @@ description: >-
   release notes, flag breaking changes, decide the semver version, create the
   GitHub release, and monitor the publish-on-tag workflow until every package
   deploys to npm. Trigger with /release.
+disable-model-invocation: true
 ---
 # Release Terreno
 

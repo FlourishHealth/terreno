@@ -1,6 +1,7 @@
 ---
 name: create-pr
 description: Create a draft pull request for the current branch
+disable-model-invocation: true
 ---
 # Create Pull Request
 

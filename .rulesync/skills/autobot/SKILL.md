@@ -1,7 +1,8 @@
 ---
 name: autobot
 description: Use after feature work is ready to submit. Runs submit-style checks, commit, push, PR setup, CI fixes, and automatic bot review fixes until the PR is mergeable.
-model: sonnet
+claudecode:
+  model: sonnet
 ---
 
 # Autobot: PR Mergeability Automation
@@ -82,6 +83,8 @@ Use the `Agent` tool:
 - `subagent_type`: `general-purpose`
 - `description`: `Watch CI for current PR`
 - `prompt`: instruct the sub-agent to invoke the `/check-watcher` skill for the current PR, fix any failures, and report back when checks are green or max attempts are hit. Include the PR number/URL.
+
+If your harness does not support subagents, run the `/check-watcher` skill directly instead.
 
 Wait for `/check-watcher` to return before continuing Autobot.
 
