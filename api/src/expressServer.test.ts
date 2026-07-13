@@ -951,6 +951,18 @@ describe("expressServer", () => {
       expect(warnTimer).toBeDefined();
       expect(closeTimer).toBeDefined();
     });
+
+    it("terminate timeout callback reports the timeout and exits with code 2", async () => {
+      const func = async () => "ok";
+      await expect(wrapScript(func, {terminateTimeout: 100})).rejects.toThrow("__EXIT__");
+
+      const closeTimer = timerCallbacks.find((t) => t.delay === 100000);
+      expect(closeTimer).toBeDefined();
+
+      const runCloseTimer = closeTimer?.callback as unknown as () => Promise<void>;
+      await expect(runCloseTimer()).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(2);
+    });
   });
 
   describe("TerrenoApp error handling", () => {
