@@ -281,6 +281,7 @@ jobs:
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
+            CORS_ORIGINS=https://terreno-frontend.netlify.app
             ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
@@ -427,6 +428,7 @@ jobs:
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
+            CORS_ORIGINS=https://pr-${{ github.event.pull_request.number }}--terreno-frontend.netlify.app
             ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest

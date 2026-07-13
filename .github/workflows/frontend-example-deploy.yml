@@ -97,8 +97,10 @@ jobs:
           else
             URL="$PROD_URL"
           fi
-          jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
-          echo "BASE_URL set to $URL"
+          jq --arg url "$URL" \
+            '.expo.extra.BASE_URL = $url | .expo.extra.apiBaseUrl = $url' \
+            app.json > app.json.tmp && mv app.json.tmp app.json
+          echo "BASE_URL and apiBaseUrl set to $URL"
         working-directory: example-frontend
 
       - name: Export example-frontend for web

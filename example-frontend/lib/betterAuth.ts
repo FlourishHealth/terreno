@@ -4,15 +4,14 @@
 
 import {createBetterAuthClient} from "@terreno/rtk";
 import Constants from "expo-constants";
+import {resolveApiBaseUrl} from "./apiBaseUrl";
 
 const getBaseURL = (): string => {
   const expoExtra = Constants.expoConfig?.extra;
-  return (
-    process.env.EXPO_PUBLIC_API_URL ??
-    expoExtra?.apiBaseUrl ??
-    expoExtra?.BASE_URL ??
-    "http://localhost:4000"
-  );
+  return resolveApiBaseUrl({
+    envApiUrl: process.env.EXPO_PUBLIC_API_URL,
+    expoExtra,
+  });
 };
 
 const getAppScheme = (): string => {
