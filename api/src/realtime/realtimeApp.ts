@@ -7,8 +7,8 @@ import {Server, type Socket} from "socket.io";
 import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
-import {getSyncAppOptions} from "../sync/syncApp";
 import {installSyncSocketHandlers} from "../sync/socketHandlers";
+import {getSyncAppOptions} from "../sync/syncApp";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {

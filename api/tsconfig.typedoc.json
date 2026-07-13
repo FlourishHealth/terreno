@@ -1,8 +1,10 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "src/**/*.test.ts", "src/sync/loadHarness.ts"]
-}
-{
-  "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "src/tests.ts", "src/tests/**", "**/*.test.ts"]
+  "exclude": [
+    "node_modules",
+    "src/tests.ts",
+    "src/tests/**",
+    "**/*.test.ts",
+    "src/sync/loadHarness.ts"
+  ]
 }

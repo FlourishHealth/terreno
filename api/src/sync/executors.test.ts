@@ -1,4 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 import type express from "express";
 import {model, Schema} from "mongoose";
 
@@ -695,8 +696,8 @@ describe("executeDelete", () => {
       user: owner,
     });
 
-    expect(doc._id).toBe(id);
-    expect(doc.deleted).toBe(true);
+    assert.equal(doc._id, id);
+    assert.isTrue(doc.deleted);
   });
 
   it("checks object permissions before returning an idempotent tombstone", async () => {
@@ -718,7 +719,7 @@ describe("executeDelete", () => {
       })
     );
 
-    expect(error.status).toBe(403);
+    assert.equal(error.status, 403);
   });
 
   it("hard deletes when the schema has no deleted path", async () => {
