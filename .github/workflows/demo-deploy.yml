@@ -9,6 +9,9 @@ on:
       - "ui/**"
       - ".github/workflows/demo-deploy.yml"
   pull_request:
+  # Allows publish-on-tag.yml to force a fresh production deploy after a release,
+  # so the public demo always reflects the latest published version.
+  workflow_dispatch:
 
 jobs:
   check-changes:
@@ -31,7 +34,9 @@ jobs:
   build:
     name: Build Demo
     needs: [check-changes]
-    if: always() && (github.event_name == 'push' || needs.check-changes.outputs.has_changes == 'true')
+    if: |
+      always() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || needs.check-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -79,7 +84,14 @@ jobs:
   deploy-production:
     name: Deploy to Production
     needs: build
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    # `always()` is required because `build` needs `check-changes`, which is skipped on
+    # push/workflow_dispatch events — that skip otherwise propagates down the dependency
+    # chain and silently skips this job even when `build` itself succeeded.
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -174,7 +186,8 @@ jobs:
   deploy-preview:
     name: Deploy Preview
     needs: build
-    if: github.event_name == 'pull_request'
+    # See note on deploy-production about why `always()` + explicit result check is required.
+    if: always() && needs.build.result == 'success' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: demo-preview-pr-${{ github.event.pull_request.number }}

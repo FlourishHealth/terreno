@@ -1267,6 +1267,30 @@ jobs:
             git push origin master
           fi
 
+  trigger-demo-deploy:
+    name: Trigger demo deploy
+    needs: update-version-on-master
+    # `always()` avoids the skip propagating from earlier publish-* jobs — see the same
+    # note in demo-deploy.yml. The version bump commit doesn't reliably re-trigger
+    # demo-deploy.yml's path-filtered push trigger (tag pushes carry no file diff, and a
+    # skipped/failed package doesn't touch ui/package.json), so force a redeploy here to
+    # guarantee the public demo always matches the latest release.
+    if: always() && needs.update-version-on-master.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch demo-deploy workflow
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "demo-deploy.yml",
+              ref: "master",
+            });
+
   cut-docs-version:
     needs: [check-changes, update-version-on-master]
     if: |
