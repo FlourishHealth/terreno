@@ -4,6 +4,7 @@ import {
   ConfirmationIconButton,
   IconButtonDemo,
   IconButtonSizes,
+  IconButtonStates,
   IndicatorIconButton,
   LoadingIconButton,
   NavigationIconButton,
@@ -62,6 +63,14 @@ export const IconButtonConfiguration: DemoConfiguration = {
           {label: "Disabled", value: "disabled"},
         ],
       },
+      state: {
+        type: "select",
+        defaultValue: "default",
+        options: [
+          {label: "Default", value: "default"},
+          {label: "Active", value: "active"},
+        ],
+      },
       iconName: {
         type: "select",
         defaultValue: "plus",
@@ -94,6 +103,7 @@ export const IconButtonConfiguration: DemoConfiguration = {
   },
   stories: {
     Variants: {render: () => AllButtonIconVariants({})},
+    States: {render: () => IconButtonStates({})},
     Sizes: {render: () => IconButtonSizes({})},
     Confirmation: {render: () => ConfirmationIconButton({})},
     WithToolTip: {render: () => ToolTipIconButton({})},

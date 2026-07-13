@@ -1,5 +1,5 @@
 ---
-name: terreno-blend
+name: terreno-1-blend
 description: Turn a spec, Linear ticket, or feature request into an Implementation Plan (IP) document. Use ONLY for IP creation — not code implementation, PR submission, or post-PR review handling.
 disable-model-invocation: true
 ---
@@ -36,8 +36,8 @@ If a project is not in the registry, resolve it with `gh repo view <input>`.
 
 ### Step 1: Ingest PRD/spec
 
-- `$PRD` is required for `/terreno-blend` when invoked as plan-from-text/file.
-- If `$PRD` is missing, stop immediately and return: `Error: /terreno-blend requires a PRD as the first argument (either a file path or inline PRD text). Please re-run as /terreno-blend <path-or-text>.`
+- `$PRD` is required for `/terreno-1-blend` when invoked as plan-from-text/file.
+- If `$PRD` is missing, stop immediately and return: `Error: /terreno-1-blend requires a PRD as the first argument (either a file path or inline PRD text). Please re-run as /terreno-1-blend <path-or-text>.`
 - Accept file path or inline text.
 - Summarize problem, business impact, stakeholders, constraints.
 - Ask for confirmation before research.

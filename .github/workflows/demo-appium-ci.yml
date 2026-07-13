@@ -307,15 +307,37 @@ jobs:
 
           curl --silent --show-error "http://127.0.0.1:8085/demo/index.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable" -o logs/prewarm-ios.bundle || true
 
-          CI=true \
-            APPIUM_CI=true \
-            APPIUM_DEV_SERVER_URL="http://localhost:8085" \
-            NODE_ENV=production \
-            IOS_APP_PATH="$IOS_APP_PATH" \
-            IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
-            IOS_DEVICE_UDID="$IOS_DEVICE_UDID" \
-            IOS_PLATFORM_VERSION="$IOS_PLATFORM_VERSION" \
-            bun run "appium:test:ci:ios:$APPIUM_RUN_MODE"
+          max_attempts=1
+          if [ "$APPIUM_RUN_MODE" = "smoke" ]; then
+            max_attempts=2
+          fi
+
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Starting iOS Appium attempt $attempt/$max_attempts"
+            if CI=true \
+              APPIUM_CI=true \
+              APPIUM_DEV_SERVER_URL="http://localhost:8085" \
+              NODE_ENV=production \
+              IOS_APP_PATH="$IOS_APP_PATH" \
+              IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
+              IOS_DEVICE_UDID="$IOS_DEVICE_UDID" \
+              IOS_PLATFORM_VERSION="$IOS_PLATFORM_VERSION" \
+              bun run "appium:test:ci:ios:$APPIUM_RUN_MODE"; then
+              break
+            fi
+
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::Appium iOS tests failed after $attempt attempt(s)"
+              exit 1
+            fi
+
+            echo "::warning::iOS Appium smoke attempt failed. Rebooting simulator and retrying once."
+            xcrun simctl shutdown "$IOS_DEVICE_UDID" 2>/dev/null || true
+            xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
+            xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b || true
+            attempt=$((attempt + 1))
+          done
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 

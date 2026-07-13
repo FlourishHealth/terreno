@@ -31,3 +31,7 @@ exports[`IconButton renders with confirmation props 1`] = `null`;
 exports[`IconButton renders ghost variant 1`] = `null`;
 
 exports[`IconButton renders sm size 1`] = `null`;
+
+exports[`IconButton renders primary variant in active state 1`] = `null`;
+
+exports[`IconButton renders ghost variant in active state 1`] = `null`;

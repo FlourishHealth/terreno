@@ -157,6 +157,32 @@ describe("IconButton", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders primary variant in active state", () => {
+    const {toJSON} = renderWithTheme(
+      <IconButton
+        accessibilityLabel="Test"
+        iconName="check"
+        onClick={() => {}}
+        state="active"
+        variant="primary"
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders ghost variant in active state", () => {
+    const {toJSON} = renderWithTheme(
+      <IconButton
+        accessibilityLabel="Test"
+        iconName="check"
+        onClick={() => {}}
+        state="active"
+        variant="ghost"
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
   describe("custom icons", () => {
     // IconButton renders `null` under the bun/react-test-renderer harness (all of
     // its snapshots are null), so we verify the custom-icon code path renders

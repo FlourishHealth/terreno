@@ -1,6 +1,6 @@
 ---
-name: terreno-dialin
-description: Run the reactive PR review loop — watch and fix CI plus bot/human comments until the PR is mergeable or times out. Use ONLY when a PR is already open — not for initial planning, feature implementation from scratch, or opening the PR itself. Typically entered after `terreno-pour`; load that workflow from plugins/terreno-planning/skills/terreno-pour/SKILL.md when needed (Cursor may not resolve plugin skill names alone).
+name: terreno-5-dialin
+description: Run the reactive PR review loop — watch and fix CI plus bot/human comments until the PR is mergeable or times out. Use ONLY when a PR is already open — not for initial planning, feature implementation from scratch, or opening the PR itself. Typically entered after `terreno-4-pour`; load that workflow from plugins/terreno-planning/skills/terreno-4-pour/SKILL.md when needed (Cursor may not resolve plugin skill names alone).
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,7 @@ Own all post-review-open reactive work: CI watching/fixing, comment triage/fixes
 
 ## Ownership Boundary
 
-Dialin starts after **Pour** opens/updates the PR and triggers CI. Pour’s procedure lives at `plugins/terreno-planning/skills/terreno-pour/SKILL.md` — read that file if you need pour scope or commit rules; do not assume `terreno-pour` is invocable by name alone in Cursor.
+Dialin starts after **Pour** opens/updates the PR and triggers CI. Pour’s procedure lives at `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md` — read that file if you need pour scope or commit rules; do not assume `terreno-4-pour` is invocable by name alone in Cursor.
 Dialin exclusively owns all work after that handoff.
 
 ## Timer Loop Contract
@@ -33,7 +33,7 @@ Each cycle:
    - Clarifications / out-of-scope items
 4. Apply code fixes for actionable items.
 5. Run targeted checks.
-6. Commit + push fixes (same commit hygiene rules as Pour — see `plugins/terreno-planning/skills/terreno-pour/SKILL.md`; no AI attribution).
+6. Commit + push fixes (same commit hygiene rules as Pour — see `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`; no AI attribution).
 7. Re-check CI and continue loop.
 8. Reply to addressed comments and resolve threads when fully fixed.
 
