@@ -45,7 +45,6 @@ import {getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncMutation} from "./models";
 import {applySyncMutation} from "./mutationHandler";
 import {clearSyncRegistry} from "./registry";
-import {clearActiveSyncAppOptions} from "./socketHandlers";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -247,7 +246,6 @@ describe("syncdb end-to-end integration", () => {
       httpServer.close(() => resolve());
     });
     clearSyncRegistry();
-    clearActiveSyncAppOptions();
   });
 
   // Shared across the sequential scenarios below.

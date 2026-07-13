@@ -47,7 +47,6 @@ import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {RealtimeApp} from "../realtime/realtimeApp";
 import {clearSyncRegistry} from "./registry";
-import {clearActiveSyncAppOptions} from "./socketHandlers";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -606,7 +605,6 @@ const main = async (): Promise<void> => {
       httpServer.close(() => resolve());
     });
     clearSyncRegistry();
-    clearActiveSyncAppOptions();
     await mongoose.disconnect();
   }
 

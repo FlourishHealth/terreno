@@ -46,7 +46,7 @@ const syncPendingClaimSchema = new Schema<SyncPendingClaim>(
       type: Number,
     },
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const syncCounterSchema = new Schema<SyncCounterDocument>(

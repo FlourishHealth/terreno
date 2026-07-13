@@ -28,6 +28,23 @@ execStuffSchema.plugin(isDeletedPlugin);
 execStuffSchema.plugin(createdUpdatedPlugin);
 const ExecStuffModel = model<ExecStuff>("ExecStuff", execStuffSchema);
 
+interface ExecStringIdStuff extends IsDeleted {
+  _id: string;
+  name: string;
+  ownerId: string;
+}
+
+const execStringIdStuffSchema = new Schema<ExecStringIdStuff>({
+  _id: {description: "Offline-generated string identifier", required: true, type: String},
+  name: {description: "The name of the item", required: true, type: String},
+  ownerId: {description: "The user who owns this item", type: String},
+});
+execStringIdStuffSchema.plugin(isDeletedPlugin);
+const ExecStringIdStuffModel = model<ExecStringIdStuff>(
+  "ExecStringIdStuff",
+  execStringIdStuffSchema
+);
+
 // No isDeletedPlugin — exercises the hard-delete branch of executeDelete.
 interface ExecHardStuff {
   _id: string;
@@ -638,7 +655,11 @@ describe("executeDelete", () => {
   });
 
   beforeEach(async () => {
-    await Promise.all([ExecStuffModel.deleteMany({}), ExecHardModel.deleteMany({})]);
+    await Promise.all([
+      ExecStuffModel.deleteMany({}),
+      ExecStringIdStuffModel.deleteMany({}),
+      ExecHardModel.deleteMany({}),
+    ]);
   });
 
   const createDoc = async (fields: Partial<ExecStuff> = {}) =>
@@ -655,6 +676,49 @@ describe("executeDelete", () => {
     expect((deleted as ExecStuff).deleted).toBe(true);
     const tombstones = await ExecStuffModel.find({_id: doc._id, deleted: true});
     expect(tombstones).toHaveLength(1);
+  });
+
+  it("returns an authorized string-id tombstone for an idempotent delete", async () => {
+    const id = "offline-generated-id";
+    await ExecStringIdStuffModel.create({
+      _id: id,
+      deleted: true,
+      name: "already gone",
+      ownerId: owner.id,
+    });
+    const options = baseOptions() as unknown as ModelRouterOptions<ExecStringIdStuff>;
+
+    const {doc} = await executeDelete<ExecStringIdStuff>({
+      id,
+      model: ExecStringIdStuffModel,
+      options,
+      user: owner,
+    });
+
+    expect(doc._id).toBe(id);
+    expect(doc.deleted).toBe(true);
+  });
+
+  it("checks object permissions before returning an idempotent tombstone", async () => {
+    const id = "foreign-offline-id";
+    await ExecStringIdStuffModel.create({
+      _id: id,
+      deleted: true,
+      name: "not yours",
+      ownerId: owner.id,
+    });
+    const options = baseOptions() as unknown as ModelRouterOptions<ExecStringIdStuff>;
+
+    const error = await caught(
+      executeDelete<ExecStringIdStuff>({
+        id,
+        model: ExecStringIdStuffModel,
+        options,
+        user: stranger,
+      })
+    );
+
+    expect(error.status).toBe(403);
   });
 
   it("hard deletes when the schema has no deleted path", async () => {

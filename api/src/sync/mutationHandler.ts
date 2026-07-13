@@ -574,17 +574,15 @@ const applyClaimedMutation = async ({
     });
 
     let warning: string | undefined;
-    if (postHook) {
-      try {
-        await postHook();
-      } catch (postHookError: unknown) {
-        warning = errorMessageOf(postHookError);
-        logger.error("[sync] Post-hook failed after a committed mutation", {
-          collection: mutation.collection,
-          error: warning,
-          mutationId,
-        });
-      }
+    try {
+      await postHook();
+    } catch (postHookError: unknown) {
+      warning = errorMessageOf(postHookError);
+      logger.error("[sync] Post-hook failed after a committed mutation", {
+        collection: mutation.collection,
+        error: warning,
+        mutationId,
+      });
     }
     return {
       ack: {id: resultId, mutationId, seq: resultSeq, ...(warning ? {warning} : {})},

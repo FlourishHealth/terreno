@@ -37,7 +37,6 @@ import {RealtimeApp} from "../realtime/realtimeApp";
 import {getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncMutation} from "./models";
 import {clearSyncRegistry} from "./registry";
-import {clearActiveSyncAppOptions} from "./socketHandlers";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -195,7 +194,6 @@ describe("session re-validation sweep integration (D1/D4)", () => {
       httpServer.close(() => resolve());
     });
     clearSyncRegistry();
-    clearActiveSyncAppOptions();
   });
 
   it("D1: the sweep disconnects a disabled user's socket, and the client lands in auth-pause with the outbox intact", async () => {

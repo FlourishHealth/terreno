@@ -17,7 +17,7 @@
 import type express from "express";
 import cloneDeep from "lodash/cloneDeep";
 import {DateTime} from "luxon";
-import mongoose, {type Document, type Model} from "mongoose";
+import {type Document, type Model} from "mongoose";
 
 import {addPopulateToQuery, type ModelRouterOptions} from "../api";
 import type {User} from "../auth";
@@ -568,9 +568,18 @@ export const executeDelete = async <T>({
       if (alreadyDeleted) {
         // Hydrate the tombstone bypassing the isDeletedPlugin find filter.
         const tombstone = await model
-          .find({_id: new mongoose.Types.ObjectId(id), deleted: {$in: [true, false]}})
+          .find({_id: id, deleted: {$in: [true, false]}})
           .limit(1);
         const resolved = tombstone[0] as ExecutorDoc<T> & {deleted?: boolean};
+        if (!resolved) {
+          throw error;
+        }
+        if (!(await checkPermissions("delete", options.permissions.delete, user, resolved))) {
+          throw new APIError({
+            status: 403,
+            title: `Access to GET on ${model.modelName}:${id} denied for ${user?.id}`,
+          });
+        }
         return {doc: resolved};
       }
       throw error;
