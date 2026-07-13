@@ -31,6 +31,17 @@ const runTypedoc = (target: PackageTarget): void => {
   const typedocTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.typedoc.json");
   const defaultTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.json");
   const tsconfigPath = existsSync(typedocTsconfigPath) ? typedocTsconfigPath : defaultTsconfigPath;
+  const packageDir = join(REPO_ROOT, target.packageDir);
+
+  const compileDependenciesResult = spawnSync(
+    "node",
+    [join(REPO_ROOT, ".github/scripts/compile-workspace-deps.js")],
+    {cwd: packageDir, env: process.env, stdio: "inherit"}
+  );
+  if (compileDependenciesResult.status !== 0) {
+    console.error(`Workspace dependency compilation failed for ${target.title}`);
+    process.exit(compileDependenciesResult.status ?? 1);
+  }
 
   const result = spawnSync(
     "bunx",

@@ -35,8 +35,7 @@ export const loadDocOr404 = async <T>(
   }
   if (!data) {
     const idSchemaType = model.schema.path("_id");
-    const hiddenId =
-      idSchemaType?.instance === "ObjectId" ? new mongoose.Types.ObjectId(id) : id;
+    const hiddenId = idSchemaType?.instance === "ObjectId" ? new mongoose.Types.ObjectId(id) : id;
     const hiddenDoc = await model.collection.findOne({
       _id: hiddenId as never,
     });
