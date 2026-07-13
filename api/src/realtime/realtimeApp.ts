@@ -7,7 +7,8 @@ import {Server, type Socket} from "socket.io";
 import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
-import {getActiveSyncAppOptions, installSyncSocketHandlers} from "../sync/socketHandlers";
+import {getSyncAppOptions} from "../sync/syncApp";
+import {installSyncSocketHandlers} from "../sync/socketHandlers";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
@@ -343,6 +344,7 @@ export const installRealtimeSocketHandlers = (
  * ```
  */
 export class RealtimeApp implements TerrenoPlugin {
+  private app: express.Application | null = null;
   private io: Server | null = null;
   private config: RealtimeAppOptions;
   private sessionRevalidation: SessionRevalidationHandle | null = null;
@@ -355,6 +357,7 @@ export class RealtimeApp implements TerrenoPlugin {
    * Register routes and middleware. Adds a /realtime/health endpoint.
    */
   register(app: express.Application): void {
+    this.app = app;
     app.get("/realtime/health", (_req, res) => {
       const connected = this.io?.engine?.clientsCount ?? 0;
       res.json({
@@ -437,12 +440,12 @@ export class RealtimeApp implements TerrenoPlugin {
           // RealtimeSocketLike (a structural subset) to keep socket handler logic testable.
           installRealtimeSocketHandlers(socket as unknown as RealtimeSocketLike, {logInfo});
           // Sync protocol handlers (sync:subscribe / sync:mutate). Options come from the
-          // SyncApp plugin (setActiveSyncAppOptions) or an explicit `sync` override here;
+          // SyncApp registered on this Express app or an explicit `sync` override here;
           // with neither, the handlers still install and reject unknown collections.
           installSyncSocketHandlers(
             this.io,
             socket as unknown as RealtimeSocketLike,
-            this.config.sync ?? getActiveSyncAppOptions() ?? {},
+            this.config.sync ?? (this.app ? getSyncAppOptions(this.app) : undefined) ?? {},
             {logInfo}
           );
         } catch (error) {
@@ -463,14 +466,12 @@ export class RealtimeApp implements TerrenoPlugin {
       // expired, whose Better Auth session is no longer valid, or whose user has
       // since been disabled; also refreshes socket.data.fullUser (D2) and
       // re-resolves sync room membership (D4) for sockets that remain valid.
-      // A thunk (not a snapshot) so `sync` — the SyncApp plugin's published options,
-      // read by the connection handler fresh per socket too — never goes stale if
-      // SyncApp registers after RealtimeApp.onServerCreated() runs.
+      // A thunk (not a snapshot) reads this app's SyncApp options fresh on every sweep.
       this.sessionRevalidation = startSessionRevalidationSweep(this.io, () => ({
         betterAuth: this.config.betterAuth,
         intervalMs: this.config.sessionRevalidationIntervalMs,
         logInfo,
-        sync: this.config.sync ?? getActiveSyncAppOptions() ?? undefined,
+        sync: this.config.sync ?? (this.app ? getSyncAppOptions(this.app) : undefined),
         userModel: this.config.userModel,
       }));
 

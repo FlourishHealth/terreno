@@ -39,10 +39,8 @@ import type {
  *
  * ## Wiring
  *
- * `RealtimeApp` installs these handlers on every connection, reading the active
- * `SyncAppOptions` registered by the `SyncApp` plugin (`setActiveSyncAppOptions`), so
- * `getUserScopes` is configured exactly once — on `SyncApp` — regardless of plugin
- * registration order.
+ * `RealtimeApp` installs these handlers on every connection with the `SyncAppOptions`
+ * attached to the same Express application, so multiple app instances stay isolated.
  */
 
 /** Maximum distinct collection subscriptions per socket (DoS protection). */
@@ -60,27 +58,6 @@ export const MAX_SYNC_MUTATIONS_PER_SECOND = 100;
 
 /** The Socket.io room a sync stream fans out through. */
 export const syncRoomForStream = (stream: string): string => `sync:${stream}`;
-
-/**
- * Active SyncAppOptions shared between the SyncApp plugin (which owns configuration such
- * as `getUserScopes`) and RealtimeApp's connection handler (which installs the socket
- * handlers). Module-level like the sync registry so plugin registration order is
- * irrelevant.
- */
-let activeSyncAppOptions: SyncAppOptions | null = null;
-
-/** Called by SyncApp.register so socket handlers share the plugin's options. */
-export const setActiveSyncAppOptions = (options: SyncAppOptions): void => {
-  activeSyncAppOptions = options;
-};
-
-/** The options registered by the SyncApp plugin, if any. */
-export const getActiveSyncAppOptions = (): SyncAppOptions | null => activeSyncAppOptions;
-
-/** Clear the active options (for testing). */
-export const clearActiveSyncAppOptions = (): void => {
-  activeSyncAppOptions = null;
-};
 
 /**
  * Minimal shape this module requires from a Socket.io socket. Matches

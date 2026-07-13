@@ -31,17 +31,14 @@ import {
 } from "./registry";
 import type {SyncAppOptions} from "./routes";
 import {
-  clearActiveSyncAppOptions,
-  getActiveSyncAppOptions,
   installSyncSocketHandlers,
   MAX_SYNC_COLLECTION_SUBSCRIPTIONS,
   MAX_SYNC_MUTATIONS_PER_SECOND,
   MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH,
   type SyncSocketLike,
-  setActiveSyncAppOptions,
   syncRoomForStream,
 } from "./socketHandlers";
-import {SyncApp} from "./syncApp";
+import {getSyncAppOptions, SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 import type {SyncAck, SyncDelta, SyncNack} from "./types";
 
@@ -772,28 +769,18 @@ describe("installSyncSocketHandlers — sync:mutateBatch", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Active SyncAppOptions wiring (SyncApp -> RealtimeApp)
+// Per-app SyncAppOptions wiring (SyncApp -> RealtimeApp)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("active SyncAppOptions", () => {
-  afterEach(() => {
-    clearActiveSyncAppOptions();
-  });
-
-  it("SyncApp.register publishes its options for the socket layer", async () => {
+describe("SyncAppOptions context", () => {
+  it("SyncApp.register attaches its options to only its Express app", async () => {
     const express = (await import("express")).default;
-    const app = express();
+    const firstApp = express();
+    const secondApp = express();
     const options: SyncAppOptions = {getUserScopes: () => ["orgX"]};
-    new SyncApp(options).register(app);
-    expect(getActiveSyncAppOptions()).toBe(options);
-  });
-
-  it("set/get/clear round-trips", () => {
-    const options: SyncAppOptions = {};
-    setActiveSyncAppOptions(options);
-    expect(getActiveSyncAppOptions()).toBe(options);
-    clearActiveSyncAppOptions();
-    expect(getActiveSyncAppOptions()).toBeNull();
+    new SyncApp(options).register(firstApp);
+    expect(getSyncAppOptions(firstApp)).toBe(options);
+    expect(getSyncAppOptions(secondApp)).toBeUndefined();
   });
 });
 
