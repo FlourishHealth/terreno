@@ -46,7 +46,7 @@ type Family = MainFamily | StatusFamily;
 let messageCounter = 0;
 const nextId = (): string => {
   messageCounter += 1;
-  return `msg-${Date.now()}-${messageCounter}`;
+  return `msg-${DateTime.now().toMillis()}-${messageCounter}`;
 };
 
 const makeMessage = (role: ChatMessage["role"], text: string): ChatMessage => ({
