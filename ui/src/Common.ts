@@ -1958,6 +1958,13 @@ export interface IconButtonProps extends WithTestID {
   size?: "default" | "sm";
 
   /**
+   * Controls the button's interaction state. Use Default for standard button appearance
+   * and Active to indicate a selected or currently engaged state.
+   * @default "default"
+   */
+  state?: "default" | "active";
+
+  /**
    * The ideal position of the tooltip.
    */
   tooltipIdealPosition?: TooltipPosition;
