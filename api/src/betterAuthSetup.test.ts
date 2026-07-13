@@ -1,5 +1,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 import express from "express";
 import {MongoMemoryServer} from "mongodb-memory-server";
 import mongoose, {Schema} from "mongoose";
@@ -98,6 +99,39 @@ describe("createBetterAuth", () => {
 
     expect(auth).toBeDefined();
     expect(auth.api).toBeDefined();
+  });
+
+  it("sets cross-site session cookies when crossDomainCookies is enabled", async () => {
+    await setup;
+    const origin = "https://frontend.example.com";
+    const config: BetterAuthConfig = {
+      baseURL: "https://api.example.com",
+      crossDomainCookies: true,
+      enabled: true,
+      secret: "test-secret-at-least-32-characters-long",
+      trustedOrigins: [origin],
+    };
+    const auth = createBetterAuth({config, mongoClient: getClient()});
+
+    const response = await auth.handler(
+      new Request("https://api.example.com/api/auth/sign-up/email", {
+        body: JSON.stringify({
+          email: "cross-domain-cookie@example.com",
+          name: "Cross Domain",
+          password: "testpassword123",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          Origin: origin,
+        },
+        method: "POST",
+      })
+    );
+    const setCookie = response.headers.get("set-cookie") ?? "";
+
+    assert.isTrue(response.ok);
+    assert.include(setCookie.toLowerCase(), "samesite=none");
+    assert.include(setCookie.toLowerCase(), "secure");
   });
 
   it("creates instance with social providers", async () => {

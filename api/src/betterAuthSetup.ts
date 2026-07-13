@@ -86,6 +86,15 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
   }
 
   const auth = betterAuth({
+    advanced: config.crossDomainCookies
+      ? {
+          defaultCookieAttributes: {
+            httpOnly: true,
+            sameSite: "none",
+            secure: true,
+          },
+        }
+      : undefined,
     basePath,
     baseURL,
     database: mongodbAdapter(mongoClient.db()),
