@@ -1,5 +1,5 @@
 ---
-name: terreno-roast
+name: terreno-2-roast
 description: Implement an approved IP in code via strict TDD with independent review checkpoints and drift detection. Use ONLY when an approved IP exists — not for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
 ---
 
@@ -116,4 +116,4 @@ For every commit:
 - All planned implementation tasks for the scoped slice are complete.
 - Tests are credible under anti-mocking rules.
 - No unresolved review findings remain from independent sub-agents.
-- Work is ready for **Pour** (`plugins/terreno-planning/skills/terreno-pour/SKILL.md`).
+- Work is ready for **Pour** (`plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`).
