@@ -31,7 +31,7 @@ app.get("/secure", authenticateMiddleware(), (_req, res) => {
 
 app.use(apiUnauthorizedMiddleware);
 app.use(apiErrorMiddleware);
-// Terreno's fallthrough: anything reaching here surfaces as a 500. The
+// Terreno's fallthrough turns requests reaching here into a 500. The
 // regression turns auth failures into exactly this kind of error.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   res.status(500).json({status: 500, title: `Fallthrough error: ${err.message}`});

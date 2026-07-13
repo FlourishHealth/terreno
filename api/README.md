@@ -35,14 +35,15 @@ import {Schema} from "mongoose";
 import {DateOnly} from "@terreno/api";
 
 // Register DateOnly type before any models are loaded
-(Schema.Types as any).DateOnly = DateOnly;
+const schemaTypes = Schema.Types as typeof Schema.Types & {DateOnly: typeof DateOnly};
+schemaTypes.DateOnly = DateOnly;
 ```
 
 Then you can use it in your schemas:
 
 ```typescript
 const eventSchema = new Schema({
-  eventDate: {type: Schema.Types.DateOnly},
+  eventDate: {type: schemaTypes.DateOnly},
 });
 ```
 
@@ -237,7 +238,7 @@ Sentry.init({
   integrations: [
     // Only profile integration needs to be added, the rest are defaults and are already added,
     // including Express, mongoose, HTTP, etc.
-    nodeProfilingIntegration() as any,
+    nodeProfilingIntegration(),
   ],
   // Debug can be helpful for figuruing out why something isn't working.
   // debug: true,
