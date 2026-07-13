@@ -54,7 +54,7 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
     });
   };
 
-  test("conflict surfaces both versions; 'use server' resolves to the server value", async ({
+  test("conflict surfaces both timed versions; 'use server for all' accepts server state", async ({
     page,
   }) => {
     await produceConflict(page);
@@ -67,8 +67,15 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
     // "Conflict target") and the server version ("Server edit").
     await expect(conflictItem).toContainText("Conflict target");
     await expect(conflictItem).toContainText("Server edit");
+    await expect(page.getByTestId(`conflict-local-time-${target._id}`)).not.toHaveText(
+      "Time unavailable"
+    );
+    await expect(page.getByTestId(`conflict-server-time-${target._id}`)).not.toHaveText(
+      "Time unavailable"
+    );
 
-    await page.getByTestId("conflict-use-server-button").click();
+    await page.getByRole("button", {exact: true, name: "Use server for all"}).click();
+    await page.getByRole("button", {exact: true, name: "Confirm"}).click();
 
     await expect(page.getByTestId("sync-conflict-badge-clickable")).toBeHidden({
       timeout: CONVERGE_TIMEOUT,
@@ -91,7 +98,7 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
 
     await page.getByTestId("sync-conflict-badge-clickable").click();
     await expect(page.getByTestId(`conflict-item-${target._id}`)).toBeVisible();
-    await page.getByTestId("conflict-keep-mine-button").click();
+    await page.getByRole("button", {exact: true, name: "Keep mine"}).click();
 
     await expect(page.getByTestId("sync-conflict-badge-clickable")).toBeHidden({
       timeout: CONVERGE_TIMEOUT,

@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback} from "react";
 
@@ -54,6 +55,18 @@ const describeData = (data: Record<string, unknown>): string => {
   return json.length > 120 ? `${json.slice(0, 120)}…` : json;
 };
 
+const formatConflictTime = (data: Record<string, unknown>): string => {
+  const value = data.updated ?? data.updatedAt ?? data.created ?? data.createdAt;
+  if (typeof value !== "string") {
+    return "Time unavailable";
+  }
+  const dateTime = DateTime.fromISO(value);
+  if (!dateTime.isValid) {
+    return "Time unavailable";
+  }
+  return dateTime.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
+};
+
 const ConflictItem: React.FC<{
   conflict: SyncConflictItem;
   onResolve: (args: {mutationId: string; strategy: SyncConflictResolutionStrategy}) => void;
@@ -85,11 +98,25 @@ const ConflictItem: React.FC<{
           <Text bold color="secondaryDark" size="sm">
             Yours
           </Text>
+          <Text
+            color="secondaryLight"
+            size="sm"
+            testID={`conflict-local-time-${conflict.entityId}`}
+          >
+            {formatConflictTime(local)}
+          </Text>
           <Text size="sm">{describeData(local)}</Text>
         </Box>
         <Box flex="grow" gap={1}>
           <Text bold color="secondaryDark" size="sm">
             Server
+          </Text>
+          <Text
+            color="secondaryLight"
+            size="sm"
+            testID={`conflict-server-time-${conflict.entityId}`}
+          >
+            {formatConflictTime(server)}
           </Text>
           <Text size="sm">{describeData(server)}</Text>
         </Box>
@@ -113,10 +140,10 @@ const ConflictItem: React.FC<{
 };
 
 /**
- * Presentational modal listing unresolved sync conflicts with local ("Yours") vs server values side
- * by side and keep-mine / use-server actions. It is data-layer agnostic: pass `conflicts` and an
- * `onResolve` callback (e.g. from @terreno/syncdb's `useConflicts`). Resolving the last conflict
- * dismisses the sheet.
+ * Presentational modal listing unresolved sync conflicts with local ("Yours") vs server values and
+ * timestamps side by side. Users can resolve conflicts individually or replace every local version
+ * with its server version after confirmation. It is data-layer agnostic: pass `conflicts` and an
+ * `onResolve` callback (e.g. from @terreno/syncdb's `useConflicts`).
  */
 export const ConflictSheet: React.FC<ConflictSheetProps> = ({
   visible,
@@ -135,15 +162,37 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
     [conflicts.length, onDismiss, onResolve]
   );
 
+  const handleUseServerForAll = useCallback((): void => {
+    for (const conflict of conflicts) {
+      onResolve({mutationId: conflict.mutationId, strategy: "useServer"});
+    }
+    onDismiss();
+  }, [conflicts, onDismiss, onResolve]);
+
   return (
     <Modal onDismiss={onDismiss} title="Sync conflicts" visible={visible}>
       <Box gap={3} testID={testID}>
         {conflicts.length === 0 ? (
           <Text color="secondaryLight">No conflicts to resolve.</Text>
         ) : (
-          conflicts.map((conflict) => (
-            <ConflictItem conflict={conflict} key={conflict.mutationId} onResolve={handleResolve} />
-          ))
+          <>
+            <Button
+              confirmationText="This replaces all of your conflicting local changes with the server versions."
+              modalTitle="Use server versions?"
+              onClick={handleUseServerForAll}
+              testID="conflict-use-server-all-button"
+              text="Use server for all"
+              variant="destructive"
+              withConfirmation
+            />
+            {conflicts.map((conflict) => (
+              <ConflictItem
+                conflict={conflict}
+                key={conflict.mutationId}
+                onResolve={handleResolve}
+              />
+            ))}
+          </>
         )}
       </Box>
     </Modal>

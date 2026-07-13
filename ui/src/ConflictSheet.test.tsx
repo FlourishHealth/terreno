@@ -7,9 +7,9 @@ import {renderWithTheme} from "./test-utils";
 const buildConflict = (overrides?: Partial<SyncConflictItem>): SyncConflictItem => ({
   collection: "todos",
   entityId: "todo-1",
-  localData: JSON.stringify({title: "My local title"}),
+  localData: JSON.stringify({title: "My local title", updated: "2026-01-02T15:04:00.000Z"}),
   mutationId: "m-1",
-  serverData: JSON.stringify({title: "Server title"}),
+  serverData: JSON.stringify({title: "Server title", updated: "2026-01-02T16:05:00.000Z"}),
   ...overrides,
 });
 
@@ -28,6 +28,27 @@ describe("ConflictSheet", () => {
     expect(getByTestId("conflict-item-todo-1")).toBeTruthy();
     expect(getByText("My local title")).toBeTruthy();
     expect(getByText("Server title")).toBeTruthy();
+    expect(getByTestId("conflict-local-time-todo-1")).toBeTruthy();
+    expect(getByTestId("conflict-server-time-todo-1")).toBeTruthy();
+    expect(getByText("Jan 2, 2026, 10:04:00 AM")).toBeTruthy();
+    expect(getByText("Jan 2, 2026, 11:05:00 AM")).toBeTruthy();
+  });
+
+  it("always renders a time row when conflict payloads have no usable timestamp", () => {
+    const {getAllByText} = renderWithTheme(
+      <ConflictSheet
+        conflicts={[
+          buildConflict({
+            localData: JSON.stringify({title: "Local without time"}),
+            serverData: JSON.stringify({title: "Server without time"}),
+          }),
+        ]}
+        onDismiss={() => {}}
+        onResolve={() => {}}
+        visible={true}
+      />
+    );
+    expect(getAllByText("Time unavailable")).toHaveLength(2);
   });
 
   it("shows an empty state when there are no conflicts", () => {
@@ -71,6 +92,30 @@ describe("ConflictSheet", () => {
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toEqual({mutationId: "m-1", strategy: "useServer"});
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("uses the server version for every conflict and dismisses after confirmation", async () => {
+    const onResolve = mock(() => {});
+    const onDismiss = mock(() => {});
+    const {findByText, getByTestId} = renderWithTheme(
+      <ConflictSheet
+        conflicts={[buildConflict(), buildConflict({entityId: "todo-2", mutationId: "m-2"})]}
+        onDismiss={onDismiss}
+        onResolve={onResolve}
+        visible={true}
+      />
+    );
+
+    fireEvent.press(getByTestId("conflict-use-server-all-button"));
+    fireEvent.press(await findByText("Confirm"));
+    await flush();
+
+    expect(onResolve).toHaveBeenCalledTimes(2);
+    expect(onResolve.mock.calls.map(([args]) => args)).toEqual([
+      {mutationId: "m-1", strategy: "useServer"},
+      {mutationId: "m-2", strategy: "useServer"},
+    ]);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it("suffixes testIDs with mutationId so multiple conflicts never collide (E6, RN Testing Library strict-mode fix)", () => {
