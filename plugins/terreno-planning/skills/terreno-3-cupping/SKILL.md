@@ -1,5 +1,5 @@
 ---
-name: terreno-cupping
+name: terreno-3-cupping
 description: Independently verify a completed implementation against the IP/spec with concrete evidence. Use ONLY when implementation already exists — not for writing feature code, planning the IP, or running the PR submission/review loop.
 ---
 
