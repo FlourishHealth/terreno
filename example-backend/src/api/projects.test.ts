@@ -24,6 +24,8 @@ import {projectRouter} from "./projects";
 describe("projects tenant create-escape (D3)", () => {
   const orgA = "org-a";
   const orgB = "org-b";
+  const getUserScopes = (user: User): string[] =>
+    (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
 
   const buildApp = () => {
     process.env.TOKEN_SECRET = "test-secret";
@@ -137,6 +139,7 @@ describe("projects tenant create-escape (D3)", () => {
           mutationId: `d3-sync-${Date.now()}-1`,
           operation: "create",
         },
+        scopeResolver: getUserScopes,
         user: asFullUser(user),
       });
 
@@ -157,6 +160,7 @@ describe("projects tenant create-escape (D3)", () => {
           mutationId: `d3-sync-${Date.now()}-2`,
           operation: "create",
         },
+        scopeResolver: getUserScopes,
         user: asFullUser(user),
       });
 
@@ -183,7 +187,7 @@ describe("projects tenant create-escape (D3)", () => {
       };
 
       installSyncSocketHandlers(null, socket, {
-        getUserScopes: () => [orgA],
+        getUserScopes,
       });
 
       const mutateHandler = handlers.get("sync:mutate");
