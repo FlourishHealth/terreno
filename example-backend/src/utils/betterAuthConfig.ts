@@ -42,6 +42,7 @@ export const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 
   const config: BetterAuthConfig = {
     baseURL: process.env.BETTER_AUTH_URL ?? DEFAULT_BETTER_AUTH_URL,
+    crossDomainCookies: process.env.CROSS_DOMAIN_AUTH_COOKIES === "true",
     enabled: true,
     secret: process.env.BETTER_AUTH_SECRET ?? DEFAULT_BETTER_AUTH_SECRET,
     trustedOrigins: [...APP_SCHEMES, ...getWebOrigins()],

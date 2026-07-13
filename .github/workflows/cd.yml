@@ -282,6 +282,7 @@ jobs:
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
             CORS_ORIGINS=https://terreno-frontend.netlify.app
+            CROSS_DOMAIN_AUTH_COOKIES=true
             ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
@@ -429,6 +430,7 @@ jobs:
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
             CORS_ORIGINS=https://pr-${{ github.event.pull_request.number }}--terreno-frontend.netlify.app
+            CROSS_DOMAIN_AUTH_COOKIES=true
             MONGO_DB_NAME=terreno-example-pr-${{ github.event.pull_request.number }}
             SEED_DEFAULTS=true
             ${{ steps.better-auth.outputs.env_vars }}
