@@ -42,6 +42,7 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
+import {seedDefaultData} from "./scripts/seed-test-data";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
@@ -76,6 +77,11 @@ const createOpenApiAwareRouteRegistration = (
 export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
+
+  if (process.env.SEED_DEFAULTS === "true") {
+    logger.info("Seeding default example data");
+    await seedDefaultData();
+  }
 
   // Sync default consent forms on startup
   await syncConsents(consentDefinitions).catch((err: unknown) => {

@@ -273,23 +273,27 @@ const seedConsentForms = async (): Promise<void> => {
   );
 };
 
+/** Seed the idempotent example users and records into the active MongoDB database. */
+export const seedDefaultData = async (): Promise<void> => {
+  const seededUsers: UserDocument[] = [];
+  for (const testUser of TEST_USERS) {
+    seededUsers.push(await seedUser(testUser));
+  }
+
+  await seedProjects();
+  // A couple of todos for the non-admin test user (owner-scoped sync stream).
+  if (seededUsers[0]) {
+    await seedTodos(seededUsers[0]);
+  }
+
+  await seedConsentForms();
+};
+
 const main = async (): Promise<void> => {
   try {
     logger.info("Connecting to MongoDB...");
     await connectToMongoDB();
-
-    const seededUsers: UserDocument[] = [];
-    for (const testUser of TEST_USERS) {
-      seededUsers.push(await seedUser(testUser));
-    }
-
-    await seedProjects();
-    // A couple of todos for the non-admin test user (owner-scoped sync stream).
-    if (seededUsers[0]) {
-      await seedTodos(seededUsers[0]);
-    }
-
-    await seedConsentForms();
+    await seedDefaultData();
 
     await Configuration.shutdown();
     await mongoose.disconnect();
@@ -300,7 +304,9 @@ const main = async (): Promise<void> => {
   }
 };
 
-main().catch((error: unknown) => {
-  logger.error(`Unhandled error: ${error}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    logger.error(`Unhandled error: ${error}`);
+    process.exit(1);
+  });
+}
