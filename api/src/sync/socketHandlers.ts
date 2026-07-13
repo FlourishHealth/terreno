@@ -288,7 +288,13 @@ export const installSyncSocketHandlers = (
       }
 
       try {
-        respond(await applySyncMutation({mutation: payload, user}));
+        respond(
+          await applySyncMutation({
+            mutation: payload,
+            scopeResolver: options.getUserScopes,
+            user,
+          })
+        );
       } catch (error: unknown) {
         logger.error(`[sync] sync:mutate failed for socket ${socket.id}: ${error}`);
         nack({code: "error", message: "Internal error applying mutation"});
@@ -356,7 +362,13 @@ export const installSyncSocketHandlers = (
       }
 
       try {
-        respondBatch(await applySyncMutationBatch({mutations, user}));
+        respondBatch(
+          await applySyncMutationBatch({
+            mutations,
+            scopeResolver: options.getUserScopes,
+            user,
+          })
+        );
       } catch (error: unknown) {
         logger.error(`[sync] sync:mutateBatch failed for socket ${socket.id}: ${error}`);
         singleNackBatch({code: "error", message: "Internal error applying batch"});

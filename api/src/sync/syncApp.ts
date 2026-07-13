@@ -1,6 +1,5 @@
 import type express from "express";
 import type {TerrenoPlugin} from "../terrenoPlugin";
-import {setSyncMutationScopeResolver} from "./mutationHandler";
 import {addSyncRoutes, type SyncAppOptions} from "./routes";
 
 const SYNC_APP_OPTIONS_LOCAL_KEY = "terrenoSyncAppOptions";
@@ -29,8 +28,6 @@ export class SyncApp implements TerrenoPlugin {
 
   register(app: express.Application): void {
     app.locals[SYNC_APP_OPTIONS_LOCAL_KEY] = this.options;
-    // C6: the mutation-scope backstop resolves tenant memberships via the same resolver.
-    setSyncMutationScopeResolver(this.options.getUserScopes);
     addSyncRoutes(app, this.options);
   }
 }
