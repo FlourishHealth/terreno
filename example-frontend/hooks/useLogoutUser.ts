@@ -1,7 +1,6 @@
 import {useCallback} from "react";
+import {logout, useAppDispatch} from "@/store/index";
 import {terrenoApi} from "@/store/sdk";
-import {logout} from "@/store/index";
-import {useAppDispatch} from "@/store/index";
 
 type LogoutUser = () => void;
 

@@ -5,7 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@stories": ["stories"],
+      "@stories/*": ["stories/*"],
       "@components": ["components"],
+      "@components/*": ["components/*"],
       "@config": ["demoConfig"],
       "@contexts/*": ["contexts/*"],
       "@story-config": ["story-config"]

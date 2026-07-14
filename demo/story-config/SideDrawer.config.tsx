@@ -1,5 +1,6 @@
 import {DemoConfiguration} from "@config";
-import {DefaultDemo, DrawerStory} from "@stories/SideDrawer.stories";
+import {DefaultDemo} from "@stories/DefaultDemo";
+import {DrawerStory} from "@stories/SideDrawer.stories";
 import {SideDrawer} from "@terreno/ui";
 import React from "react";
 
