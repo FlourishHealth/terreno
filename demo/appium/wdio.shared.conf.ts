@@ -30,7 +30,9 @@ const resolvedSpecs =
 
 const configuredSpecFileRetries = parseEnvNumber(process.env.APPIUM_SPEC_FILE_RETRIES);
 const specFileRetries = configuredSpecFileRetries ?? (isQuickLoop ? 0 : isCi ? 1 : 0);
-const quickLoopConnectionRetryTimeout = isIosRun ? 480000 : 120000;
+// iOS session creation in CI includes simulator prep + app install + WDA boot.
+// Keep this above the combined startup budgets to avoid aborting /session early.
+const quickLoopConnectionRetryTimeout = isIosRun ? 780000 : 120000;
 const resolvedConnectionRetryTimeout = isQuickLoop
   ? quickLoopConnectionRetryTimeout
   : isCi
