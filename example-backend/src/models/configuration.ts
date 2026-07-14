@@ -2,7 +2,11 @@ import {SecretManagerServiceClient} from "@google-cloud/secret-manager";
 import * as Sentry from "@sentry/bun";
 import {APIError, logger} from "@terreno/api";
 import mongoose from "mongoose";
-import type {ConfigurationDocument, ConfigurationModel, ConfigValueType} from "../types/models/configurationTypes";
+import type {
+  ConfigurationDocument,
+  ConfigurationModel,
+  ConfigValueType,
+} from "../types/models/configurationTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 /**
