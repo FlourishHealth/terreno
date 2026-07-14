@@ -33,11 +33,23 @@ mock.module("./useAdminApi", () => ({
   }),
 }));
 
-mock.module("./AdminVersionConfig", () => ({
-  AdminVersionConfig: () => <React.Fragment />,
-}));
-
 import {AdminHome} from "./AdminHome";
+
+const adminApi = {
+  injectEndpoints: ({endpoints}: {endpoints: (builder: unknown) => Record<string, unknown>}) => {
+    endpoints({
+      mutation: (spec: Record<string, unknown>) => spec,
+      query: (spec: Record<string, unknown>) => spec,
+    });
+    return {
+      useAdminVersionConfigQuery: () => ({data: null, error: null, isLoading: false}),
+      useUpdateVersionConfigMutation: () => [
+        () => ({unwrap: async () => ({})}),
+        {isLoading: false},
+      ],
+    };
+  },
+} as unknown as AdminApi;
 
 const buildConfig = (overrides?: Partial<AdminConfigResponse>): AdminConfigResponse => ({
   customScreens: [],
@@ -108,9 +120,7 @@ describe("AdminHome", () => {
 
   it("renders scriptRunner in the top band with contentTop widgets on the same row, not inside main", () => {
     configState.config = buildConfig();
-    const {UNSAFE_root} = renderWithTheme(
-      <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
-    );
+    const {UNSAFE_root} = renderWithTheme(<AdminHome api={adminApi} baseUrl="/admin" />);
     const top = UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-top"
     );
@@ -130,9 +140,7 @@ describe("AdminHome", () => {
 
   it("shows per-model row counts on each model card", () => {
     configState.config = buildConfig();
-    const {UNSAFE_root} = renderWithTheme(
-      <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
-    );
+    const {UNSAFE_root} = renderWithTheme(<AdminHome api={adminApi} baseUrl="/admin" />);
     const modelCountLabels = UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-home-model-count-Widget"
     );
@@ -150,9 +158,7 @@ describe("AdminHome", () => {
         title: "Test Admin",
       },
     });
-    const {UNSAFE_root} = renderWithTheme(
-      <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
-    );
+    const {UNSAFE_root} = renderWithTheme(<AdminHome api={adminApi} baseUrl="/admin" />);
     const mainSlots = UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-main"
     );
@@ -176,9 +182,7 @@ describe("AdminHome", () => {
         title: "Test Admin",
       },
     });
-    const {UNSAFE_root} = renderWithTheme(
-      <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
-    );
+    const {UNSAFE_root} = renderWithTheme(<AdminHome api={adminApi} baseUrl="/admin" />);
     const sidebar = UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-sidebar"
     );
@@ -204,5 +208,11 @@ describe("AdminHome", () => {
     walk(sidebarSlot);
     expect(ids[ids.length - 1]).toBe("admin-home-widget-recentActivity");
     expect(ids[0]).toBe("admin-home-widget-modelsGrid");
+  });
+
+  it("renders the real version config widget without replacing its module", () => {
+    configState.config = buildConfig();
+    const {getByTestId} = renderWithTheme(<AdminHome api={adminApi} baseUrl="/admin" />);
+    expect(getByTestId("admin-version-config-widget")).toBeTruthy();
   });
 });

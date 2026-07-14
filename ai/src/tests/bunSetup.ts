@@ -1,6 +1,10 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {registerSimpleMongoPreload} from "@terreno/test";
 
+if (!process.env.TERRENO_TEST_MONGODB_URI?.trim()) {
+  process.env.TERRENO_TEST_USE_MEMORY_MONGO = "true";
+}
+
 registerSimpleMongoPreload({
   defaultLocalMongoUri: "mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000",
   onBeforeEach: async () => {
