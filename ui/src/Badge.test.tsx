@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
 
 import {Badge} from "./Badge";
@@ -93,7 +92,7 @@ describe("Badge", () => {
         secondary
         status="custom"
         testID="custom-badge"
-        {...(customColors as any)}
+        {...customColors}
       />
     );
 
