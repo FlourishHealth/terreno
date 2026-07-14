@@ -21,8 +21,8 @@ const mockSentry = {
 // Mock @sentry/react
 mock.module("@sentry/react", () => mockSentry);
 
-// Mock @utils
-mock.module("@utils", () => ({
+// Mock @/utils/sentry
+mock.module("@/utils/sentry", () => ({
   captureException: mock(() => {}),
   captureMessage: mock(() => {}),
 }));

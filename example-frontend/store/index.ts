@@ -7,11 +7,11 @@ import {
   type QueuedMutation,
   registerTerrenoDevStore,
 } from "@terreno/rtk";
-import {createSentryReduxEnhancer} from "@utils/sentry";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage as PersistStorage} from "redux-persist";
 import {createTransform, persistReducer, persistStore} from "redux-persist";
+import {createSentryReduxEnhancer} from "@/utils/sentry";
 
 import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
