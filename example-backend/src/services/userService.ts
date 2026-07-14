@@ -1,6 +1,6 @@
 import {APIError, logger} from "@terreno/api";
 import {User} from "../models/user";
-import type {UserDocument} from "../types";
+import type {UserDocument} from "../types/models/userTypes";
 
 export const userService = {
   createUser: async ({email, name}: {email: string; name: string}): Promise<UserDocument> => {

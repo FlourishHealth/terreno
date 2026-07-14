@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 
-import {DefaultDemo, ThemeComponentStories, ThemeFontStories} from "../stories";
+import {DefaultDemo, ThemeComponentStories, ThemeFontStories} from "../stories/Theme.stories";
 
 export const ThemeConfiguration: DemoConfiguration = {
   name: "Theme",

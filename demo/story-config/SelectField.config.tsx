@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {SelectFieldDemo, SelectFieldExamples, SelectFieldLongListDemo, SelectFieldSearchableDemo} from "@stories";
+import {SelectFieldDemo, SelectFieldExamples, SelectFieldLongListDemo, SelectFieldSearchableDemo} from "@stories/SelectField.stories";
 import {SelectField} from "@terreno/ui";
 import React from "react";
 

@@ -2,7 +2,9 @@ import type {FC} from "react";
 import {View} from "react-native";
 
 import type {SelectFieldProps} from "./Common";
-import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {RNPickerSelect} from "./PickerSelect";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 

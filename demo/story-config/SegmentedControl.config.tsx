@@ -6,7 +6,7 @@ import {
   ScrollingWithBadges,
   SegmentedControlDemo,
   WithBadges,
-} from "@stories";
+} from "@stories/SegmentedControl.stories";
 import {SegmentedControl} from "@terreno/ui";
 
 export const SegmentedControlConfiguration: DemoConfiguration = {

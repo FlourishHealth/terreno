@@ -1,7 +1,7 @@
 import type {Middleware} from "@reduxjs/toolkit";
 import * as Sentry from "@sentry/react";
 import {useToast} from "@terreno/ui";
-import {captureException, captureMessage} from "@utils";
+import {captureException, captureMessage} from "@utils/sentry";
 
 // Define development check that works in both React Native and web environments
 const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";

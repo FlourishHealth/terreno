@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
-import type {UserDocument, UserModel} from "../types";
+import type {UserDocument, UserModel} from "../types/models/userTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 // Handle bundling interop - bun build --compile wraps the export incorrectly

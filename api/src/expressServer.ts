@@ -8,7 +8,7 @@ import onFinished from "on-finished";
 import passport from "passport";
 import type {ModelRouterOptions} from "./api";
 import {type LoggingOptions, logger} from "./logger";
-import {sendToSlack} from "./notifiers";
+import {sendToSlack} from "./notifiers/slackNotifier";
 
 const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;

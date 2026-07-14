@@ -1,6 +1,6 @@
 import type {ModelRouterOptions} from "@terreno/api";
 import {modelRouter, Permissions} from "@terreno/api";
-import {User} from "../models";
+import {User} from "../models/user";
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic
 const serializeUser = (doc: any): Record<string, unknown> => {

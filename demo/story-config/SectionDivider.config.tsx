@@ -4,7 +4,7 @@ import {
   SectionDividerInCard,
   SectionDividerInList,
   SectionDividerSpacing,
-} from "@stories";
+} from "@stories/SectionDivider.stories";
 import {SectionDivider} from "@terreno/ui";
 
 export const SectionDividerConfiguration: DemoConfiguration = {

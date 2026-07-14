@@ -1,7 +1,7 @@
 import type {ModelRouterOptions} from "@terreno/api";
 import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
 import type express from "express";
-import {User} from "../models";
+import {User} from "../models/user";
 
 interface SetUserPasswordRequest {
   password?: string;

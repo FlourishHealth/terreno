@@ -11,3 +11,4 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [GCP hosting architecture](gcp-hosting-architecture.md) — Static site hosting with GCS and Cloud CDN
 - [Modular API design](modular-api-design.md) — 🚧 Why TerrenoApp replaces setupServer
 - [modelRouter actions](model-router-actions.md) — Named collection and instance operations on modelRouter
+- [No barrel imports](no-barrel-imports.md) — Import concrete modules, not `index` re-export barrels

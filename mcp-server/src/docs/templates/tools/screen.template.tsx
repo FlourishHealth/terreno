@@ -2,7 +2,7 @@ import {Box, Page, Text, Spinner{additionalImports}} from "@terreno/ui";
 
 import type React from "react";
 
-{hookImports}{sdkHooks}} from "@/store";
+{hookImports}{sdkHooks}} from "@/store/sdk";
 
 const {{Name}}Screen: React.FC = () => {queryHooks
 

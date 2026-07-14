@@ -1,0 +1,40 @@
+name: Repository policies
+
+on:
+  push:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "scripts/check-no-barrel-imports.ts"
+      - "docs/explanation/no-barrel-imports.md"
+      - ".github/workflows/repo-policies.yml"
+  pull_request:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "scripts/check-no-barrel-imports.ts"
+      - "docs/explanation/no-barrel-imports.md"
+      - ".github/workflows/repo-policies.yml"
+
+jobs:
+  no-barrel-imports:
+    name: No barrel imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Check for barrel imports
+        run: bun run check:no-barrel-imports

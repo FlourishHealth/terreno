@@ -1,4 +1,4 @@
-import {ErrorBoundary} from "@components";
+import {ErrorBoundary} from "@components/ErrorBoundary";
 import {DemoConfig} from "@config";
 import {Box} from "@terreno/ui";
 import {router, useLocalSearchParams, useNavigation} from "expo-router";

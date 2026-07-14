@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {CardDemo, CardVariants, DisplayCardDemo, DisplaySizes, LightAndDark, Plain, WithImage} from "@stories";
+import {CardDemo, CardVariants, DisplayCardDemo, DisplaySizes, LightAndDark, Plain, WithImage} from "@stories/Card.stories";
 import {Card} from "@terreno/ui";
 
 export const CardConfiguration: DemoConfiguration = {

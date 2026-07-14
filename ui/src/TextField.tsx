@@ -12,7 +12,9 @@ import {
 
 import {AiSuggestionBox} from "./AiSuggestionBox";
 import type {TextFieldProps, TextStyleWithOutline} from "./Common";
-import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";

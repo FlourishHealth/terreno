@@ -1,5 +1,5 @@
 import {User} from "../models/user";
-import type {UserDocument} from "../types";
+import type {UserDocument} from "../types/models/userTypes";
 
 /**
  * Create a test user with default or custom data

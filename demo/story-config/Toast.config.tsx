@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {ToastDemo, Toasts} from "@stories";
+import {ToastDemo, Toasts} from "@stories/Toast.stories";
 import {Toast} from "@terreno/ui";
 
 export const ToastConfiguration: DemoConfiguration = {

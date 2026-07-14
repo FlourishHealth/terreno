@@ -20,7 +20,7 @@ import {
   useGetAiModelsQuery,
   useGetGptHistoriesQuery,
   usePatchGptHistoriesByIdMutation,
-} from "@/store";
+} from "@/store/sdk";
 
 const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
   id: history.id,

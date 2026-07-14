@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {CustomIcons, IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories";
+import {CustomIcons, IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories/Icon.stories";
 import {Icon} from "@terreno/ui";
 
 export const IconConfiguration: DemoConfiguration = {

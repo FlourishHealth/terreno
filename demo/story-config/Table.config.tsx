@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {SortableExpandableTableStory, StandardTable} from "@stories";
+import {SortableExpandableTableStory, StandardTable} from "@stories/Table.stories";
 import {Table} from "@terreno/ui";
 
 export const TableConfiguration: DemoConfiguration = {
