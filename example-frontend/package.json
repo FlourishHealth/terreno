@@ -8,6 +8,7 @@
     "@reduxjs/toolkit": "catalog:",
     "@sentry/react": "catalog:",
     "@terreno/rtk": "workspace:*",
+    "@terreno/syncdb": "workspace:*",
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",
     "expo-constants": "catalog:",
@@ -33,12 +34,15 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
+    "@rtk-query/codegen-openapi": "^2.2.0",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "catalog:",
     "expo-mcp": "^0.2.4",
     "mongodb": "catalog:",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.1",
     "typescript": "catalog:"
   },
   "main": "index.js",
@@ -57,7 +61,7 @@
     "test": "bun test ./**/*.test.ts ./**/*.test.tsx",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
-    "web": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --web --port 8082"
+    "web": "EXPO_UNSTABLE_MCP_SERVER=1 NODE_OPTIONS=--max-old-space-size=8192 bun expo start --web --port 8082"
   },
   "version": "1.0.0"
 }

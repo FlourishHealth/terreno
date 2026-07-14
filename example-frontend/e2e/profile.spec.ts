@@ -6,7 +6,6 @@ test.describe("Profile", () => {
   test.beforeEach(async ({page}) => {
     await loginAs(page);
     await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
     await page.getByTestId("profile-name-input").first().waitFor({state: "visible"});
   });
 

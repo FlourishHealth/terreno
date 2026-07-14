@@ -24,6 +24,7 @@ import {
   requestContextMiddleware,
   updateRequestContextFromRequest,
 } from "./requestContext";
+import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
 
@@ -426,24 +427,31 @@ export class TerrenoApp {
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
-      try {
-        const server = createServer(app);
+      // Await sync snapshot-index creation before listening so a failed createIndex
+      // (which would degrade the snapshot/catch-up query to a table scan) is a loud
+      // startup error rather than a silent perf cliff. No-op when no sync models are
+      // registered. Detached because start() returns the app synchronously.
+      void (async (): Promise<void> => {
+        try {
+          await ensureSyncIndexes();
+          const server = createServer(app);
 
-        // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
-        for (const reg of this.registrations) {
-          if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-            reg.onServerCreated(server);
+          // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
+          for (const reg of this.registrations) {
+            if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+              reg.onServerCreated(server);
+            }
           }
-        }
 
-        server.listen(port, () => {
-          logger.info(`Listening on port ${port}`);
-        });
-      } catch (error) {
-        const stack = error instanceof Error ? error.stack : String(error);
-        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-        process.exit(1);
-      }
+          server.listen(port, () => {
+            logger.info(`Listening on port ${port}`);
+          });
+        } catch (error) {
+          const stack = error instanceof Error ? error.stack : String(error);
+          logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
+          process.exit(1);
+        }
+      })();
     }
 
     return app;

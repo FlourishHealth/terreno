@@ -17,6 +17,9 @@ registerSimpleMongoPreload({
   },
   onBeforeEach: () => {
     process.env.ADMIN_SPA_ENABLED = "false";
+    process.env.AUTH_PROVIDER = "better-auth";
+    process.env.BETTER_AUTH_SECRET = "terreno-example-test-better-auth-secret-32";
+    process.env.BETTER_AUTH_URL = "http://localhost:4000";
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
   },

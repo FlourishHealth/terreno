@@ -1,0 +1,188 @@
+import type {
+  AuthProvider,
+  SyncAck,
+  SyncMutateBatchRequest,
+  SyncMutateRequest,
+  SyncNack,
+  SyncSnapshotResponse,
+  SyncStreamInfo,
+} from "../types";
+import type {SendMutationBatchResult, SendMutationResult} from "./transport";
+
+/**
+ * Thrown when the server answers 401: the bearer token is missing or expired.
+ * Distinguishable from ordinary transport errors so callers can pause and wait
+ * for the next auth change instead of retrying with the same dead token.
+ */
+export class AuthRequiredError extends Error {
+  constructor(message = "Authentication required") {
+    super(message);
+    this.name = "AuthRequiredError";
+  }
+}
+
+export interface FetchSnapshotPageArgs {
+  /** C2: the stream key to page (e.g. "todos|owner:123"), not a collection. */
+  stream: string;
+  /** Resume cursor (highest seq already applied); 0 = from the beginning. */
+  cursor: number;
+  /** Page size; server default applies when omitted. */
+  limit?: number;
+  /** C3: opaque legacy-stratum token echoed back from a prior page. */
+  legacyCursor?: string;
+}
+
+/**
+ * HTTP side of the sync protocol: snapshot paging for bootstrap/reconcile and
+ * the `POST /sync/mutate` fallback used when the socket is unavailable.
+ */
+export interface HttpChannel {
+  fetchSnapshotPage: (args: FetchSnapshotPageArgs) => Promise<SyncSnapshotResponse>;
+  /**
+   * C2: the authoritative set of streams the caller currently belongs to
+   * (`GET /sync/streams`). Drives join-backfill / leave-purge diffs; 401 rejects with
+   * {@link AuthRequiredError} so a transport/auth error is never mistaken for a
+   * membership change (INV-2).
+   */
+  fetchStreams: () => Promise<SyncStreamInfo[]>;
+  /**
+   * POST the mutation; 200 resolves `{type: "ack"}`, nack statuses
+   * (409/403/422/500 with a `{nack}` body) resolve `{type: "nack"}`, 401
+   * rejects with {@link AuthRequiredError}, anything else rejects.
+   */
+  sendMutation: (request: SyncMutateRequest) => Promise<SendMutationResult>;
+  /**
+   * POST the batch to `/sync/mutate/batch`; resolves `{type: "results", results}`
+   * on 200/422 (both carry a `results` array — see server contract), resolves
+   * `{type: "unsupported"}` on 404 (older server with no batch route), 401
+   * rejects with {@link AuthRequiredError}, anything else rejects.
+   */
+  sendMutationBatch?: (request: SyncMutateBatchRequest) => Promise<SendMutationBatchResult>;
+  /**
+   * Fetch the caller's per-user key material from `GET /sync/key` — feeds the
+   * default server-derived encryption KeyProvider.
+   */
+  fetchKeyMaterial: () => Promise<string>;
+}
+
+/** Minimal fetch signature (global fetch is assignable; tests inject stubs). */
+export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+export interface HttpChannelConfig {
+  /** Server origin, e.g. "http://localhost:4000". */
+  baseUrl: string;
+  /** Token source; `getToken()` is called fresh on every request (never cached). */
+  authProvider: Pick<AuthProvider, "getToken">;
+  /** Fetch implementation override for tests/SSR (defaults to global fetch). */
+  fetchImpl?: FetchLike;
+}
+
+/** Create an {@link HttpChannel} speaking @terreno/api's `/sync/*` routes. */
+export const createHttpChannel = ({
+  baseUrl,
+  authProvider,
+  fetchImpl,
+}: HttpChannelConfig): HttpChannel => {
+  const fetcher: FetchLike = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
+
+  const request = async (path: string, init?: RequestInit): Promise<Response> => {
+    const token = await authProvider.getToken();
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...(init?.body !== undefined ? {"Content-Type": "application/json"} : {}),
+      ...(token ? {Authorization: `Bearer ${token}`} : {}),
+    };
+    const response = await fetcher(`${baseUrl}${path}`, {...init, headers});
+    if (response.status === 401) {
+      throw new AuthRequiredError(`401 from ${path}`);
+    }
+    return response;
+  };
+
+  const fetchSnapshotPage = async ({
+    stream,
+    cursor,
+    limit,
+    legacyCursor,
+  }: FetchSnapshotPageArgs): Promise<SyncSnapshotResponse> => {
+    const query = new URLSearchParams({cursor: String(cursor), stream});
+    if (limit !== undefined) {
+      query.set("limit", String(limit));
+    }
+    if (legacyCursor !== undefined) {
+      query.set("legacyCursor", legacyCursor);
+    }
+    const response = await request(`/sync/snapshot?${query.toString()}`);
+    if (!response.ok) {
+      throw new Error(`Snapshot request for ${stream} failed with status ${response.status}`);
+    }
+    return (await response.json()) as SyncSnapshotResponse;
+  };
+
+  const fetchStreams = async (): Promise<SyncStreamInfo[]> => {
+    const response = await request("/sync/streams");
+    if (!response.ok) {
+      throw new Error(`Sync streams request failed with status ${response.status}`);
+    }
+    const body = (await response.json()) as {streams?: SyncStreamInfo[]};
+    return Array.isArray(body.streams) ? body.streams : [];
+  };
+
+  const sendMutation = async (mutation: SyncMutateRequest): Promise<SendMutationResult> => {
+    const response = await request("/sync/mutate", {
+      body: JSON.stringify(mutation),
+      method: "POST",
+    });
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(`Sync mutate returned a non-JSON response (status ${response.status})`);
+    }
+    const parsed = body as {ack?: SyncAck; nack?: SyncNack};
+    if (response.ok && parsed.ack) {
+      return {ack: parsed.ack, type: "ack"};
+    }
+    if (parsed.nack) {
+      return {nack: parsed.nack, type: "nack"};
+    }
+    throw new Error(`Sync mutate failed with status ${response.status}`);
+  };
+
+  const sendMutationBatch = async (
+    batch: SyncMutateBatchRequest
+  ): Promise<SendMutationBatchResult> => {
+    const response = await request("/sync/mutate/batch", {
+      body: JSON.stringify(batch),
+      method: "POST",
+    });
+    if (response.status === 404) {
+      return {type: "unsupported"};
+    }
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(`Sync mutate batch returned a non-JSON response (status ${response.status})`);
+    }
+    const parsed = body as {results?: SendMutationResult[]};
+    if (!Array.isArray(parsed.results)) {
+      throw new Error(`Sync mutate batch failed with status ${response.status}`);
+    }
+    return {results: parsed.results, type: "results"};
+  };
+
+  const fetchKeyMaterial = async (): Promise<string> => {
+    const response = await request("/sync/key");
+    if (!response.ok) {
+      throw new Error(`Sync key request failed with status ${response.status}`);
+    }
+    const body = (await response.json()) as {keyMaterial?: string};
+    if (!body.keyMaterial) {
+      throw new Error("Sync key response is missing keyMaterial");
+    }
+    return body.keyMaterial;
+  };
+
+  return {fetchKeyMaterial, fetchSnapshotPage, fetchStreams, sendMutation, sendMutationBatch};
+};

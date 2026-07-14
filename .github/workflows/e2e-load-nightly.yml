@@ -1,0 +1,136 @@
+name: E2E Load Tests (nightly)
+
+# Dedicated, non-PR-blocking job for the syncdb-loadlab spec (Phase F4): generates
+# 2000 todos + churn rounds against the admin-guarded /loadtest routes, which is much
+# heavier than the rest of the syncdb-*.spec.ts suite and does not belong in the
+# PR-blocking matrix in e2e-ci.yml. Runs nightly on a schedule, on manual dispatch, or
+# on a PR carrying the `load-test` label — never unconditionally on every PR push.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+  pull_request:
+    types: [labeled]
+
+jobs:
+  e2e-load:
+    name: "E2E Load · syncdb-loadlab"
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.label.name == 'load-test'
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: "6.0"
+          mongodb-image: mirror.gcr.io/library/mongo
+          # Replica set is required for MongoDB change streams,
+          # which power the RealtimeApp WebSocket sync.
+          mongodb-replica-set: rs0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile workspace packages
+        run: bun run compile
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "$BETTER_AUTH_SECRET" ]; then missing+=("BETTER_AUTH_SECRET"); fi
+          if [ -z "$TOKEN_SECRET" ]; then missing+=("TOKEN_SECRET"); fi
+          if [ -z "$REFRESH_TOKEN_SECRET" ]; then missing+=("REFRESH_TOKEN_SECRET"); fi
+          if [ -z "$SESSION_SECRET" ]; then missing+=("SESSION_SECRET"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Start backend
+        run: |
+          bun run src/index.ts &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          # Wait up to 60s for the backend to be healthy (DB connected)
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4000/health | grep -q '"healthy":true'; then
+              echo "Backend ready after ${i}×2s"
+              exit 0
+            fi
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "::error::Backend process exited unexpectedly"
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Backend did not become ready within 60s"
+          exit 1
+        working-directory: example-backend
+        env:
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          BETTER_AUTH_URL: http://localhost:4000
+          PORT: "4000"
+          MONGO_URI: mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-e2e
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+        working-directory: example-frontend
+
+      - name: Run Playwright tests — syncdb-loadlab
+        run: bunx playwright test syncdb-loadlab.spec.ts
+        working-directory: example-frontend
+        env:
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          BETTER_AUTH_URL: http://localhost:4000
+          CI: true
+          MONGO_URI: mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-e2e
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-syncdb-loadlab
+          path: example-frontend/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Playwright test results
+        uses: actions/upload-artifact@v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-test-results-syncdb-loadlab
+          path: example-frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 30

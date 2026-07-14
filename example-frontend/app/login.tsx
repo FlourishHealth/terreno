@@ -3,57 +3,65 @@ import {LoginScreen} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
-import {isBetterAuthEnabled, signInWithEmail, signInWithSocial} from "@/lib/betterAuth";
-import {useEmailLoginMutation} from "@/store";
+import {betterAuthClient, signInWithSocial} from "@/lib/betterAuth";
+import {syncBetterAuthSession, useAppDispatch} from "@/store";
 
 const Login: React.FC = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
-
-  const useBetterAuth = isBetterAuthEnabled();
-
-  const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = useCallback(
     async (values: Record<string, string>): Promise<void> => {
       const {email, password} = values;
-      if (useBetterAuth) {
-        await signInWithEmail(email, password);
-      } else {
-        await emailLogin({email, password}).unwrap();
+      setErrorMessage(undefined);
+      setIsSubmitting(true);
+      try {
+        const result = await betterAuthClient.signIn.email({email, password});
+        if (result.error) {
+          setErrorMessage(result.error.message ?? "Sign in failed.");
+          return;
+        }
+        await syncBetterAuthSession(dispatch);
+        router.replace("/(tabs)");
+      } catch {
+        setErrorMessage("Sign in failed. Please try again.");
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [emailLogin, useBetterAuth]
+    [dispatch, router]
   );
 
   const handleSocialLogin = useCallback(
     async (provider: "google" | "github" | "apple"): Promise<void> => {
       setSocialLoading(provider);
+      setErrorMessage(undefined);
       try {
         await signInWithSocial(provider);
+        await syncBetterAuthSession(dispatch);
+        router.replace("/(tabs)");
+      } catch {
+        setErrorMessage("Sign in failed. Please try again.");
       } finally {
         setSocialLoading(null);
       }
     },
-    []
+    [dispatch, router]
   );
 
   const oauthProviders = useMemo((): LoginScreenProps["oauthProviders"] => {
-    if (!useBetterAuth) {
-      return undefined;
-    }
     return (["google", "github", "apple"] as const).map((provider) => ({
-      disabled: isLoginLoading || Boolean(socialLoading),
+      disabled: isSubmitting || Boolean(socialLoading),
       loading: socialLoading === provider,
       onPress: () => handleSocialLogin(provider),
       provider,
     }));
-  }, [useBetterAuth, isLoginLoading, socialLoading, handleSocialLogin]);
+  }, [isSubmitting, socialLoading, handleSocialLogin]);
 
-  const isLoading = isLoginLoading || Boolean(socialLoading);
-  const errorMessage = loginError
-    ? (loginError as {data?: {message?: string}})?.data?.message || "An error occurred"
-    : undefined;
+  const isLoading = isSubmitting || Boolean(socialLoading);
 
   return (
     <LoginScreen

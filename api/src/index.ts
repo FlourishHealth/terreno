@@ -30,6 +30,7 @@ export * from "./realtime";
 export * from "./requestContext";
 export * from "./scriptRunner";
 export * from "./secretProviders";
+export * from "./sync";
 export * from "./syncConsents";
 export * from "./terrenoApp";
 export * from "./terrenoPlugin";

@@ -43,6 +43,15 @@ import type {PopulatePath} from "./populate";
 import {registerRealtime} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
+  type ExecutorConcurrencyCheck,
+  executeCreate,
+  executeDelete,
+  executeUpdate,
+  isExecutorConflictError,
+} from "./sync/executors";
+import {registerSync} from "./sync/registry";
+import type {SyncConfig} from "./sync/types";
+import {
   defaultResponseHandler,
   serialize,
   type TerrenoTransformer,
@@ -340,6 +349,15 @@ export interface ModelRouterOptions<T> {
    * Requires the RealtimeApp plugin to be registered with TerrenoApp.
    */
   realtime?: RealtimeConfig;
+  /**
+   * Enable local-first sync (@terreno/syncdb) for this model. Documents are scoped
+   * into streams (owner/tenant/broadcast/custom) with monotonic per-stream cursors.
+   *
+   * Requires the schema to use `isDeletedPlugin` (soft delete tombstones) and
+   * `syncPlugin` (per-stream `_syncSeq` stamping) — validated at registration.
+   * Only works with the three-argument form: modelRouter('/path', Model, options).
+   */
+  sync?: SyncConfig;
 }
 
 /**
@@ -600,6 +618,10 @@ export function modelRouter<T>(
         routePath: path,
       });
     }
+    // Register for local-first sync if configured (validates the schema contract)
+    if (options.sync) {
+      registerSync({config: options.sync, model, options, routePath: path});
+    }
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
@@ -613,6 +635,12 @@ export function modelRouter<T>(
     logger.warn(
       `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
         "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+  if (options.sync) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has sync config but was called without a path. ` +
+        "Local-first sync only works with the three-argument form: modelRouter('/path', Model, options)"
     );
   }
 
@@ -646,98 +674,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       createValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
+      const {doc} = await executeCreate<T>({
+        body: req.body,
+        model,
+        options,
+        req,
+        user: req.user,
+      });
       try {
-        body = transform<T>(options, req.body, "create", req.user);
-      } catch (error: unknown) {
-        if (isAPIError(error)) {
-          throw error;
-        }
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          status: 400,
-          title: errorMessage(error),
-        });
-      }
-      if (options.preCreate) {
-        try {
-          body = await options.preCreate(body, req);
-        } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `preCreate hook error: ${errorMessage(error)}`,
-          });
-        }
-        if (body === undefined) {
-          throw new APIError({
-            detail: "A body must be returned from preCreate",
-            status: 403,
-            title: "Create not allowed",
-          });
-        }
-        if (body === null) {
-          throw new APIError({
-            detail: "preCreate hook returned null",
-            status: 403,
-            title: "Create not allowed",
-          });
-        }
-      }
-      if (body === undefined) {
-        throw new APIError({
-          detail: "Body is undefined",
-          status: 400,
-          title: "Invalid request body",
-        });
-      }
-      let data: Document<unknown, unknown, unknown> & T;
-      try {
-        data = (await model.create(body as T)) as Document<unknown, unknown, unknown> & T;
-      } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          status: 400,
-          title: errorMessage(error),
-        });
-      }
-
-      if (options.populatePaths) {
-        try {
-          // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-          let populateQuery: any = model.findById(data._id);
-          populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-          data = await populateQuery.exec();
-        } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `Populate error: ${errorMessage(error)}`,
-          });
-        }
-      }
-
-      if (options.postCreate) {
-        try {
-          await options.postCreate(data, req);
-        } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `postCreate hook error: ${errorMessage(error)}`,
-          });
-        }
-      }
-      try {
-        const serialized = await responseHandler(data, "create", req, options);
+        const serialized = await responseHandler(doc, "create", req, options);
         return res.status(201).json({data: serialized});
       } catch (error: unknown) {
         throw new APIError({
@@ -948,63 +893,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       updateValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let doc: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T}).obj;
+      const existingDoc: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T})
+        .obj;
 
-      let body: Partial<T> | T | null | undefined;
-
-      try {
-        body = transform<T>(options, req.body, "update", req.user) as Partial<T>;
-      } catch (error: unknown) {
-        if (isAPIError(error)) {
-          throw error;
-        }
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          status: 403,
-          title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorMessage(error)}`,
-        });
-      }
-
-      // Remove _updatedAt from body before preUpdate processes it
+      // Read `_updatedAt` before the executor strips it from the body; the executor's
+      // conflict detection still runs after preUpdate, matching the previous inline order.
       const bodyUpdatedAt = req.body._updatedAt;
-      delete req.body._updatedAt;
-      if (body && typeof body === "object") {
-        delete (body as Record<string, unknown>)._updatedAt;
-      }
-
-      if (options.preUpdate) {
-        try {
-          body = await options.preUpdate(body, req);
-        } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
-          });
-        }
-        if (body === undefined) {
-          throw new APIError({
-            detail: "A body must be returned from preUpdate",
-            status: 403,
-            title: "Update not allowed",
-          });
-        }
-        if (body === null) {
-          throw new APIError({
-            detail: `preUpdate hook on ${req.params.id} returned null`,
-            status: 403,
-            title: "Update not allowed",
-          });
-        }
-      }
-
-      // Conflict detection runs after preUpdate so that unauthorized mutations
-      // are rejected before we leak document data in a 409 response.
       const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
       const httpUnmodifiedSince = req.headers["if-unmodified-since"];
       const timestampValue = Array.isArray(preciseUnmodifiedSince)
@@ -1013,6 +907,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
         ? httpUnmodifiedSince[0]
         : httpUnmodifiedSince;
+
+      let concurrencyCheck: ExecutorConcurrencyCheck | undefined;
       if (timestampValue || httpTimestampValue || bodyUpdatedAt) {
         const usingPreciseHeader = Boolean(timestampValue);
         const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
@@ -1021,81 +917,47 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           : httpTimestampValue
             ? DateTime.fromHTTP(httpTimestampValue)
             : DateTime.fromISO(bodyUpdatedAt);
+        concurrencyCheck = {
+          // An unparseable value round-trips as an invalid Date; the executor turns it into
+          // the 400 "Invalid conflict-detection timestamp" error after preUpdate has run.
+          ifUnmodifiedSince: clientTimestamp.toJSDate(),
+          invalidTimestampDetail: usingPreciseHeader
+            ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
+            : usingHttpHeader
+              ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+              : "_updatedAt body field could not be parsed as an ISO date",
+          type: "timestamp",
+        };
+      }
 
-        if (!clientTimestamp.isValid) {
-          throw new APIError({
-            detail: usingPreciseHeader
-              ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
-              : usingHttpHeader
-                ? "If-Unmodified-Since header could not be parsed as an HTTP date"
-                : "_updatedAt body field could not be parsed as an ISO date",
-            status: 400,
-            title: "Invalid conflict-detection timestamp",
-          });
-        }
-
-        const docRecord = doc as {created?: Date | string; updated?: Date | string};
-        let serverTimestamp: DateTime | null = null;
-        const serverTimestampValue = docRecord.updated ?? docRecord.created;
-        if (serverTimestampValue instanceof Date) {
-          serverTimestamp = DateTime.fromJSDate(serverTimestampValue);
-        } else if (typeof serverTimestampValue === "string") {
-          serverTimestamp = DateTime.fromISO(serverTimestampValue);
-        }
-
-        if (serverTimestamp && !serverTimestamp.isValid) {
-          throw new APIError({
-            detail: "Document timestamp could not be parsed as a date",
-            status: 400,
-            title: "Invalid server timestamp",
-          });
-        }
-
-        if (serverTimestamp && clientTimestamp < serverTimestamp) {
-          const serialized = await responseHandler(doc, "update", req, options);
+      let doc: Document<unknown, unknown, unknown> & T;
+      try {
+        ({doc} = await executeUpdate<T>({
+          body: req.body,
+          concurrencyCheck,
+          existingDoc,
+          id: req.params.id as string,
+          model,
+          options,
+          req,
+          user: req.user,
+        }));
+      } catch (error: unknown) {
+        // Duck-typed: `instanceof` breaks for Error subclasses in the compiled ES5 dist.
+        if (isExecutorConflictError(error)) {
+          const serialized = await responseHandler(
+            error.doc as Document<unknown, unknown, unknown> & T,
+            "update",
+            req,
+            options
+          );
           return res.status(409).json({
             data: serialized,
             error: "Conflict",
             message: "Document was modified since your last read",
           });
         }
-      }
-
-      // Make a copy for passing pre-saved values to hooks.
-      const prevDoc = cloneDeep(doc);
-
-      // Using .save here runs the risk of a versioning error if you try to make two simultaneous
-      // updates. We won't wind up with corrupted data, just an API error.
-      try {
-        doc.set(body);
-        await doc.save();
-      } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          status: 400,
-          title: `preUpdate hook save error on ${req.params.id}: ${errorMessage(error)}`,
-        });
-      }
-
-      if (options.populatePaths) {
-        // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-        let populateQuery: any = model.findById(doc._id);
-        populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-        doc = await populateQuery.exec();
-      }
-
-      if (options.postUpdate) {
-        try {
-          await options.postUpdate(doc, body, req, prevDoc);
-        } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `postUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
-          });
-        }
+        throw error;
       }
 
       try {
@@ -1119,74 +981,18 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const doc: mongoose.Document & T & {deleted?: boolean} = (
+      const existingDoc: mongoose.Document & T & {deleted?: boolean} = (
         req as Request & {obj: mongoose.Document & T & {deleted?: boolean}}
       ).obj;
 
-      if (options.preDelete) {
-        let body: T | null | undefined;
-        try {
-          body = await options.preDelete(doc, req);
-        } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 403,
-            title: `preDelete hook error on ${req.params.id}: ${errorMessage(error)}`,
-          });
-        }
-        if (body === undefined) {
-          throw new APIError({
-            detail: "A body must be returned from preDelete",
-            status: 403,
-            title: "Delete not allowed",
-          });
-        }
-        if (body === null) {
-          throw new APIError({
-            detail: `preDelete hook for ${req.params.id} returned null`,
-            status: 403,
-            title: "Delete not allowed",
-          });
-        }
-      }
-
-      // Support .deleted from isDeleted plugin
-      if (
-        Object.keys(model.schema.paths).includes("deleted") &&
-        model.schema.paths.deleted.instance === "Boolean"
-      ) {
-        doc.deleted = true;
-        await doc.save();
-      } else {
-        // For models without the isDeleted plugin
-        try {
-          await doc.deleteOne();
-        } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: errorMessage(error),
-          });
-        }
-      }
-
-      if (options.postDelete) {
-        try {
-          await options.postDelete(req, doc);
-        } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `postDelete hook error: ${errorMessage(error)}`,
-          });
-        }
-      }
+      await executeDelete<T>({
+        existingDoc,
+        id: req.params.id as string,
+        model,
+        options,
+        req,
+        user: req.user,
+      });
 
       return res.status(204).json({});
     })

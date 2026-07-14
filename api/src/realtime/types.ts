@@ -1,4 +1,7 @@
 import type express from "express";
+import type {UserModel} from "../auth";
+import type {SyncAppOptions} from "../sync/routes";
+import type {BetterAuthSocketOptions} from "./socketAuth";
 
 /**
  * Configuration for real-time sync on a modelRouter.
@@ -81,6 +84,43 @@ export interface RealtimeAppOptions {
   redisUrl?: string;
   /** JWT secret for socket authentication (default: process.env.TOKEN_SECRET) */
   tokenSecret?: string;
+  /**
+   * JWT issuer required for socket authentication (default: process.env.TOKEN_ISSUER),
+   * for parity with the HTTP JWT path's `jwt.verify(token, secret, {issuer})` (D1).
+   * Omit (and leave `TOKEN_ISSUER` unset) to skip the issuer check.
+   */
+  tokenIssuer?: string;
+  /**
+   * Enables the Better Auth session validator for socket authentication, tried after the
+   * legacy JWT validator. Pass the instance returned by `createBetterAuth` (and optionally
+   * the app user model so `decodedToken.id`/`admin` match the REST identity).
+   */
+  betterAuth?: BetterAuthSocketOptions;
+  /**
+   * Explicit SyncAppOptions override for the sync socket handlers. Normally omitted —
+   * the options registered by the SyncApp plugin are used automatically.
+   */
+  sync?: SyncAppOptions;
+  /**
+   * The application's Mongoose user model. When provided, the full user document is
+   * loaded once at handshake (by the decoded token's id) and cached on
+   * `socket.data.fullUser`, then refreshed by the periodic session re-validation sweep
+   * (D1). Authorization for realtime/sync subscriptions and mutations uses this full
+   * document instead of the synthetic `{_id, admin, id}` shape derived from the token
+   * alone — required for any permission check or `getUserScopes` resolver that reads
+   * fields beyond `admin` (e.g. `organizationIds` for tenant-scoped sync). Without it,
+   * socket-side authorization falls back to the synthetic shape (pre-D2 behavior).
+   */
+  userModel?: UserModel;
+  /**
+   * Interval in ms for the periodic socket session re-validation sweep (D1): re-checks
+   * JWT expiry / Better Auth session validity and the user's `disabled` flag for every
+   * connected socket, disconnecting (`sync:auth-expired` then `disconnect(true)`) any
+   * socket that fails. Also refreshes `socket.data.fullUser` (D2) and re-resolves sync
+   * stream membership, leaving rooms for streams no longer held (D4). Default 60_000ms;
+   * set to 0 to disable the sweep entirely (e.g. in tests).
+   */
+  sessionRevalidationIntervalMs?: number;
   /** Enable debug logging */
   debug?: boolean;
 }

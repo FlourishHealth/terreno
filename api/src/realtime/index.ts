@@ -1,4 +1,10 @@
-export {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
+export {
+  type AuthorizedEmitEntry,
+  emitPayloadToAuthorizedRoom,
+  emitSyncDeltaForChange,
+  startChangeStreamWatcher,
+  stopChangeStreamWatcher,
+} from "./changeStreamWatcher";
 export {matchesQuery} from "./queryMatcher";
 export {
   addQuerySubscription,
@@ -24,6 +30,32 @@ export {
   type RealtimeRegistryEntry,
   registerRealtime,
 } from "./registry";
+export {
+  DEFAULT_SESSION_REVALIDATION_INTERVAL_MS,
+  loadFullUserForSocket,
+  type RevalidatableSocket,
+  type RevalidationOutcome,
+  reresolveSyncRoomsForSocket,
+  revalidateSocketSession,
+  runSessionRevalidationSweep,
+  type SessionRevalidationHandle,
+  type SessionRevalidationOptions,
+  startSessionRevalidationSweep,
+} from "./sessionRevalidation";
+export {
+  type AuthenticatableSocket,
+  type BetterAuthSocketOptions,
+  createBetterAuthValidator,
+  createLegacyJwtValidator,
+  createSocketAuthMiddleware,
+  type SocketAuthValidator,
+} from "./socketAuth";
+export {
+  type DecodedRealtimeToken,
+  getSocketUser,
+  type SocketDataBag,
+  type SocketWithDecodedToken,
+} from "./socketUser";
 export type {
   ChangeStreamConfig,
   DocumentSubscription,

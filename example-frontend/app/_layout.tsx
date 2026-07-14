@@ -2,33 +2,41 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, {type FC, type ReactNode, useEffect} from "react";
+import React, {type FC, type ReactNode, useCallback, useEffect} from "react";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
-  getAuthToken,
+  selectBetterAuthIsLoading,
+  selectBetterAuthUserId,
   setRealtimeSocket,
   useRealtimeDebug,
-  useSelectCurrentUserId,
-  useServerStatus,
   useSocketConnection,
   useTerrenoFeatureFlags,
   useUpgradeCheck,
 } from "@terreno/rtk";
-import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
-import {Provider} from "react-redux";
+import {
+  Banner,
+  Box,
+  ConsentNavigator,
+  Spinner,
+  TerrenoProvider,
+  UpgradeRequiredScreen,
+} from "@terreno/ui";
+import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import {useReadProfile} from "@/hooks/useReadProfile";
-import store, {logout, persistor, useAppDispatch} from "@/store";
+import type {ProfileData} from "@/hooks/useReadProfile";
+import {getSessionToken} from "@/lib/betterAuth";
+import store, {persistor, syncBetterAuthSession, useGetMeQuery} from "@/store";
 import {terrenoApi} from "@/store/sdk";
+import {setSyncDbReady, syncDb} from "@/store/syncdb";
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
   socket: ReturnType<typeof useSocketConnection>["socket"];
 }> = ({children, socket}) => {
-  const bridgeUserId = useSelectCurrentUserId();
+  const bridgeUserId = useSelector(selectBetterAuthUserId) ?? undefined;
   useTerrenoFeatureFlags(terrenoApi, {
     skip: !bridgeUserId,
     socket,
@@ -37,10 +45,7 @@ const OpenFeatureBridge: FC<{
   return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
 };
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
+export {ErrorBoundary} from "expo-router";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -64,14 +69,12 @@ const RootLayout = (): React.ReactElement | null => {
     "text-regular-italic": require("../assets/fonts/Nunito_400Regular_Italic.ttf"),
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) {
       throw error;
     }
   }, [error]);
 
-  // Hide splash screen once fonts are loaded
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -96,10 +99,20 @@ const RootLayout = (): React.ReactElement | null => {
 };
 
 const RootLayoutNav = (): React.ReactElement => {
-  const userId = useSelectCurrentUserId();
-  const {isOnline} = useServerStatus({skip: !userId});
-  const profile = useReadProfile();
-  const dispatch = useAppDispatch();
+  const userId = useSelector(selectBetterAuthUserId) ?? undefined;
+  // The initial syncBetterAuthSession() call below is async (it awaits
+  // authClient.getSession()), so userId is undefined for one or more render
+  // passes on every fresh page load — including a deep link straight to a
+  // route like /profile or /admin. Without gating on this flag, the auth
+  // redirect effect below sees "no user yet" and replaces the URL with
+  // /login before the session resolves, then bounces to the hardcoded
+  // /(tabs) root once it does, silently discarding the originally requested
+  // route.
+  const isAuthLoading = useSelector(selectBetterAuthIsLoading);
+  const {data: profileData, isLoading: isProfileLoading} = useGetMeQuery(undefined, {
+    skip: !userId,
+  });
+  const profile = profileData as ProfileData | undefined;
   const segments = useSegments();
   const router = useRouter();
   const {
@@ -112,17 +125,18 @@ const RootLayoutNav = (): React.ReactElement => {
     warningMessage,
   } = useUpgradeCheck({pollingIntervalMs: 300_000, recheckOnForeground: true});
 
-  // Connect to WebSocket for real-time sync
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    return getSessionToken();
+  }, []);
+
   const {socket} = useSocketConnection({
     baseUrl,
     getAuthToken,
-    shouldConnect: !!userId && isOnline,
+    shouldConnect: Boolean(userId),
   });
 
-  // Sync frontend debug logging with backend debug.websocketsDebug (via /realtime/health)
   useRealtimeDebug(baseUrl, socket?.connected);
 
-  // Provide socket to per-endpoint realtime handlers (realtimeList / realtimeDocument)
   useEffect(() => {
     setRealtimeSocket(socket);
     return (): void => {
@@ -130,22 +144,51 @@ const RootLayoutNav = (): React.ReactElement => {
     };
   }, [socket]);
 
-  // Validate stored auth token on mount
+  // Hydrate Better Auth session into Redux on startup.
+  useEffect(() => {
+    void syncBetterAuthSession(store.dispatch);
+  }, []);
+
+  // Start the local-first syncdb client after login; stop on logout/unmount.
+  // setSyncDbReady only flips true once start() resolves a user, so screens gated on
+  // useSyncDbReady() don't call mutate() during the window where it would throw.
   useEffect(() => {
     if (!userId) {
       return;
     }
-    const checkToken = async (): Promise<void> => {
-      const token = await getAuthToken();
-      if (!token) {
-        dispatch(logout());
+    let stopped = false;
+    syncDb
+      .start()
+      .then(() => {
+        if (!stopped) {
+          setSyncDbReady(true);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("[syncdb] Failed to start client", error);
+      });
+    return (): void => {
+      if (stopped) {
+        return;
       }
+      stopped = true;
+      setSyncDbReady(false);
+      syncDb.stop().catch((error: unknown) => {
+        console.warn("[syncdb] Failed to stop client", error);
+      });
     };
-    void checkToken();
-  }, [userId, dispatch]);
+  }, [userId]);
 
-  // Redirect based on auth state — keeps all routes declared so refresh works
   useEffect(() => {
+    // Don't redirect while the initial Better Auth session sync is still in
+    // flight: userId is momentarily undefined on every fresh load (including
+    // deep links to routes like /profile or /admin), and redirecting to
+    // /login now would bounce straight back to the hardcoded /(tabs) root
+    // once the session resolves, losing the originally requested route.
+    if (isAuthLoading) {
+      return;
+    }
+
     const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
 
     if (!userId && !isOnAuthPage) {
@@ -153,7 +196,21 @@ const RootLayoutNav = (): React.ReactElement => {
     } else if (userId && isOnAuthPage) {
       router.replace("/(tabs)");
     }
-  }, [userId, segments, router]);
+  }, [userId, segments, router, isAuthLoading]);
+
+  // Hold the navigator until the session (and, for signed-in users, the profile that
+  // decides the ConsentNavigator wrapper below) has settled. The wrapper choice changes
+  // the Stack's position in the React tree, and re-parenting unmounts and remounts the
+  // Stack — a remounted Stack resets to initialRouteName "(tabs)", silently discarding
+  // a deep-linked route like /profile or /admin. Rendering only once the tree shape is
+  // final means the Stack mounts exactly once per auth state and keeps the requested URL.
+  if (isAuthLoading || (Boolean(userId) && isProfileLoading)) {
+    return (
+      <Box alignItems="center" flex="grow" justifyContent="center" testID="app-auth-loading">
+        <Spinner />
+      </Box>
+    );
+  }
 
   if (isRequired) {
     return (
@@ -184,6 +241,7 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="admin" />
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
+      <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
     </Stack>
   );
 

@@ -19,9 +19,20 @@ export const todoRouter = modelRouter("/todos", Todo, {
         }
 
         const {ids} = body as z.infer<typeof bulkCompleteBodySchema>;
-        const result = await Todo.updateMany({_id: {$in: ids}, ownerId}, {completed: true});
+        // Per-doc loop instead of Todo.updateMany: updateMany throws on synced models
+        // because multi-document writes cannot stamp a per-document _syncSeq.
+        const todos = await Todo.find({_id: {$in: ids}, ownerId});
+        let modified = 0;
+        for (const todo of todos) {
+          if (todo.completed) {
+            continue;
+          }
+          todo.completed = true;
+          await todo.save();
+          modified += 1;
+        }
 
-        return {matched: result.matchedCount, modified: result.modifiedCount};
+        return {matched: todos.length, modified};
       },
       method: "POST",
       permissions: [Permissions.IsAuthenticated],
@@ -70,6 +81,8 @@ export const todoRouter = modelRouter("/todos", Todo, {
     roomStrategy: "owner",
   },
   sort: "-created",
+  // Local-first sync (@terreno/syncdb): stream = todos|owner:{ownerId}.
+  sync: {scope: {type: "owner"}},
   validation: {
     excludeFromCreate: ["ownerId"],
     excludeFromUpdate: ["ownerId"],

@@ -208,6 +208,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -342,6 +349,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "organizationIds": {
+                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -403,6 +417,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",
@@ -5558,7 +5579,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "items": {
                         "properties": {
                           "_id": {
+                            "description": "The document id (String so offline sync clients can mint ids)",
                             "type": "string",
+                          },
+                          "_syncPrevStream": {
+                            "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                            "type": "string",
+                          },
+                          "_syncSeq": {
+                            "description": "Monotonic per-stream sequence stamped on every synced write",
+                            "type": "number",
                           },
                           "completed": {
                             "description": "Whether the todo item has been completed",
@@ -5688,7 +5718,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "schema": {
                 "properties": {
                   "_id": {
+                    "description": "The document id (String so offline sync clients can mint ids)",
                     "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
                   },
                   "completed": {
                     "description": "Whether the todo item has been completed",
@@ -5746,7 +5785,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
                       "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
                     },
                     "completed": {
                       "description": "Whether the todo item has been completed",
@@ -5972,7 +6020,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
                       "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
                     },
                     "completed": {
                       "description": "Whether the todo item has been completed",
@@ -6095,7 +6152,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "schema": {
                 "properties": {
                   "_id": {
+                    "description": "The document id (String so offline sync clients can mint ids)",
                     "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
                   },
                   "completed": {
                     "description": "Whether the todo item has been completed",
@@ -6153,7 +6219,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
                       "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
                     },
                     "completed": {
                       "description": "Whether the todo item has been completed",
@@ -6458,6 +6533,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -6592,6 +6674,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "organizationIds": {
+                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6653,6 +6742,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",
@@ -6947,6 +7043,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -7074,6 +7177,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "organizationIds": {
+                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -7135,6 +7245,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",
@@ -9033,6 +9150,962 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/loadtest/todos/churn": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "creates": {
+                    "type": "number",
+                  },
+                  "deletes": {
+                    "type": "number",
+                  },
+                  "updates": {
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "created": {
+                          "type": "number",
+                        },
+                        "deleted": {
+                          "type": "number",
+                        },
+                        "updated": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Apply a batch of random create/update/delete todo ops (load testing)",
+        "tags": [
+          "loadtest",
+        ],
+      },
+    },
+    "/loadtest/todos/clear": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "deleted": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Soft-delete every todo for the current user (load testing reset)",
+        "tags": [
+          "loadtest",
+        ],
+      },
+    },
+    "/loadtest/todos/generate": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "count": {
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "created": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk-generate random todos for the current user (load testing)",
+        "tags": [
+          "loadtest",
+        ],
+      },
+    },
+    "/projects/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The organization (tenant) this project belongs to",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The title of the project",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "description": "The document id (String so offline sync clients can mint ids)",
+                            "type": "string",
+                          },
+                          "_syncPrevStream": {
+                            "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                            "type": "string",
+                          },
+                          "_syncSeq": {
+                            "description": "Monotonic per-stream sequence stamped on every synced write",
+                            "type": "number",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "organizationId": {
+                            "description": "The organization (tenant) this project belongs to",
+                            "type": "string",
+                          },
+                          "title": {
+                            "description": "The title of the project",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "organizationId",
+                          "title",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "exampleprojects",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "description": "The document id (String so offline sync clients can mint ids)",
+                    "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "organizationId": {
+                    "description": "The organization (tenant) this project belongs to",
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "The title of the project",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "organizationId": {
+                      "description": "The organization (tenant) this project belongs to",
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "The title of the project",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "organizationId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "exampleprojects",
+        ],
+      },
+    },
+    "/projects/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "exampleprojects",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "organizationId": {
+                      "description": "The organization (tenant) this project belongs to",
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "The title of the project",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "organizationId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "exampleprojects",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "description": "The document id (String so offline sync clients can mint ids)",
+                    "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "organizationId": {
+                    "description": "The organization (tenant) this project belongs to",
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "The title of the project",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "organizationId": {
+                      "description": "The organization (tenant) this project belongs to",
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "The title of the project",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "organizationId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "exampleprojects",
+        ],
+      },
+    },
     "/settings/gcs": {
       "delete": {
         "responses": {
@@ -9381,7 +10454,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "items": {
                         "properties": {
                           "_id": {
+                            "description": "The document id (String so offline sync clients can mint ids)",
                             "type": "string",
+                          },
+                          "_syncPrevStream": {
+                            "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                            "type": "string",
+                          },
+                          "_syncSeq": {
+                            "description": "Monotonic per-stream sequence stamped on every synced write",
+                            "type": "number",
                           },
                           "completed": {
                             "description": "Whether the todo item has been completed",
@@ -9511,7 +10593,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "schema": {
                 "properties": {
                   "_id": {
+                    "description": "The document id (String so offline sync clients can mint ids)",
                     "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
                   },
                   "completed": {
                     "description": "Whether the todo item has been completed",
@@ -9569,7 +10660,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
                       "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
                     },
                     "completed": {
                       "description": "Whether the todo item has been completed",
@@ -9867,7 +10967,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
                       "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
                     },
                     "completed": {
                       "description": "Whether the todo item has been completed",
@@ -9990,7 +11099,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "schema": {
                 "properties": {
                   "_id": {
+                    "description": "The document id (String so offline sync clients can mint ids)",
                     "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
                   },
                   "completed": {
                     "description": "Whether the todo item has been completed",
@@ -10048,7 +11166,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "_id": {
+                      "description": "The document id (String so offline sync clients can mint ids)",
                       "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
                     },
                     "completed": {
                       "description": "Whether the todo item has been completed",
@@ -10356,6 +11483,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -10483,6 +11617,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "organizationIds": {
+                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -10544,6 +11685,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",

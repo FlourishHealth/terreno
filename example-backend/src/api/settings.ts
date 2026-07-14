@@ -6,19 +6,11 @@ import {
   authenticateMiddleware,
   createOpenApiBuilder,
   logger,
+  requireAdminMiddleware,
 } from "@terreno/api";
 import type express from "express";
 
 import {getFileStorageService, setFileStorageService} from "./ai";
-
-const adminGuard = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-  // biome-ignore lint/suspicious/noExplicitAny: Express user casting
-  const user = (req as any).user;
-  if (!user?.admin) {
-    throw new APIError({status: 403, title: "Admin access required"});
-  }
-  next();
-};
 
 interface GcsConfigRequest {
   bucketName: string;
@@ -43,7 +35,7 @@ export const addSettingsRoutes = (
     "/settings/gcs",
     [
       authenticateMiddleware(),
-      adminGuard,
+      requireAdminMiddleware,
       createOpenApiBuilder(options ?? {})
         .withTags(["settings"])
         .withSummary("Get GCS configuration status")
@@ -83,7 +75,7 @@ export const addSettingsRoutes = (
     "/settings/gcs",
     [
       authenticateMiddleware(),
-      adminGuard,
+      requireAdminMiddleware,
       createOpenApiBuilder(options ?? {})
         .withTags(["settings"])
         .withSummary("Configure GCS settings")
@@ -153,7 +145,7 @@ export const addSettingsRoutes = (
     "/settings/gcs",
     [
       authenticateMiddleware(),
-      adminGuard,
+      requireAdminMiddleware,
       createOpenApiBuilder(options ?? {})
         .withTags(["settings"])
         .withSummary("Clear GCS configuration")

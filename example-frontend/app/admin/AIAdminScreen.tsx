@@ -1,6 +1,7 @@
-import {useSelectCurrentUserId} from "@terreno/rtk";
+import {selectBetterAuthUserId} from "@terreno/rtk";
 import {AIRequestExplorer, type AIRequestExplorerData, Page} from "@terreno/ui";
 import React, {useCallback, useState} from "react";
+import {useSelector} from "react-redux";
 import {useGetAiRequestsExplorerQuery} from "@/store";
 
 const EXPLORER_LIMIT = 20;
@@ -11,7 +12,7 @@ const AIAdminScreen: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId);
 
   const {data: explorerData, isLoading} = useGetAiRequestsExplorerQuery(
     {

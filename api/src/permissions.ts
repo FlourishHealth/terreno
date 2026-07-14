@@ -29,6 +29,32 @@ export const OwnerQueryFilter = (user?: User) => {
   return null;
 };
 
+/**
+ * A user that may belong to one or more organizations (tenants). Backends that use tenant-scoped
+ * models add an `organizationIds` array to their user model; this interface lets the shared
+ * permission/query-filter helpers read it without every consumer casting by hand.
+ */
+export interface OrganizationScopedUser extends User {
+  organizationIds?: string[];
+}
+
+/** Reads the caller's organization ids, tolerating users without the `organizationIds` field. */
+export const getUserOrganizationIds = (user?: User): string[] => {
+  return (user as OrganizationScopedUser | undefined)?.organizationIds ?? [];
+};
+
+/**
+ * Restricts list queries to documents belonging to one of the caller's organizations. This is the
+ * tenant-scoped analog of {@link OwnerQueryFilter}: it filters on the document's `organizationId`
+ * field using the user's `organizationIds`. Returns `null` for anonymous callers (no user).
+ */
+export const OrganizationQueryFilter = (user?: User) => {
+  if (!user) {
+    return null;
+  }
+  return {organizationId: {$in: getUserOrganizationIds(user)}};
+};
+
 export const Permissions = {
   IsAdmin: (_method: RESTMethod, user?: User) => {
     return Boolean(user?.admin);
@@ -47,6 +73,29 @@ export const Permissions = {
       return true;
     }
     return method === "list" || method === "read";
+  },
+  /**
+   * Object-level permission for tenant-scoped documents: the caller must belong to the document's
+   * organization (admins always pass). With no object (list/create checks) it returns true and
+   * defers to the {@link OrganizationQueryFilter} / a `preCreate` hook to scope access. Expects the
+   * document to expose an `organizationId` and the user an `organizationIds` array.
+   */
+  IsOrganizationMember: (_method: RESTMethod, user?: User, obj?: unknown) => {
+    // When checking if we can possibly perform the action, return true.
+    if (!obj) {
+      return true;
+    }
+    if (!user) {
+      return false;
+    }
+    if (user?.admin) {
+      return true;
+    }
+    const organizationId = (obj as {organizationId?: string}).organizationId;
+    if (!organizationId) {
+      return false;
+    }
+    return getUserOrganizationIds(user).includes(organizationId);
   },
   IsOwner: (_method: RESTMethod, user?: User, obj?: unknown) => {
     // When checking if we can possibly perform the action, return true.
