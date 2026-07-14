@@ -87,11 +87,17 @@ jobs:
     # `always()` is required because `build` needs `check-changes`, which is skipped on
     # push/workflow_dispatch events — that skip otherwise propagates down the dependency
     # chain and silently skips this job even when `build` itself succeeded.
+    #
+    # workflow_dispatch is allowed regardless of ref (not just refs/heads/master) because
+    # publish-on-tag.yml dispatches this against the release tag itself, so the demo is
+    # pinned to exactly what was published rather than whatever master drifts to next.
     if: |
       always() &&
       needs.build.result == 'success' &&
-      github.ref == 'refs/heads/master' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read

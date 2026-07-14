@@ -1282,13 +1282,20 @@ jobs:
     steps:
       - name: Dispatch demo-deploy workflow
         uses: actions/github-script@v9.0.0
+        # Dispatch against the release tag itself (not master), so the demo is pinned to
+        # exactly what was published rather than whatever master happens to be at the
+        # moment this runs (which may include later, unreleased commits). This requires
+        # demo-deploy.yml to already have the workflow_dispatch trigger at the tagged
+        # commit, which holds for any tag cut from master after this change lands.
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: "demo-deploy.yml",
-              ref: "master",
+              ref: process.env.RELEASE_TAG,
             });
 
   cut-docs-version:
