@@ -298,7 +298,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
 
 export const selectCurrentUserId = (state: RootState): string | undefined => state.auth?.userId;
 export const selectLastTokenRefreshTimestamp = (state: RootState): number | null =>
-  state.auth?.lastTokenRefreshTimestamp;
+  state.auth?.lastTokenRefreshTimestamp ?? null;
 export const selectIsAuthenticating = (state: RootState): boolean =>
   state.auth?.isAuthenticating ?? false;
 

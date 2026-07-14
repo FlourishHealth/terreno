@@ -1,6 +1,7 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import {TerrenoApp} from "@terreno/api";
 import {jsonSchema, type LanguageModel, type Tool, tool} from "ai";
+import {assert} from "chai";
 import type express from "express";
 import mongoose from "mongoose";
 import type supertest from "supertest";
@@ -23,6 +24,17 @@ mock.module("../langfuseVercelAi", () => ({
   ...realLangfuseVercelAi,
   createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
   preparePromptForAI: async () => ({config: {}, prompt: "test", telemetry: {isEnabled: false}}),
+}));
+
+const realAi = await import("ai");
+type StreamTextOptions = Parameters<typeof realAi.streamText>[0];
+type StreamTextResult = ReturnType<typeof realAi.streamText>;
+const realStreamText = realAi.streamText;
+let streamTextOverride: ((options: StreamTextOptions) => StreamTextResult) | undefined;
+mock.module("ai", () => ({
+  ...realAi,
+  streamText: (options: StreamTextOptions): StreamTextResult =>
+    streamTextOverride ? streamTextOverride(options) : realStreamText(options),
 }));
 
 const {addGptRoutes} = await import("./gpt");
@@ -155,6 +167,7 @@ describe("AI Routes", () => {
   });
 
   afterEach(async () => {
+    streamTextOverride = undefined;
     await AIRequest.deleteMany({});
     await GptHistory.deleteMany({});
   });
@@ -417,6 +430,13 @@ describe("AI Routes", () => {
     });
 
     it("flushes remaining buffered text when the stream ends without finish-step", async () => {
+      streamTextOverride = () =>
+        ({
+          files: Promise.resolve([]),
+          fullStream: (async function* () {
+            yield {text: "buffered text", type: "text-delta"};
+          })(),
+        }) as unknown as StreamTextResult;
       const noFinishService = new AIService({
         model: createNoFinishModel() as unknown as LanguageModel,
       });
@@ -433,9 +453,9 @@ describe("AI Routes", () => {
         .send({prompt: "Hi"})
         .buffer(true)
         .parse(sseCollect);
-      expect(res.status).toBe(200);
+      assert.equal(res.status, 200);
       const body = (res as SseResponse).body;
-      expect(body).toContain("buffered text");
+      assert.include(body, "buffered text");
     });
 
     it("streams inline image events from the model", async () => {
@@ -1165,6 +1185,50 @@ describe("AI Routes", () => {
   });
 
   describe("GPT Prompt error handling", () => {
+    it("sends an outer SSE error when error handling itself fails after streaming starts", async () => {
+      streamTextOverride = () =>
+        ({
+          files: Promise.resolve([]),
+          fullStream: (async function* () {
+            yield {type: "start-step"};
+            yield {text: "partial response", type: "text-delta"};
+            yield {type: "finish-step"};
+            throw new Error("stream iteration failed");
+          })(),
+        }) as unknown as StreamTextResult;
+      const errApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          router.use((_req, res, next) => {
+            const originalWrite = res.write;
+            let writeCount = 0;
+            res.write = new Proxy(originalWrite, {
+              apply(target, thisArg, argumentsList) {
+                writeCount++;
+                if (writeCount === 2) {
+                  throw new Error("error event write failed");
+                }
+                return Reflect.apply(target, thisArg, argumentsList);
+              },
+            });
+            next();
+          });
+          addGptRoutes(router, {aiService, openApiOptions: options});
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(errApp, "notAdmin");
+
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+
+      assert.equal(res.status, 200);
+      assert.include((res as SseResponse).body, "error event write failed");
+    });
+
     it("catches errors thrown mid-stream iteration and sends SSE error", async () => {
       const streamIterationErrorModel = {
         doGenerate: mock(async () => ({
