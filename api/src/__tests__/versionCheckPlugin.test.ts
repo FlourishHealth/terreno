@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import supertest from "supertest";
 import type {UserModel as UserModelType} from "../auth";
 import {VersionConfig} from "../models/versionConfig";
@@ -53,6 +54,14 @@ describe("VersionCheckPlugin", () => {
     expect(res.status).toBe(200);
     expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body).toEqual(expect.objectContaining({status: "ok"}));
+  });
+
+  it("returns ok when version is provided more than once", async () => {
+    const res = await app.get("/version-check?platform=mobile&version=1&version=2");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, "ok");
+    assert.notProperty(res.body, "pollingIntervalMs");
   });
 
   it("returns ok when client version >= warning and required (web)", async () => {
