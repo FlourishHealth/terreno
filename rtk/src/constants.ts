@@ -1,7 +1,12 @@
 import Constants from "expo-constants";
 
-// biome-ignore lint/suspicious/noExplicitAny: RootState is hard to type without becoming circular.
-export type RootState = any;
+export interface RootState {
+  auth?: {
+    isAuthenticating?: boolean;
+    lastTokenRefreshTimestamp: number | null;
+    userId?: string;
+  };
+}
 export const LOGOUT_ACTION_TYPE = "auth/logout";
 export const TOKEN_REFRESHED_SUCCESS = "auth/tokenRefreshedSuccess";
 

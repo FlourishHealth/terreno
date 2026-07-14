@@ -3,7 +3,7 @@
 // import Permissions from "react-native-permissions";
 import type {PermissionKind, PermissionStatus} from "./Common";
 
-export async function requestPermissions(_kind: PermissionKind): Promise<PermissionStatus> {
+export const requestPermissions = async (_kind: PermissionKind): Promise<PermissionStatus> => {
   return new Promise((_resolve, _reject) => {
     return "denied";
   });
@@ -43,4 +43,4 @@ export async function requestPermissions(_kind: PermissionKind): Promise<Permiss
   //     return reject(MAP_RESULTS[response]);
   //   }
   // });
-}
+};

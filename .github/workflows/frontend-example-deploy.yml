@@ -121,7 +121,10 @@ jobs:
   deploy-branch:
     name: Deploy Branch Preview
     needs: build
-    if: github.event_name == 'push' && github.ref != 'refs/heads/master'
+    # `always()` is required because `build` needs `check-changes`, which is skipped on
+    # push events — that skip otherwise propagates down the dependency chain and
+    # silently skips this job even when `build` itself succeeded.
+    if: always() && needs.build.result == 'success' && github.event_name == 'push' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -241,7 +244,8 @@ jobs:
   deploy-production:
     name: Deploy to Production
     needs: build
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    # See note on deploy-branch above about why `always()` + explicit result check is required.
+    if: always() && needs.build.result == 'success' && github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read

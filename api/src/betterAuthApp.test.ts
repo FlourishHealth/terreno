@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, describe, expect, it} from "bun:test";
 import express from "express";
 import {MongoMemoryServer} from "mongodb-memory-server";
@@ -9,7 +8,6 @@ import {BetterAuthApp} from "./betterAuthApp";
 
 let conn: mongoose.Connection;
 let mongod: MongoMemoryServer;
-let TestUser: any;
 
 const testUserSchema = new Schema({
   admin: {default: false, type: Boolean},
@@ -18,6 +16,8 @@ const testUserSchema = new Schema({
   name: {type: String},
   oauthProvider: {type: String},
 });
+
+let TestUser: mongoose.Model<mongoose.InferSchemaType<typeof testUserSchema>>;
 
 const setup = (async () => {
   mongod = await MongoMemoryServer.create();
@@ -78,7 +78,7 @@ describe("BetterAuthApp", () => {
 
     const plugin = new BetterAuthApp({
       config: makeConfig(),
-      userModel: TestUser as UserModel,
+      userModel: TestUser as unknown as UserModel,
     });
 
     expect(() => plugin.register(app)).not.toThrow();
