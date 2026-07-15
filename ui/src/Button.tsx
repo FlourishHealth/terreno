@@ -94,6 +94,8 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       } else {
         bgColor = theme.surface.primary;
       }
+      bColor = undefined;
+      bWidth = undefined;
       textColor = theme.surface.base;
     }
 
