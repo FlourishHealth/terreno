@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["../biome.jsonc"],
-  "plugins": ["../biome/plugins/no-barrel-imports.grit"],
+  "plugins": ["../biome/plugins/no-barrel-imports/admin-spa.grit"],
   "files": {
     "includes": [
       "package.json",

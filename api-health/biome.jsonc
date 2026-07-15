@@ -2,7 +2,6 @@
   "root": true,
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["../biome.jsonc"],
-  "plugins": ["../biome/plugins/no-barrel-imports.grit"],
   "files": {
     "includes": [
       "package.json",

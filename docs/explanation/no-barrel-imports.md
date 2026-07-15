@@ -37,7 +37,7 @@ import store, {useAppDispatch} from "@/store/index";
 
 ## Enforcement
 
-- **Biome plugin**: `biome/plugins/no-barrel-imports.grit` (generated from internal barrel index files)
+- **Biome plugin**: `biome/plugins/no-barrel-imports/*.grit` (generated per package from internal barrel index files)
 - **CI**: `bun run check:no-barrel-imports` (see root `package.json` → `terreno.policies.noBarrelImports`)
 - **Regenerate plugin**: `bun run generate:no-barrel-imports-grit`
 - **AI rules**: `.rulesync/rules/00-root.md` and package `.ai/guidelines/core.md` files

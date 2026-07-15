@@ -41,7 +41,7 @@ const main = (): void => {
     process.exit(1);
   }
 
-  console.info("check-no-barrel-imports: OK (Biome plugin specifiers are up to date)");
+  console.info("check-no-barrel-imports: OK (per-package Biome plugins are up to date)");
 };
 
 main();

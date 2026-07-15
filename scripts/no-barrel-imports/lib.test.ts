@@ -99,10 +99,11 @@ test("renderNoBarrelImportsGritPlugin emits biome plugin specifiers", () => {
   const root = createFixtureRepo();
 
   try {
-    const rendered = renderNoBarrelImportsGritPlugin(root, [
+    const specifiers = collectBarrelImportSpecifiers(root, [
       "example-backend/src",
       "ui/src",
     ]);
+    const rendered = renderNoBarrelImportsGritPlugin(specifiers, "fixture");
 
     expect(rendered).toContain("`'../models'`");
     expect(rendered).toContain("`'./icons'`");
