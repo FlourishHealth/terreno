@@ -3,7 +3,11 @@ import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 
-import {collectBarrelImportViolations} from "./check-no-barrel-imports";
+import {
+  collectBarrelImportSpecifiers,
+  collectBarrelImportViolations,
+  renderNoBarrelImportsGritPlugin,
+} from "./lib";
 
 const createFixtureRepo = (): string => {
   const root = mkdtempSync(join(tmpdir(), "terreno-barrel-check-"));
@@ -69,6 +73,40 @@ test("collectBarrelImportViolations allows @terreno package public API imports",
 
     const violations = collectBarrelImportViolations(root, ["example-backend/src"]);
     expect(violations).toHaveLength(0);
+  } finally {
+    rmSync(root, {force: true, recursive: true});
+  }
+});
+
+test("collectBarrelImportSpecifiers includes alias and relative barrel paths", () => {
+  const root = createFixtureRepo();
+
+  try {
+    const specifiers = collectBarrelImportSpecifiers(root, [
+      "example-backend/src",
+      "ui/src",
+    ]);
+
+    expect(specifiers).toContain("../models");
+    expect(specifiers).toContain("./icons");
+    expect(specifiers).toContain("@/store");
+  } finally {
+    rmSync(root, {force: true, recursive: true});
+  }
+});
+
+test("renderNoBarrelImportsGritPlugin emits biome plugin specifiers", () => {
+  const root = createFixtureRepo();
+
+  try {
+    const rendered = renderNoBarrelImportsGritPlugin(root, [
+      "example-backend/src",
+      "ui/src",
+    ]);
+
+    expect(rendered).toContain("`'../models'`");
+    expect(rendered).toContain("`'./icons'`");
+    expect(rendered).toContain("register_diagnostic(");
   } finally {
     rmSync(root, {force: true, recursive: true});
   }

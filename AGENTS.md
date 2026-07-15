@@ -111,7 +111,7 @@ bun run frontend:web
 - Use camelCase directories (e.g., `components/authWizard`)
 - Favor named exports
 - Use the RORO pattern (Receive an Object, Return an Object)
-- **No barrel imports** — import concrete module files, not directory `index` re-export barrels. See [no-barrel-imports.md](docs/explanation/no-barrel-imports.md). Cross-package `@terreno/*` package roots are allowed; internal paths like `../models`, `@/store`, or `@components` without a file are not. CI enforces via `bun run check:no-barrel-imports`.
+- **No barrel imports** — import concrete module files, not directory `index` re-export barrels. See [no-barrel-imports.md](docs/explanation/no-barrel-imports.md). Cross-package `@terreno/*` package roots are allowed; internal paths like `../models`, `@/store`, or `@components` without a file are not. Enforced by the Biome plugin `biome/plugins/no-barrel-imports.grit` during lint and `bun run check:no-barrel-imports` in CI.
 
 ### Dates and Time
 - Always use Luxon instead of Date or dayjs

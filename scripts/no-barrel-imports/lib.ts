@@ -1,22 +1,9 @@
-#!/usr/bin/env bun
-/**
- * Fails when source files import through internal barrel index modules.
- *
- * Barrel imports (e.g. `from "../models"` → `models/index.ts`) hide real
- * dependencies, slow tooling, and can create require cycles. Package public
- * APIs (`@terreno/api`, `@terreno/ui`, …) remain allowed for cross-package use.
- *
- * Policy: docs/explanation/no-barrel-imports.md
- *
- * Usage:
- *   bun run scripts/check-no-barrel-imports.ts
- */
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
-import {dirname, join, relative, resolve} from "node:path";
+import {basename, dirname, join, relative, resolve} from "node:path";
 
-const REPO_ROOT = resolve(import.meta.dir, "..");
+export const REPO_ROOT = resolve(import.meta.dir, "../..");
 
-const SCAN_ROOTS = [
+export const SCAN_ROOTS = [
   "admin-backend/src",
   "admin-frontend/src",
   "admin-spa",
@@ -33,6 +20,17 @@ const SCAN_ROOTS = [
   "ui/src",
 ] as const;
 
+export const INTERNAL_ALIAS_BARRELS = [
+  "@/store",
+  "@store",
+  "@components",
+  "@utils",
+  "@stories",
+  "@assets",
+  "@app",
+  "@constants",
+] as const;
+
 const IGNORED_DIR_NAMES = new Set([
   "node_modules",
   "dist",
@@ -45,7 +43,7 @@ const IGNORED_DIR_NAMES = new Set([
 ]);
 
 /** Package name → absolute path to the package public entry index file. */
-const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
+export const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/admin-backend": resolve(REPO_ROOT, "admin-backend/src/index.ts"),
   "@terreno/admin-frontend": resolve(REPO_ROOT, "admin-frontend/src/index.tsx"),
   "@terreno/admin-spa": resolve(REPO_ROOT, "admin-spa/src/index.ts"),
@@ -81,7 +79,7 @@ const shouldSkipDirectory = (dirName: string): boolean => {
   return IGNORED_DIR_NAMES.has(dirName) || dirName.startsWith(".");
 };
 
-const walkSourceFiles = (directory: string, files: string[] = []): string[] => {
+export const walkSourceFiles = (directory: string, files: string[] = []): string[] => {
   if (!existsSync(directory)) {
     return files;
   }
@@ -134,27 +132,43 @@ const readTsconfigPathAliases = (packageDir: string): PathAliasMap => {
   }
 };
 
-const loadPathAliases = (): Map<string, PathAliasMap> => {
+export const loadPathAliases = (repoRoot: string = REPO_ROOT): Map<string, PathAliasMap> => {
   const packagesWithAliases = ["example-frontend", "admin-spa", "demo"];
   const aliasByPackageDir = new Map<string, PathAliasMap>();
 
   for (const pkg of packagesWithAliases) {
-    aliasByPackageDir.set(resolve(REPO_ROOT, pkg), readTsconfigPathAliases(resolve(REPO_ROOT, pkg)));
+    aliasByPackageDir.set(resolve(repoRoot, pkg), readTsconfigPathAliases(resolve(repoRoot, pkg)));
   }
 
   return aliasByPackageDir;
 };
 
-const resolveImportBase = (
+const findOwningPackageDir = (filePath: string, repoRoot: string): string | null => {
+  let current = dirname(filePath);
+  while (current.startsWith(repoRoot)) {
+    if (existsSync(join(current, "package.json"))) {
+      return current;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  return null;
+};
+
+export const resolveImportBase = (
   importPath: string,
   fromFile: string,
-  aliasByPackageDir: Map<string, PathAliasMap>
+  aliasByPackageDir: Map<string, PathAliasMap>,
+  repoRoot: string = REPO_ROOT
 ): string | null => {
   if (importPath.startsWith("@terreno/")) {
     const entry = PACKAGE_PUBLIC_ENTRIES[importPath.split("/testing")[0] ?? importPath];
     if (importPath.endsWith("/testing")) {
       const testingEntry: Record<string, string> = {
-        "@terreno/api": resolve(REPO_ROOT, "api/src/tests.ts"),
+        "@terreno/api": resolve(repoRoot, "api/src/tests.ts"),
       };
       return testingEntry[importPath] ?? null;
     }
@@ -162,7 +176,7 @@ const resolveImportBase = (
   }
 
   if (importPath.startsWith("@/")) {
-    const packageDir = findOwningPackageDir(fromFile);
+    const packageDir = findOwningPackageDir(fromFile, repoRoot);
     if (!packageDir) {
       return null;
     }
@@ -176,7 +190,7 @@ const resolveImportBase = (
   }
 
   if (importPath.startsWith("@")) {
-    const packageDir = findOwningPackageDir(fromFile);
+    const packageDir = findOwningPackageDir(fromFile, repoRoot);
     if (!packageDir) {
       return null;
     }
@@ -201,22 +215,7 @@ const resolveImportBase = (
   return resolve(dirname(fromFile), importPath);
 };
 
-const findOwningPackageDir = (filePath: string): string | null => {
-  let current = dirname(filePath);
-  while (current.startsWith(REPO_ROOT)) {
-    if (existsSync(join(current, "package.json"))) {
-      return current;
-    }
-    const parent = dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-  return null;
-};
-
-const resolveModulePath = (basePath: string): string | null => {
+export const resolveModulePath = (basePath: string): string | null => {
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -243,7 +242,7 @@ const isPackagePublicEntry = (filePath: string): boolean => {
   return Object.values(PACKAGE_PUBLIC_ENTRIES).includes(filePath);
 };
 
-const isBarrelIndexFile = (filePath: string): boolean => {
+export const isBarrelIndexFile = (filePath: string): boolean => {
   if (!/\/index\.tsx?$/.test(filePath)) {
     return false;
   }
@@ -275,7 +274,8 @@ const isAllowedPublicPackageImport = (importPath: string, resolvedPath: string):
 
 const findViolationsInFile = (
   filePath: string,
-  aliasByPackageDir: Map<string, PathAliasMap>
+  aliasByPackageDir: Map<string, PathAliasMap>,
+  repoRoot: string
 ): BarrelViolation[] => {
   const contents = readFileSync(filePath, "utf8");
   const lines = contents.split("\n");
@@ -294,7 +294,7 @@ const findViolationsInFile = (
         continue;
       }
 
-      const base = resolveImportBase(importPath, filePath, aliasByPackageDir);
+      const base = resolveImportBase(importPath, filePath, aliasByPackageDir, repoRoot);
       if (!base) {
         continue;
       }
@@ -309,10 +309,10 @@ const findViolationsInFile = (
       }
 
       violations.push({
-        file: relative(REPO_ROOT, filePath),
+        file: relative(repoRoot, filePath),
         importPath,
         line: lineIndex + 1,
-        resolvedBarrel: relative(REPO_ROOT, resolved),
+        resolvedBarrel: relative(repoRoot, resolved),
       });
     }
   }
@@ -324,7 +324,7 @@ export const collectBarrelImportViolations = (
   repoRoot: string = REPO_ROOT,
   scanRoots: readonly string[] = SCAN_ROOTS
 ): BarrelViolation[] => {
-  const aliasByPackageDir = loadPathAliases();
+  const aliasByPackageDir = loadPathAliases(repoRoot);
   const files: string[] = [];
 
   for (const scanRoot of scanRoots) {
@@ -339,7 +339,7 @@ export const collectBarrelImportViolations = (
     if (isPackagePublicEntry(file)) {
       continue;
     }
-    violations.push(...findViolationsInFile(file, aliasByPackageDir));
+    violations.push(...findViolationsInFile(file, aliasByPackageDir, repoRoot));
   }
 
   return violations.sort((a, b) => {
@@ -350,26 +350,82 @@ export const collectBarrelImportViolations = (
   });
 };
 
-const main = (): void => {
-  const violations = collectBarrelImportViolations();
-
-  if (violations.length === 0) {
-    console.info("check-no-barrel-imports: OK (no internal barrel imports found)");
-    return;
+export const collectInternalBarrelIndexFiles = (
+  repoRoot: string = REPO_ROOT,
+  scanRoots: readonly string[] = SCAN_ROOTS
+): string[] => {
+  const files: string[] = [];
+  for (const scanRoot of scanRoots) {
+    walkSourceFiles(resolve(repoRoot, scanRoot), files);
   }
 
-  console.error(`check-no-barrel-imports: found ${violations.length} barrel import(s):\n`);
-  for (const violation of violations) {
-    console.error(
-      `  ${violation.file}:${violation.line}  "${violation.importPath}" → ${violation.resolvedBarrel}`
-    );
-  }
-  console.error(
-    "\nImport the concrete module file instead. See docs/explanation/no-barrel-imports.md"
-  );
-  process.exit(1);
+  return files
+    .filter((file) => isBarrelIndexFile(file))
+    .map((file) => relative(repoRoot, file))
+    .sort();
 };
 
-if (import.meta.main) {
-  main();
+export const collectBarrelImportSpecifiers = (
+  repoRoot: string = REPO_ROOT,
+  scanRoots: readonly string[] = SCAN_ROOTS
+): string[] => {
+  const specifiers = new Set<string>(INTERNAL_ALIAS_BARRELS);
+
+  for (const barrelRelative of collectInternalBarrelIndexFiles(repoRoot, scanRoots)) {
+    const barrelDir = dirname(barrelRelative).replace(/\\/g, "/");
+    const scanRoot = scanRoots.find(
+      (root) => barrelDir === root || barrelDir.startsWith(`${root}/`)
+    );
+    if (!scanRoot) {
+      continue;
+    }
+
+    const pathFromScanRoot =
+      barrelDir === scanRoot ? "" : barrelDir.slice(scanRoot.length + 1);
+    if (!pathFromScanRoot) {
+      continue;
+    }
+
+    const parts = pathFromScanRoot.split("/");
+    for (let start = 0; start < parts.length; start++) {
+      const suffix = parts.slice(start).join("/");
+      specifiers.add(`./${suffix}`);
+      for (let depth = 1; depth <= 4; depth++) {
+        specifiers.add(`${"../".repeat(depth)}${suffix}`);
+      }
+    }
+  }
+
+  return [...specifiers].sort();
+};
+
+const escapeGritStringLiteral = (value: string): string => {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+};
+
+export const renderNoBarrelImportsGritPlugin = (
+  repoRoot: string = REPO_ROOT,
+  scanRoots: readonly string[] = SCAN_ROOTS
+): string => {
+  const specifiers = collectBarrelImportSpecifiers(repoRoot, scanRoots);
+  const literalLines = specifiers.flatMap((specifier) => {
+    const escaped = escapeGritStringLiteral(specifier);
+    return [`        \`'${escaped}'\`,`, `        \`"${specifier.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"\`,`];
+  });
+
+  return `// Generated by scripts/no-barrel-imports/generate-grit.ts — do not edit by hand.
+or {
+    \`import $_ from $source\`,
+    \`export $_ from $source\`
+} where {
+    $source <: or {
+${literalLines.join("\n")}
+    },
+    register_diagnostic(
+        span = $source,
+        message = "Do not import through internal barrel index files. Import the concrete module path instead (see docs/explanation/no-barrel-imports.md).",
+        severity = "error"
+    )
 }
+`;
+};

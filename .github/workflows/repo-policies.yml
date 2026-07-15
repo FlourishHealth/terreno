@@ -5,14 +5,16 @@ on:
     paths:
       - "**/*.ts"
       - "**/*.tsx"
-      - "scripts/check-no-barrel-imports.ts"
+      - "biome/plugins/no-barrel-imports.grit"
+      - "scripts/no-barrel-imports/**"
       - "docs/explanation/no-barrel-imports.md"
       - ".github/workflows/repo-policies.yml"
   pull_request:
     paths:
       - "**/*.ts"
       - "**/*.tsx"
-      - "scripts/check-no-barrel-imports.ts"
+      - "biome/plugins/no-barrel-imports.grit"
+      - "scripts/no-barrel-imports/**"
       - "docs/explanation/no-barrel-imports.md"
       - ".github/workflows/repo-policies.yml"
 
