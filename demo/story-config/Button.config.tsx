@@ -5,6 +5,7 @@ import {
   ButtonLoading,
   ButtonPressAnimations,
   ButtonSizes,
+  ButtonStates,
   ButtonVariants,
   ConfirmationButton,
   FullWidthButtons,
@@ -97,6 +98,14 @@ export const ButtonConfiguration: DemoConfiguration = {
           {label: "None", value: "none"},
         ],
       },
+      state: {
+        type: "select",
+        defaultValue: "default",
+        options: [
+          {label: "Default", value: "default"},
+          {label: "Active", value: "active"},
+        ],
+      },
       withConfirmation: {
         type: "boolean",
         defaultValue: false,
@@ -113,6 +122,7 @@ export const ButtonConfiguration: DemoConfiguration = {
   },
   stories: {
     Variants: {render: () => <ButtonVariants />},
+    States: {render: () => <ButtonStates />},
     Sizes: {render: () => <ButtonSizes />},
     IconPosition: {render: () => <ButtonIconPosition />},
     Loading: {render: () => <ButtonLoading />},

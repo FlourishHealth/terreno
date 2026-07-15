@@ -1684,6 +1684,12 @@ export interface ButtonProps extends WithTestID {
    */
   size?: "default" | "sm";
   /**
+   * Controls the button's interaction state. Use Default for standard button appearance
+   * and Active to indicate a selected or currently engaged state.
+   * @default "default"
+   */
+  state?: "default" | "active";
+  /**
    * The type of the button, which determines its style.
    * @default "primary"
    */
