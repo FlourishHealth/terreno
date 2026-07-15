@@ -1,7 +1,8 @@
 import {DemoConfiguration} from "@config";
 import {DataTable} from "@terreno/ui";
 
-import {DataTablePreview, StandardDataTable} from "../stories/DataTable.stories";
+import {StandardDataTable} from "../stories/DataTable.stories";
+import {TableMockupPreview} from "../stories/TableMockupPreview";
 
 export const DataTableConfiguration: DemoConfiguration = {
   name: "DataTable",
@@ -39,7 +40,7 @@ export const DataTableConfiguration: DemoConfiguration = {
   },
   props: {},
   demo: (props: {preview?: boolean}) =>
-    props.preview ? <DataTablePreview /> : <StandardDataTable />,
+    props.preview ? <TableMockupPreview /> : <StandardDataTable />,
   demoOptions: {},
   stories: {
     StandardDataTable: {render: StandardDataTable},

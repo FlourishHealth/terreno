@@ -29,40 +29,6 @@ const MoreModalContent: FC<{
   );
 };
 
-// Static, non-interactive stand-in for the card preview shown on the demo home page.
-// DataTable positions pinned columns absolutely within its scroll containers, which escapes the
-// small, overflow-hidden preview card and renders on top of the whole page. Render a lightweight
-// mockup instead so the card preview never mounts a real DataTable.
-export const DataTablePreview = (): React.ReactElement => {
-  const rows = ["Row 1", "Row 2", "Row 3"];
-  return (
-    <Box border="default" direction="column" rounding="md" width="100%">
-      <Box borderBottom="default" direction="row" padding={2}>
-        <Box width={90}>
-          <Text bold size="sm">
-            Column 1
-          </Text>
-        </Box>
-        <Box width={90}>
-          <Text bold size="sm">
-            Column 2
-          </Text>
-        </Box>
-      </Box>
-      {rows.map((row) => (
-        <Box borderBottom="default" direction="row" key={row} padding={2}>
-          <Box width={90}>
-            <Text size="sm">{row}</Text>
-          </Box>
-          <Box width={90}>
-            <Text size="sm">Data</Text>
-          </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-};
-
 export const StandardDataTable = (): React.ReactElement => {
   const [allRows] = useState([
     [

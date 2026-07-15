@@ -15,39 +15,6 @@ import sortBy from "lodash/sortBy";
 import type React from "react";
 import {useState} from "react";
 
-// Static, non-interactive stand-in for the card preview shown on the demo home page.
-// Table renders nested scrollable containers that don't behave well when squeezed into the
-// small, overflow-hidden preview card, so we render a lightweight mockup instead.
-export const TablePreview = (): React.ReactElement => {
-  const rows = ["Row 1", "Row 2", "Row 3"];
-  return (
-    <Box border="default" direction="column" rounding="md" width="100%">
-      <Box borderBottom="default" direction="row" padding={2}>
-        <Box width={90}>
-          <Text bold size="sm">
-            Column 1
-          </Text>
-        </Box>
-        <Box width={90}>
-          <Text bold size="sm">
-            Column 2
-          </Text>
-        </Box>
-      </Box>
-      {rows.map((row) => (
-        <Box borderBottom="default" direction="row" key={row} padding={2}>
-          <Box width={90}>
-            <Text size="sm">{row}</Text>
-          </Box>
-          <Box width={90}>
-            <Text size="sm">Data</Text>
-          </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-};
-
 export const SortableExpandableTableStory = (): React.ReactElement => {
   const [rows, setRows] = useState([
     ["Data 1 has some data in it", "Data 2 has some longer data in it", 5, 1000.4],
