@@ -1,0 +1,20 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+// Flags imports of internal path-alias barrels (e.g. `@/store`, `@components`).
+// These aliases point at directories, so importing them resolves through an
+// `index` file. Import the concrete module instead (e.g. `@/store/sdk`).
+//
+// Relative barrel imports (e.g. `../models`) need no rule: internal barrel
+// `index.ts` files are banned outright via the `noBarrelFile` override in the
+// root biome.jsonc, so there is nothing for such imports to resolve to.
+//
+// Policy: docs/explanation/no-barrel-imports.md
+JsModuleSource() as $source where {
+    $source <: r"[\"']@/?(?:app|assets|components|constants|store|stories|story-config|utils)[\"']",
+    register_diagnostic(
+        span = $source,
+        message = "Do not import a path-alias directory barrel. Import the concrete module path instead (see docs/explanation/no-barrel-imports.md).",
+        severity = "error"
+    )
+}

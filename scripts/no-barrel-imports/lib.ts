@@ -20,36 +20,6 @@ export const SCAN_ROOTS = [
   "ui/src",
 ] as const;
 
-export const PACKAGE_SCAN_ROOTS: Record<string, readonly string[]> = {
-  "admin-backend": ["admin-backend/src"],
-  "admin-frontend": ["admin-frontend/src"],
-  "admin-spa": ["admin-spa"],
-  ai: ["ai/src"],
-  api: ["api/src"],
-  "api-health": ["api-health/src"],
-  demo: ["demo"],
-  "example-backend": ["example-backend/src"],
-  "example-frontend": ["example-frontend"],
-  "feature-flags": ["feature-flags/src"],
-  "mcp-server": ["mcp-server/src"],
-  rtk: ["rtk/src"],
-  test: ["test/src"],
-  ui: ["ui/src"],
-};
-
-const PACKAGES_WITH_PATH_ALIASES = new Set(["example-frontend", "admin-spa", "demo"]);
-
-export const INTERNAL_ALIAS_BARRELS = [
-  "@/store",
-  "@store",
-  "@components",
-  "@utils",
-  "@stories",
-  "@assets",
-  "@app",
-  "@constants",
-] as const;
-
 const IGNORED_DIR_NAMES = new Set([
   "node_modules",
   "dist",
@@ -257,18 +227,23 @@ const isExpoRouteIndex = (filePath: string): boolean => {
   return /\/app\//.test(filePath) && /\/index\.tsx?$/.test(filePath);
 };
 
-const isPackagePublicEntry = (filePath: string): boolean => {
-  return Object.values(PACKAGE_PUBLIC_ENTRIES).includes(filePath);
+const isPackagePublicEntry = (filePath: string, repoRoot: string = REPO_ROOT): boolean => {
+  if (Object.values(PACKAGE_PUBLIC_ENTRIES).includes(filePath)) {
+    return true;
+  }
+  // Package public entries live at <package>/src/index.ts(x) relative to the repo root.
+  const relativePath = relative(repoRoot, filePath).replace(/\\/g, "/");
+  return /^[^/]+\/src\/index\.tsx?$/.test(relativePath);
 };
 
-export const isBarrelIndexFile = (filePath: string): boolean => {
+export const isBarrelIndexFile = (filePath: string, repoRoot: string = REPO_ROOT): boolean => {
   if (!/\/index\.tsx?$/.test(filePath)) {
     return false;
   }
   if (isExpoRouteIndex(filePath)) {
     return false;
   }
-  if (isPackagePublicEntry(filePath)) {
+  if (isPackagePublicEntry(filePath, repoRoot)) {
     return false;
   }
 
@@ -319,7 +294,7 @@ const findViolationsInFile = (
       }
 
       const resolved = resolveModulePath(base);
-      if (!resolved || !isBarrelIndexFile(resolved)) {
+      if (!resolved || !isBarrelIndexFile(resolved, repoRoot)) {
         continue;
       }
 
@@ -352,10 +327,10 @@ export const collectBarrelImportViolations = (
 
   const violations: BarrelViolation[] = [];
   for (const file of files) {
-    if (isBarrelIndexFile(file)) {
+    if (isBarrelIndexFile(file, repoRoot)) {
       continue;
     }
-    if (isPackagePublicEntry(file)) {
+    if (isPackagePublicEntry(file, repoRoot)) {
       continue;
     }
     violations.push(...findViolationsInFile(file, aliasByPackageDir, repoRoot));
@@ -379,109 +354,7 @@ export const collectInternalBarrelIndexFiles = (
   }
 
   return files
-    .filter((file) => isBarrelIndexFile(file))
+    .filter((file) => isBarrelIndexFile(file, repoRoot))
     .map((file) => relative(repoRoot, file))
     .sort();
-};
-
-export const collectBarrelImportSpecifiers = (
-  repoRoot: string = REPO_ROOT,
-  scanRoots: readonly string[] = SCAN_ROOTS,
-  options: {includePathAliases?: boolean} = {}
-): string[] => {
-  const includePathAliases = options.includePathAliases ?? true;
-  const specifiers = new Set<string>(
-    includePathAliases ? INTERNAL_ALIAS_BARRELS : []
-  );
-
-  for (const barrelRelative of collectInternalBarrelIndexFiles(repoRoot, scanRoots)) {
-    const barrelDir = dirname(barrelRelative).replace(/\\/g, "/");
-    const scanRoot = scanRoots.find(
-      (root) => barrelDir === root || barrelDir.startsWith(`${root}/`)
-    );
-    if (!scanRoot) {
-      continue;
-    }
-
-    const pathFromScanRoot =
-      barrelDir === scanRoot ? "" : barrelDir.slice(scanRoot.length + 1);
-    if (!pathFromScanRoot) {
-      continue;
-    }
-
-    const parts = pathFromScanRoot.split("/");
-    for (let start = 0; start < parts.length; start++) {
-      const suffix = parts.slice(start).join("/");
-      specifiers.add(`./${suffix}`);
-      for (let depth = 1; depth <= 4; depth++) {
-        specifiers.add(`${"../".repeat(depth)}${suffix}`);
-      }
-    }
-  }
-
-  return [...specifiers].sort();
-};
-
-export const collectBarrelImportSpecifiersByPackage = (
-  repoRoot: string = REPO_ROOT
-): Map<string, string[]> => {
-  const specifiersByPackage = new Map<string, string[]>();
-
-  for (const [packageName, scanRoots] of Object.entries(PACKAGE_SCAN_ROOTS)) {
-    specifiersByPackage.set(
-      packageName,
-      collectBarrelImportSpecifiers(repoRoot, scanRoots, {
-        includePathAliases: PACKAGES_WITH_PATH_ALIASES.has(packageName),
-      })
-    );
-  }
-
-  return specifiersByPackage;
-};
-
-const escapeGritStringLiteral = (value: string): string => {
-  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-};
-
-export const renderNoBarrelImportsGritPlugin = (
-  specifiers: string[],
-  packageName?: string
-): string => {
-  if (specifiers.length === 0) {
-    return `// Generated by scripts/no-barrel-imports/generate-grit.ts — do not edit by hand.
-// Package: ${packageName ?? "unknown"} — no barrel import specifiers.
-`;
-  }
-
-  const literalLines = specifiers.flatMap((specifier) => {
-    const escaped = escapeGritStringLiteral(specifier);
-    return [`        \`'${escaped}'\`,`, `        \`"${specifier.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"\`,`];
-  });
-
-  return `// Generated by scripts/no-barrel-imports/generate-grit.ts — do not edit by hand.
-// Package: ${packageName ?? "unknown"}
-or {
-    \`import $_ from $source\`,
-    \`export $_ from $source\`
-} where {
-    $source <: or {
-${literalLines.join("\n")}
-    },
-    register_diagnostic(
-        span = $source,
-        message = "Do not import through internal barrel index files. Import the concrete module path instead (see docs/explanation/no-barrel-imports.md).",
-        severity = "error"
-    )
-}
-`;
-};
-
-export const renderAllNoBarrelImportsGritPlugins = (
-  repoRoot: string = REPO_ROOT
-): Map<string, string> => {
-  const rendered = new Map<string, string>();
-  for (const [packageName, specifiers] of collectBarrelImportSpecifiersByPackage(repoRoot)) {
-    rendered.set(packageName, renderNoBarrelImportsGritPlugin(specifiers, packageName));
-  }
-  return rendered;
 };

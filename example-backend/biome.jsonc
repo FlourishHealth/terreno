@@ -25,6 +25,5 @@
       }
     }
   },
-  "plugins": ["../biome/plugins/no-barrel-imports/example-backend.grit"],
   "root": true
 }

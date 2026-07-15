@@ -48,7 +48,8 @@ export * from "./ImageBackground";
 export * from "./InfoModalIcon";
 export * from "./InfoTooltipButton";
 export * from "./Link";
-export * from "./login";
+export * from "./login/LoginScreen";
+export type {LoginFieldConfig, LoginScreenProps} from "./login/loginTypes";
 export * from "./MarkdownEditor";
 export * from "./MarkdownEditorField";
 export * from "./MarkdownView";
@@ -80,7 +81,22 @@ export * from "./Slider";
 export * from "./SocialLoginButton";
 export * from "./Spinner";
 export * from "./SplitPage";
-export * from "./signUp";
+export {OAuthButtons} from "./signUp/OAuthButtons";
+export {PasswordRequirements} from "./signUp/PasswordRequirements";
+export {
+  defaultPasswordRequirements,
+  simplePasswordRequirements,
+} from "./signUp/passwordPresets";
+export {SignUpScreen} from "./signUp/SignUpScreen";
+export {Swiper} from "./signUp/Swiper";
+export type {
+  OAuthProvider,
+  OAuthProviderConfig,
+  OnboardingPage,
+  PasswordRequirement,
+  SignUpFieldConfig,
+  SignUpScreenProps,
+} from "./signUp/signUpTypes";
 export * from "./TapToEdit";
 export * from "./TerrenoProvider";
 export * from "./Text";

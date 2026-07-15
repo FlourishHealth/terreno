@@ -1,31 +1,39 @@
 #!/usr/bin/env bun
 /**
- * Enforces the no-barrel-imports policy via the Biome GritQL plugin.
+ * Enforces the no-barrel-imports policy.
  *
- * 1. Verifies biome/plugins/no-barrel-imports.grit is up to date
- * 2. Scans for barrel imports the plugin specifiers may have missed
+ * 1. Fails if any internal barrel index file exists (also enforced at lint
+ *    time by the `noBarrelFile` override in the root biome.jsonc)
+ * 2. Fails if any import resolves through a barrel index file (safety net
+ *    for cases lint cannot see, e.g. path-alias imports across configs)
  *
- * Day-to-day enforcement happens through Biome lint in each package
- * (see biome.jsonc → plugins).
+ * Day-to-day enforcement happens through Biome lint:
+ * - `noBarrelFile` override bans internal barrel index files
+ * - biome/plugins/no-barrel-imports.grit bans path-alias directory imports
  *
  * Policy: docs/explanation/no-barrel-imports.md
  */
-import {spawnSync} from "node:child_process";
-
-import {REPO_ROOT, SCAN_ROOTS, collectBarrelImportViolations} from "./lib";
-
-const runGenerateCheck = (): void => {
-  const result = spawnSync("bun", ["run", "scripts/no-barrel-imports/generate-grit.ts", "--check"], {
-    cwd: REPO_ROOT,
-    stdio: "inherit",
-  });
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-};
+import {
+  collectBarrelImportViolations,
+  collectInternalBarrelIndexFiles,
+  REPO_ROOT,
+  SCAN_ROOTS,
+} from "./lib";
 
 const main = (): void => {
-  runGenerateCheck();
+  const barrelFiles = collectInternalBarrelIndexFiles(REPO_ROOT, SCAN_ROOTS);
+  if (barrelFiles.length > 0) {
+    console.error(
+      `check-no-barrel-imports: found ${barrelFiles.length} internal barrel index file(s):\n`
+    );
+    for (const file of barrelFiles) {
+      console.error(`  ${file}`);
+    }
+    console.error(
+      "\nInternal barrel index files are not allowed. Export from the package public entry or import concrete modules instead. See docs/explanation/no-barrel-imports.md"
+    );
+    process.exit(1);
+  }
 
   const violations = collectBarrelImportViolations(REPO_ROOT, SCAN_ROOTS);
   if (violations.length > 0) {
@@ -36,12 +44,12 @@ const main = (): void => {
       );
     }
     console.error(
-      "\nImport the concrete module file instead. Regenerate the plugin with: bun run generate:no-barrel-imports-grit"
+      "\nImport the concrete module file instead. See docs/explanation/no-barrel-imports.md"
     );
     process.exit(1);
   }
 
-  console.info("check-no-barrel-imports: OK (per-package Biome plugins are up to date)");
+  console.info("check-no-barrel-imports: OK (no internal barrels, no barrel imports)");
 };
 
 main();

@@ -16,6 +16,8 @@ Terreno avoids **barrel imports** — imports that resolve through an `index.ts`
 
 ## Not allowed
 
+Internal barrel `index` files do not exist in this repo — the Biome `noBarrelFile` override bans creating them, so a directory import like `../models` has nothing to resolve to and fails to compile.
+
 Importing a directory that resolves to a re-exporting index file:
 
 ```typescript
@@ -37,9 +39,11 @@ import store, {useAppDispatch} from "@/store/index";
 
 ## Enforcement
 
-- **Biome plugin**: `biome/plugins/no-barrel-imports/*.grit` (generated per package from internal barrel index files)
-- **CI**: `bun run check:no-barrel-imports` (see root `package.json` → `terreno.policies.noBarrelImports`)
-- **Regenerate plugin**: `bun run generate:no-barrel-imports-grit`
+No generation step is required — internal barrel `index` files are banned outright, so there is never a list of barrels to keep in sync.
+
+- **Biome `noBarrelFile` override** (root `biome.jsonc`): bans internal barrel `index.ts` / `index.tsx` files during lint. Package public entries (`src/index.ts[x]`) and Expo Router routes (`app/**`) are exempt.
+- **Biome plugin**: `biome/plugins/no-barrel-imports.grit` — a small static GritQL plugin that flags path-alias directory imports (`@/store`, `@components`, …) in the packages that define those aliases (`example-frontend`, `admin-spa`, `demo`).
+- **CI**: `bun run check:no-barrel-imports` — resolution-based safety net that fails if any internal barrel index file exists or any import resolves through one (see root `package.json` → `terreno.policies.noBarrelImports`).
 - **AI rules**: `.rulesync/rules/00-root.md` and package `.ai/guidelines/core.md` files
 
 When scaffolding new code (MCP bootstrap, examples), always generate direct module paths — never `models/index`, `@/store`, or `@components` without a concrete file.
