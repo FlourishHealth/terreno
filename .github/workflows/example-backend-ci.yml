@@ -23,7 +23,7 @@ jobs:
       matrix:
         mongodb-version: ["6.0"]
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

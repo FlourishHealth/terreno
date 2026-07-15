@@ -67,7 +67,7 @@ jobs:
     outputs:
       is_mobile_build: ${{ steps.detect.outputs.is_mobile_build }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -127,7 +127,7 @@ jobs:
       APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'development' }}
       APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ""
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -227,7 +227,7 @@ jobs:
       APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'development:simulator' }}
       APPIUM_IOS_EAS_FALLBACK_PROFILE: ""
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
