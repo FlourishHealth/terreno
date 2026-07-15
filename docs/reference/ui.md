@@ -10,7 +10,7 @@ React Native UI component library (88+ components). Layout (Box, Page, Card), fo
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
-- Theming: `TerrenoProvider`, `useTheme`
+- Theming: `TerrenoProvider`, `useTheme`, custom icon registry (`icons` prop)
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
 
 ## Type Re-exports
@@ -334,21 +334,79 @@ if (isMobileDevice()) {
 
 ## Icons
 
+Terreno uses **FontAwesome 6** by default. Pass icon names via `iconName` on `Icon`, `Button`, `IconButton`, form fields, `Badge`, and other icon-aware components.
+
 ### FontAwesome Icons
 
-All 2000+ FontAwesome 6 icons available via the `Icon` component:
+All 2000+ FontAwesome 6 icons are available:
 
 ``````typescript
-import {Icon} from "@terreno/ui";
+import {Icon, Button} from "@terreno/ui";
 
-<Icon name="check" size={24} color="primary" />
-<Icon name="user" size={32} color="secondary" />
-<Icon name="chevron-right" size={16} color="neutral700" />
+<Icon iconName="check" size="md" color="primary" />
+<Icon iconName="user" size="lg" color="secondaryDark" />
+<Icon iconName="chevron-right" size="sm" color="primary" />
+
+<Button text="Save" iconName="check" onClick={handleSave} />
 ``````
 
-### Custom SVG Icons
+**Sizes:** `xs`, `sm`, `md`, `lg`, `xl`, `2xl`
 
-@terreno/ui includes custom status icons:
+**Types:** `solid` (default), `regular`, `brand`, `light`, `thin`, `duotone`, `sharp`, and related variants.
+
+### Custom Icons
+
+Register your own icons (SVGs, etc.) on `TerrenoProvider` and use them by name anywhere `iconName` is accepted. Registered names take precedence over FontAwesome.
+
+**1. Create a custom icon component** that accepts `color`, `size` (pixels), and optional `testID`:
+
+``````typescript
+import type {CustomIconProps} from "@terreno/ui";
+import Svg, {Path} from "react-native-svg";
+
+export const SparkleIcon = ({color, size, testID}: CustomIconProps): React.ReactElement => (
+  <Svg fill="none" height={size} testID={testID} viewBox="0 0 24 24" width={size}>
+    <Path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" fill={color} />
+  </Svg>
+);
+``````
+
+Terreno resolves theme colors and size tokens before passing them to your component.
+
+**2. Register icons** via the `icons` prop on `TerrenoProvider`:
+
+``````typescript
+import {TerrenoProvider} from "@terreno/ui";
+import {SparkleIcon} from "./components/SparkleIcon";
+
+<TerrenoProvider icons={{sparkle: SparkleIcon}}>
+  {children}
+</TerrenoProvider>
+``````
+
+**3. Use by name** like any built-in icon:
+
+``````typescript
+<Icon iconName="sparkle" color="accent" size="lg" />
+<Button text="Sparkle" iconName="sparkle" onClick={handleClick} />
+<IconButton accessibilityLabel="Sparkle" iconName="sparkle" onClick={handleClick} />
+``````
+
+**TypeScript:** extend `CustomIconRegistry` via declaration merging for autocomplete and type-safe `iconName` values:
+
+``````typescript
+declare module "@terreno/ui" {
+  interface CustomIconRegistry {
+    sparkle: true;
+  }
+}
+``````
+
+See [`demo/components/customIcons.tsx`](../../demo/components/customIcons.tsx) for a full working example.
+
+### Built-in Status Icons
+
+@terreno/ui also ships status indicator SVGs as standalone components (not registered via `TerrenoProvider`):
 
 ``````typescript
 import {MobileIcon, OnlineIcon, OfflineIcon, OutOfOfficeIcon} from "@terreno/ui";
@@ -393,7 +451,7 @@ const buttonStyles = toggle(isPressed, pressedStyles, defaultStyles);
 
 @terreno/ui components do not require environment variables. All configuration is done at runtime via:
 
-- **TerrenoProvider props** — Theme customization, error handlers, base URL
+- **TerrenoProvider props** — Theme customization, custom icon registry (`icons`), OpenAPI spec URL
 - **Theme hooks** — `useTheme()`, `setTheme()`, `setPrimitives()`
 - **Component props** — Direct prop overrides for individual components
 
