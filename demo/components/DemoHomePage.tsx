@@ -31,7 +31,6 @@ const DemoCard: React.FC<DemoCardProps> = ({config, onPress}) => {
     <Pressable
       accessibilityHint={`Open the ${config.name} component demo.`}
       accessibilityLabel={`${config.name} demo card`}
-      accessibilityRole="button"
       onPress={handlePress}
       testID={homeTestId}
     >
