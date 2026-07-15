@@ -111,6 +111,15 @@
     "zod": "catalog:"
   },
   "name": "@terreno/root",
+  "terreno": {
+    "policies": {
+      "noBarrelImports": {
+        "check": "bun run check:no-barrel-imports",
+        "documentation": "docs/explanation/no-barrel-imports.md",
+        "enabled": true
+      }
+    }
+  },
   "overrides": {
     "ajv": "8.18.0",
     "lodash": "^4.17.23",
@@ -144,6 +153,7 @@
     "backend:seed": "bun run --filter '@terreno/example-backend' seed",
     "bootstrap": "bun install && bun run compile",
     "bootstrap:update": "bun install && bun run compile",
+    "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
     "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",
     "demo:android": "bun run --filter 'terreno-demo' android",

@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {AccordionDemo, AccordionDevDemo, AccordionOnToggleDemo} from "@stories";
+import {AccordionDemo, AccordionDevDemo, AccordionOnToggleDemo} from "@stories/Accordion.stories";
 import {Accordion} from "@terreno/ui";
 
 export const AccordionConfiguration: DemoConfiguration = {

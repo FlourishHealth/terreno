@@ -1,4 +1,4 @@
-import {DemoHomePage} from "@components";
+import {DemoHomePage} from "@components/DemoHomePage";
 import {router} from "expo-router";
 import {StyleSheet, View} from "react-native";
 import {Host} from "react-native-portalize";

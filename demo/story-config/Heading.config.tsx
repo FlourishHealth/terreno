@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {HeadingPreview, Headings, renderHeadingText} from "@stories";
+import {HeadingPreview, Headings, renderHeadingText} from "@stories/Heading.stories";
 import {HeadingProps} from "@terreno/ui";
 
 export const HeadingConfiguration: DemoConfiguration = {

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import type {TodoDocument, TodoModel} from "../types";
+import type {TodoDocument, TodoModel} from "../types/models/todoTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(

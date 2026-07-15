@@ -21,7 +21,7 @@ import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
-import store, {logout, persistor, useAppDispatch} from "@/store";
+import store, {logout, persistor, useAppDispatch} from "@/store/index";
 import {terrenoApi} from "@/store/sdk";
 
 const OpenFeatureBridge: FC<{

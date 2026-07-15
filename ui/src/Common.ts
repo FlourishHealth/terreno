@@ -36,7 +36,7 @@ export {
   toDomTestProps,
   toPlatformTestProps,
   toTestProps,
-} from "./testing";
+} from "./testing/resolveTestId";
 export type {
   DataTableTestIDs,
   FieldTestIDs,

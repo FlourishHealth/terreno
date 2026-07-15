@@ -30,7 +30,7 @@ Create a new screen with the following specifications:
 ```tsx
 import {Box, Page, Text, Spinner} from "@terreno/ui";
 import type React from "react";
-import {useGet{{Model}}Query} from "@/store";
+import {useGet{{Model}}Query} from "@/store/sdk";
 
 const {{Name}}Screen: React.FC = () => {
   const {data, isLoading, error} = useGet{{Model}}Query();

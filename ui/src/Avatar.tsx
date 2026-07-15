@@ -14,7 +14,10 @@ import {
 
 import type {AvatarProps, CustomSvgProps} from "./Common";
 import {Icon} from "./Icon";
-import {MobileIcon, OfflineIcon, OnlineIcon, OutOfOfficeIcon} from "./icons";
+import {MobileIcon} from "./icons/MobileIcon";
+import {OfflineIcon} from "./icons/OfflineIcon";
+import {OnlineIcon} from "./icons/OnlineIcon";
+import {OutOfOfficeIcon} from "./icons/OutOfficeIcon";
 import {isMobileDevice} from "./MediaQuery";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";

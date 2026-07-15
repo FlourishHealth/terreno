@@ -22,3 +22,5 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 // Wrong - don't use axios directly
 // const result = await axios.get("/api/yourRoute/value");
 ```
+
+**No barrel imports** in app store code — import hooks from `@/store/sdk` or `@/store/openApiSdk`, not `@/store`. See `docs/explanation/no-barrel-imports.md`.

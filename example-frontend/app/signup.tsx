@@ -4,7 +4,7 @@ import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 import {isBetterAuthEnabled, signInWithSocial, signUpWithEmail} from "@/lib/betterAuth";
-import {useEmailSignUpMutation} from "@/store";
+import {useEmailSignUpMutation} from "@/store/sdk";
 
 const SignUp: React.FC = () => {
   const router = useRouter();

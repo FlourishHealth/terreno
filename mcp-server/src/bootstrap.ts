@@ -626,7 +626,7 @@ export * from "./user";
 
 const generateBackendUserRoutes = (): string => {
   return `import {Permissions, modelRouter} from "@terreno/api";
-import {User} from "../models";
+import {User} from "../models/user";
 
 export const userRouter = modelRouter("/users", User, {
   permissions: {
@@ -1012,7 +1012,7 @@ import {baseUrl, useSelectCurrentUserId} from "@terreno/rtk";
 import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import store, {persistor} from "@/store";
+import store, {persistor} from "@/store/index";
 
 export {ErrorBoundary} from "expo-router";
 
@@ -1079,7 +1079,7 @@ const generateFrontendLogin = (): string => {
   return `import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
+import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store/sdk";
 
 const LoginScreen: React.FC = () => {
   const [name, setName] = useState<string>("");
@@ -1273,8 +1273,9 @@ const generateFrontendTabsProfile = (): string => {
   return `import {Box, Button, Heading, Page, Text} from "@terreno/ui";
 import type React from "react";
 import {useCallback} from "react";
-import {logout, useGetMeQuery} from "@/store";
-import {useAppDispatch} from "@/store";
+import {useGetMeQuery} from "@/store/sdk";
+import {logout} from "@/store/index";
+import {useAppDispatch} from "@/store/index";
 
 const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -1400,9 +1401,6 @@ import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
 import {terrenoApi} from "./sdk";
 
-export * from "./appState";
-export {useSentryAndToast} from "./errors";
-
 const authSlice = generateAuthSlice(terrenoApi);
 
 export const {logout} = authSlice;
@@ -1477,10 +1475,8 @@ export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 export const useAppDispatch: () => AppDispatch = useDispatch;
-export {useAppSelector} from "./appState";
 
 export default store;
-export * from "./sdk";
 `;
 };
 

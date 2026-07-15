@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableBadgeDemo, TableBadgeStates} from "@stories";
+import {TableBadgeDemo, TableBadgeStates} from "@stories/TableBadge.stories";
 import {Table} from "@terreno/ui";
 
 export const TableBadgeConfiguration: DemoConfiguration = {

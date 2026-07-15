@@ -2,7 +2,7 @@ import {type FC, useEffect, useMemo, useRef, useState} from "react";
 import {type TextInput, View} from "react-native";
 
 import type {CustomSelectFieldProps} from "./Common";
-import {FieldHelperText} from "./fieldElements";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {SelectField} from "./SelectField";
 import {TextField} from "./TextField";
 import {resolveFieldTestIDsFromProps, resolveTestID} from "./testing/resolveTestId";

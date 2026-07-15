@@ -4,7 +4,7 @@ import {
   SidebarNavigationLiveDemo,
   SidebarNavigationManyItems,
   SidebarNavigationMinimal,
-} from "@stories";
+} from "@stories/SidebarNavigation.stories";
 import {SidebarNavigation, SidebarNavigationPanel} from "@terreno/ui";
 
 const colorOptions = [

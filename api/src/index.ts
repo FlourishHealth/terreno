@@ -18,7 +18,9 @@ export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
 export * from "./models/versionConfig";
-export * from "./notifiers";
+export * from "./notifiers/googleChatNotifier";
+export * from "./notifiers/slackNotifier";
+export * from "./notifiers/zoomNotifier";
 export * from "./openApiBuilder";
 export * from "./openApiCompat";
 export * from "./openApiEtag";
@@ -26,7 +28,43 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
-export * from "./realtime";
+export {
+  startChangeStreamWatcher,
+  stopChangeStreamWatcher,
+} from "./realtime/changeStreamWatcher";
+export {matchesQuery} from "./realtime/queryMatcher";
+export {
+  addQuerySubscription,
+  clearQueryStore,
+  computeQueryId,
+  getQuerySubscriptionsForCollection,
+  removeAllSocketQueries,
+  removeQuerySubscription,
+} from "./realtime/queryStore";
+export {
+  installRealtimeSocketHandlers,
+  MAX_DOCUMENT_SUBSCRIPTIONS,
+  MAX_MODEL_SUBSCRIPTIONS,
+  MAX_QUERY_SUBSCRIPTIONS,
+  RealtimeApp,
+  type RealtimeSocketLike,
+} from "./realtime/realtimeApp";
+export {
+  clearRealtimeRegistry,
+  findRegistryEntryByCollection,
+  findRegistryEntryByRoutePath,
+  getRealtimeRegistry,
+  type RealtimeRegistryEntry,
+  registerRealtime,
+} from "./realtime/registry";
+export type {
+  ChangeStreamConfig,
+  DocumentSubscription,
+  QuerySubscription,
+  RealtimeAppOptions,
+  RealtimeConfig,
+  RealtimeEvent,
+} from "./realtime/types";
 export * from "./requestContext";
 export * from "./scriptRunner";
 export * from "./secretProviders";

@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'ui/**'
+      - 'demo/**'
+      - '.github/workflows/ui-ci.yml'
 
 jobs:
   ui-lint-and-test:

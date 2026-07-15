@@ -1,7 +1,7 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import {TerrenoApp} from "@terreno/api";
 import type express from "express";
-import mongoose from "mongoose";
+import type mongoose from "mongoose";
 import supertest from "supertest";
 
 import {FileAttachment} from "../models/fileAttachment";

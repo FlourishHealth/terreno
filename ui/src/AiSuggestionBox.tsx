@@ -4,7 +4,7 @@ import {Pressable, View} from "react-native";
 import {Button} from "./Button";
 import type {AiSuggestionProps} from "./Common";
 import {Icon} from "./Icon";
-import {SparklesIcon} from "./icons";
+import {SparklesIcon} from "./icons/SparklesIcon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 

@@ -1,4 +1,4 @@
-import {PaletteGenerator} from "@components";
+import {PaletteGenerator} from "@components/palette/PaletteGenerator";
 
 const Route = () => {
   return <PaletteGenerator />;

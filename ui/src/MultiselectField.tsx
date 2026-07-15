@@ -3,7 +3,8 @@ import {TouchableOpacity, View} from "react-native";
 
 import {CheckBox} from "./CheckBox";
 import type {MultiselectFieldProps} from "./Common";
-import {FieldError, FieldHelperText} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {Heading} from "./Heading";
 import {isMobileDevice} from "./MediaQuery";
 import {Text} from "./Text";

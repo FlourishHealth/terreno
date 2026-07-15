@@ -1,7 +1,7 @@
 import {DemoConfiguration} from "@config";
 import {DataTable} from "@terreno/ui";
 
-import {StandardDataTable} from "../stories";
+import {StandardDataTable} from "../stories/DataTable.stories";
 
 export const DataTableConfiguration: DemoConfiguration = {
   name: "DataTable",

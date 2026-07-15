@@ -10,7 +10,7 @@ import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useColorScheme} from "@/components/useColorScheme";
-import store, {persistor} from "@/store";
+import store, {persistor} from "@/store/index";
 
 export {ErrorBoundary} from "expo-router";
 

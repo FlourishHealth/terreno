@@ -4,11 +4,11 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@stories": ["stories"],
-      "@components": ["components"],
+      "@stories/*": ["stories/*"],
+      "@components/*": ["components/*"],
       "@config": ["demoConfig"],
       "@contexts/*": ["contexts/*"],
-      "@story-config": ["story-config"]
+      "@story-config/*": ["story-config/*"]
     },
     "jsx": "react-jsx"
   },
