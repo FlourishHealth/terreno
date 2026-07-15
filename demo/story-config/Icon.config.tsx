@@ -10,7 +10,7 @@ export const IconConfiguration: DemoConfiguration = {
   category: "Foundation",
   component: Icon,
   status: {
-    documentation: "planned",
+    documentation: "ready",
     figma: "ready",
     figmaLink:
       "https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Fwww.figma.com%2Ffile%2FykXj5qjjtFjOYkAvTasu9r%2FFlourish-Health-Design-System%3Ftype%3Ddesign%26node-id%3D220%253A7719%26mode%3Ddesign%26t%3DiCiJI3xbrm6rrXPg-1",
