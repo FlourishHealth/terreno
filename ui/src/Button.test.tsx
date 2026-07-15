@@ -88,6 +88,20 @@ describe("Button", () => {
     });
   }
 
+  it("removes the outline border in active state", () => {
+    const {getByTestId} = renderWithTheme(
+      <Button
+        onClick={() => {}}
+        state="active"
+        testID="outline-active"
+        text="Outline active"
+        variant="outline"
+      />
+    );
+
+    expect(getByTestId("outline-active")).not.toHaveStyle({borderWidth: 2});
+  });
+
   it("keeps disabled styling when state is active", () => {
     const {getByTestId} = renderWithTheme(
       <Button
