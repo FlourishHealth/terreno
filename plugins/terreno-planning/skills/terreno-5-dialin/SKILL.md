@@ -57,6 +57,14 @@ Each cycle:
 - Leave unresolved anything intentionally skipped/out-of-scope and explain why.
 - Apply PHI minimum-necessary handling in all generated replies/comments.
 
+## Frontend re-verification
+
+When a fix cycle changes files under `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Re-run `verify-ui-changes` before pushing: launch the app, log in, and exercise the affected feature.
+2. Save new screenshots/videos to `/opt/cursor/artifacts/` when the visible UI or flow changed.
+3. Update the PR `## Evidence` or `## UI verification` section with the new artifacts before resolving related review threads.
+
 ## Mergeability End State
 
 Dialin succeeds when all are true:

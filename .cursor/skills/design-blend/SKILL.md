@@ -180,5 +180,6 @@ Do not finalize until all checks pass:
 - [ ] User explicitly confirmed plan + task list before implementation.
 - [ ] Implementation was subagent-driven task-by-task.
 - [ ] Every implemented task has a Plan vs Actual entry.
+- [ ] Frontend work: `verify-ui-changes` completed — app launched, logged in when required, feature exercised, screenshots/videos saved to `/opt/cursor/artifacts/` and attached to the PR.
 
 If any box is unchecked, final output is invalid and must be corrected.
