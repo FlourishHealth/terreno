@@ -1,12 +1,12 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
 import type express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
+import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth, signupUser} from "./auth";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {TerrenoApp} from "./terrenoApp";
@@ -1388,5 +1388,93 @@ describe("signup disabled", () => {
   it("returns 404 when SIGNUP_DISABLED is true", async () => {
     const res = await agent.post("/auth/signup").send({email: "new@example.com", password: "123"});
     expect(res.status).toBe(404);
+  });
+});
+
+describe("signupUser postCreate failures", () => {
+  it("wraps and rethrows errors thrown by user.postCreate", async () => {
+    let saveCalled = false;
+    const failingUser = {
+      postCreate: async () => {
+        throw new Error("postCreate failed");
+      },
+      save: async () => {
+        saveCalled = true;
+      },
+    };
+    const fakeModel = {
+      register: async () => failingUser,
+    } as unknown as Parameters<typeof signupUser>[0];
+
+    await expect(signupUser(fakeModel, "new@example.com", "password123")).rejects.toThrow(
+      "postCreate failed"
+    );
+    expect(saveCalled).toBe(false);
+  });
+});
+
+describe("auth error paths when the user lookup fails", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  let admin: {_id: {toString: () => string}};
+
+  beforeEach(async () => {
+    setSystemTime();
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("responds with an error when userModel.findById throws during authentication", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: admin._id.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const findSpy = spyOn(UserModel, "findById").mockImplementation(() => {
+      throw new Error("database unavailable");
+    });
+    try {
+      const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
+
+  it("calls next(err) when the local login strategy errors", async () => {
+    type Authenticator = (
+      username: string,
+      password: string,
+      done: (err: Error | null) => void
+    ) => void;
+    const authSpy = spyOn(
+      UserModel as unknown as {authenticate: () => Authenticator},
+      "authenticate"
+    ).mockReturnValue((_username, _password, done) => {
+      done(new Error("strategy failure"));
+    });
+    try {
+      const errApp = new TerrenoApp({
+        configureApp: () => {},
+        skipListen: true,
+        userModel: UserModel as any,
+      }).build();
+      const errAgent = supertest.agent(errApp);
+      const res = await errAgent
+        .post("/auth/login")
+        .send({email: "notAdmin@example.com", password: "password"});
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    } finally {
+      authSpy.mockRestore();
+    }
   });
 });
