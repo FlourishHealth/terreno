@@ -87,8 +87,7 @@ const createApi = (queries: Record<string, QueryEntry> | null) => {
 
 const renderSync = (
   socket: FakeSocket | null,
-  // biome-ignore lint/suspicious/noExplicitAny: test-only structural RTK Query api stub
-  api: any,
+  api: ReturnType<typeof createApi>["api"],
   store: ReturnType<typeof configureStore>,
   options: {tagTypes?: string[]; debug?: boolean} = {}
 ) => {
