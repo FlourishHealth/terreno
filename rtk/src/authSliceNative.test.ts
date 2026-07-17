@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
 // Keep this mock a superset of the preload's react-native mock so that other
@@ -69,7 +68,7 @@ const api = createApi({
 });
 
 const createTestStore = () => {
-  const {authReducer, middleware, authSlice} = auth.generateAuthSlice(api as any);
+  const {authReducer, middleware, authSlice} = auth.generateAuthSlice(api);
   const store = configureStore({
     middleware: (getDefault) =>
       getDefault({serializableCheck: false}).concat(api.middleware, ...middleware),
