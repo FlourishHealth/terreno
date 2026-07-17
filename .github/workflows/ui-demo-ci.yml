@@ -13,7 +13,7 @@ jobs:
       ui_changed: ${{ steps.filter.outputs.ui }}
     steps:
       - uses: actions/checkout@v6.0.3
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@v4.0.1
         id: filter
         with:
           filters: |
