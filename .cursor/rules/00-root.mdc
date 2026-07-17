@@ -136,6 +136,7 @@ bun run frontend:web
 - Focus on readability over performance
 - Write complete, functional code without TODOs when possible
 - Comments should describe purpose, not effect
+- **Frontend verification is mandatory** for any feature touching frontend packages: launch the app, log in when required, exercise the changed feature, save screenshots/videos to `/opt/cursor/artifacts/`, and attach them to the PR. See `02-frontend-verification.md` and the `verify-ui-changes` skill.
 
 ## Package Reference
 

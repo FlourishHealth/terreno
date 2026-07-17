@@ -34,6 +34,17 @@ If your harness does not support subagents, run the same checks inline instead: 
 
 If invoked from `/fullsend` (which already ran pre-commit), skip this step.
 
+## Step 1.75: Frontend verification (mandatory when branch touches frontend)
+
+If the branch changes files under `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Invoke the `verify-ui-changes` skill before committing or opening/updating the PR.
+2. Launch the correct app, log in with seeded credentials when required, and exercise each changed user-facing feature.
+3. Save screenshots and videos under `/opt/cursor/artifacts/`.
+4. Carry the artifacts forward to Step 4 — they must appear in the PR `## Evidence` or `## UI verification` section.
+
+Do not skip this step for full-stack features that include frontend paths. If verification is blocked by environment setup, document the blocker in the PR body.
+
 ## Step 2: Commit
 
 Stage and commit:
@@ -50,15 +61,18 @@ git push origin HEAD
 
 ## Step 4: Create or Update PR
 
-### Include run evidence (screenshots/videos)
+### Include run evidence (screenshots/videos) — required for frontend changes
 
-If any evidence was captured during this run — screenshots, screen recordings, or videos (e.g. from browser testing, `verify-ui-changes`, Playwright, or emulator sessions) — include it in the PR body under an `## Evidence` section:
+When the branch touches frontend paths (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`), the PR **must** include UI verification evidence from `verify-ui-changes`: app launch, login, and feature exercise with saved screenshots/videos.
+
+For all runs, if evidence was captured — screenshots, screen recordings, or videos (e.g. from browser testing, `verify-ui-changes`, Playwright, or emulator sessions) — include it in the PR body under an `## Evidence` section (or `## UI verification` when the change is UI-focused):
 
 - Check for media generated during the session (e.g. `/opt/cursor/artifacts/`, `.cursor/artifacts/`, test output dirs, or files you saved while verifying).
 - In Cursor cloud runs, reference artifacts by absolute path with HTML tags — the PR tool uploads them and rewrites the URLs automatically: `<img alt="Description" src="/opt/cursor/artifacts/screenshots/example.png" />` or `<video src="/opt/cursor/artifacts/demo.mp4"></video>`.
 - With `gh`, only include media you can reference by a stable URL (already-uploaded images); do not commit media files to the repo just to link them.
-- Give each item a one-line caption saying what it demonstrates.
-- Skip the section entirely if no evidence exists — never add placeholders.
+- Give each item a one-line caption saying what it demonstrates (app URL, login account if applicable, and feature exercised).
+- For frontend changes, an empty Evidence section is not allowed unless verification was blocked — document the blocker instead.
+- Skip the section entirely only when the branch has no frontend paths and no other evidence exists.
 
 ### If no PR exists
 

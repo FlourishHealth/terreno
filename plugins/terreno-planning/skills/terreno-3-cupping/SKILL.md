@@ -29,29 +29,39 @@ Cupping can run on:
 
 ## UI Verification Requirements
 
-For UI-facing changes, include manual verification and visible artifacts.
+For UI-facing changes, manual verification with login + feature exercise is **mandatory**.
+
+1. Invoke the `verify-ui-changes` skill.
+2. Launch the correct app for the package that changed.
+3. Log in with seeded credentials when the app requires authentication.
+4. Attempt to use each requirement's user-facing behavior — not just confirm the app loads.
+5. Save screenshots and videos under `/opt/cursor/artifacts/`.
+6. Include artifact references in the verification output for PR attachment.
 
 ### `@terreno/ui` changes
 
 - Start demo (`bun run demo:start`).
+- Open `/dev`, select the changed component/story.
 - Validate changed states and interactions.
 - Capture screenshots/video evidence.
 
 ### `admin-frontend` / example app UI changes
 
 - Start backend + frontend example apps.
-- Verify flows in browser.
-- Use known test accounts when needed.
+- Log in (`superuser@example.com` / `testpassword123` for admin; `test@example.com` / `testpassword123` for user flows).
+- Navigate to the changed feature and exercise it in the browser.
 - Capture screenshots/video evidence.
 
 ### Other frontend package changes
 
-- Run package-appropriate manual checks and capture evidence.
+- Run package-appropriate manual checks with login + feature exercise when auth is required.
+- Capture screenshots/video evidence.
 
 ## Evidence Rules
 
 - Save artifacts in `/opt/cursor/artifacts`.
 - Include command outputs and media references needed for reviewer confidence.
+- Post media to the PR `## Evidence` or `## UI verification` section when cupping precedes or accompanies Pour.
 - Report mismatches explicitly; do not mask failures.
 
 ## Output Structure

@@ -28,6 +28,13 @@ Pour must never block on CI completion or review comments.
 Run required checks for touched areas (lint/compile + targeted tests).
 Stop and fix before committing if checks fail.
 
+**Frontend verification gate:** If the branch touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Invoke `verify-ui-changes` before commit/PR setup.
+2. Launch the correct app, log in with seeded credentials when required, and exercise each changed user-facing feature.
+3. Save screenshots and videos under `/opt/cursor/artifacts/`.
+4. Do not open or update the PR until artifacts are ready to attach.
+
 ### 2) Commit hygiene
 
 - Review `git status`/`git diff`.
@@ -46,7 +53,7 @@ Stop and fix before committing if checks fail.
 - Read and apply PR template if present.
 - Keep PR title/body accurate and concise.
 - Include human testing steps and automated checks sections.
-- **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them to the PR body under an `## Evidence` section with a one-line caption per item. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section if no evidence exists.
+- **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them to the PR body under an `## Evidence` section with a one-line caption per item. For frontend changes this section is **required** — include app URL, credentials used, feature exercised, and media from `verify-ui-changes`. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section only when the branch has no frontend paths and no other evidence exists.
 - Apply PHI minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing PHI.
 
 ### 5) Conflict resolution before handoff

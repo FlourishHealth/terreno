@@ -52,6 +52,14 @@ Run the most relevant lint, compile, and tests for the changed packages.
 - Do not ask before fixing straightforward lint, type, test, formatting, or generated-file issues.
 - Ask only when a fix would change product behavior, permissions, data shape, public API, or destructive behavior beyond the current feature scope.
 
+### 2b. Frontend verification (mandatory when branch touches frontend)
+
+If the branch changes files under `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Invoke the `verify-ui-changes` skill before creating or updating the PR.
+2. Launch the correct app, log in with seeded credentials when required, and exercise each changed user-facing feature.
+3. Save screenshots and videos under `/opt/cursor/artifacts/` and include them in the PR `## Evidence` or `## UI verification` section.
+
 ### 3. Commit, push, and create or update the PR
 
 If there are uncommitted relevant changes:
