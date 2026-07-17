@@ -22,6 +22,8 @@ Create a pull request for the current branch.
 
 2b. If the branch changes public APIs (exports, components, routes, env vars), run the `update-docs` skill and include docs preview verification in the PR body.
 
+2c. **Frontend verification gate:** If the branch touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`, invoke `verify-ui-changes` before creating the PR: launch the app, log in, exercise the changed feature, save screenshots/videos to `/opt/cursor/artifacts/`, and include them in the PR body.
+
 3. Push the branch if not already pushed:
    ```
    git push origin HEAD

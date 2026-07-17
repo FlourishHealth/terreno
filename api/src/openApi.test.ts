@@ -186,6 +186,59 @@ describe("openApi", () => {
   });
 });
 
+function addRoutesStringQuery(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+  router.use(
+    "/food",
+    modelRouter(FoodModel as any, {
+      ...options,
+      allowAnonymous: true,
+      permissions: {
+        create: [Permissions.IsAny],
+        delete: [Permissions.IsAny],
+        list: [Permissions.IsAny],
+        read: [Permissions.IsAny],
+        update: [Permissions.IsAny],
+      },
+      queryFields: ["name"],
+    })
+  );
+}
+
+describe("openApi string query fields", () => {
+  let server: TestAgent;
+  let app: express.Application;
+
+  beforeEach(async () => {
+    process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
+    process.env.ENABLE_SWAGGER = "true";
+
+    app = new TerrenoApp({
+      configureApp: addRoutesStringQuery,
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+  });
+
+  it("builds an $in array query param for non-numeric query fields", async () => {
+    server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+    const nameQuery = res.body.paths["/food/"].get.parameters.find((p) => p.name === "name");
+
+    // Non-number/non-datetime fields support equality and $in array matching.
+    expect(nameQuery.schema).toEqual({
+      oneOf: [
+        {description: "The name of the food", type: "string"},
+        {
+          properties: {
+            $in: {items: {type: "string"}, type: "array"},
+          },
+          type: "object",
+        },
+      ],
+    });
+  });
+});
+
 function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
   options?.openApi?.component("schemas", "LimitedUser", {
     properties: {

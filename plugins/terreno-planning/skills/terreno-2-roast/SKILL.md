@@ -101,19 +101,33 @@ If backend API shape changes, regenerate SDK via the established workflow:
 - Run frontend SDK generation
 - Never hand-edit `example-frontend/store/openApiSdk.ts`
 
+### Frontend changes (mandatory)
+
+When implementation touches frontend packages (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or app-integrated `rtk/`):
+
+1. Before marking roast complete and handing to Pour, invoke the `verify-ui-changes` skill.
+2. Launch the correct app for the package that changed.
+3. Log in with seeded credentials when the app requires authentication.
+4. Attempt to use each implemented user-facing feature — navigate to the affected screen and exercise the primary flow.
+5. Save screenshots and videos under `/opt/cursor/artifacts/` for Pour to attach to the PR.
+
+Do not hand off to Pour without this evidence when frontend paths changed, unless environment setup is genuinely blocked (document the blocker and commands attempted).
+
 ## Per-Commit Verification Checklist
 
 For every commit:
 
 1. Confirm changed behavior maps to IP tasks/criteria.
 2. Run targeted tests and required lint/compile checks.
-3. Run independent code review sub-agent.
-4. Run independent test-quality sub-agent.
-5. Proceed only if alignment + quality checks pass.
+3. When the commit touches frontend paths, run `verify-ui-changes` (launch app, login, exercise feature, save screenshots/videos).
+4. Run independent code review sub-agent.
+5. Run independent test-quality sub-agent.
+6. Proceed only if alignment + quality checks pass.
 
 ## Done Criteria for Roast
 
 - All planned implementation tasks for the scoped slice are complete.
 - Tests are credible under anti-mocking rules.
+- Frontend paths have app login + feature verification evidence saved to `/opt/cursor/artifacts/` when applicable.
 - No unresolved review findings remain from independent sub-agents.
 - Work is ready for **Pour** (`plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`).
