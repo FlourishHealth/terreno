@@ -203,7 +203,7 @@ describe("openApiCompat", () => {
       const routeLayer = findLayer(stack, (layer) => layer.route?.path === "/items/:itemId");
       expect(routeLayer).toBeDefined();
       expect(routeLayer?.regexp).toBeInstanceOf(RegExp);
-      if (!routeLayer?.regexp) {
+      if (!(routeLayer?.regexp instanceof RegExp)) {
         throw new Error("Expected the item route layer to have a regexp");
       }
       expect(routeLayer.regexp.test("/items/123")).toBe(true);
@@ -278,7 +278,7 @@ describe("openApiCompat", () => {
       const widgetLayer = findLayer(stack, (layer) => layer.route?.path === "/widgets/:widgetId");
       expect(widgetLayer).toBeDefined();
       expect(widgetLayer?.regexp).toBeInstanceOf(RegExp);
-      if (!widgetLayer?.regexp) {
+      if (!(widgetLayer?.regexp instanceof RegExp)) {
         throw new Error("Expected the widget route layer to have a regexp");
       }
       expect(widgetLayer.regexp.test("/widgets/42")).toBe(true);
