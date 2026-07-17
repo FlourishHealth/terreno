@@ -13,7 +13,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["bun-types"],
-    "baseUrl": ".",
     "paths": {
       "@api/*": ["src/api/*"],
       "@constants": ["src/constants/index.ts"],
