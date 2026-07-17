@@ -60,6 +60,35 @@ describe("Text", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("uses the medium-italic font family for larger italic text", () => {
+    const {getByText} = renderWithTheme(
+      <Text italic size="lg">
+        Large italic
+      </Text>
+    );
+    expect((getByText("Large italic").props.style as {fontFamily?: string}).fontFamily).toBe(
+      "text-medium-italic"
+    );
+  });
+
+  it("uses the bold-italic font family for larger bold italic text", () => {
+    const {getByText} = renderWithTheme(
+      <Text bold italic size="xl">
+        Large bold italic
+      </Text>
+    );
+    expect((getByText("Large bold italic").props.style as {fontFamily?: string}).fontFamily).toBe(
+      "text-bold-italic"
+    );
+  });
+
+  it("uses the medium font family for larger plain text", () => {
+    const {getByText} = renderWithTheme(<Text size="2xl">Extra large plain</Text>);
+    expect((getByText("Extra large plain").props.style as {fontFamily?: string}).fontFamily).toBe(
+      "text-medium"
+    );
+  });
+
   it("renders underlined text", () => {
     const {toJSON} = renderWithTheme(<Text underline>Underlined text</Text>);
     expect(toJSON()).toMatchSnapshot();
