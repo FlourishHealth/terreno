@@ -76,6 +76,9 @@ module.exports = function generateDocument (baseDocument, router, basePath) {
         }
       }
 
+      // Normalize any percent-encoded path parameters to OpenAPI syntax.
+      path = path.replace(/%7B/gi, '{').replace(/%7D/gi, '}')
+
       doc.paths[path] = doc.paths[path] || {}
       doc.paths[path][layer.method] = operation
       setSchema(layer.handle, operation)

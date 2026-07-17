@@ -13,8 +13,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["bun-types"],
-    "baseUrl": ".",
     "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
     "paths": {
       "@api/*": ["src/api/*"],
       "@constants": ["src/constants/index.ts"],

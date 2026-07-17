@@ -197,7 +197,6 @@
       "devDependencies": {
         "@biomejs/biome": "^2.3.6",
         "@types/bcrypt": "^6.0.0",
-        "@types/bun": "^1.2.4",
         "@types/cors": "^2.8.17",
         "@types/cron": "^2.4.3",
         "@types/express": "^5.0.6",
@@ -213,6 +212,7 @@
         "@types/passport-local": "^1.0.38",
         "@types/sinon": "^21.0.0",
         "@types/supertest": "^7.2.0",
+        "bun-types": "latest",
         "mongodb-memory-server": "^11.0.1",
         "mongoose": "catalog:",
         "sinon": "^22.0.0",
