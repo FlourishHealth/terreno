@@ -175,7 +175,7 @@ jobs:
 
       - name: Run Appium Android tests
         timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 12 || 35 }}
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.37.0
         with:
           api-level: 34
           target: default
