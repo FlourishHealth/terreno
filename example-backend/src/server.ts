@@ -111,7 +111,7 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
   return config;
 };
 
-export async function start(skipListen = false): Promise<express.Application> {
+export const start = async (skipListen = false): Promise<express.Application> => {
   // Connect to MongoDB first
   await connectToMongoDB();
 
@@ -516,7 +516,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
-}
+};
 
 process.on("unhandledRejection", (error: unknown) => {
   logger.error(`unhandledRejection: ${(error as Error).message}\n${(error as Error).stack}`);

@@ -1192,11 +1192,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     })
   );
 
-  async function arrayOperation(
+  const arrayOperation = async (
     req: Request,
     res: Response,
     operation: "POST" | "PATCH" | "DELETE"
-  ) {
+  ) => {
     // TODO Combine array operations and .patch(), as they are very similar.
 
     if (!(await checkPermissions("update", options.permissions.update, req.user))) {
@@ -1347,19 +1347,19 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     return res.json({
       data: serialize<T>(req, options, doc as unknown as Document<unknown, unknown, unknown> & T),
     });
-  }
+  };
 
-  async function arrayPost(req: Request, res: Response) {
+  const arrayPost = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "POST");
-  }
+  };
 
-  async function arrayPatch(req: Request, res: Response) {
+  const arrayPatch = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "PATCH");
-  }
+  };
 
-  async function arrayDelete(req: Request, res: Response) {
+  const arrayDelete = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "DELETE");
-  }
+  };
   // Set up routes for managing array fields. Check if there any array fields to add this for.
   if (Object.values(model.schema.paths).find((config) => config.instance === "Array")) {
     router.post(
