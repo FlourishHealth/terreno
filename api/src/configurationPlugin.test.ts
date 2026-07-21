@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterAll, beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, it, spyOn} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
 import type {SecretProvider} from "./configurationPlugin";
 import {configurationPlugin, flattenToDotPaths} from "./configurationPlugin";
@@ -320,6 +320,50 @@ describe("configurationPlugin", () => {
       await SimpleConfigModel.getConfig();
       const duplicate = new SimpleConfigModel({value: "duplicate"});
       await expect(duplicate.save()).rejects.toThrow();
+    });
+
+    it("re-fetches the existing singleton when a concurrent create hits a 409", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const existing = (await SimpleConfigModel.getConfig()) as {_id: {toString(): string}};
+      // Simulate a race: the initial lookup misses, so getConfig attempts a create
+      // that the pre-save singleton guard rejects with a 409. getConfig should then
+      // re-fetch and return the document created by the "other process".
+      const spy = spyOn(SimpleConfigModel, "findOneOrNone").mockResolvedValueOnce(null);
+      try {
+        const config = (await SimpleConfigModel.getConfig()) as {_id: {toString(): string}};
+        expect(config._id.toString()).toBe(existing._id.toString());
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("rethrows non-409 errors raised while creating the singleton", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const findSpy = spyOn(SimpleConfigModel, "findOneOrNone").mockResolvedValueOnce(null);
+      const saveSpy = spyOn(SimpleConfigModel.prototype, "save").mockRejectedValueOnce(
+        new Error("unexpected save failure")
+      );
+      try {
+        await expect(SimpleConfigModel.getConfig()).rejects.toThrow("unexpected save failure");
+      } finally {
+        findSpy.mockRestore();
+        saveSpy.mockRestore();
+      }
+    });
+
+    it("returns undefined for a dotted key that traverses a non-object value", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      await SimpleConfigModel.getConfig();
+      // `value` is a string, so descending into `value.missing` bails out.
+      expect(await SimpleConfigModel.getConfig("value.missing")).toBeUndefined();
+      // A missing top-level segment also resolves to undefined.
+      expect(await SimpleConfigModel.getConfig("nope.deeper")).toBeUndefined();
     });
 
     it("updates an existing document via updateConfig", async () => {
