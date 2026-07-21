@@ -60,6 +60,24 @@ describe("Text", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders large bold italic text", () => {
+    const {toJSON} = renderWithTheme(
+      <Text bold italic size="lg">
+        Large bold italic text
+      </Text>
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders large italic text", () => {
+    const {toJSON} = renderWithTheme(
+      <Text italic size="lg">
+        Large italic text
+      </Text>
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
   it("renders underlined text", () => {
     const {toJSON} = renderWithTheme(<Text underline>Underlined text</Text>);
     expect(toJSON()).toMatchSnapshot();
