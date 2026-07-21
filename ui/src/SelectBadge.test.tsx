@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
@@ -28,7 +27,7 @@ describe("SelectBadge", () => {
 
   it("displays placeholder when no value", () => {
     const {getByText} = renderWithTheme(
-      <SelectBadge onChange={() => {}} options={defaultOptions} value={undefined as any} />
+      <SelectBadge onChange={() => {}} options={defaultOptions} value={undefined} />
     );
     expect(getByText("---")).toBeTruthy();
   });

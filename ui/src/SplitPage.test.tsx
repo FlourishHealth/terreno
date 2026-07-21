@@ -1,7 +1,7 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
 import {View} from "react-native";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {SplitPage} from "./SplitPage";
 import {renderWithTheme} from "./test-utils";
@@ -353,7 +353,7 @@ describe("SplitPage", () => {
         fireEvent.press(boxes[0]);
       });
       const iconButtons = UNSAFE_root.findAll(
-        (n: any) => n.props?.onClick && n.props?.iconName === "xmark"
+        (n: ReactTestInstance) => n.props?.onClick && n.props?.iconName === "xmark"
       );
       if (iconButtons.length > 0) {
         await act(async () => {
@@ -362,7 +362,7 @@ describe("SplitPage", () => {
         expect(onSelectionChange).toHaveBeenCalledWith(undefined);
       } else {
         const closeButtons = UNSAFE_root.findAll(
-          (n: any) => n.props?.accessibilityLabel === "close"
+          (n: ReactTestInstance) => n.props?.accessibilityLabel === "close"
         );
         if (closeButtons.length > 0) {
           await act(async () => {
@@ -449,7 +449,9 @@ describe("SplitPage", () => {
           <View testID="child-c" />
         </SplitPage>
       );
-      const segmented = UNSAFE_root.findAll((n: any) => n.props?.onChange && n.props?.items);
+      const segmented = UNSAFE_root.findAll(
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.items
+      );
       if (segmented.length > 0) {
         await act(async () => {
           segmented[0].props.onChange(2);
