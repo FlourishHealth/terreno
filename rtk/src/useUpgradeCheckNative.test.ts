@@ -6,6 +6,7 @@ import React from "react";
 import {Provider} from "react-redux";
 
 const openedUrls: string[] = [];
+let openUrlShouldReject = false;
 
 // Keep this react-native mock a superset of the preload's mock so other test
 // files still resolve AppState / Linking / Platform after this file runs.
@@ -16,6 +17,9 @@ mock.module("react-native", () => ({
   },
   Linking: {
     openURL: async (url: string) => {
+      if (openUrlShouldReject) {
+        throw new Error("openURL failed");
+      }
       openedUrls.push(url);
       return true;
     },
@@ -74,6 +78,7 @@ describe("useUpgradeCheck (native)", () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch;
     openedUrls.length = 0;
+    openUrlShouldReject = false;
     constantsWithExtra.expoConfig.extra.buildNumber = 100;
   });
 
@@ -100,6 +105,27 @@ describe("useUpgradeCheck (native)", () => {
     });
 
     expect(openedUrls).toEqual(["https://example.com/app-update"]);
+    unmount();
+  });
+
+  it("swallows errors when opening the update URL fails on native", async () => {
+    mockFetchWith({status: "required", updateUrl: "https://example.com/app-update"});
+    openUrlShouldReject = true;
+
+    const {result, unmount} = renderHook(() => useUpgradeCheck(), {
+      wrapper: createWrapper(createTestStore()),
+    });
+    await flush();
+
+    expect(result.current.canUpdate).toBe(true);
+
+    await act(async () => {
+      result.current.onUpdate();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    // The rejection is caught internally; no URL is recorded and nothing throws.
+    expect(openedUrls).toEqual([]);
     unmount();
   });
 
