@@ -8,19 +8,37 @@
 import {runCheckExplicitAny} from "./lib";
 
 interface ParsedArgs {
+  baselinePath?: string;
+  checkBaseline: boolean;
   failOnUndocumented: boolean;
   includeExcluded: boolean;
   json: boolean;
+  list: boolean;
+  maxCount?: number;
   packageFilter?: string;
+  productionOnly: boolean;
   undocumentedOnly: boolean;
+  writeBaseline: boolean;
 }
+
+const parsePositiveInt = (value: string, flagName: string): number => {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    throw new Error(`${flagName} requires a non-negative integer`);
+  }
+  return parsed;
+};
 
 const parseArgs = (argv: string[]): ParsedArgs => {
   const parsed: ParsedArgs = {
+    checkBaseline: false,
     failOnUndocumented: false,
     includeExcluded: false,
     json: false,
+    list: false,
+    productionOnly: false,
     undocumentedOnly: false,
+    writeBaseline: false,
   };
 
   for (const arg of argv) {
@@ -40,8 +58,32 @@ const parseArgs = (argv: string[]): ParsedArgs => {
       parsed.failOnUndocumented = true;
       continue;
     }
+    if (arg === "--check-baseline") {
+      parsed.checkBaseline = true;
+      continue;
+    }
+    if (arg === "--write-baseline") {
+      parsed.writeBaseline = true;
+      continue;
+    }
+    if (arg === "--list") {
+      parsed.list = true;
+      continue;
+    }
+    if (arg === "--production-only") {
+      parsed.productionOnly = true;
+      continue;
+    }
     if (arg.startsWith("--package=")) {
       parsed.packageFilter = arg.slice("--package=".length);
+      continue;
+    }
+    if (arg.startsWith("--baseline=")) {
+      parsed.baselinePath = arg.slice("--baseline=".length);
+      continue;
+    }
+    if (arg.startsWith("--max-count=")) {
+      parsed.maxCount = parsePositiveInt(arg.slice("--max-count=".length), "--max-count");
     }
   }
 
@@ -51,11 +93,17 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 const main = (): void => {
   const args = parseArgs(process.argv.slice(2));
   const result = runCheckExplicitAny({
+    baselinePath: args.baselinePath,
+    checkBaseline: args.checkBaseline,
     failOnUndocumented: args.failOnUndocumented,
     includeExcluded: args.includeExcluded,
     json: args.json,
+    list: args.list,
+    maxCount: args.maxCount,
     packageFilter: args.packageFilter,
+    productionOnly: args.productionOnly,
     undocumentedOnly: args.undocumentedOnly,
+    writeBaseline: args.writeBaseline,
   });
 
   if (result.exitCode === 0) {

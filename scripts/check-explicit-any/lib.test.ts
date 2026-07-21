@@ -6,6 +6,7 @@ import {join} from "node:path";
 import {
   collectAnyUsages,
   formatSummaryText,
+  formatUsageListText,
   inferPackageName,
   isExcludedFromBiome,
   isTestFile,
@@ -179,6 +180,58 @@ test("isTestFile detects common test paths", () => {
   expect(isTestFile("api/src/api.test.ts")).toBe(true);
   expect(isTestFile("ui/src/isolated/Widget.isolated.tsx")).toBe(true);
   expect(isTestFile("api/src/auth.ts")).toBe(false);
+});
+
+test("formatUsageListText prints file locations", () => {
+  const text = formatUsageListText({
+    byPackage: {},
+    byRemediationStatus: {
+      "fully-documented": 0,
+      "file-blanket": 1,
+      "out-of-scope": 0,
+      "suppressed-only": 0,
+      violation: 0,
+    },
+    fileBlanketFiles: 1,
+    totalFiles: 1,
+    totalUsages: 1,
+    usages: [
+      {
+        column: 18,
+        file: "ui/src/Common.ts",
+        hasBiomeIgnore: true,
+        hasNoExplicitAnyComment: false,
+        isExcludedFromBiome: false,
+        isTestFile: false,
+        kind: "annotation",
+        line: 535,
+        packageName: "ui",
+        remediationStatus: "file-blanket",
+        snippet: "[key: string]: any;",
+        suppressionScope: "file",
+      },
+    ],
+  });
+
+  expect(text).toContain("ui/src/Common.ts:535:18 annotation file-blanket");
+});
+
+test("runCheckExplicitAny supports list output", () => {
+  const root = createFixtureRepo();
+
+  try {
+    const result = runCheckExplicitAny({
+      includeExcluded: true,
+      list: true,
+      repoRoot: root,
+      undocumentedOnly: true,
+    });
+
+    expect(result.text).toContain("ui/src/fileBlanket.ts:");
+    expect(result.text).toContain("file-blanket");
+  } finally {
+    rmSync(root, {force: true, recursive: true});
+  }
 });
 
 test("isExcludedFromBiome matches biome exclusion globs", () => {

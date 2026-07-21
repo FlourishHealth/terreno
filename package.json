@@ -119,7 +119,9 @@
         "enabled": true
       },
       "explicitAny": {
-        "check": "bun run check:explicit-any",
+        "baseline": "scripts/check-explicit-any/baseline.json",
+        "check": "bun run check:explicit-any:baseline",
+        "documentation": "docs/explanation/explicit-any-policy.md",
         "enabled": true
       }
     }
@@ -157,8 +159,9 @@
     "backend:seed": "bun run --filter '@terreno/example-backend' seed",
     "bootstrap": "bun install && bun run compile",
     "bootstrap:update": "bun install && bun run compile",
-    "check": "bun run check:no-barrel-imports && bun run check:explicit-any",
+    "check": "bun run check:no-barrel-imports && bun run check:explicit-any:baseline",
     "check:explicit-any": "bun run scripts/check-explicit-any/check.ts",
+    "check:explicit-any:baseline": "bun run scripts/check-explicit-any/check.ts --check-baseline",
     "check:explicit-any:json": "bun run scripts/check-explicit-any/check.ts --json",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
     "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",

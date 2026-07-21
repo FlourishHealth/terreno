@@ -1,6 +1,6 @@
 import {createRequire} from "node:module";
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
-import {dirname, join, relative, resolve} from "node:path";
+import {join, relative, resolve} from "node:path";
 
 export const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -436,12 +436,18 @@ export const collectAnyUsages = ({
 };
 
 export interface CheckExplicitAnyCliOptions {
+  baselinePath?: string;
+  checkBaseline?: boolean;
   failOnUndocumented?: boolean;
   includeExcluded?: boolean;
   json?: boolean;
+  list?: boolean;
+  maxCount?: number;
   packageFilter?: string;
+  productionOnly?: boolean;
   repoRoot?: string;
   undocumentedOnly?: boolean;
+  writeBaseline?: boolean;
 }
 
 export interface CheckExplicitAnyResult {
@@ -470,20 +476,66 @@ export const formatSummaryText = (summary: AnyAuditSummary): string => {
   ].join("\n");
 };
 
+export const formatUsageListText = (summary: AnyAuditSummary): string => {
+  if (summary.usages.length === 0) {
+    return "check-explicit-any: no matching usages";
+  }
+
+  return summary.usages
+    .map(
+      (usage) =>
+        `${usage.file}:${usage.line}:${usage.column} ${usage.kind} ${usage.remediationStatus}${usage.isTestFile ? " [test]" : ""}`
+    )
+    .join("\n");
+};
+
 export const runCheckExplicitAny = ({
+  baselinePath,
+  checkBaseline = false,
   failOnUndocumented = false,
   includeExcluded = false,
   json = false,
+  list = false,
+  maxCount,
   packageFilter,
+  productionOnly = false,
   repoRoot = REPO_ROOT,
   undocumentedOnly = false,
+  writeBaseline = false,
 }: CheckExplicitAnyCliOptions = {}): CheckExplicitAnyResult => {
-  const summary = collectAnyUsages({
+  let summary = collectAnyUsages({
     includeExcluded,
     packageFilter,
     repoRoot,
     undocumentedOnly,
   });
+
+  if (productionOnly) {
+    summary = {
+      ...summary,
+      usages: summary.usages.filter((usage) => !usage.isTestFile),
+    };
+    summary.totalUsages = summary.usages.length;
+    summary.totalFiles = new Set(summary.usages.map((usage) => usage.file)).size;
+    summary.byPackage = {};
+    summary.byRemediationStatus = {
+      "fully-documented": 0,
+      "file-blanket": 0,
+      "out-of-scope": 0,
+      "suppressed-only": 0,
+      violation: 0,
+    };
+    summary.fileBlanketFiles = 0;
+    const fileBlanketFileSet = new Set<string>();
+    for (const usage of summary.usages) {
+      summary.byPackage[usage.packageName] = (summary.byPackage[usage.packageName] ?? 0) + 1;
+      summary.byRemediationStatus[usage.remediationStatus] += 1;
+      if (usage.remediationStatus === "file-blanket") {
+        fileBlanketFileSet.add(usage.file);
+      }
+    }
+    summary.fileBlanketFiles = fileBlanketFileSet.size;
+  }
 
   const violations = summary.byRemediationStatus.violation;
   const undocumented =
@@ -491,14 +543,55 @@ export const runCheckExplicitAny = ({
     summary.byRemediationStatus["file-blanket"];
 
   let exitCode = 0;
+  let text = "";
+
+  if (json) {
+    text = JSON.stringify(summary, null, 2);
+  } else if (list) {
+    text = formatUsageListText(summary);
+  } else {
+    text = formatSummaryText(summary);
+  }
+
+  if (writeBaseline) {
+    const {BASELINE_PATH, writeBaseline: persistBaseline} =
+      require("./baseline") as typeof import("./baseline");
+    persistBaseline(summary, baselinePath);
+    if (!json && !list) {
+      text = `${text}\n\nWrote baseline to ${baselinePath ?? BASELINE_PATH}`;
+    }
+  }
+
+  if (checkBaseline) {
+    const {
+      compareBaseline,
+      formatBaselineRegressionText,
+      loadBaseline,
+    } = require("./baseline") as typeof import("./baseline");
+    const baseline = loadBaseline(baselinePath);
+    const comparison = compareBaseline(summary, baseline);
+    if (!comparison.ok) {
+      exitCode = 1;
+      if (!json && !list) {
+        text = `${text}\n\n${formatBaselineRegressionText(comparison)}`;
+      }
+    } else if (!json && !list) {
+      text = `${text}\n\n${formatBaselineRegressionText(comparison)}`;
+    }
+  }
+
   if (violations > 0) {
     exitCode = 1;
   }
   if (failOnUndocumented && undocumented > 0) {
     exitCode = 1;
   }
-
-  const text = json ? JSON.stringify(summary, null, 2) : formatSummaryText(summary);
+  if (maxCount !== undefined && summary.totalUsages > maxCount) {
+    exitCode = 1;
+    if (!json && !list) {
+      text = `${text}\n\ncheck-explicit-any: totalUsages ${summary.totalUsages} exceeds --max-count=${maxCount}`;
+    }
+  }
 
   return {
     exitCode,
