@@ -26,6 +26,7 @@ import {
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 
@@ -542,7 +543,7 @@ const createImageTool = (apiKey?: string): Tool => {
       return {
         description: `Generated image for: "${prompt}"`,
         fileData: dataUrl,
-        filename: `image-${Date.now()}.png`,
+        filename: `image-${DateTime.now().toMillis()}.png`,
         mimeType: mediaType,
       };
     },
