@@ -759,6 +759,7 @@ export class OpenApiMiddlewareBuilder {
    * router.get("/users/:id", middleware, getUserHandler);
    * ```
    */
+  // noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
   // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
   build(): any {
     const noop: express.RequestHandler = (_a, _b, next) => next();

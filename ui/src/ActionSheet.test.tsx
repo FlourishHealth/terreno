@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeAll, describe, expect, it, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";

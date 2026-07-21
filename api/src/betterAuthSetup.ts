@@ -27,6 +27,7 @@ export type BetterAuthInstance = ReturnType<typeof betterAuth>;
  */
 // Minimal shape we use from the MongoDB native client returned by mongoose connection
 export interface MongoClientLike {
+  // noExplicitAny: the MongoDB driver Db type is opaque to this layer; it is passed straight to better-auth's adapter
   // biome-ignore lint/suspicious/noExplicitAny: the MongoDB driver Db type is opaque to this layer; it is passed straight to better-auth's adapter
   db: () => any;
 }
@@ -184,6 +185,7 @@ export const syncBetterAuthUser = async (
   userModel: UserModel,
   betterAuthUser: BetterAuthUser,
   oauthProvider?: string
+  // noExplicitAny: return is a consumer-defined user document; tests inspect varied fields
   // biome-ignore lint/suspicious/noExplicitAny: return is a consumer-defined user document; tests inspect varied fields
 ): Promise<any> => {
   try {
@@ -217,6 +219,7 @@ export const syncBetterAuthUser = async (
 
     // Use Better Auth ID as _id when it's a valid ObjectId (MongoDB adapter) so frontend IDs match
     const useAsId = mongoose.isValidObjectId(betterAuthUser.id) ? {_id: betterAuthUser.id} : {};
+    // noExplicitAny: userModel is generic across consumers — constructor args are runtime-validated
     // biome-ignore lint/suspicious/noExplicitAny: userModel is generic across consumers — constructor args are runtime-validated
     const newUser = new (userModel as any)({
       ...useAsId,

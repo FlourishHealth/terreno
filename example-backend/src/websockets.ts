@@ -1,3 +1,4 @@
+// noExplicitAny: Some types in this file require suppression due to dynamic data structures or external library types that do not provide complete typings.
 // biome-ignore-all lint/suspicious/noExplicitAny: Some types in this file require suppression due to dynamic data structures or external library types that do not provide complete typings.
 import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";

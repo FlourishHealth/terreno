@@ -12,6 +12,7 @@ import type express from "express";
 import {getFileStorageService, setFileStorageService} from "./ai";
 
 const adminGuard = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  // noExplicitAny: Express user casting
   // biome-ignore lint/suspicious/noExplicitAny: Express user casting
   const user = (req as any).user;
   if (!user?.admin) {
@@ -34,8 +35,10 @@ interface GcsConfigResponse {
 }
 
 export const addSettingsRoutes = (
+  // noExplicitAny: Router type flexibility
   // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
   router: any,
+  // noExplicitAny: Router type flexibility
   // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
   options?: Partial<ModelRouterOptions<any>>
 ): void => {
@@ -121,6 +124,7 @@ export const addSettingsRoutes = (
 
       try {
         // Build Storage options
+        // noExplicitAny: Dynamic GCS credentials
         // biome-ignore lint/suspicious/noExplicitAny: Dynamic GCS credentials
         const storageOptions: any = {};
         if (projectId) {

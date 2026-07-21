@@ -10,6 +10,7 @@ import type {SubmitConsentBody} from "./useSubmitConsent";
 import {useSubmitConsent} from "./useSubmitConsent";
 
 interface ConsentNavigatorProps {
+  // noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
   // biome-ignore lint/suspicious/noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
   api: any;
   baseUrl?: string;

@@ -425,6 +425,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       logRequests: !isDeployed,
     },
     skipListen,
+// noExplicitAny: Typing User model
     // biome-ignore lint/suspicious/noExplicitAny: Typing User model
     userModel: User as any,
   })
@@ -436,6 +437,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           {
             displayName: "Users",
             listFields: ["email", "name", "admin", "created"],
+// noExplicitAny: User model type mismatch
             // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
             model: User as any,
             routePath: "/users",
@@ -496,6 +498,7 @@ const generateBackendModelPlugins = (): string => {
 } from "@terreno/api";
 import type mongoose from "mongoose";
 
+// noExplicitAny: Leaving open for flexibility
 // biome-ignore lint/suspicious/noExplicitAny: Leaving open for flexibility
 export function addDefaultPlugins(schema: mongoose.Schema<any, any, any, any>): void {
   schema.plugin(createdUpdatedPlugin);
@@ -1458,9 +1461,11 @@ const store = configureStore({
       thunk: true,
     }).concat([
       ...authSlice.middleware,
+// noExplicitAny: RTK Query middleware typing
       // biome-ignore lint/suspicious/noExplicitAny: RTK Query middleware typing
       terrenoApi.middleware as any,
       rtkQueryErrorMiddleware,
+// noExplicitAny: Middleware array typing
       // biome-ignore lint/suspicious/noExplicitAny: Middleware array typing
     ]) as any;
   },
@@ -1539,6 +1544,7 @@ const ignoredErrors = [
   "Failed to refresh token",
 ];
 
+// noExplicitAny: Generic middleware
 // biome-ignore lint/suspicious/noExplicitAny: Generic middleware
 export const rtkQueryErrorMiddleware: Middleware = () => (next) => (action: any) => {
   if (action?.error && action?.payload) {

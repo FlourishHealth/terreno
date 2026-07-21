@@ -16,6 +16,7 @@ export interface BaseUser {
   email: string;
 }
 
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 export const baseUserPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({
@@ -30,6 +31,7 @@ export interface IsDeleted {
   deleted: boolean;
 }
 
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 export const isDeletedPlugin = (schema: Schema<any, any, any, any>, defaultValue = false): void => {
   schema.add({
@@ -42,6 +44,7 @@ export const isDeletedPlugin = (schema: Schema<any, any, any, any>, defaultValue
       type: Boolean,
     },
   });
+  // noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
   // biome-ignore lint/suspicious/noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
   const applyDeleteFilter = (q: Query<any, any>): void => {
     const query = q.getQuery();
@@ -58,6 +61,7 @@ export const isDeletedPlugin = (schema: Schema<any, any, any, any>, defaultValue
 };
 
 export const isDisabledPlugin = (
+  // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
   // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
   schema: Schema<any, any, any, any>,
   defaultValue = false
@@ -77,6 +81,7 @@ export interface CreatedDeleted {
   created: {type: Date; required: true};
 }
 
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 export const createdUpdatedPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({
@@ -209,6 +214,7 @@ export const findExactlyOne = <T>(schema: Schema<T>): void => {
  * match the conditions to prevent ambiguous updates.
  * @param schema Mongoose Schema
  */
+// noExplicitAny: Schema generics with unknown collide with mongoose's loose this-binding on schema.statics
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics with unknown collide with mongoose's loose this-binding on schema.statics
 export const upsertPlugin = <T>(schema: Schema<any, any, any, any>): void => {
   schema.statics.upsert = async function (
@@ -269,6 +275,7 @@ export class DateOnly extends SchemaType {
   }
 
   $conditionalHandlers = {
+    // noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
     // biome-ignore lint/suspicious/noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
     ...(SchemaType as any).prototype.$conditionalHandlers,
     $gt: this.handleSingle,
@@ -281,6 +288,7 @@ export class DateOnly extends SchemaType {
   // When using $gt, $gte, $lt, $lte, etc, we need to cast the value to a Date
   castForQuery($conditional: string | undefined, val: unknown, context: unknown): Date | undefined {
     if ($conditional == null) {
+      // noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
       // biome-ignore lint/suspicious/noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
       return (this as any).applySetters(val, context);
     }
@@ -341,5 +349,6 @@ export class DateOnly extends SchemaType {
 }
 
 // Register DateOnly with Mongoose's Schema.Types
+// noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
 // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
 (mongoose.Schema.Types as any).DateOnly = DateOnly;

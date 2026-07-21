@@ -99,6 +99,7 @@ const AdminCreateScreen: React.FC = () => {
   );
 
   const onSaveSuccess = useCallback(
+    // noExplicitAny: result type comes from AdminModelForm library
     // biome-ignore lint/suspicious/noExplicitAny: result type comes from AdminModelForm library
     async ({result}: {result: any}): Promise<void> => {
       if (!isUserModel || !passwordState.password) {

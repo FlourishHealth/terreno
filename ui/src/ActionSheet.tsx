@@ -168,9 +168,11 @@ export class ActionSheet extends Component<Props, State, unknown> {
 
   deviceLayoutCalled = false;
 
+  // noExplicitAny: FlatList ref is accessed via internal _listRef._scrollRef which is not part of the public type
   // biome-ignore lint/suspicious/noExplicitAny: FlatList ref is accessed via internal _listRef._scrollRef which is not part of the public type
   scrollViewRef: React.RefObject<any>;
 
+  // noExplicitAny: SafeAreaView ref is passed to findNodeHandle and accessed via untyped React Native internals
   // biome-ignore lint/suspicious/noExplicitAny: SafeAreaView ref is passed to findNodeHandle and accessed via untyped React Native internals
   safeAreaViewRef: React.RefObject<any>;
 

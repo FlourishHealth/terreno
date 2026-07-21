@@ -163,6 +163,7 @@
     "check:explicit-any": "bun run scripts/check-explicit-any/check.ts",
     "check:explicit-any:baseline": "bun run scripts/check-explicit-any/check.ts --check-baseline",
     "check:explicit-any:json": "bun run scripts/check-explicit-any/check.ts --json",
+    "check:explicit-any:remediate": "bun run scripts/check-explicit-any/remediate.ts",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
     "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",

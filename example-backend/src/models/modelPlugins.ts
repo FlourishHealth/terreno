@@ -8,12 +8,15 @@ import {
 import type mongoose from "mongoose";
 import type {Document, Model, Query, Schema} from "mongoose";
 
+// noExplicitAny: Leaving as open as possible.
 // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
 export const upsertPlugin = <T extends Document>(schema: Schema<T, any, any, any>): void => {
   schema.statics.upsert = async function (
     this: Model<T>,
+    // noExplicitAny: Leaving as open as possible.
     // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
     conditions: Record<string, any>,
+    // noExplicitAny: Leaving as open as possible.
     // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
     update: Record<string, any>
   ): Promise<T> {
@@ -44,6 +47,7 @@ export const upsertPlugin = <T extends Document>(schema: Schema<T, any, any, any
 
 // This plugin modifies the find query to exclude archived documents by default.
 export const excludeArchivedPlugin = <T>(schema: Schema<T>): void => {
+  // noExplicitAny: Leaving as open as possible.
   // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
   schema.pre<Query<any, any>>("find", function (next) {
     const conditions = this.getFilter();
@@ -61,6 +65,7 @@ export const excludeArchivedPlugin = <T>(schema: Schema<T>): void => {
   });
 };
 
+// noExplicitAny: Leaving as open as possible.
 // biome-ignore lint/suspicious/noExplicitAny: Leaving as open as possible.
 export const addDefaultPlugins = (schema: mongoose.Schema<any, any, any, any>): void => {
   schema.plugin(createdUpdatedPlugin);

@@ -62,6 +62,7 @@ bun run check:explicit-any -- --production-only --undocumented --list
 bun run check:explicit-any -- --package=api        # filter to one package
 bun run check:explicit-any -- --include-excluded   # include Biome-excluded files
 bun run check:explicit-any -- --write-baseline     # refresh scripts/check-explicit-any/baseline.json
+bun run check:explicit-any:remediate               # auto-add missing noExplicitAny: comments
 ```
 
 ## Enforcement

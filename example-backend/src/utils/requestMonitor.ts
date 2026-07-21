@@ -95,6 +95,7 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
     }, MEMORY_SAMPLE_INTERVAL_MS);
 
     const originalEnd = res.end;
+    // noExplicitAny: Express Response.end has multiple overload signatures with varying types
     // biome-ignore lint/suspicious/noExplicitAny: Express Response.end has multiple overload signatures with varying types
     res.end = function (chunk?: any, encoding?: any): Response {
       clearInterval(memoryInterval);
@@ -124,6 +125,7 @@ export const trackMiddleware = (name: string) => {
     const startTime = process.hrtime();
 
     const originalNext = next;
+    // noExplicitAny: NextFunction can accept error parameter or no parameters, making typing complex
     // biome-ignore lint/suspicious/noExplicitAny: NextFunction can accept error parameter or no parameters, making typing complex
     next = function (this: unknown, ...args: any[]): void {
       const diff = process.hrtime(startTime);
@@ -159,6 +161,7 @@ export const setupMongooseMonitoring = (): void => {
   const originalExec = mongoose.Query.prototype.exec;
   const originalAggregate = mongoose.Model.aggregate;
 
+  // noExplicitAny: Mongoose callback can be undefined or have various signatures
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose callback can be undefined or have various signatures
   mongoose.Query.prototype.exec = function (callback: any): any {
     const startTime = process.hrtime();
@@ -170,6 +173,7 @@ export const setupMongooseMonitoring = (): void => {
     if (result && typeof result.then === "function") {
       return (
         result
+          // noExplicitAny: Query result type varies by operation and can't be strictly typed here
           // biome-ignore lint/suspicious/noExplicitAny: Query result type varies by operation and can't be strictly typed here
           .then((res: any) => {
             const diff = process.hrtime(startTime);
@@ -207,6 +211,7 @@ export const setupMongooseMonitoring = (): void => {
     return result;
   };
 
+  // noExplicitAny: Aggregate pipeline and options have complex dynamic structure
   // biome-ignore lint/suspicious/noExplicitAny: Aggregate pipeline and options have complex dynamic structure
   mongoose.Model.aggregate = function (pipeline: any, options: any): any {
     const startTime = process.hrtime();
@@ -215,6 +220,7 @@ export const setupMongooseMonitoring = (): void => {
     return (
       originalAggregate
         .call(this, pipeline, options)
+        // noExplicitAny: Aggregate result type varies by pipeline and can't be strictly typed
         // biome-ignore lint/suspicious/noExplicitAny: Aggregate result type varies by pipeline and can't be strictly typed
         .then((result: any) => {
           const diff = process.hrtime(startTime);

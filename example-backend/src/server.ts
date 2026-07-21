@@ -138,6 +138,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
 
+  // noExplicitAny: Need to figure out winston transport types.
   // biome-ignore lint/suspicious/noExplicitAny: Need to figure out winston transport types.
   const transports: any[] = [];
 
@@ -171,6 +172,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         transports,
       },
       skipListen,
+      // noExplicitAny: Typing this User model is a pain.
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     }).configure(AppConfiguration);
@@ -179,6 +181,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     // middleware must be installed before any routes (admin, SPA, model routers)
     // that rely on req.user being populated from the better-auth session.
     if (betterAuthConfig) {
+      // noExplicitAny: User model type mismatch
       // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
       terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
     }
@@ -343,6 +346,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
               hiddenFields: ["hash", "salt"],
               listDisplayLinks: ["email"],
               listFields: ["email", "name", "admin", "created"],
+              // noExplicitAny: User model type mismatch
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,
               pageSize: 50,

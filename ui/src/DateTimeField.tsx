@@ -424,6 +424,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 }): React.ReactElement => {
   const {theme} = useTheme();
   const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
+  // noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   const dateActionSheetRef: React.RefObject<any> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");

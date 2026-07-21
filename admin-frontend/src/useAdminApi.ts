@@ -1,8 +1,10 @@
 import {useMemo} from "react";
 import type {AdminApi, EndpointBuilder} from "./types";
 
+// noExplicitAny: payload bodies vary across admin models — handled at runtime
 // biome-ignore lint/suspicious/noExplicitAny: payload bodies vary across admin models — handled at runtime
 type AdminPayload = any;
+// noExplicitAny: RTK Query tag callback args have a complex generic shape we erase here
 // biome-ignore lint/suspicious/noExplicitAny: RTK Query tag callback args have a complex generic shape we erase here
 type TagArg = any;
 

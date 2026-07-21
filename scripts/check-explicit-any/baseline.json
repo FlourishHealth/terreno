@@ -5,27 +5,27 @@
     "ai": 2,
     "api": 734,
     "demo": 2,
-    "example-backend": 68,
+    "example-backend": 67,
     "example-frontend": 6,
     "rtk": 112,
     "test": 49,
     "ui": 207
   },
   "byRemediationStatus": {
-    "fully-documented": 8,
-    "file-blanket": 952,
+    "fully-documented": 1203,
+    "file-blanket": 0,
     "out-of-scope": 0,
-    "suppressed-only": 244,
+    "suppressed-only": 0,
     "violation": 0
   },
-  "fileBlanketFiles": 43,
-  "generatedAt": "2026-07-21T16:08:25.559Z",
+  "fileBlanketFiles": 0,
+  "generatedAt": "2026-07-21T16:11:57.942Z",
   "ratchet": {
-    "undocumented": 1196,
+    "undocumented": 0,
     "violations": 0,
-    "totalUsages": 1204
+    "totalUsages": 1203
   },
-  "totalFiles": 107,
-  "totalUsages": 1204,
+  "totalFiles": 106,
+  "totalUsages": 1203,
   "version": 1
 }

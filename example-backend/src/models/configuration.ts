@@ -667,6 +667,7 @@ ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDo
   return this.findOneOrNone({key});
 };
 
+// noExplicitAny: Setting a static method on the model.
 // biome-ignore lint/suspicious/noExplicitAny: Setting a static method on the model.
 (ConfigurationDB as any).setValue = async function (
   key: string,
