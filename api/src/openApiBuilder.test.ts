@@ -504,14 +504,15 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
     expect(result.validationEnabled).toBe(false);
   });
 
-  it("build() returns a composed handler when validation is enabled", () => {
+  it("build() returns an array when validation is enabled with body and query", () => {
     const result = createOpenApiBuilder({})
       .withRequestBody({name: {required: true, type: "string"}})
       .withQueryParameter("page", {type: "number"})
       .withValidation()
       .build();
 
-    expect(typeof result).toBe("function");
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(3);
   });
 
   it("build() returns a single middleware when validation is disabled", () => {

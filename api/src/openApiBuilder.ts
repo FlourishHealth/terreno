@@ -42,26 +42,6 @@ import {
   validateRequestBody,
 } from "./openApiValidator";
 
-const composeOpenApiMiddleware = (handlers: express.RequestHandler[]): express.RequestHandler => {
-  return (req, res, next) => {
-    let index = 0;
-    const dispatch = (error?: unknown): void => {
-      if (error) {
-        next(error);
-        return;
-      }
-      const handler = handlers[index];
-      index += 1;
-      if (!handler) {
-        next();
-        return;
-      }
-      handler(req, res, dispatch);
-    };
-    dispatch();
-  };
-};
-
 /**
  * Defines a property within an OpenAPI schema.
  *
@@ -779,7 +759,9 @@ export class OpenApiMiddlewareBuilder {
    * router.get("/users/:id", middleware, getUserHandler);
    * ```
    */
-  build(): express.RequestHandler {
+  // noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
+  // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config
+  build(): any {
     const noop: express.RequestHandler = (_a, _b, next) => next();
 
     // Build the OpenAPI documentation middleware
@@ -826,8 +808,13 @@ export class OpenApiMiddlewareBuilder {
       validators.push(validateQueryParams(this.queryParamSchemas, {enabled: true}));
     }
 
-    // Chain validators into a single handler so route definitions stay type-safe
-    return composeOpenApiMiddleware(validators);
+    // If only one middleware (the openApi one), return it directly
+    if (validators.length === 1) {
+      return openApiMiddleware;
+    }
+
+    // Return array of middleware to be spread in route definition
+    return validators;
   }
 }
 
