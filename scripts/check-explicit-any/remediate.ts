@@ -39,7 +39,8 @@ export const remediateFileContents = (contents: string): {changed: boolean; cont
     const match = line.match(BIOME_IGNORE_PATTERN);
     if (match && !lineHasNoExplicitAny(lines, index)) {
       const reason = normalizeReason(match[1] ?? "framework boundary");
-      output.push(`// noExplicitAny: ${reason}`);
+      const indent = line.match(/^\s*/)?.[0] ?? "";
+      output.push(`${indent}// noExplicitAny: ${reason}`);
       changed = true;
     }
     output.push(line);
