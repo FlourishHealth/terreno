@@ -13,12 +13,12 @@ export interface AdminBackgroundTaskBody {
 /**
  * RTK Query mutation hook for `POST {adminApiRoot}/background-tasks` (admin enqueue).
  */
-type UseAdminBackgroundTaskMutation = () => unknown;
-
 export const useAdminBackgroundTaskMutation = (
   api: AdminApi,
   adminApiRoot: string
-): UseAdminBackgroundTaskMutation => {
+): ReturnType<// noExplicitAny: RTK mutation type from dynamic injectEndpoints
+// biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+any> => {
   const enhancedApi = useMemo(() => {
     const root = adminApiRoot.replace(/\/$/, "");
     return api.enhanceEndpoints({addTagTypes: ["AdminBackgroundTask"]}).injectEndpoints({

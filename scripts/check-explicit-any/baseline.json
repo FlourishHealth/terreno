@@ -1,30 +1,31 @@
 {
   "byPackage": {
     "admin-backend": 3,
+    "admin-frontend": 6,
     "ai": 2,
-    "api": 732,
+    "api": 736,
     "demo": 2,
     "example-backend": 22,
     "example-frontend": 6,
-    "rtk": 52,
+    "rtk": 112,
     "test": 49,
-    "ui": 207
+    "ui": 202
   },
   "byRemediationStatus": {
-    "fully-documented": 1075,
-    "file-blanket": 0,
+    "fully-documented": 1136,
+    "file-blanket": 4,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
-  "fileBlanketFiles": 0,
-  "generatedAt": "2026-07-21T16:30:50.287Z",
+  "fileBlanketFiles": 1,
+  "generatedAt": "2026-07-21T18:40:49.467Z",
   "ratchet": {
-    "undocumented": 0,
+    "undocumented": 4,
     "violations": 0,
-    "totalUsages": 1075
+    "totalUsages": 1140
   },
-  "totalFiles": 83,
-  "totalUsages": 1075,
+  "totalFiles": 89,
+  "totalUsages": 1140,
   "version": 1
 }

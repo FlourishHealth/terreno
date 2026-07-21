@@ -2,10 +2,20 @@ import {useMemo} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
-type ConfigBody = Record<string, unknown>;
-type RtkHookResult = unknown;
-type RtkMutationTrigger = (...args: unknown[]) => unknown;
-type RtkError = unknown;
+// The configuration document shape varies per consumer — different apps register different
+// configuration sections via @terreno/api's Configuration model.
+// noExplicitAny: configuration values are heterogeneous per consumer
+// biome-ignore lint/suspicious/noExplicitAny: configuration values are heterogeneous per consumer
+type ConfigBody = any;
+// noExplicitAny: RTK Query's hook return shape varies per endpoint
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's hook return shape varies per endpoint
+type RtkHookResult = any;
+// noExplicitAny: RTK Query's mutation trigger has a complex generic shape
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's mutation trigger has a complex generic shape
+type RtkMutationTrigger = any;
+// noExplicitAny: RTK Query's error union type erases at the hook boundary
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's error union type erases at the hook boundary
+type RtkError = any;
 
 interface UseConfigurationApiOptions {
   api: AdminApi;

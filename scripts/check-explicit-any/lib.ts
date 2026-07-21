@@ -132,12 +132,15 @@ export const walkSourceFiles = (directory: string, files: string[] = []): string
   return files;
 };
 
+const GLOBSTAR_PLACEHOLDER = "{{GLOBSTAR}}";
+
 const globToRegExp = (pattern: string): RegExp => {
   const normalized = pattern.replace(/\\/g, "/");
   const regexBody = normalized
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*/g, ".*")
+    .replace(/\*\*/g, GLOBSTAR_PLACEHOLDER)
     .replace(/\*/g, "[^/]*")
+    .replace(new RegExp(GLOBSTAR_PLACEHOLDER, "g"), ".*")
     .replace(/\?/g, ".");
   return new RegExp(`^${regexBody}$`);
 };
@@ -155,11 +158,15 @@ const loadBiomeExclusionPatterns = (repoRoot: string = REPO_ROOT): RegExp[] => {
     if (!existsSync(configPath)) {
       continue;
     }
+    const isRootConfig = configPath === join(repoRoot, "biome.jsonc");
+    const packagePrefix = isRootConfig
+      ? ""
+      : `${relative(repoRoot, configPath).replace(/\/biome\.jsonc$/, "")}/`;
     const contents = readFileSync(configPath, "utf8");
     for (const match of contents.matchAll(/!!([^",\s]+)/g)) {
       const pattern = match[1];
       if (pattern) {
-        patterns.push(pattern);
+        patterns.push(`${packagePrefix}${pattern}`);
       }
     }
   }
@@ -260,7 +267,7 @@ const lineHasBiomeIgnore = (lines: string[], lineNumber: number): boolean => {
 };
 
 const lineHasNoExplicitAnyComment = (lines: string[], lineNumber: number): boolean => {
-  const candidates = [lineNumber - 1, lineNumber - 2, lineNumber - 3];
+  const candidates = [lineNumber - 1, lineNumber - 2, lineNumber];
   for (const candidate of candidates) {
     if (candidate < 1 || candidate > lines.length) {
       continue;
@@ -286,6 +293,9 @@ const resolveRemediationStatus = ({
   hasBiomeIgnore: boolean;
   hasNoExplicitAnyComment: boolean;
 }): RemediationStatus => {
+  if (excludedFromBiome) {
+    return "out-of-scope";
+  }
   if (fileLevelBiomeIgnore) {
     if (fileLevelNoExplicitAny) {
       return "fully-documented";
@@ -297,9 +307,6 @@ const resolveRemediationStatus = ({
   }
   if (hasBiomeIgnore) {
     return "suppressed-only";
-  }
-  if (excludedFromBiome) {
-    return "out-of-scope";
   }
   return "violation";
 };
