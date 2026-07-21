@@ -2,13 +2,13 @@
 // files.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {createListenerMiddleware, createSlice, type PayloadAction} from "@reduxjs/toolkit";
-import type {Api, BaseQueryFn, EndpointBuilder} from "@reduxjs/toolkit/query/react";
+import type {BaseQueryFn, EndpointBuilder} from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
 import {DateTime} from "luxon";
 import {useSelector} from "react-redux";
-
 import {LOGOUT_ACTION_TYPE, type RootState} from "./constants";
 import {IsWeb} from "./platform";
+import type {TerrenoApi} from "./terrenoApi";
 
 interface AuthState {
   userId: string | null;
@@ -66,9 +66,7 @@ export interface GoogleLoginRequest {
 }
 
 export const generateProfileEndpoints = (
-  // noExplicitAny: Generic
-  // biome-ignore lint/suspicious/noExplicitAny: Generic
-  builder: EndpointBuilder<BaseQueryFn<unknown, unknown, unknown>, any, string>,
+  builder: EndpointBuilder<BaseQueryFn<unknown, unknown, unknown>, string, string>,
   path: string
 ) => {
   return {
@@ -120,9 +118,7 @@ export const generateProfileEndpoints = (
   };
 };
 
-// noExplicitAny: Generic
-// biome-ignore lint/suspicious/noExplicitAny: Generic
-export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
+export const generateAuthSlice = (api: TerrenoApi) => {
   const authSlice = createSlice({
     extraReducers: (builder) => {
       // Reset isAuthenticating on rehydration in case the app was killed mid-login

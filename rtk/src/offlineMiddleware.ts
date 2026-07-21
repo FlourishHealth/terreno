@@ -1,5 +1,9 @@
-import {createListenerMiddleware, type Middleware} from "@reduxjs/toolkit";
-import type {Api} from "@reduxjs/toolkit/query/react";
+import {
+  createListenerMiddleware,
+  type Middleware,
+  type ThunkDispatch,
+  type UnknownAction,
+} from "@reduxjs/toolkit";
 import {DateTime} from "luxon";
 
 import {getAuthToken, selectCurrentUserId} from "./authSlice";
@@ -23,14 +27,21 @@ import {
   setSyncing,
 } from "./offlineSlice";
 import {IsWeb} from "./platform";
+import type {TerrenoApi} from "./terrenoApi";
+
+interface QueryCacheEntry {
+  data?: unknown;
+  originalArgs?: {id?: string};
+}
+
+type AppDispatch = ThunkDispatch<RootState, unknown, UnknownAction>;
+type AppGetState = () => RootState & Record<string, unknown>;
 
 export interface OfflineMiddlewareConfig {
   /** RTK Query mutation endpoint names to queue when offline */
   endpoints: string[];
   /** The RTK Query API instance */
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>;
+  api: TerrenoApi;
 }
 
 /**
@@ -54,12 +65,18 @@ const inferMutationType = (endpointName: string): "create" | "update" | "delete"
  * True when a rejected RTK Query action failed due to a network/transport error,
  * not an auth or application-level FETCH_ERROR from emptyApi.
  */
-export const isNetworkFetchError = (
-  // noExplicitAny: RTK Query error shapes vary by source
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query error shapes vary by source
-  source: any
-): boolean => {
-  if (source?.error?.name === "TypeError") {
+export const isNetworkFetchError = (source: unknown): boolean => {
+  const errorRecord = source as {
+    error?: {message?: string; name?: string} | string;
+    payload?: {error?: string};
+    status?: string;
+  };
+
+  if (
+    errorRecord.error &&
+    typeof errorRecord.error === "object" &&
+    errorRecord.error.name === "TypeError"
+  ) {
     return true;
   }
 
@@ -72,19 +89,17 @@ export const isNetworkFetchError = (
   ];
 
   const candidates: string[] = [];
-  if (typeof source?.error?.message === "string") {
-    candidates.push(source.error.message);
+  if (typeof errorRecord.error === "object" && typeof errorRecord.error?.message === "string") {
+    candidates.push(errorRecord.error.message);
   }
-  if (typeof source?.error === "string") {
-    candidates.push(source.error);
+  if (typeof errorRecord.error === "string") {
+    candidates.push(errorRecord.error);
   }
-  if (typeof source?.payload?.error === "string") {
-    candidates.push(source.payload.error);
+  if (typeof errorRecord.payload?.error === "string") {
+    candidates.push(errorRecord.payload.error);
   }
-  if (typeof source?.status === "string" && source.status === "FETCH_ERROR") {
-    if (typeof source?.error === "string") {
-      candidates.push(source.error);
-    }
+  if (errorRecord.status === "FETCH_ERROR" && typeof errorRecord.error === "string") {
+    candidates.push(errorRecord.error);
   }
 
   const combined = candidates.join(" ").toLowerCase();
@@ -143,12 +158,8 @@ const inferGetByIdEndpointName = (endpointName: string): string => {
 const extractBaseUpdatedAt = (
   endpointName: string,
   originalArgs: unknown,
-  // noExplicitAny: Generic getState
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>
+  getState: AppGetState,
+  api: TerrenoApi
 ): string | undefined => {
   if (inferMutationType(endpointName) !== "update") {
     return undefined;
@@ -166,9 +177,9 @@ const extractBaseUpdatedAt = (
 
   const getByIdEndpoint = inferGetByIdEndpointName(endpointName);
   const state = getState();
-  // noExplicitAny: RTK Query internal state shape
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
-  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
+  const queries: Record<string, QueryCacheEntry | undefined> =
+    (state[api.reducerPath] as {queries?: Record<string, QueryCacheEntry | undefined>} | undefined)
+      ?.queries ?? {};
   for (const key of Object.keys(queries)) {
     if (!key.startsWith(`${getByIdEndpoint}(`)) {
       continue;
@@ -193,18 +204,14 @@ const extractBaseUpdatedAt = (
  * args the consumer passed to the query hook, e.g. `{}` vs `undefined`).
  */
 const getCachedQueryArgs = (
-  // noExplicitAny: Generic API state shape
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API state shape
-  getState: () => any,
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
+  getState: AppGetState,
+  api: TerrenoApi,
   listEndpointName: string
 ): unknown[] => {
   const state = getState();
-  // noExplicitAny: RTK Query internal state shape
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
-  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
+  const queries: Record<string, QueryCacheEntry | undefined> =
+    (state[api.reducerPath] as {queries?: Record<string, QueryCacheEntry | undefined>} | undefined)
+      ?.queries ?? {};
   const cachedArgs: unknown[] = [];
   for (const key of Object.keys(queries)) {
     if (key.startsWith(`${listEndpointName}(`)) {
@@ -217,43 +224,47 @@ const getCachedQueryArgs = (
   return cachedArgs;
 };
 
+interface ListCacheDraft {
+  data?: Array<Record<string, unknown>>;
+}
+
+interface RtkActionWithMeta {
+  meta?: {
+    arg?: {
+      endpointName?: string;
+      originalArgs?: unknown;
+    };
+  };
+  type?: string;
+}
+
+interface RtkEndpointWithSelect {
+  select?: (queryArg: unknown) => (state: unknown) => {data?: {data?: {updated?: string}}};
+}
+
 /**
  * Apply an optimistic update to the RTK Query cache for a queued mutation.
  */
 const applyOptimisticUpdate = (
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  // noExplicitAny: Generic dispatch
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any,
-  // noExplicitAny: Generic getState
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
+  api: TerrenoApi,
+  dispatch: AppDispatch,
+  getState: AppGetState,
   mutation: QueuedMutation
 ): void => {
   const tagType = inferTagType(mutation.endpointName);
   const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
   const cachedArgs = getCachedQueryArgs(getState, api, listEndpointName);
 
-  // noExplicitAny: RTK Query cache shape varies by endpoint
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-  const updateAllCacheEntries = (updater: (draft: any) => void): void => {
+  const updateAllCacheEntries = (updater: (draft: ListCacheDraft) => void): void => {
     for (const queryArg of cachedArgs) {
-      dispatch(
-        // noExplicitAny: RTK Query cache shape varies by endpoint
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, updater)
-      );
+      dispatch(api.util.updateQueryData(listEndpointName as never, queryArg, updater));
     }
   };
 
   if (mutation.type === "create") {
     const args = mutation.args as {body?: Record<string, unknown>};
     const tempItem = buildOptimisticCreateItem(mutation, args?.body);
-    // noExplicitAny: RTK Query cache shape varies by endpoint
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-    updateAllCacheEntries((draft: any) => {
+    updateAllCacheEntries((draft) => {
       if (draft?.data && Array.isArray(draft.data)) {
         draft.data.unshift(tempItem);
       }
@@ -261,13 +272,9 @@ const applyOptimisticUpdate = (
   } else if (mutation.type === "update") {
     const args = mutation.args as {id?: string; body?: Record<string, unknown>};
     if (args?.id && args?.body) {
-      // noExplicitAny: RTK Query cache shape varies by endpoint
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      updateAllCacheEntries((draft: any) => {
+      updateAllCacheEntries((draft) => {
         if (draft?.data && Array.isArray(draft.data)) {
-          const item = draft.data.find(
-            (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
-          );
+          const item = draft.data.find((d) => d._id === args.id || d.id === args.id);
           if (item) {
             Object.assign(item, args.body);
           }
@@ -277,13 +284,9 @@ const applyOptimisticUpdate = (
   } else if (mutation.type === "delete") {
     const args = mutation.args as {id?: string};
     if (args?.id) {
-      // noExplicitAny: RTK Query cache shape varies by endpoint
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      updateAllCacheEntries((draft: any) => {
+      updateAllCacheEntries((draft) => {
         if (draft?.data && Array.isArray(draft.data)) {
-          draft.data = draft.data.filter(
-            (d: Record<string, unknown>) => d._id !== args.id && d.id !== args.id
-          );
+          draft.data = draft.data.filter((d) => d._id !== args.id && d.id !== args.id);
         }
       });
     }
@@ -294,15 +297,9 @@ const applyOptimisticUpdate = (
  * Remove optimistic temp items from the cache after they've been replayed.
  */
 const removeTempItems = (
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  // noExplicitAny: Generic dispatch
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any,
-  // noExplicitAny: Generic getState
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
+  api: TerrenoApi,
+  dispatch: AppDispatch,
+  getState: AppGetState,
   mutations: QueuedMutation[]
 ): void => {
   const tempIds = new Set(mutations.map((m) => `temp-${m.id}`));
@@ -314,13 +311,10 @@ const removeTempItems = (
 
     for (const queryArg of cachedArgs) {
       dispatch(
-        // noExplicitAny: RTK Query cache shape varies by endpoint
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, (draft: any) => {
+        api.util.updateQueryData(listEndpointName as never, queryArg, (draft: ListCacheDraft) => {
           if (draft?.data && Array.isArray(draft.data)) {
             draft.data = draft.data.filter(
-              (d: Record<string, unknown>) =>
-                !tempIds.has(d._id as string) && !tempIds.has(d.id as string)
+              (d) => !tempIds.has(d._id as string) && !tempIds.has(d.id as string)
             );
           }
         })
@@ -388,11 +382,7 @@ const replayMutation = async (
  * Set up native-only network monitoring (expo-network).
  * Web apps should use `useServerStatus` for server-level health checking.
  */
-const setupNativeNetworkMonitoring = (
-  // noExplicitAny: Generic dispatch
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any
-): (() => void) => {
+const setupNativeNetworkMonitoring = (dispatch: AppDispatch): (() => void) => {
   if (IsWeb) {
     return () => {};
   }
@@ -459,9 +449,7 @@ export const createOfflineMiddleware = (
   // RTK Query dispatches actions with type "terreno-rtk/executeMutation/rejected"
   // when a mutation fails. Queue the mutation and apply an optimistic cache update.
   listenerMiddleware.startListening({
-    // noExplicitAny: RTK Query action types are complex
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query action types are complex
-    effect: async (action: any, listenerApi) => {
+    effect: async (action: UnknownAction, listenerApi) => {
       const state = listenerApi.getState() as {offline: OfflineState};
       const isOnline = selectIsOnline(state);
 
@@ -469,8 +457,9 @@ export const createOfflineMiddleware = (
         return;
       }
 
-      const endpointName = action.meta.arg.endpointName as string;
-      const originalArgs = action.meta.arg.originalArgs;
+      const rejectedAction = action as UnknownAction & RtkActionWithMeta;
+      const endpointName = rejectedAction.meta?.arg?.endpointName as string;
+      const originalArgs = rejectedAction.meta?.arg?.originalArgs;
 
       const mutationType = inferMutationType(endpointName);
 
@@ -486,15 +475,13 @@ export const createOfflineMiddleware = (
           const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
           const cachedArgs = getCachedQueryArgs(listenerApi.getState, api, listEndpointName);
           for (const queryArg of cachedArgs) {
-            // noExplicitAny: RTK Query cache shape and endpoint types vary
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape and endpoint types vary
-            const endpoint = (api.endpoints as any)[listEndpointName];
+            const endpoint = (api.endpoints as Record<string, RtkEndpointWithSelect>)[
+              listEndpointName
+            ];
             if (!endpoint?.select) {
               continue;
             }
-            // noExplicitAny: RTK Query cache shape varies
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies
-            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState() as any) as any;
+            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState());
             const items = cacheEntry?.data?.data;
             if (Array.isArray(items)) {
               const doc = items.find(
@@ -537,17 +524,16 @@ export const createOfflineMiddleware = (
         listenerApi.dispatch(setOnlineStatus(false));
       }
     },
-    // noExplicitAny: RTK Query internal action shape
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
-    predicate: (action: any) => {
-      if (typeof action?.type !== "string") {
+    predicate: (action: UnknownAction) => {
+      const typed = action as UnknownAction & RtkActionWithMeta;
+      if (typeof typed.type !== "string") {
         return false;
       }
       // Match RTK Query mutation rejected actions
       return (
-        action.type.includes("/executeMutation/rejected") &&
-        action?.meta?.arg?.endpointName &&
-        endpointSet.has(action.meta.arg.endpointName)
+        typed.type.includes("/executeMutation/rejected") &&
+        typed.meta?.arg?.endpointName &&
+        endpointSet.has(typed.meta.arg.endpointName)
       );
     },
   });
@@ -560,16 +546,15 @@ export const createOfflineMiddleware = (
         listenerApi.dispatch(setOnlineStatus(false));
       }
     },
-    // noExplicitAny: RTK Query internal action shape
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
-    predicate: (action: any) => {
-      if (typeof action?.type !== "string") {
+    predicate: (action: UnknownAction) => {
+      const typed = action as UnknownAction & RtkActionWithMeta;
+      if (typeof typed.type !== "string") {
         return false;
       }
       return (
-        action.type.startsWith(`${api.reducerPath}/`) &&
-        (action.type.includes("/executeQuery/rejected") ||
-          action.type.includes("/executeMutation/rejected")) &&
+        typed.type.startsWith(`${api.reducerPath}/`) &&
+        (typed.type.includes("/executeQuery/rejected") ||
+          typed.type.includes("/executeMutation/rejected")) &&
         isNetworkFetchError(action)
       );
     },
@@ -583,16 +568,15 @@ export const createOfflineMiddleware = (
         listenerApi.dispatch(setOnlineStatus(true));
       }
     },
-    // noExplicitAny: RTK Query internal action shape
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
-    predicate: (action: any) => {
-      if (typeof action?.type !== "string") {
+    predicate: (action: UnknownAction) => {
+      const typed = action as UnknownAction & RtkActionWithMeta;
+      if (typeof typed.type !== "string") {
         return false;
       }
       return (
-        action.type.startsWith(`${api.reducerPath}/`) &&
-        action.type.endsWith("/fulfilled") &&
-        (action.type.includes("/executeQuery/") || action.type.includes("/executeMutation/"))
+        typed.type.startsWith(`${api.reducerPath}/`) &&
+        typed.type.endsWith("/fulfilled") &&
+        (typed.type.includes("/executeQuery/") || typed.type.includes("/executeMutation/"))
       );
     },
   });

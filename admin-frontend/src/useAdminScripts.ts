@@ -1,4 +1,5 @@
 import {useMemo} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, BackgroundTask, EndpointBuilder, ScriptRunListResponse} from "./types";
 
 export interface ScriptRunsQueryArg {
@@ -70,9 +71,7 @@ export const useAdminScripts = (api: AdminApi, apiBase: string) => {
     });
   }, [api, apiBase]);
 
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
 
   return {
     useCancelScriptTaskMutation: (enhanced?.useAdminCancelScriptTaskMutation ??

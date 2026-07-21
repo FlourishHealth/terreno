@@ -8,13 +8,11 @@ import {
   logger,
 } from "@terreno/api";
 import type express from "express";
-
+import type {UserDocument} from "../types/models/userTypes";
 import {getFileStorageService, setFileStorageService} from "./ai";
 
 const adminGuard = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-  // noExplicitAny: Express user casting
-  // biome-ignore lint/suspicious/noExplicitAny: Express user casting
-  const user = (req as any).user;
+  const user = req.user as UserDocument | undefined;
   if (!user?.admin) {
     throw new APIError({status: 403, title: "Admin access required"});
   }
@@ -35,12 +33,8 @@ interface GcsConfigResponse {
 }
 
 export const addSettingsRoutes = (
-  // noExplicitAny: Router type flexibility
-  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
-  router: any,
-  // noExplicitAny: Router type flexibility
-  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
-  options?: Partial<ModelRouterOptions<any>>
+  router: express.Router,
+  options?: Partial<ModelRouterOptions<unknown>>
 ): void => {
   router.get(
     "/settings/gcs",
@@ -123,10 +117,10 @@ export const addSettingsRoutes = (
       }
 
       try {
-        // Build Storage options
-        // noExplicitAny: Dynamic GCS credentials
-        // biome-ignore lint/suspicious/noExplicitAny: Dynamic GCS credentials
-        const storageOptions: any = {};
+        const storageOptions: {
+          credentials?: Record<string, unknown>;
+          projectId?: string;
+        } = {};
         if (projectId) {
           storageOptions.projectId = projectId;
         }

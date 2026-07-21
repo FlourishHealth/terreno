@@ -5,6 +5,7 @@ import type {Socket} from "socket.io-client";
 
 import {isWebsocketsDebugEnabled, logSocket} from "./constants";
 import type {RealtimeEvent} from "./realtime";
+import type {TerrenoApi} from "./terrenoApi";
 
 interface DocumentItem {
   _id?: string;
@@ -33,16 +34,11 @@ interface RtkApiState {
   queries?: Record<string, QueryCacheEntry>;
 }
 
-// noExplicitAny: RTK Query's Api type requires four generic parameters (BaseQuery, Definitions,
-// ReducerPath, TagTypes) that vary per consumer. A structural interface would lose dispatch
-// compatibility for thunk-returning util methods like updateQueryData.
 interface UseSyncConnectionOptions {
   /** Socket.io client instance (from useSocketConnection) */
   socket: Socket | null;
   /** RTK Query API instance (the enhanced API with tag types) */
-  // noExplicitAny: RTK Query Api generic requires four app-specific type parameters
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query Api generic requires four app-specific type parameters
-  api: any;
+  api: TerrenoApi;
   /** Tag types to listen for (e.g. ["todos", "users"]) — these should match the collection field in events */
   tagTypes: string[];
   /** Enable debug logging */

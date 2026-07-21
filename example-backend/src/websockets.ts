@@ -1,6 +1,4 @@
-// noExplicitAny: Some types in this file require suppression due to dynamic data structures or external library types that do not provide complete typings.
-// biome-ignore-all lint/suspicious/noExplicitAny: Some types in this file require suppression due to dynamic data structures or external library types that do not provide complete typings.
-import {createServer} from "node:http";
+import {createServer, type Server as HttpServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import {createAdapter} from "@socket.io/mongo-adapter";
 import {createAdapter as createRedisAdapter} from "@socket.io/redis-adapter";
@@ -8,14 +6,9 @@ import {APIError, logger} from "@terreno/api";
 import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
 import Redis from "ioredis";
-import type {
-  ChangeStream,
-  ChangeStreamDocument,
-  ChangeStreamInsertDocument,
-  ChangeStreamOptions,
-} from "mongodb";
+import type {ChangeStream, ChangeStreamDocument, ChangeStreamOptions} from "mongodb";
 import mongoose from "mongoose";
-import {Server} from "socket.io";
+import {Server, type Socket} from "socket.io";
 import {isProduction, isPullRequest, isStaging, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 
 // Use different port for websockets when running standalone vs when part of 'all' services
@@ -23,13 +16,27 @@ const port = process.env.WEBSOCKET_PORT || process.env.PORT || "9000";
 const MONGO_SOCKET_COLLECTION = "socketio";
 
 export let io: Server | null = null;
-export let websocketHttpServer: any = null;
+export let websocketHttpServer: HttpServer | null = null;
 let websocketProcessingEnabled = true;
 let redisClients: {pub: Redis; sub: Redis} | null = null;
 
 export const setWebsocketProcessingEnabled = (enabled: boolean): void => {
   websocketProcessingEnabled = enabled;
 };
+
+interface AuthenticatedSocket extends Socket {
+  decodedToken?: {
+    id: string;
+    type?: string;
+  };
+}
+
+interface ModelChangeEvent {
+  documentKey?: {_id?: unknown};
+  ns?: {coll?: string};
+  operationType?: string;
+  updateDescription?: unknown;
+}
 
 interface FormInstancePresenceData {
   formInstanceId: string;
@@ -105,7 +112,7 @@ const watchModels = (): void => {
     }
 
     logWebsocketInfo("[websocket] Creating change stream watcher...");
-    changeWatcher = nativeDb.watch(pipeline, options as any) as any;
+    changeWatcher = nativeDb.watch(pipeline, options);
 
     if (!changeWatcher) {
       throw new APIError({status: 500, title: "Failed to create change stream watcher"});
@@ -120,9 +127,10 @@ const watchModels = (): void => {
       }
     });
 
-    changeWatcher.on("error", (err: any) => {
+    changeWatcher.on("error", (err: unknown) => {
       Sentry.captureException(err);
-      logger.error(`[websocket] Change stream error: ${err?.message || err}`);
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[websocket] Change stream error: ${message}`);
       // optional: exponential backoff restart here
     });
 
@@ -252,9 +260,9 @@ export const connectToWebsockets = async (app: express.Application): Promise<voi
         // connected to any single instance, otherwise we can only talk to users connected to the
         // same instance.
         io.adapter(
-          createAdapter(mongoCollection as any, {
+          createAdapter(mongoCollection as unknown as Parameters<typeof createAdapter>[0], {
             addCreatedAtField: true,
-          }) as any
+          })
         );
         logWebsocketInfo("[websocket] MongoDB adapter configured successfully");
       } catch (error) {
@@ -277,40 +285,44 @@ export const connectToWebsockets = async (app: express.Application): Promise<voi
     });
 
     // Add users to rooms so we can broadcast messages.
-    io.on("connection", async (socket: any): Promise<void> => {
+    io.on("connection", async (socket: Socket): Promise<void> => {
+      const authSocket = socket as AuthenticatedSocket;
+      if (!authSocket.decodedToken?.id) {
+        return;
+      }
       try {
         // Staff join a staff room so we can emit to all staff users across all backend instances.
-        if (socket.decodedToken.type === "Staff") {
-          await socket.join("staff");
+        if (authSocket.decodedToken.type === "Staff") {
+          await authSocket.join("staff");
         }
         // Users join their own room so we can emit to them individually.
-        await socket.join(socket.decodedToken.id);
-        logger.debug(`[websocket] User joined: ${socket.decodedToken.id}`);
+        await authSocket.join(authSocket.decodedToken.id);
+        logger.debug(`[websocket] User joined: ${authSocket.decodedToken.id}`);
 
         // When a user joins a form instance, join their room for that form instance.
-        socket.on("formInstance-join", async (data: FormInstancePresenceData) => {
+        authSocket.on("formInstance-join", async (data: FormInstancePresenceData) => {
           logger.debug(
-            `[websocket] User ${socket.decodedToken.id} joined form instance ${data.formInstanceId}`
+            `[websocket] User ${authSocket.decodedToken?.id} joined form instance ${data.formInstanceId}`
           );
-          await socket.join(`formInstance-${data.formInstanceId}`);
+          await authSocket.join(`formInstance-${data.formInstanceId}`);
         });
 
         // When a user leaves a form instance, leave their room for that form instance.
-        socket.on("formInstance-leave", async (data: FormInstancePresenceData) => {
+        authSocket.on("formInstance-leave", async (data: FormInstancePresenceData) => {
           logger.debug(
-            `[websocket] User ${socket.decodedToken.id} left form instance ${data.formInstanceId}`
+            `[websocket] User ${authSocket.decodedToken?.id} left form instance ${data.formInstanceId}`
           );
-          await socket.leave(`formInstance-${data.formInstanceId}`);
+          await authSocket.leave(`formInstance-${data.formInstanceId}`);
         });
 
         // Send blur and focus events to the form instance room.
-        socket.on("formInstance-presence", async (data: FormInstancePresenceData) => {
+        authSocket.on("formInstance-presence", async (data: FormInstancePresenceData) => {
           logger.debug(
-            `[websocket] User ${socket.decodedToken.id} presence change for form instance ${data.formInstanceId}`
+            `[websocket] User ${authSocket.decodedToken?.id} presence change for form instance ${data.formInstanceId}`
           );
           // Ensure the user is in the room before emitting.
-          await socket.join(`formInstance-${data.formInstanceId}`);
-          socket.to(`formInstance-${data.formInstanceId}`).emit("formInstance-presence", data);
+          await authSocket.join(`formInstance-${data.formInstanceId}`);
+          authSocket.to(`formInstance-${data.formInstanceId}`).emit("formInstance-presence", data);
         });
       } catch (error) {
         logger.error(`[websocket] Error handling user connection: ${error}`);
@@ -376,7 +388,11 @@ export const getIoInstance = (): Server => {
   return io;
 };
 
-export const emitToRoom = (eventName: string, room: string, data: Record<string, any>): void => {
+export const emitToRoom = (
+  eventName: string,
+  room: string,
+  data: Record<string, unknown>
+): void => {
   try {
     io?.to(room).emit(eventName, data);
   } catch (error) {
@@ -387,7 +403,7 @@ export const emitToRoom = (eventName: string, room: string, data: Record<string,
   }
 };
 
-export const emitToUser = (eventName: string, userId: string, data: any): void => {
+export const emitToUser = (eventName: string, userId: string, data: unknown): void => {
   // Skip membership check; just emit to the room.
   // If the room is empty, adapter drops it—no harm done.
   try {
@@ -401,15 +417,16 @@ export const emitToUser = (eventName: string, userId: string, data: any): void =
 };
 
 const emitter = async (change: ChangeStreamDocument): Promise<void> => {
+  const modelChange = change as ModelChangeEvent;
   // Early memory cleanup - remove large objects we don't need
-  if ((change as ChangeStreamInsertDocument).fullDocument && change.operationType !== "insert") {
-    delete (change as any).fullDocument;
+  if ("fullDocument" in change && change.operationType !== "insert") {
+    delete (change as {fullDocument?: unknown}).fullDocument;
   }
 
   if (WEBSOCKETS_DEBUG) {
-    const coll = (change as any).ns?.coll;
-    const id = (change as any).documentKey?._id?.toString();
-    const changeDescription = JSON.stringify((change as any).updateDescription);
+    const coll = modelChange.ns?.coll;
+    const id = modelChange.documentKey?._id?.toString();
+    const changeDescription = JSON.stringify(modelChange.updateDescription);
     logWebsocketDebug(`[websocket] ${coll}/${id} change: ${changeDescription}`);
   }
 
@@ -431,8 +448,8 @@ const emitter = async (change: ChangeStreamDocument): Promise<void> => {
     });
   } else {
     io?.emit("changeEvent", {
-      _id: (change as any).documentKey?._id,
-      collection: (change as any).ns.coll,
+      _id: modelChange.documentKey?._id,
+      collection: modelChange.ns?.coll,
       type: change.operationType,
     });
   }
@@ -466,8 +483,9 @@ export const emitEvent = <T extends keyof EventDataMapping>(
 ): void => {
   void emitToUser(eventName, userId, data);
 
-  io?.sockets.sockets.forEach((socket: any) => {
-    if (socket.decodedToken.id === userId) {
+  io?.sockets.sockets.forEach((socket: Socket) => {
+    const authSocket = socket as AuthenticatedSocket;
+    if (authSocket.decodedToken?.id === userId) {
       try {
         socket.emit(`${eventName}${userId}`, data);
       } catch (error) {

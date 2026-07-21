@@ -36,9 +36,7 @@ export interface RealtimeEvent {
   /** Document ID */
   id: string;
   /** Serialized document data (omitted for hard deletes) */
-  // noExplicitAny: event data is a serialized document whose shape varies by model; consumers must narrow to their specific type
-  // biome-ignore lint/suspicious/noExplicitAny: event data is a serialized document whose shape varies by model; consumers must narrow to their specific type
-  data?: any;
+  data?: unknown;
   /** Fields that were updated (for update events from change streams) */
   updatedFields?: string[];
   /** Epoch milliseconds when the event was generated */

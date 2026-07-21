@@ -1,4 +1,8 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
+import type {
+  Api,
+  BaseQueryFn,
+  EndpointBuilder as RtkEndpointBuilder,
+} from "@reduxjs/toolkit/query/react";
 import type React from "react";
 
 /**
@@ -9,9 +13,12 @@ import type React from "react";
  * OpenAPI SDK with thousands of distinct endpoint types — there is no shared base
  * type we can constrain to, so the generic parameters are erased.
  */
-// noExplicitAny: RTK Query's Api generics are erased at the dynamic endpoint injection boundary
-// biome-ignore lint/suspicious/noExplicitAny: RTK Query's Api generics are erased at the dynamic endpoint injection boundary
-export type AdminApi = Api<any, any, any, any>;
+export type AdminApi = Api<
+  BaseQueryFn<unknown, unknown, unknown>,
+  Record<string, never>,
+  string,
+  string
+>;
 
 /**
  * Generic field/document value used throughout the admin panel.
@@ -29,9 +36,11 @@ export type AdminFieldValue = unknown;
  * endpoints dynamically into a consumer-supplied API, the endpoint shapes are not
  * statically expressible here.
  */
-// noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-export type EndpointBuilder = any;
+export type EndpointBuilder = RtkEndpointBuilder<
+  BaseQueryFn<unknown, unknown, unknown>,
+  string,
+  string
+>;
 
 export interface AdminFieldConfig {
   type: string;

@@ -1,5 +1,6 @@
 import {useMemo} from "react";
 
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
 export interface AdminBackgroundTaskBody {
@@ -12,9 +13,7 @@ export interface AdminBackgroundTaskBody {
 /**
  * RTK Query mutation hook for `POST {adminApiRoot}/background-tasks` (admin enqueue).
  */
-// noExplicitAny: RTK mutation type from dynamic injectEndpoints
-// biome-ignore lint/suspicious/noExplicitAny: RTK mutation type from dynamic injectEndpoints
-type UseAdminBackgroundTaskMutation = ReturnType<any>;
+type UseAdminBackgroundTaskMutation = () => unknown;
 
 export const useAdminBackgroundTaskMutation = (
   api: AdminApi,
@@ -37,8 +36,6 @@ export const useAdminBackgroundTaskMutation = (
     });
   }, [api, adminApiRoot]);
 
-  // noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   return enhanced.useAdminPostBackgroundTaskMutation();
 };

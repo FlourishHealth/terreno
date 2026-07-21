@@ -15,6 +15,7 @@ export * from "./sessionApi";
 export * from "./socket";
 export * from "./sync";
 export * from "./tagGenerator";
+export * from "./terrenoApi";
 export * from "./useFeatureFlags";
 export * from "./useOfflineStatus";
 export * from "./useRealtimeDebug";

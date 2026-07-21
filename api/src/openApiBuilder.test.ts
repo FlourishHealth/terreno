@@ -363,24 +363,24 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
       .withTags(["test"])
       .withSummary("Test")
       .withResponse(200, {id: {type: "string"}})
-      .build();
+      .build() as express.RequestHandler;
 
     // Middleware should be a function
     expect(typeof middleware).toBe("function");
 
     // Should call next() without error
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
   });
 
   it("build returns noop middleware when options is empty", () => {
-    const middleware = createOpenApiBuilder({}).build();
+    const middleware = createOpenApiBuilder({}).build() as express.RequestHandler;
 
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
