@@ -403,6 +403,8 @@ exports[`EmojiSelector matches snapshot 1`] = `
       "props": {
         "style": {
           "flex": 1,
+          "minHeight": 0,
+          "overflow": "hidden",
         },
         "testID": undefined,
       },
@@ -413,6 +415,8 @@ exports[`EmojiSelector matches snapshot 1`] = `
     "onLayout": [Function],
     "style": {
       "flex": 1,
+      "minHeight": 0,
+      "overflow": "hidden",
       "width": "100%",
     },
     "testID": undefined,
@@ -503,6 +507,8 @@ exports[`EmojiSelector renders without tabs 1`] = `
       "props": {
         "style": {
           "flex": 1,
+          "minHeight": 0,
+          "overflow": "hidden",
         },
         "testID": undefined,
       },
@@ -513,6 +519,8 @@ exports[`EmojiSelector renders without tabs 1`] = `
     "onLayout": [Function],
     "style": {
       "flex": 1,
+      "minHeight": 0,
+      "overflow": "hidden",
       "width": "100%",
     },
     "testID": undefined,
@@ -924,6 +932,8 @@ exports[`EmojiSelector renders with history enabled 1`] = `
       "props": {
         "style": {
           "flex": 1,
+          "minHeight": 0,
+          "overflow": "hidden",
         },
         "testID": undefined,
       },
@@ -934,6 +944,8 @@ exports[`EmojiSelector renders with history enabled 1`] = `
     "onLayout": [Function],
     "style": {
       "flex": 1,
+      "minHeight": 0,
+      "overflow": "hidden",
       "width": "100%",
     },
     "testID": undefined,
@@ -1345,6 +1357,8 @@ exports[`EmojiSelector renders with all category and shouldInclude filter 1`] = 
       "props": {
         "style": {
           "flex": 1,
+          "minHeight": 0,
+          "overflow": "hidden",
         },
         "testID": undefined,
       },
@@ -1355,6 +1369,8 @@ exports[`EmojiSelector renders with all category and shouldInclude filter 1`] = 
     "onLayout": [Function],
     "style": {
       "flex": 1,
+      "minHeight": 0,
+      "overflow": "hidden",
       "width": "100%",
     },
     "testID": undefined,
@@ -1766,6 +1782,8 @@ exports[`EmojiSelector renders with history category 1`] = `
       "props": {
         "style": {
           "flex": 1,
+          "minHeight": 0,
+          "overflow": "hidden",
         },
         "testID": undefined,
       },
@@ -1776,6 +1794,8 @@ exports[`EmojiSelector renders with history category 1`] = `
     "onLayout": [Function],
     "style": {
       "flex": 1,
+      "minHeight": 0,
+      "overflow": "hidden",
       "width": "100%",
     },
     "testID": undefined,

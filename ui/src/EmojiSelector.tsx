@@ -27,7 +27,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import emoji from "emoji-datasource";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import type {FlatListProps, LayoutChangeEvent} from "react-native";
 import {
   ActivityIndicator,
@@ -223,10 +223,20 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
   const [category, setCategory] = useState<Category>(initialCategory);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [history, setHistory] = useState<Emoji[]>([]);
-  const [emojiList, setEmojiList] = useState<EmojiListByCategory | null>(null);
   const [colSize, setColSize] = useState<number>(0);
   const [width, setWidth] = useState<number>(0);
   const scrollview = useRef<FlatList<EmojiItem> | null>(null);
+
+  // Emoji data is static (from the emoji-datasource package), so group it by
+  // category once per mount instead of rebuilding it on every layout event.
+  const emojiList = useMemo<EmojiListByCategory>(() => {
+    const listByCategory: EmojiListByCategory = {};
+    for (const c of categoryKeys) {
+      const name = Categories[c].name;
+      listByCategory[name] = sortEmoji(emojiByCategory(name));
+    }
+    return listByCategory;
+  }, []);
 
   //
   //  HANDLER METHODS
@@ -303,12 +313,8 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
     [handleEmojiSelect, colSize]
   );
 
-  const returnSectionData = useCallback((): EmojiItem[] => {
+  const sectionData = useMemo((): EmojiItem[] => {
     const currentEmojiList = emojiList;
-    if (!currentEmojiList) {
-      return [];
-    }
-
     const currentCategory = category;
     const currentSearchQuery = searchQuery;
     const currentHistory = history;
@@ -354,31 +360,22 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
     return shouldInclude ? emojiData.filter((e) => shouldInclude(e.emoji)) : emojiData;
   }, [category, emojiList, history, searchQuery, shouldInclude]);
 
-  const prerenderEmojis = useCallback(
-    (callback?: () => void) => {
-      const listByCategory: EmojiListByCategory = {};
-      for (const c of categoryKeys) {
-        const name = Categories[c].name;
-        listByCategory[name] = sortEmoji(emojiByCategory(name));
-      }
-
-      setEmojiList(listByCategory);
-      setColSize(Math.max(Math.floor(width / columns), 32));
-      if (callback) {
-        callback();
-      }
-    },
-    [columns, width]
-  );
-
+  // Derive colSize directly from the freshly-measured layout width instead of
+  // `width` state: reading `width` here would race the pending setWidth update
+  // (state updates aren't applied synchronously), which previously forced the
+  // very first render to fall back to the 32px floor regardless of the real
+  // container width. Bail out when nothing actually changed so a flurry of
+  // identical onLayout events (common on web while ancestors are still
+  // settling) doesn't keep re-rendering the FlatList with a fresh `data`
+  // array, which was feeding an unbounded relayout loop.
   const handleLayout = useCallback(
     ({nativeEvent: {layout}}: LayoutChangeEvent) => {
-      setWidth(layout.width);
-      prerenderEmojis(() => {
-        setIsReady(true);
-      });
+      const newColSize = Math.max(Math.floor(layout.width / columns), 32);
+      setWidth((prevWidth) => (prevWidth === layout.width ? prevWidth : layout.width));
+      setColSize((prevColSize) => (prevColSize === newColSize ? prevColSize : newColSize));
+      setIsReady(true);
     },
-    [prerenderEmojis]
+    [columns]
   );
 
   //
@@ -415,15 +412,15 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
           <TabBar activeCategory={category} onPress={handleTabSelect} theme={theme} width={width} />
         )}
       </View>
-      <View style={{flex: 1}}>
+      <View style={styles.body}>
         {showSearchBar && Searchbar}
         {isReady ? (
-          <View style={{flex: 1}}>
+          <View style={styles.body}>
             <View style={styles.container}>
               {showSectionTitles && <Text style={styles.sectionHeader}>{title}</Text>}
               <FlatList
                 contentContainerStyle={{paddingBottom: colSize}}
-                data={returnSectionData()}
+                data={sectionData}
                 horizontal={false}
                 keyboardShouldPersistTaps={"always"}
                 numColumns={columns}
@@ -461,14 +458,22 @@ EmojiSelector.defaultProps = {
 export default EmojiSelector;
 
 const styles = StyleSheet.create({
+  body: {
+    flex: 1,
+    minHeight: 0,
+    overflow: "hidden",
+  },
   container: {
     alignItems: "flex-start",
     flex: 1,
     flexDirection: "column",
+    minHeight: 0,
     overflow: "hidden",
   },
   frame: {
     flex: 1,
+    minHeight: 0,
+    overflow: "hidden",
     width: "100%",
   },
   loader: {
@@ -478,6 +483,7 @@ const styles = StyleSheet.create({
   },
   scrollview: {
     flex: 1,
+    minHeight: 0,
     overflow: "hidden",
   },
   search: {
