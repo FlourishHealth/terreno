@@ -18,8 +18,7 @@ export interface DefaultStatics<T> {
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & T>;
 
-  // biome-ignore lint/suspicious/noExplicitAny: TODO Need to tighten up any
-  upsert(conditions: Record<string, any>, update: Record<string, any>): Promise<T>;
+  upsert(conditions: Record<string, unknown>, update: Record<string, unknown>): Promise<T>;
 }
 
 /**

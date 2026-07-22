@@ -34,9 +34,11 @@ export interface UseTerrenoFeatureFlagsResult {
   refetch: () => unknown;
 }
 
+// noExplicitAny: RTK Query API generic typing is intentionally flexible here.
 // biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
 type FlagsApi = Api<any, any, any, any>;
 
+// noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
 // biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
 type EnhancedTerrenoFlagsApi = FlagsApi & {useTerrenoFlagConfigurationQuery: any};
 

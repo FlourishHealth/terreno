@@ -99,6 +99,7 @@ interface DemoConfigurationBase {
     doNot: string[];
   };
   // Demo is the top component that will show up in the index page and at the top of the page.
+  // noExplicitAny: each story-config supplies a demo with its own concrete prop shape (e.g. HeadingProps & {text: string}). A narrower contract like Record<string, unknown> would reject those narrower functions due to parameter contravariance.
   // biome-ignore lint/suspicious/noExplicitAny: each story-config supplies a demo with its own concrete prop shape (e.g. HeadingProps & {text: string}). A narrower contract like Record<string, unknown> would reject those narrower functions due to parameter contravariance.
   demo: (props: any) => React.ReactElement;
   demoOptions: {
@@ -142,6 +143,7 @@ export interface DemoConfigurationProp {
 }
 
 export interface DemoConfiguration extends DemoConfigurationBase {
+  // noExplicitAny: `props` is a typedoc-generated JSON blob whose full shape leaks through consumer code (see demo/app/demo/[component].tsx which reads props.children). Narrowing to the local TypedocNode interface would cascade type errors into unrelated files.
   // biome-ignore lint/suspicious/noExplicitAny: `props` is a typedoc-generated JSON blob whose full shape leaks through consumer code (see demo/app/demo/[component].tsx which reads props.children). Narrowing to the local TypedocNode interface would cascade type errors into unrelated files.
   props: any;
 }

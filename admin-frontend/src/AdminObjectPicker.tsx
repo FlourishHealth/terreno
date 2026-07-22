@@ -1,5 +1,6 @@
 import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
 /** Generic referenced document — admin can pick from any Mongoose model so the shape varies. */
@@ -109,9 +110,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   }, [api, routePath, searchEndpointKey, readEndpointKey]);
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   const useSearchQuery = enhanced[`use${capitalize(searchEndpointKey)}Query`];
   const useReadQuery = enhanced[`use${capitalize(readEndpointKey)}Query`];
 

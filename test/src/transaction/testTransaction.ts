@@ -1,3 +1,4 @@
+// noExplicitAny: Mongoose prototype patches require dynamic signatures
 // biome-ignore-all lint/suspicious/noExplicitAny: Mongoose prototype patches require dynamic signatures
 /**
  * Transaction-based test isolation for MongoDB.

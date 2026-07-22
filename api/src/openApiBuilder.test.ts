@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
@@ -362,24 +363,24 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
       .withTags(["test"])
       .withSummary("Test")
       .withResponse(200, {id: {type: "string"}})
-      .build();
+      .build() as express.RequestHandler;
 
     // Middleware should be a function
     expect(typeof middleware).toBe("function");
 
     // Should call next() without error
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
   });
 
   it("build returns noop middleware when options is empty", () => {
-    const middleware = createOpenApiBuilder({}).build();
+    const middleware = createOpenApiBuilder({}).build() as express.RequestHandler;
 
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
@@ -503,7 +504,7 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
     expect(result.validationEnabled).toBe(false);
   });
 
-  it("build() returns an array with validators when validation is enabled", () => {
+  it("build() returns an array when validation is enabled with body and query", () => {
     const result = createOpenApiBuilder({})
       .withRequestBody({name: {required: true, type: "string"}})
       .withQueryParameter("page", {type: "number"})
@@ -511,7 +512,7 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
       .build();
 
     expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(1);
+    expect(result).toHaveLength(3);
   });
 
   it("build() returns a single middleware when validation is disabled", () => {

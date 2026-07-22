@@ -1,3 +1,4 @@
+// noExplicitAny: model router options are generic across all models
 // biome-ignore-all lint/suspicious/noExplicitAny: model router options are generic across all models
 import type {ModelRouterOptions} from "../api";
 import type {RealtimeConfig} from "./types";

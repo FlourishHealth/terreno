@@ -89,6 +89,7 @@ const api = createApi({
 
 const createTestStore = (endpoints = ["postTodos", "patchTodosById", "deleteTodosById"]) => {
   const offline = createOfflineMiddleware({
+    // noExplicitAny: Generic API type is intentionally broad.
     // biome-ignore lint/suspicious/noExplicitAny: Generic API type is intentionally broad.
     api: api as any,
     endpoints,

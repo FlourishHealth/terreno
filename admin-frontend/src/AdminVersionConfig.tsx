@@ -1,6 +1,7 @@
 import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 
 interface VersionConfigData {
@@ -65,9 +66,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
     });
   }, [api, resolvedApiBase]);
 
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;
   const [updateConfig] = enhanced.useUpdateVersionConfigMutation();
 
