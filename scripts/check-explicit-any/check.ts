@@ -84,7 +84,10 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     }
     if (arg.startsWith("--max-count=")) {
       parsed.maxCount = parsePositiveInt(arg.slice("--max-count=".length), "--max-count");
+      continue;
     }
+
+    throw new Error(`Unknown argument: ${arg}`);
   }
 
   return parsed;
@@ -115,4 +118,6 @@ const main = (): void => {
   process.exit(result.exitCode);
 };
 
-main();
+if (import.meta.main) {
+  main();
+}

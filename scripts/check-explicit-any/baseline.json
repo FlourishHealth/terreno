@@ -12,16 +12,16 @@
     "ui": 202
   },
   "byRemediationStatus": {
-    "fully-documented": 1137,
-    "file-blanket": 4,
+    "fully-documented": 1141,
+    "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
-  "fileBlanketFiles": 1,
-  "generatedAt": "2026-07-21T18:48:40.032Z",
+  "fileBlanketFiles": 0,
+  "generatedAt": "2026-07-22T13:12:20.226Z",
   "ratchet": {
-    "undocumented": 4,
+    "undocumented": 0,
     "violations": 0,
     "totalUsages": 1141
   },
