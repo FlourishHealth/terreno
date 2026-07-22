@@ -46,6 +46,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   modalSubTitle,
   pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   size = "default",
+  state = "default",
   testID,
   text,
   variant = "primary",
@@ -85,13 +86,26 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       textColor = theme.surface.secondaryDark;
     }
 
+    if (!disabled && state === "active") {
+      if (variant === "primary") {
+        bgColor = theme.surface.secondaryDark;
+      } else if (variant === "destructive") {
+        bgColor = theme.surface.error;
+      } else {
+        bgColor = theme.surface.primary;
+      }
+      bColor = undefined;
+      bWidth = undefined;
+      textColor = theme.surface.base;
+    }
+
     return {
       backgroundColor: bgColor,
       borderColor: bColor,
       borderWidth: bWidth,
       color: textColor,
     };
-  }, [disabled, variant, theme]);
+  }, [disabled, state, variant, theme]);
 
   const handlePress = useCallback(async (): Promise<void> => {
     await Unifier.utils.haptic();
