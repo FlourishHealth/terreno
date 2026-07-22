@@ -104,6 +104,22 @@ describe("useTerrenoFeatureFlags", () => {
     expect(result.current.error).toBeDefined();
   });
 
+  it("reports loading while the initial flag configuration query has no data yet", () => {
+    const {api} = buildApi({isLoading: true, isSuccess: false});
+    const {result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it("reports loading while a refetch is in flight even after data has loaded", () => {
+    const {api} = buildApi({data: {alpha: boolDef("on")}, isFetching: true, isSuccess: true});
+    const {result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    expect(result.current.isLoading).toBe(true);
+  });
+
   it("isolates domains so a custom domain does not read another domain's provider", async () => {
     const {api} = buildApi({data: {alpha: boolDef("on")}});
     const {result} = renderHook(() =>

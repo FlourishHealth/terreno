@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {Writable} from "node:stream";
+import * as Sentry from "@sentry/bun";
 import winston from "winston";
 
 import {
@@ -54,6 +55,59 @@ describe("logger", () => {
   it("logger.catch with Sentry logging enabled and Error", () => {
     process.env.USE_SENTRY_LOGGING = "true";
     expect(() => logger.catch(new Error("captured"))).not.toThrow();
+  });
+});
+
+describe("logger Sentry structured logging", () => {
+  afterEach(() => {
+    Reflect.deleteProperty(process.env, "USE_SENTRY_LOGGING");
+  });
+
+  it("forwards every level to Sentry.logger when USE_SENTRY_LOGGING is true", () => {
+    process.env.USE_SENTRY_LOGGING = "true";
+    logger.debug("sentry-debug-message");
+    logger.info("sentry-info-message");
+    logger.warn("sentry-warn-message");
+    logger.error("sentry-error-message");
+    expect(Sentry.logger?.debug).toHaveBeenCalledWith("sentry-debug-message", expect.anything());
+    expect(Sentry.logger?.info).toHaveBeenCalledWith("sentry-info-message", expect.anything());
+    expect(Sentry.logger?.warn).toHaveBeenCalledWith("sentry-warn-message", expect.anything());
+    expect(Sentry.logger?.error).toHaveBeenCalledWith("sentry-error-message", expect.anything());
+  });
+
+  it("does not forward to Sentry.logger when USE_SENTRY_LOGGING is unset", () => {
+    Reflect.deleteProperty(process.env, "USE_SENTRY_LOGGING");
+    expect(() => logger.info("no-sentry-message")).not.toThrow();
+    expect(Sentry.logger?.info).not.toHaveBeenCalledWith("no-sentry-message", expect.anything());
+  });
+
+  it("attaches terrenoRequestLog to Sentry attributes inside a request scope", () => {
+    process.env.USE_SENTRY_LOGGING = "true";
+    runWithRequestContext({requestId: "sentry-req-1", userId: "sentry-user-1"}, () => {
+      logger.info("sentry-request-scoped-message");
+    });
+    expect(Sentry.logger?.info).toHaveBeenCalledWith(
+      "sentry-request-scoped-message",
+      expect.objectContaining({
+        terrenoRequestLog: expect.objectContaining({
+          requestId: "sentry-req-1",
+          userId: "sentry-user-1",
+        }),
+      })
+    );
+  });
+
+  it("logs a caught non-Error value via Sentry.logger.error when enabled", () => {
+    process.env.USE_SENTRY_LOGGING = "true";
+    expect(() => logger.catch("plain-string-failure")).not.toThrow();
+    expect(Sentry.logger?.error).toHaveBeenCalled();
+  });
+
+  it("scoped logger catch logs a non-Error value via Sentry.logger.error when enabled", () => {
+    process.env.USE_SENTRY_LOGGING = "true";
+    const scoped = createScopedLogger({labels: {jobId: "j1"}, prefix: "[SentryScoped]"});
+    expect(() => scoped.catch("scoped-plain-failure")).not.toThrow();
+    expect(Sentry.logger?.error).toHaveBeenCalled();
   });
 });
 
@@ -610,5 +664,29 @@ describe("setupLogging", () => {
         disableTerrenoDevJsonlLog: true,
       })
     ).not.toThrow();
+  });
+
+  it("attaches the dev JSONL transport when TERRENO_LOG_FILE forces it on", () => {
+    const originalCwd = process.cwd();
+    process.env.TERRENO_LOG_FILE = "true";
+    try {
+      process.chdir(tempDir);
+      setupLogging({disableConsoleLogging: true, disableFileLogging: true});
+      expect(fs.existsSync(path.join(tempDir, ".terreno", "logs"))).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      Reflect.deleteProperty(process.env, "TERRENO_LOG_FILE");
+    }
+  });
+
+  it("skips the dev JSONL transport when TERRENO_LOG_FILE forces it off", () => {
+    process.env.TERRENO_LOG_FILE = "false";
+    try {
+      expect(() =>
+        setupLogging({disableConsoleLogging: true, disableFileLogging: true})
+      ).not.toThrow();
+    } finally {
+      Reflect.deleteProperty(process.env, "TERRENO_LOG_FILE");
+    }
   });
 });
