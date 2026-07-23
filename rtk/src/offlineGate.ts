@@ -13,9 +13,7 @@ export const configureOfflineMutationEndpoints = (endpoints: string[]): void => 
  */
 export const shouldDeferOfflineMutation = (
   endpointName: string,
-  // noExplicitAny: Redux getState is app-specific
-  // biome-ignore lint/suspicious/noExplicitAny: Redux getState is app-specific
-  getState: () => any
+  getState: () => unknown
 ): boolean => {
   if (!offlineMutationEndpoints.has(endpointName)) {
     return false;
