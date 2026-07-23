@@ -134,8 +134,14 @@ export interface AccessOptions<S extends Statements> {
   fieldViews?: ResourceFieldViews<S>;
   // External grant providers, e.g. Healthie (see 4.10)
   sources?: PermissionSource[];
+  // Actions treated as "read-ish" when expanding the auditor read-only sentinel
+  // (READ_ONLY_ROLE_PERMISSIONS — see 4.3). Defaults to READ_ACTIONS; apps add
+  // verbs like "viewClinical".
+  readActions?: readonly string[];
   // Role resolution cache TTL in ms (default 30_000). Roles are DB-backed;
-  // checks must not hit Mongo on every request.
+  // checks must not hit Mongo on every request. Keep this short for compliance:
+  // revoking a role or assignment must not linger on other replicas until TTL
+  // expiry (see cross-instance invalidation on `invalidateCache` in 4.2).
   cacheTtlMs?: number;
   // Escape hatch: full custom resolution of a user's permission set
   resolvePermissions?: (args: {user: User}) => Promise<PermissionSet | null>;
@@ -209,6 +215,13 @@ export interface TerrenoAccess<S extends Statements> {
   // Role management used by rbacRouter + admin (see 4.9)
   roles: RoleManager;
 
+  // Drop cached role/source hydrations for one user or all users on this process.
+  // Production multi-replica deployments (e.g. Cloud Run) also need a shared
+  // invalidation channel (Redis pub/sub, version stamp on `RbacRole.updated`, …)
+  // so every instance drops stale hydrations when roles are edited — otherwise
+  // `/auth/me`, websocket permission resolution, and `getPermissions()` on
+  // other replicas serve the old set until `cacheTtlMs` expires. The IP will
+  // specify the default transport; apps can plug a custom broadcaster.
   invalidateCache(args?: {userId?: string}): void;
 }
 ```
@@ -243,9 +256,13 @@ export interface RbacRoleDocument {
   excludesRoles: string[];
   // Shipped by Terreno or the app via defaultRoles; locked roles cannot be
   // deleted or have their name changed (permissions remain editable unless
-  // sealed)
+  // sealed — see isSealed).
   isLocked: boolean;
-  // Fully immutable via API/admin (only "superadmin" ships sealed)
+  // When true, the role is immutable through the admin API: name, description,
+  // permissions, and excludesRoles cannot be changed or deleted. Only Terreno
+  // seeds ship sealed (today: `superadmin`). Locked-but-not-sealed roles (e.g.
+  // `admin`, `auditor`) keep a stable name while their permission matrix remains
+  // editable in the admin UI.
   isSealed: boolean;
   created: Date;
   updated: Date;
@@ -261,26 +278,18 @@ role is upserted, so app-defined resources are covered without the app editing T
 export type RolePermissionSpec =
   | PermissionSet
   | "*" // every action of every resource (superadmin)
-  | {readOnly: true}; // every "read-ish" action of every resource (auditor)
+  | typeof READ_ONLY_ROLE_PERMISSIONS; // auditor: every read-ish action
 
 // "read-ish" = the intersection of each resource's actions with READ_ACTIONS.
 // Terreno's default list; apps can extend via createAccess({readActions}).
 export const READ_ACTIONS = ["read", "list", "access", "view"] as const;
 
-// The read-only sentinel is *exactly* `{readOnly: true}`. It must not be confused
-// with a real PermissionSet that happens to declare a resource named "readOnly":
-// in a PermissionSet every value is a `readonly string[]` of actions, so a
-// "readOnly" resource maps to an array — never the boolean literal `true`. The
-// discriminator therefore checks `readOnly === true` on a single-key object, not
-// the mere presence of a `readOnly` key (`"readOnly" in spec`), which would
-// misread such a PermissionSet as the sentinel.
-const isReadOnlySentinel = (spec: RolePermissionSpec): spec is {readOnly: true} => {
-  if (typeof spec !== "object" || spec === null || Array.isArray(spec)) {
-    return false;
-  }
-  const keys = Object.keys(spec);
-  return keys.length === 1 && (spec as {readOnly?: unknown}).readOnly === true;
-};
+// Seed-time sentinel for auditor-style read-only expansion. Always reference
+// this constant in defaultRoles — never hand-roll `{readOnly: true}` and never
+// declare a PermissionSet resource literally named "readOnly" (values are
+// `readonly string[]`, so a real resource would look like
+// `{readOnly: ["someAction"]}` and is not confused with this sentinel).
+export const READ_ONLY_ROLE_PERMISSIONS = {readOnly: true} as const;
 
 // Applied at seed time inside createAccess, using the merged statements as the source.
 export const expandRolePermissions = (
@@ -291,7 +300,7 @@ export const expandRolePermissions = (
   if (spec === "*") {
     return mapValues(statements, (actions) => [...actions]);
   }
-  if (isReadOnlySentinel(spec)) {
+  if (spec === READ_ONLY_ROLE_PERMISSIONS) {
     return filterMapValues(statements, (actions) =>
       actions.filter((a) => readActions.includes(a)),
     );
@@ -328,7 +337,7 @@ export const terrenoDefaultRoles: RoleDefinition[] = [
     // Read-only *everywhere*, including app resources: expands at seed time to
     // every resource's read-ish actions from the merged statements (parallel to
     // superadmin's "*"). Not a hand-listed subset — see expandRolePermissions.
-    permissions: {readOnly: true},
+    permissions: READ_ONLY_ROLE_PERMISSIONS,
     isLocked: true,
   },
   {name: "member", displayName: "Member", permissions: {}, isLocked: true},
@@ -418,6 +427,16 @@ Guardrails baked into `RoleManager` (borrowed from Better Auth's dynamic access 
 - **Managing roles requires** `rbac:manageRoles`; assigning requires `rbac:assignRoles`. These
   gate *access* to the operation and are additive to (not a substitute for) the no-escalation
   subset check above.
+- **`excludesRoles` remediation**: assignment-time 409s are not enough when an admin later
+  *adds* an exclusion to a role that conflicts with roles users already hold. `RoleManager.update`
+  rejects the role change (400) until every affected user is remediated — the error payload lists
+  conflicting `(userId, roleA, roleB)` tuples. Admins resolve via `previewRoleChange` (shows
+  affected users) and explicit `unassign` calls; Terreno never silently leaves a violated
+  invariant in place.
+- **Audit (required)**: every successful `RoleManager` create/update/remove/assign/unassign
+  **must** emit an `RbacAudit` record (built-in collection and/or pluggable sink — see 7.4).
+  Denied escalation attempts (actor tried to grant permissions they lack) are also logged at
+  `warn` with actor, target, and the rejected permission delta for abuse detection.
 
 ### 4.5 Document-level scopes (the dynamic layer)
 
@@ -483,29 +502,45 @@ return rows a per-doc read would reject, or vice versa. The design forbids that 
    query and asserts they agree. `createAccess` warns (dev) when a scope defines both `check`
    and `filter` by hand without a registered parity test.
 
-Consuming-app example (the PatientGuide panel case):
+Consuming-app example (the PatientGuide panel case) — **`defineScope` so check and filter
+cannot drift**:
 
 ```typescript
+// One helper encodes the constraint once; both list/subscription filter and per-doc
+// check evaluate the same predicate (supervisor-of-pod, on-panel, or active PTO coverage).
+const patientUpdateScope = defineScope<PatientDocument>({
+  matches: async ({user, doc}) => {
+    const staff = user as unknown as StaffDocument;
+    const editableIds = await editablePatientIds(staff); // shared: panel + PTO + supervised pods
+    if (!editableIds.length) {
+      return null;
+    }
+    // List/subscription: constrain to the same id set the per-doc check uses.
+    return {_id: {$in: editableIds}};
+  },
+  // Per-doc check: fragment value vs doc._id (String equality, ObjectId-safe).
+  fieldOf: (doc, path) => (path === "_id" ? String(doc._id) : undefined),
+});
+
 const access = createAccess({
   statements,
   scopes: {
     // Any role with patient:read can read any patient — no read scope.
-    "patient.update": {
-      check: async ({user, doc}) => {
-        const staff = user as unknown as StaffDocument;
-        if (await hasRoleTag(staff, "supervisor", doc.podId)) {
-          return true; // supervisor of *this* patient's pod, not all pods
-        }
-        return isOnPanel(staff, doc) || (await hasActivePtoCoverage(staff, doc));
-      },
-      filter: async ({user}) => ({podId: {$in: await editablePodIds(user)}}),
-    },
-    "careplan.approve": {
-      check: async ({user, doc}) => doc.assignedPsychiatristId?.equals(user._id) ?? false,
-    },
+    "patient.update": patientUpdateScope,
+    "careplan.approve": defineScope<CareplanDocument>({
+      matches: ({user}) => (user ? {assignedPsychiatristId: user.id} : null),
+      fieldOf: (doc, path) =>
+        path === "assignedPsychiatristId" ? String(doc.assignedPsychiatristId) : undefined,
+    }),
   },
 });
 ```
+
+When a scope truly cannot be expressed as one Mongo fragment (rare), supply a hand-written
+`{check, filter}` pair **and** register `assertScopeParity(scope, {samples})` covering every
+branch (panel vs PTO vs cross-pod supervisor, etc.). `createAccess` warns in dev if both are
+hand-written without a parity test — the anti-pattern is divergent predicates, not hand-writing
+per se.
 
 Semantics:
 
@@ -782,9 +817,20 @@ export interface PermissionSourceGrants {
   deny?: PermissionSet; // hard denials — win over every grant
 }
 
+export type StaleOnFailurePolicy =
+  | "deny" // default — drop this source's grants on refresh failure (fail closed)
+  | "use-stale" // reuse last successful grants (never for elevation-only sources)
+  | "use-stale-bounded"; // reuse stale grants only if younger than staleMaxAgeMs
+
 export interface PermissionSource {
   name: string;
   ttlMs?: number; // per-source cache (default: access cacheTtlMs)
+  // What to do when getGrants() fails after a prior successful fetch.
+  // Default "deny": external grants are omitted; local DB roles still apply.
+  // Sources that can elevate beyond local roles must use "deny" or
+  // "use-stale-bounded" with a short staleMaxAgeMs — never unbounded stale reuse.
+  staleOnFailure?: StaleOnFailurePolicy;
+  staleMaxAgeMs?: number; // required when staleOnFailure === "use-stale-bounded"
   getGrants(args: {user: User}): Promise<PermissionSourceGrants | null>;
 }
 ```
@@ -807,9 +853,19 @@ const healthieSource: PermissionSource = {
 ```
 
 Resolution order inside `getPermissions()` / `can()`:
-`union(user.roles, source roles, source permissions)` minus `source denies`. Source failures
-fail closed for their own grants (logged, cached-stale-if-available) and never take down checks
-that local roles already satisfy.
+`union(user.roles, source roles, source permissions)` minus `source denies`.
+
+**Source refresh failures (fail closed by default).** When `getGrants()` throws or times out,
+behavior is per-source `staleOnFailure` (default `"deny"`):
+
+| Policy | Behavior |
+|---|---|
+| `"deny"` (default) | Omit this source's grants for the request. Local `user.roles` and other sources still apply. Revoked upstream access cannot linger because a dependency is down. |
+| `"use-stale-bounded"` | Reuse the last successful grants only if younger than `staleMaxAgeMs` (hard cap). Suitable for read-only hints, not elevation. |
+| `"use-stale"` | Reuse last successful grants until TTL expiry. **Not permitted** for sources that can grant roles/permissions beyond what local roles already provide — elevation paths must fail closed. |
+
+`PermissionSource.deny` already fails closed; grant caching matches that posture for elevation.
+Logged at `warn` with source name and policy applied.
 
 ### 4.11 Admin UI (first-class)
 
@@ -846,7 +902,10 @@ model permissions).
 2. **Legacy shims.** `Permissions.IsAdmin` becomes `IsPermitted(access, {admin: ["access"]})`
    semantics when an access registry is configured: seed maps `user.admin === true` →
    `superadmin` role (a one-time backfill script Terreno provides:
-   `bunx terreno rbac:backfill-admins`). `IsOwner`/`OwnerQueryFilter` → `OwnerScope`.
+   `bunx terreno rbac:backfill-admins --role-map ./rbac-role-map.json`). The map file is
+   required when legacy role names do not match Terreno defaults (e.g. Flourish StaffRole →
+   RBAC role name); the script dry-runs by default and supports per-tenant overrides.
+   `IsOwner`/`OwnerQueryFilter` → `OwnerScope`.
 3. **Router-by-router adoption** in consuming apps via `IsPermitted` in existing arrays, then
    the full `access:` option. The `also:` escape hatch and function-based scopes mean any
    existing bespoke check can be ported verbatim as a function first, refined later.
@@ -879,22 +938,23 @@ constraint** rather than forcing single-role:
 New scoped roles like "Human Resources" (`staff:create`, `user:create`, no `patient:*`) then
 fall out of the admin UI with zero code — the exact win the RBAC move is for.
 
-## 7. Open questions
+## 7. Resolved decisions (formerly open questions)
 
-1. **Name of the top role**: `superadmin` proposed (generic; apps can rename display name).
-   Alternatives: `steward`, `operator`.
-2. **Should scopes ever grant?** Current design: restrictions only. Simpler to reason about;
-   "grant" cases are modeled as extra actions (`readClinical`) instead.
-3. **Per-permission scope bypass for superadmin** — default off in this design; opt-in per
-   scope. Confirm.
-4. **Role assignment audit trail** — separate `RbacAudit` collection vs. reuse of a future
-   generic audit log. Leaning: minimal built-in log now (who/what/when on role + assignment
-   writes), pluggable sink.
-5. **JWT `roles` claim** — hint only vs. authoritative-with-short-TTL. Design says hint only
-   (DB authoritative, cached); revisit if the cache is hot enough to matter.
-6. **Deny semantics** — only `PermissionSource.deny` supports denial. Do roles ever need
-   negative permissions? Current answer: no (keeps union semantics simple; Better Auth has no
-   deny either).
+1. **Top role name**: **`superadmin`** (generic machine name; apps customize `displayName`).
+2. **Should scopes ever grant?** **No — restrictions only.** Grant cases use extra actions
+   (`readClinical`) instead.
+3. **Per-permission scope bypass for superadmin**: **Default off**; opt in per scope via
+   `adminBypass` (as `OwnerScope` does).
+4. **Role assignment audit trail**: **Separate `RbacAudit` collection** from consuming-app
+   audit logs (e.g. Flourish `AuditLogEvent`), but **every** successful role/assignment write
+   must emit an audit record — built-in and/or pluggable sink; optional/minimal logging is not
+   sufficient for HIPAA consumers. Fields: actor, action, target role/user, permission delta,
+   timestamp. Denied escalation attempts are logged too (see 4.4).
+5. **JWT `roles` claim**: **Hint only** (DB authoritative, cached). Multi-replica cache
+   invalidation is part of the IP so `/auth/me` and websockets do not lag role edits across
+   Cloud Run instances (see `invalidateCache` in 4.2).
+6. **Deny semantics**: **Only `PermissionSource.deny`** — roles do not carry negative
+   permissions (union semantics stay simple; matches Better Auth).
 
 ## 8. Phasing sketch (full task breakdown in the IP)
 
