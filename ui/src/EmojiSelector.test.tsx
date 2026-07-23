@@ -235,6 +235,37 @@ describe("EmojiSelector", () => {
     expect(toJSON()).toBeTruthy();
   });
 
+  it("computes colSize from the measured layout width on the very first onLayout call", async () => {
+    // Regression test: colSize used to be derived from the `width` state
+    // variable, which is still 0 on the first onLayout (state updates are
+    // async), forcing every initial render to fall back to the 32px floor
+    // regardless of the real container width.
+    const {root, UNSAFE_getAllByType} = renderWithTheme(
+      <EmojiSelector
+        category={Categories.people}
+        columns={6}
+        onEmojiSelected={mock(() => {})}
+        placeholder="Search"
+        showHistory={false}
+        showSearchBar
+        showSectionTitles
+        showTabs
+        theme="#007AFF"
+      />
+    );
+    await act(async () => {
+      (root as LayoutRoot).props.onLayout?.({
+        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
+      });
+    });
+
+    const {FlatList} = require("react-native");
+    const [list] = UNSAFE_getAllByType(FlatList);
+    const first = (list.props.data ?? [])[0];
+    const cell = list.props.renderItem({index: 0, item: first});
+    expect((cell.props as {colSize?: number}).colSize).toBe(Math.floor(360 / 6));
+  });
+
   it("switches categories when a tab is pressed after layout", async () => {
     const {root, UNSAFE_getAllByType} = renderWithTheme(
       <EmojiSelector
