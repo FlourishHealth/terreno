@@ -3,8 +3,13 @@ import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
 import {isMobileDevice} from "./MediaQuery";
+import * as ThemeModule from "./Theme";
 import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
 import * as Utilities from "./Utilities";
+
+interface PressableTestProps {
+  onPress: () => Promise<void>;
+}
 
 describe("Button", () => {
   it("renders correctly with default props", () => {
@@ -363,5 +368,34 @@ describe("Button", () => {
     expect(getByText("With Tooltip")).toBeTruthy();
     nativeSpy.mockRestore();
     (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+  });
+
+  it("resets loading and rethrows when onClick rejects", async () => {
+    const error = new Error("boom");
+    const handleClick = mock(() => Promise.reject(error));
+    const {getByTestId} = renderWithTheme(
+      <Button onClick={handleClick} pressAnimation="none" testID="throwing-button" text="Throw" />
+    );
+
+    const button = getByTestId("throwing-button");
+    await act(async () => {
+      await expect((button.props as PressableTestProps).onPress()).rejects.toThrow("boom");
+    });
+
+    expect(handleClick).toHaveBeenCalled();
+  });
+
+  it("renders null when no theme is available from context", () => {
+    const useThemeSpy = spyOn(ThemeModule, "useTheme").mockReturnValue({
+      resetTheme: () => {},
+      setPrimitives: () => {},
+      setTheme: () => {},
+      theme: undefined,
+    } as unknown as ReturnType<typeof ThemeModule.useTheme>);
+
+    const {toJSON} = render(<Button onClick={() => {}} text="No theme" />);
+    expect(toJSON()).toBeNull();
+
+    useThemeSpy.mockRestore();
   });
 });
