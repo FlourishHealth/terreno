@@ -136,7 +136,7 @@ export interface AccessOptions<S extends Statements> {
   sources?: PermissionSource[];
   // Actions treated as "read-ish" when expanding the auditor read-only sentinel
   // (READ_ONLY_ROLE_PERMISSIONS — see 4.3). Defaults to READ_ACTIONS; apps add
-  // verbs like "viewClinical".
+  // verbs like "readClinical".
   readActions?: readonly string[];
   // Role resolution cache TTL in ms (default 30_000). Roles are DB-backed;
   // checks must not hit Mongo on every request. Keep this short for compliance:
@@ -145,6 +145,9 @@ export interface AccessOptions<S extends Statements> {
   cacheTtlMs?: number;
   // Escape hatch: full custom resolution of a user's permission set
   resolvePermissions?: (args: {user: User}) => Promise<PermissionSet | null>;
+  // Optional human-readable labels for the admin permission matrix
+  // (resource → action → description). Returned by GET /rbac/statements.
+  statementDescriptions?: Record<string, Record<string, string>>;
 }
 
 export const createAccess = <S extends Statements>(options: AccessOptions<S>): TerrenoAccess<S>;
@@ -284,12 +287,20 @@ export type RolePermissionSpec =
 // Terreno's default list; apps can extend via createAccess({readActions}).
 export const READ_ACTIONS = ["read", "list", "access", "view"] as const;
 
-// Seed-time sentinel for auditor-style read-only expansion. Always reference
-// this constant in defaultRoles — never hand-roll `{readOnly: true}` and never
-// declare a PermissionSet resource literally named "readOnly" (values are
-// `readonly string[]`, so a real resource would look like
-// `{readOnly: ["someAction"]}` and is not confused with this sentinel).
+// Seed-time sentinel for auditor-style read-only expansion. Reference this
+// constant in defaultRoles (`permissions: READ_ONLY_ROLE_PERMISSIONS`).
 export const READ_ONLY_ROLE_PERMISSIONS = {readOnly: true} as const;
+
+// Structural check — accepts both the exported constant and any hand-rolled
+// `{readOnly: true}` object (TypeScript's structural typing allows the latter).
+const isReadOnlySentinel = (
+  spec: RolePermissionSpec,
+): spec is typeof READ_ONLY_ROLE_PERMISSIONS =>
+  typeof spec === "object" &&
+  spec !== null &&
+  !Array.isArray(spec) &&
+  Object.keys(spec).length === 1 &&
+  (spec as {readOnly?: unknown}).readOnly === true;
 
 // Applied at seed time inside createAccess, using the merged statements as the source.
 export const expandRolePermissions = (
@@ -300,7 +311,7 @@ export const expandRolePermissions = (
   if (spec === "*") {
     return mapValues(statements, (actions) => [...actions]);
   }
-  if (spec === READ_ONLY_ROLE_PERMISSIONS) {
+  if (isReadOnlySentinel(spec)) {
     return filterMapValues(statements, (actions) =>
       actions.filter((a) => readActions.includes(a)),
     );
@@ -483,11 +494,12 @@ return rows a per-doc read would reject, or vice versa. The design forbids that 
      matches: (args: ScopeArgs<TDoc>) => Promise<Record<string, unknown> | null> | Record<string, unknown> | null;
      // Optional elevation that skips the constraint for both check and filter.
      adminBypass?: (args: ScopeArgs<TDoc>) => boolean | Promise<boolean>;
-     // How to read the field a fragment references off a loaded doc (defaults to
-     // dot-path lookup). The generated `check` compares each fragment value to
-     // the `fieldOf` result using String(...) equality, mirroring Mongo's
-     // ObjectId coercion; return a normalized (e.g. string-coerced, populated-ref
-     // unwrapped) value here when a field can hold ObjectIds or populated docs.
+     // How to read a field path off a loaded doc before comparison (defaults to
+     // dot-path lookup). Used when a fragment references populated refs — unwrap
+     // and normalize (e.g. string-coerce ObjectIds) here. The generated `check`
+     // evaluates the full `matches` fragment against the in-memory doc using the
+     // same semantics as Mongo (equality, `$in`, `$eq`, …) via a lightweight
+     // matcher — not only flat String equality on a single leaf.
      fieldOf?: (doc: TDoc, path: string) => unknown;
    }
 
@@ -792,7 +804,7 @@ new TerrenoApp({userModel: User, accessControl: access})
 
 | Method | Path | Permission | Purpose |
 |---|---|---|---|
-| GET | `/rbac/statements` | `rbac:read` | Full vocabulary (+ per-action descriptions) for the admin UI |
+| GET | `/rbac/statements` | `rbac:read` | Full vocabulary (+ optional `statementDescriptions`) for the admin UI |
 | GET | `/rbac/roles` | `rbac:read` | List roles with permissions + user counts |
 | POST | `/rbac/roles` | `rbac:manageRoles` | Create role |
 | PATCH | `/rbac/roles/:name` | `rbac:manageRoles` | Edit role (validates vocabulary, escalation, locks) |
