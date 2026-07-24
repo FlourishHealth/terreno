@@ -68,13 +68,16 @@ module.exports = function generateDocument (baseDocument, router, basePath) {
 
         operation.parameters = params.filter((p) => typeof p.name === 'string' && p.name)
         try {
-          path = pathToRegexp.compile(path.replace(/\*|\(\*\)/g, '(.*)'))(keys, { encode: (value) => value })
+          path = pathToRegexp.compile(path.replace(/\*|\(\*\)/g, '(.*)'), { encode: (value) => value })(keys)
         } catch (_e) {
           // Express 5 stores path params in matchers instead of layer.keys, so keys
           // may be incomplete. Fall back to simple regex replacement of :param → {param}.
           path = path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}')
         }
       }
+
+      // Normalize any percent-encoded path parameters to OpenAPI syntax.
+      path = path.replace(/%7B/gi, '{').replace(/%7D/gi, '}')
 
       doc.paths[path] = doc.paths[path] || {}
       doc.paths[path][layer.method] = operation

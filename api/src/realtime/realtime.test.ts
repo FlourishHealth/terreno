@@ -935,7 +935,10 @@ describe("installRealtimeSocketHandlers", () => {
       // queryId emitted back must encode the injected ownerId
       const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
       expect(subscribed).toBeDefined();
-      expect((subscribed?.payload as any).queryId).toContain("user1");
+      if (!subscribed) {
+        throw new Error("Expected a query subscription event");
+      }
+      expect((subscribed.payload as any).queryId).toContain("user1");
     });
 
     it("does NOT inject ownerId for admins (admins see all)", async () => {
@@ -948,7 +951,10 @@ describe("installRealtimeSocketHandlers", () => {
       });
       const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
       expect(subscribed).toBeDefined();
-      expect((subscribed?.payload as any).queryId).not.toContain("admin1");
+      if (!subscribed) {
+        throw new Error("Expected a query subscription event");
+      }
+      expect((subscribed.payload as any).queryId).not.toContain("admin1");
     });
 
     it("ignores subscriptions when user has no id (anonymous) for owner strategy", async () => {
@@ -1136,7 +1142,10 @@ describe("installRealtimeSocketHandlers", () => {
       await socket.trigger("subscribe:query", {collection: "broadcasts", query: {priority: 1}});
       const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
       expect(subscribed).toBeDefined();
-      const queryId = (subscribed?.payload as {queryId: string}).queryId;
+      if (!subscribed) {
+        throw new Error("Expected a query subscription event");
+      }
+      const queryId = (subscribed.payload as {queryId: string}).queryId;
       expect(socket.rooms.has(`query:${queryId}`)).toBe(true);
       expect(getQuerySubscriptionsForCollection("broadcasts").length).toBe(1);
       await socket.trigger("unsubscribe:query", {queryId});
