@@ -13,7 +13,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["bun"],
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@api/*": ["src/api/*"],
