@@ -2,9 +2,11 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type {ErrorObject} from "ajv";
+import type {NextFunction, Request, Response} from "express";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
+import type {OpenApiSchemaProperty} from "./openApiBuilder";
 import {
   buildQuerySchemaFromFields,
   configureOpenApiValidator,
@@ -710,59 +712,61 @@ describe("openApiValidator", () => {
   });
 
   describe("schema sanitization and validator caching", () => {
-    const invokeNext = (
-      middleware: (req: any, res: any, next: () => void) => void,
-      req: Record<string, unknown>
+    const runMiddleware = (
+      middleware: (req: Request, res: Response, next: NextFunction) => void,
+      req: Partial<Request>
     ): boolean => {
       let nextCalled = false;
-      middleware(req as any, {} as any, () => {
+      middleware(req as unknown as Request, {} as unknown as Response, () => {
         nextCalled = true;
       });
       return nextCalled;
     };
+
+    // A schema whose `minLength` is a string is structurally invalid, so ajv.compile
+    // throws and getValidator returns null. Built via `unknown` to keep the invalid
+    // keyword out of the typed surface (and out of the explicit-any baseline).
+    const uncompilableSchema = {
+      broken: {minLength: "not-a-number", type: "string"},
+    } as unknown as Record<string, OpenApiSchemaProperty>;
 
     it("maps an unrecognized mongoose type to string so the schema still compiles", () => {
       configureOpenApiValidator();
 
       // "buffer" is neither a valid JSON Schema type nor present in MONGOOSE_TYPE_MAP,
       // so sanitizeSchemaForAjv falls through to the `type = "string"` branch.
-      const middleware = validateRequestBody({raw: {type: "buffer" as any}});
+      const middleware = validateRequestBody({raw: {type: "buffer"}});
 
-      expect(invokeNext(middleware, {body: {raw: "some-string"}, method: "POST", path: "/t"})).toBe(
-        true
-      );
+      expect(
+        runMiddleware(middleware, {body: {raw: "some-string"}, method: "POST", path: "/t"})
+      ).toBe(true);
     });
 
     it("reuses the cached validator on subsequent requests with the same schema", () => {
       configureOpenApiValidator();
 
       const middleware = validateRequestBody({name: {type: "string"}});
-      const req = {body: {name: "ok"}, method: "POST", path: "/t"};
+      const req: Partial<Request> = {body: {name: "ok"}, method: "POST", path: "/t"};
 
       // First request compiles and caches the validator; the second must hit the cache.
-      expect(invokeNext(middleware, req)).toBe(true);
-      expect(invokeNext(middleware, req)).toBe(true);
+      expect(runMiddleware(middleware, req)).toBe(true);
+      expect(runMiddleware(middleware, req)).toBe(true);
     });
 
     it("skips query validation when the schema cannot be compiled", () => {
       configureOpenApiValidator();
 
-      // An unresolvable $ref makes ajv.compile throw, so getValidator returns null
-      // and the middleware falls through to next() without validating.
-      const middleware = validateQueryParams({
-        broken: {$ref: "#/components/schemas/DoesNotExist"} as any,
-      });
+      const middleware = validateQueryParams(uncompilableSchema);
 
-      expect(invokeNext(middleware, {method: "GET", path: "/t", query: {broken: "x"}})).toBe(true);
+      expect(runMiddleware(middleware, {method: "GET", path: "/t", query: {broken: "x"}})).toBe(
+        true
+      );
     });
 
     it("skips response validation when the schema cannot be compiled", () => {
       configureOpenApiValidator({validateResponses: true});
 
-      const result = validateResponseData(
-        {broken: "x"},
-        {broken: {$ref: "#/components/schemas/DoesNotExist"} as any}
-      );
+      const result = validateResponseData({broken: "x"}, uncompilableSchema);
 
       expect(result.valid).toBe(true);
     });
