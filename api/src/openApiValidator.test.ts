@@ -723,11 +723,11 @@ describe("openApiValidator", () => {
       return nextCalled;
     };
 
-    // A schema whose `minLength` is a string is structurally invalid, so ajv.compile
-    // throws and getValidator returns null. Built via `unknown` to keep the invalid
-    // keyword out of the typed surface (and out of the explicit-any baseline).
+    // An unresolvable $ref makes ajv.compile throw, so getValidator catches the error
+    // and returns null. Built via `unknown` to keep the non-standard keyword out of the
+    // typed surface (and out of the explicit-any baseline).
     const uncompilableSchema = {
-      broken: {minLength: "not-a-number", type: "string"},
+      broken: {$ref: "#/components/schemas/DoesNotExist"},
     } as unknown as Record<string, OpenApiSchemaProperty>;
 
     it("maps an unrecognized mongoose type to string so the schema still compiles", () => {
