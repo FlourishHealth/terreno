@@ -681,6 +681,7 @@ const getDemoTools = (): Record<string, Tool> => {
 
 export const addAiRoutes = (
   router: express.Router,
+  // noExplicitAny: ModelRouterOptions generic varies per downstream caller
   // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
   options?: Partial<ModelRouterOptions<any>>
 ): void => {
@@ -722,6 +723,7 @@ export const addAiRoutes = (
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
     createServerModelFn: createServerModel,
@@ -731,6 +733,7 @@ export const addAiRoutes = (
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     tools: getDemoTools() as any,
   });

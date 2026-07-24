@@ -228,6 +228,7 @@ export class TerrenoApp {
    * ```
    */
   configure(
+    // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
     // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
     model: import("mongoose").Model<any>,
     options?: Omit<ConfigurationAppOptions, "model">

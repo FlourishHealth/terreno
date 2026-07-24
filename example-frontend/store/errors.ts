@@ -24,6 +24,7 @@ const ignoredErrors = [
  * Log a warning and send error from RTKQuery to Sentry.
  */
 
+// noExplicitAny: Generic
 // biome-ignore lint/suspicious/noExplicitAny: Generic
 export const rtkQueryErrorMiddleware: Middleware = () => (next) => (action: any) => {
   // RTK Query uses `createAsyncThunk` from redux-toolkit under the hood,

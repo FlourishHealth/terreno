@@ -19,6 +19,7 @@ import {
   RealtimeApp,
   syncConsents,
   TerrenoApp,
+  type UserModel as TerrenoAuthUserModel,
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
@@ -138,8 +139,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
 
-  // biome-ignore lint/suspicious/noExplicitAny: Need to figure out winston transport types.
-  const transports: any[] = [];
+  const transports: Array<InstanceType<typeof LoggingWinston>> = [];
 
   if (isDeployed) {
     transports.push(
@@ -171,16 +171,19 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         transports,
       },
       skipListen,
-      // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
-      userModel: User as any,
+      userModel: User as unknown as TerrenoAuthUserModel,
     }).configure(AppConfiguration);
 
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)
     // that rely on req.user being populated from the better-auth session.
     if (betterAuthConfig) {
-      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-      terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+      terraApp.register(
+        new BetterAuthApp({
+          config: betterAuthConfig,
+          userModel: User as unknown as TerrenoAuthUserModel,
+        })
+      );
     }
 
     terraApp
@@ -343,8 +346,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
               hiddenFields: ["hash", "salt"],
               listDisplayLinks: ["email"],
               listFields: ["email", "name", "admin", "created"],
-              // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-              model: User as any,
+              model: User as unknown as import("mongoose").Model<unknown>,
               pageSize: 50,
               readonlyFields: ["email"],
               recordTitleField: "name",

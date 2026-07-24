@@ -126,6 +126,7 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
+    // noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
     // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
     expiration: {description: "Expiration date of the food", type: DateOnly as any},
     hidden: {

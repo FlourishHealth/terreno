@@ -1,24 +1,25 @@
-import type {ModelRouterOptions} from "@terreno/api";
+import type {JSONValue, ModelRouterOptions} from "@terreno/api";
 import {modelRouter, Permissions} from "@terreno/api";
+import type express from "express";
+import type {Document, Model} from "mongoose";
 import {User} from "../models/user";
+import type {UserDocument} from "../types/models/userTypes";
 
-// biome-ignore lint/suspicious/noExplicitAny: Generic
-const serializeUser = (doc: any): Record<string, unknown> => {
+type SerializableUser = UserDocument | (Document & UserDocument);
+
+const serializeUser = (doc: SerializableUser): Record<string, unknown> => {
   const obj = doc.toObject ? doc.toObject() : doc;
-  const {hash, salt, ...rest} = obj;
-  return rest as Record<string, unknown>;
+  const {hash, salt, ...rest} = obj as Record<string, unknown> & {hash?: unknown; salt?: unknown};
+  return rest;
 };
 
 export const addUserRoutes = (
-  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
-  router: any,
-  // biome-ignore lint/suspicious/noExplicitAny: User model typing remains flexible.
-  options?: Partial<ModelRouterOptions<any>>
+  router: express.Router,
+  options?: Partial<ModelRouterOptions<UserDocument>>
 ): void => {
   router.use(
     "/users",
-    // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-    modelRouter(User as any, {
+    modelRouter(User as unknown as Model<UserDocument>, {
       ...options,
       permissions: {
         create: [Permissions.IsAdmin],
@@ -28,12 +29,11 @@ export const addUserRoutes = (
         update: [Permissions.IsAdmin],
       },
       queryFields: ["email", "name"],
-      // biome-ignore lint/suspicious/noExplicitAny: Generic
-      responseHandler: async (value, _method, _req, _options): Promise<any> => {
+      responseHandler: async (value): Promise<JSONValue> => {
         if (Array.isArray(value)) {
-          return value.map(serializeUser);
+          return value.map(serializeUser) as JSONValue;
         }
-        return serializeUser(value);
+        return serializeUser(value) as JSONValue;
       },
       sort: "-created",
     })

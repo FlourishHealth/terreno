@@ -54,6 +54,7 @@ export interface AdminFieldOverride {
 
 export interface AdminModelConfig {
   /** The Mongoose model to expose in the admin panel */
+  // noExplicitAny: Model<T> is invariant; the admin panel must accept any document shape.
   // biome-ignore lint/suspicious/noExplicitAny: Model<T> is invariant; the admin panel must accept any document shape.
   model: Model<any>;
   /** Route path for this model's endpoints, relative to basePath (e.g., "/users") */
@@ -983,6 +984,7 @@ export class AdminApp {
           }
         : {};
 
+      // noExplicitAny: matches the Model<any> from AdminModelConfig above.
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApiMw ? {openApi: openApiMw} : {}),

@@ -7,6 +7,7 @@ Tracks active and completed implementation plans (IP) for Terreno. File paths ar
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
+| [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
 
 ## Completed
 

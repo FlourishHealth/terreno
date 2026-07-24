@@ -1,3 +1,4 @@
+// noExplicitAny: tests
 // biome-ignore-all lint/suspicious/noExplicitAny: tests
 import {beforeEach, describe, expect, it} from "bun:test";
 import {User} from "../models/user";

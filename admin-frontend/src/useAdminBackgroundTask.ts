@@ -1,5 +1,6 @@
 import {useMemo} from "react";
 
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
 export interface AdminBackgroundTaskBody {
@@ -15,7 +16,8 @@ export interface AdminBackgroundTaskBody {
 export const useAdminBackgroundTaskMutation = (
   api: AdminApi,
   adminApiRoot: string
-): ReturnType<// biome-ignore lint/suspicious/noExplicitAny: RTK mutation type from dynamic injectEndpoints
+): ReturnType<// noExplicitAny: RTK mutation type from dynamic injectEndpoints
+// biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
 any> => {
   const enhancedApi = useMemo(() => {
     const root = adminApiRoot.replace(/\/$/, "");
@@ -34,7 +36,6 @@ any> => {
     });
   }, [api, adminApiRoot]);
 
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   return enhanced.useAdminPostBackgroundTaskMutation();
 };

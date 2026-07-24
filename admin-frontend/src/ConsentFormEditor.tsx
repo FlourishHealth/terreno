@@ -15,6 +15,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
@@ -183,8 +184,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     "ConsentForm"
   );
 
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = getEnhancedApi(api) as any;
+  const enhanced = asDynamicHookApi(getEnhancedApi(api));
   const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();
   const [generateContent, {isLoading: isGenerating}] = enhanced.useGenerateConsentContentMutation();
   const [translateContent, {isLoading: isTranslating}] =

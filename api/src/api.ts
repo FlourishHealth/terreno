@@ -58,6 +58,7 @@ export interface JSONObject {
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
 export const addPopulateToQuery = (
+  // noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
   // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
   builtQuery: mongoose.Query<any[], any, Record<string, never>, any>,
   populatePaths?: PopulatePath[]
@@ -710,6 +711,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
       if (options.populatePaths) {
         try {
+          // noExplicitAny: mongoose Query type varies based on populatePaths
           // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
           let populateQuery: any = model.findById(data._id);
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
@@ -1079,6 +1081,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       }
 
       if (options.populatePaths) {
+        // noExplicitAny: mongoose Query type varies based on populatePaths
         // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
         let populateQuery: any = model.findById(doc._id);
         populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
@@ -1439,6 +1442,7 @@ export interface AsyncHandlerOptions {
  * }));
  * ```
  */
+// noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
 // biome-ignore lint/suspicious/noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
 type AsyncHandlerFn = (req: any, res: Response, next: NextFunction) => Promise<unknown> | unknown;
 

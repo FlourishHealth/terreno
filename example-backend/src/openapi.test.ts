@@ -1,3 +1,4 @@
+/** Verifies generated `/openapi.json` includes registered example-backend routes. */
 import {describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";

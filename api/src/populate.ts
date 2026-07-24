@@ -140,7 +140,8 @@ export const fixMixedFields = (schema: Schema | null, properties: Record<string,
 };
 
 export const getOpenApiSpecForModel = (
-  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: Mongoose Model param uses deep internal APIs (schema.path().options.ref, schema.virtuals, schema.childSchemas, db.model) that are not exposed in public type definitions
+// noExplicitAny: Mongoose Model param uses deep internal APIs (schema.path().options.ref, schema.virtuals, schema.childSchemas, db.model) that are not exposed in public type definitions
+  // biome-ignore lint/suspicious/noExplicitAny: Mongoose Model param uses deep internal APIs (schema.path().options.ref, schema.virtuals, schema.childSchemas, db.model) that are not exposed in public type definitions
   model: any,
   {
     populatePaths,
@@ -261,7 +262,8 @@ export const unpopulate = <T>(doc: Document<T>, path: string): Document<T> => {
   const pathParts = path.split(".");
 
   // Recursive because we need to support nested paths.
-  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: recursive document traversal uses bracket-notation indexing on arbitrary nested document shapes that Mongoose Document types do not expose
+// noExplicitAny: recursive document traversal uses bracket-notation indexing on arbitrary nested document shapes that Mongoose Document types do not expose
+  // biome-ignore lint/suspicious/noExplicitAny: recursive document traversal uses bracket-notation indexing on arbitrary nested document shapes that Mongoose Document types do not expose
   const recursiveUnpopulate = (current: any, parts: string[]): any => {
     const part = parts[0];
 

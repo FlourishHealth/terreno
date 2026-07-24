@@ -47,6 +47,7 @@ const initialTestApiState: TestApiState = {
 
 const testApiReducer = (state: TestApiState = initialTestApiState): TestApiState => state;
 
+// noExplicitAny: Test double covers only fields used by offline middleware.
 // biome-ignore lint/suspicious/noExplicitAny: Test double covers only fields used by offline middleware.
 const createTestApi = (): Api<any, any, any, any> => {
   return {
@@ -66,6 +67,7 @@ const createTestApi = (): Api<any, any, any, any> => {
       invalidateTags: () => ({type: "testApi/invalidateTags"}),
       updateQueryData: () => ({type: "testApi/updateQueryData"}),
     },
+    // noExplicitAny: Test double covers only fields used by offline middleware.
     // biome-ignore lint/suspicious/noExplicitAny: Test double covers only fields used by offline middleware.
   } as unknown as Api<any, any, any, any>;
 };

@@ -1,4 +1,5 @@
 import {useMemo} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, AdminConfigResponse, EndpointBuilder} from "./types";
 
 const ENDPOINT_NAME = "adminConfig";
@@ -47,9 +48,11 @@ export const useAdminConfig = (api: AdminApi, apiBase: string) => {
     });
   }, [api, apiBase]);
 
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
+  const useConfigQuery = asDynamicHookApi(enhancedApi).useAdminConfigQuery as () => {
+    data?: AdminConfigResponse;
+    error: unknown;
+    isLoading: boolean;
+  };
 
   const {data, isLoading, error} = useConfigQuery();
 
