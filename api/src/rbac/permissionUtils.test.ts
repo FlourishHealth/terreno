@@ -4,8 +4,8 @@ import mongoose from "mongoose";
 import type {User} from "../auth";
 import {setupDb} from "../tests";
 import {createAccess} from "./access";
-import {isPermissionSubset, unionPermissionSets, validatePermissionSet} from "./permissionUtils";
 import {createRequireAccess} from "./middleware";
+import {isPermissionSubset, unionPermissionSets, validatePermissionSet} from "./permissionUtils";
 import {terrenoStatements} from "./statements";
 
 const appStatements = {
@@ -13,7 +13,9 @@ const appStatements = {
   todo: ["create", "read", "update", "delete", "list"],
 } as const;
 
-const createUser = (overrides: Partial<User & {roles: string[]}> = {}): User & {
+const createUser = (
+  overrides: Partial<User & {roles: string[]}> = {}
+): User & {
   roles: string[];
 } => {
   const id = new mongoose.Types.ObjectId();
@@ -36,7 +38,7 @@ describe("rbac permission utils and middleware", () => {
   it("validates permissions against the statement vocabulary", () => {
     expect(() => validatePermissionSet({todo: ["read"]}, appStatements)).not.toThrow();
     expect(() => validatePermissionSet({unknown: ["read"]}, appStatements)).toThrow(
-      "Unknown resource",
+      "Unknown resource"
     );
   });
 
@@ -55,7 +57,7 @@ describe("rbac permission utils and middleware", () => {
     const middleware = requireAccess({todo: ["read"]});
 
     await expect(
-      middleware({user: undefined} as never, {} as never, () => undefined),
+      middleware({user: undefined} as never, {} as never, () => undefined)
     ).rejects.toMatchObject({status: 403});
   });
 
@@ -66,8 +68,8 @@ describe("rbac permission utils and middleware", () => {
       connection: mongoose.connection,
       defaultRoles: [
         {
-          name: "reader",
           displayName: "Reader",
+          name: "reader",
           permissions: {todo: ["read"]},
         },
       ],

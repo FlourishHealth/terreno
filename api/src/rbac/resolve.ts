@@ -3,7 +3,7 @@ import {createAccessControl} from "better-auth/plugins/access";
 import type {User} from "../auth";
 import {logger} from "../logger";
 import {unionPermissionSets} from "./permissionUtils";
-import {createRbacRoleModel, type RbacRoleModel} from "./roleModel";
+import type {RbacRoleModel} from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
 import type {PermissionSource, PermissionSourceGrants} from "./types";
 

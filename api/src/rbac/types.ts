@@ -6,11 +6,9 @@ import type {Connection} from "mongoose";
 import type {User} from "../auth";
 import type {PermissionMethod} from "../permissions";
 import type {RbacRoleDocument, RoleDefinition} from "./roleModel";
-import type {PermissionSet} from "./statements";
+import type {PermissionSet, Statements} from "./statements";
 
-export type {Statements} from "./statements";
-
-import type {Statements} from "./statements";
+export type {Statements};
 
 export type PermissionRequest<S extends Statements> = {
   [K in keyof S]?: S[K][number][];
