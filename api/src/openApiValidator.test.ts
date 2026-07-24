@@ -708,4 +708,63 @@ describe("openApiValidator", () => {
       expect(getOpenApiValidatorConfig().removeAdditional).toBe(false);
     });
   });
+
+  describe("schema sanitization and validator caching", () => {
+    const invokeNext = (
+      middleware: (req: any, res: any, next: () => void) => void,
+      req: Record<string, unknown>
+    ): boolean => {
+      let nextCalled = false;
+      middleware(req as any, {} as any, () => {
+        nextCalled = true;
+      });
+      return nextCalled;
+    };
+
+    it("maps an unrecognized mongoose type to string so the schema still compiles", () => {
+      configureOpenApiValidator();
+
+      // "buffer" is neither a valid JSON Schema type nor present in MONGOOSE_TYPE_MAP,
+      // so sanitizeSchemaForAjv falls through to the `type = "string"` branch.
+      const middleware = validateRequestBody({raw: {type: "buffer" as any}});
+
+      expect(invokeNext(middleware, {body: {raw: "some-string"}, method: "POST", path: "/t"})).toBe(
+        true
+      );
+    });
+
+    it("reuses the cached validator on subsequent requests with the same schema", () => {
+      configureOpenApiValidator();
+
+      const middleware = validateRequestBody({name: {type: "string"}});
+      const req = {body: {name: "ok"}, method: "POST", path: "/t"};
+
+      // First request compiles and caches the validator; the second must hit the cache.
+      expect(invokeNext(middleware, req)).toBe(true);
+      expect(invokeNext(middleware, req)).toBe(true);
+    });
+
+    it("skips query validation when the schema cannot be compiled", () => {
+      configureOpenApiValidator();
+
+      // An unresolvable $ref makes ajv.compile throw, so getValidator returns null
+      // and the middleware falls through to next() without validating.
+      const middleware = validateQueryParams({
+        broken: {$ref: "#/components/schemas/DoesNotExist"} as any,
+      });
+
+      expect(invokeNext(middleware, {method: "GET", path: "/t", query: {broken: "x"}})).toBe(true);
+    });
+
+    it("skips response validation when the schema cannot be compiled", () => {
+      configureOpenApiValidator({validateResponses: true});
+
+      const result = validateResponseData(
+        {broken: "x"},
+        {broken: {$ref: "#/components/schemas/DoesNotExist"} as any}
+      );
+
+      expect(result.valid).toBe(true);
+    });
+  });
 });
