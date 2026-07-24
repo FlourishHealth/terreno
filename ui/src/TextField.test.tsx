@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, userEvent} from "@testing-library/react-native";
 import {TextField} from "./TextField";
 import {renderWithTheme} from "./test-utils";
@@ -482,6 +482,62 @@ describe("TextField", () => {
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
+    });
+  });
+
+  describe("platform, unsupported types, and content sizing", () => {
+    const PlatformModule = require("react-native").Platform;
+
+    it("renders with the web outline style when running on web", () => {
+      const savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByDisplayValue} = renderWithTheme(
+          <TextField onChange={mockOnChange} value="web value" />
+        );
+        expect(getByDisplayValue("web value")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("warns for not-yet-supported field types", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        renderWithTheme(<TextField onChange={mockOnChange} type="numberRange" value="" />);
+        expect(warnSpy).toHaveBeenCalledWith("numberRange is not yet supported");
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it("ignores content size changes when grow is disabled", () => {
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField multiline onChange={mockOnChange} value="" />
+      );
+      const input = getByDisplayValue("");
+      // Without `grow`, onContentSizeChange returns early and must not throw.
+      expect(() =>
+        fireEvent(input, "contentSizeChange", {nativeEvent: {contentSize: {height: 999}}})
+      ).not.toThrow();
+    });
+
+    it("grows to the reported content height when grow is enabled", () => {
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField grow multiline onChange={mockOnChange} value="" />
+      );
+      const input = getByDisplayValue("");
+      expect(() =>
+        fireEvent(input, "contentSizeChange", {nativeEvent: {contentSize: {height: 120}}})
+      ).not.toThrow();
+    });
+
+    it("invokes the onFocus callback when the input is focused", () => {
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField onChange={mockOnChange} onFocus={mockOnFocus} value="" />
+      );
+      fireEvent(getByDisplayValue(""), "focus");
+      expect(mockOnFocus).toHaveBeenCalledTimes(1);
     });
   });
 });
