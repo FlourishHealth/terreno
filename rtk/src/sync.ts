@@ -40,7 +40,8 @@ interface UseSyncConnectionOptions {
   /** Socket.io client instance (from useSocketConnection) */
   socket: Socket | null;
   /** RTK Query API instance (the enhanced API with tag types) */
-  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: RTK Query Api generic requires four app-specific type parameters
+  // noExplicitAny: RTK Query Api generic requires four app-specific type parameters
+  // biome-ignore lint/suspicious/noExplicitAny: RTK Query Api generic requires four app-specific type parameters
   api: any;
   /** Tag types to listen for (e.g. ["todos", "users"]) — these should match the collection field in events */
   tagTypes: string[];

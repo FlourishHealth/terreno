@@ -2,9 +2,11 @@ import {type FC, useCallback, useEffect, useRef} from "react";
 import {Animated, Pressable, View} from "react-native";
 
 import type {BooleanFieldProps} from "./Common";
-import {FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
+import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 
 const TOUCHABLE_SIZE = 20;
 const OFFSET = 10;
@@ -19,8 +21,11 @@ export const BooleanField: FC<BooleanFieldProps> = ({
   disabled,
   disabledHelperText,
   helperText,
+  testID,
+  testIDs,
 }) => {
   const {theme} = useTheme();
+  const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
   const backgroundColor = useRef(
     new Animated.Value(value ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET)
   ).current;
@@ -83,6 +88,7 @@ export const BooleanField: FC<BooleanFieldProps> = ({
         alignItems: "flex-start",
         flexDirection: "column",
       }}
+      testID={fieldTestIDs.input}
     >
       <View
         style={{
@@ -91,11 +97,12 @@ export const BooleanField: FC<BooleanFieldProps> = ({
           justifyContent: variant === "title" ? "flex-start" : "center",
         }}
       >
-        {Boolean(title) && <FieldTitle text={title!} />}
+        {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title!} />}
         <Pressable
           aria-role="button"
           onPress={handleSwitch}
           style={{alignItems: "center", flexDirection: "row", justifyContent: "center"}}
+          testID={fieldTestIDs.input ? `${fieldTestIDs.input}.switch` : undefined}
         >
           <Animated.View
             style={{
@@ -136,8 +143,12 @@ export const BooleanField: FC<BooleanFieldProps> = ({
           {variant === "title" && <Text size="md">{value ? "Yes" : "No"}</Text>}
         </Pressable>
       </View>
-      {disabled && disabledHelperText && <FieldHelperText text={disabledHelperText} />}
-      {Boolean(helperText) && <FieldHelperText text={helperText as string} />}
+      {disabled && disabledHelperText && (
+        <FieldHelperText testID={fieldTestIDs.helper} text={disabledHelperText} />
+      )}
+      {Boolean(helperText) && (
+        <FieldHelperText testID={fieldTestIDs.helper} text={helperText as string} />
+      )}
     </View>
   );
 };

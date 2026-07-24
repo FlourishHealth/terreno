@@ -8,6 +8,7 @@ import {requestPermissions} from "./Permissions";
 
 declare global {
   interface Window {
+    // noExplicitAny: Google Maps JS SDK global type is loaded dynamically and not bundled as a typed dependency
     // biome-ignore lint/suspicious/noExplicitAny: Google Maps JS SDK global type is loaded dynamically and not bundled as a typed dependency
     google: any;
   }

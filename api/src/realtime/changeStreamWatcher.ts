@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: change stream and socket handlers use dynamic document shapes
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import {DateTime} from "luxon";
@@ -98,7 +97,7 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
 const canReadDocument = async (
   entry: RealtimeRegistryEntry,
   user?: User,
-  doc?: any
+  doc?: Record<string, unknown>
 ): Promise<boolean> => {
   return checkPermissions("read", entry.options.permissions.read, user, doc);
 };
@@ -107,7 +106,11 @@ const canReadDocument = async (
  * Determine which Socket.io rooms to emit to based on the room strategy.
  * Exported for testing.
  */
-export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: string): string[] => {
+export const resolveRooms = (
+  entry: RealtimeRegistryEntry,
+  doc: Record<string, unknown>,
+  method: string
+): string[] => {
   const {roomStrategy} = entry.config;
   // Use the collection tag (e.g. "todos") for model rooms, matching what the frontend subscribes to
   const collectionTag = getCollectionTag(entry.routePath);
@@ -120,7 +123,7 @@ export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: str
 
   switch (roomStrategy) {
     case "owner": {
-      const ownerId = doc?.ownerId?.toString?.() ?? doc?.ownerId;
+      const ownerId = doc?.ownerId != null ? String(doc.ownerId) : undefined;
       if (ownerId) {
         return [`user:${ownerId}`];
       }
@@ -169,10 +172,10 @@ export const ensureApiId = (data: unknown): unknown => {
  */
 export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
-  doc: any,
+  doc: Record<string, unknown>,
   method: "create" | "update" | "delete",
   user?: User
-): Promise<any> => {
+): Promise<unknown> => {
   if (entry.config.realtimeResponseHandler) {
     try {
       return ensureApiId(await entry.config.realtimeResponseHandler(doc, method));
@@ -203,7 +206,9 @@ export const serializeDoc = async (
     }
   }
 
-  return ensureApiId(typeof doc.toJSON === "function" ? doc.toJSON() : doc);
+  return ensureApiId(
+    typeof doc.toJSON === "function" ? (doc as {toJSON: () => unknown}).toJSON() : doc
+  );
 };
 
 export const emitToAuthorizedRoom = async (
@@ -211,7 +216,7 @@ export const emitToAuthorizedRoom = async (
   room: string,
   event: RealtimeEvent,
   entry: RealtimeRegistryEntry,
-  fullDocument: any,
+  fullDocument: Record<string, unknown> | undefined,
   logDebug: (msg: string) => void
 ): Promise<void> => {
   const sockets = getSocketsInRoom(io, room);
@@ -263,7 +268,7 @@ export const emitToDocumentAndQueryRooms = async (
   io: Server,
   collection: string,
   event: RealtimeEvent,
-  fullDocument: any,
+  fullDocument: Record<string, unknown> | undefined,
   logDebug: (msg: string) => void,
   entry?: RealtimeRegistryEntry
 ): Promise<void> => {
@@ -495,7 +500,7 @@ export const startChangeStreamWatcher = (
             rooms = [`model:${collectionTag}`];
           }
         } else {
-          rooms = resolveRooms(entry, fullDocument, method);
+          rooms = resolveRooms(entry, fullDocument ?? {}, method);
         }
 
         const collection = getCollectionTag(entry.routePath);

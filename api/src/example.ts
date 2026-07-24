@@ -4,7 +4,6 @@ import passportLocalMongoose from "passport-local-mongoose";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {setupServer} from "./expressServer";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
 import {
@@ -14,6 +13,7 @@ import {
   findOneOrNone,
   isDeletedPlugin,
 } from "./plugins";
+import {TerrenoApp} from "./terrenoApp";
 
 mongoose
   .connect("mongodb://localhost:27017/example")
@@ -45,8 +45,9 @@ const userSchema = new Schema<User>(
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
-// biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's plugin type is incompatible with mongoose Schema generics
-userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
+userSchema.plugin(passportLocalMongoose as unknown as Parameters<typeof userSchema.plugin>[0], {
+  usernameField: "email",
+});
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(isDeletedPlugin);
 userSchema.plugin(findOneOrNone);
@@ -116,12 +117,12 @@ const getBaseServer = () => {
     );
   };
 
-  return setupServer({
-    addRoutes,
+  return new TerrenoApp({
+    configureApp: addRoutes,
     loggingOptions: {
       level: "debug",
     },
     userModel: UserModel as unknown as UserMongooseModel,
-  });
+  }).build();
 };
 getBaseServer();

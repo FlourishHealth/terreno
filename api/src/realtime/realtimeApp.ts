@@ -1,3 +1,4 @@
+// noExplicitAny: Socket.io handler signatures require dynamic args
 // biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type http from "node:http";
 import * as Sentry from "@sentry/bun";
@@ -60,7 +61,6 @@ export interface RealtimeSocketLike extends SocketWithDecodedToken {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
-  // biome-ignore lint/suspicious/noExplicitAny: Socket.io event handlers accept arbitrary argument shapes per event name
   on: (event: string, handler: (...args: any[]) => any) => void;
 }
 
@@ -75,9 +75,9 @@ const canSubscribe = async (
 
 const getAuthorizedQuery = async (
   entry: RealtimeRegistryEntry,
-  query: Record<string, any>,
+  query: Record<string, unknown>,
   user?: User
-): Promise<Record<string, any> | null> => {
+): Promise<Record<string, unknown> | null> => {
   if (!(await canSubscribe(entry, "list", user))) {
     return null;
   }
@@ -86,7 +86,7 @@ const getAuthorizedQuery = async (
     return query;
   }
 
-  let filteredQuery: Record<string, any> | null;
+  let filteredQuery: Record<string, unknown> | null;
   try {
     filteredQuery = await entry.options.queryFilter(user, query);
   } catch (error) {

@@ -1200,6 +1200,7 @@ describe("ToastNotifications", () => {
   });
 
   describe("Toast with swipe and pan responder interaction", () => {
+    // noExplicitAny: capturing PanResponder internals for test
     // biome-ignore lint/suspicious/noExplicitAny: capturing PanResponder internals for test
     type PanConfig = any;
     let capturedPanConfigs: PanConfig[] = [];

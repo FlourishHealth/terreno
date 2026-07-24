@@ -1,6 +1,7 @@
 ---
 name: respond-to-review
 description: Review PR comments, infer PR from branch when needed, plan fixes, and implement — auto-submitting when no clarifications are needed
+disable-model-invocation: true
 ---
 # PR Review Response Workflow
 

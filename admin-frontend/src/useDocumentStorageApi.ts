@@ -1,4 +1,5 @@
 import {useMemo} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
 export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
@@ -85,9 +86,7 @@ export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
     });
   }, [api, basePath]);
 
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   return {
     useCreateFolderMutation: enhanced.useDocumentStorageCreateFolderMutation,
     useDeleteFolderMutation: enhanced.useDocumentStorageDeleteFolderMutation,

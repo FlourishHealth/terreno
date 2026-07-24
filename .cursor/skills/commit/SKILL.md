@@ -1,6 +1,7 @@
 ---
 name: commit
 description: Create a commit for the current staged/unstaged changes with a clear, accurate message
+disable-model-invocation: true
 ---
 # Commit Changes
 

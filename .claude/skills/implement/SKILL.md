@@ -96,6 +96,15 @@ If no meaningful automated test can be written for the change, document why befo
 - run broader validation when appropriate
 - preserve existing behavior unless the IP explicitly changes it
 
+## Documentation
+
+If the implementation changes user-facing APIs, components, routes, or setup steps, run the `update-docs` skill before final validation:
+
+```bash
+bun run website:generate   # when UI props/components changed
+bun run website:build      # verify docs site
+```
+
 ## Phased Implementations
 
 If the IP implies phased implementation:
@@ -124,6 +133,14 @@ Possible test types include:
 Run the most targeted available tests first and capture the initial failure before writing production code. After implementation, rerun the same focused tests to confirm the red-to-green transition.
 
 If full test execution is not practical, run the closest focused validation possible and document what was not run.
+
+## Frontend verification (mandatory when scope includes frontend)
+
+When implementation touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Invoke the `verify-ui-changes` skill before final handoff or PR submission.
+2. Launch the correct app, log in with seeded credentials when required, and exercise each implemented user-facing behavior.
+3. Save screenshots and videos under `/opt/cursor/artifacts/` for attachment to the PR.
 
 ## File Modification Rules
 

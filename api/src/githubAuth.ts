@@ -33,10 +33,8 @@ export interface GitHubAuthOptions {
     profile: Profile,
     accessToken: string,
     refreshToken: string,
-    // biome-ignore lint/suspicious/noExplicitAny: user shape varies per consumer's User model
-    existingUser?: any
-    // biome-ignore lint/suspicious/noExplicitAny: passport user value remains untyped
-  ) => Promise<any>;
+    existingUser?: Record<string, unknown>
+  ) => Promise<unknown>;
 }
 
 /** Fields added to user documents for GitHub authentication */
@@ -62,6 +60,7 @@ export interface GitHubUserFields {
  * userSchema.plugin(githubUserPlugin);
  * ```
  */
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 export const githubUserPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({
@@ -91,6 +90,7 @@ export const setupGitHubAuth = (
 
   passport.use(
     "github",
+    // noExplicitAny: passport-github2's typed constructor overloads don't match passReqToCallback variant
     // biome-ignore lint/suspicious/noExplicitAny: passport-github2's typed constructor overloads don't match passReqToCallback variant
     new (GitHubStrategy as any)(
       {

@@ -10,6 +10,56 @@ export interface ScriptResult {
   results: string[];
 }
 
+// --- Flexible Script Arguments ---
+
+/** A single parsed argument value. Repeated flags collapse into a string array. */
+export type ScriptArgValue = string | number | boolean | string[];
+
+/**
+ * Optional declaration for a single script argument. Declarations are purely
+ * advisory: they drive validation, type coercion, default values, and help text
+ * but a script can still read any argument the caller supplied. This keeps
+ * argument handling flexible — declare the args you care about, ignore the rest.
+ */
+export interface ScriptArgDef {
+  /** Canonical name (used as `--name` on the CLI and as the key in the args map). */
+  name: string;
+  /** Human-readable description shown in CLI help and the admin UI. */
+  description: string;
+  /** Type used for coercion and validation. Defaults to "string". */
+  type?: "string" | "number" | "boolean";
+  /** When true, parsing fails if the argument is missing. */
+  required?: boolean;
+  /** Default applied when the argument is not provided. */
+  default?: ScriptArgValue;
+  /** Alternate names accepted on the CLI (e.g. ["l"] enables `-l`). */
+  aliases?: string[];
+  /** Example value shown in help text. */
+  example?: string;
+}
+
+/**
+ * Typed, ergonomic accessor over the parsed arguments passed to a script. Scripts
+ * read values via the typed getters; `raw` and `positional` expose everything for
+ * advanced cases.
+ */
+export interface ScriptArgs {
+  /** All named values keyed by canonical name. */
+  raw: Record<string, ScriptArgValue>;
+  /** Positional (non-flag) arguments, in order. */
+  positional: string[];
+  /** Whether a named argument was supplied (or has a default). */
+  has: (name: string) => boolean;
+  /** Read a string value (coerces numbers/booleans; first element of arrays). */
+  getString: (name: string, fallback?: string) => string | undefined;
+  /** Read a numeric value (coerces strings; returns fallback when missing/NaN). */
+  getNumber: (name: string, fallback?: number) => number | undefined;
+  /** Read a boolean value ("true"/"1"/"yes"/"on" are truthy). */
+  getBoolean: (name: string, fallback?: boolean) => boolean;
+  /** Read a string array (single values become a one-element array). */
+  getStringArray: (name: string) => string[];
+}
+
 export interface ScriptContext {
   /** Check if the task has been cancelled. Throws TaskCancelledError if so. */
   checkCancellation: () => Promise<void>;
@@ -17,9 +67,208 @@ export interface ScriptContext {
   addLog: (level: "info" | "warn" | "error", message: string) => Promise<void>;
   /** Update progress on the task. */
   updateProgress: (percentage: number, stage?: string, message?: string) => Promise<void>;
+  /** Arguments supplied to this run (from the CLI, HTTP body, or admin UI). */
+  args: ScriptArgs;
 }
 
 export type ScriptRunner = (wetRun: boolean, ctx?: ScriptContext) => Promise<ScriptResult>;
+
+const coerceArgValue = (
+  value: ScriptArgValue,
+  type: ScriptArgDef["type"]
+): {value: ScriptArgValue; error?: string} => {
+  if (type === "number") {
+    const num = typeof value === "number" ? value : Number(Array.isArray(value) ? value[0] : value);
+    if (Number.isNaN(num)) {
+      return {error: `expected a number but received "${String(value)}"`, value};
+    }
+    return {value: num};
+  }
+  if (type === "boolean") {
+    if (typeof value === "boolean") {
+      return {value};
+    }
+    const normalized = String(Array.isArray(value) ? value[0] : value).toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalized)) {
+      return {value: true};
+    }
+    if (["false", "0", "no", "off"].includes(normalized)) {
+      return {value: false};
+    }
+    return {error: `expected a boolean but received "${String(value)}"`, value};
+  }
+  return {value};
+};
+
+const toStringValue = (value: ScriptArgValue | undefined): string | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return String(value);
+};
+
+/**
+ * Build a {@link ScriptArgs} accessor from a raw values map and optional declarations.
+ * Applies declared defaults, coerces declared types, and validates required args.
+ * Returns the accessor plus any validation errors (callers decide how to surface them).
+ */
+export const createScriptArgs = ({
+  values,
+  positional = [],
+  defs = [],
+}: {
+  values: Record<string, ScriptArgValue>;
+  positional?: string[];
+  defs?: ScriptArgDef[];
+}): {args: ScriptArgs; errors: string[]} => {
+  const errors: string[] = [];
+  const raw: Record<string, ScriptArgValue> = {...values};
+
+  for (const def of defs) {
+    if (raw[def.name] === undefined) {
+      if (def.default !== undefined) {
+        raw[def.name] = def.default;
+      } else if (def.required) {
+        errors.push(`Missing required argument: --${def.name} (${def.description})`);
+      }
+      continue;
+    }
+    const coerced = coerceArgValue(raw[def.name], def.type);
+    if (coerced.error) {
+      errors.push(`Invalid argument --${def.name}: ${coerced.error}`);
+      continue;
+    }
+    raw[def.name] = coerced.value;
+  }
+
+  const args: ScriptArgs = {
+    getBoolean: (name, fallback = false) => {
+      const value = raw[name];
+      if (value === undefined) {
+        return fallback;
+      }
+      if (typeof value === "boolean") {
+        return value;
+      }
+      const normalized = toStringValue(value)?.toLowerCase();
+      return normalized !== undefined && ["true", "1", "yes", "on"].includes(normalized);
+    },
+    getNumber: (name, fallback) => {
+      const value = raw[name];
+      if (value === undefined) {
+        return fallback;
+      }
+      const num = typeof value === "number" ? value : Number(toStringValue(value));
+      return Number.isNaN(num) ? fallback : num;
+    },
+    getString: (name, fallback) => toStringValue(raw[name]) ?? fallback,
+    getStringArray: (name) => {
+      const value = raw[name];
+      if (value === undefined) {
+        return [];
+      }
+      if (Array.isArray(value)) {
+        return value;
+      }
+      return [String(value)];
+    },
+    has: (name) => raw[name] !== undefined,
+    positional,
+    raw,
+  };
+
+  return {args, errors};
+};
+
+/**
+ * Parse CLI-style tokens into a {@link ScriptArgs} accessor. Supports a flexible set
+ * of conventions so callers and scripts do not need to agree on a rigid format:
+ *
+ * - `--name=value` and `--name value`
+ * - `--flag` (boolean true) and `--no-flag` (boolean false)
+ * - short aliases `-x` (treated like `--x`)
+ * - repeated flags collapse into a string array
+ * - bare tokens become positional arguments
+ *
+ * When {@link ScriptArgDef declarations} are supplied, values are coerced to the
+ * declared type, defaults are applied, and required args are validated.
+ */
+export const parseScriptArgs = (
+  tokens: string[],
+  defs: ScriptArgDef[] = []
+): {args: ScriptArgs; errors: string[]} => {
+  const aliasToName = new Map<string, string>();
+  const defByName = new Map<string, ScriptArgDef>();
+  for (const def of defs) {
+    defByName.set(def.name, def);
+    for (const alias of def.aliases ?? []) {
+      aliasToName.set(alias, def.name);
+    }
+  }
+
+  const values: Record<string, ScriptArgValue> = {};
+  const positional: string[] = [];
+  const missingValueErrors: string[] = [];
+
+  const assign = (key: string, value: ScriptArgValue): void => {
+    const name = aliasToName.get(key) ?? key;
+    const existing = values[name];
+    if (existing === undefined) {
+      values[name] = value;
+      return;
+    }
+    // Repeated flag: collapse into an array of strings.
+    const asArray = Array.isArray(existing) ? existing : [String(existing)];
+    values[name] = [...asArray, String(value)];
+  };
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (!token.startsWith("-") || token === "-") {
+      positional.push(token);
+      continue;
+    }
+
+    const flag = token.replace(/^-+/, "");
+    if (flag.startsWith("no-") && !flag.includes("=")) {
+      assign(flag.slice(3), false);
+      continue;
+    }
+
+    const eqIndex = flag.indexOf("=");
+    if (eqIndex !== -1) {
+      assign(flag.slice(0, eqIndex), flag.slice(eqIndex + 1));
+      continue;
+    }
+
+    const canonical = aliasToName.get(flag) ?? flag;
+    const def = defByName.get(canonical);
+    const next = tokens[i + 1];
+    const nextIsValue = next !== undefined && (next === "-" || !next.startsWith("-"));
+    if (def?.type === "boolean") {
+      assign(flag, true);
+      continue;
+    }
+    if (!nextIsValue) {
+      // A declared string/number flag was given without a value. Record an error
+      // instead of silently storing `true` (which would coerce to 1 / "true").
+      if (def) {
+        missingValueErrors.push(`Argument --${canonical} expects a ${def.type ?? "string"} value`);
+        continue;
+      }
+      assign(flag, true);
+      continue;
+    }
+    assign(flag, next);
+    i++;
+  }
+
+  const {args, errors} = createScriptArgs({defs, positional, values});
+  return {args, errors: [...missingValueErrors, ...errors]};
+};
 
 export class TaskCancelledError extends Error {
   constructor(taskId: string) {

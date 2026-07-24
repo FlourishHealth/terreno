@@ -10,7 +10,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
-- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
+- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
@@ -107,6 +107,7 @@ bun run frontend:web
 - Use camelCase directories (e.g., `components/authWizard`)
 - Favor named exports
 - Use the RORO pattern (Receive an Object, Return an Object)
+- **No barrel imports** — import concrete module files, not directory `index` re-export barrels. See [no-barrel-imports.md](../docs/explanation/no-barrel-imports.md). Cross-package `@terreno/*` package roots are allowed; internal barrel `index.ts` files are banned (Biome `noBarrelFile` override) and paths like `../models`, `@/store`, or `@components` without a file are not allowed. Enforced by Biome lint and `bun run check:no-barrel-imports` in CI.
 
 ### Dates and Time
 - Always use Luxon instead of Date or dayjs
@@ -130,6 +131,7 @@ bun run frontend:web
 - Focus on readability over performance
 - Write complete, functional code without TODOs when possible
 - Comments should describe purpose, not effect
+- **Frontend verification is mandatory** for any feature touching frontend packages: launch the app, log in when required, exercise the changed feature, save screenshots/videos to `/opt/cursor/artifacts/`, and attach them to the PR. See `02-frontend-verification.md` and the `verify-ui-changes` skill.
 
 ## Package Reference
 
@@ -365,12 +367,42 @@ Shared install script (in **flourish** repo): `bash /agent/repos/flourish/script
 | example-backend | 4000 | `bun run backend:dev` (from repo root) |
 | example-frontend web | 8082 | `bun run frontend:web` |
 
-`example-frontend` uses in-memory Mongo via `example-backend` — no system MongoDB required for the example apps.
+The running `example-backend` needs a **real MongoDB replica set** (change streams power the realtime/feature-flag sync) at `MONGO_URI`, plus auth secrets `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`. (Only the bun **test** suites use the auto-managed in-memory Mongo from `@terreno/test`; the dev server does not.)
+
+A standalone `mongod` binary is available from the `mongodb-memory-server` cache (e.g. `~/.cache/mongodb-binaries/mongod-*`) after the test suites have run once. Run it as a single-node replica set, then point the backend at it:
+
+```bash
+# 1. start mongod (replica set required for change streams)
+"$(ls ~/.cache/mongodb-binaries/mongod-* | head -1)" \
+  --replSet rs0 --port 27017 --bind_ip 127.0.0.1 --dbpath /workspace/.devdata/mongo &
+# 2. initiate the replica set once (use node, not bun — the mongodb driver's bson
+#    package hits a "node:v8 isBuildingSnapshot" error under bun). From example-backend/:
+#    node -e 'import("mongodb").then(async ({MongoClient})=>{const c=new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true");await c.connect();await c.db("admin").command({replSetInitiate:{_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]}}).catch(()=>{});await c.close();})'
+# 3. run backend + frontend
+MONGO_URI="mongodb://127.0.0.1:27017/terreno-example?replicaSet=rs0" \
+  TOKEN_SECRET=dev-token-secret TOKEN_ISSUER=terreno-dev \
+  REFRESH_TOKEN_SECRET=dev-refresh-secret SESSION_SECRET=dev-session-secret \
+  PORT=4000 bun run backend:dev
+EXPO_PUBLIC_API_URL=http://localhost:4000 bun run frontend:web
+```
+
+Seed login users with `bun run backend:seed` (same env vars): creates `test@example.com` and admin `superuser@example.com`, both password `testpassword123`. Health check: `curl localhost:4000/health` → `"healthy":true`. The web app shows one-time Terms/Privacy/Consent modals (with a signature draw) on first login before the Todos screen.
 
 ### Tests and lint
 
 - `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
 - `demo:start` serves the UI component demo on port **8085**.
+
+### GCP service account secrets
+
+When present, these are injected as environment variables holding GCP service-account credentials (each scoped with viewer plus some write permissions for its environment):
+
+- `GCP_SA_TERRENO` — terreno GCP service account (viewer + some write); use it for gcloud / GCP API access for terreno.
+- The sibling apps in this workspace have their own: `GCP_SA_PRD` (flourish production), `GCP_SA_STG` (flourish staging), and `GCP_SA_ZAPLING` (zapling).
+
+### Sentry API access
+
+When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
 
 ### Gotchas
 

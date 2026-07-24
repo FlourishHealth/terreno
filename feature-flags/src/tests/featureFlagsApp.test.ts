@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {OpenFeature} from "@openfeature/server-sdk";
 import {
   addAuthRoutes,
   apiErrorMiddleware,
@@ -6,7 +7,7 @@ import {
   setupAuth,
   type UserModel as UserModelType,
 } from "@terreno/api";
-import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/src/tests";
+import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -43,6 +44,7 @@ describe("FeatureFlagsApp", () => {
 
   afterEach(async () => {
     await FeatureFlag.deleteMany({});
+    await OpenFeature.clearProviders();
   });
 
   describe("construction", () => {
@@ -186,6 +188,105 @@ describe("FeatureFlagsApp", () => {
       const notAdminRes = await notAdminAgent.get("/feature-flags/evaluate").expect(200);
       // notAdmin isn't admin, rolloutPercentage is 0 → should evaluate false
       expect(notAdminRes.body.data["user-only"]).toBe(false);
+    });
+
+    it("includes Deprecation and Sunset headers on GET /evaluate", async () => {
+      await FeatureFlag.create({
+        enabled: true,
+        key: "hdr-flag",
+        name: "Hdr",
+        rolloutPercentage: 100,
+      });
+      adminAgent = await authAsUser(app, "admin");
+      const res = await adminAgent.get("/feature-flags/evaluate").expect(200);
+      expect(res.headers.deprecation).toBe("true");
+      expect(res.headers.sunset).toBeDefined();
+      expect(res.body.data["hdr-flag"]).toBe(true);
+    });
+  });
+
+  describe("GET /feature-flags/flagConfiguration", () => {
+    beforeEach(async () => {
+      const segments: Record<string, SegmentFunction> = {
+        admins: (user: unknown) => (user as {admin?: boolean}).admin === true,
+      };
+      app = buildApp({segments});
+    });
+
+    it("returns 401 when unauthenticated", async () => {
+      const unauth = supertest(app);
+      await unauth.get("/feature-flags/flagConfiguration").expect(401);
+    });
+
+    it("returns OpenFeature-shaped entries for enabled flags and omits disabled and archived", async () => {
+      await FeatureFlag.create({
+        enabled: true,
+        key: "bool-active",
+        name: "Bool",
+        rolloutPercentage: 100,
+        type: "boolean",
+      });
+      await FeatureFlag.create({
+        defaultVariant: "compact",
+        enabled: true,
+        key: "profile",
+        name: "Profile",
+        rules: [],
+        type: "variant",
+        variants: [
+          {key: "compact", weight: 50},
+          {key: "detailed", weight: 50},
+        ],
+      });
+      await FeatureFlag.create({
+        enabled: false,
+        key: "disabled-one",
+        name: "Off",
+        rolloutPercentage: 100,
+        type: "boolean",
+      });
+      await FeatureFlag.create({
+        archived: true,
+        enabled: true,
+        key: "archived-one",
+        name: "Archived",
+        rolloutPercentage: 100,
+        type: "boolean",
+      });
+
+      adminAgent = await authAsUser(app, "admin");
+      const res = await adminAgent.get("/feature-flags/flagConfiguration").expect(200);
+      const data = res.body.data as Record<
+        string,
+        {defaultVariant: string; disabled: boolean; variants: Record<string, boolean | string>}
+      >;
+
+      expect(data["bool-active"]).toEqual({
+        defaultVariant: "on",
+        disabled: false,
+        variants: {off: false, on: true},
+      });
+      expect(data.profile?.disabled).toBe(false);
+      expect(["compact", "detailed"].includes(data.profile?.defaultVariant ?? "")).toBe(true);
+      expect(data.profile?.variants.compact).toBe("compact");
+      expect(data["disabled-one"]).toBeUndefined();
+      expect(data["archived-one"]).toBeUndefined();
+    });
+
+    it("uses resolved boolean variant as defaultVariant (not the persisted schema default alone)", async () => {
+      await FeatureFlag.create({
+        defaultVariant: "off",
+        enabled: true,
+        key: "resolved-bool",
+        name: "Resolved",
+        rolloutPercentage: 100,
+        rules: [],
+        type: "boolean",
+      });
+      adminAgent = await authAsUser(app, "admin");
+      const res = await adminAgent.get("/feature-flags/flagConfiguration").expect(200);
+      expect(res.body.data["resolved-bool"].defaultVariant).toBe("on");
+      expect(res.body.data["resolved-bool"].variants.on).toBe(true);
     });
   });
 

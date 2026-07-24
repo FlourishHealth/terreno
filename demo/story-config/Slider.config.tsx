@@ -7,7 +7,7 @@ import {
   SliderWithLabelsDemo,
   SliderWithSmileysDemo,
   SliderWithValueDemo,
-} from "@stories";
+} from "@stories/Slider.stories";
 import {Slider} from "@terreno/ui";
 
 export const SliderConfiguration: DemoConfiguration = {

@@ -1,3 +1,4 @@
+// noExplicitAny: model router options are generic across all models
 // biome-ignore-all lint/suspicious/noExplicitAny: model router options are generic across all models
 import type {ModelRouterOptions} from "../api";
 import type {RealtimeConfig} from "./types";
@@ -17,7 +18,6 @@ export interface RealtimeRegistryEntry {
   /**
    * Full modelRouter options (for responseHandler, permissions, etc.).
    */
-  // biome-ignore lint/suspicious/noExplicitAny: registry stores heterogeneous models — narrowing the generic is not useful at the registry level
   options: ModelRouterOptions<any>;
 }
 

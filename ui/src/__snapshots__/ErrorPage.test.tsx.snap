@@ -168,6 +168,7 @@ exports[`ErrorPage renders correctly 1`] = `
           "borderRadius": 360,
           "borderWidth": undefined,
           "flexDirection": "column",
+          "height": undefined,
           "justifyContent": "center",
           "paddingHorizontal": 20,
           "paddingVertical": 8,

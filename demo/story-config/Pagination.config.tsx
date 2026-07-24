@@ -1,7 +1,7 @@
 import {DemoConfiguration} from "@config";
 import {Pagination} from "@terreno/ui";
 
-import {PaginationDemo, PaginationMoreStory, PaginationStory} from "../stories";
+import {PaginationDemo, PaginationMoreStory, PaginationStory} from "../stories/Pagination.stories";
 
 export const PaginationConfiguration: DemoConfiguration = {
   name: "Pagination",

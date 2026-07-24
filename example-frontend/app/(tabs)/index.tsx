@@ -28,7 +28,7 @@ import {
   useGetTodosQuery,
   usePatchTodosByIdMutation,
   usePostTodosMutation,
-} from "@/store";
+} from "@/store/sdk";
 
 const TodoItem: React.FC<{
   todo: Todo;
@@ -102,7 +102,7 @@ const TodosScreen: React.FC = () => {
   const [updateTodo] = usePatchTodosByIdMutation();
   const [deleteTodo] = useDeleteTodosByIdMutation();
 
-  const {getFlag} = useFeatureFlags(terrenoApi, {skip: !userId});
+  const {getFlag} = useFeatureFlags(terrenoApi, {skip: !userId, userId});
   const showSummaryCard = getFlag("todo-summary-card");
 
   const {isOnline, queueLength, isSyncing, undismissedConflicts, dismissConflict, isLocalOnly} =

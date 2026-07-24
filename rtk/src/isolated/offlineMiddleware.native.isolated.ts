@@ -45,8 +45,7 @@ const api = createApi({
 
 const createNativeStore = () => {
   const offline = createOfflineMiddleware({
-    // biome-ignore lint/suspicious/noExplicitAny: Generic API type is intentionally broad.
-    api: api as any,
+    api: api as unknown as Parameters<typeof createOfflineMiddleware>[0]["api"],
     endpoints: ["patchTodosById"],
   });
 

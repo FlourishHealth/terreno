@@ -5,20 +5,17 @@ import {
   generateAuthSlice,
   type OfflineState,
   type QueuedMutation,
+  registerTerrenoDevStore,
 } from "@terreno/rtk";
-import {createSentryReduxEnhancer} from "@utils";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage as PersistStorage} from "redux-persist";
 import {createTransform, persistReducer, persistStore} from "redux-persist";
+import {createSentryReduxEnhancer} from "@/utils/sentry";
 
 import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
 import {terrenoApi} from "./sdk";
-
-export * from "./appState";
-export {useSentryAndToast} from "./errors";
-export * from "./utils";
 
 const authSlice = generateAuthSlice(terrenoApi);
 
@@ -199,6 +196,7 @@ const store = configureStore({
   enhancers: (getDefaultEnhancers) =>
     getDefaultEnhancers({
       autoBatch: {type: "tick"},
+      // noExplicitAny: Type mismatch between Sentry createReduxEnhancer and configureStore enhancer API
       // biome-ignore lint/suspicious/noExplicitAny: Type mismatch between Sentry createReduxEnhancer and configureStore enhancer API
     }).concat(sentryReduxEnhancer as any),
   middleware: (getDefaultMiddleware) => {
@@ -209,16 +207,20 @@ const store = configureStore({
     }).concat([
       ...authSlice.middleware,
       // RTK Query middleware must be cast as it doesn't match exact Redux middleware type
+      // noExplicitAny: RTK Query middleware has non-standard typing
       // biome-ignore lint/suspicious/noExplicitAny: RTK Query middleware has non-standard typing
       terrenoApi.middleware as any,
       offlineConfig.middleware,
       rtkQueryErrorMiddleware,
       // Return value needs casting as concat creates a union type that Redux doesn't accept
+      // noExplicitAny: Middleware array type inference is complex
       // biome-ignore lint/suspicious/noExplicitAny: Middleware array type inference is complex
     ]) as any;
   },
   reducer: persistedReducer,
 });
+
+registerTerrenoDevStore(store);
 
 export const persistor = persistStore(store);
 
@@ -227,7 +229,5 @@ export type AppDispatch = typeof store.dispatch;
 
 // Use throughout your app instead of plain `useDispatch`
 export const useAppDispatch: () => AppDispatch = useDispatch;
-export {useAppSelector} from "./appState";
 
 export default store;
-export * from "./sdk";

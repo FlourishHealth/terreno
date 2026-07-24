@@ -6,6 +6,7 @@
 
 import {ConsentForm, logger} from "@terreno/api";
 import mongoose from "mongoose";
+import {Configuration} from "../models/configuration";
 import {User} from "../models/user";
 import {connectToMongoDB} from "../utils/database";
 
@@ -142,6 +143,7 @@ const seedUser = async (testUser: SeedUser): Promise<void> => {
     return;
   }
 
+  // noExplicitAny: passport-local-mongoose register is not typed on the model
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
   const user = await (User as any).register(
     {admin: testUser.admin ?? false, email: testUser.email, name: testUser.name},
@@ -180,6 +182,7 @@ const main = async (): Promise<void> => {
 
     await seedConsentForms();
 
+    await Configuration.shutdown();
     await mongoose.disconnect();
     logger.info("Done.");
   } catch (error: unknown) {

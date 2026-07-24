@@ -1,63 +1,29 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
-import {useCallback, useEffect, useRef} from "react";
+import {DateTime} from "luxon";
+import {useCallback, useEffect, useMemo, useRef} from "react";
+import {useTerrenoFeatureFlags} from "./useTerrenoFeatureFlags";
 
 interface FlagValues {
   [key: string]: boolean | string | null;
 }
 
+// noExplicitAny: RTK Query API generic typing is intentionally flexible here.
 // biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
 type FlagsApi = Api<any, any, any, any>;
 
-// biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
-type EnhancedFlagsApi = FlagsApi & {useEvaluateFeatureFlagsQuery: any};
-
-/**
- * Cache the enhanced api per (api, basePath). `injectEndpoints` logs a console
- * error in development whenever an endpoint with the same name is re-injected
- * with `overrideExisting: false`, so calling it on every render of every
- * consumer would flood the console. WeakMap-by-api lets the GC reclaim entries
- * when the api object is unreachable.
- */
-const enhancedApiCache = new WeakMap<FlagsApi, Map<string, EnhancedFlagsApi>>();
-
-const getEnhancedApi = (api: FlagsApi, basePath: string): EnhancedFlagsApi => {
-  let byBase = enhancedApiCache.get(api);
-  if (!byBase) {
-    byBase = new Map();
-    enhancedApiCache.set(api, byBase);
-  }
-  const cached = byBase.get(basePath);
-  if (cached) {
-    return cached;
-  }
-  const enhanced = api.injectEndpoints({
-    endpoints: (builder) => ({
-      evaluateFeatureFlags: builder.query<FlagValues, void>({
-        query: () => ({
-          method: "GET",
-          url: `${basePath}/evaluate`,
-        }),
-      }),
-    }),
-    overrideExisting: false,
-  }) as EnhancedFlagsApi;
-  byBase.set(basePath, enhanced);
-  return enhanced;
-};
-
 interface UseFeatureFlagsResult {
+  error: unknown;
   flags: FlagValues;
   getFlag: (key: string) => boolean;
   getVariant: (key: string) => string | null;
   isLoading: boolean;
-  error: unknown;
   refetch: () => void;
 }
 
 /**
  * Creates feature flag accessors from an RTK Query API instance.
  *
- * Injects a `GET {basePath}/evaluate` endpoint into the API and returns
+ * Injects a `GET {basePath}/flagConfiguration` endpoint into the API and returns
  * accessors for reading flag values. Fetches once on mount and caches via
  * RTK Query. Both `api` and `basePath` should be stable references.
  *
@@ -70,116 +36,148 @@ interface UseFeatureFlagsResult {
  * ```
  */
 export interface UseFeatureFlagsOptions {
-  /**
-   * Base path for the feature-flags endpoint. Defaults to "/feature-flags".
-   */
   basePath?: string;
-  /**
-   * When true, the underlying evaluate query is not fired. Use this to avoid
-   * fetching before the user is authenticated.
-   */
+  domain?: string;
   skip?: boolean;
+  socket?: {
+    off: (event: string, handler: (...args: unknown[]) => void) => void;
+    on: (event: string, handler: (...args: unknown[]) => void) => void;
+  } | null;
+  socketEventName?: string;
+  userId?: string | null;
 }
 
 interface ResolvedFeatureFlagsOptions {
   basePath: string;
+  domain: string;
   skip: boolean;
+  socket?: UseFeatureFlagsOptions["socket"];
+  socketEventName?: string;
+  userId?: string | null;
 }
 
 /**
  * Normalizes the legacy-compatible `basePathOrOptions` argument into a
- * `{basePath, skip}` pair with defaults applied.
- *
- * - `undefined` -> `{basePath: "/feature-flags", skip: false}`
- * - `string`    -> `{basePath: <string>, skip: false}` (legacy form)
- * - `object`    -> `{basePath: opts.basePath ?? "/feature-flags", skip: opts.skip ?? false}`
+ * `{basePath, skip, ...}` pair with defaults applied.
  */
 export const resolveFeatureFlagsOptions = (
   basePathOrOptions?: string | UseFeatureFlagsOptions
 ): ResolvedFeatureFlagsOptions => {
-  const {basePath = "/feature-flags", skip = false} =
+  const raw =
     typeof basePathOrOptions === "string"
       ? {basePath: basePathOrOptions, skip: false}
       : (basePathOrOptions ?? {});
-  return {basePath, skip};
+  return {
+    basePath: raw.basePath ?? "/feature-flags",
+    domain: raw.domain ?? "feature-flags",
+    skip: raw.skip ?? false,
+    socket: raw.socket,
+    socketEventName: raw.socketEventName,
+    userId: raw.userId,
+  };
 };
 
-// Overloaded signature preserves backwards compatibility with callers that
-// pass a string basePath as the second argument.
-export function useFeatureFlags(
+export const useFeatureFlags = (
   api: FlagsApi,
   basePathOrOptions?: string | UseFeatureFlagsOptions
-): UseFeatureFlagsResult {
-  const {basePath, skip} = resolveFeatureFlagsOptions(basePathOrOptions);
+): UseFeatureFlagsResult => {
+  const {basePath, domain, skip, socket, socketEventName, userId} =
+    resolveFeatureFlagsOptions(basePathOrOptions);
 
-  const enhancedApi = getEnhancedApi(api, basePath);
-  const useEvaluateQuery = enhancedApi.useEvaluateFeatureFlagsQuery;
-  const {data, isLoading, error, refetch} = useEvaluateQuery(undefined, {skip});
-  const evaluateStartedAtRef = useRef<number | null>(null);
+  const {
+    client,
+    error,
+    flags: rawFlags,
+    isLoading,
+    refetch,
+  } = useTerrenoFeatureFlags(api, {
+    basePath,
+    domain,
+    skip,
+    socket,
+    socketEventName,
+    userId,
+  });
 
-  const flags: FlagValues = data ?? {};
+  const fetchStartedAtRef = useRef<number | null>(null);
 
-  // Log when evaluate request enters loading state so client timing can be measured.
   useEffect((): void => {
-    if (!isLoading || evaluateStartedAtRef.current !== null) {
+    if (!isLoading || fetchStartedAtRef.current !== null) {
       return;
     }
 
-    evaluateStartedAtRef.current = Date.now();
-    console.debug("[feature-flags] evaluate request started", {
+    fetchStartedAtRef.current = DateTime.now().toMillis();
+    console.debug("[feature-flags] flagConfiguration request started", {
       basePath,
     });
   }, [basePath, isLoading]);
 
-  // Log evaluate success with duration and number of resolved flag values.
   useEffect((): void => {
-    if (!data || evaluateStartedAtRef.current === null) {
+    if (!error || fetchStartedAtRef.current === null) {
       return;
     }
 
-    const durationMs = Date.now() - evaluateStartedAtRef.current;
-    evaluateStartedAtRef.current = null;
-    console.debug("[feature-flags] evaluate request completed", {
-      basePath,
-      durationMs,
-      evaluatedFlagCount: Object.keys(flags).length,
-      evaluatedFlags: flags,
-    });
-  }, [basePath, data, flags]);
-
-  // Log evaluate failures with duration so request issues can be correlated.
-  useEffect((): void => {
-    if (!error || evaluateStartedAtRef.current === null) {
-      return;
-    }
-
-    const durationMs = Date.now() - evaluateStartedAtRef.current;
-    evaluateStartedAtRef.current = null;
-    console.debug("[feature-flags] evaluate request failed", {
+    const durationMs = DateTime.now().toMillis() - fetchStartedAtRef.current;
+    fetchStartedAtRef.current = null;
+    console.debug("[feature-flags] flagConfiguration request failed", {
       basePath,
       durationMs,
       error,
     });
   }, [basePath, error]);
 
+  const flatFlags = useMemo((): FlagValues => {
+    const out: FlagValues = {};
+    for (const [key, def] of Object.entries(rawFlags)) {
+      const value = def.variants[def.defaultVariant];
+      out[key] = value ?? null;
+    }
+    return out;
+  }, [rawFlags]);
+
+  useEffect((): void => {
+    if (Object.keys(flatFlags).length === 0 || fetchStartedAtRef.current === null) {
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    const durationMs = DateTime.now().toMillis() - fetchStartedAtRef.current;
+    fetchStartedAtRef.current = null;
+    console.debug("[feature-flags] flagConfiguration request completed", {
+      basePath,
+      durationMs,
+      evaluatedFlagCount: Object.keys(flatFlags).length,
+      evaluatedFlags: flatFlags,
+    });
+  }, [basePath, flatFlags, isLoading]);
+
   const getFlag = useCallback(
     (key: string): boolean => {
-      const value = flags[key];
-      return value === true;
+      return client.getBooleanValue(key, false);
     },
-    [flags]
+    [client]
   );
 
   const getVariant = useCallback(
     (key: string): string | null => {
-      const value = flags[key];
-      if (typeof value === "string") {
-        return value;
+      if (!rawFlags[key]) {
+        return null;
       }
-      return null;
+      const value = client.getStringValue(key, "");
+      if (value === "") {
+        return null;
+      }
+      return value;
     },
-    [flags]
+    [client, rawFlags]
   );
 
-  return {error, flags, getFlag, getVariant, isLoading, refetch};
-}
+  const stableRefetch = useCallback((): void => {
+    void refetch();
+  }, [refetch]);
+
+  return {error, flags: flatFlags, getFlag, getVariant, isLoading, refetch: stableRefetch};
+};

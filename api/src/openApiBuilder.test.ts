@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
@@ -6,10 +7,9 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
 import {createOpenApiBuilder, OpenApiMiddlewareBuilder} from "./openApiBuilder";
 import {Permissions} from "./permissions";
+import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, UserModel} from "./tests";
 
 function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
@@ -17,6 +17,7 @@ function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptio
   const statsMiddleware = createOpenApiBuilder(options ?? {})
     .withTags(["Stats"])
     .withSummary("Get food statistics")
+    .withOperationId("getFoodStats")
     .withDescription("Returns aggregated statistics about food items")
     .withQueryParameter(
       "category",
@@ -145,13 +146,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
-      addRoutes: addRoutesWithBuilder,
+    app = new TerrenoApp({
+      configureApp: addRoutesWithBuilder,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   describe("builder pattern", () => {
@@ -196,6 +195,14 @@ describe("OpenApiMiddlewareBuilder", () => {
       expect(categoryParam.schema.type).toBe("string");
       expect(categoryParam.description).toBe("Filter by food category");
       expect(categoryParam.required).toBe(false);
+    });
+
+    it("includes the explicit operationId in OpenAPI spec", async () => {
+      server = supertest(app);
+      const res = await server.get("/openapi.json").expect(200);
+
+      const statsPath = res.body.paths["/food/stats"];
+      expect(statsPath.get.operationId).toBe("getFoodStats");
     });
 
     it("includes request body schema in OpenAPI spec", async () => {
@@ -302,7 +309,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("stats endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/stats").expect(200);
-      expect(res.body).toEqual({avgCalories: 250, count: 10});
+      expect(res.body).toEqual({
+        avgCalories: 250,
+        count: 10,
+        requestId: res.headers["x-request-id"],
+      });
     });
 
     it("reports endpoint returns correct data", async () => {
@@ -311,7 +322,10 @@ describe("OpenApiMiddlewareBuilder", () => {
         .post("/food/reports")
         .send({endDate: "2024-12-31", startDate: "2024-01-01"})
         .expect(201);
-      expect(res.body).toEqual({reportId: "report-123"});
+      expect(res.body).toEqual({
+        reportId: "report-123",
+        requestId: res.headers["x-request-id"],
+      });
     });
 
     it("categories endpoint returns array data", async () => {
@@ -325,7 +339,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("category by id endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/categories/cat-123").expect(200);
-      expect(res.body).toEqual({id: "cat-123", name: "Fruits"});
+      expect(res.body).toEqual({
+        id: "cat-123",
+        name: "Fruits",
+        requestId: res.headers["x-request-id"],
+      });
     });
   });
 
@@ -345,24 +363,24 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
       .withTags(["test"])
       .withSummary("Test")
       .withResponse(200, {id: {type: "string"}})
-      .build();
+      .build() as express.RequestHandler;
 
     // Middleware should be a function
     expect(typeof middleware).toBe("function");
 
     // Should call next() without error
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
   });
 
   it("build returns noop middleware when options is empty", () => {
-    const middleware = createOpenApiBuilder({}).build();
+    const middleware = createOpenApiBuilder({}).build() as express.RequestHandler;
 
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
@@ -486,7 +504,7 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
     expect(result.validationEnabled).toBe(false);
   });
 
-  it("build() returns an array with validators when validation is enabled", () => {
+  it("build() returns an array when validation is enabled with body and query", () => {
     const result = createOpenApiBuilder({})
       .withRequestBody({name: {required: true, type: "string"}})
       .withQueryParameter("page", {type: "number"})
@@ -494,7 +512,7 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
       .build();
 
     expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(1);
+    expect(result).toHaveLength(3);
   });
 
   it("build() returns a single middleware when validation is disabled", () => {

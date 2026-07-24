@@ -1,9 +1,10 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {type Document, type HydratedDocument, Schema} from "mongoose";
 
 import {fixMixedFields, getOpenApiSpecForModel, unpopulate} from "./populate";
-import {FoodModel, setupDb, type User, UserModel} from "./tests";
+import {FoodModel, setupTestData, type User, UserModel} from "./tests";
 
 describe("populate functions", () => {
   let admin: HydratedDocument<User>;
@@ -13,32 +14,17 @@ describe("populate functions", () => {
   let spinach: any;
 
   beforeEach(async () => {
-    [admin, notAdmin] = await setupDb();
-
-    [spinach] = await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date("2021-12-03T00:00:20.000Z"),
-        eatenBy: [admin._id],
-        hidden: false,
-        likesIds: [
-          {likes: true, userId: admin._id},
-          {likes: false, userId: notAdmin._id},
-        ],
-        name: "Spinach",
-        ownerId: admin._id,
-        source: {
-          name: "Brand",
-        },
-      }),
-    ]);
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    notAdmin = testData.users.notAdmin;
+    spinach = testData.foods.spinach;
   });
 
   it("unpopulate", async () => {
     let populated = await spinach.populate("ownerId");
     populated = await populated.populate("eatenBy");
     populated = await populated.populate("likesIds.userId");
-    expect(populated.ownerId.name).toBe("Admin");
+    expect(populated.ownerId.name).toBe("Not Admin");
     expect(populated.eatenBy[0].id).toBe(admin.id);
     expect(populated.eatenBy[0].name).toBe("Admin");
     expect(populated.likesIds[0].userId.id).toBe(admin.id);
@@ -49,7 +35,7 @@ describe("populate functions", () => {
     // noExplicitAny: unpopulate returns Document<T> which doesn't expose model properties; would require refactoring the return type
     let unpopulated: any = unpopulate(populated, "ownerId");
     expect(spinach.ownerId.name).toBeUndefined();
-    expect(unpopulated.ownerId.toString()).toBe(admin.id);
+    expect(unpopulated.ownerId.toString()).toBe(notAdmin.id);
     // Ensure nothing else was touched.
     expect(populated.likesIds[0].userId.id).toBe(admin.id);
     expect(populated.likesIds[0].userId.name).toBe("Admin");
@@ -262,6 +248,63 @@ describe("getOpenApiSpecForModel edge cases", () => {
     >;
     expect(detail.properties.displayAmount).toBeDefined();
     expect(detail.properties.displayAmount.type).toBe("any");
+  });
+});
+
+describe("getOpenApiSpecForModel populate with existing properties", () => {
+  it("merges populated properties into a path that already has properties", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "likesIds.userId"}],
+    });
+    // likesIds is an array subschema with its own properties already;
+    // populating userId should merge the user properties into the existing structure.
+    expect(result.properties.likesIds).toBeDefined();
+    const likesIds = result.properties.likesIds as Record<string, unknown>;
+    const items = likesIds.items as Record<string, Record<string, unknown>>;
+    expect(items.properties.userId).toBeDefined();
+  });
+
+  it("creates intermediate path structure when navigating to nested populate", () => {
+    // eatenBy is defined as [{ ref: "User", type: ObjectId }] - an array of refs.
+    // When we populate eatenBy, the openApiPath resolves through items.
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "eatenBy"}],
+    });
+    expect(result.properties.eatenBy).toBeDefined();
+    const eatenBy = result.properties.eatenBy as Record<string, unknown>;
+    expect(eatenBy.items).toBeDefined();
+  });
+});
+
+describe("getOpenApiSpecForModel populate property merge", () => {
+  it("merges properties when the same path is populated twice", () => {
+    // First populate sets the field properties, second triggers the merge branch.
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["name"], path: "likesIds.userId"}, {path: "likesIds.userId"}],
+    });
+    const likesIds = result.properties.likesIds as Record<string, unknown>;
+    const items = likesIds.items as Record<string, Record<string, unknown>>;
+    const userIdProps = items.properties.userId as Record<string, Record<string, unknown>>;
+    // After the merge the wider populate should have contributed all user fields.
+    expect(userIdProps.properties).toBeDefined();
+    expect(userIdProps.properties.name).toBeDefined();
+  });
+
+  it("merges openApiComponent ref into an already-populated path", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [
+        {path: "likesIds.userId"},
+        {openApiComponent: "UserComponent", path: "likesIds.userId"},
+      ],
+    });
+    const likesIds = result.properties.likesIds as Record<string, unknown>;
+    const items = likesIds.items as Record<string, Record<string, unknown>>;
+    const userIdProps = items.properties.userId as Record<string, Record<string, unknown>>;
+    // Merge path adds the $ref key inside the existing properties.
+    expect(userIdProps.properties).toBeDefined();
+    expect(userIdProps.properties.userId).toEqual({
+      $ref: "#/components/schemas/UserComponent",
+    });
   });
 });
 

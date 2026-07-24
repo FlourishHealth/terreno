@@ -1,10 +1,11 @@
-import {ErrorBoundary} from "@components";
+import {ErrorBoundary} from "@components/ErrorBoundary";
 import {
   DemoConfig,
   type DemoConfigStatus,
   type DemoConfiguration,
   type DemoConfigurationProp,
 } from "@config";
+import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
   Box,
   DataTable,
@@ -370,6 +371,7 @@ const ComponentAdditionalDocs: FC<{config: DemoConfiguration}> = ({config}) => {
 
 const ComponentPage: FC = () => {
   const {component} = useLocalSearchParams<{component: string}>();
+  const {isEmbedMode} = useEmbedMode();
 
   const config = DemoConfig.find((c) => c.name === component);
 
@@ -384,8 +386,16 @@ const ComponentPage: FC = () => {
     navigation.setOptions({title: component});
   }, [navigation, component]);
 
+  if (isEmbedMode) {
+    return (
+      <Box padding={2} width="100%">
+        <ComponentDemo config={config} />
+      </Box>
+    );
+  }
+
   return (
-    <Box padding={4} scroll>
+    <Box flex="grow" height="100%" padding={4} scroll>
       <Box marginBottom={4}>
         <Heading size="lg">{config?.name}</Heading>
       </Box>

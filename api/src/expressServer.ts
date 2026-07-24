@@ -1,30 +1,14 @@
+import type {OutgoingMessage} from "node:http";
 import * as Sentry from "@sentry/bun";
-import cors from "cors";
 import cron from "cron";
 import express, {type Router} from "express";
 import type jwt from "jsonwebtoken";
 import cloneDeep from "lodash/cloneDeep";
 import onFinished from "on-finished";
 import passport from "passport";
-import qs from "qs";
 import type {ModelRouterOptions} from "./api";
-import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {
-  apiErrorMiddleware,
-  apiFallthroughErrorMiddleware,
-  apiUnauthorizedMiddleware,
-} from "./errors";
-import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
-import {type LoggingOptions, logger, setupLogging} from "./logger";
-import {sendToSlack} from "./notifiers";
-import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
-import {openApiEtagMiddleware} from "./openApiEtag";
-import {
-  getCurrentRequestContext,
-  requestContextMiddleware,
-  updateRequestContextFromRequest,
-} from "./requestContext";
-import openapi from "./vendor/wesleytodd-openapi/index";
+import {type LoggingOptions, logger} from "./logger";
+import {sendToSlack} from "./notifiers/slackNotifier";
 
 const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;
@@ -53,8 +37,27 @@ export const setupEnvironment = (): void => {
 
 export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<unknown>>) => void;
 
-// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
-const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
+interface LoggableRequest {
+  body?: Record<string, unknown>;
+  method: string;
+  originalUrl?: string;
+  route?: {path: string};
+  routeMount?: string | string[];
+  url?: string;
+  user?: {
+    admin?: boolean;
+    id?: string;
+    testUser?: boolean;
+    type?: string;
+  };
+}
+
+interface LoggableResponse {
+  locals?: {loggingOptions?: LoggingOptions};
+  statusCode?: number;
+}
+
+const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startTime: bigint) => {
   const options = (res.locals?.loggingOptions ?? {}) as LoggingOptions;
 
   const slowReadMs = options.logSlowRequestsReadMs ?? SLOW_READ_MAX;
@@ -67,7 +70,7 @@ const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
     pathName = `${req.routeMount}${req.route.path}`;
   } else if (req.route) {
     pathName = req.route.path;
-  } else if (res.statusCode < 400) {
+  } else if (res.statusCode != null && res.statusCode < 400) {
     logger.warn(`Request without route: ${req.originalUrl}`);
   }
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
@@ -94,8 +97,11 @@ const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   }
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
-export const logRequests = (req: any, res: any, next: express.NextFunction): void => {
+export const logRequests = (
+  req: LoggableRequest,
+  res: LoggableResponse,
+  next: express.NextFunction
+): void => {
   const startTime = process.hrtime.bigint();
 
   let userString = "";
@@ -123,7 +129,7 @@ export const logRequests = (req: any, res: any, next: express.NextFunction): voi
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
     logger.debug(`${req.method} <- ${req.url}${userString}${body}`);
   }
-  onFinished(res, () => logRequestsFinished(req, res, startTime));
+  onFinished(res as unknown as OutgoingMessage, () => logRequestsFinished(req, res, startTime));
   next();
 };
 
@@ -162,208 +168,16 @@ export const createRouterWithAuth = (
 };
 
 export interface AuthOptions {
+  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
   // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
   generateJWTPayload?: (user: any) => Record<string, unknown>;
-  // biome-ignore lint/suspicious/noExplicitAny: see above
+  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
+  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
   generateTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
-  // biome-ignore lint/suspicious/noExplicitAny: see above
+  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
+  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
   generateRefreshTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
 }
-
-interface InitializeRoutesOptions {
-  corsOrigin?:
-    | string
-    | boolean
-    | RegExp
-    | Array<boolean | string | RegExp>
-    | ((
-        requestOrigin: string | undefined,
-        callback: (
-          err: Error | null,
-          origin?: boolean | string | RegExp | Array<boolean | string | RegExp>
-        ) => void
-      ) => void);
-  addMiddleware?: AddRoutes;
-  // The maximum number of array elements to parse in a query string. Defaults to 200.
-  arrayLimit?: number;
-  // Whether requests should be logged. In production, you may want to disable this if using another
-  // logger (e.g. Google Cloud).
-  logRequests?: boolean;
-  loggingOptions?: LoggingOptions;
-  authOptions?: AuthOptions;
-  /** GitHub OAuth configuration. When provided, enables GitHub authentication. */
-  githubAuth?: GitHubAuthOptions;
-}
-
-const initializeRoutes = (
-  UserModel: UserMongooseModel,
-  addRoutes: AddRoutes,
-  options: InitializeRoutesOptions = {}
-): express.Application => {
-  const app = express();
-
-  // Record mount paths on layers for Express 5 → OpenAPI compat
-  patchAppUse(app);
-
-  app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));
-
-  app.use(requestContextMiddleware);
-
-  app.use(
-    cors({
-      origin: options.corsOrigin ?? "*",
-    })
-  );
-
-  if (options.addMiddleware) {
-    options.addMiddleware(app);
-  }
-
-  app.use(express.json({limit: "50mb"}));
-
-  // Add login/signup/refresh_token before the JWT/auth middlewares
-  addAuthRoutes(app, UserModel, options?.authOptions);
-  setupAuth(app, UserModel);
-  app.use((req, res, next) => {
-    updateRequestContextFromRequest(req, res);
-    next();
-  });
-
-  if (options.logRequests !== false) {
-    app.use(logRequests);
-  }
-
-  // Store the logging options on the request so we can access them later.
-  app.use((_req, res, next) => {
-    res.locals.loggingOptions = options.loggingOptions;
-    next();
-  });
-
-  // Add Sentry scopes for session, transaction, and userId if any are set
-  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    const context = getCurrentRequestContext();
-    const transactionId = req.header("X-Transaction-ID");
-    const sessionId = context?.sessionId ?? req.header("X-Session-ID");
-    if (context?.requestId) {
-      Sentry.getCurrentScope().setTag("request_id", context.requestId);
-    }
-    if (transactionId) {
-      Sentry.getCurrentScope().setTag("transaction_id", transactionId);
-    }
-    if (sessionId) {
-      Sentry.getCurrentScope().setTag("session_id", sessionId);
-    }
-    if (req.user?._id) {
-      Sentry.getCurrentScope().setTag("user", String(req.user._id));
-    }
-    next();
-  });
-
-  // Add ETag middleware for OpenAPI JSON endpoint before the openapi middleware
-  app.use(openApiCompatMiddleware);
-  app.use(openApiEtagMiddleware);
-
-  const oapi = openapi({
-    info: {
-      description: "Generated docs from an Express api",
-      title: "Express Application",
-      version: "1.0.0",
-    },
-    openapi: "3.0.0",
-  });
-  app.use(oapi);
-
-  if (process.env.ENABLE_SWAGGER === "true") {
-    app.use("/swagger", oapi.swaggerui());
-  }
-
-  addMeRoutes(app, UserModel, options?.authOptions);
-
-  // Set up GitHub OAuth if configured (works with JWT auth)
-  if (options.githubAuth) {
-    setupGitHubAuth(app, UserModel, options.githubAuth);
-    addGitHubAuthRoutes(app, UserModel, options.githubAuth, options.authOptions);
-  }
-
-  addRoutes(app, {openApi: oapi});
-
-  Sentry.setupExpressErrorHandler(app);
-
-  // Catch any thrown APIErrors and return them in an OpenAPI compatible format
-  app.use(apiUnauthorizedMiddleware);
-  app.use(apiErrorMiddleware);
-
-  app.use(apiFallthroughErrorMiddleware);
-
-  return app;
-};
-
-export interface SetupServerOptions {
-  userModel: UserMongooseModel;
-  addRoutes: AddRoutes;
-  loggingOptions?: LoggingOptions;
-  // Whether requests should be logged. Defaults to true.
-  logRequests?: boolean;
-  authOptions?: AuthOptions;
-  /**
-   * GitHub OAuth configuration. When provided, enables GitHub authentication.
-   * Requires the user schema to have GitHub fields (use githubUserPlugin).
-   */
-  githubAuth?: GitHubAuthOptions;
-  skipListen?: boolean;
-  corsOrigin?:
-    | string
-    | boolean
-    | RegExp
-    | Array<boolean | string | RegExp>
-    | ((
-        requestOrigin: string | undefined,
-        callback: (
-          err: Error | null,
-          origin?: boolean | string | RegExp | Array<boolean | string | RegExp>
-        ) => void
-      ) => void);
-  addMiddleware?: AddRoutes;
-  ignoreTraces?: string[];
-  sentryOptions?: Sentry.BunOptions;
-}
-
-export const setupServer = (options: SetupServerOptions): express.Application => {
-  const UserModel = options.userModel;
-  const addRoutes = options.addRoutes;
-
-  setupLogging(options.loggingOptions);
-
-  let app: express.Application;
-  try {
-    app = initializeRoutes(UserModel, addRoutes, {
-      addMiddleware: options.addMiddleware,
-      authOptions: options.authOptions,
-      corsOrigin: options.corsOrigin,
-      githubAuth: options.githubAuth,
-      loggingOptions: options.loggingOptions,
-      logRequests: options.logRequests,
-    });
-  } catch (error: unknown) {
-    const stack = error instanceof Error && error.stack ? error.stack : String(error);
-    logger.error(`Error initializing routes: ${stack}`);
-    throw error;
-  }
-
-  if (!options.skipListen) {
-    const port = process.env.PORT || "9000";
-    try {
-      app.listen(port, () => {
-        logger.info(`Listening on port ${port}`);
-      });
-    } catch (error) {
-      const stack = error instanceof Error ? error.stack : String(error);
-      logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-      process.exit(1);
-    }
-  }
-  return app;
-};
 
 export const cronjob = (
   name: string,

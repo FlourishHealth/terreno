@@ -62,7 +62,7 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
 
   if (isLoading) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -72,7 +72,7 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
 
   if (!response) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <Box alignItems="center" padding={6}>
           <Text color="secondaryDark">Response not found.</Text>
         </Box>
@@ -87,8 +87,12 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
 
   const userId =
     typeof response.userId === "object"
-      ? (response.userId?._id ?? String(response.userId))
+      ? String(response.userId?._id ?? response.userId?.id ?? response.userId)
       : String(response.userId ?? "");
+
+  const userName = typeof response.userId === "object" ? (response.userId?.name ?? "") : "";
+
+  const userEmail = typeof response.userId === "object" ? (response.userId?.email ?? "") : "";
 
   // checkboxValues is stored as a Map serialized to {index: boolean} by the backend
   const checkboxEntries: Array<{index: string; checked: boolean}> =
@@ -108,7 +112,7 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
     response.formVersionSnapshot;
 
   return (
-    <Page maxWidth="100%" scroll>
+    <Page color="transparent" maxWidth="100%" padding={0} scroll>
       <Box gap={4} padding={4}>
         <Box alignItems="center" direction="row" justifyContent="between">
           <Heading size="lg">Consent Response</Heading>
@@ -132,11 +136,6 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
             </Box>
 
             <Box alignItems="center" direction="row" gap={2}>
-              <Text color="secondaryDark">User ID:</Text>
-              <Text>{userId}</Text>
-            </Box>
-
-            <Box alignItems="center" direction="row" gap={2}>
               <Text color="secondaryDark">Decision:</Text>
               <Badge
                 status={response.agreed ? "success" : "error"}
@@ -157,6 +156,32 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
                 <Text>{response.locale}</Text>
               </Box>
             )}
+          </Box>
+        </Card>
+
+        {/* User Information */}
+        <Card padding={4}>
+          <Box gap={3}>
+            <Heading size="sm">User Information</Heading>
+
+            <Box alignItems="center" direction="row" gap={2}>
+              <Text color="secondaryDark">User ID:</Text>
+              <Text>{userId}</Text>
+            </Box>
+
+            {userName ? (
+              <Box alignItems="center" direction="row" gap={2}>
+                <Text color="secondaryDark">Name:</Text>
+                <Text>{userName}</Text>
+              </Box>
+            ) : null}
+
+            {userEmail ? (
+              <Box alignItems="center" direction="row" gap={2}>
+                <Text color="secondaryDark">Email:</Text>
+                <Text>{userEmail}</Text>
+              </Box>
+            ) : null}
           </Box>
         </Card>
 

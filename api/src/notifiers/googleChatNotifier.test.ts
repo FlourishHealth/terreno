@@ -1,8 +1,9 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
+import type {AxiosResponse} from "axios";
 import axios from "axios";
 
+import type {APIError} from "../errors";
 import {sendToGoogleChat} from "./googleChatNotifier";
 
 describe("sendToGoogleChat", () => {
@@ -11,7 +12,7 @@ describe("sendToGoogleChat", () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    mockAxiosPost = spyOn(axios, "post").mockResolvedValue({status: 200} as any);
+    mockAxiosPost = spyOn(axios, "post").mockResolvedValue({status: 200} as AxiosResponse);
     process.env = {...ORIGINAL_ENV};
     process.env.GOOGLE_CHAT_WEBHOOKS = undefined;
     (Sentry.captureException as Mock<typeof Sentry.captureException>).mockClear();
@@ -97,8 +98,8 @@ describe("sendToGoogleChat", () => {
       await sendToGoogleChat("err", {shouldThrow: true});
       throw new Error("Expected sendToGoogleChat to throw APIError");
     } catch (error) {
-      expect((error as any).name).toBe("APIError");
-      expect((error as any).title).toMatch(/Error posting to Google Chat/i);
+      expect((error as APIError).name).toBe("APIError");
+      expect((error as APIError).title).toMatch(/Error posting to Google Chat/i);
     }
     expect(mockAxiosPost.mock.calls.length).toBe(1);
   });

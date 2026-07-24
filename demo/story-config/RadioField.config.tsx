@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {RadioFieldDemo, RadioFieldsLeftText, RadioFieldsRightText} from "@stories";
+import {RadioFieldDemo, RadioFieldsLeftText, RadioFieldsRightText} from "@stories/RadioField.stories";
 import {RadioField} from "@terreno/ui";
 import React from "react";
 

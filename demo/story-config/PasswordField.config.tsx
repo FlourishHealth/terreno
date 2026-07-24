@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {DefaultDemo} from "@stories";
+import {DefaultDemo} from "@stories/DefaultDemo";
 import {PasswordField} from "@terreno/ui";
 import React from "react";
 

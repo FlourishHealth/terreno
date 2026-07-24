@@ -46,7 +46,7 @@ jobs:
       example_frontend: ${{ steps.changes.outputs.example_frontend }}
       demo: ${{ steps.changes.outputs.demo }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
         with:
           fetch-depth: 0
 
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Validate required secrets
         env:
@@ -91,7 +91,7 @@ jobs:
           bun-version: 1.3.10
 
       - name: Cache bun + node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.bun/install/cache
@@ -100,7 +100,7 @@ jobs:
           restore-keys: |
             bun-${{ runner.os }}-
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -209,7 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Validate required secrets
         env:
@@ -225,7 +225,7 @@ jobs:
           bun-version: 1.3.10
 
       - name: Cache bun + node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.bun/install/cache
@@ -234,7 +234,7 @@ jobs:
           restore-keys: |
             bun-${{ runner.os }}-
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}

@@ -1,40 +1,95 @@
 /**
- * Isolated tests for constants.ts paths that require mock.module.
+ * In-process isolated coverage for constants.ts module-load debug paths.
  *
- * These live in isolated/ so that mock.module calls do not interfere
- * with coverage tracking in the main constants.test.ts file.
+ * The base test suite loads constants.ts once with debug flags disabled, so the
+ * enable-time branches (AUTH_DEBUG / WEBSOCKETS_DEBUG log lines and the Expo
+ * tunnel warning) never execute under coverage. Here we re-mock expo-constants
+ * with every flag enabled and re-import the module through a cache-busting query
+ * so its top-level runs again while coverage instrumentation is active.
  */
-import {describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, it, mock} from "bun:test";
+import {assert} from "chai";
 
-describe("expo tunnel warning", () => {
-  it("warns when expoGoConfig.debuggerHost contains exp.direct", async () => {
-    const errorCalls: unknown[][] = [];
-    const originalError = console.error;
-    console.error = (...args: unknown[]): void => {
-      errorCalls.push(args);
-    };
-    mock.module("expo-constants", () => ({
-      default: {
-        expoConfig: {extra: {}},
-        expoGoConfig: {debuggerHost: "abc.exp.direct"},
-      },
-    }));
-    try {
-      const testId = `${Date.now()}-${Math.random()}`;
-      await import(`../constants?case=${testId}`);
-      const warning = errorCalls.find((args) =>
-        args.some((v) => typeof v === "string" && v.includes("Expo Tunnel is not currently"))
-      );
-      expect(warning).toBeDefined();
-    } finally {
-      console.error = originalError;
-      mock.module("expo-constants", () => ({default: {expoConfig: {extra: {}}}}));
-    }
+interface ConstantsModule {
+  AUTH_DEBUG: boolean;
+  logAuth: (...args: string[]) => void;
+  logSocket: (
+    user?: {featureFlags?: {debugWebsockets?: {enabled?: boolean}}} | boolean,
+    ...args: string[]
+  ) => void;
+  isWebsocketsDebugEnabled: () => boolean;
+}
+
+const loadWithEnabledFlags = async (): Promise<{
+  module: ConstantsModule;
+  debugCalls: unknown[][];
+  errorCalls: unknown[][];
+  infoCalls: unknown[][];
+}> => {
+  mock.module("expo-constants", () => ({
+    default: {
+      expoConfig: {extra: {AUTH_DEBUG: "true", WEBSOCKETS_DEBUG: "true"}},
+      expoGoConfig: {debuggerHost: "abc.exp.direct"},
+    },
+  }));
+
+  const debugCalls: unknown[][] = [];
+  const errorCalls: unknown[][] = [];
+  const infoCalls: unknown[][] = [];
+  const originalDebug = console.debug;
+  const originalError = console.error;
+  const originalInfo = console.info;
+  console.debug = (...args: unknown[]): void => {
+    debugCalls.push(args);
+  };
+  console.error = (...args: unknown[]): void => {
+    errorCalls.push(args);
+  };
+  console.info = (...args: unknown[]): void => {
+    infoCalls.push(args);
+  };
+
+  try {
+    const constantsUrl = new URL("../constants.ts", import.meta.url).href;
+    const module = (await import(`${constantsUrl}?enabledFlags`)) as ConstantsModule;
+    return {debugCalls, errorCalls, infoCalls, module};
+  } finally {
+    console.debug = originalDebug;
+    console.error = originalError;
+    console.info = originalInfo;
+  }
+};
+
+describe("constants module-load debug paths", () => {
+  beforeEach(() => {
+    mock.restore();
   });
-});
 
-describe("AUTH_DEBUG enabled path", () => {
-  it("logs debug messages from logAuth when AUTH_DEBUG is true on module load", async () => {
+  it("logs debug lines and the tunnel warning when every flag is enabled", async () => {
+    const {module, debugCalls, errorCalls} = await loadWithEnabledFlags();
+
+    assert.isTrue(module.AUTH_DEBUG);
+    assert.isTrue(module.isWebsocketsDebugEnabled());
+    assert.isTrue(
+      debugCalls.some((args) =>
+        args.some((value) => String(value).includes("AUTH_DEBUG is enabled"))
+      )
+    );
+    assert.isTrue(
+      debugCalls.some((args) =>
+        args.some((value) => String(value).includes("WEBSOCKETS_DEBUG is enabled"))
+      )
+    );
+    assert.isTrue(
+      errorCalls.some((args) =>
+        args.some((value) => String(value).includes("Expo Tunnel is not currently"))
+      )
+    );
+  });
+
+  it("routes logAuth and logSocket through console when flags are enabled", async () => {
+    const {module} = await loadWithEnabledFlags();
+
     const debugCalls: unknown[][] = [];
     const infoCalls: unknown[][] = [];
     const originalDebug = console.debug;
@@ -45,22 +100,19 @@ describe("AUTH_DEBUG enabled path", () => {
     console.info = (...args: unknown[]): void => {
       infoCalls.push(args);
     };
-    mock.module("expo-constants", () => ({
-      default: {expoConfig: {extra: {AUTH_DEBUG: "true", WEBSOCKETS_DEBUG: "true"}}},
-    }));
     try {
-      const testId = `${Date.now()}-${Math.random()}`;
-      const loaded = (await import(`../constants?case=${testId}`)) as typeof import("../constants");
-      expect(loaded.AUTH_DEBUG).toBe(true);
-      const preLength = debugCalls.length;
-      loaded.logAuth("hello");
-      expect(debugCalls.length).toBe(preLength + 1);
-      loaded.logSocket(undefined, "ws on");
-      expect(infoCalls.some((args) => args[0] === "[websocket]" && args[1] === "ws on")).toBe(true);
+      module.logAuth("auth message");
+      module.logSocket(undefined, "socket message");
     } finally {
       console.debug = originalDebug;
       console.info = originalInfo;
-      mock.module("expo-constants", () => ({default: {expoConfig: {extra: {}}}}));
     }
+
+    assert.isTrue(
+      debugCalls.some((args) => args.some((value) => String(value).includes("auth message")))
+    );
+    assert.isTrue(
+      infoCalls.some((args) => args[0] === "[websocket]" && args[1] === "socket message")
+    );
   });
 });

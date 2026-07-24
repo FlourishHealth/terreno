@@ -1,3 +1,4 @@
+// noExplicitAny: test mocks use dynamic shapes for registry entries and documents
 // biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for registry entries and documents
 /**
  * Tests for the realtime module's pure functions and classes:
@@ -101,6 +102,12 @@ describe("matchesQuery", () => {
     it("returns false when nested path is undefined", () => {
       const doc = {user: {}};
       expect(matchesQuery(doc, {"user.name": "Alice"})).toBe(false);
+    });
+
+    it("returns undefined when an intermediate path segment is null", () => {
+      const doc = {user: null};
+      expect(matchesQuery(doc, {"user.name": "Alice"})).toBe(false);
+      expect(matchesQuery(doc, {"user.name": {$exists: false}})).toBe(true);
     });
   });
 
@@ -242,7 +249,7 @@ describe("matchesQuery", () => {
     });
 
     it("returns false when $and operand is not an array", () => {
-      expect(matchesQuery({status: "active"}, {$and: "invalid" as any})).toBe(false);
+      expect(matchesQuery({status: "active"}, {$and: "invalid"})).toBe(false);
     });
   });
 
@@ -260,7 +267,7 @@ describe("matchesQuery", () => {
     });
 
     it("returns false when $or operand is not an array", () => {
-      expect(matchesQuery({status: "active"}, {$or: "invalid" as any})).toBe(false);
+      expect(matchesQuery({status: "active"}, {$or: "invalid"})).toBe(false);
     });
   });
 
@@ -288,6 +295,26 @@ describe("matchesQuery", () => {
 
     it("returns false for different arrays", () => {
       expect(matchesQuery({tags: ["a", "b"]}, {tags: ["a", "c"]})).toBe(false);
+    });
+  });
+
+  describe("relational comparison across value types", () => {
+    it("compares strings lexicographically with $gt and $lt", () => {
+      expect(matchesQuery({name: "banana"}, {name: {$gt: "apple"}})).toBe(true);
+      expect(matchesQuery({name: "apple"}, {name: {$gt: "banana"}})).toBe(false);
+      expect(matchesQuery({name: "apple"}, {name: {$lt: "banana"}})).toBe(true);
+      expect(matchesQuery({name: "apple"}, {name: {$lte: "apple"}})).toBe(true);
+    });
+
+    it("coerces mixed-type operands numerically", () => {
+      expect(matchesQuery({count: 5}, {count: {$gt: "3"}})).toBe(true);
+      expect(matchesQuery({count: 5}, {count: {$lt: "10"}})).toBe(true);
+      expect(matchesQuery({count: 5}, {count: {$gte: true}})).toBe(true);
+    });
+
+    it("fails comparison when operands are not numerically comparable", () => {
+      expect(matchesQuery({count: 5}, {count: {$gt: "abc"}})).toBe(false);
+      expect(matchesQuery({count: 5}, {count: {$lt: "abc"}})).toBe(false);
     });
   });
 
@@ -1785,6 +1812,17 @@ describe("startChangeStreamWatcher", () => {
     };
   };
 
+  const invokeRegisteredChangeHandler = async (
+    mockStream: ReturnType<typeof createMockChangeStream>,
+    event: Record<string, unknown>
+  ): Promise<void> => {
+    const changeHandler = mockStream.listeners.get("change");
+    if (!changeHandler) {
+      throw new Error("expected change handler");
+    }
+    await changeHandler(event);
+  };
+
   const createMockIo = () => {
     const rooms = new Map<string, Set<string>>();
     const sockets = new Map<string, any>();
@@ -1873,9 +1911,7 @@ describe("startChangeStreamWatcher", () => {
     startChangeStreamWatcher(io, {}, true);
 
     // Trigger an insert change event
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Test Todo"},
       ns: {coll: "todos"},
@@ -1895,9 +1931,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // Trigger for an unregistered collection — should not throw
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1"},
       ns: {coll: "unknown_collection"},
@@ -1936,9 +1971,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // Update event should be skipped because "update" not in methods
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Updated"},
       ns: {coll: "todos"},
@@ -1978,9 +2012,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // Hard delete (no fullDocument)
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       ns: {coll: "todos"},
       operationType: "delete",
@@ -2018,9 +2051,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // Hard delete for broadcast strategy
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       ns: {coll: "broadcasts"},
       operationType: "delete",
@@ -2058,8 +2090,7 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Updated", status: "done"},
       ns: {coll: "todos"},
@@ -2119,9 +2150,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {ignoredOperations: ["insert"]}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // This insert should be skipped because "insert" is ignored
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1"},
       ns: {coll: "todos"},
@@ -2141,15 +2171,14 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // Missing ns.coll
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       ns: {},
       operationType: "insert",
     });
     // Missing documentKey
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {},
       ns: {coll: "todos"},
       operationType: "insert",
@@ -2168,9 +2197,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // "drop" is not in our pipeline filter, should be skipped
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       operationType: "drop",
     });
   });
@@ -2266,9 +2294,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
     // Should not throw even though permission check throws
-    await changeHandler!({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Test"},
       ns: {coll: "todos"},
@@ -2326,7 +2353,7 @@ describe("RealtimeApp.onServerCreated", () => {
   });
 
   const makeServer = (): import("http").Server => {
-    const http = require("http");
+    const http = require("node:http");
     const server = http.createServer();
     servers.push(server);
     return server;
@@ -2375,7 +2402,7 @@ describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () =>
   });
 
   const makeServer = (): import("http").Server => {
-    const http = require("http");
+    const http = require("node:http");
     const server = http.createServer();
     servers.push(server);
     return server;

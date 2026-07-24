@@ -21,9 +21,15 @@ const E2E_ADMIN_USER = {
 };
 
 // Minimal admin config matching @terreno/admin-backend's /admin/config response shape,
-// enough for AdminGate (200 = admin) and AdminModelList (model cards) to render.
+// enough for AdminGate (200 = admin) and AdminHome (slot widgets) to render.
 const ADMIN_CONFIG = {
   customScreens: [],
+  home: {
+    slots: {
+      main: ["modelsGrid"],
+    },
+    title: "Admin",
+  },
   models: [
     {
       defaultSort: "-created",
@@ -59,7 +65,7 @@ const hasSession = (req: express.Request): boolean => {
  * plus an in-memory mock of the better-auth endpoints the SPA's login flow uses
  * (`/api/auth/sign-in/email`, `/api/auth/get-session`) and the admin metadata
  * endpoint (`/admin/config`). No database or real backend is required, so the
- * Playwright e2e can exercise the full anonymous -> login -> admin model list
+ * Playwright e2e can exercise the full anonymous -> login -> admin home
  * flow against the static bundle. Used by the smoke check and Playwright e2e.
  */
 export const createTestApp = (): express.Express => {

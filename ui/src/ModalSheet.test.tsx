@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {forwardRef, useRef} from "react";
 import {Text, View} from "react-native";
@@ -8,11 +7,13 @@ import {renderWithTheme} from "./test-utils";
 
 // Mock react-native-modalize
 mock.module("react-native-modalize", () => ({
-  Modalize: forwardRef(({children}: {children: React.ReactNode}, ref) => (
-    <View ref={ref as any} testID="modalize">
-      {children}
-    </View>
-  )),
+  Modalize: forwardRef<React.ElementRef<typeof View>, {children: React.ReactNode}>(
+    ({children}, ref) => (
+      <View ref={ref} testID="modalize">
+        {children}
+      </View>
+    )
+  ),
 }));
 
 describe("ModalSheet", () => {

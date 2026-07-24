@@ -1,0 +1,110 @@
+name: Example Backend Script Runner
+
+# Exercises the admin script runner CLI (`bun run script`) end-to-end against the
+# example backend with a real MongoDB. This guards the CLI surface that lets AI
+# assistants run admin scripts directly from the project.
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - "ai/**"
+      - "api-health/**"
+      - "admin-backend/**"
+      - "admin-frontend/**"
+      - "admin-spa/**"
+      - "feature-flags/**"
+      - "rtk/**"
+      - "ui/**"
+      - "example-backend/**"
+      - ".github/workflows/example-backend-script-runner.yml"
+
+jobs:
+  run-script-cli:
+    name: Run admin script CLI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mongodb-version: ["6.0"]
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-image: mirror.gcr.io/library/mongo
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # example-backend imports the compiled output of these workspace packages.
+      - name: Build dependencies
+        run: |
+          for pkg in api ai api-health admin-backend feature-flags ui rtk admin-frontend admin-spa; do
+            echo "::group::compile $pkg"
+            (cd "$pkg" && bun run compile)
+            echo "::endgroup::"
+          done
+
+      - name: Build example backend
+        run: bun run compile
+        working-directory: example-backend
+
+      - name: List available scripts (no database needed)
+        run: |
+          set -euo pipefail
+          output="$(bun run script --list)"
+          echo "$output"
+          echo "$output" | grep -q "countRecords"
+          echo "$output" | grep -q "seedFeatureFlags"
+        working-directory: example-backend
+
+      - name: Run countRecords as a dry run with an argument
+        run: |
+          set -euo pipefail
+          output="$(bun run script countRecords --json --model todos)"
+          echo "$output"
+          echo "$output" | grep -q '"success":true'
+          echo "$output" | grep -q '"wetRun":false'
+        working-directory: example-backend
+        env:
+          CI: true
+
+      - name: Run seedFeatureFlags as a wet run (mutating script)
+        run: |
+          set -euo pipefail
+          output="$(bun run script seedFeatureFlags --wet --json)"
+          echo "$output"
+          echo "$output" | grep -q '"success":true'
+          echo "$output" | grep -q '"wetRun":true'
+        working-directory: example-backend
+        env:
+          CI: true
+
+      - name: Reject an unknown script with a non-zero exit
+        run: |
+          set -euo pipefail
+          if bun run script does-not-exist; then
+            echo "Expected the CLI to fail for an unknown script"
+            exit 1
+          fi
+        working-directory: example-backend
+        env:
+          CI: true

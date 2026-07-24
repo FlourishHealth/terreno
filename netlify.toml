@@ -1,0 +1,18 @@
+[build]
+  base = "website"
+  command = "cd .. && bun install --frozen-lockfile && bun run --filter '@terreno/ui' compile && cd ui && bun run types && cd .. && bun run website:build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "22"
+  DEMO_URL = "https://terreno-demo.netlify.app"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/demo/*"
+  [headers.values]
+    Content-Security-Policy = "frame-ancestors 'self' https://terreno-docs.netlify.app https://*.netlify.app;"

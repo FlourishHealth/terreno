@@ -26,6 +26,7 @@ import {
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 
@@ -542,7 +543,7 @@ const createImageTool = (apiKey?: string): Tool => {
       return {
         description: `Generated image for: "${prompt}"`,
         fileData: dataUrl,
-        filename: `image-${Date.now()}.png`,
+        filename: `image-${DateTime.now().toMillis()}.png`,
         mimeType: mediaType,
       };
     },
@@ -680,6 +681,7 @@ const getDemoTools = (): Record<string, Tool> => {
 
 export const addAiRoutes = (
   router: express.Router,
+  // noExplicitAny: ModelRouterOptions generic varies per downstream caller
   // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
   options?: Partial<ModelRouterOptions<any>>
 ): void => {
@@ -721,6 +723,7 @@ export const addAiRoutes = (
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
     createServerModelFn: createServerModel,
@@ -730,6 +733,7 @@ export const addAiRoutes = (
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     tools: getDemoTools() as any,
   });

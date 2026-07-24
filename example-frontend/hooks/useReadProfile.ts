@@ -1,5 +1,5 @@
 import {useSelectCurrentUserId} from "@terreno/rtk";
-import {useGetMeQuery} from "@/store";
+import {useGetMeQuery} from "@/store/sdk";
 
 export interface ProfileData {
   _id: string;

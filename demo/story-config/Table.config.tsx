@@ -1,5 +1,6 @@
 import {DemoConfiguration} from "@config";
-import {SortableExpandableTableStory, StandardTable} from "@stories";
+import {SortableExpandableTableStory, StandardTable} from "@stories/Table.stories";
+import {TableMockupPreview} from "@stories/TableMockupPreview";
 import {Table} from "@terreno/ui";
 
 export const TableConfiguration: DemoConfiguration = {
@@ -44,7 +45,8 @@ export const TableConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: StandardTable,
+  demo: (props: {preview?: boolean}) =>
+    props.preview ? <TableMockupPreview /> : <StandardTable />,
   demoOptions: {},
   stories: {
     Standard: {render: StandardTable},

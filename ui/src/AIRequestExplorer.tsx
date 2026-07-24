@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import React from "react";
 
 import {Box} from "./Box";
@@ -66,7 +67,11 @@ const formatRow = (item: AIRequestExplorerData) => {
     {value: item.response ?? "-"},
     {value: item.tokensUsed?.toString() ?? "-"},
     {value: item.responseTime != null ? `${item.responseTime}ms` : "-"},
-    {value: item.created ? new Date(item.created).toLocaleString() : "-"},
+    {
+      value: item.created
+        ? DateTime.fromISO(item.created).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)
+        : "-",
+    },
     {value: item.error ?? ""},
   ];
 };

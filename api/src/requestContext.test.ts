@@ -289,6 +289,38 @@ describe("request context job propagation", () => {
     expect(ctx.traceId).toBeUndefined();
   });
 
+  it("returns undefined trace when google cloud trace context has empty trace id", () => {
+    const ctx = getRequestContextFromAttributes({
+      "x-cloud-trace-context": "/1;o=1",
+      "x-request-id": "r7",
+    });
+    expect(ctx.traceId).toBeUndefined();
+    expect(ctx.spanId).toBeUndefined();
+    expect(ctx.requestId).toBe("r7");
+  });
+
+  it("reads the first value when a request header arrives as an array", () => {
+    const headers: Record<string, string[] | string | undefined> = {
+      "x-cloud-trace-context": ["arrtrace/7;o=1", "ignored/9;o=0"],
+    };
+    const req = {
+      header: (name: string): string[] | string | undefined => headers[name.toLowerCase()],
+      user: undefined,
+    } as unknown as express.Request;
+    const res = {
+      setHeader: (): void => {},
+    } as unknown as express.Response;
+
+    let captured: {spanId?: string; traceId?: string} | undefined;
+    requestContextMiddleware(req, res, () => {
+      const ctx = getCurrentRequestContext();
+      captured = {spanId: ctx?.spanId, traceId: ctx?.traceId};
+    });
+
+    expect(captured?.traceId).toBe("arrtrace");
+    expect(captured?.spanId).toBe("7");
+  });
+
   it("adds job id to logger context", () => {
     let output = "";
     const stream = new Writable({

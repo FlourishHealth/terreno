@@ -10,6 +10,7 @@ on:
       - "example-backend/**"
       - "api-health/**"
       - "feature-flags/**"
+      - "bun.lock"
       - "rtk/**"
       - "ui/**"
       - ".github/workflows/example-backend-ci.yml"
@@ -22,7 +23,7 @@ jobs:
       matrix:
         mongodb-version: ["6.0"]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -31,7 +32,7 @@ jobs:
 
       - name: Cache Bun dependencies
         id: cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.bun/install/cache

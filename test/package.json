@@ -1,0 +1,65 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "express": "catalog:",
+    "lodash": "catalog:",
+    "qs": "catalog:",
+    "winston": "catalog:"
+  },
+  "description": "Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures for Terreno packages",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/supertest": "catalog:",
+    "mongodb-memory-server": "catalog:",
+    "mongodb-memory-server-core": "^11.0.1",
+    "mongodb-memory-server-global": "^11.0.1",
+    "mongoose": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "bun",
+    "mongodb",
+    "supertest",
+    "terreno",
+    "testing"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./preload/memoryMongo": "./src/preload/memoryMongo.ts"
+  },
+  "name": "@terreno/test",
+  "peerDependencies": {
+    "mongoose": ">=8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
+    "dev": "bun tsc -w",
+    "ensure-mongo-binary": "bun ./src/mongo/ensureMongoBinary.ts",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test",
+    "test:ci": "bun test"
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.26.0"
+}

@@ -75,7 +75,7 @@ const PaginationNumber: FC<{
   );
 };
 
-export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage}) => {
+export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage, testID}) => {
   const {theme} = useTheme();
 
   // Determine the number of pages to show. Show the first page,
@@ -136,6 +136,7 @@ export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage}) => 
         flexDirection: "row",
         gap: theme.spacing.xs,
       }}
+      testID={testID}
     >
       <PaginationButton
         onClick={() => {

@@ -1,9 +1,11 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {configureStore} from "@reduxjs/toolkit";
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
 import {renderHook} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {Provider} from "react-redux";
 
@@ -18,6 +20,7 @@ import {
   useSelectCurrentUserId,
   useSelectIsAuthenticating,
 } from "./authSlice";
+import type {RootState} from "./constants";
 
 // Create a real RTK Query API with the endpoints that generateAuthSlice expects
 const api = createApi({
@@ -41,7 +44,9 @@ const api = createApi({
 });
 
 const createTestStore = () => {
-  const {authReducer, middleware, ...rest} = generateAuthSlice(api as any);
+  const {authReducer, middleware, ...rest} = generateAuthSlice(
+    api as unknown as Parameters<typeof generateAuthSlice>[0]
+  );
 
   return {
     ...rest,
@@ -281,26 +286,30 @@ describe("generateAuthSlice", () => {
 
 describe("selectors", () => {
   it("selectCurrentUserId returns userId", () => {
-    const state = {auth: {userId: "user-123"}} as any;
-    expect(selectCurrentUserId(state)).toBe("user-123");
+    const state: RootState = {auth: {lastTokenRefreshTimestamp: null, userId: "user-123"}};
+    assert.equal(selectCurrentUserId(state), "user-123");
   });
 
   it("selectCurrentUserId returns undefined when no auth state", () => {
-    expect(selectCurrentUserId({} as any)).toBeUndefined();
+    assert.isUndefined(selectCurrentUserId({}));
   });
 
   it("selectIsAuthenticating returns isAuthenticating", () => {
-    const state = {auth: {isAuthenticating: true}} as any;
-    expect(selectIsAuthenticating(state)).toBe(true);
+    const state: RootState = {auth: {isAuthenticating: true, lastTokenRefreshTimestamp: null}};
+    assert.isTrue(selectIsAuthenticating(state));
   });
 
   it("selectIsAuthenticating defaults to false", () => {
-    expect(selectIsAuthenticating({} as any)).toBe(false);
+    assert.isFalse(selectIsAuthenticating({}));
   });
 
   it("selectLastTokenRefreshTimestamp returns timestamp", () => {
-    const state = {auth: {lastTokenRefreshTimestamp: 12345}} as any;
-    expect(selectLastTokenRefreshTimestamp(state)).toBe(12345);
+    const state: RootState = {auth: {lastTokenRefreshTimestamp: 12345}};
+    assert.equal(selectLastTokenRefreshTimestamp(state), 12345);
+  });
+
+  it("selectLastTokenRefreshTimestamp defaults to null", () => {
+    assert.isNull(selectLastTokenRefreshTimestamp({}));
   });
 });
 
@@ -321,9 +330,9 @@ describe("EmailLoginRequest type", () => {
 describe("generateProfileEndpoints", () => {
   it("builds endpoint query payloads", () => {
     const builder = {
-      mutation: (config: any) => config,
-    };
-    const endpoints = generateProfileEndpoints(builder as any, "todos");
+      mutation: (config: unknown) => config,
+    } as unknown as Parameters<typeof generateProfileEndpoints>[0];
+    const endpoints = generateProfileEndpoints(builder, "todos");
     const createEmailUserQuery = endpoints.createEmailUser.query;
     const emailLoginQuery = endpoints.emailLogin.query;
     const emailSignUpQuery = endpoints.emailSignUp.query;

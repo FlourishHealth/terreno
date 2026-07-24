@@ -1,4 +1,8 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
+import type {
+  Api,
+  BaseQueryFn,
+  EndpointBuilder as RtkEndpointBuilder,
+} from "@reduxjs/toolkit/query/react";
 import type React from "react";
 
 /**
@@ -9,8 +13,12 @@ import type React from "react";
  * OpenAPI SDK with thousands of distinct endpoint types — there is no shared base
  * type we can constrain to, so the generic parameters are erased.
  */
-// biome-ignore lint/suspicious/noExplicitAny: RTK Query's Api generics are erased at the dynamic endpoint injection boundary
-export type AdminApi = Api<any, any, any, any>;
+export type AdminApi = Api<
+  BaseQueryFn<unknown, unknown, unknown>,
+  Record<string, never>,
+  string,
+  string
+>;
 
 /**
  * Generic field/document value used throughout the admin panel.
@@ -28,8 +36,11 @@ export type AdminFieldValue = unknown;
  * endpoints dynamically into a consumer-supplied API, the endpoint shapes are not
  * statically expressible here.
  */
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-export type EndpointBuilder = any;
+export type EndpointBuilder = RtkEndpointBuilder<
+  BaseQueryFn<unknown, unknown, unknown>,
+  string,
+  string
+>;
 
 export interface AdminFieldConfig {
   type: string;
@@ -50,6 +61,12 @@ export interface AdminFieldConfig {
   itemRef?: string;
 }
 
+export interface AdminModelPermissions {
+  create?: boolean;
+  delete?: boolean;
+  update?: boolean;
+}
+
 export interface AdminModelConfig {
   name: string;
   routePath: string;
@@ -60,6 +77,37 @@ export interface AdminModelConfig {
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
+  /**
+   * Field key used for the edit screen title (stack / document title). When unset, the form
+   * picks a scalar label from common keys (`name`, `title`, …) then the first list column.
+   */
+  recordTitleField?: string;
+  /** Admin UI v2 — declarative bulk actions */
+  actions?: {
+    background?: boolean;
+    confirm?: string;
+    id: string;
+    label: string;
+    patchKeys?: string[];
+  }[];
+  bulkPatchAllowlist?: string[];
+  fieldsets?: {fields: string[]; title: string}[];
+  filters?: {
+    choices?: {label: string; value: string}[];
+    field: string;
+    kind: string;
+    label?: string;
+  }[];
+  group?: string;
+  hiddenFields?: string[];
+  listDisplay?: string[];
+  listDisplayLinks?: string[];
+  pageSize?: number;
+  permissions?: AdminModelPermissions;
+  readonlyFields?: string[];
+  realtime?: boolean;
+  searchFields?: string[];
+  sortableFields?: string[];
 }
 
 export interface AdminCustomScreen {
@@ -73,9 +121,24 @@ export interface AdminScriptConfig {
   description: string;
 }
 
+/** Admin UI v2 home layout slots (Django template-block analogue). */
+export interface AdminHomeSlots {
+  contentTop?: string[];
+  main?: string[];
+  navGlobal?: string[];
+  sidebar?: string[];
+}
+
+export interface AdminHome {
+  slots: AdminHomeSlots;
+  title: string;
+}
+
 export interface AdminConfigResponse {
   customScreens?: AdminCustomScreen[];
+  home?: AdminHome;
   models: AdminModelConfig[];
+  schemaVersion?: number;
   scripts: AdminScriptConfig[];
 }
 
@@ -104,6 +167,21 @@ export interface BackgroundTask {
   completedAt?: string;
   created: string;
   updated: string;
+}
+
+/** A single past script run, as returned by `GET {apiBase}/scripts/runs`. */
+export interface ScriptRun extends BackgroundTask {
+  /** Display name (or email) of the admin who triggered the run, when available. */
+  createdByName?: string;
+}
+
+/** Paginated response from the script run-history endpoint. */
+export interface ScriptRunListResponse {
+  data: ScriptRun[];
+  limit: number;
+  more: boolean;
+  page: number;
+  total: number;
 }
 
 /**
@@ -171,6 +249,8 @@ export interface RefFieldRendererProps {
   onChange: (value: string) => void;
   errorText?: string;
   helperText?: string;
+  /** When true, the picker is display-only and does not submit changes. */
+  readOnly?: boolean;
 }
 
 /**

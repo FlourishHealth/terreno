@@ -271,11 +271,44 @@ if (isMobileDevice()) {
 
 ## Icons
 
-```typescript
-import { Icon, IconButton } from "@terreno/ui";
+FontAwesome 6 icons are used by default via `iconName`:
 
-<Icon name="check" size={24} color="success500" />
-<IconButton name="close" onClick={handleClose} />
+```typescript
+import { Icon, IconButton, Button } from "@terreno/ui";
+
+<Icon iconName="check" size="md" color="primary" />
+<IconButton accessibilityLabel="Close" iconName="xmark" onClick={handleClose} />
+<Button text="Save" iconName="check" onClick={handleSave} />
+```
+
+### Custom Icons
+
+Register SVG or other custom icons on `TerrenoProvider` and use them by name anywhere `iconName` is accepted. Registered names take precedence over FontAwesome.
+
+```typescript
+import type { CustomIconProps } from "@terreno/ui";
+import { TerrenoProvider } from "@terreno/ui";
+import Svg, { Path } from "react-native-svg";
+
+const SparkleIcon = ({ color, size, testID }: CustomIconProps) => (
+  <Svg fill="none" height={size} testID={testID} viewBox="0 0 24 24" width={size}>
+    <Path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" fill={color} />
+  </Svg>
+);
+
+<TerrenoProvider icons={{ sparkle: SparkleIcon }}>
+  <Icon iconName="sparkle" color="accent" size="lg" />
+</TerrenoProvider>
+```
+
+For TypeScript autocomplete, extend `CustomIconRegistry` via declaration merging:
+
+```typescript
+declare module "@terreno/ui" {
+  interface CustomIconRegistry {
+    sparkle: true;
+  }
+}
 ```
 
 ## Best Practices

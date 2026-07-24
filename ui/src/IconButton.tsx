@@ -4,6 +4,7 @@ import {type FC, useState} from "react";
 import {ActivityIndicator, Text as NativeText, Pressable, View} from "react-native";
 
 import type {IconButtonProps} from "./Common";
+import {useCustomIcon} from "./IconRegistry";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
@@ -55,6 +56,8 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   indicator,
   indicatorText,
   loading: propsLoading = false,
+  size = "default",
+  state = "default",
   testID,
   variant = "primary",
   withConfirmation = false,
@@ -64,6 +67,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   const [loading, setLoading] = useState(propsLoading);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
+  const CustomIcon = useCustomIcon(iconName);
   let accessLabel = accessibilityLabel;
   if (tooltipText && accessibilityLabel === "") {
     accessLabel = tooltipText;
@@ -91,6 +95,18 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   } else if (variant === "destructive") {
     backgroundColor = theme.text.inverted;
     color = theme.text.error;
+  } else if (variant === "ghost") {
+    backgroundColor = "transparent";
+    color = theme.surface.secondaryDark;
+  }
+
+  if (!disabled && state === "active") {
+    if (variant === "primary") {
+      backgroundColor = theme.primitives.primary600;
+    } else {
+      backgroundColor = theme.surface.primary;
+      color = theme.text.inverted;
+    }
   }
 
   const indicatorColor = indicator ? theme.surface[indicator] : undefined;
@@ -132,21 +148,24 @@ const IconButtonComponent: FC<IconButtonProps> = ({
         alignItems: "center",
         backgroundColor,
         borderRadius: theme.radius.rounded,
-        height: 32,
+        height: size === "sm" ? 28 : 32,
         justifyContent: "center",
-        width: 32,
+        width: size === "sm" ? 28 : 32,
       }}
       testID={testID}
     >
       {loading ? (
         <ActivityIndicator color={color} size="small" />
+      ) : CustomIcon ? (
+        <CustomIcon color={color} size={size === "sm" ? 12 : variant === "navigation" ? 20 : 16} />
       ) : (
         <FontAwesome6
           color={color}
           name={iconName}
           selectable={undefined}
-          size={variant === "navigation" ? 20 : 16}
+          size={size === "sm" ? 12 : variant === "navigation" ? 20 : 16}
           solid
+          style={{textAlign: "center"}}
         />
       )}
       {Boolean(indicator) && (

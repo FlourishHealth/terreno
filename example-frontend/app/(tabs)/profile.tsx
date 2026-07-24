@@ -1,3 +1,4 @@
+import {useBooleanFlagDetails} from "@openfeature/react-sdk";
 import {useFeatureFlags, useSelectCurrentUserId} from "@terreno/rtk";
 import {
   Box,
@@ -14,7 +15,8 @@ import {
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
+import {logout, useAppDispatch} from "@/store/index";
+import {terrenoApi, useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
@@ -29,7 +31,8 @@ const ProfileScreen: React.FC = () => {
     getFlag,
     isLoading: isFeatureFlagsLoading,
     error: featureFlagsError,
-  } = useFeatureFlags(terrenoApi, {skip: !userId});
+  } = useFeatureFlags(terrenoApi, {skip: !userId, userId});
+  const darkModeFlagDetails = useBooleanFlagDetails("dark-mode-toggle", false);
   const showDarkModeToggle = getFlag("dark-mode-toggle");
   const featureFlagEntries = useMemo(
     (): Array<{key: string; value: boolean | string | null}> =>
@@ -285,6 +288,11 @@ const ProfileScreen: React.FC = () => {
         <Card marginBottom={6} testID="profile-feature-flags-card">
           <Box gap={3}>
             <Heading size="lg">Feature Flags</Heading>
+            <Text color="secondaryLight" size="sm">
+              OpenFeature sample: &quot;dark-mode-toggle&quot; → value{" "}
+              {String(darkModeFlagDetails.value)} (reason:{" "}
+              {String(darkModeFlagDetails.reason ?? "")})
+            </Text>
             {isFeatureFlagsLoading && <Text color="secondaryLight">Loading feature flags...</Text>}
             {!isFeatureFlagsLoading && featureFlagsError && (
               <Text color="error">Failed to load feature flags</Text>

@@ -160,6 +160,32 @@ export const DisabledIconButton = (props: Partial<IconButtonProps>) => {
   );
 };
 
+export const IconButtonSizes = (props: Partial<IconButtonProps>) => {
+  return (
+    <Box direction="row" gap={4} wrap>
+      <Box alignItems="center" gap={2}>
+        <Text>Default (32px)</Text>
+        <IconButton
+          accessibilityLabel="default size"
+          iconName="plus"
+          onClick={() => console.info("clicked")}
+          {...props}
+        />
+      </Box>
+      <Box alignItems="center" gap={2}>
+        <Text>Small (28px)</Text>
+        <IconButton
+          accessibilityLabel="small size"
+          iconName="plus"
+          onClick={() => console.info("clicked")}
+          size="sm"
+          {...props}
+        />
+      </Box>
+    </Box>
+  );
+};
+
 export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
   return (
     <Box direction="row" wrap>
@@ -211,6 +237,18 @@ export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
         </Box>
       </Box>
       <Box alignItems="center" paddingX={2}>
+        <Text>Ghost</Text>
+        <Box padding={1}>
+          <IconButton
+            accessibilityLabel="ghost action"
+            iconName="plus"
+            onClick={() => console.info("clicked")}
+            variant="ghost"
+            {...props}
+          />
+        </Box>
+      </Box>
+      <Box alignItems="center" paddingX={2}>
         <Text>Disabled</Text>
         <IconButton
           accessibilityLabel="add item"
@@ -220,6 +258,50 @@ export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
           {...props}
         />
       </Box>
+    </Box>
+  );
+};
+
+const ICON_BUTTON_STATE_VARIANTS: {label: string; variant: IconButtonProps["variant"]}[] = [
+  {label: "Primary", variant: "primary"},
+  {label: "Secondary", variant: "secondary"},
+  {label: "Muted", variant: "muted"},
+  {label: "Destructive", variant: "destructive"},
+  {label: "Ghost", variant: "ghost"},
+];
+
+export const IconButtonStates = (props: Partial<IconButtonProps>) => {
+  return (
+    <Box direction="column" gap={4}>
+      {ICON_BUTTON_STATE_VARIANTS.map(({label, variant}) => (
+        <Box alignItems="center" direction="row" gap={4} key={variant}>
+          <Box width={100}>
+            <Text>{label}</Text>
+          </Box>
+          <Box alignItems="center" gap={1}>
+            <Text>Default</Text>
+            <IconButton
+              accessibilityLabel={`${label} default`}
+              iconName="plus"
+              onClick={() => console.info("clicked")}
+              state="default"
+              variant={variant}
+              {...props}
+            />
+          </Box>
+          <Box alignItems="center" gap={1}>
+            <Text>Active</Text>
+            <IconButton
+              accessibilityLabel={`${label} active`}
+              iconName="plus"
+              onClick={() => console.info("clicked")}
+              state="active"
+              variant={variant}
+              {...props}
+            />
+          </Box>
+        </Box>
+      ))}
     </Box>
   );
 };

@@ -52,6 +52,14 @@ Run the most relevant lint, compile, and tests for the changed packages.
 - Do not ask before fixing straightforward lint, type, test, formatting, or generated-file issues.
 - Ask only when a fix would change product behavior, permissions, data shape, public API, or destructive behavior beyond the current feature scope.
 
+### 2b. Frontend verification (mandatory when branch touches frontend)
+
+If the branch changes files under `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Invoke the `verify-ui-changes` skill before creating or updating the PR.
+2. Launch the correct app, log in with seeded credentials when required, and exercise each changed user-facing feature.
+3. Save screenshots and videos under `/opt/cursor/artifacts/` and include them in the PR `## Evidence` or `## UI verification` section.
+
 ### 3. Commit, push, and create or update the PR
 
 If there are uncommitted relevant changes:
@@ -69,8 +77,8 @@ git push origin HEAD
 
 Create or update the PR as a draft unless the user has explicitly requested otherwise.
 
-- Preserve human-authored PR edits when updating the body.
-- Ensure the PR body reflects all commits on the branch, not just the newest commit.
+- When updating an existing PR, **merge** into the current `body` from `gh pr view`: keep prior sections and reviewer context; append or revise only what is stale for the branch (same merge policy as `/submit` Step 4). Do not replace the entire description with a fresh template.
+- Ensure the merged PR body still reflects **all** commits on the branch, not only the latest push.
 
 ### 4. Fix CI until checks pass
 
@@ -80,6 +88,8 @@ Use the `Agent` tool:
 - `subagent_type`: `general-purpose`
 - `description`: `Watch CI for current PR`
 - `prompt`: instruct the sub-agent to invoke the `/check-watcher` skill for the current PR, fix any failures, and report back when checks are green or max attempts are hit. Include the PR number/URL.
+
+If your harness does not support subagents, run the `/check-watcher` skill directly instead.
 
 Wait for `/check-watcher` to return before continuing Autobot.
 

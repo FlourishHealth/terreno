@@ -1,4 +1,4 @@
-import {DemoHomePage} from "@components";
+import {DemoHomePage} from "@components/DemoHomePage";
 import {router} from "expo-router";
 import {StyleSheet, View} from "react-native";
 import {Host} from "react-native-portalize";
@@ -33,7 +33,7 @@ const App = () => {
           width: "100%",
         }}
       >
-        <View style={styles.body}>
+        <View style={styles.body} testID="demo-home-screen">
           <DemoHomePage
             onPress={(component: string) => {
               router.push(`demo/${encodeURIComponent(component)}`);

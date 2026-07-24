@@ -1,6 +1,7 @@
 import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
+import {DateTime} from "luxon";
 import type {Model, ObjectId} from "mongoose";
 import ms, {type StringValue} from "ms";
 import passport from "passport";
@@ -40,12 +41,16 @@ export interface UserModel extends Model<User> {
   // Allows additional setup during signup. This will be passed the rest of req.body from the signup
   postCreate?: (body: Record<string, unknown>) => Promise<void>;
 
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   createStrategy(): any;
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   serializeUser(): any;
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   deserializeUser(): any;
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   findByUsername(username: string, findOpts: any): any;
 }
@@ -54,35 +59,59 @@ export interface GenerateTokensOptions {
   sessionId?: string;
 }
 
-export function authenticateMiddleware(anonymous = false) {
+export const authenticateMiddleware = (anonymous = false) => {
   const strategies = ["jwt"];
   if (anonymous) {
     strategies.push("anonymous");
   }
-  const passportAuth = passport.authenticate(strategies, {
-    failureMessage: false, // this is just avoiding storing the message in the session
-    failWithError: true,
-    session: false,
-  });
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (req.user) {
       return next();
     }
-    return passportAuth(req, res, next);
+    // Failures use a custom callback rather than passport's `failWithError`:
+    // passport's internal AuthenticationError touches `arguments.callee`,
+    // which throws a TypeError in strict-mode contexts — inside
+    // `bun build --compile` binaries that turned every 401 into a 500. The
+    // plain Error("Unauthorized") below is what apiUnauthorizedMiddleware
+    // matches on, so the response contract is unchanged.
+    // (The anonymous strategy calls pass(), which skips this callback and
+    // continues the chain with no user — same as before.)
+    return passport.authenticate(
+      strategies,
+      {session: false},
+      (
+        err: Error | null,
+        user: NonNullable<express.Request["user"]> | false | null,
+        info: unknown
+      ) => {
+        if (err) {
+          return next(err);
+        }
+        if (!user) {
+          return next(new Error("Unauthorized"));
+        }
+        req.user = user;
+        // req.logIn used to populate authInfo; keep that passport-public API
+        // intact for downstream consumers.
+        req.authInfo = (info ?? {}) as Express.AuthInfo;
+        return next();
+      }
+    )(req, res, next);
   };
-}
+};
 
-export async function signupUser(
+export const signupUser = async (
   userModel: UserModel,
   email: string,
   password: string,
   body?: Record<string, unknown>
-) {
+) => {
   // Strip email and password from the body. They can cause mongoose to throw an error if strict is
   // set.
   const {email: _email, password: _password, ...bodyRest} = body ?? {};
 
   try {
+    // noExplicitAny: passport-local-mongoose's register() is untyped
     // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's register() is untyped
     const user = await (userModel as any).register({email, ...bodyRest}, password);
 
@@ -100,7 +129,7 @@ export async function signupUser(
     const message = errorMessage(error);
     throw new APIError({title: message});
   }
-}
+};
 
 /**
  * Generates both an access token (JWT) and a refresh token for a given user.
@@ -126,7 +155,7 @@ export const generateTokens = async (
 ) => {
   const tokenSecretOrKey = process.env.TOKEN_SECRET;
   if (!tokenSecretOrKey) {
-    throw new Error("TOKEN_SECRET must be set in env.");
+    throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
   }
   const tokenUser = user as {_id?: ObjectId | string} | null | undefined;
   if (!tokenUser?._id) {
@@ -185,8 +214,7 @@ export const generateTokens = async (
   return {refreshToken, sessionId, token};
 };
 
-// TODO allow customization
-export function setupAuth(app: express.Application, userModel: UserModel) {
+export const setupAuth = (app: express.Application, userModel: UserModel): void => {
   passport.use(new AnonymousStrategy());
   passport.use(userModel.createStrategy());
   passport.use(
@@ -208,7 +236,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
   );
 
   if (!userModel.createStrategy) {
-    throw new Error("setupAuth userModel must have .createStrategy()");
+    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
   }
 
   const customTokenExtractor: JwtFromRequestFunction = (req) => {
@@ -228,7 +256,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
 
     const secretOrKey = process.env.TOKEN_SECRET;
     if (!secretOrKey) {
-      throw new Error("TOKEN_SECRET must be set in env.");
+      throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
     }
     const jwtOpts: StrategyOptions = {
       issuer: process.env.TOKEN_ISSUER,
@@ -264,11 +292,11 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
 
   // Adds req.user to the request. This may wind up duplicating requests with passport,
   // but passport doesn't give us req.user early enough.
-  async function decodeJWTMiddleware(
+  const decodeJWTMiddleware = async (
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
-  ) {
+  ) => {
     if (!process.env.TOKEN_SECRET) {
       return next();
     }
@@ -300,7 +328,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
           ? (error as {expiredAt?: unknown}).expiredAt
           : undefined;
       const message = errorMessage(error);
-      const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${expiredAt}, current time: ${Date.now()}`;
+      const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${expiredAt}, current time: ${DateTime.now().toMillis()}`;
       logger.debug(details);
       return res.status(401).json({details, message});
     }
@@ -324,17 +352,18 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
       }
     }
     return next();
-  }
+  };
   app.use(decodeJWTMiddleware);
+  // noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
   // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
   app.use(express.urlencoded({extended: false}) as any);
-}
+};
 
-export function addAuthRoutes(
+export const addAuthRoutes = (
   app: express.Application,
   userModel: UserModel,
   authOptions?: AuthOptions
-): void {
+): void => {
   const router = express.Router();
   router.post("/login", async (req, res, next) => {
     passport.authenticate(
@@ -412,7 +441,26 @@ export function addAuthRoutes(
   if (!signupDisabled) {
     router.post(
       "/signup",
-      passport.authenticate("signup", {failWithError: true, session: false}),
+      // Custom callback instead of `failWithError` — passport's internal
+      // AuthenticationError is unusable in strict-mode bundles (see
+      // authenticateMiddleware). Strategy errors (e.g. duplicate email) pass
+      // through unchanged; a bare failure (missing credentials) is a 400.
+      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        passport.authenticate(
+          "signup",
+          {session: false},
+          (err: Error | null, user: NonNullable<express.Request["user"]> | false | null) => {
+            if (err) {
+              return next(err);
+            }
+            if (!user) {
+              return next(new APIError({status: 400, title: "Missing credentials"}));
+            }
+            req.user = user;
+            return next();
+          }
+        )(req, res, next);
+      },
       async (req: express.Request, res: express.Response) => {
         const tokens = await generateTokens(req.user, authOptions);
         if (tokens.sessionId) {
@@ -430,13 +478,13 @@ export function addAuthRoutes(
   }
   app.set("etag", false);
   app.use("/auth", router);
-}
+};
 
-export function addMeRoutes(
+export const addMeRoutes = (
   app: express.Application,
   userModel: UserModel,
   _authOptions?: AuthOptions
-): void {
+): void => {
   const router = express.Router();
   router.get("/me", authenticateMiddleware(), async (req, res) => {
     if (!req.user?.id) {
@@ -483,4 +531,4 @@ export function addMeRoutes(
   app.set("etag", false);
   app.use("/auth", router);
   app.use(apiErrorMiddleware);
-}
+};

@@ -1,0 +1,82 @@
+name: Repository policies
+
+on:
+  push:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "biome/plugins/no-barrel-imports.grit"
+      - "scripts/no-barrel-imports/**"
+      - "scripts/check-explicit-any/**"
+      - "docs/explanation/no-barrel-imports.md"
+      - "docs/explanation/explicit-any-policy.md"
+      - ".github/workflows/repo-policies.yml"
+  pull_request:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "biome/plugins/no-barrel-imports.grit"
+      - "scripts/no-barrel-imports/**"
+      - "scripts/check-explicit-any/**"
+      - "docs/explanation/no-barrel-imports.md"
+      - "docs/explanation/explicit-any-policy.md"
+      - ".github/workflows/repo-policies.yml"
+
+jobs:
+  no-barrel-imports:
+    name: No barrel imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Check for barrel imports
+        run: bun run check:no-barrel-imports
+
+  explicit-any:
+    name: Explicit any baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Check explicit any baseline
+        run: bun run check:explicit-any:baseline
+
+      - name: Write explicit any inventory artifact
+        if: always()
+        run: bun run check:explicit-any:json > explicit-any-inventory.json
+
+      - name: Upload explicit any inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: explicit-any-inventory
+          path: explicit-any-inventory.json

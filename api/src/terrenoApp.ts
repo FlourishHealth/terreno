@@ -11,9 +11,10 @@ import {
   apiFallthroughErrorMiddleware,
   apiUnauthorizedMiddleware,
 } from "./errors";
-import {type AuthOptions, logRequests} from "./expressServer";
+import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import {RealtimeApp} from "./realtime/realtimeApp";
@@ -68,28 +69,41 @@ export interface TerrenoAppOptions {
    * Set to `true` for defaults, or pass a RealtimeAppOptions object for full control.
    */
   realtime?: boolean | RealtimeAppOptions;
+  /**
+   * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
+   * Use to attach early middleware via `app.use(...)` before JSON parsing.
+   */
+  beforeJsonSetup?: (app: express.Application) => void;
+  /**
+   * Invoked after registered plugins/model routers and before `/auth/me`.
+   * Receives the Express app and OpenAPI bundle for `modelRouter` / `createOpenApiBuilder` wiring.
+   */
+  configureApp?: AddRoutes;
 }
 
 /**
  * Fluent API for building Express applications with Terreno framework.
  *
- * TerrenoApp provides an alternative to `setupServer` using a registration
- * pattern instead of callbacks. Build applications by registering model
- * routers and plugins, then calling `start()` to begin listening.
+ * TerrenoApp is the supported way to assemble the Terreno Express stack.
+ * Build applications by registering model routers and plugins (and/or
+ * `configureApp`), then calling `start()` to listen.
  *
  * The middleware stack is configured in this order:
  * 1. CORS
- * 2. Custom middleware (via addMiddleware)
- * 3. JSON body parser
- * 4. Auth routes (/auth/login, /auth/signup, etc.)
- * 5. JWT authentication setup
- * 6. Request logging
- * 7. Sentry scopes
- * 8. OpenAPI middleware
- * 9. /auth/me routes
+ * 2. Optional `beforeJsonSetup` (configure the app before JSON parsing)
+ * 3. Custom middleware (via addMiddleware)
+ * 4. JSON body parser
+ * 5. Auth routes (/auth/login, /auth/signup, etc.)
+ * 6. JWT authentication setup
+ * 7. Request logging
+ * 8. Sentry scopes
+ * 9. OpenAPI middleware (including JSON `requestId` on object responses)
  * 10. GitHub OAuth routes (if enabled)
- * 11. Registered model routers and plugins
- * 12. Error handling middleware
+ * 11. Configuration app (if any)
+ * 12. Registered model routers and plugins
+ * 13. Optional `configureApp` callback
+ * 14. /auth/me routes
+ * 15. Error handling middleware
  *
  * @example
  * ```typescript
@@ -126,7 +140,6 @@ export interface TerrenoAppOptions {
  *   .start();
  * ```
  *
- * @see setupServer for the callback-based alternative
  * @see TerrenoPlugin for creating reusable plugins
  * @see modelRouter for creating CRUD route registrations
  */
@@ -215,6 +228,7 @@ export class TerrenoApp {
    * ```
    */
   configure(
+    // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
     // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
     model: import("mongoose").Model<any>,
     options?: Omit<ConfigurationAppOptions, "model">
@@ -262,6 +276,10 @@ export class TerrenoApp {
     app.use(requestContextMiddleware);
 
     app.use(cors({credentials: true, origin: options.corsOrigin ?? "*"}));
+
+    if (options.beforeJsonSetup) {
+      options.beforeJsonSetup(app);
+    }
 
     // Apply custom middleware before JSON parsing
     for (const fn of this.middlewareFns) {
@@ -317,6 +335,7 @@ export class TerrenoApp {
     // OpenAPI
     app.use(openApiCompatMiddleware);
     app.use(openApiEtagMiddleware);
+    app.use(jsonResponseRequestIdMiddleware);
     const oapi = openapi({
       info: {
         description: "Generated docs from an Express api",
@@ -350,6 +369,10 @@ export class TerrenoApp {
       } else {
         registration.register(app, oapi);
       }
+    }
+
+    if (options.configureApp) {
+      options.configureApp(app, {openApi: oapi});
     }
 
     // /auth/me must be registered after plugins so that session middleware

@@ -124,7 +124,11 @@ describe("AdminModelForm", () => {
       />
     );
     expect(toJSON()).toBeDefined();
-    expect(setOptions).toHaveBeenCalled();
+    expect(setOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "New User",
+      })
+    );
   });
 
   it("renders spinner during edit when the item is loading", () => {
@@ -140,6 +144,7 @@ describe("AdminModelForm", () => {
       />
     );
     expect(toJSON()).toBeDefined();
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({title: "User"}));
   });
 
   it("initializes form state from fetched item data in edit mode", () => {
@@ -160,6 +165,39 @@ describe("AdminModelForm", () => {
       />
     );
     expect(toJSON()).toBeDefined();
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({title: "Existing"}));
+  });
+
+  it("uses recordTitleField from model config for the navigation title", () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["email", "name"],
+          fields: {
+            email: {required: false, type: "string"},
+            name: {required: false, type: "string"},
+          },
+          recordTitleField: "email",
+        },
+      ],
+    };
+    readState.data = {
+      email: "pick@me.com",
+      name: "Other",
+    };
+    const {toJSON} = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    expect(toJSON()).toBeDefined();
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({title: "pick@me.com"}));
   });
 
   it("renders 'No editable fields' when the model has only system fields", () => {
@@ -616,6 +654,48 @@ describe("AdminModelForm", () => {
     expect(deleteFn).toHaveBeenCalled();
     // Router should not navigate away because an error was thrown.
     expect(routerBack).not.toHaveBeenCalled();
+  });
+
+  it("excludes readonly fields from the PATCH body on save", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["email", "name"],
+          fields: {
+            email: {required: false, type: "string"},
+            name: {required: false, type: "string"},
+          },
+          readonlyFields: ["email"],
+        },
+      ],
+    };
+    readState.data = {email: "locked@x.com", name: "N"};
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+    renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+    await act(async () => {
+      fireEvent.press(header.getByTestId("admin-save-button"));
+      await new Promise((r) => setTimeout(r, 600));
+    });
+    expect(updateFn).toHaveBeenCalled();
+    const arg = updateFn.mock.calls[0][0] as {body: Record<string, unknown>; id: string};
+    expect(arg.body.email).toBeUndefined();
+    expect(arg.body.name).toBeDefined();
   });
 
   it("updates an existing item in edit mode", async () => {

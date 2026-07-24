@@ -362,4 +362,56 @@ describe("Signature", () => {
     expect(mockOnChange).toHaveBeenCalledWith("");
     expect(ctx.fillRect).toHaveBeenCalled();
   });
+
+  it("ignores pointer down when the canvas ref is missing", () => {
+    const mockOnChange = mock(() => {});
+    const mockOnStart = mock(() => {});
+    const {UNSAFE_getByType} = renderWithTheme(
+      <Signature onChange={mockOnChange} onStart={mockOnStart} />
+    );
+    const canvas = UNSAFE_getByType("canvas");
+    canvas.props.ref.current = null;
+
+    act(() => {
+      canvas.props.onPointerDown({
+        nativeEvent: {offsetX: 10, offsetY: 20},
+        pointerId: 1,
+      });
+    });
+
+    expect(mockOnStart).not.toHaveBeenCalled();
+  });
+
+  it("falls back to raw offsets when the canvas has no measurable size", () => {
+    const mockOnChange = mock(() => {});
+    const moveTo = mock(() => {});
+    const {UNSAFE_getByType} = renderWithTheme(<Signature onChange={mockOnChange} />);
+    const canvas = UNSAFE_getByType("canvas");
+    canvas.props.ref.current = {
+      clientHeight: 0,
+      clientWidth: 0,
+      getBoundingClientRect: () => ({height: 0, width: 0}),
+      getContext: () => ({
+        beginPath: mock(() => {}),
+        fillRect: mock(() => {}),
+        lineCap: "round",
+        lineJoin: "round",
+        lineTo: mock(() => {}),
+        moveTo,
+        stroke: mock(() => {}),
+      }),
+      height: 0,
+      setPointerCapture: mock(() => {}),
+      width: 0,
+    } as unknown as HTMLCanvasElement;
+
+    act(() => {
+      canvas.props.onPointerDown({
+        nativeEvent: {offsetX: 42, offsetY: 24},
+        pointerId: 1,
+      });
+    });
+
+    expect(moveTo).toHaveBeenCalledWith(42, 24);
+  });
 });

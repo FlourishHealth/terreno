@@ -1,5 +1,7 @@
 import {afterEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
+import {Gesture} from "react-native-gesture-handler";
 
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
@@ -357,6 +359,53 @@ describe("Modal", () => {
   });
 });
 
+describe("Modal web platform", () => {
+  const RN = require("react-native") as {Platform: {OS: string}};
+  const originalOS = RN.Platform.OS;
+  const globalScope = globalThis as {document?: unknown; HTMLElement?: unknown};
+  const originalDocument = globalScope.document;
+  const originalHTMLElement = globalScope.HTMLElement;
+
+  class FakeHTMLElement {
+    blur = mock(() => {});
+  }
+
+  afterEach(() => {
+    RN.Platform.OS = originalOS;
+    globalScope.document = originalDocument;
+    globalScope.HTMLElement = originalHTMLElement;
+  });
+
+  it("blurs the focused element when opened on web", () => {
+    RN.Platform.OS = "web";
+    globalScope.HTMLElement = FakeHTMLElement;
+    const active = new FakeHTMLElement();
+    globalScope.document = {activeElement: active};
+
+    renderWithTheme(
+      <Modal onDismiss={() => {}} title="Web Modal" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    expect(active.blur).toHaveBeenCalled();
+  });
+
+  it("does not blur when the active element is not an HTMLElement", () => {
+    RN.Platform.OS = "web";
+    globalScope.HTMLElement = FakeHTMLElement;
+    globalScope.document = {activeElement: {}};
+
+    const {toJSON} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Web Modal" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    expect(toJSON()).toBeTruthy();
+  });
+});
+
 describe("Modal mobile branch", () => {
   afterEach(() => {
     (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
@@ -398,5 +447,42 @@ describe("Modal mobile branch", () => {
       </Modal>
     );
     expect(toJSON()).toBeTruthy();
+  });
+});
+
+interface CapturedGesture {
+  onEnd: {mock: {calls: [(event: {translationY: number}) => void][]}};
+}
+
+describe("Modal drag-to-close gesture", () => {
+  it("dismisses only when dragged down past the threshold", () => {
+    const handleDismiss = mock(() => {});
+    let capturedGesture: CapturedGesture | undefined;
+    const originalPan = Gesture.Pan;
+    (Gesture as {Pan: () => unknown}).Pan = () => {
+      capturedGesture = originalPan() as unknown as CapturedGesture;
+      return capturedGesture;
+    };
+
+    try {
+      renderWithTheme(
+        <Modal onDismiss={handleDismiss} title="Draggable" visible>
+          <Text>Body</Text>
+        </Modal>
+      );
+
+      const onEnd = capturedGesture?.onEnd.mock.calls[0][0];
+      assert.isDefined(onEnd);
+
+      // A small drag stays below the threshold and should not dismiss.
+      onEnd?.({translationY: 5});
+      assert.lengthOf(handleDismiss.mock.calls, 0);
+
+      // A drag past the threshold dismisses via runOnJS(handleDismiss).
+      onEnd?.({translationY: 40});
+      assert.lengthOf(handleDismiss.mock.calls, 1);
+    } finally {
+      (Gesture as {Pan: () => unknown}).Pan = originalPan;
+    }
   });
 });

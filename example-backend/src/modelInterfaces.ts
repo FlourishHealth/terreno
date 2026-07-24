@@ -27,3 +27,13 @@ export interface UserDocument extends BaseDocument, UserMethods {
 }
 
 // Add additional model interfaces below following the same pattern
+
+export interface AdminAuditLogDocument extends BaseDocument {
+  actorId?: mongoose.Types.ObjectId;
+  modelName: string;
+  recordId?: mongoose.Types.ObjectId;
+  recordLabel?: string;
+  verb: "created" | "deleted" | "updated";
+}
+
+export interface AdminAuditLogModel extends mongoose.Model<AdminAuditLogDocument> {}

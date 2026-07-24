@@ -45,5 +45,6 @@
       }
     }
   },
+  "plugins": ["../biome/plugins/no-barrel-imports.grit"],
   "root": true
 }

@@ -1,10 +1,13 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import supertest from "supertest";
+import type {UserModel as UserModelType} from "../auth";
 import {VersionConfig} from "../models/versionConfig";
 import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
 import {VersionCheckPlugin} from "../versionCheckPlugin";
+
+const typedUserModel = UserModel as unknown as UserModelType;
 
 describe("VersionCheckPlugin", () => {
   let app: ReturnType<typeof supertest>;
@@ -15,7 +18,7 @@ describe("VersionCheckPlugin", () => {
 
     const expressApp = new TerrenoApp({
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: typedUserModel,
     })
       .register(new VersionCheckPlugin())
       .build();
@@ -30,19 +33,35 @@ describe("VersionCheckPlugin", () => {
   it("returns ok when no VersionConfig exists", async () => {
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({pollingIntervalMs: 86400000, status: "ok"});
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        pollingIntervalMs: 86400000,
+        status: "ok",
+      })
+    );
   });
 
   it("returns ok when version param is missing", async () => {
     const res = await app.get("/version-check");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({status: "ok"});
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+    expect(res.body).toEqual(expect.objectContaining({status: "ok"}));
   });
 
   it("returns ok when version param is invalid", async () => {
     const res = await app.get("/version-check").query({platform: "web", version: "invalid"});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({status: "ok"});
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+    expect(res.body).toEqual(expect.objectContaining({status: "ok"}));
+  });
+
+  it("returns ok when version is provided more than once", async () => {
+    const res = await app.get("/version-check?platform=mobile&version=1&version=2");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, "ok");
+    assert.notProperty(res.body, "pollingIntervalMs");
   });
 
   it("returns ok when client version >= warning and required (web)", async () => {
@@ -53,12 +72,15 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 150});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      pollingIntervalMs: 86400000,
-      requiredVersion: 50,
-      status: "ok",
-      warningVersion: 100,
-    });
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        pollingIntervalMs: 86400000,
+        requiredVersion: 50,
+        status: "ok",
+        warningVersion: 100,
+      })
+    );
   });
 
   it("returns warning when client version < warning (web)", async () => {
@@ -70,6 +92,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 80});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("warning");
     expect(res.body.message).toBe("Please update!");
   });
@@ -84,6 +107,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 50});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("required");
     expect(res.body.message).toBe("Update required");
     expect(res.body.updateUrl).toBe("https://example.com/update");
@@ -98,10 +122,45 @@ describe("VersionCheckPlugin", () => {
     });
 
     const webRes = await app.get("/version-check").query({platform: "web", version: 100});
+    expect(webRes.body.requestId).toBe(webRes.headers["x-request-id"]);
     expect(webRes.body.status).toBe("ok");
 
     const mobileRes = await app.get("/version-check").query({platform: "mobile", version: 100});
+    expect(mobileRes.body.requestId).toBe(mobileRes.headers["x-request-id"]);
     expect(mobileRes.body.status).toBe("required");
+  });
+
+  it("returns warning when a mobile version is below the mobile warning threshold", async () => {
+    await VersionConfig.create({
+      mobileRequiredVersion: 100,
+      mobileWarningVersion: 200,
+      warningMessage: "Update the mobile app",
+    });
+
+    const res = await app.get("/version-check").query({platform: "mobile", version: 150});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        message: "Update the mobile app",
+        requiredVersion: 100,
+        status: "warning",
+        warningVersion: 200,
+      })
+    );
+  });
+
+  it("omits mobile thresholds when they are not configured", async () => {
+    await VersionConfig.create({});
+
+    const res = await app.get("/version-check").query({platform: "mobile", version: 1});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        status: "ok",
+      })
+    );
+    expect(res.body.requiredVersion).toBeUndefined();
+    expect(res.body.warningVersion).toBeUndefined();
   });
 
   it("defaults to web when platform is invalid", async () => {
@@ -111,6 +170,7 @@ describe("VersionCheckPlugin", () => {
     });
 
     const res = await app.get("/version-check").query({platform: "invalid", version: 50});
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("required");
   });
 
@@ -122,12 +182,15 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      pollingIntervalMs: 86400000,
-      requiredVersion: 50,
-      status: "ok",
-      warningVersion: 100,
-    });
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        pollingIntervalMs: 86400000,
+        requiredVersion: 50,
+        status: "ok",
+        warningVersion: 100,
+      })
+    );
   });
 
   it("returns pollingIntervalMs from config pollingIntervalMinutes", async () => {
@@ -139,6 +202,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.pollingIntervalMs).toBe(3600000);
   });
 
@@ -150,6 +214,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.pollingIntervalMs).toBe(86400000);
   });
 
@@ -161,6 +226,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check?version=50&platform=web");
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("required");
   });
 
@@ -172,6 +238,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 50});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("warning");
     expect(res.body.message).toBe(
       "A new version is available. Please update for the best experience."
@@ -186,6 +253,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 50});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("required");
     expect(res.body.message).toBe(
       "This version is no longer supported. Please update to continue."
@@ -200,6 +268,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(res.body.status).toBe("warning");
   });
 
@@ -210,12 +279,14 @@ describe("VersionCheckPlugin", () => {
     });
 
     const warningRes = await app.get("/version-check").query({platform: "web", version: 150});
+    expect(warningRes.body.requestId).toBe(warningRes.headers["x-request-id"]);
     expect(warningRes.body.status).toBe("warning");
     expect(warningRes.body.message).toBe(
       "A new version is available. Please update for the best experience."
     );
 
     const requiredRes = await app.get("/version-check").query({platform: "web", version: 50});
+    expect(requiredRes.body.requestId).toBe(requiredRes.headers["x-request-id"]);
     expect(requiredRes.body.status).toBe("required");
     expect(requiredRes.body.message).toBe(
       "This version is no longer supported. Please update to continue."
@@ -225,6 +296,7 @@ describe("VersionCheckPlugin", () => {
   it("handles numeric version parameter", async () => {
     const res = await app.get("/version-check?version=50&platform=web");
     expect(res.status).toBe(200);
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
   });
 });
 

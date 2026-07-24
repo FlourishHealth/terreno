@@ -1,0 +1,43 @@
+name: Docs audit
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Detect documentation drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile UI and generate types
+        run: |
+          bun run compile
+          bun run types
+        working-directory: ui
+
+      - name: Run docs audit
+        run: bun run website/scripts/docs-audit.ts
+
+      - name: Open drift issue when needed
+        if: failure()
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "Docs drift detected",
+              body: "The scheduled docs audit found undocumented or stale documentation. Run the docs-audit skill to review and fix.",
+              labels: ["documentation", "automation"],
+            });

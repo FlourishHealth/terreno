@@ -1,0 +1,1 @@
+> **AuthStrategy** = \{ `getToken`: () => `Promise`\<`string`\>; `type`: `"bearer"`; \} \| \{ `credentials`: \{ `clientId`: `string`; `clientSecret`: `string`; \}; `refreshOn401`: `boolean`; `tokenUrl`: `string`; `type`: `"oauth2"`; \} \| \{ `getKey`: () => `Promise`\<`string`\>; `header`: `string`; `type`: `"apiKey"`; \}

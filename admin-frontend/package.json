@@ -2,7 +2,7 @@
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
-    "jspdf": "^4.2.0",
+    "jspdf": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "react-native": "catalog:"
@@ -20,7 +20,8 @@
   },
   "files": [
     "dist/**/*",
-    "src/**/*"
+    "src/**/*",
+    ".ai/**/*"
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -51,5 +52,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.17.0"
+  "version": "0.26.0"
 }

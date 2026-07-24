@@ -4,13 +4,14 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@stories": ["stories"],
-      "@components": ["components"],
+      "@stories/*": ["stories/*"],
+      "@components/*": ["components/*"],
       "@config": ["demoConfig"],
-      "@story-config": ["story-config"]
+      "@contexts/*": ["contexts/*"],
+      "@story-config/*": ["story-config/*"]
     },
     "jsx": "react-jsx"
   },
-  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "appium/**"]
 }
 
