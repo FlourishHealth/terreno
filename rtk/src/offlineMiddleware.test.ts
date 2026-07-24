@@ -1,4 +1,7 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
+
+// Force IsWeb=true regardless of load order with the native test files.
+mock.module("./platform", () => ({IsWeb: true}));
 import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
 import type {Api} from "@reduxjs/toolkit/query/react";
 

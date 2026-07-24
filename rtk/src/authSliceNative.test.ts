@@ -1,4 +1,4 @@
-import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
 // Keep this mock a superset of the preload's react-native mock so that other
 // test files (e.g. useUpgradeCheck.test.ts) can still find AppState and Linking
@@ -16,7 +16,8 @@ mock.module("react-native", () => ({
 
 // Force IsWeb=false regardless of whether ./platform was already imported
 // elsewhere in the test run. `mock.module` is hoisted in bun, so this takes
-// effect before the dynamic imports below.
+// effect before the dynamic imports below. Web-path test files must set their
+// own top-of-file `IsWeb: true` guard; do not rely on afterAll restore here.
 mock.module("./platform", () => ({IsWeb: false}));
 
 const secureCalls = {
@@ -108,20 +109,6 @@ describe("native listener middleware side effects", () => {
   afterEach(() => {
     console.debug = originalDebug;
     console.error = originalError;
-  });
-
-  afterAll(() => {
-    // Restore mocks to the values the rest of the suite expects.
-    mock.module("react-native", () => ({
-      Platform: {OS: "web"},
-      StyleSheet: {create: (s: unknown) => s},
-    }));
-    mock.module("./platform", () => ({IsWeb: true}));
-    mock.module("expo-secure-store", () => ({
-      deleteItemAsync: async () => {},
-      getItemAsync: async () => null,
-      setItemAsync: async () => {},
-    }));
   });
 
   it("stores tokens in SecureStore on native login", async () => {
