@@ -23,6 +23,13 @@ describe("test-preload default mocks", () => {
     expect(state.isConnected).toBe(true);
   });
 
+  it("expo-network mock exposes addNetworkStateListener", async () => {
+    const network = await import("expo-network");
+    const subscription = network.addNetworkStateListener(() => {});
+    expect(subscription.remove).toBeTypeOf("function");
+    subscription.remove();
+  });
+
   it("expo-constants mock exposes an empty config", async () => {
     const Constants = (await import("expo-constants")).default;
     expect(Constants.expoConfig?.extra).toBeDefined();
