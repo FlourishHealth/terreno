@@ -31,7 +31,7 @@ You are the UI verifier. Given a set of UI changes (a diff, branch, or list of c
    - Prefer the Playwright e2e suite (`e2e/*.spec.ts`) for flows it already covers; use `loginAs()` from `e2e/helpers/login.ts` for authenticated tests.
    - Follow the repo's Playwright rules: `getByTestId()` selectors only, no `waitForTimeout()`, wait for explicit screen/element states.
 
-4. For `admin-frontend` changes, use the example full-stack app with `superuser@example.com` / `testpassword123` and verify the changed admin screens.
+4. For `admin-frontend` changes, use the example full-stack app with `admin@example.com` / `testpassword123` and verify the changed admin screens.
 
 5. For demo-only story changes, use the demo app (`bun run demo:start`, port 8085) and exercise the changed story via the `/dev` route.
 
