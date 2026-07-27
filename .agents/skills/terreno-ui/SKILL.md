@@ -96,11 +96,11 @@ Variants: `primary` | `secondary` | `muted` | `outline` | `destructive`
 import {TextField} from "@terreno/ui";
 
 <TextField
-  label="Email"
+  title="Email"
   value={email}
-  onChangeText={setEmail}
+  onChange={setEmail}
   type="email"
-  error={emailError}
+  errorText={emailError}
   helperText="We'll never share your email"
 />
 ```

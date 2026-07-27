@@ -33,8 +33,6 @@ interface BaseFieldProps {
 />
 ```
 
-Note: `TextField` uses `onChangeText` in some apps and `onChange` in the type definition — match the prop your component version exports. Example-frontend uses `onChangeText`.
-
 ## SelectField
 
 ```tsx

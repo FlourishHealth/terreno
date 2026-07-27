@@ -24,8 +24,7 @@ await login({email, password}).unwrap();
 ## Logout
 
 ```tsx
-import {useAppDispatch} from "@/store/index";
-import {logout} from "@/store/index";
+import {useAppDispatch, logout} from "../store/index.ts";
 
 const dispatch = useAppDispatch();
 dispatch(logout());

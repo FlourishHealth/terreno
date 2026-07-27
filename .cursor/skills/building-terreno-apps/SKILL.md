@@ -35,7 +35,8 @@ Every Terreno app root layout should wrap children in this order (outer → inne
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {TerrenoProvider} from "@terreno/ui";
-import store, {persistor} from "@/store/index";
+// Import from your app's store bootstrap module (see example-frontend/store/index.ts)
+import store, {persistor} from "../store/index.ts";
 
 const RootLayout: React.FC = () => {
   return (
@@ -140,10 +141,10 @@ const handleSubmit = useCallback(async (): Promise<void> => {
 }, [createTodo, title]);
 
 <TextField
-  label="Title"
+  title="Title"
   value={title}
-  onChangeText={setTitle}
-  error={titleError}
+  onChange={setTitle}
+  errorText={titleError}
 />
 <Button text="Create" onClick={handleSubmit} loading={isCreating} />
 ```

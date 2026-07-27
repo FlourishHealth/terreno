@@ -81,10 +81,10 @@ const CreateTodoScreen: React.FC = () => {
     <Page title="New Todo" scroll>
       <Box gap={4} padding={4}>
         <TextField
-          label="Title"
+          title="Title"
           value={title}
-          onChangeText={setTitle}
-          error={titleError}
+          onChange={setTitle}
+          errorText={titleError}
         />
         <Button text="Save" onClick={handleSubmit} loading={isLoading} fullWidth />
       </Box>

@@ -43,18 +43,37 @@ Renders as ActionSheet on mobile, centered dialog on web.
 
 ## Toast
 
-Toasts are provided by `TerrenoProvider`. Trigger via the toast API exported from `@terreno/ui` (check current exports in `ui/src/index.tsx`).
+`TerrenoProvider` must wrap the app. Use the `useToast` hook from `@terreno/ui`:
+
+```tsx
+import {useToast} from "@terreno/ui";
+
+const MyScreen: React.FC = () => {
+  const toast = useToast();
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    try {
+      await saveMutation().unwrap();
+      toast.success("Saved");
+    } catch (err) {
+      toast.catch(err, "Save failed");
+    }
+  }, [saveMutation, toast]);
+};
+```
+
+`useToast` exposes `success`, `info`, `warn`, `error`, `show`, `hide`, and `catch` (for API errors).
 
 ## Banner
 
 ```tsx
 <Banner
-  text="You are offline. Changes will sync when reconnected."
+  text="Service is temporarily unavailable."
   status="warning"
 />
 ```
 
-Use with `OfflineBanner` for network status (see example-frontend todos screen).
+Use `OfflineBanner` from `@terreno/ui` when showing network connectivity status (see example-frontend todos screen).
 
 ## ErrorPage
 

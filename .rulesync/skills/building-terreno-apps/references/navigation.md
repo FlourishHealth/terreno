@@ -30,8 +30,8 @@ const LoginScreen: React.FC = () => {
   return (
     <Page title="Login" scroll>
       <Box gap={3} padding={4}>
-        <TextField label="Email" value={email} onChangeText={setEmail} type="email" />
-        <TextField label="Password" value={password} onChangeText={setPassword} type="password" />
+        <TextField title="Email" value={email} onChange={setEmail} type="email" />
+        <TextField title="Password" value={password} onChange={setPassword} type="password" />
         <Button text="Sign in" onClick={handleLogin} loading={isLoading} fullWidth />
       </Box>
     </Page>

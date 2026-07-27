@@ -71,6 +71,19 @@ Every field needs a `description`. See `mongoose-schema-safety` skill.
 
 ### 2. Register modelRouter
 
+`modelRouter` has two signatures — use the one that matches your server setup:
+
+```typescript
+// TerrenoApp (recommended): path is the first argument; returns a registration object
+export const todoRouter = modelRouter("/todos", Todo, options);
+app.register(todoRouter);
+
+// setupServer (legacy): path is passed to router.use(); returns an Express router
+router.use("/todos", modelRouter(Todo, options));
+```
+
+Example with full options:
+
 ```typescript
 // src/api/todos.ts
 import {modelRouter, OwnerQueryFilter, Permissions} from "@terreno/api";
