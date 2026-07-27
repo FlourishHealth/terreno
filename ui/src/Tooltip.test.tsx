@@ -776,7 +776,7 @@ describe("Tooltip", () => {
         (c: TestNode) => c.props && (c.props as {hitSlop?: object}).hitSlop !== undefined
       ) as TestNode | undefined;
       await act(async () => {
-        (wrapper?.props as {onPress?: () => void}).onPress?.();
+        wrapper?.props?.onPress?.();
       });
       expect(queryByTestId("tooltip-container")).toBeNull();
     });
