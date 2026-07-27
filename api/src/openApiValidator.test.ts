@@ -2,9 +2,11 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type {ErrorObject} from "ajv";
+import type {NextFunction, Request, Response} from "express";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
+import type {OpenApiSchemaProperty} from "./openApiBuilder";
 import {
   buildQuerySchemaFromFields,
   configureOpenApiValidator,
@@ -706,6 +708,67 @@ describe("openApiValidator", () => {
       // Mutating the returned copy should not affect internal state
       (config as any).removeAdditional = true;
       expect(getOpenApiValidatorConfig().removeAdditional).toBe(false);
+    });
+  });
+
+  describe("schema sanitization and validator caching", () => {
+    const runMiddleware = (
+      middleware: (req: Request, res: Response, next: NextFunction) => void,
+      req: Partial<Request>
+    ): boolean => {
+      let nextCalled = false;
+      middleware(req as unknown as Request, {} as unknown as Response, () => {
+        nextCalled = true;
+      });
+      return nextCalled;
+    };
+
+    // An unresolvable $ref makes ajv.compile throw, so getValidator catches the error
+    // and returns null. Built via `unknown` to keep the non-standard keyword out of the
+    // typed surface (and out of the explicit-any baseline).
+    const uncompilableSchema = {
+      broken: {$ref: "#/components/schemas/DoesNotExist"},
+    } as unknown as Record<string, OpenApiSchemaProperty>;
+
+    it("maps an unrecognized mongoose type to string so the schema still compiles", () => {
+      configureOpenApiValidator();
+
+      // "buffer" is neither a valid JSON Schema type nor present in MONGOOSE_TYPE_MAP,
+      // so sanitizeSchemaForAjv falls through to the `type = "string"` branch.
+      const middleware = validateRequestBody({raw: {type: "buffer"}});
+
+      expect(
+        runMiddleware(middleware, {body: {raw: "some-string"}, method: "POST", path: "/t"})
+      ).toBe(true);
+    });
+
+    it("reuses the cached validator on subsequent requests with the same schema", () => {
+      configureOpenApiValidator();
+
+      const middleware = validateRequestBody({name: {type: "string"}});
+      const req: Partial<Request> = {body: {name: "ok"}, method: "POST", path: "/t"};
+
+      // First request compiles and caches the validator; the second must hit the cache.
+      expect(runMiddleware(middleware, req)).toBe(true);
+      expect(runMiddleware(middleware, req)).toBe(true);
+    });
+
+    it("skips query validation when the schema cannot be compiled", () => {
+      configureOpenApiValidator();
+
+      const middleware = validateQueryParams(uncompilableSchema);
+
+      expect(runMiddleware(middleware, {method: "GET", path: "/t", query: {broken: "x"}})).toBe(
+        true
+      );
+    });
+
+    it("skips response validation when the schema cannot be compiled", () => {
+      configureOpenApiValidator({validateResponses: true});
+
+      const result = validateResponseData({broken: "x"}, uncompilableSchema);
+
+      expect(result.valid).toBe(true);
     });
   });
 });
