@@ -22,7 +22,11 @@ Three pillars, in priority order:
 
 1. **Batteries included** (the Django/Rails claim) — the undifferentiated 80% of an app is already written: auth, CRUD, admin, permissions, AI, realtime, feature flags, consent.
 2. **Universal by default** (the differentiator vs Django/Rails) — one codebase, three platforms. Not a web framework with a mobile bolt-on.
-3. **AI-native** (the differentiator vs everything) — MCP server with codegen + runtime introspection, per-package agent guidelines, skills for build/deploy/upgrade. Agents are a first-class client of the framework, not an afterthought.
+3. **AI-native** (the differentiator vs everything) — two layers, and the docs must present them as complementary:
+   - the **tool layer**: an MCP server with codegen, docs search, and runtime introspection (logs, client state, navigation), plus per-package agent guidelines;
+   - the **process layer**: the `/terreno-*` agentic SDLC pipeline shipped as an installable plugin — plan, implement test-first, verify in a fresh context, submit with evidence, then own the review loop to mergeable.
+
+   Agents are a first-class client of the framework, not an afterthought. Django gives you `manage.py startapp`; Terreno gives you a reviewed path from a request to a mergeable PR.
 
 Language rules for all docs:
 
@@ -72,6 +76,17 @@ PR [#802](https://github.com/flourishhealth/terreno/pull/802) (MCP Boost parity,
 
 Combined with the already-shipped hosted tools (`terreno_search_docs`, `terreno_get_component_docs`, `terreno_bootstrap_app`, generators, `terreno_get_upgrade_guide`), this is the "agent can build, run, observe, and fix a Terreno app without a human reading logs" claim. [`ai-dev-loop-boost.md`](ai-dev-loop-boost.md) owns telling that story.
 
+## The `/terreno-*` SDLC pipeline
+
+The repo already ships the process half of the AI story and **has never documented it**: `.cursor-plugin/marketplace.json` plus `plugins/terreno-planning/` define an installable five-stage pipeline — `/terreno-1-blend` (plan), `/terreno-2-roast` (implement test-first), `/terreno-3-cupping` (verify independently), `/terreno-4-pour` (submit with evidence), `/terreno-5-dialin` (own the review loop until mergeable).
+
+It encodes real judgment rather than automation: a question-first planning gate that refuses to commit to decisions before they are answered, independent review and test-quality sub-agents spawned in **fresh contexts** after every commit, drift detection against the plan, anti-mocking rules, a hard frontend-evidence gate, and a refusal to push speculative fixes for flaky CI.
+
+Two problems block using it as a launch asset, both owned by [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md):
+
+1. **It is invisible.** No `plugins/README.md`, no docs page, no mention in `README.md` or `AGENTS.md`. The audit that produced this program missed it entirely — which is exactly what every prospective user will do.
+2. **It only works inside this monorepo.** Repo-root-relative sibling-skill paths, a dependency on a `verify-ui-changes` skill that lives in `.rulesync/`, hardcoded monorepo package names in the frontend gates, and a hardcoded branch suffix. Publishing it without fixing these ships tooling that breaks on first use in a consumer app.
+
 ## IP index
 
 ### Wave 0 — unblocked, can start immediately
@@ -81,6 +96,7 @@ Combined with the already-shipped hosted tools (`terreno_search_docs`, `terreno_
 | [oss-governance-baseline](oss-governance-baseline.md) | License, contributing, security, changelog, templates | None | Legal blocker for any public launch; zero framework surface |
 | [public-roadmap-github](public-roadmap-github.md) | GitHub Discussions + Projects roadmap + Linear bridge | None | Needed before inviting outside contributors; process-only |
 | [deploy-to-gcp](deploy-to-gcp.md) | Generalized GCP deploy docs + `deploy-gcp` skill | None | Backend + static hosting only; no client data layer |
+| [agentic-sdlc-plugin](agentic-sdlc-plugin.md) | Publish, port, and document the `/terreno-*` pipeline | Partial | Already built and shipping; only the frontend path lists touch the data layer |
 
 ### Wave 1 — gated on #869 (syncdb) merging
 
@@ -111,6 +127,7 @@ flowchart TD
     gov["oss-governance-baseline"]
     road["public-roadmap-github"]
     gcp["deploy-to-gcp"]
+    plug["agentic-sdlc-plugin"]
   end
   syncdb["PR #869 syncdb merges"]
   boost["PR #802 Boost merges"]
@@ -137,10 +154,14 @@ flowchart TD
   dep --> ver
   tut --> build
   ai --> build
+  plug --> pos
+  plug --> build
   ref --> ssr
 ```
 
 Launch gate: Wave 0 complete **and** `rtk-to-syncdb-migration-docs`, `positioning-django-rails-universal`, `docs-reference-coverage`, `docs-tutorials-ai-first`, `deploy-to-vercel`, `deploy-to-gcp`, `upgrade-guides-and-skill` complete. `build-terreno-app-validation` is the acceptance test for the whole program — if an agent following only public docs and skills cannot build and deploy the demo app, the launch is not ready.
+
+`agentic-sdlc-plugin` feeds two others: it supplies the process half of the AI-native pillar to `positioning-django-rails-universal`, and once public it becomes something the dogfooding harness in `build-terreno-app-validation` should exercise.
 
 ## Blocking questions (program level)
 
@@ -158,6 +179,7 @@ Per the `terreno-1-blend` workflow, these must be answered before the affected I
 | P8 | Do we version the docs site per release at launch, or publish "latest" only? | (A) Keep current per-version snapshots. (B) Latest + one previous major. (C) Latest only until 1.0. | **B** — current versioned snapshots (0.23–0.26) are noise for new readers; keep latest + previous. |
 | P9 | Target npm version for launch? | (A) Launch on current 0.x. (B) Cut 1.0.0 as the launch release. (C) Launch on 0.x, promise 1.0 after syncdb stabilizes. | **C** — 1.0 implies API stability we do not have while syncdb is new. |
 | P10 | Is the blog post from `build-terreno-app-validation` published on the docs site, Flourish blog, or dev.to/Hashnode? | (A) Docs site blog. (B) Flourish engineering blog + canonical link. (C) All three, canonical on docs site. | **C** with canonical on the docs site — the docs site needs the SEO. |
+| P11 | Is the `/terreno-*` SDLC plugin marketplace public at launch? | (A) Public — anyone can install. (B) Team-only, documented but not installable. (C) Public, with Flourish-specific stages kept in a separate internal plugin. | **A**, gated on the portability and sanitization work in [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md). A team-only plugin cannot support the AI-native positioning claim, but publishing it before it works outside this monorepo is worse than not publishing it. |
 
 Per-IP blocking questions live in each IP file under `## Blocking questions`.
 

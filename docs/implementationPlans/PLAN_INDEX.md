@@ -8,7 +8,7 @@ Umbrella plans that coordinate several IPs.
 
 | Program | Status | Created | IPs |
 |---------|--------|---------|-----|
-| [Open source launch](oss-launch-program.md) | Draft (blocking questions open) | 2026-07-27 | 14 |
+| [Open source launch](oss-launch-program.md) | Draft (blocking questions open) | 2026-07-27 | 15 |
 
 ## Active
 
@@ -30,6 +30,7 @@ All part of the [launch program](oss-launch-program.md). The **RTK flag** column
 | [OSS governance baseline](oss-governance-baseline.md) | Draft | None | [tasks](../tasks/oss-governance-baseline.md) |
 | [Public roadmap on GitHub](public-roadmap-github.md) | Draft | None | [tasks](../tasks/public-roadmap-github.md) |
 | [Deploy to GCP (generalized)](deploy-to-gcp.md) | Draft | None | [tasks](../tasks/deploy-to-gcp.md) |
+| [Agentic SDLC plugin (`/terreno-*`)](agentic-sdlc-plugin.md) | Draft | Partial | [tasks](../tasks/agentic-sdlc-plugin.md) |
 
 ### Wave 1 — gated on PR #869
 

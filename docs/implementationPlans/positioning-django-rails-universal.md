@@ -33,7 +33,8 @@ Three pillars in priority order: **batteries included**, **universal by default*
 | PO1 | Exact tagline wording | (A) "Django/Rails for TypeScript — with universal app support". (B) "The batteries-included TypeScript framework for universal apps". (C) "Django for TypeScript. One codebase, every platform." | **A** for the README/docs H1 (it does the analogical work in five words), with **C** as the shorter social/repo-description variant |
 | PO2 | Do we lead with Django or Rails? | (A) Both, "Django/Rails". (B) Django only. (C) Rails only. | **A** — Django lands with the Python-adjacent/ML crowd, Rails with the startup crowd; the pairing signals "batteries included" to both |
 | PO3 | Is "universal app" or "cross-platform" the standard term? | (A) Universal app. (B) Cross-platform. | **A** — matches Expo's vocabulary, which is where our users come from, and reads as a capability rather than a compromise |
-| PO4 | How prominent is the AI-native pillar? | (A) Third pillar, always mentioned. (B) Co-equal first pillar with batteries-included. (C) Leading pillar. | **B** — co-equal. It is the strongest differentiator versus both Django/Rails and other TS frameworks, and Boost (#802) makes it substantive rather than aspirational |
+| PO4 | How prominent is the AI-native pillar? | (A) Third pillar, always mentioned. (B) Co-equal first pillar with batteries-included. (C) Leading pillar. | **B** — co-equal. It is the strongest differentiator versus both Django/Rails and other TS frameworks, and it is substantive rather than aspirational once Boost (#802) ships the tool layer and [`agentic-sdlc-plugin`](agentic-sdlc-plugin.md) publishes the process layer |
+| PO7 | Does the AI pillar name both layers, or lead with one? | (A) Both, always paired: MCP tools + the `/terreno-*` pipeline. (B) Lead with MCP, mention the pipeline. (C) Lead with the pipeline. | **A** — paired. Separately each sounds like a nice-to-have; together they are "an agent can plan, build, observe, verify, and ship on this framework", which is the actual claim. Never describe one without the other in the pillars block |
 | PO5 | Do we keep the "Where Terreno is headed" roadmap section in the README? | (A) Keep. (B) Move to `ROADMAP.md`. (C) Keep a two-line summary, link `ROADMAP.md`. | **C** — the roadmap belongs on the board (see [`public-roadmap-github`](public-roadmap-github.md)), but the README should show ambition |
 | PO6 | Is the README trimmed of maintainer content? | (A) Yes, move dev/release/infra sections to `CONTRIBUTING.md` and `docs/`. (B) Keep everything. | **A** — the README currently mixes product marketing, Flourish linking instructions, GCP project names, and a feature-flag migration guide. Consumers and contributors need different documents. |
 
@@ -48,6 +49,7 @@ Define the wording once, in `docs/explanation/positioning.md`, and have every ot
 | `tagline` | one line | README H1 subtitle, docs site `tagline`, GitHub repo description, npm `description` prefix |
 | `elevator` | 2–3 sentences | README intro, docs landing intro, package READMEs |
 | `pillars` | three bullets | README, docs landing, `AGENTS.md` |
+| `aiPillar` | 2–3 sentences | Expansion of the third pillar wherever it gets more than a bullet. Must name **both** layers per PO7: the MCP tool layer and the `/terreno-*` process layer |
 | `pitch` | ~150 words | Blog post intro, conference abstracts, social |
 
 ### Surfaces to align
@@ -75,7 +77,7 @@ The Django/Rails claim invites the obvious question. `docs/explanation/positioni
 | Django admin | `@terreno/admin-backend` + `admin-frontend` / `admin-spa` | Younger; see the admin parity IP for the gap list |
 | Auth + permissions | Better Auth + `Permissions` | RBAC is in progress (`rbac-permissions.md`) |
 | Templates / views | `@terreno/ui` components, one codebase for iOS/Android/web | SSR is not shipped yet — see [`web-ssr-and-admin-spa`](web-ssr-and-admin-spa.md) |
-| `manage.py` / generators | MCP server tools + skills | Agent-driven rather than CLI-driven |
+| `manage.py` / generators | MCP server tools (the *tool* layer) + the `/terreno-*` SDLC pipeline (the *process* layer) | Agent-driven rather than CLI-driven. Django gives you `manage.py startapp`; Terreno gives you a reviewed path from a request to a mergeable PR |
 | Celery / ActiveJob | Not shipped | On the roadmap |
 | Migrations | Not applicable | Schema evolution is convention + the `mongoose-schema-safety` skill |
 

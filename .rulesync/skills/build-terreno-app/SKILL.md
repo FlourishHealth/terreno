@@ -30,6 +30,7 @@ Run it before any launch, after any significant framework change, and whenever t
 - Package READMEs as published to npm
 - The hosted MCP server and `terreno-mcp-local`
 - Published skills (`deploy-vercel`, `deploy-gcp`, `generate-sdk`, `upgrading-terreno`, `verify-ui-changes`, the Expo skills)
+- The `/terreno-*` SDLC plugin, if its marketplace is public — install it and use the pipeline rather than working ad hoc, since exercising it is part of the test
 - Published npm packages
 
 You may **not** read or use:
@@ -79,6 +80,11 @@ Create a working directory outside the Terreno monorepo. Start `FRICTION_LOG.md`
 ## Gaps
 | # | Severity | Phase | What was missing | What I did instead | Suggested fix |
 
+## Pipeline gaps
+Only when the `/terreno-*` plugin was used. Log separately — the pipeline is
+process tooling and its failures have a different owner than doc gaps.
+| # | Severity | Stage | What broke | Was it a monorepo assumption? |
+
 ## Wins
 | # | What worked better than expected |
 ```
@@ -92,7 +98,8 @@ Log entries as you go. A log reconstructed at the end is worthless — you will 
 1. Find the docs site. Read the landing page and the tutorials index.
 2. Follow the "run the examples" tutorial to completion. Log every step that failed or was ambiguous.
 3. Set up both MCP servers per the public setup guide. Verify with `application_info`.
-4. Skim the reference pages for the packages the app will use.
+4. If the `/terreno-*` plugin marketplace is public, install it and read the five stage descriptions. Use the pipeline for the build in phase 3 — a consumer running it outside the Terreno monorepo is the exact case it has historically not been tested against, so log every stage that assumes a monorepo layout.
+5. Skim the reference pages for the packages the app will use.
 
 Do not skip this phase because you think you know Terreno. Following the newcomer path *is* the test.
 

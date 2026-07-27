@@ -48,7 +48,18 @@ flowchart LR
   FIX -->|"iterate"| ASK
 ```
 
-The claim worth making is narrow and true: **the agent sees what the app actually did, not a description of it.** Everything else in the AI story is table stakes that other frameworks can match.
+The claim worth making is narrow and true: **the agent sees what the app actually did, not a description of it.** Everything else in the *tool* story is table stakes that other frameworks can match.
+
+### Tool layer versus process layer
+
+This loop is only half the AI story, and documenting it alone undersells it. The other half is the `/terreno-*` SDLC pipeline shipped in `plugins/terreno-planning/` — plan, implement test-first, verify in a fresh context, submit with evidence, own the review loop. [`agentic-sdlc-plugin`](agentic-sdlc-plugin.md) owns publishing and documenting it.
+
+| Layer | Answers | Delivered by |
+|-------|---------|--------------|
+| **Tool** | What can the agent see and do? | MCP servers: docs search, codegen, merged logs, client state, navigation |
+| **Process** | In what order should the agent work, and who checks it? | `/terreno-*`: question-first planning, TDD, fresh-context independent review, evidence gates, reactive review loop |
+
+Every document produced by this IP must name both and explain that they compose: the pipeline's implement stage uses the loop's tools, and the loop's tools are most useful when driven by the pipeline's sequencing. `docs/explanation/ai-development-loop.md` and `docs/explanation/agentic-sdlc.md` are companion pages and must cross-link.
 
 ### Tool surface after #802
 
@@ -84,6 +95,8 @@ The claim worth making is narrow and true: **the agent sees what the app actuall
 | `docs/how-to/debug-with-mcp.md` | Using `read_logs`, `last_error`, `get_client_state`, `navigate` on a real failure |
 | `docs/reference/mcp-server.md` | Updated with the complete post-#802 tool surface and every environment variable |
 | `docs/explanation/agent-guidelines.md` | How per-package `.ai/` guidelines and `.rulesync/` rules reach an agent, and how consumers extend them |
+
+Companion page owned elsewhere: `docs/explanation/agentic-sdlc.md` (the process layer) from [`agentic-sdlc-plugin`](agentic-sdlc-plugin.md). Neither page should duplicate the other; each links the other as the missing half.
 
 ## Models / APIs
 
@@ -146,6 +159,7 @@ See [`docs/tasks/ai-dev-loop-boost.md`](../tasks/ai-dev-loop-boost.md).
 
 - [ ] `docs/reference/mcp-server.md` lists every tool, prompt, and resource on both servers, matching the merged code, and every environment variable that affects them.
 - [ ] `docs/explanation/ai-development-loop.md` explains the five stages and states precisely what an agent can and cannot observe.
+- [ ] `docs/explanation/ai-development-loop.md` distinguishes the tool layer from the process layer, and cross-links `docs/explanation/agentic-sdlc.md` as the other half of the AI story.
 - [ ] `docs/how-to/set-up-terreno-mcp.md` gives working configuration for at least Cursor and Claude Code, covering both Terreno servers, and explains when to add `expo-mcp` and Playwright MCP.
 - [ ] `docs/how-to/debug-with-mcp.md` walks a real failure from symptom to fix using `last_error` and `read_logs`, with real tool output.
 - [ ] The Hermes single-CDP-connection limitation is documented with its symptom and the workaround.
