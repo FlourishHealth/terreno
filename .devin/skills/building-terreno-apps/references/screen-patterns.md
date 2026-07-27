@@ -1,0 +1,141 @@
+# Screen Patterns — Terreno Apps
+
+## List screen
+
+```tsx
+import {Box, Button, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
+import {useCallback} from "react";
+import {useGetTodosQuery} from "@/store/sdk";
+
+const TodoListScreen: React.FC = () => {
+  const {data, isLoading, error, refetch} = useGetTodosQuery({});
+
+  const handleCreate = useCallback((): void => {
+    // navigate or open modal
+  }, []);
+
+  if (isLoading) {
+    return <Page title="Todos"><Spinner /></Page>;
+  }
+  if (error) {
+    return (
+      <Page title="Todos">
+        <Text color="error">Failed to load</Text>
+        <Button text="Retry" onClick={refetch} />
+      </Page>
+    );
+  }
+
+  const items = data?.data ?? [];
+
+  return (
+    <Page title="Todos" scroll>
+      <Box gap={3} padding={4}>
+        <Box direction="row" justifyContent="between" alignItems="center">
+          <Heading size="lg">Todos</Heading>
+          <Button text="Add" onClick={handleCreate} iconName="plus" />
+        </Box>
+        {items.length === 0 ? (
+          <Text color="secondaryLight">No todos yet</Text>
+        ) : (
+          items.map((todo) => (
+            <Card key={todo.id} padding={3}>
+              <Text>{todo.title}</Text>
+            </Card>
+          ))
+        )}
+      </Box>
+    </Page>
+  );
+};
+```
+
+## Form screen
+
+```tsx
+import {Box, Button, Page, TextField} from "@terreno/ui";
+import {useCallback, useState} from "react";
+import {useRouter} from "expo-router";
+import {usePostTodosMutation} from "@/store/sdk";
+
+const CreateTodoScreen: React.FC = () => {
+  const router = useRouter();
+  const [title, setTitle] = useState<string>("");
+  const [titleError, setTitleError] = useState<string | undefined>();
+  const [createTodo, {isLoading}] = usePostTodosMutation();
+
+  const handleSubmit = useCallback(async (): Promise<void> => {
+    if (!title.trim()) {
+      setTitleError("Title is required");
+      return;
+    }
+    try {
+      await createTodo({title: title.trim(), completed: false}).unwrap();
+      router.back();
+    } catch (err) {
+      console.error("Create failed", err);
+    }
+  }, [createTodo, router, title]);
+
+  return (
+    <Page title="New Todo" scroll>
+      <Box gap={4} padding={4}>
+        <TextField
+          label="Title"
+          value={title}
+          onChangeText={setTitle}
+          error={titleError}
+        />
+        <Button text="Save" onClick={handleSubmit} loading={isLoading} fullWidth />
+      </Box>
+    </Page>
+  );
+};
+```
+
+## Detail screen with params
+
+```tsx
+import {Page, Spinner, Text} from "@terreno/ui";
+import {useLocalSearchParams} from "expo-router";
+import {useGetTodosByIdQuery} from "@/store/sdk";
+
+const TodoDetailScreen: React.FC = () => {
+  const {id} = useLocalSearchParams<{id: string}>();
+  const {data, isLoading, error} = useGetTodosByIdQuery({id: id ?? ""}, {skip: !id});
+
+  if (isLoading) {
+    return <Page title="Todo"><Spinner /></Page>;
+  }
+  if (error || !data) {
+    return <Page title="Todo"><Text color="error">Not found</Text></Page>;
+  }
+
+  return (
+    <Page title={data.title} scroll>
+      <Text>{data.title}</Text>
+    </Page>
+  );
+};
+```
+
+## Admin table screen
+
+Prefer `@terreno/admin-frontend` over hand-rolled tables:
+
+```tsx
+import {AdminModelTable} from "@terreno/admin-frontend";
+import {useLocalSearchParams} from "expo-router";
+import {terrenoApi} from "@/store/sdk";
+
+const AdminModelScreen: React.FC = () => {
+  const {modelName} = useLocalSearchParams<{modelName: string}>();
+  return (
+    <AdminModelTable
+      baseUrl="/admin"
+      api={terrenoApi}
+      modelName={modelName ?? ""}
+    />
+  );
+};
+```
