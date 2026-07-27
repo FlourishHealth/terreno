@@ -88,9 +88,7 @@ export const useSubmitConsent = (api: SubmitConsentApi, baseUrl?: string) => {
   const [submitMutation, {isLoading: isSubmitting, error}] =
     enhancedApi.useSubmitConsentResponseMutation();
 
-  const submit = async (body: SubmitConsentBody) => {
-    return submitMutation(body).unwrap();
-  };
+  const submit = (body: SubmitConsentBody): Promise<unknown> => submitMutation(body).unwrap();
 
   return {error, isSubmitting, submit};
 };
