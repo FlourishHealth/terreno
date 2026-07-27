@@ -656,6 +656,9 @@ const getDemoTools = (): Record<string, Tool> => {
       description: "Get the current date and time",
       execute: async ({timezone}: {timezone?: string}) => {
         const now = DateTime.now().setZone(timezone ?? "UTC");
+        if (!now.isValid) {
+          throw new APIError({status: 400, title: `Invalid timezone: ${timezone}`});
+        }
         return {
           time: now.setLocale("en-US").toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS),
           timezone: timezone ?? "UTC",
