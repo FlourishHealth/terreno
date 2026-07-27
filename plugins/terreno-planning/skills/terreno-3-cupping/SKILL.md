@@ -48,7 +48,7 @@ For UI-facing changes, manual verification with login + feature exercise is **ma
 ### `admin-frontend` / example app UI changes
 
 - Start backend + frontend example apps.
-- Log in (`superuser@example.com` / `testpassword123` for admin; `test@example.com` / `testpassword123` for user flows).
+- Log in (`admin@example.com` / `testpassword123` for admin; `test@example.com` / `testpassword123` for user flows).
 - Navigate to the changed feature and exercise it in the browser.
 - Capture screenshots/video evidence.
 

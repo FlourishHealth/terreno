@@ -140,7 +140,7 @@ Test `admin-frontend` changes in the example full-stack app.
    The frontend runs on `http://localhost:8082`.
 
 4. Log in with the seeded admin account:
-   - Email: `superuser@example.com`
+   - Email: `admin@example.com`
    - Password: `testpassword123`
 
 5. Navigate to the changed admin screen.

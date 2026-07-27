@@ -25,8 +25,8 @@ const TEST_USERS: SeedUser[] = [
   },
   {
     admin: true,
-    email: "superuser@example.com",
-    name: "Super User",
+    email: "admin@example.com",
+    name: "Admin User",
     password: "testpassword123",
   },
 ];
