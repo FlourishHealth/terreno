@@ -1,6 +1,6 @@
 ---
 name: terreno-data-fetching
-description: Use when implementing or debugging ANY network request, API call, or data fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice, token management, offline queuing, realtime sockets, caching, and SDK regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps.
+description: Use when implementing or debugging ANY network request, API call, or data fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice, token management, realtime sockets, caching, and SDK regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps.
 ---
 # Terreno Data Fetching
 
@@ -13,7 +13,7 @@ description: Use when implementing or debugging ANY network request, API call, o
 ```
 references/
   auth-and-tokens.md     generateAuthSlice, login/logout, token refresh
-  offline-and-realtime.md Offline mutation queue, sockets, feature flags
+  realtime.md             Sockets, feature flags, server status
   sdk-customization.md   injectEndpoints, cache tags, hand-maintained sdk.ts
 ```
 
@@ -22,7 +22,6 @@ references/
 - Implementing API requests in screens or hooks
 - Setting up authentication (login, logout, token refresh)
 - Debugging network failures or stale data
-- Implementing offline support or mutation queuing
 - Connecting realtime updates (sockets, feature flags)
 - Configuring API URLs and environment variables
 - After any backend route or model change (regenerate SDK)
@@ -116,7 +115,7 @@ const store = configureStore({
 export const {logout} = authSlice;
 ```
 
-See `example-frontend/store/index.ts` for persist, offline middleware, and Sentry integration.
+See `example-frontend/store/index.ts` for persist and Sentry integration.
 
 ## Environment Variables
 
@@ -159,7 +158,7 @@ try {
 }
 ```
 
-Use `isNetworkFetchError` from `@terreno/rtk` to detect connectivity issues and show `OfflineBanner`.
+Use `isNetworkFetchError` from `@terreno/rtk` to detect connectivity issues in error UI.
 
 ## SDK Regeneration
 
@@ -185,11 +184,8 @@ Need data in a Terreno app?
   |-- Login/logout?
   |   \-- references/auth-and-tokens.md
   |
-  |-- Offline mutations?
-  |   \-- references/offline-and-realtime.md (createOfflineMiddleware)
-  |
   |-- Realtime updates?
-  |   \-- references/offline-and-realtime.md (useSocketConnection)
+  |   \-- references/realtime.md (useSocketConnection)
   |
   |-- Custom endpoint not in SDK?
   |   |-- Backend exists? -> generate-sdk first

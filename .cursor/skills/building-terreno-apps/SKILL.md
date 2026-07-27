@@ -114,7 +114,7 @@ const {data, isLoading, error, refetch} = useGetTodosQuery({});
 const [createTodo, {isLoading: isCreating}] = usePostTodosMutation();
 ```
 
-See `terreno-data-fetching` for auth, offline, caching, and error handling.
+See `terreno-data-fetching` for auth, caching, and error handling.
 
 ## Forms
 
@@ -182,8 +182,6 @@ if (!data?.data?.length) {
   );
 }
 ```
-
-Use `OfflineBanner` from `@terreno/ui` when the app supports offline mode.
 
 ## Theming
 

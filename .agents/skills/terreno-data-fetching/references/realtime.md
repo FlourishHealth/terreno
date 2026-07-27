@@ -1,22 +1,4 @@
-# Offline and Realtime — Terreno
-
-## Offline mutation queue
-
-`createOfflineMiddleware` from `@terreno/rtk` queues mutations when offline and replays them when connectivity returns.
-
-```tsx
-import {createOfflineMiddleware} from "@terreno/rtk";
-import {terrenoApi} from "./sdk";
-
-const offlineConfig = createOfflineMiddleware({
-  api: terrenoApi,
-  endpoints: ["postTodos", "patchTodosById", "deleteTodosById"],
-});
-
-// Add offlineConfig.middleware and offlineConfig.reducer to the store
-```
-
-Show `OfflineBanner` from `@terreno/ui` when offline. Use `isNetworkFetchError` from `@terreno/rtk` to detect fetch failures.
+# Realtime — Terreno
 
 ## Realtime sockets
 
