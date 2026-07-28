@@ -98,8 +98,17 @@ Test UI package component changes only in the demo app.
    ```
 
 3. Select the component and the most relevant story.
-   - Direct URLs use the component name from `demo/demoConfig.tsx` and a story query param, e.g. `http://localhost:8085/dev/Button?story=variants`.
-   - Use the `/dev` route, not `/demo`, for reviewer verification because `/dev` exposes raw component states.
+   - Direct URLs use the component name from `demo/demoConfig.tsx` and a story query param.
+   - **The `?story=` value must exactly match a key of the `stories` object in
+     `demo/story-config/<Component>.config.tsx`, URL-encoded.** These keys are human-readable
+     display names, not slugs — e.g. `http://localhost:8085/dev/BinaryFeedback?story=Binary%20Feedback`.
+     `demo/app/dev/[component].tsx` calls `router.replace("/dev")` when `story` is missing or unknown,
+     so a wrong/absent value silently bounces you to the dev index instead of erroring.
+   - Use `/dev/<Component>?story=<Story>` to see one raw story full-screen.
+   - Use `/demo/<Component>` when you need the **interactive prop controls**
+     (`demoOptions.controls` — selects, booleans). Those controls render *only* on the `/demo`
+     page, not on `/dev`. The `/demo` page also renders every story at the bottom, so it is the
+     fastest way to see all states plus drive props from one screen.
 
 4. Verify the changed state and at least one adjacent state that could regress.
    - For visual primitives: compare default, disabled, loading, icon, and full-width states when relevant.
@@ -110,6 +119,184 @@ Test UI package component changes only in the demo app.
    - Check the docs deploy preview (or `bun run website:build` locally) for the component page and embedded demo iframe.
 
 Do not launch the example app to validate isolated `@terreno/ui` component changes unless the change also affects an app-level integration.
+
+#### Driving the `/demo` prop controls
+
+The controls are `@terreno/ui` `Field`s, **not native HTML inputs**:
+
+- A `type: "select"` control renders a custom dropdown — there is **no `<select>` element**, so
+  Playwright/CDP `selectOption`-style helpers do nothing. Click the field to open the option list,
+  then click the option row. After opening, the field's `<input>` swaps its value for a
+  `placeholder="Search..."`, which is a reliable signal that the list is open.
+- A `type: "boolean"` control renders a toggle `<div>`; click it directly.
+
+#### Objectively verifying icon fill, color, and icon family
+
+Screenshots alone make solid-vs-outline and two similar greys hard to judge. Read computed styles
+instead — both the Terreno `Icon` and `@expo/vector-icons` render **font glyphs**, so:
+
+- **Which icon set is actually rendering** → computed `font-family` on the glyph element. This is
+  the definitive check when a component migrates icon libraries: Terreno's `Icon` is
+  FontAwesome6-only (`FontAwesome6Free-Solid` / `FontAwesome6Free-Regular`), whereas a direct
+  `import Feather from "@expo/vector-icons/Feather"` reports `feather` and
+  `import MaterialIcons from "@expo/vector-icons/MaterialIcons"` reports `material` (from
+  `createIconSet(glyphMap, 'Material Icons', ...)` — the computed value is normalised, so don't
+  expect the literal string `MaterialIcons`). Don't try to judge this from a screenshot — the
+  glyphs look similar at small sizes.
+- **Fill / `type` prop** (FontAwesome `Icon` only) → computed `font-family`:
+  `FontAwesome6Free-Solid` for `type="solid"` vs `FontAwesome6Free-Regular` for `type="regular"`.
+  Note that most `@expo/vector-icons` sets (Feather included) have **no solid variant**, so a
+  component using them must signal selection some other way — usually a filled surface behind
+  the glyph. When that is the design, verify the `backgroundColor` and `borderRadius` of the
+  wrapping `Pressable` rather than the glyph's fill (see "Verifying a filled-surface selection
+  cue" below).
+- **Fill via a different icon *name*** (the strongest check, and the one to reach for with sets
+  that ship paired outline/filled glyphs such as MaterialIcons' `thumb-up-off-alt` vs
+  `thumb-up-alt`) → read the glyph element's **`textContent` codepoint**. `@expo/vector-icons`
+  renders the icon as a single character from the icon font, so `el.textContent.codePointAt(0)`
+  identifies exactly which icon name is rendering. Resolve the expected numbers from the shipped
+  glyphmap so you are asserting against ground truth rather than a guess:
+
+  ```bash
+  # glyphmaps live under node_modules/**/@expo/vector-icons/build/vendor/.../glyphmaps/<Set>.json
+  node -e 'const m=require("<path>/MaterialIcons.json");
+    for (const n of ["thumb-up-off-alt","thumb-up-alt"]) console.log(n, m[n], "U+"+m[n].toString(16));'
+  ```
+
+  This matters because a broken name mapping still recolours correctly, so a colour-only check
+  passes on a component whose fill never changes. Colour is not proof of fill; the codepoint is.
+- **The icon font actually loaded** → a failed font load renders tofu boxes while the codepoint
+  check still passes, so also assert `document.fonts.check('20px <family>')` and confirm the family
+  appears with status `loaded` in `document.fonts`. To rule out fallback rendering, measure the
+  glyph's advance width in the icon family versus a generic family: a real icon glyph is square at
+  the nominal size (e.g. 20px) while a fallback is noticeably narrower (~12px). After a migration,
+  also assert the **old** family is no longer registered at all. Note unrelated families may still
+  be loaded for other elements on the page (the docs page's Do/Don't bullets use FontAwesome), so
+  scope the conclusion to the glyph you probed.
+- **Size** → computed `font-size` in px. `iconSizeToNumber` in `ui/src/Common.ts` maps
+  `xs/sm/md/lg/xl/2xl` → `8/12/16/20/24/28`.
+- **Color** → computed `color`, compared against `theme.text[...]` in `ui/src/Theme.tsx`.
+  Watch out: the `text` color map and the surface/other maps use the **same token names for
+  different primitives**. In the light theme `text.secondaryDark` is `secondary800` (`#092E3A`),
+  **not** `secondary500` — always trace the map that the component actually reads
+  (`Icon` uses `theme.text[color]`).
+
+Read these from the icon element (the `Pressable`'s first element child), e.g. a one-shot probe
+returning `{fontFamily, fontSize, color, disabled}` per button, and snapshot it before *and* after
+each interaction. For a disabled no-op, assert the after-state is identical to the before-state,
+then re-enable and repeat the same click to prove the hit target was live all along.
+
+If you set browser zoom above 100%, remember `getBoundingClientRect()` dimensions are scaled by the
+zoom factor while `font-size`/`border-radius` come back in CSS px — divide box sizes by the zoom
+before comparing them to the component's tap-target constants, or you will report a false mismatch.
+
+#### Verifying a filled-surface selection cue (and its contrast)
+
+When selection is shown by a background circle/pill instead of a glyph change, probe the
+**`Pressable`** (not the glyph) for `backgroundColor` and `borderRadius`, and assert:
+
+- selected → a concrete `rgb(...)` matching the intended `theme.surface[...]` token;
+- unselected → `rgba(0, 0, 0, 0)` (transparent);
+- `borderRadius` is exactly half the tap target at every size, otherwise it is a rounded square
+  rather than a circle.
+
+Also **compute contrast ratios from the rendered colors**, since a surface-only cue can be too
+subtle where a solid-vs-outline cue never was. Walk up the DOM to find the first ancestor with a
+non-transparent `backgroundColor` to get the real page background (the demo page surface is
+`#F2F2F2`, not white), then apply the WCAG relative-luminance formula. Check both
+glyph-on-surface (aim ≥4.5:1) and **surface-vs-page-background**, which WCAG 1.4.11 wants at ≥3:1
+for a non-text state indicator — pale tokens like `secondary100` (`#B6CDD5`) land around 1.48:1 on
+`#F2F2F2` and are worth flagging to design as a non-blocking observation. Muted-icon-on-`surface.disabled`
+combinations tend to be ~2:1 grey-on-grey; that is cosmetic (disabled controls are exempt from
+WCAG contrast) but still worth a screenshot and a note.
+
+#### Verifying pixel geometry against a Figma spec
+
+When a PR claims a component now matches a Figma frame, verify the numbers at **browser zoom 1**
+and report what you actually measured rather than rounding to "matches":
+
+- Glyph box → `getBoundingClientRect()` on the icon element; also cross-check computed `font-size`.
+- Distance between two icons → measure **both** the tap-target centers and the glyph centers. If
+  they disagree, the glyph is not centered in its pressable.
+- Don't take a `gap` prop on trust: measure `next.left - prev.right` in the DOM. Terreno's spacing
+  scale means `gap={2}` is 8px, so `24px target + 8px gap = 32px` between centers — verify that
+  arithmetic instead of assuming it.
+- Figma often specifies the gap between *icon boxes* while the DOM gap is between *tap targets*.
+  With a 16px glyph in a 24px target these differ by 8px (16 vs 8) — both can be "correct" at once,
+  so state which one you measured.
+
+#### Traps when clicking small tap targets
+
+Two things will silently produce bogus click results:
+
+1. **Screenshot coordinates are not CSS coordinates.** The browser screenshot may be 1024px wide
+   while `window.innerWidth` is 1600 (scale 0.64). Coordinate clicks are interpreted in *image*
+   space, so multiply CSS coordinates by `screenshotWidth / innerWidth` first. Measure the scale
+   once per session; a mismatch makes clicks land on nothing and look like a dead hit target.
+2. **A fully-rounded pressable has a circular hit area.** With `borderRadius: tapTarget / 2` the
+   bounding-box corners are not clickable — sweeping `document.elementFromPoint` over the box shows
+   only ~84% of it hits the button. Always click the **center**, and if you need to characterise the
+   real target, do the `elementFromPoint` pixel sweep rather than guessing.
+
+Also probe the midpoint of the gap between two adjacent targets with `elementFromPoint`: if it
+returns neither button, the hit areas don't touch and cannot steal each other's clicks. Compare the
+tap-target size against WCAG 2.5.8 (24×24 CSS px); anything smaller may still pass via the spacing
+exception if a 24px circle on each target wouldn't intersect the neighbour's, so report the number
+rather than declaring a violation.
+
+#### `accessibilityState.selected` does not reach the web DOM
+
+react-native-web maps the `disabled` half of `accessibilityState` (you get `disabled` +
+`tabindex="-1"`) but for `accessibilityRole="button"` it drops `selected` — no `aria-selected`,
+`aria-pressed` or `aria-checked` is emitted. So a `Pressable` with
+`accessibilityState={{selected: isSelected}}` renders a selected DOM node **identical** to an
+unselected one apart from its content. Always verify this by dumping every attribute of both nodes
+rather than trusting the source.
+
+This matters most when a design unifies selected/unselected colors so glyph shape is the only visual
+cue: there is then no non-visual cue at all, and docs claiming "selection is announced via
+accessibility state" are false on web. Likely fixes to suggest: pass `aria-selected={isSelected}`
+explicitly, or switch to a toggle-button semantic with `aria-pressed`.
+
+Confirmed root cause: `react-native-web` (checked at 0.21.2) only consumes **flat** props in
+`dist/modules/createDOMProps/index.js` (`aria-checked`, `aria-selected`, `aria-disabled`, …) and
+never reads `accessibilityState` at all. The `disabled` half only appears to work because
+`Pressable`'s own `disabled` prop sets it through a separate path. Note RN 0.81 has no
+`aria-pressed` prop and RNW has no mapping for `accessibilityRole="togglebutton"`, so
+`accessibilityRole="checkbox"` + `aria-checked` is usually the only two-state option that is both
+typed by RN and forwarded by RNW.
+
+#### Changing `accessibilityRole` changes the rendered ELEMENT — always re-test the keyboard
+
+This is the trap that a role fix is most likely to introduce, and no amount of attribute dumping
+will catch it. RNW renders `accessibilityRole="button"` as a **real `<button type="button">`**
+(verify on any Terreno `Button`: `/dev/Button?story=Variants` shows
+`<button aria-label="…" type="button">`), so both **Space** and **Enter** activate it via browser
+default with no JS. Any other role — `checkbox`, `switch`, `radio`, `tab` — renders a plain
+`<div role="…" tabindex="0">`, where there is no browser default activation and RNW's Pressable
+keyboard path wires **Enter only**. Switching `button` → `checkbox` therefore silently drops Space,
+which for `role="checkbox"` is the canonical ARIA APG activation key (Enter isn't even required).
+
+So after any `accessibilityRole` change, test with the real keyboard, not just clicks:
+
+1. `Tab` to the control and confirm a visible focus ring.
+2. Press **Space**; dump `aria-checked`/`aria-pressed` and the visible state.
+3. Press **Enter**; dump again.
+4. Report which keys actually toggle. If Space is dead on a `checkbox`/`switch`/`radio` role, that is
+   a real keyboard-accessibility defect — suggest an explicit `onKeyDown` handling `" "` / `"Space"`
+   with `preventDefault()` (to suppress page scroll), or backing the control with a real
+   `<input type="checkbox">`.
+
+To decide whether it is a *regression* rather than pre-existing, read the previous commit's source
+(`git show <prev>:path/to/Component.tsx | grep accessibility`) — if it used `accessibilityRole="button"`
+it was a native button and Space used to work.
+
+#### Baselining console warnings
+
+The demo app emits pre-existing React-Native-Web deprecations on essentially every page
+(`"shadow*" style props are deprecated`, `props.pointerEvents is deprecated`). Before blaming your
+component, load an unrelated component page (e.g. `/demo/IconButton`) and diff the console output.
+Only warnings that appear on your page and not the baseline are attributable to your change.
 
 ### `admin-frontend` and example app UI changes
 
