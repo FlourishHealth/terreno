@@ -230,6 +230,42 @@ and report what you actually measured rather than rounding to "matches":
   With a 16px glyph in a 24px target these differ by 8px (16 vs 8) — both can be "correct" at once,
   so state which one you measured.
 
+#### Painted ink vs the em box
+
+`getBoundingClientRect()` on a glyph element returns the **em box** (equal to `font-size`), which is
+not what a designer means by "the icon is 16px" — icon fonts pad their artwork inside the em box, so
+a 20px MaterialIcons thumb paints about 16.5 x 14.9 px. When the spec is about the *visible* icon,
+measure the ink:
+
+1. **Screenshot pixel analysis (preferred).** Set `document.body.style.zoom = 8`, screenshot, compute
+   the bounding box of non-background pixels, and divide by the zoom factor — validating that factor
+   independently first (a known 32px centre distance should measure 256px).
+2. **Canvas `TextMetrics`** — `measureText(glyph)` with `actualBoundingBoxLeft/Right/Ascent/Descent`
+   in the normalized family at the same px size. Faster, but it rounds outward from the rasterized
+   ink and can read 1-2px large. Use a **synchronous** IIFE; an async one returns an unserialized
+   Promise (`{}`).
+
+Report width and height separately. Icon glyphs are rarely square, so "make the ink exactly NxN" is
+usually impossible with one font-size — give the font-size that satisfies each dimension and let the
+author pick which one the Figma box is keyed to.
+
+#### Flush (zero-gap) tap targets
+
+When adjacent targets have no gap, assert `positive.right === negative.left` and a non-overlap check
+rather than only the centre distance, and hit-test a few px either side of the shared edge with
+`document.elementFromPoint` to prove neither target steals the other's clicks.
+
+#### Prop tables come from generated TypeDoc, not the source
+
+The demo Props table is rendered from `demo/ui-types-documentation.json` (mirrored into
+`mcp-server/{src,dist}/docs/`). Those files are **git-ignored build output**, so a PR that removes or
+renames a public prop in `ui/src/Common.ts` will still show the dead prop in a demo app started from
+a stale copy. Regenerate with `bun run generate-types` in `demo/` before reading the Props table, and
+report drift as a local staleness issue, not a missing commit.
+
+Note `demoOptions.size` in `demo/story-config/*.config.tsx` is the demo *panel* sizing key used by
+many configs — unrelated to a component's own `size` prop, and not stale metadata.
+
 #### Traps when clicking small tap targets
 
 Two things will silently produce bogus click results:
