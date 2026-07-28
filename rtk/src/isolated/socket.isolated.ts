@@ -162,15 +162,21 @@ const renderSocket = async (
   };
 };
 
-/** setTimeout/setInterval callbacks the hook schedules, run manually by the tests. */
-let scheduledTimeouts: (() => void)[] = [];
-let scheduledIntervals: (() => Promise<void>)[] = [];
+/**
+ * setTimeout/setInterval callbacks the hook schedules, run manually by the tests.
+ * Timer ids start at 1 so the hook's truthiness guards on the stored ids work.
+ */
+let nextTimerId = 0;
+let scheduledTimeouts = new Map<number, () => void>();
+let scheduledIntervals = new Map<number, () => Promise<void>>();
 const originalSetTimeout = globalThis.setTimeout;
 const originalSetInterval = globalThis.setInterval;
+const originalClearTimeout = globalThis.clearTimeout;
+const originalClearInterval = globalThis.clearInterval;
 
 const runScheduledTimeouts = async (): Promise<void> => {
-  const callbacks = [...scheduledTimeouts];
-  scheduledTimeouts = [];
+  const callbacks = [...scheduledTimeouts.values()];
+  scheduledTimeouts = new Map();
   await act(async () => {
     for (const callback of callbacks) {
       callback();
@@ -180,7 +186,7 @@ const runScheduledTimeouts = async (): Promise<void> => {
 
 const runScheduledIntervals = async (): Promise<void> => {
   await act(async () => {
-    for (const callback of [...scheduledIntervals]) {
+    for (const callback of [...scheduledIntervals.values()]) {
       await callback();
     }
   });
@@ -188,8 +194,9 @@ const runScheduledIntervals = async (): Promise<void> => {
 
 beforeEach(() => {
   socketInstances = [];
-  scheduledTimeouts = [];
-  scheduledIntervals = [];
+  nextTimerId = 0;
+  scheduledTimeouts = new Map();
+  scheduledIntervals = new Map();
   authToken = "token-abc";
   expirationTimes = {authRemainingSecs: 900, refreshRemainingSecs: 2_592_000};
   expirationError = undefined;
@@ -202,18 +209,28 @@ beforeEach(() => {
     value: {onLine: true},
   });
   globalThis.setTimeout = ((callback: () => void) => {
-    scheduledTimeouts.push(callback);
-    return 0 as unknown as ReturnType<typeof setTimeout>;
+    nextTimerId += 1;
+    scheduledTimeouts.set(nextTimerId, callback);
+    return nextTimerId as unknown as ReturnType<typeof setTimeout>;
   }) as unknown as typeof setTimeout;
+  globalThis.clearTimeout = ((id: number) => {
+    scheduledTimeouts.delete(id);
+  }) as unknown as typeof clearTimeout;
   globalThis.setInterval = ((callback: () => Promise<void>) => {
-    scheduledIntervals.push(callback);
-    return 0 as unknown as ReturnType<typeof setInterval>;
+    nextTimerId += 1;
+    scheduledIntervals.set(nextTimerId, callback);
+    return nextTimerId as unknown as ReturnType<typeof setInterval>;
   }) as unknown as typeof setInterval;
+  globalThis.clearInterval = ((id: number) => {
+    scheduledIntervals.delete(id);
+  }) as unknown as typeof clearInterval;
 });
 
 afterEach(() => {
   globalThis.setTimeout = originalSetTimeout;
   globalThis.setInterval = originalSetInterval;
+  globalThis.clearTimeout = originalClearTimeout;
+  globalThis.clearInterval = originalClearInterval;
   setSystemTime();
 });
 
@@ -501,7 +518,7 @@ describe("useSocketConnection — disconnected toast", () => {
 
   it("does not poll for the disconnected toast when shouldConnect is false", async () => {
     await renderSocket({shouldConnect: false});
-    expect(scheduledIntervals.length).toBe(0);
+    expect(scheduledIntervals.size).toBe(0);
   });
 });
 
