@@ -39,7 +39,86 @@ const findBackdropPressable = (
   });
 };
 
+/**
+ * Collects every reachable react-native `Platform` mock object.
+ *
+ * `Platform.OS` is read through `import {Platform} from "react-native"` in more than one source
+ * module (`Modal.tsx` directly, and `Utilities.tsx#isNative`). Depending on module resolution
+ * those bindings can map to either the top-level react-native mock or the internal
+ * `Libraries/Utilities/Platform` mock, and CI has shown them diverging (mutating one left the
+ * other untouched). Gathering all of them lets a single setter drive the platform branch
+ * deterministically regardless of which object a given module captured.
+ */
+const collectPlatformObjects = (): {OS: string}[] => {
+  const objects: {OS: string}[] = [];
+  const push = (candidate: unknown): void => {
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      "OS" in (candidate as Record<string, unknown>) &&
+      !objects.includes(candidate as {OS: string})
+    ) {
+      objects.push(candidate as {OS: string});
+    }
+  };
+  const rn = require("react-native") as {Platform?: unknown; default?: {Platform?: unknown}};
+  push(rn.Platform);
+  push(rn.default?.Platform);
+  try {
+    // Only the module's `default` object is mutable; the namespace's own `OS` binding is a
+    // readonly ES module export and must not be pushed.
+    const libPlatform = require("react-native/Libraries/Utilities/Platform") as {
+      default?: unknown;
+    };
+    push(libPlatform.default);
+  } catch {
+    // The internal Platform module may not be resolvable; the top-level mock still covers it.
+  }
+  return objects;
+};
+
+const platformObjects = collectPlatformObjects();
+const originalPlatformOS = platformObjects.map((platform) => platform.OS);
+
+/**
+ * Sets `Platform.OS` on every reachable Platform mock so both `Modal` and `isNative` observe it.
+ *
+ * @param os - The platform value to apply (e.g. "web", "ios", "android").
+ */
+const setPlatformOS = (os: string): void => {
+  for (const platform of platformObjects) {
+    try {
+      platform.OS = os;
+    } catch {
+      // Skip any binding that is not writable; other bindings still drive the branch.
+    }
+  }
+};
+
+/**
+ * Restores `Platform.OS` on every reachable Platform mock to the value captured at load time.
+ */
+const restorePlatformOS = (): void => {
+  platformObjects.forEach((platform, index) => {
+    try {
+      platform.OS = originalPlatformOS[index] ?? "ios";
+    } catch {
+      // Skip any binding that is not writable.
+    }
+  });
+};
+
 describe("Modal", () => {
+  // These tests exercise the default native (ActionSheet) presentation; pin the platform so the
+  // branch is deterministic and not left to ambient/cross-file Platform.OS state.
+  beforeEach(() => {
+    setPlatformOS("ios");
+  });
+
+  afterEach(() => {
+    restorePlatformOS();
+  });
+
   it("renders correctly when visible", () => {
     const {toJSON} = renderWithTheme(
       <Modal onDismiss={() => {}} title="Test Modal" visible>
@@ -328,8 +407,6 @@ describe("Modal", () => {
 });
 
 describe("Modal web platform", () => {
-  const RN = require("react-native") as {Platform: {OS: string}};
-  const originalOS = RN.Platform.OS;
   const globalScope = globalThis as {document?: unknown; HTMLElement?: unknown};
   const originalDocument = globalScope.document;
   const originalHTMLElement = globalScope.HTMLElement;
@@ -339,16 +416,16 @@ describe("Modal web platform", () => {
   }
 
   // The web branch runs a blur useEffect that reads `document.activeElement` and checks
-  // `instanceof HTMLElement`, so every web test needs Platform.OS === "web" plus a document
-  // and HTMLElement stub in place before rendering.
+  // `instanceof HTMLElement`, so every web test needs Platform.OS === "web" (across every
+  // Platform binding, see setPlatformOS) plus a document and HTMLElement stub before rendering.
   beforeEach(() => {
-    RN.Platform.OS = "web";
+    setPlatformOS("web");
     globalScope.HTMLElement = FakeHTMLElement;
     globalScope.document = {activeElement: null};
   });
 
   afterEach(() => {
-    RN.Platform.OS = originalOS;
+    restorePlatformOS();
     globalScope.document = originalDocument;
     globalScope.HTMLElement = originalHTMLElement;
   });
@@ -442,16 +519,13 @@ describe("Modal web platform", () => {
 // platform where the original tablet bug occurred, so it must be covered directly rather than
 // relying on the default "ios" test platform.
 describe("Modal native presentation", () => {
-  const RN = require("react-native") as {Platform: {OS: string}};
-  const originalOS = RN.Platform.OS;
-
   afterEach(() => {
-    RN.Platform.OS = originalOS;
+    restorePlatformOS();
   });
 
   for (const platform of ["ios", "android"] as const) {
     it(`uses the ActionSheet (no web backdrop) on ${platform}`, () => {
-      RN.Platform.OS = platform;
+      setPlatformOS(platform);
       const {UNSAFE_getAllByType, getByText} = renderWithTheme(
         <Modal
           onDismiss={() => {}}
@@ -472,7 +546,7 @@ describe("Modal native presentation", () => {
     });
 
     it(`renders nothing when not visible on ${platform}`, () => {
-      RN.Platform.OS = platform;
+      setPlatformOS(platform);
       const {queryByText} = renderWithTheme(
         <Modal onDismiss={() => {}} title="Hidden Native Modal" visible={false}>
           <Text>Native Content</Text>
@@ -490,6 +564,15 @@ interface CapturedGesture {
 }
 
 describe("Modal drag-to-close gesture", () => {
+  // The drag handle only renders in the native ActionSheet branch, so pin a native platform.
+  beforeEach(() => {
+    setPlatformOS("ios");
+  });
+
+  afterEach(() => {
+    restorePlatformOS();
+  });
+
   it("dismisses only when dragged down past the threshold", () => {
     const handleDismiss = mock(() => {});
     let capturedGesture: CapturedGesture | undefined;
