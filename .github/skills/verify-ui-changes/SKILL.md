@@ -426,3 +426,26 @@ Post UI verification evidence to GitHub through the PR body so reviewers can see
 - Explain why each test or check was run.
 - Mention any environment limitation only when it prevented expected UI verification.
 - Confirm PR evidence was posted or will be posted before the PR is opened/updated.
+
+## Pixel Measurement: Derive the Screenshot Scale Empirically
+
+When measuring painted ink (or any exact pixel geometry) from a zoomed screenshot, never assume
+`saved screenshot px == zoom factor × CSS px`. The screenshot the harness writes to disk can be a
+different size than the image it shows inline, and the browser window may have been resized between
+runs.
+
+Do this before dividing by the zoom factor:
+
+1. Read `window.innerWidth` and compare it to the width of the saved PNG. If they are equal, one
+   screenshot pixel is one CSS layout pixel and the zoom factor is the only divisor.
+2. Cross-validate against a known layout pitch (e.g. two flush 32px targets must sit exactly
+   `32 × zoom` screenshot px apart). If the pitch does not match, the scale assumption is wrong and
+   every derived number is wrong.
+3. Measure each glyph inside **its own element rect** (from `getBoundingClientRect()` at the same
+   zoom), not across the whole image — otherwise adjacent labels and section bands leak into the
+   bounding box.
+4. Use the **modal colour of that sub-region** as the background reference rather than a hardcoded
+   page background, and re-run the bbox at 2–3 thresholds (e.g. background delta > 10 / 30 / 60).
+   A measurement that shifts with the threshold is an antialiasing artefact, not a result.
+5. Report ink width and height separately per variant, plus the non-background pixel count — the
+   count is what distinguishes a filled glyph from an outline glyph that shares the same bbox.
