@@ -7,10 +7,10 @@ import type {BinaryFeedbackProps, BinaryFeedbackValue} from "./Common";
 import {useTheme} from "./Theme";
 
 /**
- * MaterialIcons pads its artwork inside the em box (24px grid, 20px live area), so a 20px font
- * size paints a thumb roughly 16px across, matching the Figma bounding box.
+ * MaterialIcons pads its artwork inside the em box and the thumbs are wider than they are tall, so
+ * this font size is the one that paints a 16px wide thumb — the Figma bounding box.
  */
-const ICON_SIZE = 20;
+const ICON_SIZE = 19.2;
 
 const ICON_NAME_MAP = {
   negative: {selected: "thumb-down-alt", unselected: "thumb-down-off-alt"},
