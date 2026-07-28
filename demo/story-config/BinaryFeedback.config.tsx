@@ -45,15 +45,6 @@ export const BinaryFeedbackConfiguration: DemoConfiguration = {
   demoOptions: {
     size: "md",
     controls: {
-      size: {
-        type: "select",
-        options: [
-          {label: "Small", value: "sm"},
-          {label: "Medium", value: "md"},
-          {label: "Large", value: "lg"},
-        ],
-        defaultValue: "md",
-      },
       disabled: {
         type: "boolean",
         defaultValue: false,
@@ -62,7 +53,7 @@ export const BinaryFeedbackConfiguration: DemoConfiguration = {
   },
   stories: {
     "Binary Feedback": {
-      description: "All states and sizes.",
+      description: "All states.",
       render: () => <BinaryFeedbackStories />,
     },
     "Inline Feedback Prompt": {

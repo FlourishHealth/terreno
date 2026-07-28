@@ -41,9 +41,6 @@ export const BinaryFeedbackStories = () => {
         <FeedbackLine text="Negative selected" value="negative" />
         <FeedbackLine disabled text="Disabled" />
         <FeedbackLine disabled text="Disabled with selection" value="positive" />
-        <FeedbackLine size="sm" text="Small" />
-        <FeedbackLine size="md" text="Medium (default)" />
-        <FeedbackLine size="lg" text="Large" />
       </Box>
     </StorybookContainer>
   );

@@ -1544,11 +1544,6 @@ export interface BinaryFeedbackProps extends WithTestID {
    */
   positiveAccessibilityLabel?: string;
   /**
-   * The size of the thumbs icons.
-   * @default "md"
-   */
-  size?: "sm" | "md" | "lg";
-  /**
    * The currently selected feedback. Leave undefined for no selection.
    */
   value?: BinaryFeedbackValue;

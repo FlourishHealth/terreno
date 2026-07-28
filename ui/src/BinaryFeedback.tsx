@@ -6,22 +6,18 @@ import {Box} from "./Box";
 import type {BinaryFeedbackProps, BinaryFeedbackValue} from "./Common";
 import {useTheme} from "./Theme";
 
-const ICON_SIZE_MAP: {[key in "sm" | "md" | "lg"]: number} = {
-  lg: 20,
-  md: 16,
-  sm: 12,
-};
+/**
+ * MaterialIcons pads its artwork inside the em box (24px grid, 20px live area), so a 20px font
+ * size paints a thumb roughly 16px across, matching the Figma bounding box.
+ */
+const ICON_SIZE = 20;
 
 const ICON_NAME_MAP = {
   negative: {selected: "thumb-down-alt", unselected: "thumb-down-off-alt"},
   positive: {selected: "thumb-up-alt", unselected: "thumb-up-off-alt"},
 } as const;
 
-const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
-  lg: 28,
-  md: 24,
-  sm: 20,
-};
+const TAP_TARGET_SIZE = 32;
 
 /**
  * react-native-web only activates a Pressable on the spacebar when the element is a native button or
@@ -48,7 +44,6 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   negativeAccessibilityLabel = "Thumbs down",
   onChange,
   positiveAccessibilityLabel = "Thumbs up",
-  size = "md",
   testID,
   value,
 }) => {
@@ -79,9 +74,6 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
     [handlePress]
   );
 
-  const iconSize = ICON_SIZE_MAP[size];
-  const tapTargetSize = TAP_TARGET_MAP[size];
-
   const renderOption = (optionValue: BinaryFeedbackValue) => {
     const isSelected = value === optionValue;
     const isPositive = optionValue === "positive";
@@ -105,20 +97,20 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
         style={{
           alignItems: "center",
           backgroundColor: "transparent",
-          borderRadius: tapTargetSize / 2,
-          height: tapTargetSize,
+          borderRadius: TAP_TARGET_SIZE / 2,
+          height: TAP_TARGET_SIZE,
           justifyContent: "center",
-          width: tapTargetSize,
+          width: TAP_TARGET_SIZE,
         }}
         testID={testID ? `${testID}-${isPositive ? "positive" : "negative"}` : undefined}
       >
-        <MaterialIcons color={iconColor} name={iconName} selectable={undefined} size={iconSize} />
+        <MaterialIcons color={iconColor} name={iconName} selectable={undefined} size={ICON_SIZE} />
       </Pressable>
     );
   };
 
   return (
-    <Box alignItems="center" direction="row" gap={2} testID={testID}>
+    <Box alignItems="center" direction="row" testID={testID}>
       {renderOption("positive")}
       {renderOption("negative")}
     </Box>
