@@ -146,7 +146,7 @@ jobs:
           SESSION_SECRET: ${{ env.SESSION_SECRET }}
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-${{ matrix.spec }}
@@ -155,7 +155,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Playwright test results
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-test-results-${{ matrix.spec }}
