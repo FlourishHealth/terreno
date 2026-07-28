@@ -100,9 +100,11 @@ Test UI package component changes only in the demo app.
    - Direct URLs use the component name from `demo/demoConfig.tsx` and a story query param.
    - **The `?story=` value must exactly match a key of the `stories` object in
      `demo/story-config/<Component>.config.tsx`, URL-encoded.** These keys are human-readable
-     display names, not slugs — e.g. `http://localhost:8085/dev/BinaryFeedback?story=Binary%20Feedback`.
-     `demo/app/dev/[component].tsx` calls `router.replace("/dev")` when `story` is missing or unknown,
-     so a wrong/absent value silently bounces you to the dev index instead of erroring.
+     display names, not slugs — e.g. `http://localhost:8085/dev/Button?story=Variants`, and they can
+     contain spaces, which must be URL-encoded (`?story=Inline%20Feedback%20Prompt`).
+     `demo/app/dev/[component].tsx` calls `router.replace("/dev")` only when `story` is absent or the
+     component isn't in `demoConfig.tsx`; a *valid component with an unknown story* renders a **blank
+     page** instead. Either way you get no error, so confirm the story actually rendered.
    - Use `/dev/<Component>?story=<Story>` to see one raw story full-screen.
    - Use `/demo/<Component>` when you need the **interactive prop controls**
      (`demoOptions.controls` — selects, booleans). Those controls render *only* on the `/demo`
@@ -135,13 +137,16 @@ Screenshots alone make solid-vs-outline and two similar greys hard to judge. Rea
 instead — both the Terreno `Icon` and `@expo/vector-icons` render **font glyphs**, so:
 
 - **Which icon set is actually rendering** → computed `font-family` on the glyph element. This is
-  the definitive check when a component migrates icon libraries: Terreno's `Icon` is
-  FontAwesome6-only (`FontAwesome6Free-Solid` / `FontAwesome6Free-Regular`), whereas a direct
+  the definitive check when a component migrates icon libraries: Terreno's `Icon` falls back to
+  FontAwesome6 (`FontAwesome6Free-Solid` / `FontAwesome6Free-Regular`), whereas a direct
   `import Feather from "@expo/vector-icons/Feather"` reports `feather` and
   `import MaterialIcons from "@expo/vector-icons/MaterialIcons"` reports `material` (from
   `createIconSet(glyphMap, 'Material Icons', ...)` — the computed value is normalised, so don't
   expect the literal string `MaterialIcons`). Don't try to judge this from a screenshot — the
-  glyphs look similar at small sizes.
+  glyphs look similar at small sizes. This whole procedure only applies to **font-backed** icons: a
+  custom icon registered through `TerrenoProvider`'s icon registry takes precedence over the
+  FontAwesome glyph set (`ui/src/Icon.tsx`) and may render SVG or any component, so probe its own
+  markup rather than `font-family`.
 - **Fill / `type` prop** (FontAwesome `Icon` only) → computed `font-family`:
   `FontAwesome6Free-Solid` for `type="solid"` vs `FontAwesome6Free-Regular` for `type="regular"`.
   Note that most `@expo/vector-icons` sets (Feather included) have **no solid variant**, so a
@@ -167,11 +172,12 @@ instead — both the Terreno `Icon` and `@expo/vector-icons` render **font glyph
 - **The icon font actually loaded** → a failed font load renders tofu boxes while the codepoint
   check still passes, so also assert `document.fonts.check('20px <family>')` and confirm the family
   appears with status `loaded` in `document.fonts`. To rule out fallback rendering, measure the
-  glyph's advance width in the icon family versus a generic family: a real icon glyph is square at
-  the nominal size (e.g. 20px) while a fallback is noticeably narrower (~12px). After a migration,
-  also assert the **old** family is no longer registered at all. Note unrelated families may still
-  be loaded for other elements on the page (the docs page's Do/Don't bullets use FontAwesome), so
-  scope the conclusion to the glyph you probed.
+  glyph's advance width in the icon family versus a generic fallback family and check that they
+  *differ* — icon glyphs are not guaranteed to be square, so treat a specific width (e.g. exactly
+  20px) as a smell rather than a pass/fail rule, and prefer font-loading or network evidence. After a
+  migration, assert the **probed glyph's** computed family is the new one; do not require the old
+  family to be absent from `document.fonts`, since another element or an earlier mount in this SPA
+  session can keep it registered.
 - **Size** → computed `font-size` in px. `iconSizeToNumber` in `ui/src/Common.ts` maps
   `xs/sm/md/lg/xl/2xl` → `8/12/16/20/24/28`.
 - **Color** → computed `color`, compared against `theme.text[...]` in `ui/src/Theme.tsx`.
@@ -185,9 +191,11 @@ returning `{fontFamily, fontSize, color, disabled}` per button, and snapshot it 
 each interaction. For a disabled no-op, assert the after-state is identical to the before-state,
 then re-enable and repeat the same click to prove the hit target was live all along.
 
-If you set browser zoom above 100%, remember `getBoundingClientRect()` dimensions are scaled by the
-zoom factor while `font-size`/`border-radius` come back in CSS px — divide box sizes by the zoom
-before comparing them to the component's tap-target constants, or you will report a false mismatch.
+Measure geometry with the page at its default scale. Browser page zoom does *not* skew these
+comparisons — `getBoundingClientRect()` and computed `font-size` are both CSS pixels — but a CDP
+`Emulation.setPageScaleFactor`/`setDeviceMetricsOverride` scale factor or a pinch-zoomed
+`visualViewport.scale` does change the mapping to device pixels. Record `window.devicePixelRatio`
+and `visualViewport.scale` alongside the numbers you report so a mismatch is attributable.
 
 #### Verifying a filled-surface selection cue (and its contrast)
 
@@ -229,9 +237,11 @@ and report what you actually measured rather than rounding to "matches":
 Two things will silently produce bogus click results:
 
 1. **Screenshot coordinates are not CSS coordinates.** The browser screenshot may be 1024px wide
-   while `window.innerWidth` is 1600 (scale 0.64). Coordinate clicks are interpreted in *image*
-   space, so multiply CSS coordinates by `screenshotWidth / innerWidth` first. Measure the scale
-   once per session; a mismatch makes clicks land on nothing and look like a dead hit target.
+   while `window.innerWidth` is 1600 (scale 0.64). If your click tool takes *screenshot-image*
+   coordinates, multiply CSS coordinates by `screenshotWidth / innerWidth` first; Playwright/CDP
+   `mouse.click` takes **viewport CSS pixels**, so pass `getBoundingClientRect()` values straight
+   through and do NOT rescale. Know which space your tool uses — guessing wrong makes clicks land on
+   nothing and look like a dead hit target.
 2. **A fully-rounded pressable has a circular hit area.** With `borderRadius: tapTarget / 2` the
    bounding-box corners are not clickable — sweeping `document.elementFromPoint` over the box shows
    only ~84% of it hits the button. Always click the **center**, and if you need to characterise the
@@ -254,8 +264,10 @@ rather than trusting the source.
 
 This matters most when a design unifies selected/unselected colors so glyph shape is the only visual
 cue: there is then no non-visual cue at all, and docs claiming "selection is announced via
-accessibility state" are false on web. Likely fixes to suggest: pass `aria-selected={isSelected}`
-explicitly, or switch to a toggle-button semantic with `aria-pressed`.
+accessibility state" are false on web. The fix must be a **role-compatible** state: `aria-selected`
+is only valid on selectable composite descendants (tab, option, row, gridcell), so it is wrong on a
+button. Use `accessibilityRole="checkbox"` + `aria-checked` for a two-state control (see the
+keyboard caveat below), or `aria-pressed` if a toggle-button role is available.
 
 Confirmed root cause: `react-native-web` (checked at 0.21.2) only consumes **flat** props in
 `dist/modules/createDOMProps/index.js` (`aria-checked`, `aria-selected`, `aria-disabled`, …) and
