@@ -24,6 +24,15 @@ const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
 };
 
 /**
+ * react-native-web only activates a Pressable on the spacebar when the element is a native button or
+ * has role="button", so a checkbox needs its own spacebar handler (per ARIA, spacebar is the
+ * activation key for a checkbox). Not typed by react-native, so it is spread in separately.
+ */
+interface WebKeyDownProps {
+  onKeyDown?: (event: {key: string; preventDefault: () => void}) => void;
+}
+
+/**
  * A pair of thumbs up / thumbs down options for collecting binary feedback, e.g. on an AI
  * generated response. The selected option switches from an outlined to a filled thumb; pressing it
  * again clears the selection and calls `onChange` with undefined.
@@ -49,6 +58,17 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
     [disabled, onChange, value]
   );
 
+  const handleKeyDown = useCallback(
+    async (optionValue: BinaryFeedbackValue, event: {key: string; preventDefault: () => void}) => {
+      if (event.key !== " " && event.key !== "Spacebar") {
+        return;
+      }
+      event.preventDefault();
+      await handlePress(optionValue);
+    },
+    [handlePress]
+  );
+
   const iconSize = ICON_SIZE_MAP[size];
   const tapTargetSize = TAP_TARGET_MAP[size];
 
@@ -58,9 +78,13 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
     const iconColor = disabled ? theme.surface.disabled : theme.surface.secondaryDark;
     const iconName =
       ICON_NAME_MAP[isPositive ? "positive" : "negative"][isSelected ? "selected" : "unselected"];
+    const webKeyDownProps: WebKeyDownProps = {
+      onKeyDown: async (event) => handleKeyDown(optionValue, event),
+    };
 
     return (
       <Pressable
+        {...webKeyDownProps}
         accessibilityLabel={isPositive ? positiveAccessibilityLabel : negativeAccessibilityLabel}
         accessibilityRole="checkbox"
         accessibilityState={{checked: isSelected, disabled, selected: isSelected}}

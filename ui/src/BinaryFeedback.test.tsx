@@ -50,6 +50,24 @@ describe("BinaryFeedback", () => {
     expect(negative.props["aria-checked"]).toBe(true);
   });
 
+  it("activates on the spacebar, which react-native-web only handles for buttons", async () => {
+    const onChange = jest.fn();
+    const preventDefault = jest.fn();
+    const {getByTestId} = renderWithTheme(<BinaryFeedback onChange={onChange} testID="feedback" />);
+    await getByTestId("feedback-positive").props.onKeyDown({key: " ", preventDefault});
+    expect(preventDefault).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith("positive");
+  });
+
+  it("ignores other keys so react-native-web keeps handling enter", async () => {
+    const onChange = jest.fn();
+    const preventDefault = jest.fn();
+    const {getByTestId} = renderWithTheme(<BinaryFeedback onChange={onChange} testID="feedback" />);
+    await getByTestId("feedback-positive").props.onKeyDown({key: "Enter", preventDefault});
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("does not call onChange when disabled", () => {
     const onChange = jest.fn();
     const {getByTestId} = renderWithTheme(
