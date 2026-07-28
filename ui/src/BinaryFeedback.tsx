@@ -47,10 +47,8 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   const renderOption = (optionValue: BinaryFeedbackValue) => {
     const isSelected = value === optionValue;
     const isPositive = optionValue === "positive";
-    let color: "secondaryDark" | "secondaryLight" = "secondaryDark";
-    if (disabled) {
-      color = "secondaryLight";
-    }
+    const color: "secondaryDark" | "secondaryLight" =
+      isSelected && !disabled ? "secondaryDark" : "secondaryLight";
 
     return (
       <Pressable

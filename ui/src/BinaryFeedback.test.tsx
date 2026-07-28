@@ -29,6 +29,24 @@ describe("BinaryFeedback", () => {
     expect(onChange).toHaveBeenCalledWith(undefined);
   });
 
+  it("exposes the selection and custom labels to assistive technology", () => {
+    const {getByTestId} = renderWithTheme(
+      <BinaryFeedback
+        negativeAccessibilityLabel="Not helpful"
+        onChange={jest.fn()}
+        positiveAccessibilityLabel="Helpful"
+        testID="feedback"
+        value="negative"
+      />
+    );
+    const positive = getByTestId("feedback-positive");
+    const negative = getByTestId("feedback-negative");
+    expect(positive.props.accessibilityLabel).toBe("Helpful");
+    expect(negative.props.accessibilityLabel).toBe("Not helpful");
+    expect(positive.props.accessibilityState.selected).toBe(false);
+    expect(negative.props.accessibilityState.selected).toBe(true);
+  });
+
   it("does not call onChange when disabled", () => {
     const onChange = jest.fn();
     const {getByTestId} = renderWithTheme(
