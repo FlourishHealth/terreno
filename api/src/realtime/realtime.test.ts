@@ -10,9 +10,12 @@
  *   - changeStreamWatcher.ts (serializeDoc — responseHandler fallback)
  */
 
-import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
+import type http from "node:http";
 import express from "express";
 import mongoose from "mongoose";
+
+import {logger} from "../logger";
 
 import {
   emitToAuthorizedRoom,
@@ -3201,5 +3204,99 @@ describe("redactCredentials", () => {
     // Some non-URL strings still match the userinfo regex.
     expect(redactCredentials("rediss://u:p@example.com")).toContain("***@");
     expect(redactCredentials("rediss://u:p@example.com")).not.toContain("u:p");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RealtimeApp — Socket.io connection and connect_error listeners
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Socket.io delegates emitter methods to the main namespace, which exposes emitReserved. */
+interface ReservedEventEmitter {
+  sockets: {emitReserved: (event: string, arg: unknown) => void};
+}
+
+describe("RealtimeApp — io event listeners", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = {...originalEnv, TOKEN_SECRET: "test-secret"};
+    clearRealtimeRegistry();
+    clearQueryStore();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    clearRealtimeRegistry();
+    clearQueryStore();
+  });
+
+  const startApp = async (): Promise<{
+    app: RealtimeApp;
+    emitReserved: (event: string, arg: unknown) => void;
+    server: http.Server;
+  }> => {
+    const http_ = await import("node:http");
+    const app = new RealtimeApp({debug: true, tokenSecret: "test-secret"});
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http_.createServer(expressApp);
+    app.onServerCreated(server);
+    const io = app.getIo() as unknown as ReservedEventEmitter;
+    return {app, emitReserved: (event, arg) => io.sockets.emitReserved(event, arg), server};
+  };
+
+  it("installs socket handlers for incoming connections", async () => {
+    const {app, emitReserved, server} = await startApp();
+    const socket = createMockSocket({id: "user-connected"});
+
+    emitReserved("connection", socket);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(socket.listeners.has("subscribe:model")).toBe(true);
+    expect(socket.rooms.has("user:user-connected")).toBe(true);
+
+    await app.close();
+    server.close();
+  });
+
+  it("logs and reports errors thrown while handling a connection", async () => {
+    const {app, emitReserved, server} = await startApp();
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => undefined);
+    const brokenSocket = {
+      decodedToken: {id: "user-broken"},
+      emit: () => {},
+      id: "socket-broken",
+      join: async () => {},
+      leave: async () => {},
+      on: () => {
+        throw new Error("handler install failed");
+      },
+    } satisfies RealtimeSocketLike;
+
+    expect(() => emitReserved("connection", brokenSocket)).not.toThrow();
+    expect(
+      errorSpy.mock.calls.some((call) => String(call[0]).includes("Error handling connection"))
+    ).toBe(true);
+
+    errorSpy.mockRestore();
+    await app.close();
+    server.close();
+  });
+
+  it("logs connect_error events", async () => {
+    const {app, emitReserved, server} = await startApp();
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => undefined);
+
+    emitReserved("connect_error", new Error("handshake rejected"));
+
+    expect(errorSpy.mock.calls.some((call) => String(call[0]).includes("handshake rejected"))).toBe(
+      true
+    );
+
+    errorSpy.mockRestore();
+    await app.close();
+    server.close();
   });
 });
