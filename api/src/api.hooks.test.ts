@@ -1,6 +1,7 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, type mock} from "bun:test";
+import * as Sentry from "@sentry/bun";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -10,6 +11,8 @@ import {addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {Permissions} from "./permissions";
 import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+
+const captureExceptionMock = Sentry.captureException as unknown as ReturnType<typeof mock>;
 
 describe("pre and post hooks", () => {
   let server: TestAgent;
@@ -22,6 +25,7 @@ describe("pre and post hooks", () => {
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
     agent = await authAsUser(app, "notAdmin");
+    captureExceptionMock.mockClear?.();
   });
 
   it("pre hooks change data", async () => {
@@ -230,7 +234,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toBe("Custom preCreate error");
-    expect(res.body.disableExternalErrorTracking).toBe(true);
+    // The flag is internal reporting config: never serialized to clients, and it
+    // suppresses Sentry capture in apiErrorMiddleware.
+    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preCreate hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -263,7 +270,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toContain("preCreate hook error");
-    expect(res.body.disableExternalErrorTracking).toBe(true);
+    // The flag is internal reporting config: never serialized to clients, and it
+    // suppresses Sentry capture in apiErrorMiddleware.
+    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preUpdate hook preserves disableExternalErrorTracking on APIError", async () => {
@@ -311,7 +321,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toBe("Custom preUpdate error");
-    expect(res.body.disableExternalErrorTracking).toBe(true);
+    // The flag is internal reporting config: never serialized to clients, and it
+    // suppresses Sentry capture in apiErrorMiddleware.
+    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preUpdate hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -357,7 +370,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toContain("preUpdate hook error");
-    expect(res.body.disableExternalErrorTracking).toBe(true);
+    // The flag is internal reporting config: never serialized to clients, and it
+    // suppresses Sentry capture in apiErrorMiddleware.
+    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preDelete hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -398,7 +414,10 @@ describe("pre and post hooks", () => {
     const res = await agent.delete(`/food/${spinach._id}`).expect(403);
 
     expect(res.body.title).toContain("preDelete hook error");
-    expect(res.body.disableExternalErrorTracking).toBe(true);
+    // The flag is internal reporting config: never serialized to clients, and it
+    // suppresses Sentry capture in apiErrorMiddleware.
+    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 });
 
@@ -426,6 +445,7 @@ describe("hook error handling", () => {
     app = getBaseServer();
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
+    captureExceptionMock.mockClear?.();
   });
 
   it("preCreate returning undefined throws error", async () => {
@@ -701,6 +721,9 @@ describe("hook error handling", () => {
 
     const res = await agent.delete(`/food/${spinach._id}`).expect(400);
     expect(res.body.title).toBe("Custom preDelete APIError");
-    expect(res.body.disableExternalErrorTracking).toBe(true);
+    // The flag is internal reporting config: never serialized to clients, and it
+    // suppresses Sentry capture in apiErrorMiddleware.
+    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 });

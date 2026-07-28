@@ -20,7 +20,6 @@ import {
   APIError,
   apiErrorMiddleware,
   errorMessage,
-  errorStack,
   getDisableExternalErrorTracking,
   isAPIError,
 } from "./errors";
@@ -655,8 +654,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           throw error;
         }
         throw new APIError({
+          cause: error,
+          code: "transform-error",
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
           status: 400,
           title: errorMessage(error),
         });
@@ -669,10 +669,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             throw error;
           }
           throw new APIError({
+            cause: error,
+            code: "pre-create-hook-error",
+            detail: errorMessage(error),
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `preCreate hook error: ${errorMessage(error)}`,
+            title: "preCreate hook error",
           });
         }
         if (body === undefined) {
@@ -702,8 +704,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         data = (await model.create(body as T)) as Document<unknown, unknown, unknown> & T;
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "create-error",
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
           status: 400,
           title: errorMessage(error),
         });
@@ -718,10 +721,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           data = await populateQuery.exec();
         } catch (error: unknown) {
           throw new APIError({
+            cause: error,
+            code: "populate-error",
+            detail: errorMessage(error),
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `Populate error: ${errorMessage(error)}`,
+            title: "Populate error",
           });
         }
       }
@@ -731,10 +736,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           await options.postCreate(data, req);
         } catch (error: unknown) {
           throw new APIError({
+            cause: error,
+            code: "post-create-hook-error",
+            detail: errorMessage(error),
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `postCreate hook error: ${errorMessage(error)}`,
+            title: "postCreate hook error",
           });
         }
       }
@@ -743,9 +750,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         return res.status(201).json({data: serialized});
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "response-handler-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+          title: "responseHandler error",
         });
       }
     })
@@ -800,10 +809,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           queryFilter = await options.queryFilter(req.user, query);
         } catch (error: unknown) {
           throw new APIError({
+            cause: error,
+            code: "query-filter-error",
+            detail: String(error),
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `Query filter error: ${error}`,
+            title: "Query filter error",
           });
         }
 
@@ -852,9 +863,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         data = (await populatedQuery.exec()) as (Document<unknown, unknown, unknown> & T)[];
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "list-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `List error: ${errorStack(error)}`,
+          title: "List error",
         });
       }
 
@@ -864,9 +877,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         serialized = await responseHandler(data, "list", req, options);
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "response-handler-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+          title: "responseHandler error",
         });
       }
 
@@ -899,9 +914,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         return res.json({data: serialized});
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "serialization-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `Serialization error: ${errorMessage(error)}`,
+          title: "Serialization error",
         });
       }
     })
@@ -922,9 +939,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         return res.json({data: serialized});
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "response-handler-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+          title: "responseHandler error",
         });
       }
     })
@@ -961,10 +980,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           throw error;
         }
         throw new APIError({
+          cause: error,
+          code: "transform-error",
+          detail: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorMessage(error)}`,
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
           status: 403,
-          title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorMessage(error)}`,
+          title: "PATCH failed",
         });
       }
 
@@ -983,10 +1004,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             throw error;
           }
           throw new APIError({
+            cause: error,
+            code: "pre-update-hook-error",
+            detail: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+            title: "preUpdate hook error",
           });
         }
         if (body === undefined) {
@@ -1073,10 +1096,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         await doc.save();
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "update-save-error",
+          detail: `preUpdate hook save error on ${req.params.id}: ${errorMessage(error)}`,
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
           status: 400,
-          title: `preUpdate hook save error on ${req.params.id}: ${errorMessage(error)}`,
+          title: "preUpdate hook save error",
         });
       }
 
@@ -1093,10 +1118,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           await options.postUpdate(doc, body, req, prevDoc);
         } catch (error: unknown) {
           throw new APIError({
+            cause: error,
+            code: "post-update-hook-error",
+            detail: `postUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `postUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+            title: "postUpdate hook error",
           });
         }
       }
@@ -1106,9 +1133,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         return res.json({data: serialized});
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "response-handler-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+          title: "responseHandler error",
         });
       }
     })
@@ -1135,10 +1164,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             throw error;
           }
           throw new APIError({
+            cause: error,
+            code: "pre-delete-hook-error",
+            detail: `preDelete hook error on ${req.params.id}: ${errorMessage(error)}`,
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 403,
-            title: `preDelete hook error on ${req.params.id}: ${errorMessage(error)}`,
+            title: "preDelete hook error",
           });
         }
         if (body === undefined) {
@@ -1170,8 +1201,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           await doc.deleteOne();
         } catch (error: unknown) {
           throw new APIError({
+            cause: error,
+            code: "delete-error",
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
             title: errorMessage(error),
           });
@@ -1183,10 +1215,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           await options.postDelete(req, doc);
         } catch (error: unknown) {
           throw new APIError({
+            cause: error,
+            code: "post-delete-hook-error",
+            detail: errorMessage(error),
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
             status: 400,
-            title: `postDelete hook error: ${errorMessage(error)}`,
+            title: "postDelete hook error",
           });
         }
       }
@@ -1282,8 +1316,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         throw error;
       }
       throw new APIError({
+        cause: error,
+        code: "transform-error",
         disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
         status: 403,
         title: errorMessage(error),
       });
@@ -1294,10 +1329,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         body = await options.preUpdate(body, req);
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "pre-update-hook-error",
+          detail: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
           status: 400,
-          title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+          title: "preUpdate hook error",
         });
       }
       if (body === undefined) {
@@ -1323,10 +1360,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       await doc.save();
     } catch (error: unknown) {
       throw new APIError({
+        cause: error,
+        code: "update-save-error",
+        detail: `PATCH Pre Update error on ${req.params.id}: ${errorMessage(error)}`,
         disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
         status: 400,
-        title: `PATCH Pre Update error on ${req.params.id}: ${errorMessage(error)}`,
+        title: "PATCH Pre Update error",
       });
     }
 
@@ -1340,10 +1379,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         );
       } catch (error: unknown) {
         throw new APIError({
+          cause: error,
+          code: "post-update-hook-error",
+          detail: `PATCH Post Update error on ${req.params.id}: ${errorMessage(error)}`,
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
           status: 400,
-          title: `PATCH Post Update error on ${req.params.id}: ${errorMessage(error)}`,
+          title: "PATCH Post Update error",
         });
       }
     }

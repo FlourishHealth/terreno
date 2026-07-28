@@ -432,11 +432,28 @@ Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`
 
 ## Error Handling
 
-```typescript
-import {APIError} from "@terreno/api";
+`APIError` uses the standard `Error` fields the way external tools (Sentry, log explorers) expect: `message` is exactly `title` (a stable summary of the problem type), `name` is derived from the subclass, `code`, or `status` (e.g. a 404 becomes `NotFoundError`), and the wrapped original error goes in the standard `cause`.
 
-// Throw with status and title (required)
+```typescript
+import {APIError, ForbiddenError, NotFoundError} from "@terreno/api";
+
+// Throw with status and title (required). name becomes "BadRequestError".
 throw new APIError({status: 400, title: "Validation failed"});
+
+// Status subclasses (BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError,
+// ConflictError, ValidationError, InternalServerError) accept a title string or full options.
+throw new NotFoundError("Todo not found");
+throw new ForbiddenError({title: "Admins only", detail: "You must be an admin to change that"});
+
+// Wrap an underlying error with the standard `cause` — Sentry shows it as a linked exception.
+// A stable `code` drives the error name ("todo-sync-failed" -> TodoSyncFailed) and grouping.
+throw new APIError({
+  cause: error,
+  code: "todo-sync-failed",
+  detail: errorMessage(error),
+  status: 502,
+  title: "Todo sync failed",
+});
 
 // With field-level errors
 throw new APIError({
@@ -450,7 +467,11 @@ throw new APIError({
 throw new APIError({status: 404, title: "Not found", disableExternalErrorTracking: true});
 ```
 
-Error middleware (`apiErrorMiddleware`, `apiUnauthorizedMiddleware`) is automatically added by `setupServer`.
+Rules:
+
+- `title` must be a stable summary of the problem type; put per-occurrence text in `detail` and the wrapped error in `cause` (never concatenate them into `title`).
+- Use `isAPIError(error)` to detect APIErrors — never check `error.name`.
+- Constructing an APIError does not log. `apiErrorMiddleware` (added automatically by `setupServer`) logs `warn` for 4xx / `error` for 5xx, captures to Sentry with a fingerprint on `name + code/title + status`, and serializes the JSONAPI body (`disableExternalErrorTracking` is never sent to clients).
 
 ## Mongoose Conventions
 

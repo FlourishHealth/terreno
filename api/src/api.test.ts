@@ -655,7 +655,8 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
-      expect(res.body.disableExternalErrorTracking).toBe(true);
+      // Internal reporting config is no longer serialized to clients.
+      expect(res.body.disableExternalErrorTracking).toBeUndefined();
     });
   });
 
@@ -1408,7 +1409,8 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
-      expect(res.body.disableExternalErrorTracking).toBe(true);
+      // Internal reporting config is no longer serialized to clients.
+      expect(res.body.disableExternalErrorTracking).toBeUndefined();
     });
   });
 
@@ -2212,7 +2214,8 @@ describe("@terreno/api", () => {
     it("wraps non-APIError transform errors in a 403 APIError on update", async () => {
       const res = await agent.patch(`/food/${spinach._id}`).send({name: "Updated"}).expect(403);
 
-      expect(res.body.title).toContain("update transform error");
+      expect(res.body.title).toBe("PATCH failed");
+      expect(res.body.detail).toContain("update transform error");
     });
   });
 });

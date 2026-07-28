@@ -1,6 +1,6 @@
 # APIError redesign — standards-first extension of Error
 
-**Status:** Draft — design for discussion
+**Status:** Complete
 **Branch:** cursor/apierror-standard-error-redesign-e24a
 **Owner:** TBD
 **Created:** 2026-07-28
@@ -292,32 +292,39 @@ N/A.
 
 ## Files to Create / Modify
 
-- `api/src/errors.ts` — core redesign (class, name/status maps, `toJSON`, middleware).
-- `api/src/errors.test.ts`, `api/src/api.hooks.test.ts`, `api/src/api.errors.test.ts`,
-  `api/src/permissions.middleware.test.ts`, `api/src/docLoader.test.ts` — updated expectations.
-- `api/src/api.ts`, `api/src/openApiValidator.ts`, `api/src/permissions.ts`, `api/src/auth.ts`,
-  `api/src/plugins.ts` — stable titles, `cause`, `code` (phase 2).
-- `admin-backend/src/*.ts`, `feature-flags/src/*.ts`, `ai/src/**/*.ts`,
-  `example-backend/src/**/*.ts` — `error:` → `cause:` (phase 3).
-- Docs: `.cursor/rules/api/00-api.mdc` error-handling section + generated reference pages.
+As implemented:
+
+- `api/src/errors.ts` — core redesign (class, name/status maps, subclasses, `toJSON`, middleware).
+- `api/tsconfig.json` — add `es2022.error` to `lib` for the standard `ErrorOptions`/`cause` types.
+- `api/src/api.ts`, `api/src/transformers.ts`, `api/src/httpClient.ts`, `api/src/config.ts`,
+  `api/src/docLoader.ts` — stable titles, `cause`, `code` at every wrap site (phase 2).
+  `permissions.ts`, `auth.ts`, `plugins.ts`, and `openApiValidator.ts` needed no changes — they
+  already used stable titles without wrapped errors.
+- Tests: `api/src/errors.test.ts`, `api/src/api.errors.test.ts`, `api/src/api.hooks.test.ts`,
+  `api/src/api.test.ts`, `api/src/api.errorPaths.test.ts`, `api/src/notifiers/*.test.ts`,
+  `ai/src/langfuseRoutesMiddleware.test.ts` — updated expectations plus new coverage for name
+  derivation, `cause`, subclasses, `toJSON`, and the Sentry fingerprint.
+- Downstream packages had no `error:` usages, so phase 3 required no code changes.
+- Docs: `.rulesync/rules/api/00-api.md` error-handling section (mirrors regenerated with
+  `bun run rules`).
 
 ## Task List
 
-TBD — design for discussion; tasks file to be created on approval
-(`docs/tasks/apierror-standard-error-redesign.md`).
+Implemented directly on this branch (all three phases); no separate tasks file.
 
 ## Acceptance Criteria
 
-- [ ] `new APIError({status: 404, title: "Todo not found"})` has `name === "NotFoundError"`,
+- [x] `new APIError({status: 404, title: "Todo not found"})` has `name === "NotFoundError"`,
       `message === "Todo not found"`, `title === "Todo not found"`, and a clean single-line message.
-- [ ] `new APIError({title: "X", cause: inner})` exposes `error.cause === inner` and Sentry shows
+- [x] `new APIError({title: "X", cause: inner})` exposes `error.cause === inner` and Sentry shows
       the inner error as a linked exception with its own stack.
-- [ ] Sentry issue headline shows the derived/subclass name (never a bare "APIError" for errors
+- [x] Sentry issue headline shows the derived/subclass name (never a bare "APIError" for errors
       with a mapped status or code), and two errors with different `name`/`code` never share an
-      issue.
-- [ ] Constructing an APIError produces no log output; handling one through `apiErrorMiddleware`
+      issue (fingerprint on `name + code/title + status`).
+- [x] Constructing an APIError produces no log output; handling one through `apiErrorMiddleware`
       logs `warn` (4xx) or `error` (5xx) exactly once.
-- [ ] Response bodies keep `{status, title, detail, code, meta.fields, ...}` and never include
+- [x] Response bodies keep `{status, title, detail, code, meta.fields, ...}` and never include
       `disableExternalErrorTracking`, `name`, `stack`, or `cause`.
-- [ ] `isAPIError` returns true across duplicate `@terreno/api` copies and for subclasses.
-- [ ] `bun run api:test` and `bun run lint` pass.
+- [x] `isAPIError` returns true across duplicate `@terreno/api` copies and for subclasses.
+- [x] `bun run api:test` passes; `bun run lint` passes for all touched packages (the pre-existing
+      `@terreno/ui` `ConsentNavigator.tsx` floating-promise failures are unrelated).

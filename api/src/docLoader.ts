@@ -27,7 +27,8 @@ export const loadDocOr404 = async <T>(
       throw error;
     }
     throw new APIError({
-      error: error as Error,
+      cause: error,
+      code: "get-error",
       status: 500,
       title: `GET failed on ${id}`,
     });

@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
 import mongoose, {Schema} from "mongoose";
@@ -7,12 +7,19 @@ import {
   APIError,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
+  BadRequestError,
+  ConflictError,
   errorMessage,
   errorStack,
   errorsPlugin,
+  ForbiddenError,
   getAPIErrorBody,
   getDisableExternalErrorTracking,
+  InternalServerError,
   isAPIError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
 } from "./errors";
 
 interface MockResponse {
@@ -44,7 +51,6 @@ describe("APIError", () => {
     });
 
     expect(error).toBeInstanceOf(Error);
-    expect(error.name).toBe("APIError");
     expect(error.title).toBe("Validation failed");
     expect(error.detail).toBe("Email is invalid");
     expect(error.code).toBe("validation-failed");
@@ -62,16 +68,48 @@ describe("APIError", () => {
     expect(error.meta).toEqual({requestId: "req-1"});
   });
 
-  it("includes the title and detail in the error message", () => {
+  it("uses the title as the message, without detail or stacks", () => {
     const error = new APIError({detail: "Something exploded", title: "Boom"});
-    expect(error.message).toBe("Boom: Something exploded");
+    expect(error.message).toBe("Boom");
+    expect(error.title).toBe("Boom");
   });
 
-  it("includes the wrapped error stack in the message", () => {
+  it("exposes the wrapped error as the standard cause", () => {
+    const wrapped = new Error("inner");
+    const error = new APIError({cause: wrapped, title: "Outer"});
+    expect(error.message).toBe("Outer");
+    expect(error.cause).toBe(wrapped);
+  });
+
+  it("supports the deprecated error option as a cause alias", () => {
     const wrapped = new Error("inner");
     const error = new APIError({error: wrapped, title: "Outer"});
-    expect(error.message).toContain("Outer");
-    expect(error.message).toContain(wrapped.stack ?? "");
+    expect(error.cause).toBe(wrapped);
+    expect(error.error).toBe(wrapped);
+  });
+
+  it("derives the name from the status code", () => {
+    expect(new APIError({status: 400, title: "T"}).name).toBe("BadRequestError");
+    expect(new APIError({status: 401, title: "T"}).name).toBe("UnauthorizedError");
+    expect(new APIError({status: 403, title: "T"}).name).toBe("ForbiddenError");
+    expect(new APIError({status: 404, title: "T"}).name).toBe("NotFoundError");
+    expect(new APIError({status: 409, title: "T"}).name).toBe("ConflictError");
+    expect(new APIError({status: 500, title: "T"}).name).toBe("InternalServerError");
+  });
+
+  it("falls back to APIError for unmapped statuses", () => {
+    expect(new APIError({status: 418, title: "T"}).name).toBe("APIError");
+  });
+
+  it("derives the name from the code when provided", () => {
+    const error = new APIError({code: "update-admin-error", status: 403, title: "T"});
+    expect(error.name).toBe("UpdateAdminError");
+  });
+
+  it("keeps title in sync with message via the getter", () => {
+    const error = new APIError({title: "Original"});
+    error.message = "Changed";
+    expect(error.title).toBe("Changed");
   });
 
   it("defaults status to 500 when status is omitted", () => {
@@ -113,6 +151,48 @@ describe("APIError", () => {
   });
 });
 
+describe("APIError subclasses", () => {
+  it("sets the status and name from the subclass", () => {
+    const error = new NotFoundError("Todo not found");
+    expect(error.status).toBe(404);
+    expect(error.name).toBe("NotFoundError");
+    expect(error.message).toBe("Todo not found");
+    expect(error).toBeInstanceOf(APIError);
+    expect(isAPIError(error)).toBe(true);
+  });
+
+  it("accepts full options", () => {
+    const cause = new Error("inner");
+    const error = new ForbiddenError({cause, detail: "Admins only", title: "Not allowed"});
+    expect(error.status).toBe(403);
+    expect(error.name).toBe("ForbiddenError");
+    expect(error.detail).toBe("Admins only");
+    expect(error.cause).toBe(cause);
+  });
+
+  it("lets a code override the subclass name", () => {
+    const error = new BadRequestError({code: "invalid-cursor", title: "Bad cursor"});
+    expect(error.name).toBe("InvalidCursor");
+    expect(error.status).toBe(400);
+  });
+
+  it("uses ValidationError with a 400 status", () => {
+    const error = new ValidationError({fields: {email: "Required"}, title: "Validation failed"});
+    expect(error.status).toBe(400);
+    expect(error.name).toBe("ValidationError");
+    expect(error.meta?.fields).toEqual({email: "Required"});
+  });
+
+  it("covers the remaining status subclasses", () => {
+    expect(new UnauthorizedError("U").status).toBe(401);
+    expect(new UnauthorizedError("U").name).toBe("UnauthorizedError");
+    expect(new ConflictError("C").status).toBe(409);
+    expect(new ConflictError("C").name).toBe("ConflictError");
+    expect(new InternalServerError("I").status).toBe(500);
+    expect(new InternalServerError("I").name).toBe("InternalServerError");
+  });
+});
+
 describe("isAPIError", () => {
   it("returns true for an APIError instance", () => {
     expect(isAPIError(new APIError({title: "Boom"}))).toBe(true);
@@ -122,10 +202,20 @@ describe("isAPIError", () => {
     expect(isAPIError(new Error("nope"))).toBe(false);
   });
 
-  it("returns true for any error whose name is APIError", () => {
+  it("returns true for any error whose name is APIError (transition fallback)", () => {
     const err = new Error("custom");
     err.name = "APIError";
     expect(isAPIError(err)).toBe(true);
+  });
+
+  it("returns true for a branded error from a duplicate package copy", () => {
+    const err = new Error("branded") as Error & {isTerrenoAPIError?: boolean};
+    err.isTerrenoAPIError = true;
+    expect(isAPIError(err)).toBe(true);
+  });
+
+  it("returns true for subclasses", () => {
+    expect(isAPIError(new NotFoundError("missing"))).toBe(true);
   });
 });
 
@@ -193,7 +283,7 @@ describe("getAPIErrorBody", () => {
     expect(body).toEqual({meta: {}, status: 404, title: "Not Found"});
   });
 
-  it("includes optional fields when set", () => {
+  it("includes optional fields when set, but never internal reporting config", () => {
     const error = new APIError({
       code: "not-found",
       detail: "Could not find resource",
@@ -208,7 +298,6 @@ describe("getAPIErrorBody", () => {
     expect(body).toEqual({
       code: "not-found",
       detail: "Could not find resource",
-      disableExternalErrorTracking: true,
       id: "err-1",
       links: {about: "https://example.com/help"},
       meta: {},
@@ -216,6 +305,22 @@ describe("getAPIErrorBody", () => {
       status: 404,
       title: "Not Found",
     });
+  });
+
+  it("matches toJSON and excludes name, stack, and cause", () => {
+    const error = new APIError({
+      cause: new Error("inner"),
+      detail: "d",
+      status: 404,
+      title: "Not Found",
+    });
+    const body = error.toJSON() as unknown as Record<string, unknown>;
+    expect(body).toEqual(getAPIErrorBody(error) as unknown as typeof body);
+    expect(body.name).toBeUndefined();
+    expect(body.stack).toBeUndefined();
+    expect(body.cause).toBeUndefined();
+    expect(body.disableExternalErrorTracking).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(error))).toEqual(JSON.parse(JSON.stringify(body)));
   });
 
   it("omits empty meta and unset optional fields", () => {
@@ -312,6 +417,34 @@ describe("apiErrorMiddleware", () => {
     const err = new APIError({status: 500, title: "Boom"});
     apiErrorMiddleware(err, req, res as unknown as Response, next as unknown as NextFunction);
     expect(captureExceptionSpy).toHaveBeenCalledWith(err);
+  });
+
+  it("fingerprints Sentry captures on the logical error type", () => {
+    const scope = {
+      setContext: mock(() => {}),
+      setFingerprint: mock(() => {}),
+      setTag: mock(() => {}),
+    };
+    const withScopeSpy = spyOn(Sentry, "withScope").mockImplementation(((
+      callback: (s: unknown) => void
+    ) => callback(scope)) as unknown as typeof Sentry.withScope);
+    try {
+      const err = new APIError({code: "todo-sync-failed", status: 502, title: "Sync failed"});
+      apiErrorMiddleware(err, req, res as unknown as Response, next as unknown as NextFunction);
+      expect(scope.setFingerprint).toHaveBeenCalledWith([
+        "TodoSyncFailed",
+        "todo-sync-failed",
+        "502",
+      ]);
+      expect(scope.setTag).toHaveBeenCalledWith("http.status_code", "502");
+      expect(scope.setTag).toHaveBeenCalledWith("api_error.code", "todo-sync-failed");
+      expect(scope.setContext).toHaveBeenCalledWith(
+        "apiError",
+        expect.objectContaining({status: 502, title: "Sync failed"})
+      );
+    } finally {
+      withScopeSpy.mockRestore();
+    }
   });
 
   it("does not capture the exception when disableExternalErrorTracking is true", () => {

@@ -8,11 +8,12 @@ Tracks active and completed implementation plans (IP) for Terreno. File paths ar
 |------|--------|---------|-------|
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
-| [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Draft (design for discussion) | 2026-07-28 | TBD |
 
 ## Completed
 
-*(Move rows here from Active when the IP status becomes Complete.)*
+| Plan | Status | Created | Tasks |
+|------|--------|---------|-------|
+| [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
 
 ## Deferred / Closed
 

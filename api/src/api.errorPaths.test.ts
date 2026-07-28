@@ -75,7 +75,7 @@ describe("modelRouter error paths", () => {
       .send({calories: 5, name: "Broccoli", ownerId: new mongoose.Types.ObjectId()})
       .expect(400);
     assert.include(res.body.title, "Populate error");
-    assert.include(res.body.title, "populate exploded");
+    assert.include(res.body.detail, "populate exploded");
   });
 
   it("wraps list query failures in a List error", async () => {

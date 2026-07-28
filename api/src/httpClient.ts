@@ -215,8 +215,9 @@ export const withApiErrorHandling = async <T>(
     if (options.rethrowAs === "apiError") {
       const statusCode = normalized.statusCode;
       throw new APIError({
+        cause: error,
+        code: "http-client-error",
         detail: normalized.messages[0] ?? "unknown error",
-        error,
         meta: {classification: normalized.classification},
         status: statusCode !== undefined && statusCode >= 400 ? statusCode : 500,
         title: `${options.apiName} ${options.operation} request failed`,
