@@ -59,6 +59,19 @@ describe("BinaryFeedback", () => {
     expect(onChange).toHaveBeenCalledWith("positive");
   });
 
+  it("ignores auto-repeat from a held spacebar", async () => {
+    const onChange = jest.fn();
+    const preventDefault = jest.fn();
+    const {getByTestId} = renderWithTheme(<BinaryFeedback onChange={onChange} testID="feedback" />);
+    await getByTestId("feedback-positive").props.onKeyDown({
+      key: " ",
+      preventDefault,
+      repeat: true,
+    });
+    expect(preventDefault).toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("ignores other keys so react-native-web keeps handling enter", async () => {
     const onChange = jest.fn();
     const preventDefault = jest.fn();

@@ -28,8 +28,14 @@ const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
  * has role="button", so a checkbox needs its own spacebar handler (per ARIA, spacebar is the
  * activation key for a checkbox). Not typed by react-native, so it is spread in separately.
  */
+interface WebKeyDownEvent {
+  key: string;
+  preventDefault: () => void;
+  repeat?: boolean;
+}
+
 interface WebKeyDownProps {
-  onKeyDown?: (event: {key: string; preventDefault: () => void}) => void;
+  onKeyDown?: (event: WebKeyDownEvent) => void;
 }
 
 /**
@@ -59,11 +65,15 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   );
 
   const handleKeyDown = useCallback(
-    async (optionValue: BinaryFeedbackValue, event: {key: string; preventDefault: () => void}) => {
+    async (optionValue: BinaryFeedbackValue, event: WebKeyDownEvent) => {
       if (event.key !== " " && event.key !== "Spacebar") {
         return;
       }
       event.preventDefault();
+      // A native button activates once per press, so ignore auto-repeat from a held spacebar.
+      if (event.repeat) {
+        return;
+      }
       await handlePress(optionValue);
     },
     [handlePress]
