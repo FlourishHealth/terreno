@@ -62,8 +62,10 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
     return (
       <Pressable
         accessibilityLabel={isPositive ? positiveAccessibilityLabel : negativeAccessibilityLabel}
-        accessibilityRole="button"
-        accessibilityState={{disabled, selected: isSelected}}
+        accessibilityRole="checkbox"
+        accessibilityState={{checked: isSelected, disabled, selected: isSelected}}
+        aria-checked={isSelected}
+        aria-disabled={disabled}
         disabled={disabled}
         onPress={async () => handlePress(optionValue)}
         style={{

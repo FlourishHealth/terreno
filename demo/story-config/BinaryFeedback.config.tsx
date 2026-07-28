@@ -36,8 +36,8 @@ export const BinaryFeedbackConfiguration: DemoConfiguration = {
     ],
   },
   a11yNotes: [
-    "Each option is a button with an accessibility label, customizable via positiveAccessibilityLabel and negativeAccessibilityLabel",
-    "Selection is announced via accessibilityState, not color alone",
+    "Each option has an accessibility label, customizable via positiveAccessibilityLabel and negativeAccessibilityLabel",
+    "Each option is a two-state toggle: selection is announced as checked, so it is never conveyed by the glyph alone",
   ],
   interfaceName: "BinaryFeedbackProps",
   props: {},

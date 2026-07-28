@@ -45,6 +45,9 @@ describe("BinaryFeedback", () => {
     expect(negative.props.accessibilityLabel).toBe("Not helpful");
     expect(positive.props.accessibilityState.selected).toBe(false);
     expect(negative.props.accessibilityState.selected).toBe(true);
+    // react-native-web ignores accessibilityState, so the flat aria prop is what reaches the DOM.
+    expect(positive.props["aria-checked"]).toBe(false);
+    expect(negative.props["aria-checked"]).toBe(true);
   });
 
   it("does not call onChange when disabled", () => {
