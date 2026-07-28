@@ -1,15 +1,15 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
-// Import Platform the same way the source modules do (ESM named import). On CI a CJS
-// `require("react-native").Platform` can resolve to a different mock object than the ESM binding
-// that Modal.tsx and Utilities.tsx#isNative capture, so this binding must be mutated too.
+// Import Platform the same way the source modules do (ESM named import) so the web blur effect
+// (which reads Platform.OS directly in Modal.tsx) observes the value the test sets.
 import {Platform as ImportedPlatform} from "react-native";
 import {Gesture} from "react-native-gesture-handler";
 
 import {Modal} from "./Modal";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
+import * as Utilities from "./Utilities";
 
 // Minimal shape of a test instance returned by UNSAFE_getAllByType that we rely on here.
 interface PressableTestInstance {
@@ -114,15 +114,40 @@ const restorePlatformOS = (): void => {
   });
 };
 
+let isNativeSpy: ReturnType<typeof spyOn> | undefined;
+
+/**
+ * Forces `isNative()` to a fixed value so the Modal's platform branch is deterministic.
+ *
+ * Spying on the `Utilities.isNative` export drives the exact live binding `Modal.tsx` calls,
+ * which is reliable across environments (unlike mutating react-native's Platform.OS, whose mock
+ * object identity can diverge per module on CI).
+ *
+ * @param value - true to render the native ActionSheet branch, false for the web dialog branch.
+ */
+const forceIsNative = (value: boolean): void => {
+  isNativeSpy = spyOn(Utilities, "isNative").mockReturnValue(value);
+};
+
+/**
+ * Restores the real `isNative()` implementation after a forced value.
+ */
+const restoreIsNative = (): void => {
+  isNativeSpy?.mockRestore();
+  isNativeSpy = undefined;
+};
+
 describe("Modal", () => {
   // These tests exercise the default native (ActionSheet) presentation; pin the platform and
   // force isNative() so the branch is deterministic and not left to ambient Platform.OS state.
   beforeEach(() => {
     setPlatformOS("ios");
+    forceIsNative(true);
   });
 
   afterEach(() => {
     restorePlatformOS();
+    restoreIsNative();
   });
 
   it("renders correctly when visible", () => {
@@ -426,12 +451,14 @@ describe("Modal web platform", () => {
   // Platform binding, see setPlatformOS) plus a document and HTMLElement stub before rendering.
   beforeEach(() => {
     setPlatformOS("web");
+    forceIsNative(false);
     globalScope.HTMLElement = FakeHTMLElement;
     globalScope.document = {activeElement: null};
   });
 
   afterEach(() => {
     restorePlatformOS();
+    restoreIsNative();
     globalScope.document = originalDocument;
     globalScope.HTMLElement = originalHTMLElement;
   });
@@ -527,11 +554,13 @@ describe("Modal web platform", () => {
 describe("Modal native presentation", () => {
   afterEach(() => {
     restorePlatformOS();
+    restoreIsNative();
   });
 
   for (const platform of ["ios", "android"] as const) {
     it(`uses the ActionSheet (no web backdrop) on ${platform}`, () => {
       setPlatformOS(platform);
+      forceIsNative(true);
       const {UNSAFE_getAllByType, getByText} = renderWithTheme(
         <Modal
           onDismiss={() => {}}
@@ -553,6 +582,7 @@ describe("Modal native presentation", () => {
 
     it(`renders nothing when not visible on ${platform}`, () => {
       setPlatformOS(platform);
+      forceIsNative(true);
       const {queryByText} = renderWithTheme(
         <Modal onDismiss={() => {}} title="Hidden Native Modal" visible={false}>
           <Text>Native Content</Text>
@@ -570,13 +600,15 @@ interface CapturedGesture {
 }
 
 describe("Modal drag-to-close gesture", () => {
-  // The drag handle only renders in the native ActionSheet branch, so pin a native platform.
+  // The drag handle only renders in the native ActionSheet branch, so force native.
   beforeEach(() => {
     setPlatformOS("ios");
+    forceIsNative(true);
   });
 
   afterEach(() => {
     restorePlatformOS();
+    restoreIsNative();
   });
 
   it("dismisses only when dragged down past the threshold", () => {
