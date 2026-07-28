@@ -298,6 +298,12 @@ So after any `accessibilityRole` change, test with the real keyboard, not just c
    with `preventDefault()` (to suppress page scroll), or backing the control with a real
    `<input type="checkbox">`.
 
+When a component does add its own `onKeyDown`, check two things a native button gives you for free:
+that Space does not scroll (test on a page with **real** scroll room and assert `scrollY`/`scrollTop`
+is unchanged), and that a **held** key does not rapid-fire — `keydown` repeats while the key is down,
+so the handler needs `if (event.repeat) return;`. A discrete-key-press harness cannot observe
+auto-repeat, so read the source for the `event.repeat` guard rather than claiming it verified.
+
 To decide whether it is a *regression* rather than pre-existing, read the previous commit's source
 (`git show <prev>:path/to/Component.tsx | grep accessibility`) — if it used `accessibilityRole="button"`
 it was a native button and Space used to work.
