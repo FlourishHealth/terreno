@@ -52,18 +52,25 @@ export const BinaryFeedbackStories = () => {
 export const BinaryFeedbackWithConfirmation = () => {
   const [value, setValue] = useState<BinaryFeedbackValue | undefined>(undefined);
 
-  let message = "Was this helpful?";
+  let confirmation: string | undefined;
   if (value === "positive") {
-    message = "Thanks for the feedback!";
+    confirmation = "Thanks for the feedback";
   } else if (value === "negative") {
-    message = "Thanks — we'll use this to improve.";
+    confirmation = "Thanks - we'll use this to improve";
   }
 
   return (
     <StorybookContainer>
-      <Box alignItems="center" direction="row" gap={4}>
-        <Text>{message}</Text>
-        <BinaryFeedback onChange={setValue} testID="binary-feedback-inline" value={value} />
+      <Box direction="column" gap={1}>
+        <Box alignItems="center" direction="row" gap={4}>
+          <Text>Was this helpful?</Text>
+          <BinaryFeedback onChange={setValue} testID="binary-feedback-inline" value={value} />
+        </Box>
+        {Boolean(confirmation) && (
+          <Text color="secondaryLight" size="sm" testID="binary-feedback-inline-confirmation">
+            {confirmation}
+          </Text>
+        )}
       </Box>
     </StorybookContainer>
   );

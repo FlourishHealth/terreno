@@ -1,4 +1,4 @@
-import Feather from "@expo/vector-icons/Feather";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {type FC, useCallback} from "react";
 import {Pressable} from "react-native";
 
@@ -12,6 +12,11 @@ const ICON_SIZE_MAP: {[key in "sm" | "md" | "lg"]: number} = {
   sm: 16,
 };
 
+const ICON_NAME_MAP = {
+  negative: {selected: "thumb-down-alt", unselected: "thumb-down-off-alt"},
+  positive: {selected: "thumb-up-alt", unselected: "thumb-up-off-alt"},
+} as const;
+
 const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
   lg: 40,
   md: 32,
@@ -20,7 +25,7 @@ const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
 
 /**
  * A pair of thumbs up / thumbs down options for collecting binary feedback, e.g. on an AI
- * generated response. The selected option is darkened and sits on a filled surface; pressing it
+ * generated response. The selected option switches from an outlined to a filled thumb; pressing it
  * again clears the selection and calls `onChange` with undefined.
  */
 export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
@@ -52,10 +57,8 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
     const isPositive = optionValue === "positive";
     const iconColor =
       isSelected && !disabled ? theme.text.secondaryDark : theme.text.secondaryLight;
-    let backgroundColor = "transparent";
-    if (isSelected) {
-      backgroundColor = disabled ? theme.surface.disabled : theme.surface.secondaryLight;
-    }
+    const iconName =
+      ICON_NAME_MAP[isPositive ? "positive" : "negative"][isSelected ? "selected" : "unselected"];
 
     return (
       <Pressable
@@ -66,7 +69,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
         onPress={async () => handlePress(optionValue)}
         style={{
           alignItems: "center",
-          backgroundColor,
+          backgroundColor: "transparent",
           borderRadius: tapTargetSize / 2,
           height: tapTargetSize,
           justifyContent: "center",
@@ -74,12 +77,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
         }}
         testID={testID ? `${testID}-${isPositive ? "positive" : "negative"}` : undefined}
       >
-        <Feather
-          color={iconColor}
-          name={isPositive ? "thumbs-up" : "thumbs-down"}
-          selectable={undefined}
-          size={iconSize}
-        />
+        <MaterialIcons color={iconColor} name={iconName} selectable={undefined} size={iconSize} />
       </Pressable>
     );
   };

@@ -704,8 +704,8 @@ mock.module("@expo/vector-icons/FontAwesome6", () => ({
   default: mock(() => null),
 }));
 
-// Mock @expo/vector-icons/Feather
-mock.module("@expo/vector-icons/Feather", () => ({
+// Mock @expo/vector-icons/MaterialIcons
+mock.module("@expo/vector-icons/MaterialIcons", () => ({
   default: mock(() => null),
 }));
 

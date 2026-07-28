@@ -66,7 +66,7 @@ export const BinaryFeedbackConfiguration: DemoConfiguration = {
       render: () => <BinaryFeedbackStories />,
     },
     "Inline Feedback Prompt": {
-      description: "Paired with a prompt that reacts to the selection.",
+      description: "Paired with a static prompt and a confirmation line shown after feedback.",
       render: () => <BinaryFeedbackWithConfirmation />,
     },
   },
