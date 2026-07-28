@@ -1,6 +1,10 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
+// Import Platform the same way the source modules do (ESM named import). On CI a CJS
+// `require("react-native").Platform` can resolve to a different mock object than the ESM binding
+// that Modal.tsx and Utilities.tsx#isNative capture, so this binding must be mutated too.
+import {Platform as ImportedPlatform} from "react-native";
 import {Gesture} from "react-native-gesture-handler";
 
 import {Modal} from "./Modal";
@@ -61,6 +65,8 @@ const collectPlatformObjects = (): {OS: string}[] => {
       objects.push(candidate as {OS: string});
     }
   };
+  // The ESM binding the source files use must come first.
+  push(ImportedPlatform);
   const rn = require("react-native") as {Platform?: unknown; default?: {Platform?: unknown}};
   push(rn.Platform);
   push(rn.default?.Platform);
@@ -109,8 +115,8 @@ const restorePlatformOS = (): void => {
 };
 
 describe("Modal", () => {
-  // These tests exercise the default native (ActionSheet) presentation; pin the platform so the
-  // branch is deterministic and not left to ambient/cross-file Platform.OS state.
+  // These tests exercise the default native (ActionSheet) presentation; pin the platform and
+  // force isNative() so the branch is deterministic and not left to ambient Platform.OS state.
   beforeEach(() => {
     setPlatformOS("ios");
   });
