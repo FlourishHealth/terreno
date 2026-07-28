@@ -3,7 +3,6 @@ import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import {Gesture} from "react-native-gesture-handler";
 
-import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -326,22 +325,6 @@ describe("Modal", () => {
 
     expect(handleSecondary).toHaveBeenCalled();
   });
-
-  it("renders the native ActionSheet presentation (no web backdrop) on native platforms", () => {
-    // Default test platform is "ios" (see bunSetup), so the Modal must use the ActionSheet
-    // branch and must NOT render the web-only translucent backdrop Pressable. This is the
-    // regression guard for the Android tablet bug: native devices of any screen size use the
-    // ActionSheet, never the web RNModal path.
-    const {UNSAFE_getAllByType} = renderWithTheme(
-      <Modal onDismiss={() => {}} title="Title" visible>
-        <Text>Content</Text>
-      </Modal>
-    );
-    const {Pressable} = require("react-native");
-    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
-    const backdrop = findBackdropPressable(pressables);
-    expect(backdrop).toBeUndefined();
-  });
 });
 
 describe("Modal web platform", () => {
@@ -454,48 +437,52 @@ describe("Modal web platform", () => {
   });
 });
 
-describe("Modal mobile branch", () => {
+// The Modal selects its presentation via isNative() (Platform.OS in ios/android), NOT screen
+// size, so these run the native branch explicitly for each native platform. Android is the
+// platform where the original tablet bug occurred, so it must be covered directly rather than
+// relying on the default "ios" test platform.
+describe("Modal native presentation", () => {
+  const RN = require("react-native") as {Platform: {OS: string}};
+  const originalOS = RN.Platform.OS;
+
   afterEach(() => {
-    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+    RN.Platform.OS = originalOS;
   });
 
-  it("renders ActionSheet when isMobileDevice is true", () => {
-    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
-    const {toJSON} = renderWithTheme(
-      <Modal onDismiss={() => {}} title="Mobile Modal" visible>
-        <Text>Mobile Content</Text>
-      </Modal>
-    );
-    expect(toJSON()).toBeTruthy();
-  });
+  for (const platform of ["ios", "android"] as const) {
+    it(`uses the ActionSheet (no web backdrop) on ${platform}`, () => {
+      RN.Platform.OS = platform;
+      const {UNSAFE_getAllByType, getByText} = renderWithTheme(
+        <Modal
+          onDismiss={() => {}}
+          primaryButtonOnClick={() => {}}
+          primaryButtonText="Save"
+          title="Native Modal"
+          visible
+        >
+          <Text>Native Content</Text>
+        </Modal>
+      );
+      // Content mounts via the ActionSheet branch...
+      expect(getByText("Native Modal")).toBeTruthy();
+      // ...and the web-only translucent backdrop Pressable must NOT be present.
+      const {Pressable} = require("react-native");
+      const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
+      expect(findBackdropPressable(pressables)).toBeUndefined();
+    });
 
-  it("renders ActionSheet with title and buttons on mobile", () => {
-    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
-    const {toJSON} = renderWithTheme(
-      <Modal
-        onDismiss={() => {}}
-        primaryButtonOnClick={() => {}}
-        primaryButtonText="Save"
-        secondaryButtonOnClick={() => {}}
-        secondaryButtonText="Cancel"
-        title="Mobile Actions"
-        visible
-      >
-        <Text>Content</Text>
-      </Modal>
-    );
-    expect(toJSON()).toBeTruthy();
-  });
-
-  it("renders ActionSheet with persistOnBackgroundClick enabled", () => {
-    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
-    const {toJSON} = renderWithTheme(
-      <Modal onDismiss={() => {}} persistOnBackgroundClick title="Persistent Mobile" visible>
-        <Text>Content</Text>
-      </Modal>
-    );
-    expect(toJSON()).toBeTruthy();
-  });
+    it(`renders nothing when not visible on ${platform}`, () => {
+      RN.Platform.OS = platform;
+      const {queryByText} = renderWithTheme(
+        <Modal onDismiss={() => {}} title="Hidden Native Modal" visible={false}>
+          <Text>Native Content</Text>
+        </Modal>
+      );
+      // The ActionSheet stays closed (mock tracks setModalVisible), so no content is shown.
+      expect(queryByText("Hidden Native Modal")).toBeNull();
+      expect(queryByText("Native Content")).toBeNull();
+    });
+  }
 });
 
 interface CapturedGesture {
