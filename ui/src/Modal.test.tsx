@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import {Gesture} from "react-native-gesture-handler";
@@ -17,6 +17,28 @@ interface PressableTestInstance {
     onPress?: (event?: {stopPropagation?: () => void}) => void;
   };
 }
+
+/**
+ * Finds the web-only translucent backdrop Pressable in a rendered Modal tree.
+ *
+ * The web branch renders a full-screen Pressable whose style sets a semi-transparent
+ * `rgba(...)` backgroundColor; the native ActionSheet branch has no such element. Tests use
+ * its presence/absence to assert which presentation branch rendered.
+ *
+ * @param pressables - All Pressable test instances found in the rendered tree.
+ * @returns The backdrop Pressable if present, otherwise undefined.
+ */
+const findBackdropPressable = (
+  pressables: PressableTestInstance[]
+): PressableTestInstance | undefined => {
+  return pressables.find((node) => {
+    const style = node.props.style;
+    if (Array.isArray(style)) {
+      return style.some((s) => s?.backgroundColor?.includes?.("rgba"));
+    }
+    return style?.backgroundColor?.includes?.("rgba");
+  });
+};
 
 describe("Modal", () => {
   it("renders correctly when visible", () => {
@@ -305,6 +327,60 @@ describe("Modal", () => {
     expect(handleSecondary).toHaveBeenCalled();
   });
 
+  it("renders the native ActionSheet presentation (no web backdrop) on native platforms", () => {
+    // Default test platform is "ios" (see bunSetup), so the Modal must use the ActionSheet
+    // branch and must NOT render the web-only translucent backdrop Pressable. This is the
+    // regression guard for the Android tablet bug: native devices of any screen size use the
+    // ActionSheet, never the web RNModal path.
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Title" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    const {Pressable} = require("react-native");
+    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
+    const backdrop = findBackdropPressable(pressables);
+    expect(backdrop).toBeUndefined();
+  });
+});
+
+describe("Modal web platform", () => {
+  const RN = require("react-native") as {Platform: {OS: string}};
+  const originalOS = RN.Platform.OS;
+  const globalScope = globalThis as {document?: unknown; HTMLElement?: unknown};
+  const originalDocument = globalScope.document;
+  const originalHTMLElement = globalScope.HTMLElement;
+
+  class FakeHTMLElement {
+    blur = mock(() => {});
+  }
+
+  // The web branch runs a blur useEffect that reads `document.activeElement` and checks
+  // `instanceof HTMLElement`, so every web test needs Platform.OS === "web" plus a document
+  // and HTMLElement stub in place before rendering.
+  beforeEach(() => {
+    RN.Platform.OS = "web";
+    globalScope.HTMLElement = FakeHTMLElement;
+    globalScope.document = {activeElement: null};
+  });
+
+  afterEach(() => {
+    RN.Platform.OS = originalOS;
+    globalScope.document = originalDocument;
+    globalScope.HTMLElement = originalHTMLElement;
+  });
+
+  it("renders the web RNModal backdrop on web", () => {
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Web Modal" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    const {Pressable} = require("react-native");
+    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
+    expect(findBackdropPressable(pressables)).toBeTruthy();
+  });
+
   it("dismisses when the backdrop is pressed and persistOnBackgroundClick is false", () => {
     const handleDismiss = mock(() => {});
     const {UNSAFE_getAllByType} = renderWithTheme(
@@ -315,13 +391,7 @@ describe("Modal", () => {
     // Find the backdrop Pressable (first Pressable in tree with a style that includes backgroundColor).
     const {Pressable} = require("react-native");
     const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
-    const backdrop = pressables.find((node) => {
-      const style = node.props.style;
-      if (Array.isArray(style)) {
-        return style.some((s) => s?.backgroundColor?.includes?.("rgba"));
-      }
-      return style?.backgroundColor?.includes?.("rgba");
-    });
+    const backdrop = findBackdropPressable(pressables);
     expect(backdrop).toBeTruthy();
     backdrop?.props.onPress?.();
     expect(handleDismiss).toHaveBeenCalled();
@@ -357,28 +427,8 @@ describe("Modal", () => {
     inner?.props.onPress?.({stopPropagation});
     expect(stopPropagation).not.toHaveBeenCalled();
   });
-});
-
-describe("Modal web platform", () => {
-  const RN = require("react-native") as {Platform: {OS: string}};
-  const originalOS = RN.Platform.OS;
-  const globalScope = globalThis as {document?: unknown; HTMLElement?: unknown};
-  const originalDocument = globalScope.document;
-  const originalHTMLElement = globalScope.HTMLElement;
-
-  class FakeHTMLElement {
-    blur = mock(() => {});
-  }
-
-  afterEach(() => {
-    RN.Platform.OS = originalOS;
-    globalScope.document = originalDocument;
-    globalScope.HTMLElement = originalHTMLElement;
-  });
 
   it("blurs the focused element when opened on web", () => {
-    RN.Platform.OS = "web";
-    globalScope.HTMLElement = FakeHTMLElement;
     const active = new FakeHTMLElement();
     globalScope.document = {activeElement: active};
 
@@ -392,8 +442,6 @@ describe("Modal web platform", () => {
   });
 
   it("does not blur when the active element is not an HTMLElement", () => {
-    RN.Platform.OS = "web";
-    globalScope.HTMLElement = FakeHTMLElement;
     globalScope.document = {activeElement: {}};
 
     const {toJSON} = renderWithTheme(

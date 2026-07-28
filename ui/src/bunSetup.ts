@@ -614,6 +614,24 @@ mock.module("./DateTimeActionSheet", () => ({
   DateTimeActionSheet: mock(() => null),
 }));
 
+// Mock react-native-actions-sheet as a passthrough so the native Modal branch mounts its
+// children (ModalContent) synchronously. The real component defers rendering until it is opened
+// via native animation, which react-test-renderer never triggers.
+mock.module("react-native-actions-sheet", () => ({
+  __esModule: true,
+  default: React.forwardRef(function ActionSheetMock(
+    {children}: {children?: React.ReactNode},
+    ref: React.Ref<unknown>
+  ) {
+    React.useImperativeHandle(ref, () => ({
+      hide: mock(() => {}),
+      setModalVisible: mock(() => {}),
+      show: mock(() => {}),
+    }));
+    return React.createElement("ActionSheetMock", {}, children);
+  }),
+}));
+
 // Mock MediaQuery
 mock.module("./MediaQuery", () => ({
   isMobileDevice: mock(() => false),

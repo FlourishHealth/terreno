@@ -15,7 +15,6 @@ import {Button} from "./Button";
 import type {ModalProps, TerrenoTheme} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
-import {isMobileDevice} from "./MediaQuery";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveModalTestIDsFromProps, toTestProps} from "./testing/resolveTestId";
@@ -247,7 +246,13 @@ export const Modal: FC<ModalProps> = ({
     }
   }, [visible]);
 
-  const isMobile = isMobileDevice() && isNative();
+  // Choose the presentation by platform, not by screen size. The web branch below relies on DOM
+  // semantics (nested Pressables using `e.stopPropagation()` and a `cursor` style) that native
+  // platforms do not implement, so it must only run on web. Keying this off screen size instead
+  // sent native *tablets* (width >= "sm") down the web branch: on Android the nested Pressables
+  // fight over the touch responder, producing repeated press animations and a Confirm button that
+  // never fires. All native devices (phones and tablets) use the ActionSheet presentation.
+  const isMobile = isNative();
   const sizePx = getModalSize(size);
 
   const modalContentProps = {
