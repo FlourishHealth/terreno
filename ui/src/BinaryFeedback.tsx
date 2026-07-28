@@ -7,9 +7,9 @@ import type {BinaryFeedbackProps, BinaryFeedbackValue} from "./Common";
 import {useTheme} from "./Theme";
 
 const ICON_SIZE_MAP: {[key in "sm" | "md" | "lg"]: number} = {
-  lg: 24,
-  md: 20,
-  sm: 16,
+  lg: 20,
+  md: 16,
+  sm: 12,
 };
 
 const ICON_NAME_MAP = {
@@ -18,9 +18,9 @@ const ICON_NAME_MAP = {
 } as const;
 
 const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
-  lg: 40,
-  md: 32,
-  sm: 24,
+  lg: 28,
+  md: 24,
+  sm: 20,
 };
 
 /**
@@ -55,8 +55,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   const renderOption = (optionValue: BinaryFeedbackValue) => {
     const isSelected = value === optionValue;
     const isPositive = optionValue === "positive";
-    const iconColor =
-      isSelected && !disabled ? theme.text.secondaryDark : theme.text.secondaryLight;
+    const iconColor = disabled ? theme.surface.disabled : theme.surface.secondaryDark;
     const iconName =
       ICON_NAME_MAP[isPositive ? "positive" : "negative"][isSelected ? "selected" : "unselected"];
 
@@ -83,7 +82,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   };
 
   return (
-    <Box alignItems="center" direction="row" gap={1} testID={testID}>
+    <Box alignItems="center" direction="row" gap={2} testID={testID}>
       {renderOption("positive")}
       {renderOption("negative")}
     </Box>
