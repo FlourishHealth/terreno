@@ -1,14 +1,15 @@
+import Feather from "@expo/vector-icons/Feather";
 import {type FC, useCallback} from "react";
 import {Pressable} from "react-native";
 
 import {Box} from "./Box";
-import type {BinaryFeedbackProps, BinaryFeedbackValue, IconSize} from "./Common";
-import {Icon} from "./Icon";
+import type {BinaryFeedbackProps, BinaryFeedbackValue} from "./Common";
+import {useTheme} from "./Theme";
 
-const ICON_SIZE_MAP: {[key in "sm" | "md" | "lg"]: IconSize} = {
-  lg: "xl",
-  md: "lg",
-  sm: "md",
+const ICON_SIZE_MAP: {[key in "sm" | "md" | "lg"]: number} = {
+  lg: 24,
+  md: 20,
+  sm: 16,
 };
 
 const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
@@ -19,8 +20,8 @@ const TAP_TARGET_MAP: {[key in "sm" | "md" | "lg"]: number} = {
 
 /**
  * A pair of thumbs up / thumbs down options for collecting binary feedback, e.g. on an AI
- * generated response. The selected option is filled in; pressing it again clears the selection
- * and calls `onChange` with undefined.
+ * generated response. The selected option is darkened and sits on a filled surface; pressing it
+ * again clears the selection and calls `onChange` with undefined.
  */
 export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   disabled = false,
@@ -31,6 +32,8 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   testID,
   value,
 }) => {
+  const {theme} = useTheme();
+
   const handlePress = useCallback(
     async (pressedValue: BinaryFeedbackValue) => {
       if (disabled) {
@@ -47,8 +50,12 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   const renderOption = (optionValue: BinaryFeedbackValue) => {
     const isSelected = value === optionValue;
     const isPositive = optionValue === "positive";
-    const color: "secondaryDark" | "secondaryLight" =
-      isSelected && !disabled ? "secondaryDark" : "secondaryLight";
+    const iconColor =
+      isSelected && !disabled ? theme.text.secondaryDark : theme.text.secondaryLight;
+    let backgroundColor = "transparent";
+    if (isSelected) {
+      backgroundColor = disabled ? theme.surface.disabled : theme.surface.secondaryLight;
+    }
 
     return (
       <Pressable
@@ -59,17 +66,19 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
         onPress={async () => handlePress(optionValue)}
         style={{
           alignItems: "center",
+          backgroundColor,
+          borderRadius: tapTargetSize / 2,
           height: tapTargetSize,
           justifyContent: "center",
           width: tapTargetSize,
         }}
         testID={testID ? `${testID}-${isPositive ? "positive" : "negative"}` : undefined}
       >
-        <Icon
-          color={color}
-          iconName={isPositive ? "thumbs-up" : "thumbs-down"}
+        <Feather
+          color={iconColor}
+          name={isPositive ? "thumbs-up" : "thumbs-down"}
+          selectable={undefined}
           size={iconSize}
-          type={isSelected ? "solid" : "regular"}
         />
       </Pressable>
     );
