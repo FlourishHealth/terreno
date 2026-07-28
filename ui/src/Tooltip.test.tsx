@@ -775,6 +775,7 @@ describe("Tooltip", () => {
       const wrapper = (treeAfter.children as TestNode[]).find(
         (c: TestNode) => c.props && (c.props as {hitSlop?: object}).hitSlop !== undefined
       ) as TestNode | undefined;
+      expect(wrapper).toBeTruthy();
       await act(async () => {
         (wrapper?.props as {onPress?: () => void} | undefined)?.onPress?.();
       });
