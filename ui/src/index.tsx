@@ -9,6 +9,7 @@ export * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";
 export {Banner, hideBanner} from "./Banner";
+export * from "./BinaryFeedback";
 export * from "./Body";
 export * from "./BooleanField";
 export * from "./Box";

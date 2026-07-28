@@ -4,6 +4,7 @@ import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
 import {BannerConfiguration} from "@story-config/Banner.config";
+import {BinaryFeedbackConfiguration} from "@story-config/BinaryFeedback.config";
 import {BooleanFieldConfiguration} from "@story-config/BooleanField.config";
 import {BoxConfiguration} from "@story-config/Box.config";
 import {ButtonConfiguration} from "@story-config/Button.config";
@@ -193,6 +194,7 @@ const Config: DemoConfigurationBase[] = [
   AddressFieldConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
+  BinaryFeedbackConfiguration,
   BooleanFieldConfiguration,
   BoxConfiguration,
   ButtonConfiguration,
