@@ -207,8 +207,7 @@ export const getBaseQuery = (
         return result;
       }
     },
-    // biome-ignore lint/suspicious/noExplicitAny: Weird typing from rtk query
-  })(args, api, extraOptions as any);
+  })(args, api, extraOptions as Parameters<ReturnType<typeof fetchBaseQuery>>[2]);
 };
 
 export const staggeredBaseQuery = retry(
@@ -355,8 +354,10 @@ export const emptySplitApi = createApi({
         url: "/version-check",
       }),
     }),
-    // biome-ignore lint/suspicious/noExplicitAny: Generic
-    ...generateProfileEndpoints(builder as any, "users"), // using 'users' here since it is highly intertwined with Users
+    ...generateProfileEndpoints(
+      builder as unknown as Parameters<typeof generateProfileEndpoints>[0],
+      "users"
+    ), // using 'users' here since it is highly intertwined with Users
   }),
   reducerPath: "terreno-rtk",
 });

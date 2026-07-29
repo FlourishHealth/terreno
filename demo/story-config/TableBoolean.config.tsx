@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableBooleanDemo, TableBooleanStates} from "@stories";
+import {TableBooleanDemo, TableBooleanStates} from "@stories/TableBoolean.stories";
 import {TableBoolean} from "@terreno/ui";
 
 export const TableBooleanConfiguration: DemoConfiguration = {

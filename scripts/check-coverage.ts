@@ -23,7 +23,7 @@
  */
 import {spawn} from "node:child_process";
 import {existsSync, readFileSync, readdirSync, rmSync} from "node:fs";
-import {join, resolve} from "node:path";
+import {join, resolve, basename} from "node:path";
 
 export interface ParsedArgs {
   threshold: number;
@@ -298,8 +298,18 @@ export const summarizeLcov = (coverage: Map<string, FileCoverage>): CoverageSumm
 const runBunTest = async (
   args: readonly string[]
 ): Promise<{exitCode: number; output: string}> => {
+  const srcRoot = join(process.cwd(), "src");
+  const prependSrcRoot =
+    existsSync(srcRoot) &&
+    !args.some((a) => a.startsWith("./") || /[/\\][^/\\]+\.test\.(t|j)sx?$/.test(a));
+  const srcRootArg = prependSrcRoot ? (["src"] as const) : [];
+
+  // mcp-server tests set process.env.TERRENO_MCP_DOCS_DIR; default parallel
+  // execution races with other files that read bundled docs at import time.
+  const mcpServerConcurrency =
+    basename(process.cwd()) === "mcp-server" ? (["--max-concurrency=1"] as const) : [];
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn("bun", ["test", ...args], {
+    const child = spawn("bun", ["test", ...mcpServerConcurrency, ...srcRootArg, ...args], {
       env: {...process.env, FORCE_COLOR: "0"},
       stdio: ["ignore", "pipe", "pipe"],
     });

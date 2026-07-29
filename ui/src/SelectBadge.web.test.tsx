@@ -63,6 +63,16 @@ describe("SelectBadge (web)", () => {
     expect(getByTestId("web_badge_modal").props.visible).toBe(false);
   });
 
+  it("does not render a search input in the badge dropdown", () => {
+    const {getByLabelText, queryByTestId} = renderWithTheme(
+      <SelectBadge onChange={() => {}} options={options} value="a" />
+    );
+    act(() => {
+      fireEvent.press(getByLabelText("Open select badge options"));
+    });
+    expect(queryByTestId("web_badge_search")).toBeNull();
+  });
+
   it("does not open the dropdown when disabled", () => {
     const {getByLabelText, getByTestId} = renderWithTheme(
       <SelectBadge disabled onChange={() => {}} options={options} value="a" />

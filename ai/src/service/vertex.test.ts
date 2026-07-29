@@ -325,5 +325,118 @@ describe("vertex helpers", () => {
       });
       expect(models).toBeUndefined();
     });
+    it("skips models without a name in the response", async () => {
+      const fetchImpl = mock(async () => ({
+        json: async () => ({
+          publisherModels: [
+            {name: "publishers/google/models/gemini-2.5-flash"},
+            {},
+            {name: undefined},
+            {name: "publishers/google/models/gemini-2.5-pro"},
+          ],
+        }),
+        ok: true,
+        status: 200,
+      })) as unknown as typeof fetch;
+      const models = await listEnabledVertexModels({
+        fetchImpl,
+        getAccessToken: async () => "fake-token",
+        project: "demo-project",
+      });
+      expect(models).toEqual(["gemini-2.5-flash", "gemini-2.5-pro"]);
+    });
+
+    it("uses global location when GOOGLE_VERTEX_LOCATION env is set", async () => {
+      process.env.GOOGLE_VERTEX_LOCATION = "europe-west4";
+      const fetchImpl = mock(async (input: string | URL) => {
+        const url = input.toString();
+        expect(url).toContain("europe-west4-aiplatform.googleapis.com");
+        return {
+          json: async () => ({
+            publisherModels: [{name: "publishers/google/models/gemini-2.5-flash"}],
+          }),
+          ok: true,
+          status: 200,
+        } as unknown as Response;
+      });
+      const models = await listEnabledVertexModels({
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        getAccessToken: async () => "fake-token",
+        project: "demo-project",
+      });
+      expect(models).toEqual(["gemini-2.5-flash"]);
+    });
+  });
+
+  describe("createVertexProvider", () => {
+    it("returns undefined and logs a warning when factory is not available and module is not installed", () => {
+      const provider = createVertexProvider({
+        project: "demo-project",
+        vertexFactory: undefined,
+      });
+      // loadVertexModule returns undefined because @ai-sdk/google-vertex is not installed in test env
+      expect(provider).toBeUndefined();
+    });
+
+    it("uses GOOGLE_VERTEX_LOCATION env for location resolution", () => {
+      process.env.GOOGLE_VERTEX_LOCATION = "asia-east1";
+      const provider = createVertexProvider({
+        project: "demo-project",
+        vertexFactory: makeVertexFactory(),
+      });
+      expect(provider?.location).toBe("asia-east1");
+    });
+
+    it("uses GOOGLE_VERTEX_PROJECT env when project option is omitted", () => {
+      process.env.GOOGLE_VERTEX_PROJECT = "env-project";
+      const provider = createVertexProvider({
+        vertexFactory: makeVertexFactory(),
+      });
+      expect(provider).toBeDefined();
+      expect(provider?.project).toBe("env-project");
+    });
+
+    it("exposes the raw provider", () => {
+      const provider = createVertexProvider({
+        project: "demo-project",
+        vertexFactory: makeVertexFactory(),
+      });
+      expect(provider?.raw).toBeDefined();
+    });
+
+    it("resolves image models through the allow-list", () => {
+      const provider = createVertexProvider({
+        project: "demo-project",
+        vertexFactory: makeVertexFactory(),
+      });
+      const img = provider?.imageModel("imagen-4.0-fast-generate-001");
+      expect(img).toBeDefined();
+    });
+  });
+
+  describe("verifyVertexModelsEnabled", () => {
+    it("deduplicates requested models before checking", async () => {
+      const result = await verifyVertexModelsEnabled({
+        listModelsFn: mock(async () => ["gemini-2.5-flash"]),
+        models: ["gemini-2.5-flash", "gemini-2.5-flash@001"],
+        project: "demo-project",
+      });
+      expect(result.checked).toBe(true);
+      expect(result.available).toEqual(["gemini-2.5-flash"]);
+      expect(result.unavailable).toEqual([]);
+    });
+  });
+
+  describe("assertVertexModelsEnabled", () => {
+    it("returns the result when all models are available", async () => {
+      const result = await assertVertexModelsEnabled({
+        listModelsFn: mock(async () => ["gemini-2.5-flash", "gemini-2.5-pro"]),
+        models: ["gemini-2.5-flash"],
+        project: "demo-project",
+      });
+      expect(result.checked).toBe(true);
+      expect(result.available).toEqual(["gemini-2.5-flash"]);
+      expect(result.unavailable).toEqual([]);
+    });
   });
 });

@@ -1,8 +1,10 @@
 import {beforeEach, describe, expect, it, type Mock, mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
-import type {NextFunction, Request, Response} from "express";
+import express, {type NextFunction, type Request, type Response} from "express";
+import supertest from "supertest";
 
-import {sentryAppVersionMiddleware} from "./middleware";
+import {jsonResponseRequestIdMiddleware, sentryAppVersionMiddleware} from "./middleware";
+import {requestContextMiddleware} from "./requestContext";
 
 const buildReq = (headers: Record<string, string | undefined>): Request => {
   return {
@@ -67,5 +69,75 @@ describe("sentryAppVersionMiddleware", () => {
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(next.mock.calls[0]).toHaveLength(0);
+  });
+});
+
+describe("jsonResponseRequestIdMiddleware", () => {
+  const buildStackedApp = (): express.Application => {
+    const app = express();
+    app.use(requestContextMiddleware);
+    app.use(jsonResponseRequestIdMiddleware);
+    app.get("/object", (_req, res) => {
+      return res.json({hello: "world"});
+    });
+    app.get("/array", (_req, res) => {
+      return res.json([1, 2]);
+    });
+    app.get("/openapi.json", (_req, res) => {
+      return res.json({openapi: "3.0.0", paths: {}});
+    });
+    app.get("/openapi/components/schemas/Food.json", (_req, res) => {
+      return res.json({description: "A food", type: "object"});
+    });
+    app.get("/openapi/validate", (_req, res) => {
+      return res.json({document: {openapi: "3.0.0"}, valid: true});
+    });
+    return app;
+  };
+
+  it("adds requestId to object JSON bodies and matches X-Request-ID header", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/object").expect(200);
+    expect(res.body.hello).toBe("world");
+    expect(res.body.requestId).toBeDefined();
+    expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+  });
+
+  it("does not wrap JSON array bodies", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/array").expect(200);
+    expect(res.body).toEqual([1, 2]);
+    expect(res.headers["x-request-id"]).toBeDefined();
+  });
+
+  it("does not inject requestId into GET /openapi.json bodies", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/openapi.json").expect(200);
+    expect(res.body).toEqual({openapi: "3.0.0", paths: {}});
+    expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("does not inject requestId into GET /openapi/components/...json bodies", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/openapi/components/schemas/Food.json").expect(200);
+    expect(res.body).toEqual({description: "A food", type: "object"});
+    expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("does not inject requestId into GET /openapi/validate bodies", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/openapi/validate").expect(200);
+    expect(res.body).toEqual({document: {openapi: "3.0.0"}, valid: true});
+    expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("uses incoming X-Request-ID on wrapped object responses", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app)
+      .get("/object")
+      .set("X-Request-ID", "client-rid-99")
+      .expect(200);
+    expect(res.body.requestId).toBe("client-rid-99");
+    expect(res.headers["x-request-id"]).toBe("client-rid-99");
   });
 });

@@ -27,11 +27,31 @@ on:
       - "netlify.toml"
 
 jobs:
-  build:
-    name: Build docs site
+  check-changes:
+    name: Check for relevant changes
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v6
+
+      - name: Check PR diff for docs-relevant changes
+        id: check
+        run: |
+          FILES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')
+          CHANGES=$(echo "$FILES" | grep -cE '^(docs/|website/|api/src/|rtk/src/|demo/demoConfig\.tsx|demo/story-config/|ui/src/|netlify\.toml)' || true)
+          echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build:
+    name: Build docs site
+    needs: [check-changes]
+    if: always() && (github.event_name == 'push' || needs.check-changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -43,7 +63,7 @@ jobs:
       # TypeScript) that a frozen install won't prune, which broke typedoc's TypeScript
       # resolution. A clean node_modules per run keeps the installed tree deterministic.
       - name: Cache bun download cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.bun/install/cache
@@ -77,14 +97,17 @@ jobs:
   deploy-production:
     name: Deploy docs to production
     needs: build
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    # `always()` is required because `build` needs `check-changes`, which is skipped on
+    # push events — that skip otherwise propagates down the dependency chain and
+    # silently skips this job even when `build` itself succeeded.
+    if: always() && needs.build.result == 'success' && github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
       statuses: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Validate required secrets
         run: |
@@ -103,7 +126,7 @@ jobs:
           path: dist
 
       - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3.0
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: "./dist"
           production-deploy: true
@@ -120,7 +143,8 @@ jobs:
   deploy-preview:
     name: Deploy docs preview
     needs: build
-    if: github.event_name == 'pull_request'
+    # See note on deploy-production above about why `always()` is required.
+    if: always() && needs.build.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     environment:
       name: docs-preview-pr-${{ github.event.pull_request.number }}
@@ -130,7 +154,7 @@ jobs:
       deployments: write
       statuses: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Validate required secrets
         run: |
@@ -150,7 +174,7 @@ jobs:
 
       - name: Deploy to Netlify
         id: netlify
-        uses: nwtgck/actions-netlify@v3.0
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: "./dist"
           production-deploy: false

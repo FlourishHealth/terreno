@@ -1,7 +1,7 @@
 import {getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
-import {sentrySetUser} from "@utils";
 import axios from "axios";
 import {useEffect} from "react";
+import {sentrySetUser} from "@/utils/sentry";
 
 import {useReadProfile} from "./useReadProfile";
 

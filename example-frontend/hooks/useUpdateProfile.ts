@@ -1,4 +1,4 @@
-import {usePatchMeMutation} from "@/store";
+import {usePatchMeMutation} from "@/store/sdk";
 
 export interface UpdateProfileArgs {
   name?: string;

@@ -58,6 +58,7 @@ export interface JSONObject {
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
 export const addPopulateToQuery = (
+  // noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
   // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
   builtQuery: mongoose.Query<any[], any, Record<string, never>, any>,
   populatePaths?: PopulatePath[]
@@ -341,6 +342,75 @@ export interface ModelRouterOptions<T> {
    */
   realtime?: RealtimeConfig;
 }
+
+/**
+ * Parses a date-range query bound from an ISO-8601 string using Luxon, throwing a 400
+ * APIError when the value cannot be parsed. Centralizes date-string parsing so the repo's
+ * Luxon convention is honored for admin changelist date-range filters.
+ */
+const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
+  const parsed = DateTime.fromISO(String(rawValue), {zone: "utc"});
+  if (!parsed.isValid) {
+    throw new APIError({
+      status: 400,
+      title: `Invalid date for query parameter ${queryKey}`,
+    });
+  }
+  return parsed.toJSDate();
+};
+
+/**
+ * Collapses `field_gte` / `field_lte` query pairs into `{ field: { $gte, $lte } }` for Date paths,
+ * so admin changelist date-range filters map to valid Mongoose range queries.
+ */
+const mergeDateRangeQueryParams = <T>(
+  model: Model<T>,
+  query: Record<string, unknown>
+): Record<string, unknown> => {
+  const schema = model.schema;
+  const result: Record<string, unknown> = {...query};
+  const dateRangeBases = new Set<string>();
+  for (const key of Object.keys(result)) {
+    const match = /^(.+)_(gte|lte)$/.exec(key);
+    if (!match) {
+      continue;
+    }
+    const baseField = match[1];
+    const path = schema.path(baseField);
+    if (!path || path.instance !== "Date") {
+      continue;
+    }
+    dateRangeBases.add(baseField);
+  }
+  for (const baseField of dateRangeBases) {
+    const gteKey = `${baseField}_gte`;
+    const lteKey = `${baseField}_lte`;
+    const gteRaw = result[gteKey];
+    const lteRaw = result[lteKey];
+    const bounds: {$gte?: Date; $lte?: Date} = {};
+    if (gteRaw !== undefined && gteRaw !== null && String(gteRaw).trim() !== "") {
+      bounds.$gte = parseDateRangeBound(gteRaw, gteKey);
+    }
+    if (lteRaw !== undefined && lteRaw !== null && String(lteRaw).trim() !== "") {
+      bounds.$lte = parseDateRangeBound(lteRaw, lteKey);
+    }
+    if (Object.keys(bounds).length === 0) {
+      continue;
+    }
+    delete result[gteKey];
+    delete result[lteKey];
+    const direct = result[baseField];
+    if (direct !== undefined && direct !== null && typeof direct !== "object") {
+      delete result[baseField];
+    }
+    if (typeof direct === "object" && direct !== null && !Array.isArray(direct)) {
+      result[baseField] = {...(direct as Record<string, unknown>), ...bounds};
+    } else {
+      result[baseField] = bounds;
+    }
+  }
+  return result;
+};
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
 const checkQueryParamAllowed = (
@@ -641,6 +711,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
       if (options.populatePaths) {
         try {
+          // noExplicitAny: mongoose Query type varies based on populatePaths
           // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
           let populateQuery: any = model.findById(data._id);
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
@@ -710,6 +781,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           query[queryParam] = req.query[queryParam];
         }
       }
+
+      query = mergeDateRangeQueryParams(model, query);
 
       // Special operators. NOTE: these request Mongo Atlas.
       if (req.query.$search) {
@@ -1008,6 +1081,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       }
 
       if (options.populatePaths) {
+        // noExplicitAny: mongoose Query type varies based on populatePaths
         // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
         let populateQuery: any = model.findById(doc._id);
         populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
@@ -1121,11 +1195,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     })
   );
 
-  async function arrayOperation(
+  const arrayOperation = async (
     req: Request,
     res: Response,
     operation: "POST" | "PATCH" | "DELETE"
-  ) {
+  ) => {
     // TODO Combine array operations and .patch(), as they are very similar.
 
     if (!(await checkPermissions("update", options.permissions.update, req.user))) {
@@ -1276,19 +1350,19 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     return res.json({
       data: serialize<T>(req, options, doc as unknown as Document<unknown, unknown, unknown> & T),
     });
-  }
+  };
 
-  async function arrayPost(req: Request, res: Response) {
+  const arrayPost = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "POST");
-  }
+  };
 
-  async function arrayPatch(req: Request, res: Response) {
+  const arrayPatch = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "PATCH");
-  }
+  };
 
-  async function arrayDelete(req: Request, res: Response) {
+  const arrayDelete = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "DELETE");
-  }
+  };
   // Set up routes for managing array fields. Check if there any array fields to add this for.
   if (Object.values(model.schema.paths).find((config) => config.instance === "Array")) {
     router.post(
@@ -1368,6 +1442,7 @@ export interface AsyncHandlerOptions {
  * }));
  * ```
  */
+// noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
 // biome-ignore lint/suspicious/noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
 type AsyncHandlerFn = (req: any, res: Response, next: NextFunction) => Promise<unknown> | unknown;
 

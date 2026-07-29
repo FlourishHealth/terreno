@@ -28,6 +28,7 @@ interface AdminNestedArrayFieldProps {
   parentFormState?: Record<string, AdminFieldValue>;
   /** Forwarded to nested field renderers so refs in sub-documents can use custom renderers. */
   refRenderers?: RefRendererMap;
+  readOnly?: boolean;
 }
 
 /**
@@ -49,6 +50,7 @@ const renderNestedSubField = ({
   onSubFieldChange,
   parentFormState,
   refRenderers,
+  readOnly,
 }: {
   api: AdminApi;
   baseUrl?: string;
@@ -62,6 +64,7 @@ const renderNestedSubField = ({
   onSubFieldChange: (index: number, fieldKey: string, fieldValue: AdminFieldValue) => void;
   parentFormState?: Record<string, AdminFieldValue>;
   refRenderers?: RefRendererMap;
+  readOnly?: boolean;
 }): React.ReactElement => {
   if (fieldConfig.type === "array" && fieldConfig.items) {
     return (
@@ -75,6 +78,7 @@ const renderNestedSubField = ({
         modelConfigs={modelConfigs}
         onChange={(val) => onSubFieldChange(index, fieldKey, val)}
         parentFormState={parentFormState}
+        readOnly={readOnly}
         refRenderers={refRenderers}
         routeBase={routeBase}
         title={startCase(fieldKey)}
@@ -94,6 +98,7 @@ const renderNestedSubField = ({
       modelConfigs={modelConfigs}
       onChange={(val) => onSubFieldChange(index, fieldKey, val)}
       parentFormState={parentFormState}
+      readOnly={readOnly}
       refRenderers={refRenderers}
       routeBase={routeBase}
       value={fieldValue}
@@ -140,7 +145,9 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
   modelConfigs,
   parentFormState,
   refRenderers,
+  readOnly,
 }) => {
+  const isReadOnly = Boolean(readOnly);
   const arrayValue = useMemo((): Record<string, AdminFieldValue>[] => {
     return Array.isArray(value) ? value : [];
   }, [value]);
@@ -239,13 +246,15 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
               <Text bold size="sm">
                 Item {index + 1}
               </Text>
-              <IconButton
-                accessibilityLabel="Remove item"
-                iconName="trash"
-                onClick={() => handleRemoveItem(index)}
-                tooltipText="Remove"
-                variant="destructive"
-              />
+              {!isReadOnly ? (
+                <IconButton
+                  accessibilityLabel="Remove item"
+                  iconName="trash"
+                  onClick={() => handleRemoveItem(index)}
+                  tooltipText="Remove"
+                  variant="destructive"
+                />
+              ) : null}
             </Box>
             {subFieldEntries.map(([fieldKey, fieldConfig]) =>
               renderNestedSubField({
@@ -259,6 +268,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
                 modelConfigs,
                 onSubFieldChange: handleSubFieldChange,
                 parentFormState: subFieldParentFormState,
+                readOnly: isReadOnly,
                 refRenderers,
                 routeBase,
               })
@@ -280,6 +290,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       refRenderers,
       handleRemoveItem,
       handleSubFieldChange,
+      isReadOnly,
     ]
   );
 
@@ -289,7 +300,9 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
     <Box gap={2}>
       <Box alignItems="center" direction="row" justifyContent="between">
         <Heading size="sm">{title}</Heading>
-        <Button iconName="plus" onClick={handleAddItem} text="Add" variant="outline" />
+        {!isReadOnly ? (
+          <Button iconName="plus" onClick={handleAddItem} text="Add" variant="outline" />
+        ) : null}
       </Box>
       {helperText ? (
         <Text color="secondaryDark" size="sm">
@@ -304,7 +317,44 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
 
       {arrayValue.length === 0 ? (
         <Box alignItems="center" padding={3}>
-          <Text color="secondaryDark">No items. Click &quot;Add&quot; to create one.</Text>
+          <Text color="secondaryDark">
+            {isReadOnly ? "No items." : 'No items. Click "Add" to create one.'}
+          </Text>
+        </Box>
+      ) : isReadOnly ? (
+        <Box gap={2}>
+          {arrayValue.map((itemData, index) => {
+            const subFieldParentFormState = {
+              ...(parentFormState ?? {}),
+              ...itemData,
+            };
+            return (
+              <Card key={`ro-${index}`} padding={3}>
+                <Box gap={2}>
+                  <Text bold size="sm">
+                    Item {index + 1}
+                  </Text>
+                  {subFieldEntries.map(([fieldKey, fieldConfig]) =>
+                    renderNestedSubField({
+                      api,
+                      apiBase,
+                      baseUrl,
+                      fieldConfig,
+                      fieldKey,
+                      fieldValue: itemData[fieldKey],
+                      index,
+                      modelConfigs,
+                      onSubFieldChange: handleSubFieldChange,
+                      parentFormState: subFieldParentFormState,
+                      readOnly: true,
+                      refRenderers,
+                      routeBase,
+                    })
+                  )}
+                </Box>
+              </Card>
+            );
+          })}
         </Box>
       ) : (
         <DraggableList

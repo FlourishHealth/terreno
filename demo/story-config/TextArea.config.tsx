@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TextAreaDisabled, TextAreaErrored, TextAreas, WithLabelTextArea} from "@stories";
+import {TextAreaDisabled, TextAreaErrored, TextAreas, WithLabelTextArea} from "@stories/TextArea.stories";
 import {TextArea} from "@terreno/ui";
 
 export const TextAreaConfiguration: DemoConfiguration = {

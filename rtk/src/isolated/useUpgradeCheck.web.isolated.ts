@@ -212,6 +212,42 @@ describe("useUpgradeCheck", () => {
       });
     });
 
+    it("clears isRequired when status changes from required to warning", async () => {
+      mockUnwrap.mockImplementation(() =>
+        Promise.resolve({message: "Update", status: "required" as const})
+      );
+      const {result} = renderHook(() => useUpgradeCheck({recheckOnForeground: true}));
+
+      await act(async () => {
+        await flushPromises();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isRequired).toBe(true);
+      });
+
+      mockUnwrap.mockImplementation(() =>
+        Promise.resolve({message: "New version available", status: "warning" as const})
+      );
+
+      await act(async () => {
+        appStateListeners.forEach((listener) => {
+          listener("background");
+        });
+      });
+      await act(async () => {
+        appStateListeners.forEach((listener) => {
+          listener("active");
+        });
+        await flushPromises();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isRequired).toBe(false);
+        expect(result.current.isWarning).toBe(true);
+      });
+    });
+
     it("clears required/warning state when status is 'ok' after previous required", async () => {
       // Start with "required"
       mockUnwrap.mockImplementation(() =>

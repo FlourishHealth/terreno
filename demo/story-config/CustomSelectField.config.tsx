@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {CustomSelectFieldDemo} from "@stories";
+import {CustomSelectFieldDemo} from "@stories/CustomSelectField.stories";
 import {Box, CustomSelectField} from "@terreno/ui";
 import React from "react";
 

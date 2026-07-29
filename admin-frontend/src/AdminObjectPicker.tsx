@@ -1,5 +1,6 @@
 import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
 /** Generic referenced document — admin can pick from any Mongoose model so the shape varies. */
@@ -22,6 +23,7 @@ interface AdminObjectPickerProps {
   onChange: (value: string) => void;
   errorText?: string;
   helperText?: string;
+  readOnly?: boolean;
 }
 
 const DISPLAY_FIELDS = ["name", "title", "email", "label", "displayName"] as const;
@@ -65,6 +67,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   onChange,
   errorText,
   helperText,
+  readOnly,
 }) => {
   const [searchText, setSearchText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -107,9 +110,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   }, [api, routePath, searchEndpointKey, readEndpointKey]);
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   const useSearchQuery = enhanced[`use${capitalize(searchEndpointKey)}Query`];
   const useReadQuery = enhanced[`use${capitalize(readEndpointKey)}Query`];
 
@@ -118,7 +119,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   });
 
   // Fetch the currently selected item to display its name
-  const {data: selectedItem} = useReadQuery(value, {
+  const {data: selectedItem, isLoading: isSelectedLoading} = useReadQuery(value, {
     skip: !value,
   });
 
@@ -174,6 +175,22 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   const results = Array.isArray(searchData)
     ? searchData
     : ((searchData as {data?: unknown[]} | undefined)?.data ?? []);
+
+  if (readOnly) {
+    const roValue =
+      selectedDisplay || (value && isSelectedLoading ? "Loading…" : value ? String(value) : "");
+    return (
+      <TextField
+        disabled
+        errorText={errorText}
+        helperText={helperText}
+        onChange={() => {}}
+        testID={`admin-picker-${refModelName}-readonly`}
+        title={title}
+        value={roValue}
+      />
+    );
+  }
 
   return (
     <Box gap={1}>

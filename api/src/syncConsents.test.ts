@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {ConsentForm} from "./models/consentForm";
 import type {ConsentFormDefinition} from "./syncConsents";
 import {syncConsents} from "./syncConsents";
-import {setupDb} from "./tests";
+import {setupDb} from "./tests/testHelper";
 
 const baseDef: ConsentFormDefinition = {
   content: {en: "# Terms\nPlease agree."},

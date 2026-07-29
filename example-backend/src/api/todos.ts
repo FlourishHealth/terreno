@@ -1,6 +1,7 @@
 import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/api";
-import {Todo} from "../models";
-import type {TodoDocument, UserDocument} from "../types";
+import {Todo} from "../models/todo";
+import type {TodoDocument} from "../types/models/todoTypes";
+import type {UserDocument} from "../types/models/userTypes";
 
 const bulkCompleteBodySchema = z
   .object({

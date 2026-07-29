@@ -17,8 +17,13 @@ const compiled = new Set();
 
 const isTerrenoMonorepoDep = (name) => name.startsWith("@terreno/");
 
+const PACKAGE_DIR_ALIASES = {
+  "@terreno/mcp": "mcp-server",
+};
+
 const resolveMonorepoPackageDir = (fromDir, packageName) => {
-  const relative = path.join(fromDir, "..", packageName.replace("@terreno/", ""));
+  const slug = PACKAGE_DIR_ALIASES[packageName] ?? packageName.replace("@terreno/", "");
+  const relative = path.join(fromDir, "..", slug);
   const resolved = path.resolve(relative);
   const pkgPath = path.join(resolved, "package.json");
   if (!fs.existsSync(pkgPath)) {

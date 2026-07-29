@@ -195,6 +195,66 @@ describe("useUpgradeCheck (mobile)", () => {
     });
   });
 
+  describe("recheckOnForeground", () => {
+    it("re-checks when the app returns to the foreground", async () => {
+      const {result} = renderHook(() => useUpgradeCheck({recheckOnForeground: true}));
+
+      await act(async () => {
+        await flushPromises();
+      });
+
+      expect(result.current).toBeDefined();
+      expect(appStateListeners.length).toBeGreaterThan(0);
+      const initialCalls = mockTrigger.mock.calls.length;
+
+      await act(async () => {
+        // First go to the background, then return to the foreground: the
+        // background transition primes appState.current so the subsequent
+        // active transition satisfies the wasBackground && isNowActive guard.
+        for (const listener of appStateListeners) {
+          listener("background");
+        }
+        for (const listener of appStateListeners) {
+          listener("active");
+        }
+        await flushPromises();
+      });
+
+      expect(mockTrigger.mock.calls.length).toBeGreaterThan(initialCalls);
+    });
+
+    it("does not re-check when the app stays inactive", async () => {
+      renderHook(() => useUpgradeCheck({recheckOnForeground: true}));
+
+      await act(async () => {
+        await flushPromises();
+      });
+
+      const initialCalls = mockTrigger.mock.calls.length;
+
+      await act(async () => {
+        for (const listener of appStateListeners) {
+          listener("inactive");
+        }
+        await flushPromises();
+      });
+
+      expect(mockTrigger.mock.calls.length).toBe(initialCalls);
+    });
+
+    it("removes the AppState subscription on unmount", async () => {
+      const {unmount} = renderHook(() => useUpgradeCheck({recheckOnForeground: true}));
+
+      await act(async () => {
+        await flushPromises();
+      });
+
+      mockRemove.mockClear();
+      unmount();
+      expect(mockRemove).toHaveBeenCalled();
+    });
+  });
+
   describe("canUpdate", () => {
     it("is false on mobile when updateUrl is not set", () => {
       const {result} = renderHook(() => useUpgradeCheck());

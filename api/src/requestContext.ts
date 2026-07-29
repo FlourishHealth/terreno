@@ -1,3 +1,28 @@
+/**
+ * Request/job correlation for `@terreno/api`.
+ *
+ * Correlation is how every log line emitted while handling one request (or one background job) can
+ * be tied back together. It is built on Node's {@link AsyncLocalStorage}: a {@link RequestContext}
+ * (with `requestId`, `userId`, `traceId`, etc.) is stored for the duration of a callback, and the
+ * logger's Winston format reads it from there and merges it into each line. Nothing needs to be
+ * threaded through function arguments.
+ *
+ * Two ways a scope is established:
+ *
+ * - **HTTP**: {@link requestContextMiddleware} runs first in the middleware stack. It derives a
+ *   `requestId` from incoming headers ({@link REQUEST_CONTEXT_ATTRIBUTE_NAMES}, `x-correlation-id`,
+ *   Cloud Trace, or W3C `traceparent`) or generates one, echoes it back as `X-Request-ID`, and runs
+ *   the rest of the request inside the scope.
+ * - **Jobs/scripts**: {@link runWithRequestContext} (or {@link runWithRequestContextAttributes})
+ *   establishes the same scope manually so background work is just as traceable.
+ *
+ * The active context is also pushed to Sentry tags/context via {@link applyRequestContextToSentry},
+ * and is exposed to logging via {@link getCurrentLogContext} / {@link getCurrentRequestContext}.
+ *
+ * @see {@link runWithRequestContext}
+ * @see {@link getCurrentLogContext}
+ * @module requestContext
+ */
 import {AsyncLocalStorage} from "node:async_hooks";
 import {randomUUID} from "node:crypto";
 import * as Sentry from "@sentry/bun";
@@ -14,18 +39,35 @@ const TRACE_PARENT_HEADER = "traceparent";
 const TRACE_SAMPLED_HEADER = "x-trace-sampled";
 const USER_ID_HEADER = "x-user-id";
 
+/**
+ * Correlation fields stored in AsyncLocalStorage for the lifetime of a request or job. Every log
+ * line emitted inside the scope is enriched with these. `requestId` is the only required field; the
+ * rest are populated when headers, trace context, or auth supply them.
+ */
 export interface RequestContext {
+  /** Background job identifier (from `x-job-id` or set via {@link runWithRequestContext}). */
   jobId?: string;
+  /** Stable id shared by all log lines for one request/job; echoed to clients as `X-Request-ID`. */
   requestId: string;
+  /** Auth session id, resolved from the JWT/Better Auth session or `x-session-id`. */
   sessionId?: string;
+  /** Distributed-tracing span id, parsed from Cloud Trace or W3C `traceparent`. */
   spanId?: string;
+  /** Distributed-tracing trace id, parsed from Cloud Trace or W3C `traceparent`. */
   traceId?: string;
+  /** Whether the trace is sampled, per the incoming trace headers. */
   traceSampled?: boolean;
+  /** Authenticated user id, populated after auth middleware runs. */
   userId?: string;
 }
 
 export type RequestContextAttributes = Record<string, string>;
 
+/**
+ * Canonical HTTP header names for each correlation field. Use these to propagate context to
+ * downstream services (pair with {@link getCurrentRequestContextAttributes}) or to read it from an
+ * incoming request (pair with {@link getRequestContextFromAttributes}).
+ */
 export const REQUEST_CONTEXT_ATTRIBUTE_NAMES = {
   jobId: JOB_ID_HEADER,
   requestId: "x-request-id",
@@ -161,10 +203,19 @@ export const getRequestContextFromAttributes = (
   };
 };
 
+/**
+ * Returns the full {@link RequestContext} for the active AsyncLocalStorage scope, or `undefined`
+ * when called outside any request/job scope. The logger uses this to enrich each line.
+ */
 export const getCurrentRequestContext = (): RequestContext | undefined => {
   return requestContextStorage.getStore();
 };
 
+/**
+ * Returns the active correlation fields as a plain object (empty when outside a scope). This is the
+ * shape attached to Sentry log attributes and is handy when you need to log or forward the current
+ * context yourself.
+ */
 export const getCurrentLogContext = (): Partial<RequestContext> => {
   const context = getCurrentRequestContext();
   if (!context) {
@@ -254,6 +305,11 @@ const setAttribute = (
   attributes[name] = String(value);
 };
 
+/**
+ * Serializes the active correlation context into HTTP header attributes (keyed by
+ * {@link REQUEST_CONTEXT_ATTRIBUTE_NAMES}) so it can be propagated on outbound requests to other
+ * services, keeping the same `requestId`/`traceId` across service boundaries.
+ */
 export const getCurrentRequestContextAttributes = (
   overrides: Partial<RequestContext> = {}
 ): RequestContextAttributes => {
@@ -269,6 +325,23 @@ export const getCurrentRequestContextAttributes = (
   return attributes;
 };
 
+/**
+ * Runs `callback` inside a fresh correlation scope so every log line it emits shares the same
+ * identifiers — the manual equivalent of {@link requestContextMiddleware} for background jobs,
+ * cron tasks, scripts, queue consumers, etc. A `requestId` is generated when not supplied, and the
+ * context is mirrored to Sentry.
+ *
+ * @example
+ * ```typescript
+ * import {createScopedLogger, runWithRequestContext} from "@terreno/api";
+ *
+ * await runWithRequestContext({jobId: "nightly-sync"}, async () => {
+ *   const log = createScopedLogger({prefix: "[NightlySync]"});
+ *   log.info("started"); // includes jobId + a generated requestId on every line
+ *   await sync();
+ * });
+ * ```
+ */
 export const runWithRequestContext = <T>(
   context: Partial<RequestContext>,
   callback: () => T
@@ -284,6 +357,11 @@ export const runWithRequestContext = <T>(
   });
 };
 
+/**
+ * Like {@link runWithRequestContext}, but seeds the scope from raw header attributes (for example
+ * those received on an incoming message or forwarded by another service). Parses Cloud Trace / W3C
+ * `traceparent` into `traceId`/`spanId` via {@link getRequestContextFromAttributes}.
+ */
 export const runWithRequestContextAttributes = <T>(
   attributes: Record<string, string | undefined> = {},
   callback: () => T
@@ -324,6 +402,14 @@ export const updateRequestContextFromRequest = (
   }
 };
 
+/**
+ * Express middleware that opens a correlation scope for the request. Mounted early by `TerrenoApp` /
+ * `setupServer`, it resolves a `requestId` (from request-id/correlation headers, Cloud Trace, or
+ * W3C `traceparent`, else a new UUID), captures any `jobId`/`sessionId`/trace fields, echoes
+ * `X-Request-ID` back to the client, and runs the remaining middleware inside the scope so all
+ * downstream logs are correlated. A later auth-aware pass ({@link updateRequestContextFromRequest})
+ * fills in `userId`/`sessionId`.
+ */
 export const requestContextMiddleware = (
   req: express.Request,
   res: express.Response,

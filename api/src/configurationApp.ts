@@ -132,6 +132,7 @@ export type ConfigurationPostUpdateHook = (
  */
 export interface ConfigurationAppOptions {
   /** The Mongoose model with configurationPlugin applied. */
+  // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
   // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
   model: Model<any>;
   /** Base path for configuration routes. Defaults to "/configuration". */
@@ -478,6 +479,7 @@ export class ConfigurationApp implements TerrenoPlugin {
    * Top-level fields with subschemas become sections.
    * Top-level scalar fields go into a "General" section.
    */
+  // noExplicitAny: Model<any> required for invariance with consumer-supplied configuration models
   // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance with consumer-supplied configuration models
   private buildMetadata(_model: Model<any>, schema: Schema): ConfigurationMetaResponse {
     const sections: ConfigSectionMeta[] = [];

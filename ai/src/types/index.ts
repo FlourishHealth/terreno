@@ -164,6 +164,7 @@ export interface AIServiceOptions {
 export interface GenerateTextOptions {
   maxOutputTokens?: number;
   prompt: string;
+  // noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
   // biome-ignore lint/suspicious/noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
   stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
@@ -183,6 +184,7 @@ export interface GenerateStreamOptions {
 
 export interface GenerateChatStreamOptions {
   messages: Array<{content: string; role: "user" | "assistant" | "system"}>;
+  // noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
   // biome-ignore lint/suspicious/noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
   stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;

@@ -75,6 +75,7 @@ export const SocialLoginButton: FC<SocialLoginButtonProps> = ({
 }) => {
   const [loading, setLoading] = useState(propsLoading);
   const {theme} = useTheme();
+  const resolvedTestID = testID ?? `social-login-${provider}`;
 
   const {backgroundColor, borderColor, textColor} = useMemo(() => {
     const colors = PROVIDER_COLORS[provider];
@@ -146,7 +147,7 @@ export const SocialLoginButton: FC<SocialLoginButtonProps> = ({
         paddingVertical: 12,
         width: fullWidth ? "100%" : "auto",
       }}
-      testID={testID ?? `social-login-${provider}`}
+      testID={resolvedTestID}
     >
       <View style={{alignItems: "center", flexDirection: "row"}}>
         {Boolean(iconName) && (

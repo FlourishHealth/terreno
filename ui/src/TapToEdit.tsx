@@ -84,6 +84,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
   const helperText: string | undefined = propsHelperText;
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
+  // noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
   // biome-ignore lint/suspicious/noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
   const inputRef = useRef<any>(null);
 
@@ -120,6 +121,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
             row={fieldProps?.type === "textarea" ? 5 : undefined}
             type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
             value={value}
+            // noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
             // biome-ignore lint/suspicious/noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
             {...(fieldProps as any)}
           />

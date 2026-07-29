@@ -92,6 +92,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
           setRequiredMessage(message);
           setIsWarning(false);
         } else if (status === "warning") {
+          setIsRequired(false);
           setIsWarning(true);
           setWarningMessage(message);
           setWarningCheckCount((c) => c + 1);

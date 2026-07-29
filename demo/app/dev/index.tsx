@@ -1,4 +1,4 @@
-import {DevHomePage} from "@components";
+import {DevHomePage} from "@components/DevHomePage";
 import {DemoConfig} from "@config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {router, useRootNavigationState} from "expo-router";

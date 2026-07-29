@@ -184,6 +184,7 @@ const getAjvInstance = (): Ajv => {
       useDefaults: true,
       validateSchema: false,
     });
+    // noExplicitAny: ajv-formats has a known type compat issue with AJV instances
     // biome-ignore lint/suspicious/noExplicitAny: ajv-formats has a known type compat issue with AJV instances
     addFormats(instance as any);
     ajvCache.set(key, instance);

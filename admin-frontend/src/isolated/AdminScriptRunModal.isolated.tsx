@@ -30,7 +30,13 @@ mock.module("@terreno/ui", () => {
   const Spinner = () => ReactMod.createElement(RN.View, {testID: "spinner"});
   const Text = ({children, ...rest}: Record<string, unknown>) =>
     ReactMod.createElement(RN.Text, rest, children);
-  return {Box, Button, Heading, Icon, Modal, Spinner, Text};
+  const Badge = ({value}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, {}, value as string);
+  const Banner = ({text}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, {}, text as string);
+  const TextField = ({value, placeholder}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, {}, (value as string) || (placeholder as string) || "");
+  return {Badge, Banner, Box, Button, Heading, Icon, Modal, Spinner, Text, TextField};
 });
 
 interface TaskState {
@@ -327,6 +333,151 @@ describe("AdminScriptRunModal", () => {
     );
     await waitTicks();
     expect(toJSON()).toBeDefined();
+  });
+
+  it("shows the done view (no stuck spinner) once the task reaches completed", async () => {
+    // Start in confirm with no task so the dry-run button is available.
+    state.task = {data: undefined, error: null, isLoading: false};
+    const {getByTestId, queryByTestId, rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="wet-script"
+        visible={true}
+      />
+    );
+
+    await pressDryRun(getByTestId);
+    // While running with no terminal task yet, the spinner + cancel are shown.
+    expect(queryByTestId("spinner")).toBeTruthy();
+    expect(queryByTestId("admin-script-cancel-button")).toBeTruthy();
+
+    // Simulate the poll returning a completed task with the framework's 100% progress.
+    state.task = {
+      data: {
+        task: {
+          progress: {message: "Done", percentage: 100, stage: "Complete"},
+          result: ["ok"],
+          status: "completed",
+        },
+      },
+      error: null,
+      isLoading: false,
+    };
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="wet-script"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    // The done view must render — no lingering spinner or cancel button.
+    expect(queryByTestId("spinner")).toBeNull();
+    expect(queryByTestId("admin-script-cancel-button")).toBeNull();
+  });
+
+  it("offers a live run from the done view after a dry run completes", async () => {
+    state.task = {data: undefined, error: null, isLoading: false};
+    const {getByTestId, rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={true}
+      />
+    );
+
+    await pressDryRun(getByTestId);
+
+    state.task = {
+      data: {task: {isDryRun: true, result: ["all good"], status: "completed"}},
+      error: null,
+      isLoading: false,
+    };
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    const wetButton = getByTestId("admin-script-done-wet-run-button");
+    expect(wetButton).toBeTruthy();
+
+    runCalls.length = 0;
+    await act(async () => {
+      fireEvent.press(wetButton);
+    });
+    await waitTicks();
+
+    const startedWet = runCalls.some((c) => {
+      const arg = c as {name?: string; wetRun?: boolean};
+      return arg?.name === "migrate" && arg?.wetRun === true;
+    });
+    expect(startedWet).toBe(true);
+  });
+
+  it("resets to the confirm step when reopened so a previous run does not linger", async () => {
+    // First open: complete a run so the done view is showing.
+    state.task = {
+      data: {task: {result: ["done"], status: "completed"}},
+      error: null,
+      isLoading: false,
+    };
+    const {getByTestId, queryByTestId, rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={false}
+      />
+    );
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    // Close, then reopen: the confirm step (dry-run button) must be shown again, not
+    // the previous run's results.
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={false}
+      />
+    );
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    expect(getByTestId("admin-script-dry-run-button")).toBeTruthy();
+    expect(queryByTestId("admin-script-done-wet-run-button")).toBeNull();
   });
 
   it("early-returns when scriptName is null", async () => {

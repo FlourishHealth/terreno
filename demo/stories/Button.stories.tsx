@@ -37,6 +37,7 @@ const BUTTON_VARIANT_EXAMPLES: ButtonVariantExample[] = [
   {iconName: "border-all", text: "Outline", variant: "outline"},
   {iconName: "leaf", text: "Muted", variant: "muted"},
   {iconName: "trash", text: "Destructive", variant: "destructive"},
+  {iconName: "ghost", text: "Ghost", variant: "ghost"},
 ];
 
 const handleDemoClick = (): void => {
@@ -77,6 +78,9 @@ export const ButtonVariants: React.FC<Partial<ButtonProps>> = (props = {}) => {
           <Button onClick={handleDemoClick} text="Muted" variant="muted" {...props} />
         </Box>
         <Box padding={1}>
+          <Button onClick={handleDemoClick} text="Ghost" variant="ghost" {...props} />
+        </Box>
+        <Box padding={1}>
           <Button disabled onClick={handleDemoClick} text="Disabled" {...props} />
         </Box>
       </Box>
@@ -110,6 +114,9 @@ export const ButtonVariants: React.FC<Partial<ButtonProps>> = (props = {}) => {
         </Box>
         <Box padding={1}>
           <Button disabled onClick={handleDemoClick} text="Muted" variant="muted" {...props} />
+        </Box>
+        <Box padding={1}>
+          <Button disabled onClick={handleDemoClick} text="Ghost" variant="ghost" {...props} />
         </Box>
       </Box>
     </>
@@ -249,6 +256,42 @@ export const ButtonPressAnimations: React.FC = () => (
         </Box>
       </Box>
     ))}
+  </Box>
+);
+
+export const ButtonSizes: React.FC = () => (
+  <Box gap={4}>
+    <Box gap={1}>
+      <Heading>Default size</Heading>
+      <Box direction="row" wrap>
+        {BUTTON_VARIANT_EXAMPLES.map((button) => (
+          <Box key={`default-${button.text}`} padding={1}>
+            <Button
+              iconName={button.iconName}
+              onClick={handleDemoClick}
+              text={button.text}
+              variant={button.variant}
+            />
+          </Box>
+        ))}
+      </Box>
+    </Box>
+    <Box gap={1}>
+      <Heading>Small (sm)</Heading>
+      <Box direction="row" wrap>
+        {BUTTON_VARIANT_EXAMPLES.map((button) => (
+          <Box key={`sm-${button.text}`} padding={1}>
+            <Button
+              iconName={button.iconName}
+              onClick={handleDemoClick}
+              size="sm"
+              text={button.text}
+              variant={button.variant}
+            />
+          </Box>
+        ))}
+      </Box>
+    </Box>
   </Box>
 );
 

@@ -96,8 +96,7 @@ export const createBetterAuthClient = (config: BetterAuthClientConfig) => {
     plugins: [
       expoClient({
         scheme: config.scheme,
-        // biome-ignore lint/suspicious/noExplicitAny: Better Auth storage type is flexible
-        storage: storage as any,
+        storage: storage as NonNullable<Parameters<typeof expoClient>[0]>["storage"],
         storagePrefix: config.storagePrefix ?? "terreno",
       }),
     ],

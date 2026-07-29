@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";

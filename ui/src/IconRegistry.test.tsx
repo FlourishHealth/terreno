@@ -8,7 +8,7 @@ import {Button} from "./Button";
 import type {CustomIconProps, IconRegistryMap} from "./Common";
 import {Icon} from "./Icon";
 import {IconButton} from "./IconButton";
-import {IconRegistryProvider, useCustomIcon} from "./IconRegistry";
+import {IconRegistryProvider, useCustomIcon, useIconRegistry} from "./IconRegistry";
 import {ThemeProvider} from "./Theme";
 
 // Register a custom icon name so it type-checks anywhere an `iconName` is accepted.
@@ -84,6 +84,27 @@ describe("IconRegistry", () => {
         <IconButton accessibilityLabel="star" iconName="customStar" onClick={() => {}} />
       )
     ).not.toThrow();
+  });
+
+  it("useIconRegistry returns the registered icon map", () => {
+    const wrapper = ({children}: {children: React.ReactNode}) => (
+      <ThemeProvider>
+        <IconRegistryProvider icons={ICONS}>{children}</IconRegistryProvider>
+      </ThemeProvider>
+    );
+    const {result} = renderHook(() => useIconRegistry(), {wrapper});
+    expect(result.current).toBe(ICONS);
+    expect(result.current.customStar).toBe(CustomStar);
+  });
+
+  it("useIconRegistry returns empty registry when no icons are provided", () => {
+    const wrapper = ({children}: {children: React.ReactNode}) => (
+      <ThemeProvider>
+        <IconRegistryProvider>{children}</IconRegistryProvider>
+      </ThemeProvider>
+    );
+    const {result} = renderHook(() => useIconRegistry(), {wrapper});
+    expect(Object.keys(result.current)).toHaveLength(0);
   });
 
   it("useCustomIcon resolves registered names and ignores everything else", () => {

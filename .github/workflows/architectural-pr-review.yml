@@ -1,0 +1,48 @@
+name: Architectural PR Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+    branches:
+      - master
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: architectural-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  architectural-review:
+    name: Architectural PR review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out workflow scripts from the base branch
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install root dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Cursor CLI
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run architectural review agent
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_MODEL: ${{ vars.ARCHITECTURAL_REVIEW_MODEL }}
+        run: bun .github/scripts/architectural-pr-review.ts

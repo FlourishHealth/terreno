@@ -1,7 +1,7 @@
 import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
+import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store/sdk";
 
 const LoginScreen: React.FC = () => {
   const [name, setName] = useState<string>("");

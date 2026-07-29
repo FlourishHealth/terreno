@@ -1,6 +1,14 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act} from "@testing-library/react-native";
-import {type EmitterSubscription, Keyboard} from "react-native";
+import {
+  type EmitterSubscription,
+  type GestureResponderEvent,
+  Keyboard,
+  PanResponder,
+  type PanResponderCallbacks,
+  type PanResponderGestureState,
+  type PanResponderInstance,
+} from "react-native";
 
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -164,5 +172,40 @@ describe("UserInactivity", () => {
 
     expect(onAction).toHaveBeenCalledWith(true);
     addListenerSpy.mockRestore();
+  });
+
+  it("resets the inactivity timer when a pan responder capture handler fires", () => {
+    const onAction = mock((_active: boolean) => {});
+    let capturedConfig: PanResponderCallbacks | undefined;
+    const originalCreate = PanResponder.create;
+    PanResponder.create = (config: PanResponderCallbacks): PanResponderInstance => {
+      capturedConfig = config;
+      return originalCreate(config);
+    };
+
+    try {
+      const {unmount} = renderWithTheme(
+        <UserInactivity onAction={onAction} skipKeyboard={true}>
+          <Text>Test Content</Text>
+        </UserInactivity>
+      );
+
+      expect(capturedConfig).toBeDefined();
+
+      let shouldSet: boolean | undefined;
+      act(() => {
+        shouldSet = capturedConfig?.onStartShouldSetPanResponderCapture?.(
+          {} as unknown as GestureResponderEvent,
+          {} as unknown as PanResponderGestureState
+        );
+      });
+
+      expect(shouldSet).toBe(false);
+      act(() => {
+        unmount();
+      });
+    } finally {
+      PanResponder.create = originalCreate;
+    }
   });
 });

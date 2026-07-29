@@ -3,24 +3,16 @@ import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const WEBSITE_ROOT = resolve(SCRIPT_DIR, "..");
-const VERSIONED_DOCS_DIR = join(WEBSITE_ROOT, "versioned_docs");
-const VERSIONS_FILE = join(WEBSITE_ROOT, "versions.json");
+const DEFAULT_WEBSITE_ROOT = resolve(SCRIPT_DIR, "..");
 const KEEP_VERSION_COUNT = 4;
 
-interface VersionsJson {
-  [label: string]: {
-    label: string;
-  };
-}
-
-const parseVersionLabel = (label: string): number[] =>
+export const parseVersionLabel = (label: string): number[] =>
   label
     .replace(/^v/, "")
     .split(".")
     .map((part) => Number.parseInt(part, 10));
 
-const compareVersions = (a: string, b: string): number => {
+export const compareVersions = (a: string, b: string): number => {
   const aParts = parseVersionLabel(a);
   const bParts = parseVersionLabel(b);
   const length = Math.max(aParts.length, bParts.length);
@@ -34,39 +26,68 @@ const compareVersions = (a: string, b: string): number => {
   return 0;
 };
 
-const main = (): void => {
-  if (!existsSync(VERSIONS_FILE)) {
+/**
+ * Docusaurus stores `versions.json` as a JSON array of version-label strings,
+ * newest first. Drop anything that is not a non-empty string so a previously
+ * corrupted file (e.g. a `null` hole left by an older buggy prune) self-heals.
+ */
+const readVersions = (versionsFile: string): string[] => {
+  const parsed = JSON.parse(readFileSync(versionsFile, "utf8")) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error(`Expected ${versionsFile} to contain a JSON array of version strings.`);
+  }
+  return parsed.filter((label): label is string => typeof label === "string" && label.length > 0);
+};
+
+export interface PruneOptions {
+  websiteRoot?: string;
+  keepCount?: number;
+}
+
+export const pruneDocVersions = ({
+  websiteRoot = DEFAULT_WEBSITE_ROOT,
+  keepCount = KEEP_VERSION_COUNT,
+}: PruneOptions = {}): void => {
+  const versionsFile = join(websiteRoot, "versions.json");
+  const versionedDocsDir = join(websiteRoot, "versioned_docs");
+  const versionedSidebarsDir = join(websiteRoot, "versioned_sidebars");
+
+  if (!existsSync(versionsFile)) {
     console.info("No versions.json found — nothing to prune.");
     return;
   }
 
-  const versions = JSON.parse(readFileSync(VERSIONS_FILE, "utf8")) as VersionsJson;
-  const labels = Object.keys(versions).filter((label) => label !== "next");
-  const sorted = labels.sort(compareVersions);
-  const toRemove = sorted.slice(KEEP_VERSION_COUNT);
+  const versions = readVersions(versionsFile);
+  const sorted = [...versions].sort(compareVersions);
+  const remaining = sorted.slice(0, keepCount);
+  const toRemove = sorted.slice(keepCount);
+
+  // Always rewrite so a corrupted (non-string entry) versions.json is repaired,
+  // even when there is nothing to prune.
+  writeFileSync(versionsFile, `${JSON.stringify(remaining, null, 2)}\n`);
 
   if (toRemove.length === 0) {
     console.info("No doc versions to prune.");
-    return;
+  } else {
+    for (const label of toRemove) {
+      const versionDir = join(versionedDocsDir, `version-${label}`);
+      if (existsSync(versionDir)) {
+        rmSync(versionDir, {force: true, recursive: true});
+      }
+      const sidebarFile = join(versionedSidebarsDir, `version-${label}-sidebars.json`);
+      if (existsSync(sidebarFile)) {
+        rmSync(sidebarFile, {force: true});
+      }
+      console.info(`Pruned docs version ${label}`);
+    }
   }
 
-  for (const label of toRemove) {
-    const versionDir = join(VERSIONED_DOCS_DIR, `version-${label}`);
-    if (existsSync(versionDir)) {
-      rmSync(versionDir, {force: true, recursive: true});
-    }
-    const sidebarFile = join(WEBSITE_ROOT, "versioned_sidebars", `version-${label}-sidebars.json`);
-    if (existsSync(sidebarFile)) {
-      rmSync(sidebarFile, {force: true});
-    }
-    delete versions[label];
-    console.info(`Pruned docs version ${label}`);
+  if (existsSync(versionedDocsDir)) {
+    const remainingDirs = readdirSync(versionedDocsDir);
+    console.info(`Remaining versioned_docs entries: ${remainingDirs.join(", ")}`);
   }
-
-  writeFileSync(VERSIONS_FILE, `${JSON.stringify(versions, null, 2)}\n`);
-
-  const remaining = readdirSync(VERSIONED_DOCS_DIR);
-  console.info(`Remaining versioned_docs entries: ${remaining.join(", ")}`);
 };
 
-main();
+if (import.meta.main) {
+  pruneDocVersions();
+}

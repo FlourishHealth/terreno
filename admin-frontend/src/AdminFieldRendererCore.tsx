@@ -84,6 +84,8 @@ export interface AdminFieldRendererCoreProps extends AdminScreenProps {
    * Forwarded to {@link AdminPrimitiveArrayField} so nested fields participate in the override.
    */
   refRenderers?: RefRendererMap;
+  /** When true, inputs are disabled and ref fields do not open the picker. */
+  readOnly?: boolean;
 }
 
 /**
@@ -104,10 +106,12 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   modelConfigs,
   parentFormState,
   refRenderers,
+  readOnly,
 }) => {
   const label = startCase(fieldKey);
   const helperText = fieldConfig.description;
   const refModel = getRefModel(modelConfigs, USER_REF_MODEL_NAME);
+  const isReadOnly = Boolean(readOnly);
 
   if (isUserTargetingValueField(fieldKey, parentFormState)) {
     const operator = parentFormState?.operator;
@@ -120,6 +124,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       return (
         <AdminPrimitiveArrayField
           api={api}
+          apiBase={apiBase}
           baseUrl={baseUrl}
           errorText={errorText}
           helperText={helperText ?? "Select users to target for this rule."}
@@ -127,7 +132,9 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
           itemType="objectid"
           modelConfigs={modelConfigs}
           onChange={onChange}
+          readOnly={isReadOnly}
           refRenderers={refRenderers}
+          routeBase={routeBase}
           title={label}
           value={arrayValue}
         />
@@ -144,6 +151,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
             errorText={errorText}
             helperText={helperText ?? "Select the user to target for this rule."}
             onChange={onChange}
+            readOnly={isReadOnly}
             refModelName={USER_REF_MODEL_NAME}
             routePath={refModel?.routePath ?? ""}
             title={label}
@@ -159,6 +167,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
             errorText={errorText}
             helperText={helperText ?? "Select the user to target for this rule."}
             onChange={onChange}
+            readOnly={isReadOnly}
             refModelName={USER_REF_MODEL_NAME}
             routePath={refModel.routePath}
             title={label}
@@ -181,6 +190,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       if (dynamicOptions.length > 0) {
         return (
           <SelectField
+            disabled={isReadOnly}
             errorText={errorText}
             helperText={helperText}
             onChange={onChange}
@@ -206,6 +216,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
           errorText={errorText}
           helperText={helperText}
           onChange={onChange}
+          readOnly={isReadOnly}
           refModelName={fieldConfig.ref}
           routeBase={routeBase}
           routePath={refModel?.routePath ?? ""}
@@ -223,6 +234,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
           errorText={errorText}
           helperText={helperText}
           onChange={onChange}
+          readOnly={isReadOnly}
           refModelName={fieldConfig.ref}
           routeBase={routeBase}
           routePath={refModel.routePath}
@@ -236,6 +248,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   if (fieldConfig.type === "boolean") {
     return (
       <BooleanField
+        disabled={isReadOnly}
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
@@ -253,6 +266,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     const options = includesNullOption ? [{label: "None", value: ""}, ...enumOptions] : enumOptions;
     return (
       <SelectField
+        disabled={isReadOnly}
         errorText={errorText}
         helperText={helperText}
         onChange={(nextValue: string) => onChange(nextValue === "" ? undefined : nextValue)}
@@ -270,6 +284,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   ) {
     return (
       <DateTimeField
+        disabled={isReadOnly}
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
@@ -284,6 +299,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   if (fieldConfig.type === "number") {
     return (
       <TextField
+        disabled={isReadOnly}
         errorText={errorText}
         helperText={helperText}
         onChange={(text: string) => {
@@ -293,6 +309,26 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value != null ? String(value) : ""}
+      />
+    );
+  }
+
+  if (isReadOnly && fieldConfig.widget === "locale-content") {
+    const localeReadonly =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, string>)
+        : {};
+    return (
+      <TextField
+        disabled
+        grow
+        helperText={helperText ?? "Read-only"}
+        multiline
+        onChange={() => {}}
+        rows={8}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={serializeJsonValue(localeReadonly)}
       />
     );
   }
@@ -323,7 +359,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     const options = localeKeys.map((k) => ({label: k.toUpperCase(), value: k}));
     return (
       <SelectField
-        disabled={!hasLocales}
+        disabled={!hasLocales || isReadOnly}
         errorText={errorText}
         helperText={
           hasLocales
@@ -342,6 +378,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     const displayValue = serializeJsonValue(value);
     return (
       <TextField
+        disabled={isReadOnly}
         errorText={errorText}
         helperText={helperText ?? "JSON value (string, number, boolean, object, or array)"}
         onChange={(text: string) => {
@@ -367,6 +404,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         itemType={fieldConfig.itemType}
         modelConfigs={modelConfigs}
         onChange={onChange}
+        readOnly={isReadOnly}
         refRenderers={refRenderers}
         routeBase={routeBase}
         title={label}
@@ -380,6 +418,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       value != null ? (typeof value === "string" ? value : JSON.stringify(value, null, 2)) : "[]";
     return (
       <TextField
+        disabled={isReadOnly}
         errorText={errorText}
         grow
         helperText={helperText ?? "Enter valid JSON array"}
@@ -402,12 +441,29 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   if (fieldConfig.widget === "markdown") {
     return (
       <MarkdownEditorField
+        disabled={isReadOnly}
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={typeof value === "string" ? value : ""}
+      />
+    );
+  }
+
+  if (isReadOnly && fieldConfig.widget === "checkbox-list") {
+    return (
+      <TextField
+        disabled
+        grow
+        helperText={helperText ?? "Read-only"}
+        multiline
+        onChange={() => {}}
+        rows={6}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={serializeJsonValue(value)}
       />
     );
   }
@@ -431,6 +487,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   if (fieldConfig.widget === "textarea") {
     return (
       <TextField
+        disabled={isReadOnly}
         errorText={errorText}
         grow
         helperText={helperText}
@@ -447,6 +504,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   // Default: string -> TextField
   return (
     <TextField
+      disabled={isReadOnly}
       errorText={errorText}
       helperText={helperText}
       onChange={onChange}

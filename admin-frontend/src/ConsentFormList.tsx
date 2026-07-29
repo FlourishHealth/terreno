@@ -143,7 +143,7 @@ export const ConsentFormList: React.FC<ConsentFormListProps> = ({
   const totalPages = listData ? Math.ceil(listData.total / DEFAULT_LIMIT) : 1;
 
   return (
-    <Page maxWidth="100%">
+    <Page color="transparent" maxWidth="100%" padding={0}>
       <Box alignItems="center" direction="row" justifyContent="between" padding={3}>
         <Text size="lg">Consent Forms</Text>
         {onCreateNew && (

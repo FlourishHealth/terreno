@@ -75,7 +75,7 @@ describe("AdminModelList", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("groups tools before models when tool cards are configured", () => {
+  it("renders models before tools when both sections are present", () => {
     mockConfigState.data = baseConfig;
     const {getByTestId, getByText} = renderWithTheme(
       <AdminModelList

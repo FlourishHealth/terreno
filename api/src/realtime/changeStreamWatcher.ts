@@ -416,7 +416,7 @@ export const startChangeStreamWatcher = (
       maxAwaitTimeMS: 1000,
     };
 
-    changeWatcher = nativeDb.watch(pipeline, options);
+    changeWatcher = nativeDb.watch(pipeline, options as never) as unknown as ChangeStream;
 
     if (!changeWatcher) {
       throw new APIError({status: 500, title: "Failed to create change stream watcher"});

@@ -41,7 +41,7 @@ export default defineConfig({
       reuseExistingServer: true,
     },
     {
-      command: "bun run web",
+      command: process.env.CI ? "bun expo start --web --port 8082" : "bun run web",
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       url: "http://localhost:8082",

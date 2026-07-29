@@ -1,7 +1,7 @@
 import {useSelectCurrentUserId} from "@terreno/rtk";
 import {AIRequestExplorer, type AIRequestExplorerData, Page} from "@terreno/ui";
 import React, {useCallback, useState} from "react";
-import {useGetAiRequestsExplorerQuery} from "@/store";
+import {useGetAiRequestsExplorerQuery} from "@/store/sdk";
 
 const EXPLORER_LIMIT = 20;
 

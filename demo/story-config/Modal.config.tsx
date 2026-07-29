@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {ModalDemo, Modals} from "@stories";
+import {ModalDemo, Modals} from "@stories/Modal.stories";
 import {Modal} from "@terreno/ui";
 
 // TODO: might want to combine these two. They're different figma components, but the same for dev.

@@ -1,5 +1,5 @@
 [test]
-preload = ["../api/src/tests/bunSetup.ts"]
+preload = ["./src/tests/bunSetup.ts"]
 root = "./src"
 coveragePathIgnorePatterns = ["**/dist/**", "**/*.test.ts", "**/tests/**", "**/node_modules/**", "../**"]
 # Enforced by scripts/check-coverage.ts; Bun parses this key but does not

@@ -1,7 +1,7 @@
 import {Permissions, type ModelRouterOptions, modelRouter} from "@terreno/api";
 import type {Router} from "express";
-import {User} from "../models";
-import type {UserDocument} from "../types";
+import {User} from "../models/user";
+import type {UserDocument} from "../types/models/userTypes";
 
 export const addUserRoutes = (
   router: Router,

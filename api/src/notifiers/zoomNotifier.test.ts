@@ -1,8 +1,9 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
+import type {AxiosResponse} from "axios";
 import axios from "axios";
 
+import type {APIError} from "../errors";
 import {sendToZoom} from "./zoomNotifier";
 
 describe("sendToZoom", () => {
@@ -11,7 +12,9 @@ describe("sendToZoom", () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    mockAxiosPost = spyOn(axios, "post").mockResolvedValue({status: 200} as any);
+    mockAxiosPost = spyOn(axios, "post").mockResolvedValue({
+      status: 200,
+    } as unknown as AxiosResponse);
     process.env = {...ORIGINAL_ENV};
     process.env.ZOOM_CHAT_WEBHOOKS = undefined;
     (Sentry.captureException as Mock<typeof Sentry.captureException>).mockClear();
@@ -187,8 +190,8 @@ describe("sendToZoom", () => {
       await sendToZoom({body: "err", header: "err"}, {channel: "default", shouldThrow: true});
       throw new Error("Expected sendToZoom to throw APIError");
     } catch (error) {
-      expect((error as any).name).toBe("APIError");
-      expect((error as any).title).toMatch(/Error posting to Zoom/i);
+      expect((error as APIError).name).toBe("APIError");
+      expect((error as APIError).title).toMatch(/Error posting to Zoom/i);
     }
     expect(mockAxiosPost.mock.calls.length).toBe(1);
   });

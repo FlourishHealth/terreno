@@ -1,5 +1,5 @@
 ---
-description: @terreno/ai - AI service layer for Terreno apps
+description: '@terreno/ai - AI service layer for Terreno apps'
 globs: **/*
 ---
 

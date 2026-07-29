@@ -88,7 +88,7 @@ const UserList = () => {
 
 ```typescript
 import { useEmailLoginMutation } from "@/store/openApiSdk";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch } from "@/store/index";
 import { authSlice } from "@terreno/rtk";
 
 const LoginScreen = () => {
@@ -119,7 +119,7 @@ const LoginScreen = () => {
 ### Auth State
 
 ```typescript
-import { useAppSelector } from "@/store";
+import { useAppSelector } from "@/store/appState";
 
 const Component = () => {
   const userId = useAppSelector((state) => state.auth.userId);

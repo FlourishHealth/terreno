@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {MultiselectFieldDemo, MultiselectVariants} from "@stories";
+import {MultiselectFieldDemo, MultiselectVariants} from "@stories/MultiselectField.stories";
 import {MultiselectField} from "@terreno/ui";
 
 export const MultiselectFieldConfiguration: DemoConfiguration = {

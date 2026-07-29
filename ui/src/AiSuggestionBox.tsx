@@ -1,8 +1,10 @@
 import {type FC, useCallback, useEffect, useState} from "react";
 import {Pressable, View} from "react-native";
 
+import {Button} from "./Button";
 import type {AiSuggestionProps} from "./Common";
 import {Icon} from "./Icon";
+import {SparklesIcon} from "./icons/SparklesIcon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 
@@ -10,6 +12,17 @@ export interface AiSuggestionBoxProps extends AiSuggestionProps {
   testID?: string;
 }
 
+/**
+ * Inline AI suggestion box rendered inside TextField/TextArea via the `aiSuggestion` prop.
+ *
+ * Expansion is derived from the persisted `status` (`ready` expands; `hidden` and `added`
+ * condense into the collapsed header row), but an explicit user Show/Hide toggle always
+ * wins — including while a hide/show mutation is still in flight — so a quick
+ * Hide-then-Show never snaps back to collapsed when the earlier hide's refetch lands.
+ * Hide/Show on a non-`added` suggestion also invoke `onHide`/`onShow` so consumers can
+ * persist the choice; toggling an `added` suggestion is purely local so the acceptance
+ * record is never reset. "Add to note" stays available after a first add for re-adds.
+ */
 export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
   status,
   text,
@@ -23,15 +36,26 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
   testID,
 }) => {
   const {theme} = useTheme();
-  const [expanded, setExpanded] = useState(true);
+  // The user's last explicit Show/Hide choice. While set, it overrides the
+  // status-derived default so in-flight hide/show mutations can't undo a newer click.
+  const [expandedIntent, setExpandedIntent] = useState<boolean | null>(null);
 
-  // Re-expand when a new suggestion arrives or is added
+  // Reconcile the local intent with persisted status transitions. Accepting a suggestion
+  // (`added`) always condenses the box, and once the persisted status agrees with the
+  // user's intent the override is dropped so later transitions (e.g. a regenerated
+  // suggestion flipping back to `ready`) use their status defaults. An intent that
+  // disagrees with the incoming status is kept — that status is a stale in-flight
+  // hide/show landing after a newer click, and must not undo it.
   useEffect(() => {
-    if (status === "ready" || status === "added") {
-      setExpanded(true);
-    }
+    setExpandedIntent((current) => {
+      if (current === null || status === "added") {
+        return null;
+      }
+      return current === (status === "ready") ? null : current;
+    });
   }, [status]);
 
+  const expanded = expandedIntent ?? status === "ready";
   const isAdded = status === "added";
 
   const backgroundColor = isAdded
@@ -68,14 +92,24 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
             : "AI-generated note (hidden)";
 
   const handleHide = useCallback(() => {
-    setExpanded(false);
-    onHide?.();
-  }, [onHide]);
+    setExpandedIntent(false);
+    // Persist the hide for any non-`added` suggestion — even when the status still reads
+    // `hidden` locally (an un-hide may be in flight). Hiding an `added` suggestion is a
+    // purely local collapse so the acceptance record stays intact.
+    if (status !== "added") {
+      onHide?.();
+    }
+  }, [status, onHide]);
 
   const handleShow = useCallback(() => {
-    setExpanded(true);
-    onShow?.();
-  }, [onShow]);
+    setExpandedIntent(true);
+    // Persist the un-hide for any non-`added` suggestion — even when the status still
+    // reads `ready` locally (a hide may be in flight, and this Show must override it).
+    // Expanding an `added` suggestion must not reset its status.
+    if (status !== "added") {
+      onShow?.();
+    }
+  }, [status, onShow]);
 
   const handleThumbsUp = useCallback(() => {
     if (!onFeedback) {
@@ -106,7 +140,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
         <Icon
           color={feedback === "like" ? "secondaryDark" : "secondaryLight"}
           iconName="thumbs-up"
-          size="xs"
+          size="md"
           type={feedback === "like" ? "solid" : "regular"}
         />
       </Pressable>
@@ -120,7 +154,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
         <Icon
           color={feedback === "dislike" ? "secondaryDark" : "secondaryLight"}
           iconName="thumbs-down"
-          size="xs"
+          size="md"
           type={feedback === "dislike" ? "solid" : "regular"}
         />
       </Pressable>
@@ -131,7 +165,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
     return (
       <View style={containerStyle} testID={testID}>
         <View style={{alignItems: "center", flexDirection: "row", gap: 4, width: "100%"}}>
-          <Icon color="secondaryDark" iconName="wand-magic-sparkles" size="xs" />
+          <SparklesIcon fill={theme.text.secondaryDark} />
           <View style={{flex: 1}}>
             <Text color="secondaryDark" size="sm">
               {headingText}
@@ -146,24 +180,20 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
     return (
       <View style={{...containerStyle, flexDirection: "column"}} testID={testID}>
         <View style={{alignItems: "center", flexDirection: "row", gap: 4, width: "100%"}}>
-          <Icon color="secondaryDark" iconName="wand-magic-sparkles" size="xs" />
+          <SparklesIcon fill={theme.text.secondaryDark} />
           <View style={{flex: 1}}>
             <Text color="secondaryDark" size="sm">
               {headingText}
             </Text>
           </View>
           <View style={{alignItems: "center", flexDirection: "row", gap: 4}}>
-            <Pressable
-              accessibilityLabel="Show suggestion"
-              accessibilityRole="button"
-              onPress={handleShow}
-              style={{height: 28, justifyContent: "center", paddingHorizontal: 16}}
+            <Button
+              onClick={handleShow}
+              size="sm"
               testID={testID ? `${testID}-show` : undefined}
-            >
-              <Text bold color="secondaryDark" size="sm">
-                Show
-              </Text>
-            </Pressable>
+              text="Show"
+              variant="ghost"
+            />
             {renderFeedback()}
           </View>
         </View>
@@ -174,7 +204,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
   return (
     <View style={{...containerStyle, alignItems: "flex-end"}} testID={testID}>
       <View style={{alignItems: "center", flexDirection: "row", gap: 4, width: "100%"}}>
-        <Icon color="secondaryDark" iconName="wand-magic-sparkles" size="xs" />
+        <SparklesIcon fill={theme.text.secondaryDark} />
         <View style={{flex: 1}}>
           <Text color="secondaryDark" size="sm">
             {headingText}
@@ -198,35 +228,22 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
           width: "100%",
         }}
       >
-        <Pressable
-          accessibilityLabel="Hide suggestion"
-          accessibilityRole="button"
-          onPress={handleHide}
-          style={{height: 28, justifyContent: "center", paddingHorizontal: 16}}
+        <Button
+          onClick={handleHide}
+          size="sm"
           testID={testID ? `${testID}-hide` : undefined}
-        >
-          <Text bold color="secondaryDark" size="sm">
-            Hide
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Add to note"
-          accessibilityRole="button"
-          onPress={onAdd}
-          style={{
-            alignItems: "center",
-            backgroundColor: theme.surface.secondaryDark,
-            borderRadius: 360,
-            height: 28,
-            justifyContent: "center",
-            paddingHorizontal: 16,
-          }}
-          testID={testID ? `${testID}-add` : undefined}
-        >
-          <Text bold color="inverted" size="sm">
-            Add to note
-          </Text>
-        </Pressable>
+          text="Hide"
+          variant="ghost"
+        />
+        {Boolean(onAdd) && (
+          <Button
+            onClick={onAdd!}
+            size="sm"
+            testID={testID ? `${testID}-add` : undefined}
+            text="Add to note"
+            variant="secondary"
+          />
+        )}
       </View>
     </View>
   );

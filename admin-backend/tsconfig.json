@@ -7,7 +7,6 @@
     "downlevelIteration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "ignoreDeprecations": "6.0",
     "jsx": "react",
     "lib": ["es2017", "dom", "es2017.object"],
     "module": "commonjs",
@@ -28,6 +27,6 @@
     "strictNullChecks": true,
     "target": "es5"
   },
-  "exclude": ["node_modules", "**/*.test.ts"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/tests/**"],
   "include": ["src/**/*.ts*", "src/*.ts"]
 }

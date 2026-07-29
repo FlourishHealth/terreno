@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
 import mongoose from "mongoose";

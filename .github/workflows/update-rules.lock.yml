@@ -54,7 +54,7 @@ jobs:
       comment_repo: ""
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@f8f3266e4f300c08213a52328387e9cacbc8e4dd # v0.43.15
+        uses: github/gh-aw/actions/setup@23829dbc67f09c6372c3815b13f968a0e56e4ae2 # v0.43.15
         with:
           destination: /opt/gh-aw/actions
       - name: Check workflow file timestamps
@@ -90,11 +90,11 @@ jobs:
       secret_verification_result: ${{ steps.validate-secret.outputs.verification_result }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@f8f3266e4f300c08213a52328387e9cacbc8e4dd # v0.43.15
+        uses: github/gh-aw/actions/setup@23829dbc67f09c6372c3815b13f968a0e56e4ae2 # v0.43.15
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - name: Create gh-aw temp directory
@@ -767,7 +767,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@f8f3266e4f300c08213a52328387e9cacbc8e4dd # v0.43.15
+        uses: github/gh-aw/actions/setup@23829dbc67f09c6372c3815b13f968a0e56e4ae2 # v0.43.15
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -886,7 +886,7 @@ jobs:
       success: ${{ steps.parse_results.outputs.success }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@f8f3266e4f300c08213a52328387e9cacbc8e4dd # v0.43.15
+        uses: github/gh-aw/actions/setup@23829dbc67f09c6372c3815b13f968a0e56e4ae2 # v0.43.15
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent artifacts
@@ -981,7 +981,7 @@ jobs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@f8f3266e4f300c08213a52328387e9cacbc8e4dd # v0.43.15
+        uses: github/gh-aw/actions/setup@23829dbc67f09c6372c3815b13f968a0e56e4ae2 # v0.43.15
         with:
           destination: /opt/gh-aw/actions
       - name: Check team membership for workflow
@@ -1020,7 +1020,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@f8f3266e4f300c08213a52328387e9cacbc8e4dd # v0.43.15
+        uses: github/gh-aw/actions/setup@23829dbc67f09c6372c3815b13f968a0e56e4ae2 # v0.43.15
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1042,7 +1042,7 @@ jobs:
           path: /tmp/gh-aw/
       - name: Checkout repository
         if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'create_pull_request'))
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           token: ${{ github.token }}
           persist-credentials: false

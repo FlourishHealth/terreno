@@ -28,6 +28,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   modelConfigs,
   parentFormState,
   refRenderers,
+  readOnly,
 }) => {
   if (fieldConfig.type === "array" && fieldConfig.items) {
     return (
@@ -41,6 +42,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         modelConfigs={modelConfigs}
         onChange={onChange}
         parentFormState={parentFormState}
+        readOnly={readOnly}
         refRenderers={refRenderers}
         routeBase={routeBase}
         title={startCase(fieldKey)}
@@ -60,6 +62,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
       modelConfigs={modelConfigs}
       onChange={onChange}
       parentFormState={parentFormState}
+      readOnly={readOnly}
       refRenderers={refRenderers}
       routeBase={routeBase}
       value={value}

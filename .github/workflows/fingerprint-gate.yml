@@ -47,7 +47,7 @@ jobs:
       COMMENT_MARKER: "<!-- fingerprint-gate:example-frontend -->"
     steps:
       - name: Checkout PR head
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
         with:
           path: pr
 
@@ -65,14 +65,14 @@ jobs:
           bun-version: 1.3.10
 
       - name: Cache bun install cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.bun/install/cache
           key: bun-fp-${{ runner.os }}-${{ hashFiles('pr/bun.lock') }}
           restore-keys: |
             bun-fp-${{ runner.os }}-
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -96,7 +96,7 @@ jobs:
           echo "android=$android" >> "$GITHUB_OUTPUT"
 
       - name: Checkout master
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
         with:
           ref: master
           path: master

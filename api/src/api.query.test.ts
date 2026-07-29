@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import * as Sentry from "@sentry/bun";
@@ -95,7 +96,17 @@ describe("query and list methods", () => {
           update: [Permissions.IsOwner],
         },
         populatePaths: [{path: "ownerId"}],
-        queryFields: ["hidden", "name", "calories", "created", "source.name", "tags", "eatenBy"],
+        queryFields: [
+          "hidden",
+          "name",
+          "calories",
+          "created",
+          "created_gte",
+          "created_lte",
+          "source.name",
+          "tags",
+          "eatenBy",
+        ],
         sort: {created: "descending"},
       })
     );
@@ -188,6 +199,78 @@ describe("query and list methods", () => {
     expect(res.body.more).toBe(false);
     expect(res.body.total).toBe(1);
     expect(res.body.data[0].id).toBe((apple as any).id);
+  });
+
+  it("list applies created_gte and created_lte as a Date range", async () => {
+    const res = await agent
+      .get("/food")
+      .query({
+        created_gte: "2021-12-03T00:00:05.000Z",
+        created_lte: "2021-12-03T00:00:25.000Z",
+        limit: 10,
+      })
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Pizza", "Spinach"]);
+  });
+
+  it("list returns 400 when created_gte is not a valid date", async () => {
+    const res = await agent.get("/food").query({created_gte: "not-a-date", limit: 10}).expect(400);
+    expect(res.body.title).toBe("Invalid date for query parameter created_gte");
+  });
+
+  it("list returns 400 when created_lte is not a valid date", async () => {
+    const res = await agent
+      .get("/food")
+      .query({created_lte: "also-not-a-date", limit: 10})
+      .expect(400);
+    expect(res.body.title).toBe("Invalid date for query parameter created_lte");
+  });
+
+  it("applies created_gte alone as a lower Date bound", async () => {
+    const res = await agent
+      .get("/food")
+      .query({created_gte: "2021-12-03T00:00:15.000Z", limit: 10})
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Spinach"]);
+  });
+
+  it("applies created_lte alone as an upper Date bound", async () => {
+    const res = await agent
+      .get("/food")
+      .query({created_lte: "2021-12-03T00:00:05.000Z", limit: 10})
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Carrots"]);
+  });
+
+  it("drops a scalar direct field value when a date range is also provided", async () => {
+    const res = await agent
+      .get("/food")
+      .query({
+        created: "2021-12-03T00:00:20.000Z",
+        created_gte: "2021-12-03T00:00:05.000Z",
+        created_lte: "2021-12-03T00:00:25.000Z",
+        limit: 10,
+      })
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Pizza", "Spinach"]);
+  });
+
+  it("merges date-range bounds into an existing object query for the field", async () => {
+    const res = await agent
+      .get(
+        `/food?${qs.stringify({
+          created: {$lte: "2021-12-03T00:00:25.000Z"},
+          created_gte: "2021-12-03T00:00:05.000Z",
+          limit: 10,
+        })}`
+      )
+      .expect(200);
+    const names = (res.body.data as {name: string}[]).map((d) => d.name).sort();
+    expect(names).toEqual(["Pizza", "Spinach"]);
   });
 
   it("list query params not in list", async () => {

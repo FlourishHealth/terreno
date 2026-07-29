@@ -1,8 +1,12 @@
 import {SecretManagerServiceClient} from "@google-cloud/secret-manager";
 import * as Sentry from "@sentry/bun";
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 import mongoose from "mongoose";
-import type {ConfigurationDocument, ConfigurationModel, ConfigValueType} from "../types";
+import type {
+  ConfigurationDocument,
+  ConfigurationModel,
+  ConfigValueType,
+} from "../types/models/configurationTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 /**
@@ -66,6 +70,33 @@ const resetGsmClient = (): void => {
  */
 let changeStream: ReturnType<typeof ConfigurationDB.watch> | null = null;
 
+/** Cleared in stopWatching so disconnect does not fire a delayed restart on a closed client */
+let changeStreamRestartTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearChangeStreamRestartTimer = (): void => {
+  if (changeStreamRestartTimer) {
+    clearTimeout(changeStreamRestartTimer);
+    changeStreamRestartTimer = null;
+  }
+};
+
+/** Errors when the Mongo client is closing or not connected — not actionable as "retry in 5s" */
+const isConnectionLifecycleChangeStreamError = (error: unknown): boolean => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const {message, name} = error as {message?: string; name?: string};
+  const errorName = String(name ?? "");
+  const errorMessage = String(message ?? "");
+  return (
+    errorName === "MongoClientClosedError" ||
+    errorName === "MongoNotConnectedError" ||
+    errorMessage.includes("client was closed") ||
+    errorMessage.includes("must be connected before running operations") ||
+    errorMessage.includes("Topology is closed")
+  );
+};
+
 /**
  * Flag to track if configuration has been initialized
  */
@@ -82,9 +113,10 @@ export class Configuration {
    * This class should only be used through its static methods
    */
   private constructor() {
-    throw new Error(
-      "Configuration is a singleton and cannot be instantiated. Use static methods instead."
-    );
+    throw new APIError({
+      status: 500,
+      title: "Configuration is a singleton and cannot be instantiated. Use static methods instead.",
+    });
   }
 
   /**
@@ -165,7 +197,7 @@ export class Configuration {
 
     // Validate if validator is provided
     if (definition?.validator && !definition.validator(value)) {
-      throw new Error(`Configuration validation failed for ${key}`);
+      throw new APIError({status: 400, title: `Configuration validation failed for ${key}`});
     }
 
     runtimeOverrides.set(key, value);
@@ -184,14 +216,17 @@ export class Configuration {
    */
   static async setDB<T extends ConfigValueType>(key: string, value: T): Promise<void> {
     if (value === undefined) {
-      throw new Error("Cannot set undefined value in database. Use null instead.");
+      throw new APIError({
+        status: 400,
+        title: "Cannot set undefined value in database. Use null instead.",
+      });
     }
 
     const definition = configRegistry.get(key);
 
     // Validate if validator is provided
     if (definition?.validator && !definition.validator(value)) {
-      throw new Error(`Configuration validation failed for ${key}`);
+      throw new APIError({status: 400, title: `Configuration validation failed for ${key}`});
     }
 
     await ConfigurationDB.setValue(key, value as ConfigValueType);
@@ -261,7 +296,10 @@ export class Configuration {
     } else {
       const projectId = Configuration.get<string>("GCP_PROJECT_ID");
       if (!projectId) {
-        throw new Error("GCP_PROJECT_ID is required to resolve secret names");
+        throw new APIError({
+          status: 500,
+          title: "GCP_PROJECT_ID is required to resolve secret names",
+        });
       }
       resourceName = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     }
@@ -270,7 +308,7 @@ export class Configuration {
     const [version] = await client.accessSecretVersion({name: resourceName});
     const payload = version.payload?.data;
     if (!payload) {
-      throw new Error(`Secret ${secretName} has no payload data`);
+      throw new APIError({status: 500, title: `Secret ${secretName} has no payload data`});
     }
     return typeof payload === "string" ? payload : new TextDecoder().decode(payload);
   }
@@ -395,6 +433,11 @@ export class Configuration {
       return true;
     }
 
+    if (mongoose.connection.readyState !== 1) {
+      logger.warn("Skipping configuration change stream — MongoDB is not connected");
+      return false;
+    }
+
     try {
       changeStream = ConfigurationDB.watch([], {
         fullDocument: "updateLookup",
@@ -445,10 +488,20 @@ export class Configuration {
           Configuration.stopWatching();
           return;
         }
+        if (isConnectionLifecycleChangeStreamError(error)) {
+          logger.debug(`Configuration change stream closed: ${errorMessage}`);
+          Configuration.stopWatching();
+          return;
+        }
         logger.error(`Configuration change stream error: ${error}`);
         // Attempt to restart the stream for other errors
         Configuration.stopWatching();
-        setTimeout(() => {
+        clearChangeStreamRestartTimer();
+        changeStreamRestartTimer = setTimeout(() => {
+          changeStreamRestartTimer = null;
+          if (mongoose.connection.readyState !== 1) {
+            return;
+          }
           Configuration.startWatching().catch((err: unknown) => {
             Sentry.captureException(err);
             logger.error(`Failed to restart configuration change stream: ${err}`);
@@ -475,6 +528,7 @@ export class Configuration {
    * Stop watching the configuration change stream
    */
   static stopWatching(): void {
+    clearChangeStreamRestartTimer();
     if (changeStream) {
       changeStream.close().catch((error: unknown) => {
         logger.error(`Error closing configuration change stream: ${error}`);
@@ -613,6 +667,7 @@ ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDo
   return this.findOneOrNone({key});
 };
 
+// noExplicitAny: Setting a static method on the model.
 // biome-ignore lint/suspicious/noExplicitAny: Setting a static method on the model.
 (ConfigurationDB as any).setValue = async function (
   key: string,

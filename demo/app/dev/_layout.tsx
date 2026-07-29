@@ -9,6 +9,7 @@ const Layout = () => {
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
+          contentStyle: {flex: 1},
           headerBackTitle: "Back",
           headerBackVisible: isMobileDevice(),
           headerRight: () => (

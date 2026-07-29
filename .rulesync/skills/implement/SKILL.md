@@ -132,6 +132,14 @@ Run the most targeted available tests first and capture the initial failure befo
 
 If full test execution is not practical, run the closest focused validation possible and document what was not run.
 
+## Frontend verification (mandatory when scope includes frontend)
+
+When implementation touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+
+1. Invoke the `verify-ui-changes` skill before final handoff or PR submission.
+2. Launch the correct app, log in with seeded credentials when required, and exercise each implemented user-facing behavior.
+3. Save screenshots and videos under `/opt/cursor/artifacts/` for attachment to the PR.
+
 ## File Modification Rules
 
 Prefer modifying existing patterns consistently with the codebase.

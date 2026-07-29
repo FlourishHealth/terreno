@@ -104,6 +104,22 @@ describe("useTerrenoFeatureFlags", () => {
     expect(result.current.error).toBeDefined();
   });
 
+  it("reports loading while the initial flag configuration query has no data yet", () => {
+    const {api} = buildApi({isLoading: true, isSuccess: false});
+    const {result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it("reports loading while a refetch is in flight even after data has loaded", () => {
+    const {api} = buildApi({data: {alpha: boolDef("on")}, isFetching: true, isSuccess: true});
+    const {result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    expect(result.current.isLoading).toBe(true);
+  });
+
   it("isolates domains so a custom domain does not read another domain's provider", async () => {
     const {api} = buildApi({data: {alpha: boolDef("on")}});
     const {result} = renderHook(() =>
@@ -196,6 +212,21 @@ describe("useTerrenoFeatureFlags ref-count cleanup", () => {
     await OpenFeature.setProviderAndWait(refcountTestDomain, NOOP_PROVIDER);
   });
 
+  it("awaits pending provider switch during cleanup when unmount overlaps setProviderAndWait", async () => {
+    const {api} = buildApi({data: {alpha: boolDef("on")}});
+    // Render and immediately unmount before the provider switch resolves.
+    // This exercises the `await pending` path (line 119) in the cleanup.
+    const {unmount} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u-fast"})
+    );
+    // Unmount immediately — cleanup fires while the provider switch is still in-flight
+    unmount();
+    // Allow microtasks (the pending await + NOOP install) to settle
+    await new Promise((r) => setTimeout(r, 200));
+    // After cleanup the domain should have fallen back to NOOP
+    expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(false);
+  });
+
   it("installs NOOP provider after the last hook instance unmounts", async () => {
     const {api} = buildApi({data: {alpha: boolDef("on")}});
     const {unmount} = renderHook(() =>
@@ -218,5 +249,30 @@ describe("useTerrenoFeatureFlags ref-count cleanup", () => {
       },
       {timeout: 5000}
     );
+  });
+
+  it("keeps the provider installed while another hook instance is still mounted", async () => {
+    const {api} = buildApi({data: {alpha: boolDef("on")}});
+    // Two instances share the domain, so the ref count reaches 2.
+    const first = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u1"})
+    );
+    const second = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u1"})
+    );
+    await waitFor(
+      () => {
+        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(
+          true
+        );
+      },
+      {timeout: 5000}
+    );
+    // Unmounting one instance decrements the ref count to 1 (the else branch),
+    // so the provider must remain installed rather than falling back to NOOP.
+    first.unmount();
+    await new Promise((r) => setTimeout(r, 200));
+    expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(true);
+    second.unmount();
   });
 });

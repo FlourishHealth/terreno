@@ -16,8 +16,7 @@ export const loadDocOr404 = async <T>(
 ): Promise<T> => {
   const builtQuery = model.findById(id);
   const populatedQuery = addPopulateToQuery(
-    // biome-ignore lint/suspicious/noExplicitAny: Query types vary based on populate paths
-    builtQuery as any,
+    builtQuery as unknown as Parameters<typeof addPopulateToQuery>[0],
     populatePaths
   );
   let data: T | null;

@@ -13,10 +13,13 @@ Bun's test runner preloads a per-package setup file (configured in each package'
 | Package | Preload file |
 |---------|--------------|
 | `@terreno/api` | `api/src/tests/bunSetup.ts` |
+| `@terreno/admin-backend` | `admin-backend/src/tests/testEnv.ts` then `api/src/tests/bunSetup.ts` (`testEnv` sets `TERRENO_TEST_USE_MEMORY_MONGO` for **mongodb-memory-server**) |
 | `@terreno/ai` | `ai/src/tests/bunSetup.ts` |
 | `example-backend` | `example-backend/src/tests/setup.ts` |
 
 The `@terreno/api` preload uses a global `beforeEach` to (1) reset the canonical auth secrets, (2) call `setupEnvironment()` (exported from `expressServer.ts`) for the wider baseline, and (3) re-silence the winston loggers. The next test always starts from the canonical baseline — you normally **do not** need to re-call `setupEnvironment()` in a file-level `beforeEach`.
+
+**Mongo in tests:** `api/src/tests/bunSetup.ts` connects to `mongodb://127.0.0.1/terreno` by default. If `TERRENO_TEST_USE_MEMORY_MONGO=true`, it starts **MongoMemoryServer** and connects to that URI instead (then stops it in `afterAll`). `TERRENO_TEST_MONGODB_URI` overrides both and points at any MongoDB you choose.
 
 ## Default — Rely on the Preload
 

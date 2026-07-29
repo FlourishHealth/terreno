@@ -9,6 +9,7 @@ import {
   Spinner,
   useStoredState,
 } from "@terreno/ui";
+import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 import {useDispatch} from "react-redux";
@@ -19,7 +20,7 @@ import {
   useGetAiModelsQuery,
   useGetGptHistoriesQuery,
   usePatchGptHistoriesByIdMutation,
-} from "@/store";
+} from "@/store/sdk";
 
 const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
   id: history.id,
@@ -380,11 +381,11 @@ const AiScreen: React.FC = () => {
                           // New conversation — add it to the sidebar immediately
                           draft.data.unshift({
                             _id: data.historyId,
-                            created: new Date().toISOString(),
+                            created: DateTime.now().toISO() ?? "",
                             id: data.historyId,
                             prompts: [],
                             title: data.title ?? "New Chat",
-                            updated: new Date().toISOString(),
+                            updated: DateTime.now().toISO() ?? "",
                             userId: "",
                           });
                         }

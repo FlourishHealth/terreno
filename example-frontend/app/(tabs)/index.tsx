@@ -28,7 +28,7 @@ import {
   useGetTodosQuery,
   usePatchTodosByIdMutation,
   usePostTodosMutation,
-} from "@/store";
+} from "@/store/sdk";
 
 const TodoItem: React.FC<{
   todo: Todo;

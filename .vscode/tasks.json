@@ -124,9 +124,9 @@
     {
       "label": "demo",
       "type": "shell",
-      "command": "bun run demo:start",
+      "command": "bun run start",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/demo"
       },
       "group": "build",
       "isBackground": true,

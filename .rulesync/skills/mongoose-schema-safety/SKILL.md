@@ -8,6 +8,8 @@ description: >-
 ---
 # Mongoose Schema Safety — Terreno
 
+Consumer-oriented copy for agents using `@terreno/api` from npm also lives under **`api/.ai/skills/mongoose-schema-safety/SKILL.md`** (synced into the MCP server bundle).
+
 ## Where Schemas and Types Live
 
 | Package | Schemas | Types |

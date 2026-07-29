@@ -60,7 +60,19 @@ export const AiSuggestionReady = (): ReactElement => (
 );
 
 export const AiSuggestionAdded = (): ReactElement => (
-  <AiSuggestionDemo initialStatus="added" label="Added" text={SAMPLE_TEXT} />
+  <AiSuggestionDemo
+    initialStatus="added"
+    label="Added (collapsed, Show re-expands)"
+    text={SAMPLE_TEXT}
+  />
+);
+
+export const AiSuggestionHidden = (): ReactElement => (
+  <AiSuggestionDemo
+    initialStatus="hidden"
+    label="Hidden (collapsed, Show re-expands)"
+    text={SAMPLE_TEXT}
+  />
 );
 
 export const AiSuggestionMainDemo = (): ReactElement => {
@@ -83,5 +95,6 @@ export const AiSuggestionAllStates = (): ReactElement => (
     <AiSuggestionGenerating />
     <AiSuggestionReady />
     <AiSuggestionAdded />
+    <AiSuggestionHidden />
   </Box>
 );

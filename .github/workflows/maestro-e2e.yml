@@ -8,7 +8,7 @@ jobs:
     name: Maestro E2E Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -23,7 +23,7 @@ jobs:
 
       - name: Cache Bun dependencies
         id: cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.bun/install/cache
@@ -117,7 +117,7 @@ jobs:
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"test@example.com","password":"testpassword123"}')
+            -d '{"email":"admin@example.com","password":"testpassword123"}')
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -n -1)
           echo "HTTP Status: $HTTP_CODE"

@@ -86,11 +86,14 @@ describe("ConsentResponseViewer", () => {
       locale: "en",
       signature: "data:image/png;base64,abc",
       userAgent: "jest",
-      userId: {_id: "u1"},
+      userId: {_id: "u1", email: "user@example.com", name: "Test User"},
     };
     const {getByText} = renderWithTheme(
       <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />
     );
+    expect(getByText("User Information")).toBeDefined();
+    expect(getByText("Test User")).toBeDefined();
+    expect(getByText("user@example.com")).toBeDefined();
     await act(async () => {
       fireEvent.press(getByText("Download PDF"));
       await new Promise((r) => setTimeout(r, 100));

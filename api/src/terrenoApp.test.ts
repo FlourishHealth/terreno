@@ -6,6 +6,7 @@ import supertest from "supertest";
 import {modelRouter} from "./api";
 import type {UserModel as UserModelType} from "./auth";
 import {configurationPlugin} from "./configurationPlugin";
+import {APIError} from "./errors";
 import {Permissions} from "./permissions";
 import {createdUpdatedPlugin} from "./plugins";
 import {TerrenoApp} from "./terrenoApp";
@@ -40,6 +41,17 @@ describe("TerrenoApp", () => {
       }).build();
 
       expect(app).toBeDefined();
+    });
+
+    it("does not add requestId to GET /openapi.json document bodies", async () => {
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      }).build();
+
+      const res = await supertest(app).get("/openapi.json").expect(200);
+      expect(res.body.openapi).toBe("3.0.0");
+      expect(res.body.requestId).toBeUndefined();
     });
 
     it("creates server with custom corsOrigin", () => {
@@ -105,6 +117,7 @@ describe("TerrenoApp", () => {
       const res = await agent.get("/food").expect(200);
       expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0].name).toBe("Apple");
+      expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     });
 
     it("supports chaining multiple registrations", async () => {
@@ -196,6 +209,7 @@ describe("TerrenoApp", () => {
       const agent = await authAsUser(app, "admin");
       const res = await agent.get("/configuration/meta");
       expect(res.status).toBe(200);
+      expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     });
 
     it("supports custom basePath via configure options", async () => {
@@ -240,6 +254,30 @@ describe("TerrenoApp", () => {
 
       const res = await supertest(app).get("/trigger-fallthrough");
       expect(res.status).toBe(500);
+      expect(res.body.requestId).toBe(res.headers["x-request-id"]);
+      expect(res.body.status).toBe(500);
+      expect(res.body.title).toBe("Internal server error");
+    });
+
+    it("adds requestId to APIError JSON responses", async () => {
+      const plugin: TerrenoPlugin = {
+        register: (pluginApp) => {
+          pluginApp.get("/api-error-route", () => {
+            throw new APIError({status: 400, title: "Bad request test"});
+          });
+        },
+      };
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      })
+        .register(plugin)
+        .build();
+
+      const res = await supertest(app).get("/api-error-route").set("X-Request-ID", "api-err-rid");
+      expect(res.status).toBe(400);
+      expect(res.body.requestId).toBe("api-err-rid");
+      expect(res.body.title).toBe("Bad request test");
     });
   });
 

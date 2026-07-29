@@ -37,7 +37,6 @@ describe("EAS PR workflows", () => {
       const workflow = readRepoFile(workflowPath);
 
       assert.match(workflow, /type:\s*build/);
-      assert.match(workflow, /type:\s*get-build/);
       assert.doesNotMatch(workflow, /eas-cli@latest update/);
       assert.doesNotMatch(workflow, /--branch "pr-/);
       assert.doesNotMatch(workflow, /inputs\.pr_number/);
@@ -49,6 +48,7 @@ describe("EAS PR workflows", () => {
     const manualDispatch = readRepoFile(".github/workflows/eas-dev-build.yml");
 
     assert.match(manualDispatch, /eas workflow:run "\.eas\/workflows\/\$file"/);
+    assert.match(manualDispatch, /bun install --frozen-lockfile/);
     assert.doesNotMatch(manualDispatch, /pr_number/);
     assert.doesNotMatch(manualDispatch, /pr_title/);
   });

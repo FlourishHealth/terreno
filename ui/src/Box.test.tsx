@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
@@ -419,6 +420,13 @@ describe("Box", () => {
       const view = root.findByType("View");
       expect(view.props.style).toBeDefined();
     });
+
+    it("applies no shadow style when shadow is false", () => {
+      const {root} = renderWithTheme(<Box shadow={false} />);
+      const view = root.findByType("View");
+      expect(view.props.style.boxShadow).toBeUndefined();
+      expect(view.props.style.elevation).toBeUndefined();
+    });
   });
 
   describe("clickable behavior", () => {
@@ -553,6 +561,30 @@ describe("Box", () => {
 
       expect(ref.current).toBeTruthy();
       expect(typeof ref.current.scrollTo).toBe("function");
+    });
+
+    it("scrollTo forwards to the underlying scroll ref after the delay", async () => {
+      const scrollTo = mock(() => {});
+      const scrollToEnd = mock(() => {});
+      const scrollRef = {current: {scrollTo, scrollToEnd}} as any;
+      const ref = React.createRef<any>();
+      // Intentionally omit `scroll` so the ScrollView does not claim `scrollRef`
+      // and overwrite `.current`; the imperative handle still reads it.
+      renderWithTheme(
+        <Box ref={ref} scrollRef={scrollRef}>
+          <Text>Content</Text>
+        </Box>
+      );
+
+      ref.current.scrollTo(42);
+      ref.current.scrollToEnd();
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      });
+
+      expect(scrollTo).toHaveBeenCalledWith({y: 42});
+      expect(scrollToEnd).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -713,6 +745,30 @@ describe("Box", () => {
       renderWithTheme(<Box minHeight={"abc" as any} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
+    });
+
+    it("applies a valid maxHeight value", () => {
+      const {root} = renderWithTheme(<Box maxHeight={120} />);
+      const view = root.findByType("View");
+      expect(view.props.style).toMatchObject({maxHeight: 120});
+    });
+
+    it("applies a valid minHeight value", () => {
+      const {root} = renderWithTheme(<Box minHeight={"50%" as any} />);
+      const view = root.findByType("View");
+      expect(view.props.style).toMatchObject({minHeight: "50%"});
+    });
+
+    it("applies a valid maxWidth value", () => {
+      const {root} = renderWithTheme(<Box maxWidth={200} />);
+      const view = root.findByType("View");
+      expect(view.props.style).toMatchObject({maxWidth: 200});
+    });
+
+    it("applies a valid minWidth value", () => {
+      const {root} = renderWithTheme(<Box minWidth={"25%" as any} />);
+      const view = root.findByType("View");
+      expect(view.props.style).toMatchObject({minWidth: "25%"});
     });
 
     it("warns when invalid minWidth value is provided", () => {

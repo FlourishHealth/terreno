@@ -92,5 +92,65 @@ describe("gemini model listing helpers", () => {
       const result = await listGeminiApiModels({apiKey: "key", fetchImpl});
       expect(result).toBeUndefined();
     });
+
+    it("returns undefined when fetchImpl is not available", async () => {
+      // Pass a falsy non-nullish value so the `??` operator keeps it (instead of
+      // falling through to globalThis.fetch), and `!fetchImpl` evaluates to true.
+      const result = await listGeminiApiModels({
+        apiKey: "key",
+        fetchImpl: 0 as unknown as typeof fetch,
+      });
+      expect(result).toBeUndefined();
+    });
+
+    it("returns a partial list when pagination exceeds the maximum page limit", async () => {
+      let callCount = 0;
+      const fetchImpl = mock(async () => {
+        callCount += 1;
+        return jsonResponse({
+          models: [
+            {
+              name: `models/gemini-page-${callCount}`,
+              supportedGenerationMethods: ["generateContent"],
+            },
+          ],
+          nextPageToken: `page-${callCount + 1}`,
+        });
+      }) as unknown as typeof fetch;
+
+      const result = await listGeminiApiModels({apiKey: "key", fetchImpl});
+      expect(result).toBeDefined();
+      expect(result?.length).toBe(10);
+      expect(callCount).toBe(10);
+    });
+
+    it("skips models with missing name", async () => {
+      const fetchImpl = mock(async () =>
+        jsonResponse({
+          models: [
+            {name: "models/gemini-valid", supportedGenerationMethods: ["generateContent"]},
+            {supportedGenerationMethods: ["generateContent"]},
+            {name: undefined, supportedGenerationMethods: ["generateContent"]},
+          ],
+        })
+      ) as unknown as typeof fetch;
+
+      const result = await listGeminiApiModels({apiKey: "key", fetchImpl});
+      expect(result).toEqual(["gemini-valid"]);
+    });
+
+    it("skips models with no supportedGenerationMethods when chatOnly is true", async () => {
+      const fetchImpl = mock(async () =>
+        jsonResponse({
+          models: [
+            {name: "models/gemini-chat", supportedGenerationMethods: ["generateContent"]},
+            {name: "models/gemini-no-methods"},
+          ],
+        })
+      ) as unknown as typeof fetch;
+
+      const result = await listGeminiApiModels({apiKey: "key", chatOnly: true, fetchImpl});
+      expect(result).toEqual(["gemini-chat"]);
+    });
   });
 });

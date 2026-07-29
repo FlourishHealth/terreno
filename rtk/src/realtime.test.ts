@@ -1,3 +1,4 @@
+// noExplicitAny: realtime RTK tests mock Socket.io and RTK Query runtime shapes
 // biome-ignore-all lint/suspicious/noExplicitAny: realtime RTK tests mock Socket.io and RTK Query runtime shapes
 import {afterEach, describe, expect, it} from "bun:test";
 import type {Socket} from "socket.io-client";

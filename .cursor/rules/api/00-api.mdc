@@ -1,5 +1,5 @@
 ---
-description: @terreno/api - Express/Mongoose REST API framework
+description: '@terreno/api - Express/Mongoose REST API framework'
 globs: **/*
 ---
 
@@ -582,16 +582,28 @@ setupServer({
 
 ## Logging
 
-Use the `logger` object, never `console.log`:
+Use the `logger` object, never `console.log`. For multi-step flows and Log Explorer correlation, use **`createScopedLogger`** (prefix + `terrenoLabels` on Winston metadata). Use **`createFeatureFlaggedLogger`** to gate any logger behind `isEnabled()` (feature flags, env, etc.). See **`02-logging-tracing.mdc`** for tracing headers, Google Cloud Logging, and message conventions.
 
 ```typescript
-import {logger} from "@terreno/api";
+import {createFeatureFlaggedLogger, createScopedLogger, logger} from "@terreno/api";
 
 logger.info("Server started", {port: 4000});
 logger.warn("Slow query", {ms: 500});
 logger.error("Failed to process", {error});
 logger.debug("Request details", {body: req.body});
-logger.catch(error);  // Logs and captures exception
+logger.catch(error); // Logs and captures exception
+
+const log = createScopedLogger({
+  prefix: "[Billing]",
+  labels: {invoiceId: id.toString()},
+});
+log.info("Capture succeeded");
+
+const noisy = createFeatureFlaggedLogger({
+  isEnabled: () => process.env.DEBUG_BILLING === "true",
+  target: log,
+});
+noisy.debug("optional detail");
 ```
 
 ## Testing

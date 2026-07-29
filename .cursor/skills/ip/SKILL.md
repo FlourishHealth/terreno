@@ -1,6 +1,7 @@
 ---
 name: ip
 description: Implementation Plan (/ip) — build an implementation plan from a PRD through an interactive, multi-step process
+disable-model-invocation: true
 ---
 # Implementation Plan (/ip)
 

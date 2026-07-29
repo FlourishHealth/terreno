@@ -1,0 +1,5 @@
+> **setupEnvironment**(): `void`
+
+## Returns
+
+`void`

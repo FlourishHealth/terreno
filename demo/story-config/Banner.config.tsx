@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {BannerDemo} from "@stories";
+import {BannerDemo} from "@stories/Banner.stories";
 import {Banner, Box} from "@terreno/ui";
 import React from "react";
 

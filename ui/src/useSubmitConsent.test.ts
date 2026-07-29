@@ -64,7 +64,8 @@ describe("useSubmitConsent", () => {
     });
     expect(submitMutation).toHaveBeenCalled();
     expect(unwrap).toHaveBeenCalled();
-    expect(response).toEqual({success: true});
+    // submit resolves to void; it awaits unwrap() internally and does not surface the payload.
+    expect(response).toBeUndefined();
   });
 
   it("uses empty baseUrl when none provided", () => {

@@ -72,7 +72,9 @@ consentResponseSchema.plugin(isDeletedPlugin);
 consentResponseSchema.plugin(findOneOrNone);
 consentResponseSchema.plugin(findExactlyOne);
 
-export const ConsentResponse = mongoose.model<ConsentResponseDocument, ConsentResponseModel>(
-  "ConsentResponse",
-  consentResponseSchema
-);
+export const ConsentResponse =
+  (mongoose.models.ConsentResponse as ConsentResponseModel | undefined) ??
+  mongoose.model<ConsentResponseDocument, ConsentResponseModel>(
+    "ConsentResponse",
+    consentResponseSchema
+  );

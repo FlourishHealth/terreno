@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {SpinnerDemo, SpinnerVariations} from "@stories";
+import {SpinnerDemo, SpinnerVariations} from "@stories/Spinner.stories";
 import {Spinner} from "@terreno/ui";
 
 export const SpinnerConfiguration: DemoConfiguration = {

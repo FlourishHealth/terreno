@@ -213,6 +213,8 @@ interface OpenApiConfig {
   summary?: string;
   /** Detailed description of the operation */
   description?: string;
+  /** Explicit operationId for the operation */
+  operationId?: string;
   /** Operation parameters (query, path, header) */
   parameters?: OpenApiParameter[];
   /** Request body configuration */
@@ -356,6 +358,28 @@ export class OpenApiMiddlewareBuilder {
    */
   withSummary(summary: string): this {
     this.config.summary = summary;
+    return this;
+  }
+
+  /**
+   * Sets an explicit `operationId` for the OpenAPI operation.
+   *
+   * The `operationId` is a unique string used to identify an operation. Client and SDK
+   * generators (e.g. RTK Query codegen) derive generated function and hook names from it,
+   * so setting it keeps generated names stable and readable for routes whose URL path would
+   * otherwise produce unwieldy names (e.g. deeply nested routes). It must be unique across
+   * the whole OpenAPI document.
+   *
+   * @param operationId - Unique operation identifier (e.g. "getUserStats")
+   * @returns The builder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * builder.withOperationId("getUserStats");
+   * ```
+   */
+  withOperationId(operationId: string): this {
+    this.config.operationId = operationId;
     return this;
   }
 
@@ -735,7 +759,8 @@ export class OpenApiMiddlewareBuilder {
    * router.get("/users/:id", middleware, getUserHandler);
    * ```
    */
-  // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
+  // noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
+  // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config
   build(): any {
     const noop: express.RequestHandler = (_a, _b, next) => next();
 

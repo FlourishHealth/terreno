@@ -227,6 +227,7 @@ export const SelectBadge = ({
     return (
       <WebDropdownMenu
         anchor={webAnchor}
+        disableSearch
         minWidth={160}
         onClose={() => setShowPicker(false)}
         onSelect={(val) => handleOnChange(val)}

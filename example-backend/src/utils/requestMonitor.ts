@@ -2,6 +2,7 @@ import {AsyncLocalStorage} from "node:async_hooks";
 import {logger} from "@terreno/api";
 import type {NextFunction, Request, Response} from "express";
 import {DateTime} from "luxon";
+import type {AggregateOptions, Callback, PipelineStage, Query} from "mongoose";
 
 interface RequestTiming {
   startTime: [number, number];
@@ -94,9 +95,8 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
       });
     }, MEMORY_SAMPLE_INTERVAL_MS);
 
-    const originalEnd = res.end;
-    // biome-ignore lint/suspicious/noExplicitAny: Express Response.end has multiple overload signatures with varying types
-    res.end = function (chunk?: any, encoding?: any): Response {
+    const originalEnd = res.end.bind(res);
+    res.end = ((...args: unknown[]): Response => {
       clearInterval(memoryInterval);
 
       const diff = process.hrtime(startTime);
@@ -106,8 +106,8 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
         logSlowRequest(req, res, timing, totalMs);
       }
 
-      return originalEnd.call(this, chunk, encoding) as Response;
-    };
+      return (originalEnd as (...innerArgs: unknown[]) => Response).apply(res, args);
+    }) as typeof res.end;
 
     next();
   });
@@ -124,13 +124,13 @@ export const trackMiddleware = (name: string) => {
     const startTime = process.hrtime();
 
     const originalNext = next;
-    // biome-ignore lint/suspicious/noExplicitAny: NextFunction can accept error parameter or no parameters, making typing complex
-    next = function (this: unknown, ...args: any[]): void {
+    const wrappedNext: NextFunction = (...args) => {
       const diff = process.hrtime(startTime);
       const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
       timing.middlewareTimes[name] = duration;
       originalNext(...args);
     };
+    next = wrappedNext;
 
     next();
   };
@@ -159,8 +159,9 @@ export const setupMongooseMonitoring = (): void => {
   const originalExec = mongoose.Query.prototype.exec;
   const originalAggregate = mongoose.Model.aggregate;
 
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose callback can be undefined or have various signatures
-  mongoose.Query.prototype.exec = function (callback: any): any {
+  mongoose.Query.prototype.exec = function (
+    callback?: Callback<unknown>
+  ): Promise<unknown> | Query<unknown, unknown> {
     const startTime = process.hrtime();
     const queryString = JSON.stringify(this.getQuery()).substring(0, 200);
     const operation = this.op || "unknown";
@@ -168,68 +169,21 @@ export const setupMongooseMonitoring = (): void => {
     const result = originalExec.call(this, callback);
 
     if (result && typeof result.then === "function") {
-      return (
-        result
-          // biome-ignore lint/suspicious/noExplicitAny: Query result type varies by operation and can't be strictly typed here
-          .then((res: any) => {
-            const diff = process.hrtime(startTime);
-            const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
-
-            const currentRequest = getCurrentRequest();
-            if (currentRequest) {
-              trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
-            }
-
-            if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-              logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${operation}: ${queryString}`);
-            }
-
-            return res;
-          })
-          .catch((error: unknown) => {
-            const diff = process.hrtime(startTime);
-            const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
-
-            const currentRequest = getCurrentRequest();
-            if (currentRequest) {
-              trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
-            }
-
-            if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-              logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${operation}: ${queryString} (ERROR)`);
-            }
-
-            throw error;
-          })
-      );
-    }
-
-    return result;
-  };
-
-  // biome-ignore lint/suspicious/noExplicitAny: Aggregate pipeline and options have complex dynamic structure
-  mongoose.Model.aggregate = function (pipeline: any, options: any): any {
-    const startTime = process.hrtime();
-    const queryString = JSON.stringify(pipeline).substring(0, 200);
-
-    return (
-      originalAggregate
-        .call(this, pipeline, options)
-        // biome-ignore lint/suspicious/noExplicitAny: Aggregate result type varies by pipeline and can't be strictly typed
-        .then((result: any) => {
+      return result
+        .then((res: unknown) => {
           const diff = process.hrtime(startTime);
           const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
 
           const currentRequest = getCurrentRequest();
           if (currentRequest) {
-            trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
+            trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
           }
 
           if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-            logger.warn(`[lag] SLOW_QUERY: ${duration}ms - aggregate: ${queryString}`);
+            logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${operation}: ${queryString}`);
           }
 
-          return result;
+          return res;
         })
         .catch((error: unknown) => {
           const diff = process.hrtime(startTime);
@@ -237,15 +191,58 @@ export const setupMongooseMonitoring = (): void => {
 
           const currentRequest = getCurrentRequest();
           if (currentRequest) {
-            trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
+            trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
           }
 
           if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-            logger.warn(`[lag] SLOW_QUERY: ${duration}ms - aggregate: ${queryString} (ERROR)`);
+            logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${operation}: ${queryString} (ERROR)`);
           }
 
           throw error;
-        })
-    );
+        });
+    }
+
+    return result;
+  };
+
+  mongoose.Model.aggregate = function (
+    pipeline?: PipelineStage[],
+    options?: AggregateOptions
+  ): Promise<unknown[]> {
+    const startTime = process.hrtime();
+    const queryString = JSON.stringify(pipeline).substring(0, 200);
+
+    return originalAggregate
+      .call(this, pipeline, options)
+      .then((result: unknown[]) => {
+        const diff = process.hrtime(startTime);
+        const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
+
+        const currentRequest = getCurrentRequest();
+        if (currentRequest) {
+          trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
+        }
+
+        if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
+          logger.warn(`[lag] SLOW_QUERY: ${duration}ms - aggregate: ${queryString}`);
+        }
+
+        return result;
+      })
+      .catch((error: unknown) => {
+        const diff = process.hrtime(startTime);
+        const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
+
+        const currentRequest = getCurrentRequest();
+        if (currentRequest) {
+          trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
+        }
+
+        if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
+          logger.warn(`[lag] SLOW_QUERY: ${duration}ms - aggregate: ${queryString} (ERROR)`);
+        }
+
+        throw error;
+      });
   };
 };

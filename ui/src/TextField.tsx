@@ -12,9 +12,12 @@ import {
 
 import {AiSuggestionBox} from "./AiSuggestionBox";
 import type {TextFieldProps, TextStyleWithOutline} from "./Common";
-import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
@@ -79,10 +82,12 @@ export const TextField: FC<TextFieldProps> = ({
   onEnter,
   onSubmitEditing,
   testID,
+  testIDs,
   id,
   aiSuggestion,
 }) => {
   const {theme} = useTheme();
+  const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
 
   const calendar = getCalendars()[0];
   const localTimeZone = calendar?.timeZone;
@@ -147,8 +152,8 @@ export const TextField: FC<TextFieldProps> = ({
         width: "100%",
       }}
     >
-      {Boolean(title) && <FieldTitle text={title!} />}
-      {Boolean(errorText) && <FieldError text={errorText!} />}
+      {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title!} />}
+      {Boolean(errorText) && <FieldError testID={fieldTestIDs.error} text={errorText!} />}
       <View
         style={{
           backgroundColor: disabled ? theme.surface.neutralLight : theme.surface.base,
@@ -164,7 +169,7 @@ export const TextField: FC<TextFieldProps> = ({
       >
         {Boolean(aiSuggestion) && (
           <AiSuggestionBox
-            testID={testID ? `${testID}-ai-suggestion` : undefined}
+            testID={fieldTestIDs.input ? `${fieldTestIDs.input}-ai-suggestion` : undefined}
             {...aiSuggestion!}
           />
         )}
@@ -236,7 +241,7 @@ export const TextField: FC<TextFieldProps> = ({
             }}
             secureTextEntry={type === "password"}
             style={defaultTextInputStyles}
-            testID={testID}
+            testID={fieldTestIDs.input}
             textContentType={textContentType}
             underlineColorAndroid="transparent"
             value={value}
@@ -248,7 +253,7 @@ export const TextField: FC<TextFieldProps> = ({
           )}
         </View>
       </View>
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText testID={fieldTestIDs.helper} text={helperText!} />}
       {/* {type === "numberRange" && value && (
         <NumberPickerActionSheet
           actionSheetRef={numberRangeActionSheetRef}

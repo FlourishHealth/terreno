@@ -15,6 +15,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
@@ -183,8 +184,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     "ConsentForm"
   );
 
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = getEnhancedApi(api) as any;
+  const enhanced = asDynamicHookApi(getEnhancedApi(api));
   const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();
   const [generateContent, {isLoading: isGenerating}] = enhanced.useGenerateConsentContentMutation();
   const [translateContent, {isLoading: isTranslating}] =
@@ -420,7 +420,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
 
   if (isEditMode && isFormLoading) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -435,6 +435,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
 
   return (
     <Page
+      color="transparent"
       footer={
         <Box direction="row" gap={2} justifyContent="between" padding={2}>
           <Box>
@@ -457,6 +458,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
         </Box>
       }
       maxWidth="100%"
+      padding={0}
       scroll
     >
       <Box gap={4} padding={4}>

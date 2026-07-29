@@ -220,7 +220,7 @@ describe("useAdminScripts", () => {
       method: "DELETE",
       url: "/admin/scripts/tasks/task-1",
     });
-    expect(cancelDef.invalidatesTags).toEqual(["admin_scriptTask"]);
+    expect(cancelDef.invalidatesTags).toEqual(["admin_scriptTask", "admin_scriptRuns"]);
 
     expect(typeof result.useRunScriptMutation).toBe("function");
     expect(typeof result.useGetScriptTaskQuery).toBe("function");

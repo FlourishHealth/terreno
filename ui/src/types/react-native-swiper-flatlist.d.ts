@@ -41,6 +41,7 @@ declare module "react-native-swiper-flatlist" {
   }
 
   export const SwiperFlatList: React.ForwardRefExoticComponent<
+    // noExplicitAny: declaration must use any for the generic to allow consumers to specify their data type without explicit type args
     // biome-ignore lint/suspicious/noExplicitAny: declaration must use any for the generic to allow consumers to specify their data type without explicit type args
     SwiperFlatListProps<any> & React.RefAttributes<SwiperFlatListRefProps>
   >;

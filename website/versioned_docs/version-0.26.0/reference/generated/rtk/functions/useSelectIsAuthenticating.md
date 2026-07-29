@@ -1,0 +1,5 @@
+> **useSelectIsAuthenticating**(): `boolean`
+
+## Returns
+
+`boolean`

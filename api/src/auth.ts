@@ -41,12 +41,16 @@ export interface UserModel extends Model<User> {
   // Allows additional setup during signup. This will be passed the rest of req.body from the signup
   postCreate?: (body: Record<string, unknown>) => Promise<void>;
 
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   createStrategy(): any;
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   serializeUser(): any;
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   deserializeUser(): any;
+  // noExplicitAny: passport-local-mongoose return types are untyped
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   findByUsername(username: string, findOpts: any): any;
 }
@@ -60,16 +64,39 @@ export const authenticateMiddleware = (anonymous = false) => {
   if (anonymous) {
     strategies.push("anonymous");
   }
-  const passportAuth = passport.authenticate(strategies, {
-    failureMessage: false, // this is just avoiding storing the message in the session
-    failWithError: true,
-    session: false,
-  });
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (req.user) {
       return next();
     }
-    return passportAuth(req, res, next);
+    // Failures use a custom callback rather than passport's `failWithError`:
+    // passport's internal AuthenticationError touches `arguments.callee`,
+    // which throws a TypeError in strict-mode contexts — inside
+    // `bun build --compile` binaries that turned every 401 into a 500. The
+    // plain Error("Unauthorized") below is what apiUnauthorizedMiddleware
+    // matches on, so the response contract is unchanged.
+    // (The anonymous strategy calls pass(), which skips this callback and
+    // continues the chain with no user — same as before.)
+    return passport.authenticate(
+      strategies,
+      {session: false},
+      (
+        err: Error | null,
+        user: NonNullable<express.Request["user"]> | false | null,
+        info: unknown
+      ) => {
+        if (err) {
+          return next(err);
+        }
+        if (!user) {
+          return next(new Error("Unauthorized"));
+        }
+        req.user = user;
+        // req.logIn used to populate authInfo; keep that passport-public API
+        // intact for downstream consumers.
+        req.authInfo = (info ?? {}) as Express.AuthInfo;
+        return next();
+      }
+    )(req, res, next);
   };
 };
 
@@ -84,6 +111,7 @@ export const signupUser = async (
   const {email: _email, password: _password, ...bodyRest} = body ?? {};
 
   try {
+    // noExplicitAny: passport-local-mongoose's register() is untyped
     // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's register() is untyped
     const user = await (userModel as any).register({email, ...bodyRest}, password);
 
@@ -326,6 +354,7 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     return next();
   };
   app.use(decodeJWTMiddleware);
+  // noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
   // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
   app.use(express.urlencoded({extended: false}) as any);
 };
@@ -412,7 +441,26 @@ export const addAuthRoutes = (
   if (!signupDisabled) {
     router.post(
       "/signup",
-      passport.authenticate("signup", {failWithError: true, session: false}),
+      // Custom callback instead of `failWithError` — passport's internal
+      // AuthenticationError is unusable in strict-mode bundles (see
+      // authenticateMiddleware). Strategy errors (e.g. duplicate email) pass
+      // through unchanged; a bare failure (missing credentials) is a 400.
+      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        passport.authenticate(
+          "signup",
+          {session: false},
+          (err: Error | null, user: NonNullable<express.Request["user"]> | false | null) => {
+            if (err) {
+              return next(err);
+            }
+            if (!user) {
+              return next(new APIError({status: 400, title: "Missing credentials"}));
+            }
+            req.user = user;
+            return next();
+          }
+        )(req, res, next);
+      },
       async (req: express.Request, res: express.Response) => {
         const tokens = await generateTokens(req.user, authOptions);
         if (tokens.sessionId) {

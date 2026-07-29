@@ -26,6 +26,7 @@ import {
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 
@@ -542,7 +543,7 @@ const createImageTool = (apiKey?: string): Tool => {
       return {
         description: `Generated image for: "${prompt}"`,
         fileData: dataUrl,
-        filename: `image-${Date.now()}.png`,
+        filename: `image-${DateTime.now().toMillis()}.png`,
         mimeType: mediaType,
       };
     },
@@ -654,9 +655,12 @@ const getDemoTools = (): Record<string, Tool> => {
     get_current_time: tool({
       description: "Get the current date and time",
       execute: async ({timezone}: {timezone?: string}) => {
-        const now = new Date();
+        const now = DateTime.now().setZone(timezone ?? "UTC");
+        if (!now.isValid) {
+          throw new APIError({status: 400, title: `Invalid timezone: ${timezone}`});
+        }
         return {
-          time: now.toLocaleString("en-US", {timeZone: timezone ?? "UTC"}),
+          time: now.setLocale("en-US").toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS),
           timezone: timezone ?? "UTC",
         };
       },
@@ -680,6 +684,7 @@ const getDemoTools = (): Record<string, Tool> => {
 
 export const addAiRoutes = (
   router: express.Router,
+  // noExplicitAny: ModelRouterOptions generic varies per downstream caller
   // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
   options?: Partial<ModelRouterOptions<any>>
 ): void => {
@@ -721,6 +726,7 @@ export const addAiRoutes = (
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
     createServerModelFn: createServerModel,
@@ -730,6 +736,7 @@ export const addAiRoutes = (
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     tools: getDemoTools() as any,
   });

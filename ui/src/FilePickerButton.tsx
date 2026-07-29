@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 
 import {Box} from "./Box";
@@ -38,7 +39,7 @@ export const FilePickerButton = ({
     if (!result.canceled && result.assets.length > 0) {
       const files: SelectedFile[] = result.assets.map((asset) => ({
         mimeType: asset.mimeType ?? "image/jpeg",
-        name: asset.fileName ?? `image-${Date.now()}.jpg`,
+        name: asset.fileName ?? `image-${DateTime.now().toMillis()}.jpg`,
         uri: asset.uri,
       }));
       onFilesSelected(files);
