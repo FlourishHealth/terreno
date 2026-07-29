@@ -17,6 +17,7 @@ import {
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
+  rbacRouter,
   syncConsents,
   TerrenoApp,
   type UserModel as TerrenoAuthUserModel,
@@ -26,6 +27,7 @@ import {HealthApp} from "@terreno/api-health";
 import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
+import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
@@ -115,6 +117,7 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 export const start = async (skipListen = false): Promise<express.Application> => {
   // Connect to MongoDB first
   await connectToMongoDB();
+  await access.roles.seedDefaults();
 
   // Sync default consent forms on startup
   await syncConsents(consentDefinitions).catch((err: unknown) => {
@@ -162,6 +165,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
     const terraApp = new TerrenoApp({
+      accessControl: access,
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -187,6 +191,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     }
 
     terraApp
+      .register(rbacRouter({access, userModel: User as unknown as TerrenoAuthUserModel}))
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
       .register(
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
@@ -245,6 +250,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       )
       .register(
         new AdminApp({
+          accessControl: access,
           customScreens: [
             {
               description: "How this example wires Terreno admin UI v2",

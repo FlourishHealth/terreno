@@ -483,7 +483,8 @@ export const addAuthRoutes = (
 export const addMeRoutes = (
   app: express.Application,
   userModel: UserModel,
-  _authOptions?: AuthOptions
+  _authOptions?: AuthOptions,
+  accessControl?: import("./rbac/types").AnyTerrenoAccess,
 ): void => {
   const router = express.Router();
   router.get("/me", authenticateMiddleware(), async (req, res) => {
@@ -498,6 +499,13 @@ export const addMeRoutes = (
     }
     const dataObject = data.toObject() as unknown as Record<string, unknown>;
     dataObject.id = data._id;
+    if (accessControl) {
+      const withRoles = data as unknown as {roles?: string[]};
+      dataObject.roles = withRoles.roles ?? [];
+      dataObject.permissions = await accessControl.getPermissions({
+        user: data as unknown as User,
+      });
+    }
     return res.json({data: dataObject});
   });
 

@@ -48,6 +48,8 @@ import {
   type TerrenoTransformer,
   transform,
 } from "./transformers";
+import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
+import type {ModelRouterAccessOptions, AnyTerrenoAccess} from "./rbac/types";
 import {isValidObjectId} from "./utils";
 
 export type JSONPrimitive = string | number | boolean | null;
@@ -125,8 +127,16 @@ export interface ModelRouterOptions<T> {
    * A group of method-level (create/read/update/delete/list) permissions.
    * Determine if the user can perform the operation at all, and for read/update/delete methods,
    * whether the user can perform the operation on the object referenced.
+   * @deprecated Use `access` with `accessControl` instead.
    * */
-  permissions: RESTPermissions<T>;
+  permissions?: RESTPermissions<T>;
+  /**
+   * RBAC access configuration for this router. Requires `accessControl` on the same options object
+   * or injected by TerrenoApp at build time.
+   */
+  access?: ModelRouterAccessOptions;
+  /** TerrenoAccess instance used to evaluate `access` permissions. */
+  accessControl?: AnyTerrenoAccess;
   /**
    * Allow anonymous users to access the resource.
    * Defaults to false.
@@ -547,7 +557,10 @@ export interface ModelRouterRegistration {
   /** The Express router containing CRUD endpoints */
   router: express.Router;
   /** @internal Rebuilds the router with the openApi instance injected into options */
-  _buildWithOpenApi: (openApi: OpenApiMiddleware) => express.Router;
+  _buildWithOpenApi: (
+    openApi: OpenApiMiddleware,
+    runtime?: {accessControl?: AnyTerrenoAccess},
+  ) => express.Router;
 }
 
 /**
@@ -603,8 +616,12 @@ export function modelRouter<T>(
     }
     return {
       __type: "modelRouter",
-      _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
-        _buildModelRouter(model, {...options, openApi}),
+      _buildWithOpenApi: (openApi: OpenApiMiddleware, runtime?: {accessControl?: AnyTerrenoAccess}) =>
+        _buildModelRouter(model, {
+          ...options,
+          accessControl: options.accessControl ?? runtime?.accessControl,
+          openApi,
+        }),
       path,
       router,
     };
@@ -622,6 +639,25 @@ export function modelRouter<T>(
 
 function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
   const router = express.Router();
+  const resolvedAccess = resolveModelRouterAccess({
+    access: options.access,
+    accessControl: options.accessControl,
+    permissions: options.permissions,
+    queryFilter: options.queryFilter as never,
+    responseHandler: options.responseHandler as never,
+    scope: options.access?.scope,
+  });
+  options = {
+    ...options,
+    permissions: resolvedAccess.permissions,
+    queryFilter: (resolvedAccess.queryFilter ?? options.queryFilter) as ModelRouterOptions<T>["queryFilter"],
+    responseHandler: (resolvedAccess.responseHandler ??
+      options.responseHandler ??
+      defaultResponseHandler) as ModelRouterOptions<T>["responseHandler"],
+  };
+  const routerPermissions = options.permissions as RESTPermissions<T>;
+  const accessConfig = options.access;
+  const accessControl = options.accessControl;
 
   assertNoActionCollisions(model, options);
   registerActionRoutes(router, model, options);
@@ -695,6 +731,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           detail: "Body is undefined",
           status: 400,
           title: "Invalid request body",
+        });
+      }
+      if (accessConfig && accessControl && body && !Array.isArray(body)) {
+        await validateAccessWriteBody({
+          access: accessConfig,
+          accessControl,
+          body: body as Record<string, unknown>,
+          phase: "create",
+          user: req.user,
         });
       }
       let data: Document<unknown, unknown, unknown> & T;
@@ -1005,6 +1050,17 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
       }
 
+      if (accessConfig && accessControl && body && typeof body === "object" && !Array.isArray(body)) {
+        await validateAccessWriteBody({
+          access: accessConfig,
+          accessControl,
+          body: body as Record<string, unknown>,
+          doc,
+          phase: "write",
+          user: req.user,
+        });
+      }
+
       // Conflict detection runs after preUpdate so that unauthorized mutations
       // are rejected before we leak document data in a 409 response.
       const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
@@ -1202,7 +1258,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
   ) => {
     // TODO Combine array operations and .patch(), as they are very similar.
 
-    if (!(await checkPermissions("update", options.permissions.update, req.user))) {
+    if (!(await checkPermissions("update", routerPermissions.update, req.user))) {
       throw new APIError({
         status: 405,
         title: `Access to PATCH on ${model.modelName} denied for ${req.user?.id}`,
@@ -1219,7 +1275,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    if (!(await checkPermissions("update", options.permissions.update, req.user, doc))) {
+    if (!(await checkPermissions("update", routerPermissions.update, req.user, doc))) {
       throw new APIError({
         status: 403,
         title: `Patch not allowed for user ${req.user?.id} on doc ${doc._id}`,

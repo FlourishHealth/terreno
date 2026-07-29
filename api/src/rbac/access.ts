@@ -40,6 +40,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
     getActorPermissions: (user) => resolver.resolvePermissionsForUser(user),
     invalidateCache: resolver.invalidateCache,
     statements: mergedStatements,
+    userModel: options.userModel,
   });
 
   const can = async (args: AccessCheckArgs<S>): Promise<AccessResult> => {

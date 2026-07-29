@@ -1,4 +1,4 @@
-import type {User} from "../auth";
+import type {User, UserModel} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
 import {diffPermissionSets, isPermissionSubset, validatePermissionSet} from "./permissionUtils";
@@ -56,7 +56,7 @@ export const createRoleManager = (args: {
   defaultRoles?: RoleDefinition[];
   getActorPermissions: (user: User) => Promise<PermissionSet>;
   invalidateCache: (invalidateArgs?: {userId?: string}) => void;
-  userModel?: {findExactlyOne: (query: {id: string}) => Promise<User & {roles: string[]}>};
+  userModel?: UserModel;
 }): {roleManager: RoleManager} => {
   const {
     connection,
@@ -100,7 +100,11 @@ export const createRoleManager = (args: {
         throw new APIError({status: 500, title: "User model not configured for role assignment"});
       }
 
-      const targetUser = await userModel.findExactlyOne({id: userId});
+      const targetUser = await userModel.findById(userId);
+      if (!targetUser) {
+        throw new APIError({status: 404, title: "User not found"});
+      }
+      const rbacUser = targetUser as unknown as User & {roles: string[]};
       const uniqueRoleNames = [...new Set(roleNames)];
       for (let i = 0; i < uniqueRoleNames.length; i++) {
         for (let j = i + 1; j < uniqueRoleNames.length; j++) {
@@ -124,8 +128,8 @@ export const createRoleManager = (args: {
         await assertNoEscalation(actor, permissions, getActorPermissions);
       }
 
-      targetUser.roles = uniqueRoleNames;
-      await (targetUser as User & {save?: () => Promise<void>}).save?.();
+      rbacUser.roles = uniqueRoleNames;
+      await targetUser.save();
       invalidateCache({userId});
     },
     create: async ({actor, role}) => {
@@ -147,7 +151,11 @@ export const createRoleManager = (args: {
         throw new APIError({status: 500, title: "User model not configured for role assignment"});
       }
 
-      const targetUser = await userModel.findExactlyOne({id: userId});
+      const targetUser = await userModel.findById(userId);
+      if (!targetUser) {
+        throw new APIError({status: 404, title: "User not found"});
+      }
+      const rbacUser = targetUser as unknown as User & {roles: string[]};
       const before = await getActorPermissions(targetUser);
       const previewUser = {...targetUser, roles: [...new Set(roleNames)]};
       const after = await getActorPermissions(previewUser);
@@ -181,9 +189,13 @@ export const createRoleManager = (args: {
         throw new APIError({status: 500, title: "User model not configured for role assignment"});
       }
 
-      const targetUser = await userModel.findExactlyOne({id: userId});
-      targetUser.roles = targetUser.roles.filter((role) => !roleNames.includes(role));
-      await (targetUser as User & {save?: () => Promise<void>}).save?.();
+      const targetUser = await userModel.findById(userId);
+      if (!targetUser) {
+        throw new APIError({status: 404, title: "User not found"});
+      }
+      const rbacUser = targetUser as unknown as User & {roles: string[]};
+      rbacUser.roles = rbacUser.roles.filter((role) => !roleNames.includes(role));
+      await targetUser.save();
       invalidateCache({userId});
     },
     update: async ({actor, roleName, changes}) => {

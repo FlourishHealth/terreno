@@ -16,6 +16,7 @@ export * from "./socket";
 export * from "./sync";
 export * from "./tagGenerator";
 export * from "./useFeatureFlags";
+export * from "./usePermissions";
 export * from "./useOfflineStatus";
 export * from "./useRealtimeDebug";
 export * from "./useServerStatus";
