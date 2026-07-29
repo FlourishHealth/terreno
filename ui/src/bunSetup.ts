@@ -614,6 +614,30 @@ mock.module("./DateTimeActionSheet", () => ({
   DateTimeActionSheet: mock(() => null),
 }));
 
+// Mock react-native-actions-sheet so the native Modal branch is testable. The real component
+// defers rendering until opened via native animation (which react-test-renderer never triggers),
+// so the mock tracks the imperative visibility state instead: it renders its children
+// synchronously when opened via the ref (setModalVisible/show) and renders nothing when closed.
+// This keeps opened content assertable while still letting tests verify the closed/hidden state.
+mock.module("react-native-actions-sheet", () => ({
+  __esModule: true,
+  default: React.forwardRef(function ActionSheetMock(
+    {children}: {children?: React.ReactNode},
+    ref: React.Ref<unknown>
+  ) {
+    const [isVisible, setIsVisible] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({
+      hide: () => setIsVisible(false),
+      setModalVisible: (visible?: boolean) => setIsVisible(Boolean(visible)),
+      show: () => setIsVisible(true),
+    }));
+    if (!isVisible) {
+      return null;
+    }
+    return React.createElement("ActionSheetMock", {}, children);
+  }),
+}));
+
 // Mock MediaQuery
 mock.module("./MediaQuery", () => ({
   isMobileDevice: mock(() => false),
