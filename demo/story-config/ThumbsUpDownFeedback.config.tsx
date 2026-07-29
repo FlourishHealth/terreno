@@ -1,19 +1,19 @@
 import {DemoConfiguration} from "@config";
 import {
-  BinaryFeedbackDemo,
-  BinaryFeedbackStories,
-  BinaryFeedbackWithConfirmation,
-} from "@stories/BinaryFeedback.stories";
-import {BinaryFeedback} from "@terreno/ui";
+  ThumbsUpDownFeedbackDemo,
+  ThumbsUpDownFeedbackStories,
+  ThumbsUpDownFeedbackWithConfirmation,
+} from "@stories/ThumbsUpDownFeedback.stories";
+import {ThumbsUpDownFeedback} from "@terreno/ui";
 import React from "react";
 
-export const BinaryFeedbackConfiguration: DemoConfiguration = {
-  name: "BinaryFeedback",
+export const ThumbsUpDownFeedbackConfiguration: DemoConfiguration = {
+  name: "ThumbsUpDownFeedback",
   related: ["AiSuggestionBox", "IconButton"],
   description:
-    "BinaryFeedback is a thumbs up / thumbs down pair for collecting a single positive or negative reaction, e.g. on an AI generated response. Pressing the selected option again clears the selection.",
+    "ThumbsUpDownFeedback is a thumbs up / thumbs down pair for collecting a single positive or negative reaction, e.g. on an AI generated response. Pressing the selected option again clears the selection.",
   category: "Component",
-  component: BinaryFeedback,
+  component: ThumbsUpDownFeedback,
   status: {
     documentation: "planned",
     figma: "ready",
@@ -39,9 +39,9 @@ export const BinaryFeedbackConfiguration: DemoConfiguration = {
     "Each option has an accessibility label, customizable via positiveAccessibilityLabel and negativeAccessibilityLabel",
     "Each option is a two-state toggle: selection is announced as checked, so it is never conveyed by the glyph alone",
   ],
-  interfaceName: "BinaryFeedbackProps",
+  interfaceName: "ThumbsUpDownFeedbackProps",
   props: {},
-  demo: BinaryFeedbackDemo,
+  demo: ThumbsUpDownFeedbackDemo,
   demoOptions: {
     size: "md",
     controls: {
@@ -54,11 +54,11 @@ export const BinaryFeedbackConfiguration: DemoConfiguration = {
   stories: {
     "Binary Feedback": {
       description: "All states.",
-      render: () => <BinaryFeedbackStories />,
+      render: () => <ThumbsUpDownFeedbackStories />,
     },
     "Inline Feedback Prompt": {
       description: "Paired with a static prompt and a confirmation line shown after feedback.",
-      render: () => <BinaryFeedbackWithConfirmation />,
+      render: () => <ThumbsUpDownFeedbackWithConfirmation />,
     },
   },
 };

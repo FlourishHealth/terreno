@@ -1521,9 +1521,9 @@ export interface BadgeProps extends WithTestID {
   variant?: "iconOnly" | "numberOnly";
 }
 
-export type BinaryFeedbackValue = "positive" | "negative";
+export type ThumbsUpDownFeedbackValue = "positive" | "negative";
 
-export interface BinaryFeedbackProps extends WithTestID {
+export interface ThumbsUpDownFeedbackProps extends WithTestID {
   /**
    * If true, both options are non-interactive and rendered in a muted color.
    * @default false
@@ -1537,7 +1537,7 @@ export interface BinaryFeedbackProps extends WithTestID {
   /**
    * Called with the newly selected value, or undefined when the current value is deselected.
    */
-  onChange: (value?: BinaryFeedbackValue) => void | Promise<void>;
+  onChange: (value?: ThumbsUpDownFeedbackValue) => void | Promise<void>;
   /**
    * Accessibility label for the positive (thumbs up) option.
    * @default "Thumbs up"
@@ -1546,7 +1546,7 @@ export interface BinaryFeedbackProps extends WithTestID {
   /**
    * The currently selected feedback. Leave undefined for no selection.
    */
-  value?: BinaryFeedbackValue;
+  value?: ThumbsUpDownFeedbackValue;
 }
 
 export interface SelectBadgeProps {

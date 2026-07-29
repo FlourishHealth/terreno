@@ -4,7 +4,6 @@ import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
 import {BannerConfiguration} from "@story-config/Banner.config";
-import {BinaryFeedbackConfiguration} from "@story-config/BinaryFeedback.config";
 import {BooleanFieldConfiguration} from "@story-config/BooleanField.config";
 import {BoxConfiguration} from "@story-config/Box.config";
 import {ButtonConfiguration} from "@story-config/Button.config";
@@ -57,6 +56,7 @@ import {TextConfiguration} from "@story-config/Text.config";
 import {TextAreaConfiguration} from "@story-config/TextArea.config";
 import {TextFieldConfiguration} from "@story-config/TextField.config";
 import {ThemeConfiguration} from "@story-config/Theme.config";
+import {ThumbsUpDownFeedbackConfiguration} from "@story-config/ThumbsUpDownFeedback.config";
 import {ToastConfiguration} from "@story-config/Toast.config";
 import {TooltipConfiguration} from "@story-config/Tooltip.config";
 import {UserInactivityConfiguration} from "@story-config/UserInactivity.config";
@@ -194,7 +194,6 @@ const Config: DemoConfigurationBase[] = [
   AddressFieldConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
-  BinaryFeedbackConfiguration,
   BooleanFieldConfiguration,
   BoxConfiguration,
   ButtonConfiguration,
@@ -248,6 +247,7 @@ const Config: DemoConfigurationBase[] = [
   TextAreaConfiguration,
   TextFieldConfiguration,
   ThemeConfiguration,
+  ThumbsUpDownFeedbackConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
   UserInactivityConfiguration,

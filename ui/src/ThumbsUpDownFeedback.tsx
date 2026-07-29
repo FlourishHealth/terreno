@@ -3,7 +3,7 @@ import {type FC, useCallback} from "react";
 import {Pressable} from "react-native";
 
 import {Box} from "./Box";
-import type {BinaryFeedbackProps, BinaryFeedbackValue} from "./Common";
+import type {ThumbsUpDownFeedbackProps, ThumbsUpDownFeedbackValue} from "./Common";
 import {useTheme} from "./Theme";
 
 /**
@@ -39,7 +39,7 @@ interface WebKeyDownProps {
  * generated response. The selected option switches from an outlined to a filled thumb; pressing it
  * again clears the selection and calls `onChange` with undefined.
  */
-export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
+export const ThumbsUpDownFeedback: FC<ThumbsUpDownFeedbackProps> = ({
   disabled = false,
   negativeAccessibilityLabel = "Thumbs down",
   onChange,
@@ -50,7 +50,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   const {theme} = useTheme();
 
   const handlePress = useCallback(
-    async (pressedValue: BinaryFeedbackValue) => {
+    async (pressedValue: ThumbsUpDownFeedbackValue) => {
       if (disabled) {
         return;
       }
@@ -60,7 +60,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
   );
 
   const handleKeyDown = useCallback(
-    async (optionValue: BinaryFeedbackValue, event: WebKeyDownEvent) => {
+    async (optionValue: ThumbsUpDownFeedbackValue, event: WebKeyDownEvent) => {
       if (event.key !== " " && event.key !== "Spacebar") {
         return;
       }
@@ -74,7 +74,7 @@ export const BinaryFeedback: FC<BinaryFeedbackProps> = ({
     [handlePress]
   );
 
-  const renderOption = (optionValue: BinaryFeedbackValue) => {
+  const renderOption = (optionValue: ThumbsUpDownFeedbackValue) => {
     const isSelected = value === optionValue;
     const isPositive = optionValue === "positive";
     const iconColor = disabled ? theme.surface.disabled : theme.surface.secondaryDark;

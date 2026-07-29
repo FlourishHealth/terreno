@@ -1,38 +1,41 @@
 import {
-  BinaryFeedback,
-  type BinaryFeedbackProps,
-  type BinaryFeedbackValue,
   Box,
   Text,
+  ThumbsUpDownFeedback,
+  type ThumbsUpDownFeedbackProps,
+  type ThumbsUpDownFeedbackValue,
 } from "@terreno/ui";
 import {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
-export const BinaryFeedbackDemo = (props: Partial<BinaryFeedbackProps>) => {
-  const [value, setValue] = useState<BinaryFeedbackValue | undefined>(undefined);
+export const ThumbsUpDownFeedbackDemo = (props: Partial<ThumbsUpDownFeedbackProps>) => {
+  const [value, setValue] = useState<ThumbsUpDownFeedbackValue | undefined>(undefined);
 
   return (
     <Box alignItems="center" justifyContent="center">
-      <BinaryFeedback onChange={setValue} value={value} {...props} />
+      <ThumbsUpDownFeedback onChange={setValue} value={value} {...props} />
     </Box>
   );
 };
 
-const FeedbackLine = ({text, ...feedbackProps}: {text: string} & Partial<BinaryFeedbackProps>) => {
-  const [value, setValue] = useState<BinaryFeedbackValue | undefined>(feedbackProps.value);
+const FeedbackLine = ({
+  text,
+  ...feedbackProps
+}: {text: string} & Partial<ThumbsUpDownFeedbackProps>) => {
+  const [value, setValue] = useState<ThumbsUpDownFeedbackValue | undefined>(feedbackProps.value);
 
   return (
     <Box alignItems="center" direction="row" gap={4} paddingY={2}>
       <Box width={100}>
-        <BinaryFeedback onChange={setValue} {...feedbackProps} value={value} />
+        <ThumbsUpDownFeedback onChange={setValue} {...feedbackProps} value={value} />
       </Box>
       <Text>{text}</Text>
     </Box>
   );
 };
 
-export const BinaryFeedbackStories = () => {
+export const ThumbsUpDownFeedbackStories = () => {
   return (
     <StorybookContainer>
       <Box direction="column">
@@ -46,8 +49,8 @@ export const BinaryFeedbackStories = () => {
   );
 };
 
-export const BinaryFeedbackWithConfirmation = () => {
-  const [value, setValue] = useState<BinaryFeedbackValue | undefined>(undefined);
+export const ThumbsUpDownFeedbackWithConfirmation = () => {
+  const [value, setValue] = useState<ThumbsUpDownFeedbackValue | undefined>(undefined);
 
   let confirmation: string | undefined;
   if (value === "positive") {
@@ -61,10 +64,18 @@ export const BinaryFeedbackWithConfirmation = () => {
       <Box direction="column" gap={1}>
         <Box alignItems="center" direction="row" gap={4}>
           <Text>Was this helpful?</Text>
-          <BinaryFeedback onChange={setValue} testID="binary-feedback-inline" value={value} />
+          <ThumbsUpDownFeedback
+            onChange={setValue}
+            testID="thumbs-up-down-feedback-inline"
+            value={value}
+          />
         </Box>
         {Boolean(confirmation) && (
-          <Text color="secondaryLight" size="sm" testID="binary-feedback-inline-confirmation">
+          <Text
+            color="secondaryLight"
+            size="sm"
+            testID="thumbs-up-down-feedback-inline-confirmation"
+          >
             {confirmation}
           </Text>
         )}
