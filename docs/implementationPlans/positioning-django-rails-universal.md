@@ -81,7 +81,7 @@ The Django/Rails claim invites the obvious question. `docs/explanation/positioni
 | Templates / views | `@terreno/ui` components, one codebase for iOS/Android/web | SSR is not shipped yet — see [`web-ssr-and-admin-spa`](web-ssr-and-admin-spa.md) |
 | `manage.py` / generators | MCP server tools (the *tool* layer) + the `/terreno-*` SDLC pipeline (the *process* layer) | Agent-driven rather than CLI-driven. Django gives you `manage.py startapp`; Terreno gives you a reviewed path from a request to a mergeable PR |
 | Celery / ActiveJob | Not shipped | On the roadmap |
-| Migrations | Not applicable | Schema evolution is convention + the `mongoose-schema-safety` skill |
+| Migrations | No migrations framework | Schema evolution is convention + the `mongoose-schema-safety` skill |
 
 Being straight about the gaps is what makes the analogy credible rather than marketing.
 
@@ -95,7 +95,7 @@ Docs site landing page and README only. No application UI.
 
 ## Phases
 
-1. **Canonical copy** — write `docs/explanation/positioning.md` with the four copy blocks and the comparison table.
+1. **Canonical copy** — write `docs/explanation/positioning.md` with the five copy blocks and the comparison table.
 2. **README restructure** — apply the new structure, move maintainer content out.
 3. **Docs site** — landing page, config tagline, docs index.
 4. **Agent surfaces** — `AGENTS.md`, `CLAUDE.md`, `CLAUDE-consumer.md`, and the MCP overview resource.
@@ -134,7 +134,7 @@ See [`docs/tasks/positioning-django-rails-universal.md`](../tasks/positioning-dj
 
 ## Acceptance Criteria
 
-- [ ] `docs/explanation/positioning.md` defines the four copy blocks and the honest comparison table.
+- [ ] `docs/explanation/positioning.md` defines the five copy blocks and the honest comparison table.
 - [ ] The canonical tagline appears verbatim in `README.md`, `docs/README.md`, `website/docusaurus.config.ts`, and the GitHub repo description.
 - [ ] The phrase "Django/Rails for TypeScript" appears within the first two sentences of both `README.md` and `docs/README.md`.
 - [ ] "universal app" is the term used for the frontend in all five surfaces; no surface says "cross-platform".

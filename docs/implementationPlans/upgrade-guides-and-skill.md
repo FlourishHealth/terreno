@@ -13,7 +13,7 @@
 
 Make upgrading Terreno a solved problem before we ask the public to depend on it. The machinery is half-built: `terreno_get_upgrade_guide` exists and concatenates per-release notes, and a `terreno_upgrade` prompt exists — but only two upgrade notes have ever been written (`0.20.0.md`, `0.21.0.md`) against a current version of 0.26.0. Five releases have no notes, so the tool returns nothing useful for any recent range. There is no `upgrading-terreno` skill; the only upgrade skill in the repo is `upgrading-expo`, which handles the Expo SDK portion and nothing Terreno-specific.
 
-An open-source framework that ships breaking changes in lockstep across ten packages and cannot tell you what changed is not adoptable.
+An open-source framework that ships breaking changes in lockstep across eleven packages and cannot tell you what changed is not adoptable.
 
 ## Non-Goals
 

@@ -54,7 +54,7 @@ Every tutorial ends with: what you built, what to read next, and the correspondi
 `docs/tutorials/getting-started.md` becomes `run-the-examples.md` and gains the five things it is missing:
 
 1. `bun run bootstrap` (not `bun install` — packages must be compiled)
-2. The four required auth secrets (`TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`) plus `MONGO_URI`
+2. `MONGO_URI` plus Better Auth secrets (`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`) — tutorials target syncdb + Better Auth only per program P7; do not document the legacy JWT path
 3. That MongoDB **must** be a replica set, with the symptom when it is not
 4. `bun run backend:seed` and the seeded credentials
 5. That the web app shows one-time Terms/Privacy/Consent modals (including a signature draw) before the main screen — a first-run surprise that reads as a bug

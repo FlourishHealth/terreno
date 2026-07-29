@@ -8,7 +8,7 @@ See: [`docs/implementationPlans/examples-demo-coverage.md`](../implementationPla
 
 - Derive the missing-component list from `ui/src/index.tsx` at implementation time. The list in the IP is a snapshot and will be stale.
 - When a component turns out to be hard to demo because of a bug, fix the bug and note it — that is a valuable side effect of this work, not a distraction.
-- Generate the coverage floors from a real test run on `master`. Do not write aspirational numbers; a dishonest baseline makes the ratchet useless.
+- Per IP decision E4, enforce the existing 95% threshold immediately. Packages below threshold must catch up before CI passes — do not introduce a ratchet floors file.
 - Follow the existing story conventions: read several files in `demo/stories/` first and match their structure, and use only `@terreno/ui` components inside stories.
 - Run `bun run lint`, `bun run demo:compile`, and `bun run ui:test` before each commit.
 
@@ -52,31 +52,31 @@ See: [`docs/implementationPlans/examples-demo-coverage.md`](../implementationPla
   - Depends on: Task 2.1
   - Acceptance: `bun run check:demo-coverage` passes with no unstoried, unallowlisted components; every allowlist entry has a specific reason.
 
-## Phase 3: Coverage ratchet
+## Phase 3: Coverage enforcement
 
-- [ ] **Task 3.1**: Generate honest coverage floors
-  - Description: Run every package's coverage command on a clean `master` and record the actual coverage per package. Create `coverage-floors.json` mapping package name to its measured floor (round down slightly to avoid flakiness from test ordering). Include a header comment or a sibling README noting when and how the floors were generated. Do not adjust any number upward to look better.
-  - Files: `coverage-floors.json` (new)
+- [ ] **Task 3.1**: Measure current coverage per package
+  - Description: Run every published package's `test:coverage` on a clean `master` and record the actual coverage. Report which packages are below the 95% threshold in the PR body. This is a planning step — do not lower the threshold or add exemptions.
+  - Files: none (findings in the PR body)
   - Depends on: none
-  - Acceptance: every published package has a floor; each floor is at or below the measured value; the generation method and date are recorded.
+  - Acceptance: every published package has a measured coverage value; packages below 95% are listed with their gap.
 
-- [ ] **Task 3.2**: Add ratchet support to the coverage checker
-  - Description: Extend `scripts/check-coverage.ts` to read `coverage-floors.json` and fail when a package's measured coverage falls below its recorded floor, in addition to the existing threshold behavior. Print the floor, the measured value, and the delta on failure. Add a mode or flag that rewrites a package's floor upward when coverage improves, so the ratchet can advance deliberately rather than automatically.
-  - Files: `scripts/check-coverage.ts`, tests
+- [ ] **Task 3.2**: Wire the threshold into every package CI
+  - Description: Add `scripts/check-coverage.ts` (default 95% threshold) to every published package's CI — either the existing dedicated workflow or the new matrix job from Task 3.3. Packages below threshold when this lands will fail CI until catch-up work merges; track that in the implementation PR.
+  - Files: `.github/workflows/ui-ci.yml`, `ai-ci.yml`, `admin-spa-ci.yml`, `.github/workflows/packages-ci.yml`, package `package.json` files as needed
   - Depends on: Task 3.1
-  - Acceptance: a simulated coverage drop fails with floor, measured, and delta printed; the raise mode updates the floor; existing threshold behavior is unchanged; tests cover both paths.
+  - Acceptance: every published package's CI runs the coverage check at 95%; no package has a permanent exemption.
 
 - [ ] **Task 3.3**: Add the matrix CI job for uncovered packages
-  - Description: Per IP question E3, create `.github/workflows/packages-ci.yml` with a matrix over the published packages that lack a dedicated workflow (`admin-backend`, `feature-flags`, `api-health` — verify the current set against `.github/workflows/`). Each matrix entry runs compile, lint, tests, and the coverage check. Use path filters so the job only runs for the affected package where practical. Follow the repo's required-input validation convention.
+  - Description: Per IP question E3, create `.github/workflows/packages-ci.yml` with a matrix over the published packages that lack a dedicated workflow (`admin-backend`, `feature-flags`, `api-health`, `test` — verify the current set against `.github/workflows/`). Each matrix entry runs compile, lint, tests, and the coverage check. Use path filters so the job only runs for the affected package where practical. Follow the repo's required-input validation convention.
   - Files: `.github/workflows/packages-ci.yml` (new)
   - Depends on: Task 3.2
-  - Acceptance: the workflow parses as valid YAML; the matrix covers exactly the published packages without their own workflow; each entry runs compile, lint, test, and coverage.
+  - Acceptance: the workflow parses as valid YAML; the matrix covers exactly the published packages without their own workflow; each entry runs compile, lint, test, and coverage at 95%.
 
-- [ ] **Task 3.4**: Wire coverage into the existing package workflows
-  - Description: Add the coverage check to the package workflows that currently run tests without it: `ui-ci.yml`, `ai-ci.yml`, and `admin-spa-ci.yml` (verify the current set). Use the ratchet, not a hard threshold, so packages below the global target are not blocked. Confirm each package has a working `test:coverage` script first, and add one if it is missing.
-  - Files: `.github/workflows/ui-ci.yml`, `ai-ci.yml`, `admin-spa-ci.yml`, package `package.json` files as needed
+- [ ] **Task 3.4**: Catch up packages below threshold
+  - Description: For each package measured below 95% in Task 3.1, add tests until `scripts/check-coverage.ts` passes. This may be a separate PR if the gap is large; do not merge the CI wiring until every package passes or the IP owner explicitly defers a package with a linked issue.
+  - Files: package test files as needed
   - Depends on: Task 3.2
-  - Acceptance: every published package's CI runs a coverage check against its floor; no package's CI fails on the current `master`.
+  - Acceptance: `bun run check-coverage` (or per-package equivalent) passes at 95% for every published package.
 
 ## Phase 4: Codecov
 
@@ -87,10 +87,10 @@ See: [`docs/implementationPlans/examples-demo-coverage.md`](../implementationPla
   - Acceptance: `codecov.yml` is valid; every package workflow uploads with a distinct flag; the token requirement is documented accurately for a public repo.
 
 - [ ] **Task 4.2**: Add the coverage badge
-  - Description: Add a Codecov badge to `README.md` next to the existing npm and license badges. Add a "Testing and coverage" section to `CONTRIBUTING.md` explaining: the coverage expectation for new code, how the ratchet works, that coverage must not drop in a PR, and how to run coverage locally per package.
+  - Description: Add a Codecov badge to `README.md` next to the existing npm and license badges. Add a "Testing and coverage" section to `CONTRIBUTING.md` explaining: the 95% coverage expectation for new code, that coverage must not drop in a PR, and how to run coverage locally per package.
   - Files: `README.md`, `CONTRIBUTING.md`
   - Depends on: Task 4.1
-  - Acceptance: the badge renders and reflects real coverage; the contributing section explains the ratchet and gives the local command.
+  - Acceptance: the badge renders and reflects real coverage; the contributing section explains the 95% threshold and gives the local command.
 
 ## Phase 5: Example feature matrix
 

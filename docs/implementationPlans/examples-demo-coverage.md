@@ -61,18 +61,18 @@ Derive the actual missing list from the export list at implementation time rathe
 ```mermaid
 flowchart LR
   S["scripts/check-coverage.ts<br/>(exists)"]
-  R["coverage-floors.json<br/>per-package ratchet"]
+  T["95% threshold<br/>(per bunfig.toml)"]
   M["ci: matrix job for packages<br/>without dedicated workflows"]
   E["existing package CI<br/>api, rtk, mcp, ui, ai, admin-spa"]
   C["Codecov upload<br/>+ per-PR delta"]
-  S --> R
-  R --> M
-  R --> E
+  S --> T
+  T --> M
+  T --> E
   M --> C
   E --> C
 ```
 
-The ratchet file records each package's current coverage as its floor. CI fails on a decrease. The daily test-improver workflow raises floors over time.
+Per decision E4, enforce the existing 95% threshold immediately on every published package. Packages currently below threshold must catch up before the gate passes CI — no ratchet floors file. The daily test-improver workflow continues to raise coverage over time.
 
 ### Example app feature matrix
 
@@ -109,13 +109,13 @@ New demo stories only. No changes to `@terreno/ui` components except bug fixes d
 
 1. **Demo coverage** — audit, P0 stories, then the enforcement check.
 2. **Remaining demo stories** — P1 and P2.
-3. **Coverage ratchet** — floors file, matrix CI job, wire the missing packages.
+3. **Coverage enforcement** — wire the 95% threshold into every package CI (matrix job for packages without dedicated workflows).
 4. **Codecov** — upload and badges.
 5. **Example feature matrix** — audit and fill or record gaps.
 
 ## Feature Flags & Migrations
 
-None. Introducing the ratchet requires generating the initial floors from a full test run on `master` so the baseline is honest rather than aspirational.
+None. Enforcing the threshold immediately may require a short catch-up period for packages currently below 95%; track that work in the implementation PR rather than lowering the bar.
 
 ## Not Included / Future Work
 
@@ -130,7 +130,6 @@ None. Introducing the ratchet requires generating the initial floors from a full
 
 - `demo/stories/*.stories.tsx` (the missing components)
 - `scripts/check-demo-coverage.ts`
-- `coverage-floors.json`
 - `.github/workflows/packages-ci.yml` (matrix for packages without dedicated CI)
 - `docs/explanation/example-coverage.md`
 - `codecov.yml`
@@ -140,7 +139,6 @@ None. Introducing the ratchet requires generating the initial floors from a full
 - `demo/demoConfig.tsx`
 - `demo/package.json` (`test:ci` currently a no-op)
 - `.github/workflows/ui-demo-ci.yml`, `ui-ci.yml`, `ai-ci.yml`, `admin-spa-ci.yml`
-- `scripts/check-coverage.ts` (ratchet support)
 - `README.md` (coverage badge)
 - `CONTRIBUTING.md` (coverage expectations)
 
@@ -154,11 +152,11 @@ See [`docs/tasks/examples-demo-coverage.md`](../tasks/examples-demo-coverage.md)
 - [ ] `bun run scripts/check-demo-coverage.ts` fails when a newly exported component has no story and no allowlist entry, and runs in `ui-demo-ci.yml`.
 - [ ] `demo/package.json`'s `test:ci` runs something real.
 - [ ] Stories exist for all P0 components, each showing multiple states (default, loading, error, disabled) where applicable.
-- [ ] `coverage-floors.json` records a floor per package generated from a real test run on `master`.
-- [ ] CI fails when any package's coverage drops below its floor.
+- [ ] Every published package's CI runs `scripts/check-coverage.ts` at the 95% threshold.
+- [ ] Packages currently below 95% have a tracked catch-up plan; no package is permanently exempt.
 - [ ] Every published package is covered by CI running its tests and coverage check, either through a dedicated workflow or the matrix job.
 - [ ] Codecov receives uploads from every package's CI and reports per-PR deltas.
 - [ ] `README.md` shows a coverage badge that reflects reality.
 - [ ] `docs/explanation/example-coverage.md` resolves every `?` in the capability matrix, and each real gap is either filled with an example or recorded as a known gap with an issue link.
-- [ ] `CONTRIBUTING.md` states the coverage expectation and how the ratchet works.
+- [ ] `CONTRIBUTING.md` states the 95% coverage expectation and how to run coverage locally per package.
 - [ ] `bun run lint`, `bun run compile`, and the full test suite pass.

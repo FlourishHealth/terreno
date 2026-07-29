@@ -46,7 +46,7 @@ No code architecture. Three groups of artifacts:
 
 ### Published packages requiring license coverage
 
-From `publish-on-tag.yml`, ten packages publish in lockstep. Current state:
+From `publish-on-tag.yml`, eleven packages publish in lockstep. Current state:
 
 | Package | `LICENSE` file | In `files` array | `license` field |
 |---------|----------------|------------------|-----------------|
@@ -60,6 +60,7 @@ From `publish-on-tag.yml`, ten packages publish in lockstep. Current state:
 | `api-health` | **no** | implicit | Apache-2.0 → **MIT** |
 | `feature-flags` | **no** | implicit | Apache-2.0 → **MIT** |
 | `mcp-server` | **no** | **missing from `files`** | MIT (already) |
+| `test` | **no** | implicit | Apache-2.0 → **MIT** |
 
 Task 1.2 must re-derive this table from the repo at implementation time rather than trusting it.
 
@@ -88,7 +89,7 @@ None.
 
 ## Feature Flags & Migrations
 
-None. Relicensing `@terreno/mcp` from MIT to Apache-2.0 is a one-way change; it requires sign-off from every contributor to that package who is not a Flourish employee (verify with `git log --format='%an %ae' -- mcp-server/`).
+None. Relicensing `api` and `ui` from Apache-2.0 to MIT is a one-way change; it requires sign-off from every contributor to those packages who is not a Flourish employee (verify with `git log --format='%an %ae' -- api/ ui/`). `mcp-server` is already MIT.
 
 ## Activity Log & User Updates
 

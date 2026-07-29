@@ -18,7 +18,7 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
   - Description: Copy the MIT License text to a new root `LICENSE` (use the standard MIT template; `mcp-server` already ships MIT). Create `NOTICE` containing the project name, the copyright line `Copyright 2026 Flourish Health, Inc.`, and a one-line statement that the project is licensed under MIT. Include acknowledgement of vendored `api/src/vendor/wesleytodd-openapi/` with a pointer to its own `LICENSE`.
   - Files: `LICENSE` (new), `NOTICE` (new)
   - Depends on: none
-  - Acceptance: `LICENSE` exists at repo root; `diff <(tail -n +3 LICENSE) <(tail -n +3 api/LICENSE)` shows no differences in the license body; `NOTICE` mentions the vendored openapi code.
+  - Acceptance: `LICENSE` exists at repo root with standard MIT text; `NOTICE` mentions the vendored openapi code. Do not compare against `api/LICENSE` or `ui/LICENSE` — those remain Apache-2.0 until Task 1.4.
 
 - [ ] **Task 1.2**: Audit license coverage across published packages
   - Description: Read `.github/workflows/publish-on-tag.yml` and list every package it publishes. For each one, record in a scratch table: whether a `LICENSE` file exists, whether `package.json` has a `files` array, whether `LICENSE` is included in that array, and the `license` field value. Write the findings as a markdown table in the PR description. Do not fix anything in this task.
@@ -38,11 +38,11 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
   - Depends on: Task 1.3
   - Acceptance: `bun pm pack --dry-run` run inside each published package lists `LICENSE` among the packed files; no `package.json` declares a license other than `MIT`.
 
-- [ ] **Task 1.5**: Verify relicensing consent for `mcp-server`
-  - Description: Run `git log --format='%an <%ae>' -- mcp-server/ | sort -u` and list every distinct author. Report the list in the PR body, flagging any address that is not a `@flourish.health` address or a known bot. Do **not** proceed to merge the license change for `mcp-server` if a non-Flourish human contributor appears; instead leave a `TODO` note in the PR body requesting sign-off.
+- [ ] **Task 1.5**: Verify relicensing consent for `api` and `ui`
+  - Description: Run `git log --format='%an <%ae>' -- api/ ui/ | sort -u` and list every distinct author. Report the list in the PR body, flagging any address that is not a `@flourish.health` address or a known bot. Do **not** proceed to merge the Apache-2.0 → MIT change for `api`/`ui` if a non-Flourish human contributor appears; instead leave a `TODO` note in the PR body requesting sign-off. (`mcp-server` is already MIT.)
   - Files: none (findings go in the PR body)
   - Depends on: Task 1.4
-  - Acceptance: PR body lists all `mcp-server` authors and explicitly states either "all Flourish/bot — safe to relicense" or names the contributors needing sign-off.
+  - Acceptance: PR body lists all `api`/`ui` authors and explicitly states either "all Flourish/bot — safe to relicense" or names the contributors needing sign-off.
 
 - [ ] **Task 1.6**: Add a license-coverage CI check
   - Description: Create `scripts/check-license-coverage.ts` (Bun, TypeScript, `const` arrow functions, explicit return types). It should: read the list of published packages from `.github/workflows/publish-on-tag.yml` (parse job names or a hardcoded list with a comment pointing at the workflow), then for each assert (a) `LICENSE` exists, (b) `package.json` `license` equals the root `package.json` `license`, (c) if a `files` array exists it contains `LICENSE`. Print one line per failure and `process.exit(1)` when any check fails. Add a `check:licenses` script to the root `package.json` and a job to `.github/workflows/repo-policies.yml` that runs it.
@@ -53,19 +53,19 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
 ## Phase 2: Contribution process
 
 - [ ] **Task 2.1**: Write `CONTRIBUTING.md`
-  - Description: Create `CONTRIBUTING.md` covering, in this order: (1) Code of Conduct link; (2) ways to contribute (issue, discussion, docs fix, code); (3) development setup — `bun run bootstrap`, Bun version requirement, MongoDB replica-set requirement for `example-backend` (single-node replset is enough, change streams need it), the seeded users `test@example.com` / `admin@example.com` with password `testpassword123`; (4) per-package commands table pulled from the root `package.json` scripts (`bun run api:test`, `bun run ui:test`, `bun run lint`, `bun run compile`); (5) code style pointers — link `AGENTS.md`, call out the no-barrel-imports rule and `bun run check:no-barrel-imports`, the Luxon requirement, and the logging conventions; (6) test expectations — new features ship with tests, coverage must not drop; (7) the IP process — link `docs/implementationPlans/README.md` and `IP_TEMPLATE.md`, explain when an IP is required (new package, new public API, cross-package change) versus not (bug fix, docs); (8) DCO sign-off instructions (`git commit -s`); (9) PR expectations — draft by default, CI green, screenshots for UI changes.
+  - Description: Create `CONTRIBUTING.md` covering, in this order: (1) Code of Conduct link; (2) ways to contribute (issue, discussion, docs fix, code); (3) development setup — `bun run bootstrap`, Bun version requirement, MongoDB replica-set requirement for `example-backend` (single-node replset is enough, change streams need it), the seeded users `test@example.com` / `superuser@example.com` with password `testpassword123`; (4) per-package commands table pulled from the root `package.json` scripts (`bun run api:test`, `bun run ui:test`, `bun run lint`, `bun run compile`); (5) code style pointers — link `AGENTS.md`, call out the no-barrel-imports rule and `bun run check:no-barrel-imports`, the Luxon requirement, and the logging conventions; (6) test expectations — new features ship with tests, coverage must not drop; (7) the IP process — link `docs/implementationPlans/README.md` and `IP_TEMPLATE.md`, explain when an IP is required (new package, new public API, cross-package change) versus not (bug fix, docs); (8) DCO sign-off instructions (`git commit -s`); (9) PR expectations — draft by default, CI green, screenshots for UI changes.
   - Files: `CONTRIBUTING.md` (new)
   - Depends on: none
   - Acceptance: every command shown in `CONTRIBUTING.md` exists in a `package.json` `scripts` block; the seeded credentials match `example-backend/src/scripts/`; no reference to `.claude/` or other agent-private paths.
 
 - [ ] **Task 2.2**: Add `CODE_OF_CONDUCT.md`
-  - Description: Add Contributor Covenant 2.1 verbatim, with the enforcement contact set to `conduct@flourish.health`. Do not modify the covenant text other than the contact line and the project name.
+  - Description: Add Contributor Covenant 2.1 verbatim, with the enforcement contact set to `conduct@terreno.app`. Do not modify the covenant text other than the contact line and the project name.
   - Files: `CODE_OF_CONDUCT.md` (new)
   - Depends on: none
   - Acceptance: file states "Contributor Covenant" and version 2.1; contact address is present and is not a placeholder.
 
 - [ ] **Task 2.3**: Add `SECURITY.md`
-  - Description: Create `SECURITY.md` with: a supported-versions table (current minor supported; previous minor receives security fixes only), reporting instructions naming GitHub private vulnerability reporting as the primary channel and `security@flourish.health` as fallback, a 5-business-day acknowledgement commitment, a statement that reporters should not open public issues for vulnerabilities, and a note that CodeQL runs on the repo (`.github/workflows/codeql-analysis.yml`).
+  - Description: Create `SECURITY.md` with: a supported-versions table (current minor supported; previous minor receives security fixes only), reporting instructions naming GitHub private vulnerability reporting as the primary channel and `security@terreno.app` as fallback, a 5-business-day acknowledgement commitment, a statement that reporters should not open public issues for vulnerabilities, and a note that CodeQL runs on the repo (`.github/workflows/codeql-analysis.yml`).
   - Files: `SECURITY.md` (new)
   - Depends on: none
   - Acceptance: file exists at repo root so GitHub surfaces it under Security → Policy; both reporting channels are named.
