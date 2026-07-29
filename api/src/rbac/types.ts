@@ -3,10 +3,22 @@ import type express from "express";
 import type {RequestHandler} from "express";
 import type {Connection} from "mongoose";
 
-import type {User} from "../auth";
+import type {User, UserModel} from "../auth";
 import type {PermissionMethod} from "../permissions";
 import type {RbacRoleDocument, RoleDefinition} from "./roleModel";
+import type {RESTMethod} from "../api";
 import type {PermissionSet, Statements} from "./statements";
+
+/** Non-generic TerrenoAccess for runtime wiring (modelRouter, rbacRouter, TerrenoApp). */
+export type AnyTerrenoAccess = TerrenoAccess<Statements>;
+
+export interface ModelRouterAccessOptions {
+  resource: string;
+  actions?: Partial<Record<RESTMethod, string | null>>;
+  scope?: ResourceScope;
+  also?: Partial<Record<RESTMethod, PermissionMethod<unknown>[]>>;
+  allowAnonymous?: boolean;
+}
 
 export type {Statements};
 
@@ -119,6 +131,7 @@ export interface ResourceFieldViews<S extends Statements> {
 export interface AccessOptions<S extends Statements> {
   connection: Connection;
   statements: S;
+  userModel?: UserModel;
   defaultRoles?: RoleDefinition[];
   scopes?: ResourceScopes<S>;
   fieldViews?: ResourceFieldViews<S>;
@@ -128,6 +141,8 @@ export interface AccessOptions<S extends Statements> {
   resolvePermissions?: (args: {user: User}) => Promise<PermissionSet | null>;
   statementDescriptions?: Record<string, Record<string, string>>;
 }
+
+export type {PermissionSet};
 
 export interface TerrenoAccess<S extends Statements> {
   readonly statements: S;

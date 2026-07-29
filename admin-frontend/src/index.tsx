@@ -8,6 +8,7 @@ export {AdminNestedArrayField} from "./AdminNestedArrayField";
 export {AdminObjectPicker} from "./AdminObjectPicker";
 export {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 export {AdminRefField, type AdminRefFieldProps} from "./AdminRefField";
+export {AdminRolesList} from "./AdminRolesList";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";
 export {AdminShell, type AdminShellProps, type AdminShellSidebarVariant} from "./AdminShell";

@@ -43,7 +43,9 @@ export {
 export * from "./rbac/scopes";
 export * from "./rbac/statements";
 export * from "./rbac/types";
-export * from "./rbac/userPlugin";
+export * from "./rbac/fieldViews";
+export {rbacRouter, type RbacRouterOptions} from "./rbac/routes";
+export {backfillAdmins, type BackfillAdminsOptions, type BackfillAdminsResult} from "./rbac/backfillAdmins";
 export {
   startChangeStreamWatcher,
   stopChangeStreamWatcher,
