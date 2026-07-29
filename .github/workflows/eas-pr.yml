@@ -173,14 +173,14 @@ jobs:
         run: |
           echo "::notice::Fingerprint matches all existing dev builds — update-only flow complete"
 
-      - name: Slow path — dispatch EAS workflow async
+      - name: Slow path — queue missing dev builds only
         if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
         working-directory: example-frontend
-        run: |
-          echo "::notice::Fingerprint changed or a dev build is missing — dispatching build-only workflow to EAS (will not wait)"
-          eas workflow:run .eas/workflows/example-frontend-build.yml \
-            --non-interactive
-          echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
+        env:
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+        run: ../.github/workflows/scripts/eas-pr-selective-build.sh
 
       - name: Post PR comment
         if: always() && steps.decide.outputs.ios_hash != ''
@@ -311,14 +311,14 @@ jobs:
         run: |
           echo "::notice::Fingerprint matches all existing dev builds — update-only flow complete"
 
-      - name: Slow path — dispatch EAS workflow async
+      - name: Slow path — queue missing dev builds only
         if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
         working-directory: demo
-        run: |
-          echo "::notice::Fingerprint changed or a dev build is missing — dispatching build-only workflow to EAS (will not wait)"
-          eas workflow:run .eas/workflows/demo-build.yml \
-            --non-interactive
-          echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
+        env:
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+        run: ../.github/workflows/scripts/eas-pr-selective-build.sh
 
       - name: Post PR comment
         if: always() && steps.decide.outputs.ios_hash != ''
