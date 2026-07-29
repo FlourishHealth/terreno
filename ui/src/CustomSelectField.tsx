@@ -18,7 +18,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   helperText,
   testID,
   testIDs,
-  searchable,
+  disableSearch,
 }) => {
   const [currentValue, setCurrentValue] = useState(value);
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -87,11 +87,11 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
       >
         <SelectField
           disabled={disabled}
+          disableSearch={disableSearch}
           errorText={errorText}
           onChange={handleCustomSelectListChange}
           options={[...options, {label: "Custom", value: "custom"}]}
           placeholder={placeholder}
-          searchable={searchable}
           testID={fieldTestIDs.input}
           testIDs={testIDs}
           title={title}

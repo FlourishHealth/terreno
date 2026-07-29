@@ -69,12 +69,11 @@ export interface WebDropdownMenuProps {
   /** Prefix for the testIDs on the menu / backdrop / option nodes. */
   testIDPrefix?: string;
   /**
-   * When true, renders a search input at the top of the dropdown that
-   * filters options by label as the user types. The filter resets each
-   * time the menu opens.
-   * @default true
+   * When true, hides the type-to-filter search input at the top of the dropdown.
+   * The filter resets each time the menu opens. Search is enabled by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
   /**
    * When true and `options` is empty, shows a "No matching options" message.
    * Used when the parent filters options externally (e.g. search in the trigger).
@@ -105,10 +104,10 @@ interface PressableWebState {
  * via `useWebDropdownAnchor` (or an equivalent measurement) when using anchored
  * presentation.
  *
- * When `searchable` is true a text input appears at the top of the menu so
+ * When search is enabled a text input appears at the top of the menu so
  * the user can type to filter options by label. `RNPickerSelect` handles
  * search in the trigger field on web instead and passes pre-filtered options
- * with `searchable={false}`.
+ * with `disableSearch={true}`.
  */
 export const WebDropdownMenu = ({
   visible,
@@ -122,11 +121,12 @@ export const WebDropdownMenu = ({
   minWidth,
   optionTextStyle,
   testIDPrefix = "web_dropdown",
-  searchable = true,
+  disableSearch = false,
   showEmptyStateWhenNoOptions = false,
   keepTriggerFocus = false,
   presentation = "anchored",
 }: WebDropdownMenuProps): ReactElement => {
+  const searchable = !disableSearch;
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<TextInput>(null);

@@ -1794,10 +1794,10 @@ export interface CustomSelectFieldProps extends WithTestID {
   title?: string;
 
   /**
-   * When true, options can be filtered as the user types. See `SelectFieldProps.searchable`.
-   * @default true
+   * When true, hides the type-to-filter search UI. Search is enabled by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
 }
 
 export interface DateTimeActionSheetProps {
@@ -2867,12 +2867,13 @@ export interface SelectFieldPropsBase extends WithTestID {
   placeholder?: string;
 
   /**
-   * When true, options can be filtered as the user types. On web, search happens
+   * When true, hides the type-to-filter search UI. On web, search normally happens
    * in the trigger field; on native, search appears in the dropdown menu and
-   * Android uses a centered modal similar to the platform picker.
-   * @default true
+   * Android uses a centered modal similar to the platform picker. Search is enabled
+   * by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
 
   /**
    * The title of the select field.

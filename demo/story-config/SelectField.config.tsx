@@ -50,10 +50,10 @@ export const SelectFieldConfiguration: DemoConfiguration = {
         type: "boolean",
         defaultValue: false,
       },
-      searchable: {
+      disableSearch: {
         type: "boolean",
-        defaultValue: true,
-        title: "Searchable",
+        defaultValue: false,
+        title: "Disable search",
       },
     },
   },

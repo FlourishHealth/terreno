@@ -175,10 +175,10 @@ describe("WebDropdownMenu", () => {
     const {getByText} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={optsWithHelper}
-        searchable={false}
         visible
       />
     );
@@ -221,10 +221,10 @@ describe("WebDropdownMenu positioning", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={bottomAnchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
@@ -242,10 +242,10 @@ describe("WebDropdownMenu positioning", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={topAnchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
@@ -268,10 +268,10 @@ describe("WebDropdownMenu positioning", () => {
       const {getByTestId} = renderWithTheme(
         <WebDropdownMenu
           anchor={midAnchor}
+          disableSearch
           onClose={() => {}}
           onSelect={() => {}}
           options={options}
-          searchable={false}
           visible
         />
       );
@@ -288,7 +288,7 @@ describe("WebDropdownMenu positioning", () => {
   });
 });
 
-describe("WebDropdownMenu searchable", () => {
+describe("WebDropdownMenu disableSearch", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
   const options = [
     {label: "Apple", value: "apple"},
@@ -297,7 +297,7 @@ describe("WebDropdownMenu searchable", () => {
     {label: "Avocado", value: "avocado"},
   ];
 
-  it("renders a search input by default (searchable defaults to true)", () => {
+  it("renders a search input by default (search is enabled when disableSearch is omitted)", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
@@ -310,14 +310,14 @@ describe("WebDropdownMenu searchable", () => {
     expect(getByTestId("web_dropdown_search")).toBeTruthy();
   });
 
-  it("does not render a search input when searchable is false", () => {
+  it("does not render a search input when disableSearch is true", () => {
     const {queryByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
@@ -331,7 +331,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -350,7 +349,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -368,7 +366,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={onSelect}
         options={options}
-        searchable
         visible
       />
     );
@@ -386,7 +383,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -403,7 +399,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -420,10 +415,10 @@ describe("WebDropdownMenu searchable", () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={[]}
-        searchable={false}
         showEmptyStateWhenNoOptions
         visible
       />
@@ -499,11 +494,11 @@ describe("WebDropdownMenu keepTriggerFocus portal overlay", () => {
     return renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         keepTriggerFocus
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
         {...props}
       />
@@ -596,11 +591,11 @@ describe("WebDropdownMenu centered presentation", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
         presentation="centered"
-        searchable={false}
         visible
       />
     );
@@ -730,10 +725,10 @@ describe("WebDropdownMenu layout callbacks", () => {
     const {root} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         selectedIndex={1}
         visible
       />
@@ -752,10 +747,10 @@ describe("WebDropdownMenu layout callbacks", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         selectedIndex={1}
         visible
       />
@@ -776,10 +771,10 @@ describe("WebDropdownMenu layout callbacks", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
