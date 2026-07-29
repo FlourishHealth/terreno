@@ -78,17 +78,17 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
   - Depends on: none
   - Acceptance: every stage is mapped to its counterparts; all rule disagreements are listed explicitly with both wordings.
 
-- [ ] **Task 3.2**: Make Pour and Dial In delegate rather than restate
-  - Description: Per IP question AP5, rewrite Pour and Dial In so they orchestrate the existing skills instead of restating their rules — commit hygiene from `commit`, PR creation from `create-pr`, CI watching from `check-watcher`, comment handling from `respond-to-review`. Each stage keeps its scope boundary, handoff contract, and the gates unique to it (the frontend evidence gate, the flaky-CI classification, the 15-minute timeout). Resolve every disagreement from Task 3.1 in favor of one wording, in one place.
-  - Files: `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`, `terreno-5-dialin/SKILL.md`, and the repo skills where the canonical wording now lives
+- [ ] **Task 3.2**: Make Brew self-contained; inline Taste review loop per AP5
+  - Description: Per IP question AP5, rewrite **Taste** (`terreno-5-taste`) to inline the full submit → CI → review loop (former `autobot` behavior) rather than delegating to repo skills — delegation has been unreliable inside the plugin. **Brew** (`terreno-4-brew`) may orchestrate `commit`/`create-pr` where those resolve from the plugin cache, but must not depend on monorepo-only paths. Resolve every disagreement from Task 3.1 in favor of one wording, in one place. Deprecate `submit` and `autobot` repo skills once Taste ships.
+  - Files: `plugins/terreno-planning/skills/terreno-4-brew/SKILL.md`, `terreno-5-taste/SKILL.md`, and deprecated `.rulesync/skills/submit/`, `autobot/`
   - Depends on: Task 3.1, Task 2.5
-  - Acceptance: no rule appears in both a plugin stage and a repo skill with different wording; the stages still complete a full submit-and-review cycle (verified by running them on a real change); `bun run rules:check` exits 0.
+  - Acceptance: Taste completes a full review loop without delegating to repo skills; no rule appears in both a plugin stage and a repo skill with different wording; `submit`/`autobot` are marked deprecated; `bun run rules:check` exits 0.
 
-- [ ] **Task 3.3**: Cross-reference from the repo skills
-  - Description: Add a short "related" note to `.rulesync/skills/submit/SKILL.md` and `autobot/SKILL.md` explaining that they are the individual steps and the plugin is the full pipeline, with guidance on when to reach for which. Regenerate mirrors. Do the same in reverse from `plugins/README.md`.
+- [ ] **Task 3.3**: Cross-reference deprecated repo skills
+  - Description: Add a short deprecation note to `.rulesync/skills/submit/SKILL.md` and `autobot/SKILL.md` pointing to the plugin pipeline (Brew/Taste) as the supported path. Regenerate mirrors. Document in `plugins/README.md` that the individual repo skills are legacy once the plugin is public.
   - Files: `.rulesync/skills/submit/SKILL.md`, `.rulesync/skills/autobot/SKILL.md`, generated mirrors, `plugins/README.md`
   - Depends on: Task 3.2, Task 4.1
-  - Acceptance: both skills reference the plugin with when-to-use-which guidance; the plugin README references them back; `bun run rules:check` exits 0.
+  - Acceptance: both skills state they are deprecated in favor of Brew/Taste; the plugin README references them as legacy; `bun run rules:check` exits 0.
 
 ## Phase 4: Documentation
 

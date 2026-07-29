@@ -39,7 +39,7 @@ Language rules for all docs:
 
 **`@terreno/rtk` is being replaced.** PR [#869](https://github.com/flourishhealth/terreno/pull/869) (`@terreno/syncdb` local-first data layer) makes **Better Auth + `@terreno/syncdb`** the supported frontend platform. RTK Query becomes legacy.
 
-**Program-wide rule: no documentation IP in this program may be implemented until #869 merges.** Writing docs against RTK now guarantees a rewrite. Planning (this program) proceeds; implementation waits.
+**Program-wide rule: IPs flagged `Blocked` may not be implemented until #869 merges.** Writing docs against RTK now guarantees a rewrite. Planning (this program) proceeds; implementation of `None`-flagged IPs may start before #869; `Partial` IPs proceed except for `[RTK]`-marked tasks.
 
 Each IP carries an explicit flag:
 
@@ -58,7 +58,7 @@ Every `[RTK]`-marked task in every task file must be reviewed against the merged
 | Frontend data-fetching narrative | `README.md`, `docs/README.md`, `docs/tutorials/getting-started.md` | syncdb local-first reads/mutations |
 | SDK codegen loop | `.rulesync/skills/generate-sdk/SKILL.md`, `example-frontend/openapi-config.ts` | `@terreno/syncdb-codegen` descriptors |
 | Auth story | `docs/how-to/configure-better-auth.md`, `docs/explanation/authentication.md` | Better Auth primary, JWT legacy |
-| `docs/reference/rtk.md` | reference tree | Becomes legacy page + new `syncdb.md` |
+| `docs/reference/rtk.md` | reference tree | **Removed from launch reference** (P7 A); migration guide only |
 | `get_rtk_state` MCP tool | `mcp-server/src/local/tools/runtime.ts` (PR #802) | Rename/extend to syncdb store inspection |
 | `installTerrenoDevConsoleLogger` | `rtk/src/devConsoleLogger.ts` (PR #802) | Move to syncdb or a shared client package |
 | Feature-flag client hooks | `docs/reference/feature-flags.md`, `rtk/src/` | OpenFeature provider fed by syncdb |

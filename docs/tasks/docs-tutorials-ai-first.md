@@ -7,7 +7,7 @@ See: [`docs/implementationPlans/docs-tutorials-ai-first.md`](../implementationPl
 ## Instructions for the implementing agent
 
 - **Execute every command you write.** A tutorial is a promise that the steps work. If you cannot run a step, mark the tutorial incomplete rather than shipping an unverified step.
-- Write manual-first (IP question T2). Agent shortcuts go in a callout block labeled "With an AI agent", never as the only path.
+- Write agent-first (IP question T2). Manual steps go in a collapsible "Without an agent" section, never as the only path.
 - State a time budget at the top of each tutorial and check it during validation. If a tutorial takes 3x its budget, cut scope.
 - Keep the tutorial app trivial: one or two models. Resist adding features — this is teaching, not showcasing. The showcase is [`build-terreno-app-validation`](build-terreno-app-validation.md).
 - End every tutorial with: "What you built", "What's next" (link the next tutorial), and "Reference" (link the relevant `docs/reference/` page).

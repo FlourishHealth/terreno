@@ -40,14 +40,14 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
   - Depends on: Task 1.1
   - Acceptance: every documented symbol exists in the inventory; every config option lists a type and default; no `TODO` or placeholder text remains.
 
-- [ ] **Task 2.2**: Move `rtk.md` to legacy and add the banner
-  - Description: `git mv docs/reference/rtk.md docs/reference/legacy/rtk.md`. Add a banner block at the top: `@terreno/rtk` is deprecated as of version X, supported for N minor releases (use the answers to M1 from the IP), superseded by `@terreno/syncdb`, with links to `docs/reference/syncdb.md` and the migration guide. Do not otherwise edit the reference content — it must stay accurate for consumers still on RTK. Add a Docusaurus redirect from the old path to the new one in `website/docusaurus.config.ts` (add `@docusaurus/plugin-client-redirects` if it is not already configured).
-  - Files: `docs/reference/legacy/rtk.md` (moved), `website/docusaurus.config.ts`
+- [ ] **Task 2.2**: Remove `rtk.md` from the public reference index
+  - Description: Per IP decision M4 (P7 A), remove `docs/reference/rtk.md` from the public reference tree — do **not** maintain a parallel RTK reference page at launch. Add a Docusaurus redirect from the old URL to `docs/how-to/migrate-rtk-to-syncdb.md`. Archive the pre-launch `rtk.md` content only if inbound links require it (e.g. under `docs/reference/legacy/` with a deprecation banner), but do not list it in `docs/reference/README.md`.
+  - Files: `docs/reference/rtk.md` (removed or archived), `website/docusaurus.config.ts`, `docs/reference/README.md`
   - Depends on: Task 2.1
-  - Acceptance: the old URL redirects to the new one in a built site; the banner names a concrete version and support window; `bun run website:build` succeeds.
+  - Acceptance: `docs/reference/README.md` has no RTK entry; the old URL redirects to the migration guide; no launch doc presents RTK as a supported reference path.
 
 - [ ] **Task 2.3**: Update the reference and docs indexes
-  - Description: Update `docs/reference/README.md` and `docs/README.md`: add `@terreno/syncdb` and `@terreno/ai` to the package table (`ai` is currently missing entirely), add `@terreno/admin-spa` and `@terreno/feature-flags` if absent, and list `rtk` under a Legacy heading. Confirm every package in `publish-on-tag.yml` appears exactly once.
+  - Description: Update `docs/reference/README.md` and `docs/README.md`: add `@terreno/syncdb` and `@terreno/ai` to the package table (`ai` is currently missing entirely), add `@terreno/admin-spa` and `@terreno/feature-flags` if absent. Do **not** list `rtk` in the public reference index per M4 — link the migration guide from a "Migrating from RTK" note instead. Confirm every shipped package in `publish-on-tag.yml` appears exactly once in the appropriate section.
   - Files: `docs/reference/README.md`, `docs/README.md`
   - Depends on: Task 2.2
   - Acceptance: the package table contains one row per published package; `rtk` appears only under Legacy; every link resolves.

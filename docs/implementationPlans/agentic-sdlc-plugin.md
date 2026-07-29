@@ -166,7 +166,7 @@ See [`docs/tasks/agentic-sdlc-plugin.md`](../tasks/agentic-sdlc-plugin.md).
 - [ ] The pipeline runs end to end in a **consumer app scaffolded by `terreno_bootstrap_app`**, not just in this monorepo — verified by taking one small feature from request to open PR.
 - [ ] Every skill dependency (`verify-ui-changes` at minimum) is either bundled with the plugin or declared with installation instructions.
 - [ ] Frontend path gates are derived from the project's actual layout rather than hardcoded monorepo package names.
-- [ ] Pour and Dial In delegate to the existing repo skills instead of restating their rules, and no rule is stated in two places with different wording.
+- [ ] Pour and Taste are self-contained per AP5; deprecated `submit`/`autobot` repo skills point to the plugin; no rule is stated in two places with different wording.
 - [ ] `docs/explanation/agentic-sdlc.md` explains the process layer versus the MCP tool layer and why fresh-context independent review matters.
 - [ ] `docs/how-to/use-the-terreno-plugin.md` takes a reader from installation to a merged PR.
 - [ ] `docs/reference/sdlc-plugin.md` documents each stage's scope, inputs, outputs, and boundaries.

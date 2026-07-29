@@ -47,7 +47,7 @@ When you hit a wall, the correct response is to **record the gap and find a publ
 
 | Input | Required | Default |
 |-------|----------|---------|
-| App concept | no | `sprout` (see [`references/app-concepts.md`](references/app-concepts.md)) |
+| App concept | no | `pantry` (see [`references/app-concepts.md`](references/app-concepts.md); launch dogfood app per [`build-terreno-app-validation`](../docs/implementationPlans/build-terreno-app-validation.md)) |
 | Deploy target | no | Vercel for web, per the app concept's guide |
 | Time budget | no | none — completeness beats speed |
 | Stack mode | no | detect from the installed Terreno version |
