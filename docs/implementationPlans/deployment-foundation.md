@@ -22,14 +22,16 @@ Establish the provider-agnostic layer that every deployment guide needs, so [`de
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| DF1 | Do we ship a reference `Dockerfile` for the backend? | (A) In `example-backend/`. (B) In `docs/` as a copy-paste block. (C) Both, with the example one canonical. | **C** — a real, CI-built `example-backend/Dockerfile` is the only kind that stays correct; the docs embed it by reference |
-| DF2 | Base image for the backend | (A) `oven/bun:1-slim`. (B) `node:22-slim` with a Bun install. (C) distroless multi-stage. | **A** — the repo is Bun-native end to end; a multi-stage build with `oven/bun` keeps the image small without a novel toolchain |
-| DF3 | Which web output mode do we document as the default? | (A) `single` (SPA) — current behavior. (B) `static`. (C) `server`. | **A** today, with a decision table covering all three. `server` becomes the recommendation only when SSR ships (see the SSR IP) and requires Expo SDK ≥ 55 |
-| DF4 | Is a health endpoint required for deployment guidance? | (A) Yes, require `@terreno/api-health`. (B) Recommend it. | **A** — every platform's readiness probe needs one, and the package already exists. Make it part of the documented baseline |
-| DF5 | Do we document a staging environment? | (A) One environment only. (B) Document a two-environment pattern. | **B** — a short section on what changes between environments (secrets, `EXPO_PUBLIC_API_URL`, CORS origins, Better Auth `trustedOrigins`, Atlas cluster), not a full multi-env guide |
-| DF6 | Where do uploaded files go by default? | (A) GCS (existing `@terreno/api` support). (B) S3-compatible. (C) Document GCS, note others are unimplemented. | **C** — be honest. Verify what file-storage backends `@terreno/ai` / `@terreno/api` actually implement before writing |
+**Recorded 2026-07-29.**
+
+| # | Question | Decision |
+|---|----------|----------|
+| DF1 | Reference backend `Dockerfile`? | **A** — canonical `example-backend/Dockerfile`; deployment docs **reference** it (embed by path, do not duplicate) |
+| DF2 | Base image | **Default: A** — `oven/bun:1-slim` |
+| DF3 | Default web output mode | **Default: A** — `single` (SPA) today + decision table for `static` / `server` |
+| DF4 | Health endpoint required? | **Default: A** — require `@terreno/api-health` |
+| DF5 | Staging environment | **Default: B** — short two-environment section |
+| DF6 | File uploads default | **Default: C** — document GCS; verify backends before writing |
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 # Implementation Plan: The AI Development Loop (Boost)
 
-**Status:** Draft — blocking questions open
+**Status:** Draft — key decisions recorded (2026-07-29)
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
@@ -24,14 +24,16 @@ This IP writes the story and closes the gaps that become obvious once the story 
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| AI1 | What replaces the name `get_rtk_state` after #869? | (A) `get_client_state` covering both. (B) `get_syncdb_state` plus keep `get_rtk_state` during the RTK support window. (C) Rename to `get_store_state`. | **A** — `get_client_state` with a `layer` field in the response identifying which store it found. One tool name that survives the migration |
-| AI2 | Where does `installTerrenoDevConsoleLogger` live after #869? | (A) Stay in `@terreno/rtk`. (B) Move to `@terreno/syncdb`. (C) Move to a new shared client package. | **B** — moving it to syncdb keeps it on the supported path; re-export from `@terreno/rtk` during the support window so existing apps do not break |
-| AI3 | Is `evaluate` documented publicly? | (A) Yes, with the `TERRENO_MCP_EVAL=1` gate prominently explained. (B) No — keep it undocumented. | **A** — undocumented dangerous features are worse than documented ones. Document it with the security reasoning, following the posture Boost takes with Tinker |
-| AI4 | Do we recommend composing `expo-mcp` and Playwright MCP in the public docs? | (A) Yes, with configuration for both. (B) Terreno servers only. | **A** — the composition *is* the recommendation from #802's Phase 6, and pretending otherwise leaves agents without screenshots |
-| AI5 | Do the hosted MCP tools require auth or rate limiting before public launch? | (A) No, stay open. (B) Add rate limiting by IP. (C) Add optional API keys. | **B** — public launch means unbounded traffic to a Cloud Run service that builds a search index. Rate limiting is a launch prerequisite, not a nice-to-have. **This needs a decision before launch, not after.** |
-| AI6 | Does the MCP URL change before launch? (program question P4) | Keep `mcp.terreno.flourish.health` / move to a neutral domain | **Move** — the URL appears in every consumer's editor config |
+**Recorded 2026-07-29** (see program [P4](oss-launch-program.md#blocking-questions-program-level)).
+
+| # | Question | Decision |
+|---|----------|----------|
+| AI1 | Replace `get_rtk_state` | **Default: A** — `get_client_state` with a `layer` field |
+| AI2 | `installTerrenoDevConsoleLogger` location | **Default: B** — move to `@terreno/syncdb`, re-export from rtk during support window |
+| AI3 | Document `evaluate` publicly? | **Default: A** — yes, with `TERRENO_MCP_EVAL=1` gate |
+| AI4 | Compose `expo-mcp` + Playwright MCP? | **Default: A** — yes, with configuration |
+| AI5 | Hosted MCP auth / rate limiting | **Default: B** — rate limiting by IP before public launch |
+| AI6 | MCP URL (→ P4) | **`https://mcp.terreno.app`** — `terreno.app` is the public base domain |
 
 ## Architecture
 

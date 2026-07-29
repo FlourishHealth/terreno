@@ -1,6 +1,6 @@
 # Implementation Plan: Deploy to GCP (Generalized) + `deploy-gcp` Skill
 
-**Status:** Draft — blocking questions open
+**Status:** Draft — key decisions recorded (2026-07-29)
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
@@ -22,19 +22,25 @@ Turn Terreno's GCP deployment story from "how Flourish deploys Terreno" into "ho
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| GC1 | Frontend web hosting target on GCP | (A) GCS bucket + Cloud CDN (current). (B) Cloud Run serving static files. (C) Firebase Hosting. | **A** as documented default, with (B) mentioned as the option once SSR lands (see [`web-ssr-and-admin-spa`](web-ssr-and-admin-spa.md) — SSR requires a server, so B becomes necessary) |
-| GC2 | Database guidance | (A) Mongo Atlas only. (B) Atlas primary, self-hosted appendix. (C) Both equally. | **A** — change streams require a replica set; Atlas gives that for free and self-hosting it correctly is a whole guide of its own |
-| GC3 | Does the guide use terraform or gcloud commands? | (A) `gcloud` commands only. (B) terraform module only. (C) `gcloud` quickstart + terraform for production. | **C** — a copy-pasteable quickstart gets people deployed; terraform is the honest production answer |
-| GC4 | Do we publish a reusable terraform module? | (A) No, document the resources. (B) Publish `terraform/modules/terreno-backend/`. (C) Separate repo + registry. | **B** — in-repo module, no registry publishing burden |
-| GC5 | Where does Flourish's own infra live? (program question P5) | Stay / private repo / `infra/flourish/` | **`infra/flourish/`** — move `terraform/` there, keep generic modules at `terraform/modules/` |
-| GC6 | Does the `deploy-gcp` skill perform deploys or only prepare them? | (A) Full deploy including `gcloud run deploy`. (B) Prepare + print commands, human runs them. (C) Full deploy behind an explicit confirmation gate. | **C** — agents may deploy, but only after echoing the target project/region/service and requiring explicit confirmation. Never deploy to a project the user did not name in the request. |
-| GC7 | Secret management | (A) Secret Manager + Cloud Run secret refs. (B) Env vars in the service config. (C) Both documented. | **A** — Secret Manager only for `TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`, `BETTER_AUTH_SECRET`, `MONGO_URI`; plain env vars for non-secrets |
+**Recorded 2026-07-29.**
+
+| # | Question | Decision |
+|---|----------|----------|
+| GC1 | Frontend web hosting | **GCS + Cloud CDN as GCP default**, plus **Netlify** (document the existing Flourish/Terreno Netlify pattern as a first-class alternative for static web export) |
+| GC2 | Database guidance | **MongoDB Atlas only** for launch; add a **future-work note** toward Postgres when the data layer supports it |
+| GC3 | terraform or gcloud | **Default: C** — `gcloud` quickstart + terraform for production |
+| GC4 | Reusable terraform module | **Default: B** — `terraform/modules/terreno-backend/` |
+| GC5 | Flourish infra location (→ P5) | **C** — `infra/flourish/` now; **migrate to B** (private repo) post-launch |
+| GC6 | `deploy-gcp` skill deploys? | **Default: C** — full deploy behind explicit confirmation gate |
+| GC7 | Secret management | **Default: A** — Secret Manager for secrets; plain env for non-secrets |
 
 ## Architecture
 
 ### Reference topology (documented default)
+
+**GCP path:** GCS + Cloud CDN for static web export (see diagram below).
+
+**Netlify path:** Document the existing Terreno/Flourish Netlify static hosting pattern as a first-class alternative for `expo export -p web` — same backend topology, different static host.
 
 ```mermaid
 flowchart TD

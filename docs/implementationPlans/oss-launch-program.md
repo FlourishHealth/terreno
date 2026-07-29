@@ -1,6 +1,6 @@
 # Program: Open Source Launch
 
-**Status:** Draft — blocking questions open
+**Status:** Draft — program decisions recorded (2026-07-29); per-IP open items remain
 **Priority:** High
 **Effort:** Epic (multiple IPs)
 **Owner:** unassigned
@@ -78,7 +78,7 @@ Combined with the already-shipped hosted tools (`terreno_search_docs`, `terreno_
 
 ## The `/terreno-*` SDLC pipeline
 
-The repo already ships the process half of the AI story and **has never documented it**: `.cursor-plugin/marketplace.json` plus `plugins/terreno-planning/` define an installable five-stage pipeline — `/terreno-1-blend` (plan), `/terreno-2-roast` (implement test-first), `/terreno-3-cupping` (verify independently), `/terreno-4-pour` (submit with evidence), `/terreno-5-dialin` (own the review loop until mergeable).
+The repo already ships the process half of the AI story and **has never documented it**: `.cursor-plugin/marketplace.json` plus `plugins/terreno-planning/` define an installable five-stage pipeline — **`/terreno-1-grow`** (plan), **`/terreno-2-harvest`** (implement), **`/terreno-3-roast`** (verify), **`/terreno-4-brew`** (submit), **`/terreno-5-taste`** (review loop until mergeable). Legacy names (`blend`, `cupping`, `pour`, `dialin`) remain as aliases during the rename — see [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md).
 
 It encodes real judgment rather than automation: a question-first planning gate that refuses to commit to decisions before they are answered, independent review and test-quality sub-agents spawned in **fresh contexts** after every commit, drift detection against the plan, anti-mocking rules, a hard frontend-evidence gate, and a refusal to push speculative fixes for flaky CI.
 
@@ -165,21 +165,23 @@ Launch gate: Wave 0 complete **and** `rtk-to-syncdb-migration-docs`, `positionin
 
 ## Blocking questions (program level)
 
-Per the `terreno-1-blend` workflow, these must be answered before the affected IPs move from Draft to Approved. Each has a **recommended default** that will be adopted only if explicitly approved.
+**Recorded 2026-07-29.** P2 was not specified in review; **B (DCO)** remains the working default until overridden.
 
-| # | Question | Options | Recommended default |
-|---|----------|---------|---------------------|
-| P1 | Which license for the whole monorepo? | (A) Apache-2.0 everywhere, retag `@terreno/mcp` from MIT. (B) MIT everywhere, relicense `api`/`ui`. (C) Keep the split. | **A** — Apache-2.0 everywhere. Patent grant matters for a framework; `api`/`ui` already ship it; only `mcp-server` changes. |
-| P2 | Copyright holder / governance model? | (A) Flourish Health single-vendor, no CLA. (B) Flourish + DCO sign-off. (C) CLA via CLA-assistant. | **B** — DCO is low-friction and gives provenance without CLA overhead. |
-| P3 | Public support channel? | (A) GitHub Discussions only. (B) Discussions + Discord. (C) Discussions + Slack Connect. | **A** to start — Discussions only; revisit Discord after 50+ external users. Avoids an unstaffed chat room. |
-| P4 | Is `mcp.terreno.flourish.health` the permanent hosted MCP URL? | (A) Keep. (B) Move to `mcp.terreno.dev` (or similar) before launch. (C) Keep + CNAME alias. | **B** — a `flourish.health` URL in every consumer's `.cursor/mcp.json` reads as internal infra. Needs a domain decision. |
-| P5 | Does Flourish-specific infra (terraform for `flourish-terreno`, Cloud Run services, Netlify sites) stay in the public repo? | (A) Stay, documented as "our deployment". (B) Move to a private repo, publish generic modules only. (C) Stay but move under `infra/flourish/`. | **C** — cheapest, keeps CI working, makes the boundary obvious. |
-| P6 | Do we publish `@terreno/rtk` after #869 merges? | (A) Keep publishing with a deprecation notice for N releases. (B) Freeze at last version, npm-deprecate immediately. (C) Keep indefinitely as a supported alternative. | **A** with N=3 minor releases — internal apps and Flourish need a migration window. |
-| P7 | Which stack does the launch documentation show as *the* path? | (A) syncdb + Better Auth only. (B) syncdb primary, RTK/JWT in a "legacy" section. (C) Both equally. | **B** — one blessed path, legacy discoverable but clearly secondary. |
-| P8 | Do we version the docs site per release at launch, or publish "latest" only? | (A) Keep current per-version snapshots. (B) Latest + one previous major. (C) Latest only until 1.0. | **B** — current versioned snapshots (0.23–0.26) are noise for new readers; keep latest + previous. |
-| P9 | Target npm version for launch? | (A) Launch on current 0.x. (B) Cut 1.0.0 as the launch release. (C) Launch on 0.x, promise 1.0 after syncdb stabilizes. | **C** — 1.0 implies API stability we do not have while syncdb is new. |
-| P10 | Is the blog post from `build-terreno-app-validation` published on the docs site, Flourish blog, or dev.to/Hashnode? | (A) Docs site blog. (B) Flourish engineering blog + canonical link. (C) All three, canonical on docs site. | **C** with canonical on the docs site — the docs site needs the SEO. |
-| P11 | Is the `/terreno-*` SDLC plugin marketplace public at launch? | (A) Public — anyone can install. (B) Team-only, documented but not installable. (C) Public, with Flourish-specific stages kept in a separate internal plugin. | **A**, gated on the portability and sanitization work in [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md). A team-only plugin cannot support the AI-native positioning claim, but publishing it before it works outside this monorepo is worse than not publishing it. |
+| # | Question | Decision |
+|---|----------|----------|
+| P1 | License for the whole monorepo | **MIT everywhere** — relicense `api`/`ui` from Apache-2.0; align `@terreno/mcp` and all published packages |
+| P2 | Copyright / governance model | **B (default)** — Flourish + DCO sign-off, pending explicit confirmation |
+| P3 | Public support channel | **A** — GitHub Discussions only at launch |
+| P4 | Hosted MCP URL | **`https://mcp.terreno.app`** — retire `mcp.terreno.flourish.health` before launch |
+| P5 | Flourish-specific infra in the public repo | **C now** — move under `infra/flourish/`; **note to migrate to B** (private repo, generic modules only) post-launch |
+| P6 | Publish `@terreno/rtk` after #869 | **A** — keep publishing with deprecation notice through the current major line; **stop publishing in the next major** |
+| P7 | Launch documentation stack | **A** — **syncdb + Better Auth only** in tutorials, reference, and positioning (no parallel RTK/JWT path in public docs) |
+| P8 | Docs site versioning at launch | **B** — latest + one previous major |
+| P9 | Target npm version for launch | **C** — stay on 0.x; launch on **`0.56.x`** aligned with Expo SDK 56; promise 1.0 after syncdb stabilizes |
+| P10 | Blog post venue | **A** — docs site blog only |
+| P11 | `/terreno-*` SDLC plugin marketplace | **A** — public at launch, gated on portability work in [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md) |
+
+**Brand / domain:** public surfaces use **`terreno.app`** (MCP at `mcp.terreno.app`, contacts at `@terreno.app`).
 
 Per-IP blocking questions live in each IP file under `## Blocking questions`.
 

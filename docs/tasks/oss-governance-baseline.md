@@ -8,14 +8,14 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
 
 - Do **not** change any source code under `*/src/`. This IP is documentation, metadata, and CI configuration only.
 - Do **not** rewrite existing `README.md` prose. Only append the new governance section and badge.
-- Answer keys used below assume the recommended defaults in the IP (Apache-2.0, DCO, Contributor Covenant 2.1). If the decision table in the IP has been updated with different answers, follow the IP.
+- Answer keys used below follow the IP decisions recorded 2026-07-29 (**MIT**, DCO, Contributor Covenant 2.1, `security@terreno.app`, `conduct@terreno.app`, Conventional Commits CI-enforced). If the IP decision table changes, follow the IP.
 - Run `bun run lint` before each commit. Run `bun run rules:check` if you touch anything under `.rulesync/`.
 - One commit per task unless a task explicitly says otherwise.
 
 ## Phase 1: Legal baseline
 
 - [ ] **Task 1.1**: Add root `LICENSE` and `NOTICE`
-  - Description: Copy the exact Apache License 2.0 text (from `api/LICENSE`, which already contains it) to a new root `LICENSE`. Verify byte-for-byte that the license body matches `api/LICENSE` except for the copyright line. Create `NOTICE` containing the project name, the copyright line `Copyright 2026 Flourish Health, Inc.`, a one-line statement that the project is licensed under Apache-2.0, and an acknowledgement of the vendored `api/src/vendor/wesleytodd-openapi/` code with a pointer to its own `LICENSE`.
+  - Description: Copy the MIT License text to a new root `LICENSE` (use the standard MIT template; `mcp-server` already ships MIT). Create `NOTICE` containing the project name, the copyright line `Copyright 2026 Flourish Health, Inc.`, and a one-line statement that the project is licensed under MIT. Include acknowledgement of vendored `api/src/vendor/wesleytodd-openapi/` with a pointer to its own `LICENSE`.
   - Files: `LICENSE` (new), `NOTICE` (new)
   - Depends on: none
   - Acceptance: `LICENSE` exists at repo root; `diff <(tail -n +3 LICENSE) <(tail -n +3 api/LICENSE)` shows no differences in the license body; `NOTICE` mentions the vendored openapi code.
@@ -33,10 +33,10 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
   - Acceptance: every published package directory contains a `LICENSE` identical to the root `LICENSE`.
 
 - [ ] **Task 1.4**: Align `license` fields and `files` arrays
-  - Description: Set `"license": "Apache-2.0"` in the root `package.json` and in every published package's `package.json`. This includes changing `mcp-server/package.json` from `MIT` to `Apache-2.0`. For every package that has an explicit `files` array, add `"LICENSE"` to it (`ui`, `rtk`, `admin-frontend`, `admin-spa`, `mcp-server` at minimum — confirm against Task 1.2 findings). Do not otherwise reorder or reformat `package.json`.
+  - Description: Set `"license": "MIT"` in the root `package.json` and in every published package's `package.json` (relicense `api`/`ui` from Apache-2.0). For every package that has an explicit `files` array, add `"LICENSE"` to it (`ui`, `rtk`, `admin-frontend`, `admin-spa`, `mcp-server` at minimum — confirm against Task 1.2 findings). Do not otherwise reorder or reformat `package.json`.
   - Files: `package.json`, `ui/package.json`, `rtk/package.json`, `admin-frontend/package.json`, `admin-spa/package.json`, `mcp-server/package.json`, plus any others found in Task 1.2
   - Depends on: Task 1.3
-  - Acceptance: `bun pm pack --dry-run` run inside each published package lists `LICENSE` among the packed files; no `package.json` declares a license other than `Apache-2.0`.
+  - Acceptance: `bun pm pack --dry-run` run inside each published package lists `LICENSE` among the packed files; no `package.json` declares a license other than `MIT`.
 
 - [ ] **Task 1.5**: Verify relicensing consent for `mcp-server`
   - Description: Run `git log --format='%an <%ae>' -- mcp-server/ | sort -u` and list every distinct author. Report the list in the PR body, flagging any address that is not a `@flourish.health` address or a known bot. Do **not** proceed to merge the license change for `mcp-server` if a non-Flourish human contributor appears; instead leave a `TODO` note in the PR body requesting sign-off.

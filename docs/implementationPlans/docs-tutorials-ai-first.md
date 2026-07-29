@@ -24,13 +24,15 @@ The Diátaxis split matters here: tutorials teach by doing a complete thing; how
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| T1 | Does the first tutorial start from the example apps or from `terreno_bootstrap_app`? | (A) Run the examples (current). (B) Bootstrap a new app with MCP. (C) Two entry points, reader chooses. | **C** — "Run the examples" is the 5-minute look; "Bootstrap your own app" is the 30-minute build. Both on the tutorials index, bootstrap listed first |
-| T2 | Do tutorials assume an AI coding agent is available? | (A) Yes, agent-first with manual steps in collapsible sections. (B) Manual-first with agent shortcuts noted. (C) Two parallel tracks. | **B** — manual-first. An agent can always follow a manual tutorial; a human cannot follow an agent-only one. Agent shortcuts appear as callouts. This keeps one document instead of two that drift |
-| T3 | What does the tutorial app build? | (A) Extend the example todos. (B) A new small app (notes/bookmarks). (C) The same app as the blog post. | **B** — a small, new, non-todo app. Todos are already the example app, and building the blog-post app in a tutorial would make the blog post redundant |
-| T4 | Does the deploy tutorial target Vercel or GCP? | (A) Vercel (fastest). (B) GCP. (C) Both, reader chooses. | **A** for the tutorial (fewest steps to a URL), linking the GCP how-to for production. Tutorials optimize for completion, not production-readiness |
-| T5 | Is local MongoDB in the tutorial Docker, Atlas, or the bundled binary? | (A) Docker single-node replica set. (B) Atlas free tier. (C) `mongodb-memory-server` binary. | **B** — Atlas free tier. It is a replica set by default (which change streams require), needs no local install, and matches what the reader will use in production. Docker instructions as an appendix |
+**Recorded 2026-07-29.**
+
+| # | Question | Decision |
+|---|----------|----------|
+| T1 | Examples vs bootstrap entry | **Default: C** — two entry points on the tutorials index |
+| T2 | Agent assumed? | **A** — agent-first; manual steps in collapsible sections |
+| T3 | Tutorial app | **Default: B** — new small app (not todos, not the blog-post app) |
+| T4 | Deploy target in tutorial | **Default: A** — Vercel (all-in-one per [`deploy-to-vercel`](deploy-to-vercel.md)) |
+| T5 | MongoDB setup | **B (Atlas) + local Mongo** — document Atlas free tier for production-like setup **and** local single-node replica set instructions (bundled `mongod` / dev path from `AGENTS.md`). **No Docker** |
 
 ## Architecture
 
@@ -43,7 +45,7 @@ The Diátaxis split matters here: tutorials teach by doing a complete thing; how
 | 2 | `build-with-ai.md` | 30 min | MCP setup, generators, `read_logs`/`last_error`, the fix loop |
 | 3 | `add-ai-features.md` | 25 min | `@terreno/ai`: streaming chat, structured output, request logging |
 | 4 | `add-an-admin-panel.md` | 20 min | `AdminApp` registration, admin screens, admin-only permissions |
-| 5 | `deploy-your-app.md` | 25 min | Vercel web + backend, env vars, first production login |
+| 5 | `deploy-your-app.md` | 25 min | Vercel all-in-one (web + backend + storage), env vars, first production login |
 
 Every tutorial ends with: what you built, what to read next, and the corresponding reference page.
 

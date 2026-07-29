@@ -15,7 +15,7 @@ See: [`docs/implementationPlans/build-terreno-app-validation.md`](../implementat
 ## Phase 1: Run 1
 
 - [ ] **Task 1.1**: Confirm the concept and prerequisites
-  - Description: Confirm which app concept to build (IP question B1, default Sprout). Record the environment: OS, Bun version, editor and agent model with version (required per IP question B6), installed Terreno version, and the resolved stack mode. Confirm the stack mode is syncdb + Better Auth; if it is not, stop — the run is premature.
+  - Description: Confirm which app concept to build (IP question B1 — **Pantry**). Record the environment: OS, Bun version, editor and agent model with version (required per IP question B6), installed Terreno version, and the resolved stack mode. Confirm the stack mode is syncdb + Better Auth; if it is not, stop — the run is premature.
   - Files: `FRICTION_LOG.md` in the working directory (outside this repo)
   - Depends on: PR #869 merged; the three prerequisite IPs complete
   - Acceptance: the log header is complete including the agent model and version; the stack mode is confirmed as syncdb + Better Auth; the working directory is outside the Terreno monorepo.

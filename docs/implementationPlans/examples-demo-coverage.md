@@ -1,6 +1,6 @@
 # Implementation Plan: Examples, Demo, and Test Coverage
 
-**Status:** Draft — blocking questions open
+**Status:** Draft — key decisions recorded (2026-07-29)
 **Priority:** Medium
 **Effort:** Big batch
 **Owner:** unassigned
@@ -28,13 +28,15 @@ Three concrete problems today:
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| E1 | Do we require a demo story for every `@terreno/ui` component? | (A) Yes, CI-enforced. (B) Yes for exported components, allowlist for internals. (C) Recommended only. | **B** — CI-enforced against the export list with an explicit allowlist for components that genuinely cannot be demoed in isolation. Each allowlist entry needs a reason |
-| E2 | Do we add a coverage badge / Codecov? | (A) Codecov with badges per package. (B) A self-hosted badge from CI. (C) No badge. | **A** — Codecov is free for public repos and gives per-PR coverage deltas, which is more useful than the badge |
-| E3 | Do all published packages get dedicated CI? | (A) Yes, one workflow per published package. (B) One matrix workflow across packages without their own. | **B** — a matrix job for `admin-backend`, `feature-flags`, and `api-health` rather than three near-identical workflows. Fewer files to keep in sync |
-| E4 | Do we enforce coverage on packages currently below threshold? | (A) Enforce immediately; failing packages must catch up first. (B) Ratchet: record current coverage as the floor, forbid decreases. | **B** — the ratchet. Blocking all work on packages that are behind is how coverage enforcement gets reverted |
-| E5 | `[RTK]` Do example apps need a feature-parity checklist? | (A) Yes, a documented matrix of framework features versus example coverage. (B) No. | **A** — the repo already claims examples double as integration tests. A matrix makes that checkable and shows which features have no working example |
+**Recorded 2026-07-29.**
+
+| # | Question | Decision |
+|---|----------|----------|
+| E1 | Demo story for every UI component? | **Default: B** — CI-enforced exports + allowlist |
+| E2 | Codecov / badge | **Default: A** |
+| E3 | Dedicated CI per package | **Default: B** — matrix workflow |
+| E4 | Enforce coverage below threshold? | **A** — enforce immediately; failing packages must catch up before the gate lands |
+| E5 | Example feature-parity checklist | **Default: A** |
 
 ## Architecture
 

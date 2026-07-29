@@ -1,6 +1,6 @@
 # Implementation Plan: OSS Governance Baseline
 
-**Status:** Draft — blocking questions open
+**Status:** Draft — key decisions recorded (2026-07-29)
 **Priority:** High
 **Effort:** Small batch
 **Owner:** unassigned
@@ -24,15 +24,17 @@ This is the hard blocker: without it, nothing else in the program can ship publi
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| G1 | License (program question P1) | Apache-2.0 everywhere / MIT everywhere / keep split | **Apache-2.0 everywhere**; `@terreno/mcp` relicensed from MIT |
-| G2 | Copyright line | `Copyright 2026 Flourish Health, Inc.` / `Copyright 2026 Terreno contributors` / both | **`Copyright 2026 Flourish Health, Inc.`** in `LICENSE`; `NOTICE` credits contributors |
-| G3 | Contributor provenance (program question P2) | none / DCO / CLA | **DCO** — `Signed-off-by` enforced by a CI check on external PRs only |
-| G4 | Security contact | `security@flourish.health` / GitHub private vulnerability reporting / both | **Both** — GitHub PVR as primary, email as fallback |
-| G5 | Changelog strategy | root `CHANGELOG.md` only / per-package changelogs / root + generated from releases | **Root `CHANGELOG.md`** in Keep-a-Changelog format, one section per lockstep release; `api/CHANGELOG.md` becomes a pointer |
-| G6 | Do we enforce Conventional Commits? | yes, CI-enforced / recommended in CONTRIBUTING / no | **Recommended in CONTRIBUTING**, not CI-enforced — existing history is mixed |
-| G7 | Code of Conduct source | Contributor Covenant 2.1 / custom / none | **Contributor Covenant 2.1** with `conduct@flourish.health` as the report address |
+**Recorded 2026-07-29** (see program [P1–P2](oss-launch-program.md#blocking-questions-program-level)).
+
+| # | Question | Decision |
+|---|----------|----------|
+| G1 | License (→ P1) | **MIT everywhere** — root `LICENSE`, per-package `LICENSE` files, and all `package.json` `license` fields |
+| G2 | Copyright line | **Default** — `Copyright 2026 Flourish Health, Inc.` in `LICENSE`; `NOTICE` credits contributors (pending P2 confirmation) |
+| G3 | Contributor provenance (→ P2) | **Default: DCO** — `Signed-off-by` enforced by CI on external PRs |
+| G4 | Security contact | **`security@terreno.app`** + GitHub private vulnerability reporting (PVR as primary) |
+| G5 | Changelog strategy | **Default** — root `CHANGELOG.md` in Keep-a-Changelog format; `api/CHANGELOG.md` becomes a pointer |
+| G6 | Enforce Conventional Commits? | **Yes, CI-enforced** on new PRs (scope TBD: title + body vs commit messages) |
+| G7 | Code of Conduct | **Contributor Covenant 2.1** with **`conduct@terreno.app`** as the report address |
 
 ## Architecture
 
@@ -48,16 +50,16 @@ From `publish-on-tag.yml`, ten packages publish in lockstep. Current state:
 
 | Package | `LICENSE` file | In `files` array | `license` field |
 |---------|----------------|------------------|-----------------|
-| `api` | yes | implicit (no `files`) | Apache-2.0 |
-| `ui` | yes | **missing from `files`** | Apache-2.0 |
-| `rtk` | **no** | **missing from `files`** | Apache-2.0 |
-| `ai` | **no** | implicit | Apache-2.0 |
-| `admin-backend` | **no** | implicit | Apache-2.0 |
-| `admin-frontend` | **no** | **missing from `files`** | Apache-2.0 |
-| `admin-spa` | **no** | **missing from `files`** | Apache-2.0 |
-| `api-health` | **no** | implicit | Apache-2.0 |
-| `feature-flags` | **no** | implicit | Apache-2.0 |
-| `mcp-server` | **no** | **missing from `files`** | **MIT** |
+| `api` | yes | implicit (no `files`) | Apache-2.0 → **MIT** |
+| `ui` | yes | **missing from `files`** | Apache-2.0 → **MIT** |
+| `rtk` | **no** | **missing from `files`** | Apache-2.0 → **MIT** |
+| `ai` | **no** | implicit | Apache-2.0 → **MIT** |
+| `admin-backend` | **no** | implicit | Apache-2.0 → **MIT** |
+| `admin-frontend` | **no** | **missing from `files`** | Apache-2.0 → **MIT** |
+| `admin-spa` | **no** | **missing from `files`** | Apache-2.0 → **MIT** |
+| `api-health` | **no** | implicit | Apache-2.0 → **MIT** |
+| `feature-flags` | **no** | implicit | Apache-2.0 → **MIT** |
+| `mcp-server` | **no** | **missing from `files`** | MIT (already) |
 
 Task 1.2 must re-derive this table from the repo at implementation time rather than trusting it.
 

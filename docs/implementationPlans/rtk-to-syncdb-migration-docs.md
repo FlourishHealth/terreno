@@ -24,15 +24,17 @@ Scope is documentation, deprecation signalling, and migration tooling — not sy
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| M1 | RTK support window (program question P6) | (A) 3 minor releases with deprecation notice. (B) Freeze and npm-deprecate immediately. (C) Support indefinitely. | **A**, N = 3 minors. Long enough for Flourish's own apps; short enough to be honest with new users. |
-| M2 | Does `@terreno/rtk` get an `npm deprecate` marker? | (A) Yes, at the start of the window. (B) Only at end of window. (C) Never; docs only. | **B** — an `npm deprecate` warning during the support window creates install-time noise for consumers who are correctly still on RTK. Mark it at window close. |
-| M3 | Is auth migration coupled to data-layer migration? | (A) Yes, one combined migration (JWT+RTK → Better Auth+syncdb). (B) Two independent migrations. (C) Auth first, then data. | **C** — Better Auth can be adopted while still on RTK, which lets consumers de-risk in two steps. Document that order explicitly. |
-| M4 | What happens to `docs/reference/rtk.md`? | (A) Delete. (B) Keep, banner-marked Legacy, moved to `docs/reference/legacy/`. (C) Keep in place with a banner. | **B** — moving it makes the reference index tell the truth at a glance, and Docusaurus redirects keep old links alive. |
-| M5 | Does SDK codegen change name/command? | (A) `bun run sdk` keeps working, new generator behind it. (B) New command `bun run sync:codegen`, old one deprecated. | **A** — same command, new generator. Consumers should not have to relearn the loop. Requires confirming `@terreno/syncdb-codegen`'s CLI shape from #869. |
-| M6 | Do we ship a codemod? | (A) Yes, an automated `rtk→syncdb` codemod. (B) An `upgrading-terreno` skill that does it agent-assisted. (C) Manual guide only. | **B** — the mechanical part (hook renames) is small; the interesting part (optimistic mutations, conflict handling) needs judgment. Agent-assisted beats a brittle codemod. See [`upgrade-guides-and-skill`](upgrade-guides-and-skill.md). |
-| M7 | Is offline/local-first presented as the default or an opt-in? | (A) Default — syncdb is local-first, period. (B) Opt-in mode with a server-first default. | **A** if #869 ships local-first as the only mode; otherwise (B). **Must be verified against the merged code, not assumed.** |
+**Recorded 2026-07-29** (see program [P6–P7](oss-launch-program.md#blocking-questions-program-level)).
+
+| # | Question | Decision |
+|---|----------|----------|
+| M1 | RTK support window (→ P6) | **Keep publishing with deprecation notice through the current major line; stop publishing `@terreno/rtk` in the next major** |
+| M2 | `npm deprecate` marker | **Default: B** — mark at end of support window, not at start |
+| M3 | Auth vs data migration | **Default: C** — Better Auth first, then syncdb |
+| M4 | `docs/reference/rtk.md` (→ P7 **A**) | **Remove from the public reference index** — no legacy reference page. Existing RTK consumers use **`docs/how-to/migrate-rtk-to-syncdb.md`** only; do not maintain a parallel RTK reference path in launch docs |
+| M5 | SDK codegen command | **Default: A** — `bun run sdk` keeps working |
+| M6 | Codemod | **Default: B** — agent-assisted via `upgrading-terreno` skill |
+| M7 | Local-first default | **Default: A** — present syncdb as local-first default **if #869 ships that way** (verify against merged code) |
 
 ## Architecture
 
@@ -42,7 +44,7 @@ Every document below currently describes an RTK-shaped world and must be reconci
 
 | Document | Current state | Target state |
 |----------|---------------|--------------|
-| `docs/reference/rtk.md` | Primary frontend reference | Moved to `docs/reference/legacy/rtk.md`, Legacy banner, links the migration guide |
+| `docs/reference/rtk.md` | Primary frontend reference | **Removed from launch reference** (P7 A). Redirect to migration guide; archive pre-launch content if needed for inbound links |
 | `docs/reference/syncdb.md` | does not exist | New primary frontend data reference |
 | `docs/how-to/migrate-rtk-to-syncdb.md` | does not exist | New step-by-step migration guide |
 | `docs/explanation/local-first-data.md` | does not exist | New conceptual explainer: why local-first, what changes for the developer |

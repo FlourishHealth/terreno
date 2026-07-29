@@ -8,7 +8,7 @@ Umbrella plans that coordinate several IPs.
 
 | Program | Status | Created | IPs |
 |---------|--------|---------|-----|
-| [Open source launch](oss-launch-program.md) | Draft (blocking questions open) | 2026-07-27 | 15 |
+| [Open source launch](oss-launch-program.md) | Draft — program decisions recorded (2026-07-29) | 2026-07-27 | 15 |
 
 ## Active
 

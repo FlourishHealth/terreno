@@ -1,6 +1,6 @@
 # Implementation Plan: Dogfooding Run and Launch Blog Post
 
-**Status:** Draft — blocking questions open
+**Status:** Draft — key decisions recorded (2026-07-29)
 **Priority:** High (this is the program's acceptance test)
 **Effort:** Big batch
 **Owner:** unassigned
@@ -24,14 +24,16 @@ The program's launch gate is: **if an agent following only public documentation 
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| B1 | Which app concept? | Sprout / Pantry / Recall / Fieldnote / Trailmark (see the skill's concept reference) | **Sprout** — widest capability coverage without a shared-scope model, most natural AI use, cleanest one-sentence pitch. Choose **Pantry** instead if the post should lead on conflict resolution, which is the most technically interesting thing syncdb does |
-| B2 | Does the demo app get a public repository? | (A) Yes, `flourishhealth/terreno-sprout`. (B) No, code samples in the post only. (C) A gist. | **A** — "show me the code" is the first reply to any framework post. A separate repo, explicitly unmaintained beyond the post, with a README stating the Terreno version it was built against |
-| B3 | Who performs the run? | (A) An agent in a fresh session. (B) A human engineer. (C) Both independently, findings merged. | **C** if capacity allows — an agent and a human hit different walls, and the difference between the two logs is itself worth writing about. Otherwise **A**, since the launch claim is specifically about agents |
-| B4 | How many runs before publishing? | (A) One. (B) Two, with fixes applied between them. | **B** — run, fix, run again. The second run measures whether the fixes worked, and a gap that survives both runs is a much stronger signal than one seen once |
-| B5 | Publication venue (program question P10) | Docs site / Flourish blog / syndicated | **All three, canonical on the docs site** |
-| B6 | Does the post name the model doing the building? | (A) Yes, with version. (B) No. | **A** — reproducibility. Without the model and version the result is not checkable |
+**Recorded 2026-07-29** (see program [P10](oss-launch-program.md#blocking-questions-program-level)).
+
+| # | Question | Decision |
+|---|----------|----------|
+| B1 | App concept | **Pantry** — leads on syncdb conflict resolution |
+| B2 | Public demo repo? | **Default: A** — `flourishhealth/terreno-pantry` (rename from sprout default) |
+| B3 | Who performs the run? | **Default: C** if capacity; else **A** |
+| B4 | Runs before publish | **Default: B** — two runs with fix cycle between |
+| B5 | Publication venue | **A** — docs site blog only |
+| B6 | Name the model? | **Default: A** — yes, with version |
 
 ## Architecture
 
