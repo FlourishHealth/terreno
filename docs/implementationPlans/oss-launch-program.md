@@ -1,6 +1,6 @@
 # Program: Open Source Launch
 
-**Status:** Draft — program decisions recorded (2026-07-29); per-IP open items remain
+**Status:** Draft — decisions recorded (defaults accepted 2026-07-29)
 **Priority:** High
 **Effort:** Epic (multiple IPs)
 **Owner:** unassigned
@@ -165,12 +165,12 @@ Launch gate: Wave 0 complete **and** `rtk-to-syncdb-migration-docs`, `positionin
 
 ## Blocking questions (program level)
 
-**Recorded 2026-07-29.** P2 was not specified in review; **B (DCO)** remains the working default until overridden.
+**Recorded 2026-07-29** (defaults accepted for all unspecified items).
 
 | # | Question | Decision |
 |---|----------|----------|
 | P1 | License for the whole monorepo | **MIT everywhere** — relicense `api`/`ui` from Apache-2.0; align `@terreno/mcp` and all published packages |
-| P2 | Copyright / governance model | **B (default)** — Flourish + DCO sign-off, pending explicit confirmation |
+| P2 | Copyright / governance model | **B** — Flourish + **DCO** sign-off (`Signed-off-by` on external PRs) |
 | P3 | Public support channel | **A** — GitHub Discussions only at launch |
 | P4 | Hosted MCP URL | **`https://mcp.terreno.app`** — retire `mcp.terreno.flourish.health` before launch |
 | P5 | Flourish-specific infra in the public repo | **C now** — move under `infra/flourish/`; **note to migrate to B** (private repo, generic modules only) post-launch |
@@ -187,6 +187,7 @@ Per-IP blocking questions live in each IP file under `## Blocking questions`.
 
 ## Not included / future work
 
+- **Vercel deployment topology spike** — whether `@terreno/api` (Socket.io, change streams, SSE) can run on Vercel in one platform with the web app and file storage, or whether a split host remains required. Tracked as open TODOs in [`deploy-to-vercel.md`](deploy-to-vercel.md); do not document a finalized topology until the spike lands.
 - Actual 1.0 API-stability audit.
 - Trademark/brand review of the "Terreno" name.
 - Paid support, sponsorship, or OpenCollective setup.

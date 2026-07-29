@@ -31,12 +31,12 @@ The audit that produced this program missed the plugin entirely. If an agent rea
 | # | Question | Decision |
 |---|----------|----------|
 | AP1 | Marketplace public or team-only? | **A** — public at launch (gated on portability) |
-| AP2 | PHI/HIPAA handling | **Default: B** — generalize to "sensitive data (PHI, PII, secrets)" |
+| AP2 | PHI/HIPAA handling | **B** — generalize to "sensitive data (PHI, PII, secrets)" |
 | AP3 | Stage names | **Coffee theme retained.** New five-stage flow: **grow → harvest → roast → brew → taste**. Skills: `/terreno-1-grow`, `/terreno-2-harvest`, `/terreno-3-roast`, `/terreno-4-brew`, `/terreno-5-taste`. **Aliases required** in docs and skill frontmatter (see mapping below) |
-| AP4 | Consumer apps or monorepo only? | **Default: B** — must work in consumer apps |
+| AP4 | Consumer apps or monorepo only? | **B** — must work in consumer apps |
 | AP5 | Overlap with `submit` / `autobot` | **A** — deprecate `submit` and `autobot` in favor of the plugin. **Fold all `autobot` behavior into Taste (`/terreno-5-taste`)**. Taste should be **self-contained** (inline the full submit → CI → review loop) rather than delegating to other skills — delegation has been unreliable inside the plugin (sub-agents and cross-skill calls do not always resolve). Accept larger skill files / context cost over broken orchestration |
-| AP6 | Agent runtimes | **Default: B** — Cursor + rulesync-generated variants |
-| AP7 | Plugin versioning | **Default: A** — independent versioning; declare compatible Terreno versions |
+| AP6 | Agent runtimes | **B** — Cursor + rulesync-generated variants |
+| AP7 | Plugin versioning | **A** — independent versioning; declare compatible Terreno versions |
 
 ### Stage mapping (rename + aliases)
 

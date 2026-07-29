@@ -24,15 +24,15 @@ The Diátaxis split matters here: tutorials teach by doing a complete thing; how
 
 ## Blocking questions
 
-**Recorded 2026-07-29.**
+**Recorded 2026-07-29** (defaults accepted).
 
 | # | Question | Decision |
 |---|----------|----------|
-| T1 | Examples vs bootstrap entry | **Default: C** — two entry points on the tutorials index |
+| T1 | Examples vs bootstrap entry | **C** — two entry points on the tutorials index |
 | T2 | Agent assumed? | **A** — agent-first; manual steps in collapsible sections |
-| T3 | Tutorial app | **Default: B** — new small app (not todos, not the blog-post app) |
-| T4 | Deploy target in tutorial | **Default: A** — Vercel (all-in-one per [`deploy-to-vercel`](deploy-to-vercel.md)) |
-| T5 | MongoDB setup | **B (Atlas) + local Mongo** — document Atlas free tier for production-like setup **and** local single-node replica set instructions (bundled `mongod` / dev path from `AGENTS.md`). **No Docker** |
+| T3 | Tutorial app | **B** — new small app (not todos, not the blog-post app) |
+| T4 | Deploy target in tutorial | **A** — Vercel, **pending [`deploy-to-vercel`](deploy-to-vercel.md) spike** (interim split topology until V1 closes) |
+| T5 | MongoDB setup | **B (Atlas) + local Mongo** — no Docker |
 
 ## Architecture
 
@@ -45,7 +45,7 @@ The Diátaxis split matters here: tutorials teach by doing a complete thing; how
 | 2 | `build-with-ai.md` | 30 min | MCP setup, generators, `read_logs`/`last_error`, the fix loop |
 | 3 | `add-ai-features.md` | 25 min | `@terreno/ai`: streaming chat, structured output, request logging |
 | 4 | `add-an-admin-panel.md` | 20 min | `AdminApp` registration, admin screens, admin-only permissions |
-| 5 | `deploy-your-app.md` | 25 min | Vercel all-in-one (web + backend + storage), env vars, first production login |
+| 5 | `deploy-your-app.md` | 25 min | Vercel deploy (topology per deploy-to-vercel spike), env vars, first production login |
 
 Every tutorial ends with: what you built, what to read next, and the corresponding reference page.
 

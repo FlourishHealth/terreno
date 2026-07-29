@@ -36,13 +36,15 @@ Give every published package a public reference page and a real README. Today fo
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| RF1 | Where does the canonical package documentation live? | (A) `docs/reference/<pkg>.md` is canonical; README is a short intro that links it. (B) README is canonical; reference page is a stub. (C) Duplicate both. | **A** — one source of truth on the docs site, with a README that works standalone on npm (install, 30-second example, link to full docs) |
-| RF2 | Do we keep `.cursor/rules/*/00-*.mdc` as the agent-facing copy after extracting public docs? | (A) Yes, both exist; rules stay agent-optimized. (B) Rules become thin pointers to `docs/reference/`. (C) Generate rules from reference docs. | **A** — they serve different readers. Agent rules are prescriptive ("never use `Model.findOne`"); reference docs are descriptive. Accept the duplication, and add a `docs-audit` check for drift |
-| RF3 | Does `@terreno/test` get public docs? | (A) Yes, it is published. (B) No, internal-only, mark `private`. | **A** — it is published and consumers writing tests against a Terreno backend need it. A short page is enough |
-| RF4 | Does `.ai/` per-package guideline shipping (Boost Phase 2) change the README plan? | (A) No, independent. (B) Yes, README links `.ai/guidelines/core.md`. | **B** — if Boost Phase 2 shipped, each README should mention that the package carries its own agent guidelines. Verify against merged #802 |
-| RF5 | How much of `docs/implementationPlans/` and `docs/tasks/` is public? | (A) All (current state, IPs/tasks excluded from the site sidebar but present in repo). (B) Move `tasks/` out of `docs/`. (C) Keep both, add a README explaining they are internal planning artifacts. | **C** — cheap, honest, and IPs are genuinely useful context for contributors. `docs/tasks/` needs a README saying "agent task lists, not documentation" |
+**Recorded 2026-07-29** (defaults accepted).
+
+| # | Decision |
+|---|----------|
+| RF1 | **`docs/reference/<pkg>.md` canonical**; README is short intro + link |
+| RF2 | Keep **`.cursor/rules/*/00-*.mdc`** agent-optimized; add drift check |
+| RF3 | **`@terreno/test` gets public docs** |
+| RF4 | README links **`.ai/guidelines/core.md`** when Boost Phase 2 ships |
+| RF5 | Keep `docs/implementationPlans/` + `docs/tasks/` in repo; **README on `docs/tasks/`** explaining planning artifacts |
 
 ## Architecture
 

@@ -24,16 +24,16 @@ The program's launch gate is: **if an agent following only public documentation 
 
 ## Blocking questions
 
-**Recorded 2026-07-29** (see program [P10](oss-launch-program.md#blocking-questions-program-level)).
+**Recorded 2026-07-29** (defaults accepted).
 
 | # | Question | Decision |
 |---|----------|----------|
 | B1 | App concept | **Pantry** — leads on syncdb conflict resolution |
-| B2 | Public demo repo? | **Default: A** — `flourishhealth/terreno-pantry` (rename from sprout default) |
-| B3 | Who performs the run? | **Default: C** if capacity; else **A** |
-| B4 | Runs before publish | **Default: B** — two runs with fix cycle between |
+| B2 | Public demo repo? | **A** — `flourishhealth/terreno-pantry` |
+| B3 | Who performs the run? | **C** if capacity; else **A** |
+| B4 | Runs before publish | **B** — two runs with fix cycle between |
 | B5 | Publication venue | **A** — docs site blog only |
-| B6 | Name the model? | **Default: A** — yes, with version |
+| B6 | Name the model? | **A** — yes, with version |
 
 ## Architecture
 

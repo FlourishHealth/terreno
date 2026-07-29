@@ -22,16 +22,16 @@ Establish the provider-agnostic layer that every deployment guide needs, so [`de
 
 ## Blocking questions
 
-**Recorded 2026-07-29.**
+**Recorded 2026-07-29** (defaults accepted).
 
 | # | Question | Decision |
 |---|----------|----------|
-| DF1 | Reference backend `Dockerfile`? | **A** — canonical `example-backend/Dockerfile`; deployment docs **reference** it (embed by path, do not duplicate) |
-| DF2 | Base image | **Default: A** — `oven/bun:1-slim` |
-| DF3 | Default web output mode | **Default: A** — `single` (SPA) today + decision table for `static` / `server` |
-| DF4 | Health endpoint required? | **Default: A** — require `@terreno/api-health` |
-| DF5 | Staging environment | **Default: B** — short two-environment section |
-| DF6 | File uploads default | **Default: C** — document GCS; verify backends before writing |
+| DF1 | Reference backend `Dockerfile`? | **A** — canonical `example-backend/Dockerfile`; docs reference it |
+| DF2 | Base image | **A** — `oven/bun:1-slim` |
+| DF3 | Default web output mode | **A** — `single` (SPA) today + decision table for `static` / `server` |
+| DF4 | Health endpoint required? | **A** — require `@terreno/api-health` |
+| DF5 | Staging environment | **B** — short two-environment section |
+| DF6 | File uploads default | **C** — document GCS; verify backends before writing |
 
 ## Architecture
 

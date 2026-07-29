@@ -29,12 +29,12 @@ Scope is documentation, deprecation signalling, and migration tooling — not sy
 | # | Question | Decision |
 |---|----------|----------|
 | M1 | RTK support window (→ P6) | **Keep publishing with deprecation notice through the current major line; stop publishing `@terreno/rtk` in the next major** |
-| M2 | `npm deprecate` marker | **Default: B** — mark at end of support window, not at start |
-| M3 | Auth vs data migration | **Default: C** — Better Auth first, then syncdb |
+| M2 | `npm deprecate` marker | **B** — mark at end of support window |
+| M3 | Auth vs data migration | **C** — Better Auth first, then syncdb |
 | M4 | `docs/reference/rtk.md` (→ P7 **A**) | **Remove from the public reference index** — no legacy reference page. Existing RTK consumers use **`docs/how-to/migrate-rtk-to-syncdb.md`** only; do not maintain a parallel RTK reference path in launch docs |
-| M5 | SDK codegen command | **Default: A** — `bun run sdk` keeps working |
-| M6 | Codemod | **Default: B** — agent-assisted via `upgrading-terreno` skill |
-| M7 | Local-first default | **Default: A** — present syncdb as local-first default **if #869 ships that way** (verify against merged code) |
+| M5 | SDK codegen command | **A** — `bun run sdk` keeps working |
+| M6 | Codemod | **B** — agent-assisted via `upgrading-terreno` skill |
+| M7 | Local-first default | **A** if #869 ships local-first only (verify against merged code) |
 
 ## Architecture
 

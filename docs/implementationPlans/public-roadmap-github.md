@@ -1,6 +1,6 @@
 # Implementation Plan: Public Roadmap on GitHub
 
-**Status:** Draft — blocking questions open
+**Status:** Approved — decisions recorded (2026-07-29)
 **Priority:** High
 **Effort:** Small batch
 **Owner:** unassigned
@@ -24,15 +24,17 @@ The design principle: **one direction of truth per artifact.** Public discussion
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| R1 | Does the public roadmap show dates? | (A) No dates, ordered waves only. (B) Quarter granularity. (C) Target release version. | **C** — target release version (`0.28`, `0.29`, `Future`). Honest, no calendar promises, and it maps to lockstep releases. |
-| R2 | Where does the roadmap live? | (A) GitHub Project board only. (B) `ROADMAP.md` only. (C) Project board as truth + generated `ROADMAP.md`. | **C** — the board is interactive, the markdown file is what people find from the README and docs site. Generate the file from the board. |
-| R3 | Linear ↔ GitHub sync mechanism | (A) Manual cross-links. (B) Linear's native GitHub issue sync on labeled issues. (C) Custom GitHub Action. | **B** — Linear's GitHub integration on issues labeled `tracked`, one-way GitHub → Linear for intake, cross-link back via the Linear issue URL in a comment. |
-| R4 | Who can open roadmap items? | (A) Maintainers only; users file Ideas discussions. (B) Anyone opens issues; maintainers triage onto the board. | **A** — Discussions are the intake funnel, issues are triaged work. Keeps the board meaningful. |
-| R5 | Do IPs become public issues automatically? | (A) One tracking issue per IP, opened manually. (B) Automated from `PLAN_INDEX.md`. (C) IPs stay docs-only; issues reference them. | **A** — one tracking issue per IP, opened when the IP reaches Approved. Cheap, and gives a public comment thread per plan. |
-| R6 | Are Discussions moderated pre- or post-publication? | (A) Open, post-moderated. (B) Require approval for first-time posters. | **A** — post-moderated with the Code of Conduct as the standard. Approval queues kill early momentum. |
-| R7 | Do we run an RFC process for breaking changes? | (A) No, IPs suffice. (B) Lightweight RFC discussion category feeding an IP. (C) Full `rfcs/` directory with numbered proposals. | **B** — an `RFC` discussion category that graduates into an IP. Avoids a second parallel plan format. |
+**Recorded 2026-07-29** (defaults accepted).
+
+| # | Decision |
+|---|----------|
+| R1 | Target **release version** on the roadmap (`0.28`, `0.29`, `Future`) — no calendar dates |
+| R2 | GitHub Project board + **generated `ROADMAP.md`** |
+| R3 | Linear GitHub sync on issues labeled **`tracked`** (one-way GitHub → Linear) |
+| R4 | **Maintainers only** open board items; users file Ideas discussions |
+| R5 | **One tracking issue per IP**, opened manually when IP reaches Approved |
+| R6 | **Post-moderated** Discussions |
+| R7 | Lightweight **RFC** discussion category → graduates to IP |
 
 ## Architecture
 

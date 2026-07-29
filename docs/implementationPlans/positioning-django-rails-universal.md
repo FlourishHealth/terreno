@@ -28,15 +28,17 @@ Three pillars in priority order: **batteries included**, **universal by default*
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| PO1 | Exact tagline wording | (A) "Django/Rails for TypeScript — with universal app support". (B) "The batteries-included TypeScript framework for universal apps". (C) "Django for TypeScript. One codebase, every platform." | **A** for the README/docs H1 (it does the analogical work in five words), with **C** as the shorter social/repo-description variant |
-| PO2 | Do we lead with Django or Rails? | (A) Both, "Django/Rails". (B) Django only. (C) Rails only. | **A** — Django lands with the Python-adjacent/ML crowd, Rails with the startup crowd; the pairing signals "batteries included" to both |
-| PO3 | Is "universal app" or "cross-platform" the standard term? | (A) Universal app. (B) Cross-platform. | **A** — matches Expo's vocabulary, which is where our users come from, and reads as a capability rather than a compromise |
-| PO4 | How prominent is the AI-native pillar? | (A) Third pillar, always mentioned. (B) Co-equal first pillar with batteries-included. (C) Leading pillar. | **B** — co-equal. It is the strongest differentiator versus both Django/Rails and other TS frameworks, and it is substantive rather than aspirational once Boost (#802) ships the tool layer and [`agentic-sdlc-plugin`](agentic-sdlc-plugin.md) publishes the process layer |
-| PO7 | Does the AI pillar name both layers, or lead with one? | (A) Both, always paired: MCP tools + the `/terreno-*` pipeline. (B) Lead with MCP, mention the pipeline. (C) Lead with the pipeline. | **A** — paired. Separately each sounds like a nice-to-have; together they are "an agent can plan, build, observe, verify, and ship on this framework", which is the actual claim. Never describe one without the other in the pillars block |
-| PO5 | Do we keep the "Where Terreno is headed" roadmap section in the README? | (A) Keep. (B) Move to `ROADMAP.md`. (C) Keep a two-line summary, link `ROADMAP.md`. | **C** — the roadmap belongs on the board (see [`public-roadmap-github`](public-roadmap-github.md)), but the README should show ambition |
-| PO6 | Is the README trimmed of maintainer content? | (A) Yes, move dev/release/infra sections to `CONTRIBUTING.md` and `docs/`. (B) Keep everything. | **A** — the README currently mixes product marketing, Flourish linking instructions, GCP project names, and a feature-flag migration guide. Consumers and contributors need different documents. |
+**Recorded 2026-07-29** (defaults accepted).
+
+| # | Decision |
+|---|----------|
+| PO1 | Tagline **A** for README/docs H1; short variant **C** for social/repo description |
+| PO2 | Lead with **Django/Rails** |
+| PO3 | **Universal app** (not cross-platform) |
+| PO4 | AI-native pillar **co-equal** with batteries-included |
+| PO5 | README roadmap: **two-line summary + link `ROADMAP.md`** |
+| PO6 | **Trim README** — move maintainer content to CONTRIBUTING/docs |
+| PO7 | AI pillar names **both** MCP tools and `/terreno-*` pipeline, always paired |
 
 ## Architecture
 

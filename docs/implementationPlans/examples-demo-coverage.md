@@ -28,15 +28,15 @@ Three concrete problems today:
 
 ## Blocking questions
 
-**Recorded 2026-07-29.**
+**Recorded 2026-07-29** (defaults accepted).
 
 | # | Question | Decision |
 |---|----------|----------|
-| E1 | Demo story for every UI component? | **Default: B** — CI-enforced exports + allowlist |
-| E2 | Codecov / badge | **Default: A** |
-| E3 | Dedicated CI per package | **Default: B** — matrix workflow |
-| E4 | Enforce coverage below threshold? | **A** — enforce immediately; failing packages must catch up before the gate lands |
-| E5 | Example feature-parity checklist | **Default: A** |
+| E1 | Demo story for every UI component? | **B** — CI-enforced exports + allowlist |
+| E2 | Codecov / badge | **A** |
+| E3 | Dedicated CI per package | **B** — matrix workflow |
+| E4 | Enforce coverage below threshold? | **A** — enforce immediately; failing packages catch up first |
+| E5 | Example feature-parity checklist | **A** |
 
 ## Architecture
 

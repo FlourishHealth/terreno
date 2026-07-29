@@ -11,10 +11,20 @@ See: [`docs/implementationPlans/deploy-to-vercel.md`](../implementationPlans/dep
 - Never write `corsOrigin: true` as a recommendation.
 - Run `bun run lint` before each commit; `bun run rules:check` after touching `.rulesync/`.
 
+## Phase 0: Vercel topology spike (blocks Phase 1)
+
+Close every **Open TODO** in the IP before writing the how-to guide.
+
+- [ ] **Task 0.1**: Spike `@terreno/api` on Vercel
+  - Description: Prototype whether Socket.io, MongoDB change streams, and `@terreno/ai` SSE can run on Vercel (all-in-one candidate). Record runtime limits, cold starts, session affinity, and SSE buffering. Compare against split topology (Vercel web + long-running backend).
+  - Files: spike notes in PR / IP update; optional scratch `example-backend/vercel.json`
+  - Depends on: none
+  - Acceptance: IP questions **V1**, **V2**, and **V3** updated with a recorded decision; all IP Open TODO checkboxes checked or explicitly deferred with owner.
+
 ## Phase 1: Core how-to guide
 
 - [ ] **Task 1.1**: Write the Vercel deployment guide for `single` output
-  - Description: Create `docs/how-to/deploy-web-to-vercel.md`. Open with a "What goes where" section stating that the web bundle goes to Vercel and the backend must run on a long-lived host, with the reason (Socket.io connections and MongoDB change streams need a persistent process, and serverless function timeouts kill both). Then: prerequisites; deploying a backend to the host chosen for IP question V1 (keep this to the minimum needed — link the host's own docs plus [`deploy-to-gcp`](../implementationPlans/deploy-to-gcp.md) for production); creating the `vercel.json` for `single` output; setting `EXPO_PUBLIC_API_URL` as a Vercel environment variable and why it must exist before the build; deploying with the Vercel CLI; and verifying. Link `docs/explanation/deployment-baseline.md` for the seven baseline requirements instead of restating them.
+  - Description: Create `docs/how-to/deploy-web-to-vercel.md`. Open with a "What goes where" section using the **topology decided in Phase 0** (interim split layout until spike closes; do not document all-in-one until V1 is decided). Then: prerequisites; backend host setup per V1 outcome; `vercel.json` for `single` output; `EXPO_PUBLIC_API_URL`; deploy + verify. Link `docs/explanation/deployment-baseline.md` instead of restating baseline requirements.
   - Files: `docs/how-to/deploy-web-to-vercel.md` (new), `docs/how-to/README.md`
   - Depends on: `deployment-foundation` Phase 4
   - Acceptance: every config key verified against current Expo docs; the "what goes where" reasoning is present in the first section; the guide links rather than duplicates the baseline explainer; listed in the how-to index.
@@ -26,7 +36,7 @@ See: [`docs/implementationPlans/deploy-to-vercel.md`](../implementationPlans/dep
   - Acceptance: all four checks present with expected results; the websocket check names a real debug flag verified in the client source; the "looks fine while broken" warning is present.
 
 - [ ] **Task 1.3**: Add the reference `vercel.json`
-  - Description: Per IP question V3, add `example-frontend/vercel.json` as a reference configuration with a comment-free JSON body (JSON does not allow comments) and a note in `example-frontend/README.md` explaining that it is a reference for Vercel deployments and that the example's own live deployment uses Netlify. Do not wire up a second live deployment or add a CI job for it.
+  - Description: Per IP question V3 (after Phase 0), add `vercel.json` to `example-frontend` and optionally `example-backend` if all-in-one wins. Wire to a real deployment only if V3 decision is **A**.
   - Files: `example-frontend/vercel.json` (new), `example-frontend/README.md`
   - Depends on: Task 1.1
   - Acceptance: the file is valid JSON and matches the guide's configuration exactly; the README explains its status; no new deploy workflow was added.

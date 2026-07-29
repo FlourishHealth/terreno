@@ -1,6 +1,6 @@
 # Implementation Plan: Deploy to GCP (Generalized) + `deploy-gcp` Skill
 
-**Status:** Draft — key decisions recorded (2026-07-29)
+**Status:** Approved — decisions recorded (2026-07-29)
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
@@ -28,11 +28,11 @@ Turn Terreno's GCP deployment story from "how Flourish deploys Terreno" into "ho
 |---|----------|----------|
 | GC1 | Frontend web hosting | **GCS + Cloud CDN as GCP default**, plus **Netlify** (document the existing Flourish/Terreno Netlify pattern as a first-class alternative for static web export) |
 | GC2 | Database guidance | **MongoDB Atlas only** for launch; add a **future-work note** toward Postgres when the data layer supports it |
-| GC3 | terraform or gcloud | **Default: C** — `gcloud` quickstart + terraform for production |
-| GC4 | Reusable terraform module | **Default: B** — `terraform/modules/terreno-backend/` |
+| GC3 | terraform or gcloud | **C** — `gcloud` quickstart + terraform for production |
+| GC4 | Reusable terraform module | **B** — `terraform/modules/terreno-backend/` |
 | GC5 | Flourish infra location (→ P5) | **C** — `infra/flourish/` now; **migrate to B** (private repo) post-launch |
-| GC6 | `deploy-gcp` skill deploys? | **Default: C** — full deploy behind explicit confirmation gate |
-| GC7 | Secret management | **Default: A** — Secret Manager for secrets; plain env for non-secrets |
+| GC6 | `deploy-gcp` skill deploys? | **C** — full deploy behind explicit confirmation gate |
+| GC7 | Secret management | **A** — Secret Manager for secrets; plain env for non-secrets |
 
 ## Architecture
 

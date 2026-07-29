@@ -24,14 +24,16 @@ An open-source framework that ships breaking changes in lockstep across ten pack
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| U1 | Do we backfill notes for 0.22–0.26? | (A) Yes, all five from release notes and diffs. (B) Only versions with breaking changes. (C) One consolidated "0.21 → 0.26" note. | **C** — a single consolidated note is honest about the fact that we were not writing them, and is more useful than five thin reconstructions. Then per-release notes from the next version onward |
-| U2 | Is an upgrade note required for every release? | (A) Every release. (B) Only releases with breaking or notable changes. | **B**, but with a CI check: if a release contains a `Deprecated`, `Removed`, or `Changed` changelog entry, a note is required. Mechanical enforcement beats a checklist item |
-| U3 | Does the skill perform the upgrade or plan it? | (A) Perform, running installs and edits. (B) Plan and report. (C) Perform with a confirmation gate and a required clean git tree. | **C** — require a clean working tree, print the plan, confirm, then execute in small verifiable steps with tests between them |
-| U4 | How does the skill handle a multi-version jump? | (A) Sequential, one minor at a time. (B) Direct jump applying all notes at once. | **B** with sequential fallback — apply all notes in range at once, and if compile or tests fail, retry version by version to isolate. Lockstep versioning makes the range unambiguous |
-| U5 | Does the skill cover the Expo SDK upgrade too? | (A) Delegate entirely to `upgrading-expo`. (B) Wrap it, invoking it at the right point. | **B** — wrap it. Ordering matters: Terreno backend first, then Expo SDK, then Terreno frontend packages, then regenerate the typed client |
-| U6 | Do we promise a deprecation window policy? | (A) Yes, documented: N minor releases minimum. (B) Case by case. | **A** — publish the policy. It is the single most reassuring thing a framework can tell a prospective adopter. Recommend: deprecated features supported for at least 3 minor releases, breaking changes only in minors until 1.0, then majors |
+**Recorded 2026-07-29** (defaults accepted).
+
+| # | Decision |
+|---|----------|
+| U1 | One consolidated **0.21 → 0.26** upgrade note; per-release notes from next version onward |
+| U2 | Upgrade note required when changelog has **Deprecated / Removed / Changed** (CI-enforced) |
+| U3 | Skill **performs** upgrade with confirmation gate + clean git tree |
+| U4 | **Direct multi-version jump** with sequential fallback on failure |
+| U5 | **Wrap `upgrading-expo`** at the correct point in the sequence |
+| U6 | Publish **deprecation window policy** (≥3 minors until 1.0; align RTK sunset with program P6) |
 
 ## Architecture
 

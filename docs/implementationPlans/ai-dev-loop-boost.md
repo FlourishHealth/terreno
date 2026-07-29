@@ -24,16 +24,16 @@ This IP writes the story and closes the gaps that become obvious once the story 
 
 ## Blocking questions
 
-**Recorded 2026-07-29** (see program [P4](oss-launch-program.md#blocking-questions-program-level)).
+**Recorded 2026-07-29** (defaults accepted).
 
 | # | Question | Decision |
 |---|----------|----------|
-| AI1 | Replace `get_rtk_state` | **Default: A** — `get_client_state` with a `layer` field |
-| AI2 | `installTerrenoDevConsoleLogger` location | **Default: B** — move to `@terreno/syncdb`, re-export from rtk during support window |
-| AI3 | Document `evaluate` publicly? | **Default: A** — yes, with `TERRENO_MCP_EVAL=1` gate |
-| AI4 | Compose `expo-mcp` + Playwright MCP? | **Default: A** — yes, with configuration |
-| AI5 | Hosted MCP auth / rate limiting | **Default: B** — rate limiting by IP before public launch |
-| AI6 | MCP URL (→ P4) | **`https://mcp.terreno.app`** — `terreno.app` is the public base domain |
+| AI1 | Replace `get_rtk_state` | **A** — `get_client_state` with a `layer` field |
+| AI2 | `installTerrenoDevConsoleLogger` location | **B** — move to `@terreno/syncdb`, re-export from rtk during support window |
+| AI3 | Document `evaluate` publicly? | **A** — yes, with `TERRENO_MCP_EVAL=1` gate |
+| AI4 | Compose `expo-mcp` + Playwright MCP? | **A** — yes, with configuration |
+| AI5 | Hosted MCP auth / rate limiting | **B** — rate limiting by IP before public launch |
+| AI6 | MCP URL (→ P4) | **`https://mcp.terreno.app`** |
 
 ## Architecture
 

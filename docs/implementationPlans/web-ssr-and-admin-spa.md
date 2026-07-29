@@ -25,14 +25,16 @@ The Django/Rails positioning makes this gap conspicuous: both frameworks server-
 
 ## Blocking questions
 
-| # | Question | Options | Recommended default (pending confirmation) |
-|---|----------|---------|--------------------------------------------|
-| S1 | Which output mode do we target? | (A) `static` — per-route HTML at build time, no server. (B) `server` — SSR at request time. (C) `static` first, `server` later. | **C** — `static` delivers most of the SEO and link-preview benefit with no runtime server and no data-loading design problem. Do it first, then `server` for authenticated and personalized routes. Note that SSR is **alpha** in Expo SDK 55+ |
-| S2 | Which server adapter? | (A) `expo-server/adapter/express` inside the existing `@terreno/api` app. (B) `expo-server/adapter/bun` standalone. (C) Per-provider adapters, documented. | **A** as the Terreno-native path — the backend is already Express and already serves the admin SPA through `AdminSpaServeApp`, so one deployable unit serving API and SSR is a real simplification. Document (C) for consumers deploying web separately |
-| S3 | How does SSR get data? | (A) No data at render time; render the shell, hydrate on the client. (B) Expo Router data loaders (`useLoaderData`). (C) Direct model access on the server. | **A** for v1. (B) is the direction, but with a local-first client the "server renders data the client then reconciles" problem needs its own design pass. (C) couples the web renderer to the database and breaks the permission model |
-| S4 | Does `admin-spa` move to SSR? | (A) Yes, as the first adopter. (B) No, admin does not need SEO. (C) Yes, but for `static` output only. | **C** — admin needs no SEO but does benefit from per-route HTML and faster first paint, and it is the safest place to prove the Express adapter. Full SSR of an authenticated admin has no clear payoff |
-| S5 | Is SSR opt-in per app or the new default? | (A) Opt-in, `single` stays default. (B) `static` becomes default, `server` opt-in. | **B** eventually — `static` is a strict improvement over `single` for most apps with no runtime cost. Requires verifying that every `@terreno/ui` component survives static rendering (see the risks) |
-| S6 | Do we support Expo Router API routes once on `server` output? | (A) Yes, document them for web-only concerns (OG images, webhooks). (B) No, direct everything to `@terreno/api`. | **A** narrowly — OG image generation and web-only redirects are genuinely better colocated. Document explicitly that business logic belongs in `@terreno/api` |
+**Recorded 2026-07-29** (defaults accepted).
+
+| # | Decision |
+|---|----------|
+| S1 | **`static` first, `server` later** (SSR alpha in Expo SDK 55+) |
+| S2 | **`expo-server/adapter/express`** in `@terreno/api` as Terreno-native path; document per-provider adapters |
+| S3 | **Shell-only SSR v1** — hydrate on client |
+| S4 | **`admin-spa` moves to `static` output only** |
+| S5 | **`static` becomes default eventually** (after component audit); `server` opt-in |
+| S6 | **Expo Router API routes narrowly** for OG images / webhooks only |
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 # Implementation Plan: OSS Governance Baseline
 
-**Status:** Draft — key decisions recorded (2026-07-29)
+**Status:** Approved — decisions recorded (2026-07-29)
 **Priority:** High
 **Effort:** Small batch
 **Owner:** unassigned
@@ -29,12 +29,12 @@ This is the hard blocker: without it, nothing else in the program can ship publi
 | # | Question | Decision |
 |---|----------|----------|
 | G1 | License (→ P1) | **MIT everywhere** — root `LICENSE`, per-package `LICENSE` files, and all `package.json` `license` fields |
-| G2 | Copyright line | **Default** — `Copyright 2026 Flourish Health, Inc.` in `LICENSE`; `NOTICE` credits contributors (pending P2 confirmation) |
-| G3 | Contributor provenance (→ P2) | **Default: DCO** — `Signed-off-by` enforced by CI on external PRs |
+| G2 | Copyright line | **`Copyright 2026 Flourish Health, Inc.`** in `LICENSE`; `NOTICE` credits contributors |
+| G3 | Contributor provenance (→ P2) | **DCO** — `Signed-off-by` enforced by CI on external PRs |
 | G4 | Security contact | **`security@terreno.app`** + GitHub private vulnerability reporting (PVR as primary) |
-| G5 | Changelog strategy | **Default** — root `CHANGELOG.md` in Keep-a-Changelog format; `api/CHANGELOG.md` becomes a pointer |
-| G6 | Enforce Conventional Commits? | **Yes, CI-enforced** on new PRs (scope TBD: title + body vs commit messages) |
-| G7 | Code of Conduct | **Contributor Covenant 2.1** with **`conduct@terreno.app`** as the report address |
+| G5 | Changelog strategy | **Root `CHANGELOG.md`** in Keep-a-Changelog format; `api/CHANGELOG.md` becomes a pointer |
+| G6 | Enforce Conventional Commits? | **Yes, CI-enforced** on new PRs |
+| G7 | Code of Conduct | **Contributor Covenant 2.1** with **`conduct@terreno.app`** |
 
 ## Architecture
 
