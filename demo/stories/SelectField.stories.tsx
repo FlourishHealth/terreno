@@ -60,7 +60,6 @@ export const SelectFieldLongListDemo = (): ReactElement => {
         helperText="Opens a centered modal on Android with search and scroll-to-selected."
         onChange={setValue}
         options={manyOptions}
-        searchable
         title={`Pick one of ${MANY_OPTIONS_COUNT} options`}
         value={value}
       />
@@ -73,26 +72,26 @@ export const SelectFieldDemo = (props: {
   withHelperText: boolean;
   withTitle: boolean;
   disabled: boolean;
-  searchable: boolean;
+  disableSearch: boolean;
 }): ReactElement => {
-  const {withErrorText, withHelperText, withTitle, disabled, searchable} = props;
+  const {withErrorText, withHelperText, withTitle, disabled, disableSearch} = props;
   const [value, setValue] = useState("");
 
   return (
     <Box gap={2} width="100%">
       {Platform.OS === "web" && (
         <Text color="secondaryLight" size="sm">
-          Open the dropdown to use the search filter when searchable is enabled.
+          Open the dropdown to use the search filter when disableSearch is false.
         </Text>
       )}
       <SelectField
         disabled={disabled}
+        disableSearch={disableSearch}
         errorText={withErrorText ? "This is an error" : undefined}
         helperText={withHelperText ? "This is some helper text" : undefined}
-        key={searchable ? "searchable" : "plain"}
+        key={disableSearch ? "plain" : "searchable"}
         onChange={setValue}
         options={searchableOptions}
-        searchable={searchable}
         title={withTitle ? "Select field" : undefined}
         value={value}
       />
@@ -102,26 +101,26 @@ export const SelectFieldDemo = (props: {
 
 export const SelectFieldSearchableDemo = (): ReactElement => {
   const [value, setValue] = useState("");
-  const [searchable, setSearchable] = useState(true);
+  const [disableSearch, setDisableSearch] = useState(false);
 
   return (
     <Box gap={4} width="100%">
       <BooleanField
-        onChange={setSearchable}
+        onChange={(next) => setDisableSearch(!next)}
         title="Searchable"
-        value={searchable}
+        value={!disableSearch}
         variant="title"
       />
       <SelectField
+        disableSearch={disableSearch}
         helperText={
           Platform.OS === "web"
             ? "Type in the field to filter options as you open the menu."
             : "Open the menu and use the search box to filter options."
         }
-        key={searchable ? "searchable" : "plain"}
+        key={disableSearch ? "plain" : "searchable"}
         onChange={setValue}
         options={searchableOptions}
-        searchable={searchable}
         title="Pick a fruit"
         value={value}
       />
