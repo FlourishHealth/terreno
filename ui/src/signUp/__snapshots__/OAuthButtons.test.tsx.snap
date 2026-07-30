@@ -262,7 +262,6 @@ exports[`OAuthButtons renders correctly with all props 1`] = `
     "onPointerEnter": [Function: AsyncFunction],
     "onPointerLeave": [Function: AsyncFunction],
     "style": {
-      "testID": "oauth",
       "width": "100%",
     },
     "testID": "oauth",

@@ -5,11 +5,19 @@
  * ## Cursor semantics (C2 — per-stream cursors)
  *
  * Bootstrap pages one stream per request (the server resolves the stream's scope from
- * the stream key and pages by `_syncSeq`). The resume cursor is kept in `_cursors` keyed
- * by the REAL stream key (the same key deltas advance) — the old `snapshot:{collection}`
+ * the stream key and pages by `_syncSeq`). Progress is kept in `_cursors` keyed by the
+ * REAL stream key (the same key deltas advance) — the old `snapshot:{collection}`
  * pseudo-cursors are gone. Snapshot entities are applied with the same protections as
  * `applyDelta`: entities protected by a pending outbox mutation are never overwritten,
  * and stale seqs are skipped.
+ *
+ * Two progress cells, not one: `snapshotSeq` (how far this stream has been PAGED) is
+ * tracked separately from `seq` (the highest applied seq, which deltas also advance).
+ * An unfinished bootstrap resumes from `snapshotSeq`, because a live delta at the stream
+ * head can overtake the applied-seq cursor mid-bootstrap — resuming there would leave
+ * every unpaged seq below it permanently unreachable. Once a pass reaches the head, the
+ * stream is marked `bootstrapped` and catch-up resumes from `seq` (deltas carry their own
+ * data, so nothing below it needs paging).
  *
  * ## Frontier & retention (C1/C7)
  *
@@ -26,7 +34,14 @@
 
 import type {SyncStore} from "../storage/store";
 import type {SyncSnapshotEntity} from "../types";
-import {getCursor, setCursor} from "./cursor";
+import {
+  getCursor,
+  getSnapshotCursor,
+  isStreamBootstrapped,
+  markStreamBootstrapped,
+  setCursor,
+  setSnapshotCursor,
+} from "./cursor";
 import type {HttpChannel} from "./httpChannel";
 
 export interface BootstrapProgress {
@@ -65,6 +80,12 @@ const applySnapshotEntity = ({
     return false;
   }
   if (existing?.pendingMutationId) {
+    store.markNeedsRepair({
+      collection,
+      entityId: entity.id,
+      missedSeq: entity.seq,
+      stream,
+    });
     // Optimistic local state is protected until its mutation resolves.
     return false;
   }
@@ -77,6 +98,7 @@ const applySnapshotEntity = ({
     seq: entity.seq,
     stream,
   });
+  store.clearNeedsRepair({collection, entityId: entity.id});
   return true;
 };
 
@@ -103,10 +125,17 @@ export const bootstrapStream = async ({
   onProgress?: (progress: BootstrapProgress) => void;
   now?: () => string;
 }): Promise<void> => {
-  let cursor = getCursor({store, stream});
+  // Until a snapshot pass has reached the stream head, resume from snapshot progress
+  // (`snapshotSeq`) rather than the applied-seq cursor: a live delta can push the latter
+  // to the head mid-bootstrap, and resuming there would skip every unpaged seq below it
+  // forever. Once bootstrapped, the applied-seq cursor IS the correct catch-up point.
+  const bootstrapped = isStreamBootstrapped({store, stream});
+  let cursor = bootstrapped ? getCursor({store, stream}) : getSnapshotCursor({store, stream});
   let legacyCursor: string | undefined;
   let hasMore = true;
   let retentionChecked = false;
+  /** True when the server itself reported the stream head was reached. */
+  let reachedHead = false;
 
   while (hasMore) {
     const page = await channel.fetchSnapshotPage({cursor, legacyCursor, limit, stream});
@@ -169,12 +198,20 @@ export const bootstrapStream = async ({
       }
       if (madeProgress) {
         setCursor({now, seq: clampedCursor, store, stream});
+        setSnapshotCursor({seq: clampedCursor, store, stream});
       }
       return count;
     });
     // Guard against a server reporting hasMore without advancing (would loop forever).
     hasMore = page.hasMore && madeProgress;
+    // Only the server saying "no more pages" proves the head was reached; exiting via the
+    // guard above means the pass is incomplete and must resume from snapshot progress.
+    reachedHead = !page.hasMore;
     cursor = Math.max(cursor, clampedCursor);
     onProgress?.({applied, collection, cursor, fetched: page.entities.length, hasMore, stream});
+  }
+
+  if (reachedHead) {
+    markStreamBootstrapped({store, stream});
   }
 };

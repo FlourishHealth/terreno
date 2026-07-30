@@ -1,7 +1,13 @@
 import {describe, expect, it} from "bun:test";
 
 import {createSyncStore, type SyncStore} from "../storage/store";
-import {deleteConflict, getConflict, listConflicts, writeConflict} from "./conflicts";
+import {
+  deleteConflict,
+  getConflict,
+  listConflicts,
+  pruneGhostConflicts,
+  writeConflict,
+} from "./conflicts";
 import {createOutbox, type Outbox} from "./outbox";
 import {resolveConflict} from "./resolveConflict";
 
@@ -64,8 +70,9 @@ describe("resolveConflict", () => {
     expect(entity?.seq).toBe(9);
     expect(entity?.pendingMutationId).toBeUndefined();
     expect(getConflict({mutationId: "m1", store: harness.store})).toBeUndefined();
-    // The mutation stays conflicted — a terminal state that never replays.
-    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("conflicted");
+    // The spent conflicted outbox row is discarded so startup recovery cannot
+    // resurrect a phantom conflict from it.
+    expect(harness.outbox.getMutation({mutationId: "m1"})).toBeUndefined();
     expect(harness.outbox.listQueued({userId: USER})).toHaveLength(0);
   });
 
@@ -110,6 +117,29 @@ describe("resolveConflict", () => {
     expect(entity?.pendingMutationId).toBe(retry.mutationId);
   });
 
+  it("keepMine repairs a corrupt queued+conflict row instead of throwing queued→queued", () => {
+    const harness = makeHarness();
+    seedConflict(harness);
+    // Simulate the historical bug: markQueued was incorrectly legal from
+    // conflicted, leaving a `_conflicts` row pointing at a queued mutation.
+    harness.store.raw.setCell("_outbox", "m1", "status", "queued");
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("queued");
+
+    resolveConflict({
+      mutationId: "m1",
+      outbox: harness.outbox,
+      store: harness.store,
+      strategy: "keepMine",
+    });
+
+    expect(harness.outbox.getMutation({mutationId: "m1"})).toBeUndefined();
+    const queued = harness.outbox.listQueued({userId: USER});
+    expect(queued).toHaveLength(1);
+    expect(queued[0].mutationId).not.toBe("m1");
+    expect(queued[0].baseVersion).toBe(9);
+    expect(getConflict({mutationId: "m1", store: harness.store})).toBeUndefined();
+  });
+
   it("throws for an unknown conflict", () => {
     const harness = makeHarness();
     expect(() =>
@@ -138,5 +168,48 @@ describe("conflict row helpers", () => {
     harness.store.raw.setCell("_conflicts", "m1", "dismissed", true);
     expect(listConflicts({store: harness.store})).toHaveLength(0);
     expect(listConflicts({includeDismissed: true, store: harness.store})).toHaveLength(1);
+  });
+});
+
+/**
+ * Husk rows are what a pre-fix build persisted when TinyBase re-materialized a
+ * deleted `_conflicts` row from its schema defaults: no `collection`, no
+ * `entityId`, nothing to resolve. They must never reach the UI, and resolving
+ * one must not reach `upsertEntity` (which threw `Unknown collection ""`).
+ */
+describe("husk conflict rows", () => {
+  const seedHusk = (store: SyncStore): void => {
+    store.raw.setRow("_conflicts", "husk", {dismissed: false, serverSeq: 0});
+  };
+
+  it("are hidden from getConflict and listConflicts", () => {
+    const harness = makeHarness();
+    seedConflict(harness);
+    seedHusk(harness.store);
+    expect(getConflict({mutationId: "husk", store: harness.store})).toBeUndefined();
+    expect(
+      listConflicts({includeDismissed: true, store: harness.store}).map((c) => c.mutationId)
+    ).toEqual(["m1"]);
+  });
+
+  it("resolving one reports a missing conflict instead of writing an empty collection", () => {
+    const harness = makeHarness();
+    seedHusk(harness.store);
+    expect(() =>
+      resolveConflict({
+        mutationId: "husk",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "useServer",
+      })
+    ).toThrow(/Conflict not found/);
+  });
+
+  it("pruneGhostConflicts removes them and keeps real conflicts", () => {
+    const harness = makeHarness();
+    seedConflict(harness);
+    seedHusk(harness.store);
+    expect(pruneGhostConflicts({store: harness.store})).toEqual(["husk"]);
+    expect(harness.store.raw.getRowIds("_conflicts")).toEqual(["m1"]);
   });
 });

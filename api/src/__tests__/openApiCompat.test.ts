@@ -118,6 +118,26 @@ describe("openApiCompat", () => {
       }
     });
 
+    it("annotates nested router.use mounts with the mount path", () => {
+      const app = express();
+      patchAppUse(app);
+
+      const outer = express.Router();
+      const inner = express.Router();
+      inner.get("/", (_req, res) => {
+        res.json({ok: true});
+      });
+      outer.use("/gpt/histories", inner);
+      app.use("/", outer);
+
+      const stack = getRouterStack(app);
+      const nestedMount = findLayer(
+        stack,
+        (layer) => layer.__openApiMountPath === "/gpt/histories"
+      );
+      expect(nestedMount).toBeDefined();
+    });
+
     it("returns the underlying use() return value", () => {
       const app = express();
       patchAppUse(app);

@@ -88,6 +88,32 @@ describe("Toast", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders action button when buttonText and buttonOnClick are provided", () => {
+    const handleClick = mock(() => {});
+    const {getByTestId, getByText} = renderWithTheme(
+      <Toast
+        buttonOnClick={handleClick}
+        buttonText="Resolve"
+        persistent
+        title="Sync needs attention"
+        variant="warning"
+      />
+    );
+    expect(getByText("Resolve")).toBeTruthy();
+    const button = getByTestId("toast-action-button");
+    expect(button).toBeTruthy();
+    button.props.onClick?.();
+    button.props.onPress?.();
+    expect(handleClick).toHaveBeenCalled();
+  });
+
+  it("does not render action button when only buttonText is provided", () => {
+    const {queryByTestId} = renderWithTheme(
+      <Toast buttonText="Resolve" title="Sync needs attention" variant="warning" />
+    );
+    expect(queryByTestId("toast-action-button")).toBeNull();
+  });
+
   it("renders all variants with large size correctly", () => {
     const variants = ["info", "success", "warning", "error"] as const;
     variants.forEach((variant) => {

@@ -7,7 +7,7 @@ import {memoryPersisterFactory} from "../persisters/memoryPersister";
 import {createFakeTransport, type FakeTransport} from "../sync/fakeTransport";
 import {AuthRequiredError} from "../sync/httpChannel";
 import type {AuthProvider, SyncDelta} from "../types";
-import {useConflicts, useEntity, useMutate, useQuery, useSyncStatus} from "./hooks";
+import {useConflicts, useEntity, useEntityIds, useMutate, useQuery, useSyncStatus} from "./hooks";
 import {SyncDbProvider, useSyncDbClient} from "./provider";
 
 interface TodoData {
@@ -231,6 +231,44 @@ describe("useQuery", () => {
     });
   });
 
+  it("does not recompute the selection on unrelated re-renders (no per-render O(n) work)", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "one"}, id: "t1"});
+      client.store.upsertEntity({collection: "todos", data: {title: "two"}, id: "t2"});
+    });
+    // The filter runs inside the hook's `select`; counting its invocations tells
+    // us whether an unrelated re-render re-ran the whole decode/filter/sort pass.
+    let filterCalls = 0;
+    const {rerender} = renderHook(
+      () =>
+        useQuery<TodoData>("todos", {
+          filter: () => {
+            filterCalls += 1;
+            return true;
+          },
+        }),
+      {wrapper}
+    );
+    const afterInitial = filterCalls;
+    expect(afterInitial).toBeGreaterThan(0);
+
+    // Re-render without any store change: the cached snapshot must be reused, so
+    // the selector (and its filter) must NOT run again.
+    rerender({});
+    rerender({});
+    expect(filterCalls).toBe(afterInitial);
+
+    // A real store change bumps the revision and recomputes exactly once.
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "three"}, id: "t3"});
+    });
+    expect(filterCalls).toBeGreaterThan(afterInitial);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
   it("skips a corrupt row (undecodable data) instead of throwing (E4)", async () => {
     const {client, wrapper} = await setup();
     act(() => {
@@ -252,6 +290,66 @@ describe("useQuery", () => {
     expect(() => result.current).not.toThrow();
     expect(result.current).toHaveLength(1);
     expect(result.current[0]?.title).toBe("healthy");
+    await act(async () => {
+      await client.stop();
+    });
+  });
+});
+
+describe("useEntityIds", () => {
+  it("keeps a stable array identity when only a field changes (not membership)", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: false, title: "a"},
+        id: "t1",
+      });
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: false, title: "b"},
+        id: "t2",
+      });
+    });
+    const {result} = renderHook(() => useEntityIds<TodoData>("todos"), {wrapper});
+    const first = result.current;
+    expect(first.slice().sort()).toEqual(["t1", "t2"]);
+
+    // A field-only update (title change) must NOT change the id-array identity —
+    // this is what keeps the list container from re-rendering on a row edit.
+    act(() => {
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: true, title: "a2"},
+        id: "t1",
+      });
+    });
+    expect(result.current).toBe(first);
+
+    // Adding a row changes membership → new identity.
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "c"}, id: "t3"});
+    });
+    expect(result.current).not.toBe(first);
+    expect(result.current.slice().sort()).toEqual(["t1", "t2", "t3"]);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("excludes tombstones and drops ids that get soft-deleted", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "keep"}, id: "t1"});
+      client.store.upsertEntity({collection: "todos", data: {title: "gone"}, id: "t2"});
+    });
+    const {result} = renderHook(() => useEntityIds<TodoData>("todos"), {wrapper});
+    expect(result.current.slice().sort()).toEqual(["t1", "t2"]);
+
+    act(() => {
+      client.store.softDeleteEntity({collection: "todos", id: "t2"});
+    });
+    expect(result.current).toEqual(["t1"]);
     await act(async () => {
       await client.stop();
     });

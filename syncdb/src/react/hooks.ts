@@ -19,25 +19,89 @@ import type {ConflictResolutionStrategy, SyncConflict, SyncStatus} from "../type
 import {useSyncDbClient} from "./provider";
 
 /**
- * `useSyncExternalStore` wrapper that caches the selected value by structural
- * (JSON) equality, so selectors returning fresh objects/arrays keep a stable
- * identity across unrelated renders and never cause render loops.
+ * `useSyncExternalStore` wrapper that recomputes the selected value only when the
+ * underlying store actually changes, giving selectors returning fresh
+ * objects/arrays a stable identity across unrelated renders without ever causing
+ * render loops.
+ *
+ * React calls `getSnapshot` on EVERY render (not only when the store changes) to
+ * check for tearing. The previous implementation re-ran `select()` and then
+ * `JSON.stringify`'d the entire result on every one of those calls — O(n) work
+ * (decode + filter + sort + serialize the whole collection) on every keystroke
+ * or unrelated parent re-render, which dominates once a collection grows to
+ * thousands of rows. Instead we bump a monotonic revision only when a change is
+ * routed through our subscribe wrapper, and cache the computed value against
+ * that revision (and the selector identity, so a changed collection/id
+ * recomputes immediately rather than returning a stale snapshot). Unrelated
+ * re-renders then return the cached value in O(1) and never serialize.
  */
 const useCachedExternalStore = <T>(
   subscribe: (onChange: () => void) => () => void,
-  select: () => T
+  select: () => T,
+  /**
+   * Optional structural equality over consecutive selections. When provided and
+   * a real store change produces an equal value, the PREVIOUS reference is kept
+   * so downstream consumers do not re-render. This is what lets `useEntityIds`
+   * stay referentially stable across field-only updates (which change a row's
+   * data but not the id membership/order), so toggling one entity re-renders
+   * only that entity's own subscribers, never the list container.
+   */
+  areEqual?: (previous: T, next: T) => boolean
 ): T => {
-  const cache = useRef<{json: string; value: T} | null>(null);
+  const revisionRef = useRef(0);
+  const cacheRef = useRef<{revision: number; select: () => T; value: T} | null>(null);
+
+  const wrappedSubscribe = useCallback(
+    (onChange: () => void): (() => void) =>
+      subscribe(() => {
+        revisionRef.current += 1;
+        onChange();
+      }),
+    [subscribe]
+  );
+
   const getSnapshot = useCallback((): T => {
-    const value = select();
-    const json = JSON.stringify(value ?? null);
-    if (cache.current && cache.current.json === json) {
-      return cache.current.value;
+    const revision = revisionRef.current;
+    const cached = cacheRef.current;
+    if (cached && cached.select === select) {
+      // No store change since the last computation → reuse in O(1) (this is the
+      // common case: unrelated re-renders like a keystroke in a sibling input).
+      if (cached.revision === revision) {
+        return cached.value;
+      }
+      // The store changed: recompute, but keep the old reference when an
+      // equality check says the result is unchanged (e.g. a field update that
+      // did not alter id membership/order).
+      const next = select();
+      if (areEqual?.(cached.value, next)) {
+        cacheRef.current = {revision, select, value: cached.value};
+        return cached.value;
+      }
+      cacheRef.current = {revision, select, value: next};
+      return next;
     }
-    cache.current = {json, value};
+    const value = select();
+    cacheRef.current = {revision, select, value};
     return value;
-  }, [select]);
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  }, [select, areEqual]);
+
+  return useSyncExternalStore(wrappedSubscribe, getSnapshot, getSnapshot);
+};
+
+/** Referential-stability helper: true when two id lists are element-wise equal. */
+const idsEqual = (previous: string[], next: string[]): boolean => {
+  if (previous === next) {
+    return true;
+  }
+  if (previous.length !== next.length) {
+    return false;
+  }
+  for (let index = 0; index < previous.length; index += 1) {
+    if (previous[index] !== next[index]) {
+      return false;
+    }
+  }
+  return true;
 };
 
 export interface UseEntityResult<TData> {
@@ -149,6 +213,61 @@ export const useQuery = <TData = Record<string, unknown>>(
   }, [client, collection]);
 
   return useCachedExternalStore(subscribe, select);
+};
+
+/**
+ * Subscribe to a collection but return only the (ordered) entity ids, with a
+ * referentially STABLE array that changes identity only when the id membership
+ * or order actually changes — not when a field of an existing row changes.
+ *
+ * Pair this with per-row `useEntity(collection, id)` to build large lists that
+ * stay fast without virtualization: rendering `ids.map(id => <Row id={id} />)`
+ * means a field update (e.g. toggling one row) re-renders ONLY that row's
+ * `useEntity` subscriber, and the list container re-renders only when rows are
+ * added/removed/reordered. `filter`/`sort` run in JS over the decoded data (a
+ * change-only cost — never on unrelated re-renders).
+ */
+export const useEntityIds = <TData = Record<string, unknown>>(
+  collection: string,
+  options?: UseQueryOptions<TData>
+): string[] => {
+  const client = useSyncDbClient();
+
+  const optionsRef = useRef(options);
+  // See useQuery: keep option reads out of the render body so `select` stays stable.
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
+
+  const subscribe = useCallback(
+    (onChange: () => void): (() => void) => {
+      const listenerId = client.store.raw.addTableListener(collection, onChange);
+      return () => {
+        client.store.raw.delListener(listenerId);
+      };
+    },
+    [client, collection]
+  );
+
+  const select = useCallback((): string[] => {
+    const current = optionsRef.current;
+    const entities = client.store.listEntities<TData>({
+      collection,
+      includeDeleted: current?.includeDeleted,
+    });
+    let results = entities.filter((entity) => entity.data !== null);
+    if (current?.filter) {
+      const predicate = current.filter;
+      results = results.filter((entity) => predicate(entity.data));
+    }
+    if (current?.sort) {
+      const comparator = current.sort;
+      results = [...results].sort((a, b) => comparator(a.data, b.data));
+    }
+    return results.map((entity) => entity.id);
+  }, [client, collection]);
+
+  return useCachedExternalStore(subscribe, select, idsEqual);
 };
 
 export interface UseMutateResult {

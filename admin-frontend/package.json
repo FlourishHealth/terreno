@@ -5,7 +5,8 @@
     "jspdf": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
-    "react-native": "catalog:"
+    "react-native": "catalog:",
+    "react-native-safe-area-context": "catalog:"
   },
   "description": "Admin panel frontend screens for @terreno/api backends",
   "devDependencies": {

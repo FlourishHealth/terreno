@@ -3,7 +3,6 @@ import {useCallback} from "react";
 
 import {Badge} from "./Badge";
 import {Box} from "./Box";
-import {Text} from "./Text";
 
 /** Queued count above which the banner switches to a numeric drain-progress display. */
 const PROGRESS_THRESHOLD = 20;
@@ -13,7 +12,8 @@ export interface SyncStatusBannerProps {
   isOnline: boolean;
   /** Number of mutations waiting in the durable outbox. */
   queuedCount: number;
-  /** Whether a sync/replay is currently in flight. */
+  /** Whether a sync/replay is currently in flight. Kept for API compatibility; initial
+   * bootstrap syncing is shown via toast, not this banner. */
   isSyncing: boolean;
   /** Number of unresolved conflicts. */
   conflictCount: number;
@@ -42,15 +42,16 @@ export interface SyncStatusBannerProps {
 /**
  * Compact, presentational sync-state banner for local-first (e.g. @terreno/syncdb) screens:
  * offline indicator, queued mutation count (with drain progress once the queue grows past
- * {@link PROGRESS_THRESHOLD}), syncing state, a paused-for-auth indicator, a pressable failed
- * count, and a pressable conflict badge. It is intentionally data-driven (no data-layer imports)
- * so it can be reused with any sync store — wire a status hook (such as `useSyncStatus`) to its
- * props in the consuming app.
+ * {@link PROGRESS_THRESHOLD}), a paused-for-auth indicator, a pressable failed count, and a
+ * pressable conflict badge. Initial bootstrap "Syncing…" is intentionally not shown here —
+ * apps should surface that as a one-shot toast on launch (see SyncHealthToast). It is
+ * intentionally data-driven (no data-layer imports) so it can be reused with any sync store —
+ * wire a status hook (such as `useSyncStatus`) to its props in the consuming app.
  */
 export const SyncStatusBanner: React.FC<SyncStatusBannerProps> = ({
   isOnline,
   queuedCount,
-  isSyncing,
+  isSyncing: _isSyncing,
   conflictCount,
   paused,
   failedCount = 0,
@@ -77,7 +78,7 @@ export const SyncStatusBanner: React.FC<SyncStatusBannerProps> = ({
   const showProgress = draining && queuedCount > PROGRESS_THRESHOLD && totalThisDrain > 0;
 
   return (
-    <Box direction="row" gap={2} marginBottom={4} testID={testID} wrap>
+    <Box direction="row" gap={2} marginBottom={4} minHeight={20} testID={testID} wrap>
       {!isOnline && (
         <Box alignItems="center" direction="row" gap={1} testID="sync-offline-indicator">
           <Badge status="error" value="Offline" />
@@ -105,11 +106,6 @@ export const SyncStatusBanner: React.FC<SyncStatusBannerProps> = ({
         <Box alignItems="center" direction="row" gap={1} testID="sync-drain-progress">
           <Badge status="warning" value={`Syncing ${sentThisDrain} / ${totalThisDrain}`} />
         </Box>
-      )}
-      {isSyncing && (
-        <Text color="secondaryLight" size="sm" testID="sync-syncing-indicator">
-          Syncing…
-        </Text>
       )}
       {failedCount > 0 && (
         <Box

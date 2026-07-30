@@ -6,6 +6,8 @@ import {
   CURSORS_TABLE,
   type EntityRow,
   KNOWN_STREAMS_TABLE,
+  NEEDS_REPAIR_TABLE,
+  type NeedsRepairRow,
   RESERVED_TABLE_PREFIX,
   type SyncEntity,
 } from "./types";
@@ -96,6 +98,30 @@ export interface SyncStore {
    * Returns the number of entities purged.
    */
   purgeStream: (args: {stream: string}) => number;
+  /**
+   * Delete rows in `collection` that carry no stream provenance (`stream` is "")
+   * and have no pending outbox mutation. These are either phantoms left by a
+   * locally-failed create the server never accepted, or legacy rows written
+   * before stream stamping — a re-bootstrap restores anything the server still
+   * has. Rows protected by a pending mutation are always kept.
+   */
+  purgeUnknownStreamEntities: (args: {collection: string}) => number;
+  /** Record that server state for an entity was skipped while pending-protected. */
+  markNeedsRepair: (args: {
+    collection: string;
+    entityId: string;
+    missedSeq: number;
+    stream: string;
+  }) => void;
+  clearNeedsRepair: (args: {collection: string; entityId: string}) => void;
+  hasNeedsRepair: (args: {collection: string; entityId: string}) => boolean;
+  listNeedsRepair: () => Array<{
+    collection: string;
+    entityId: string;
+    missedSeq: number;
+    stream: string;
+  }>;
+  clearNeedsRepairForStream: (args: {stream: string}) => void;
 }
 
 /**
@@ -147,8 +173,8 @@ export const createSyncStore = ({
       // E5: stamp deletedAt the moment a row FIRST becomes a tombstone (not
       // on every subsequent upsert while it stays deleted, and never on a
       // resurrection back to deleted: false — clear it instead). Empty
-      // string (the schema default for a never-deleted row) must be treated
-      // the same as "absent" here — `??` alone does not do that.
+      // string (what a never-deleted row carries) must be treated the same as
+      // "absent" here — `??` alone does not do that.
       deletedAt: deleted ? existing?.deletedAt || now() : "",
       pendingMutationId: args.pendingMutationId ?? existing?.pendingMutationId ?? "",
       seq: args.seq ?? existing?.seq ?? 0,
@@ -263,6 +289,102 @@ export const createSyncStore = ({
     raw.delRow(KNOWN_STREAMS_TABLE, stream);
   };
 
+  const needsRepairKey = (collection: string, entityId: string): string =>
+    `${collection}:${entityId}`;
+
+  const markNeedsRepair = ({
+    collection,
+    entityId,
+    missedSeq,
+    stream,
+  }: {
+    collection: string;
+    entityId: string;
+    missedSeq: number;
+    stream: string;
+  }): void => {
+    const rowId = needsRepairKey(collection, entityId);
+    const existing = raw.getRow(NEEDS_REPAIR_TABLE, rowId) as Partial<NeedsRepairRow> | undefined;
+    const priorMissed = typeof existing?.missedSeq === "number" ? existing.missedSeq : 0;
+    raw.setRow(NEEDS_REPAIR_TABLE, rowId, {
+      collection,
+      entityId,
+      markedAt: now(),
+      missedSeq: Math.max(priorMissed, missedSeq),
+      stream,
+    } as unknown as Row);
+  };
+
+  const clearNeedsRepair = ({
+    collection,
+    entityId,
+  }: {
+    collection: string;
+    entityId: string;
+  }): void => {
+    raw.delRow(NEEDS_REPAIR_TABLE, needsRepairKey(collection, entityId));
+  };
+
+  const hasNeedsRepair = ({
+    collection,
+    entityId,
+  }: {
+    collection: string;
+    entityId: string;
+  }): boolean => {
+    return raw.hasRow(NEEDS_REPAIR_TABLE, needsRepairKey(collection, entityId));
+  };
+
+  const listNeedsRepair = (): Array<{
+    collection: string;
+    entityId: string;
+    missedSeq: number;
+    stream: string;
+  }> => {
+    const rows = raw.getTable(NEEDS_REPAIR_TABLE);
+    return Object.entries(rows).map(([rowId, row]) => {
+      const typed = row as Partial<NeedsRepairRow>;
+      const collection = typed.collection ?? rowId.split(":")[0] ?? "";
+      const entityId = typed.entityId ?? rowId.split(":").slice(1).join(":") ?? "";
+      return {
+        collection,
+        entityId,
+        missedSeq: typed.missedSeq ?? 0,
+        stream: typed.stream ?? "",
+      };
+    });
+  };
+
+  const clearNeedsRepairForStream = ({stream}: {stream: string}): void => {
+    const rows = raw.getTable(NEEDS_REPAIR_TABLE);
+    for (const [rowId, row] of Object.entries(rows)) {
+      if ((row as Partial<NeedsRepairRow>).stream === stream) {
+        raw.delRow(NEEDS_REPAIR_TABLE, rowId);
+      }
+    }
+  };
+
+  const purgeUnknownStreamEntities = ({collection}: {collection: string}): number => {
+    assertCollection(collection);
+    return raw.transaction(() => {
+      let purged = 0;
+      const table = raw.getTable(collection);
+      for (const [id, row] of Object.entries(table)) {
+        const typed = row as Partial<EntityRow>;
+        if (typed.stream) {
+          continue;
+        }
+        if (typed.pendingMutationId) {
+          continue;
+        }
+        raw.delRow(collection, id);
+        clearNeedsRepair({collection, entityId: id});
+        purged += 1;
+      }
+      return purged;
+    });
+  };
+
   const purgeStream = ({stream}: {stream: string}): number => {
     // C2 leave-purge deletes rows outright, so E5 deletedAt tombstone semantics
     // do not apply here — a purged stream is gone locally, not soft-deleted.
@@ -278,20 +400,27 @@ export const createSyncStore = ({
     }
     raw.delRow(CURSORS_TABLE, stream);
     removeKnownStream({stream});
+    clearNeedsRepairForStream({stream});
     return purged;
   };
 
   return {
     addKnownStream,
     clearCollection,
+    clearNeedsRepair,
+    clearNeedsRepairForStream,
     collections,
     compactTombstones,
     getEntity,
     getKnownStreams,
     getLastUserId,
     getSchemaVersion,
+    hasNeedsRepair,
     listEntities,
+    listNeedsRepair,
+    markNeedsRepair,
     purgeStream,
+    purgeUnknownStreamEntities,
     raw,
     removeKnownStream,
     setLastUserId,

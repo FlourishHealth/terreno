@@ -2,25 +2,20 @@
  * Better Auth client configuration for the example frontend.
  */
 
-import {createBetterAuthClient} from "@terreno/rtk";
+import {baseUrl, createBetterAuthClient} from "@terreno/rtk";
 import Constants from "expo-constants";
-import {resolveApiBaseUrl} from "./apiBaseUrl";
-
-const getBaseURL = (): string => {
-  const expoExtra = Constants.expoConfig?.extra;
-  return resolveApiBaseUrl({
-    envApiUrl: process.env.EXPO_PUBLIC_API_URL,
-    expoExtra,
-  });
-};
 
 const getAppScheme = (): string => {
   const expoExtra = Constants.expoConfig?.extra;
   return expoExtra?.scheme ?? "frontend";
 };
 
+// `baseUrl` from @terreno/rtk is the single source of truth every other caller
+// (RTK Query, sockets, syncdb) already uses. A separate resolver here previously
+// fell back to `extra.BASE_URL` (localhost:4000) in dev, which points at the
+// device itself on an Android emulator instead of the host machine.
 export const betterAuthClient = createBetterAuthClient({
-  baseURL: getBaseURL(),
+  baseURL: baseUrl,
   scheme: getAppScheme(),
   storagePrefix: "terreno-example",
 });

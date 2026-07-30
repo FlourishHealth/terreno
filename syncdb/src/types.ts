@@ -117,6 +117,11 @@ export interface SyncSnapshotEntity {
   deleted: boolean;
 }
 
+/** Response shape of `GET /sync/entities` (point lookup for repair). */
+export interface SyncEntitiesResponse {
+  entities: SyncSnapshotEntity[];
+}
+
 /** Response shape of `GET /sync/snapshot` (C2: one stream per request). */
 export interface SyncSnapshotResponse {
   /** The stream this page belongs to (echoed from the request). */
@@ -184,6 +189,17 @@ export interface SyncConflict {
 
 export type ConflictResolutionStrategy = "useServer" | "keepMine";
 
+/**
+ * Health counts for a single collection. Mirrors the collection-agnostic totals
+ * on {@link SyncStatus}, letting apps attribute an issue to the data it affects
+ * (e.g. one notification per collection rather than one lumped global count).
+ */
+export interface SyncCollectionStatus {
+  queuedCount: number;
+  conflictCount: number;
+  failedCount: number;
+}
+
 /** Aggregate sync state for status UI. */
 export interface SyncStatus {
   isOnline: boolean;
@@ -212,6 +228,12 @@ export interface SyncStatus {
   totalThisDrain: number;
   /** Per-stream cursors (stream key → highest applied seq). */
   streams: Record<string, number>;
+  /**
+   * Per-collection breakdown of the counts above, keyed by collection name.
+   * Only collections with at least one queued, conflicted, or failed mutation
+   * are present, so an empty object means everything is healthy.
+   */
+  collections: Record<string, SyncCollectionStatus>;
   /**
    * E3(c)/(a): local persistence health. `"durable"` (default) means the
    * platform persister is backed by real storage (IndexedDB/SQLite);

@@ -57,6 +57,9 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/gpt/prompt"].post).toBeDefined();
     expect(res.body.paths["/gpt/remix"]).toBeDefined();
     expect(res.body.paths["/gpt/remix"].post).toBeDefined();
+    expect(res.body.paths["/gpt/histories/"]).toBeDefined();
+    expect(res.body.paths["/gpt/histories/"].get).toBeDefined();
+    expect(res.body.paths["/gpt/histories/{id}"]).toBeDefined();
   });
 
   it("includes settings routes", async () => {

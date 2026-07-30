@@ -14,10 +14,11 @@ describe("SyncStatusBanner", () => {
   });
 
   it("hides the offline indicator when online", () => {
-    const {queryByTestId} = renderWithTheme(
+    const {getByTestId, queryByTestId} = renderWithTheme(
       <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={false} queuedCount={0} />
     );
     expect(queryByTestId("sync-offline-indicator")).toBeNull();
+    expect(getByTestId("sync-status-banner").props.style).toMatchObject({minHeight: 20});
   });
 
   it("renders the queued count when there are queued mutations", () => {
@@ -33,11 +34,11 @@ describe("SyncStatusBanner", () => {
     expect(queryByTestId("sync-queued-count")).toBeTruthy();
   });
 
-  it("renders the syncing indicator while syncing", () => {
-    const {getByTestId} = renderWithTheme(
+  it("does not render a syncing indicator (initial sync is toast-only)", () => {
+    const {queryByTestId} = renderWithTheme(
       <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={true} queuedCount={0} />
     );
-    expect(getByTestId("sync-syncing-indicator")).toBeTruthy();
+    expect(queryByTestId("sync-syncing-indicator")).toBeNull();
   });
 
   it("renders a pressable conflict badge and calls onOpenConflicts when pressed", async () => {

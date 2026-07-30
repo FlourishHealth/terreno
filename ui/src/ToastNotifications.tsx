@@ -539,7 +539,18 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
 
   const [toasts, setToasts] = useState<Array<ToastProps>>([]);
 
+  // `show` defers insertion to the next frame, so a `hide` can arrive before the
+  // toast it targets exists in state. These track ids whose insertion is still
+  // scheduled, and of those, the ones that have since been hidden — without
+  // them the deferred insert would resurrect an already-hidden toast, leaving it
+  // stuck on screen forever (persistent toasts never time out).
+  const pendingShowsRef = useRef<Set<string>>(new Set());
+  const cancelledShowsRef = useRef<Set<string>>(new Set());
+
   const hide = useCallback((id: string) => {
+    if (pendingShowsRef.current.has(id)) {
+      cancelledShowsRef.current.add(id);
+    }
     setToasts((prev) => prev.map((t) => (t.id === id ? {...t, open: false} : t)));
   }, []);
 
@@ -551,7 +562,15 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
         setToasts((prev) => prev.filter((t) => t.id !== id));
       };
 
+      // Re-showing an id supersedes any hide that raced ahead of it.
+      cancelledShowsRef.current.delete(id);
+      pendingShowsRef.current.add(id);
+
       requestAnimationFrame(() => {
+        pendingShowsRef.current.delete(id);
+        if (cancelledShowsRef.current.delete(id)) {
+          return;
+        }
         setToasts((prev) => [
           {
             id,
@@ -564,7 +583,9 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
             ...toastDefaults,
             ...toastOptions,
           },
-          ...prev.filter((t) => t.open),
+          // Replace rather than stack any toast already using this id, so a
+          // caller-supplied id always maps to exactly one toast on screen.
+          ...prev.filter((t) => t.open && t.id !== id),
         ]);
       });
 
@@ -583,6 +604,9 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
   );
 
   const hideAll = useCallback(() => {
+    for (const id of pendingShowsRef.current) {
+      cancelledShowsRef.current.add(id);
+    }
     setToasts((prev) => prev.map((t) => ({...t, open: false})));
   }, []);
 

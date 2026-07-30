@@ -1,3 +1,4 @@
+import {baseUrl} from "@terreno/rtk";
 import type {LoginScreenProps} from "@terreno/ui";
 import {LoginScreen} from "@terreno/ui";
 import {useRouter} from "expo-router";
@@ -26,7 +27,11 @@ const Login: React.FC = () => {
         }
         await syncBetterAuthSession(dispatch);
         router.replace("/(tabs)");
-      } catch {
+      } catch (error: unknown) {
+        // A thrown error here is a transport failure rather than rejected credentials
+        // (those come back as result.error above), so log the cause: on native it is
+        // usually an unreachable API base URL.
+        console.error("[login] Email sign in threw", {baseUrl, error});
         setErrorMessage("Sign in failed. Please try again.");
       } finally {
         setIsSubmitting(false);
@@ -43,7 +48,8 @@ const Login: React.FC = () => {
         await signInWithSocial(provider);
         await syncBetterAuthSession(dispatch);
         router.replace("/(tabs)");
-      } catch {
+      } catch (error: unknown) {
+        console.error("[login] Social sign in threw", {baseUrl, error, provider});
         setErrorMessage("Sign in failed. Please try again.");
       } finally {
         setSocialLoading(null);

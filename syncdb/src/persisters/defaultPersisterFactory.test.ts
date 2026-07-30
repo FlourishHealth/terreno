@@ -32,6 +32,47 @@ const readRawRecord = (databaseName: string): Promise<unknown> =>
     };
   });
 
+describe("createDefaultPersisterFactory (native)", () => {
+  // expo-sqlite is only a peer of @terreno/syncdb, so an app that depends on it indirectly gets
+  // the JS package without the autolinked native module. That used to surface as
+  // "Cannot read property 'openDatabaseSync' of undefined", which named neither the package to
+  // install nor the rebuild it needs.
+  it("explains what to install when the expo-sqlite native module is absent", async () => {
+    mock.module("expo-sqlite", () => ({}));
+    const {createDefaultPersisterFactory: createNativeFactory} = await import(
+      "./defaultPersisterFactory.native"
+    );
+
+    expect(() =>
+      createNativeFactory()({databaseName: uniqueDbName(), store: makeStore().raw})
+    ).toThrow(/expo install expo-sqlite/);
+  });
+
+  it("builds a persister when expo-sqlite is available", async () => {
+    const opened: string[] = [];
+    mock.module("expo-sqlite", () => ({
+      openDatabaseSync: (name: string) => {
+        opened.push(name);
+        return {databaseName: name};
+      },
+    }));
+    mock.module("tinybase/persisters/persister-expo-sqlite", () => ({
+      createExpoSqlitePersister: (_store: unknown, _db: unknown, tableName: string) => ({
+        tableName,
+      }),
+    }));
+    const {createDefaultPersisterFactory: createNativeFactory} = await import(
+      "./defaultPersisterFactory.native"
+    );
+
+    const databaseName = uniqueDbName();
+    const persister = createNativeFactory()({databaseName, store: makeStore().raw});
+
+    expect(opened).toEqual([databaseName]);
+    expect((persister as unknown as {tableName: string}).tableName).toBe("terreno_syncdb");
+  });
+});
+
 describe("createDefaultPersisterFactory (base)", () => {
   it("falls back to the in-memory persister and round-trips across stores", async () => {
     const factory = createBaseFactory();

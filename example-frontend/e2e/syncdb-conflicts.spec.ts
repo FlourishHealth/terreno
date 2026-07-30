@@ -15,6 +15,7 @@ import {
   goSyncOnline,
   installOfflineControl,
   openSyncTodos,
+  waitForSyncTodosScreen,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, createTodoAs, listTodosAs, patchTodoAs} from "./helpers/todosApi";
 
@@ -36,9 +37,9 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
   });
 
   /**
-   * Builds the AC-10 state: an offline local edit (completion toggle — the only
-   * update surface the sync Todos UI exposes) racing a concurrent server-side edit
-   * (title change via the REST API, which bumps the doc's sync version).
+   * Builds a conflict: offline local completion toggle racing a concurrent
+   * server-side title edit (REST). The Sync Todos UI can also rename titles;
+   * this helper keeps using the toggle + REST path for a deterministic cross-field race.
    */
   const produceConflict = async (page: Page): Promise<void> => {
     await goSyncOffline(page);
@@ -54,7 +55,7 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
     });
   };
 
-  test("conflict surfaces both timed versions; 'use server for all' accepts server state", async ({
+  test("conflict surfaces both timed versions; 'use all other versions' accepts the saved copy", async ({
     page,
   }) => {
     await produceConflict(page);
@@ -74,7 +75,7 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
       "Time unavailable"
     );
 
-    await page.getByRole("button", {exact: true, name: "Use server for all"}).click();
+    await page.getByRole("button", {exact: true, name: "Use all other versions"}).click();
     await page.getByRole("button", {exact: true, name: "Confirm"}).click();
 
     await expect(page.getByTestId("sync-conflict-badge-clickable")).toBeHidden({
@@ -93,12 +94,33 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
     expect(serverTodo?.title).toBe("Server edit");
   });
 
-  test("'keep mine' re-applies the local version to the server", async ({page}) => {
+  test("resolved conflicts stay cleared after a page reload (no husk rows)", async ({page}) => {
+    await produceConflict(page);
+
+    await page.getByTestId("sync-conflict-badge-clickable").click();
+    await page.getByRole("button", {exact: true, name: "Use all other versions"}).click();
+    await page.getByRole("button", {exact: true, name: "Confirm"}).click();
+
+    await expect(page.getByTestId("sync-conflict-badge-clickable")).toBeHidden({
+      timeout: CONVERGE_TIMEOUT,
+    });
+
+    await page.reload();
+    await waitForSyncTodosScreen(page);
+    await expect(page.getByTestId(`todo-item-${target._id}`)).toContainText("Server edit", {
+      timeout: CONVERGE_TIMEOUT,
+    });
+    await expect(page.getByTestId("sync-conflict-badge-clickable")).toBeHidden({
+      timeout: CONVERGE_TIMEOUT,
+    });
+  });
+
+  test("'keep my change' re-applies the local version to the server", async ({page}) => {
     await produceConflict(page);
 
     await page.getByTestId("sync-conflict-badge-clickable").click();
     await expect(page.getByTestId(`conflict-item-${target._id}`)).toBeVisible();
-    await page.getByRole("button", {exact: true, name: "Keep mine"}).click();
+    await page.getByRole("button", {exact: true, name: "Keep my change"}).click();
 
     await expect(page.getByTestId("sync-conflict-badge-clickable")).toBeHidden({
       timeout: CONVERGE_TIMEOUT,

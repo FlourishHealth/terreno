@@ -1,7 +1,9 @@
 import {describe, expect, it} from "bun:test";
 
+import {createOutbox} from "../mutations/outbox";
+import {createMemoryPersister} from "../persisters/memoryPersister";
 import {SYNC_SCHEMA_VERSION} from "./schema";
-import {createSyncStore} from "./store";
+import {createSyncStore, type SyncStore} from "./store";
 import {CONFLICTS_TABLE, CURSORS_TABLE, OUTBOX_TABLE} from "./types";
 
 interface Todo {
@@ -207,6 +209,90 @@ describe("clearCollection", () => {
     expect(() => store.clearCollection({collection: CONFLICTS_TABLE})).toThrow(
       /Unknown collection/
     );
+  });
+});
+
+describe("deleted rows stay deleted across a persister reload", () => {
+  /**
+   * A MergeableStore keeps a CRDT tombstone for every deleted row. Loading that
+   * tombstone re-applies the tables schema, so any cell carrying a `default`
+   * used to be re-created — resurrecting the row as a husk of its defaults. For
+   * `_conflicts` that meant an already-resolved conflict reappeared with
+   * `collection: ""` and threw `Unknown collection ""` when resolved again.
+   */
+  const reloadAfterDelete = async ({
+    table,
+    rowId,
+    seed,
+  }: {
+    table: string;
+    rowId: string;
+    seed: () => SyncStore;
+  }): Promise<Record<string, unknown>> => {
+    const databaseName = `resurrection-${table}-${Date.now()}-${Math.random()}`;
+    const store = seed();
+    const persister = createMemoryPersister({databaseName, store: store.raw});
+    await persister.save();
+    store.raw.delRow(table, rowId);
+    await persister.save();
+
+    const reloaded = createSyncStore({collections: ["todos", "notes"]});
+    const reloadPersister = createMemoryPersister({databaseName, store: reloaded.raw});
+    await reloadPersister.load();
+    return reloaded.raw.getTable(table);
+  };
+
+  it("does not resurrect a deleted conflict row", async () => {
+    const table = await reloadAfterDelete({
+      rowId: "m1",
+      seed: (): SyncStore => {
+        const store = makeStore();
+        store.raw.setRow(CONFLICTS_TABLE, "m1", {
+          collection: "todos",
+          dismissed: false,
+          entityId: "t1",
+          localData: "{}",
+          serverData: "{}",
+          serverSeq: 9,
+        });
+        return store;
+      },
+      table: CONFLICTS_TABLE,
+    });
+    expect(table).toEqual({});
+  });
+
+  it("does not resurrect a deleted outbox row", async () => {
+    const table = await reloadAfterDelete({
+      rowId: "m1",
+      seed: (): SyncStore => {
+        const store = makeStore();
+        createOutbox({store}).enqueue({
+          args: {title: "a"},
+          collection: "todos",
+          entityId: "t1",
+          mutationId: "m1",
+          operation: "update",
+          userId: "u1",
+        });
+        return store;
+      },
+      table: OUTBOX_TABLE,
+    });
+    expect(table).toEqual({});
+  });
+
+  it("does not resurrect a compacted entity tombstone", async () => {
+    const table = await reloadAfterDelete({
+      rowId: "t1",
+      seed: (): SyncStore => {
+        const store = makeStore();
+        store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+        return store;
+      },
+      table: "todos",
+    });
+    expect(table).toEqual({});
   });
 });
 

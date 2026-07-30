@@ -10,6 +10,12 @@ describe("test-preload default mocks", () => {
     expect(await SecureStore.getItemAsync("k")).toBeNull();
   });
 
+  it("expo-secure-store mock also exposes the synchronous API", async () => {
+    const SecureStore = await import("expo-secure-store");
+    SecureStore.setItem("k", "v");
+    expect(SecureStore.getItem("k")).toBeNull();
+  });
+
   it("AsyncStorage mock returns a no-op store", async () => {
     const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
     await AsyncStorage.setItem("k", "v");

@@ -494,6 +494,36 @@ describe("Box", () => {
       expect(root).toBeTruthy();
       // Just verify the component renders without error when onScroll is provided
     });
+
+    // Behavior props leaking into style reach the native view as unserializable
+    // values: a ref object in style is cyclical (host instance points back at the
+    // node) and gets dev-frozen, so React throws when detaching it on unmount.
+    it("should keep behavior props out of the ScrollView style", () => {
+      const scrollRef = React.createRef<any>();
+      const {root} = renderWithTheme(
+        <Box onScroll={mock(() => {})} scroll scrollRef={scrollRef}>
+          <Text>Scrollable</Text>
+        </Box>
+      );
+
+      const scrollView = root.findByType("ScrollView" as any);
+      expect(scrollView.props.style).not.toHaveProperty("scrollRef");
+      expect(scrollView.props.style).not.toHaveProperty("scroll");
+      expect(scrollView.props.style).not.toHaveProperty("onScroll");
+      expect(scrollView.props.style).not.toHaveProperty("testID");
+    });
+
+    it("should keep behavior props out of the View style", () => {
+      const {root} = renderWithTheme(
+        <Box avoidKeyboard keyboardOffset={12} onLayout={mock(() => {})} testID="behavior-box" />
+      );
+
+      const view = root.findByType("View");
+      expect(view.props.style).not.toHaveProperty("onLayout");
+      expect(view.props.style).not.toHaveProperty("avoidKeyboard");
+      expect(view.props.style).not.toHaveProperty("keyboardOffset");
+      expect(view.props.style).not.toHaveProperty("testID");
+    });
   });
 
   describe("keyboard avoidance", () => {
@@ -569,12 +599,10 @@ describe("Box", () => {
   });
 
   describe("warnings", () => {
-    it("should warn when using wrap and alignItems together", () => {
+    it("should not warn when using wrap and alignItems together", () => {
       const consoleSpy = spyOn(console, "warn").mockImplementation(() => {});
       renderWithTheme(<Box alignItems="center" wrap />);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "React Native doesn't support wrap and alignItems together."
-      );
+      expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });
@@ -751,11 +779,13 @@ describe("Box", () => {
       expect(view.props.style.height).toBe(84);
     });
 
-    it("warns when wrap is combined with alignItems on native", () => {
-      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box alignItems="center" wrap />);
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
+    it("keeps an explicit alignItems when combined with wrap", () => {
+      const {root} = renderWithTheme(<Box alignItems="center" wrap />);
+      const view = root.findByType("View");
+      expect(view.props.style).toMatchObject({
+        alignItems: "center",
+        flexWrap: "wrap",
+      });
     });
 
     it("applies dangerouslySetInlineStyle overrides", () => {

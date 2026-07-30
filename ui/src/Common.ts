@@ -2426,9 +2426,14 @@ export interface ToastProps {
   persistent?: boolean;
   // TODO enforce these should only show if size is "lg" with type discrinimation
   subtitle?: string;
-  // TODO Add buttons for Toast
-  // buttonText?: string;
-  // buttonOnClick?: () => void | Promise<void>;
+  /**
+   * Optional action button label. Renders only when `buttonOnClick` is also provided.
+   */
+  buttonText?: string;
+  /**
+   * Optional action button handler. Renders only when `buttonText` is also provided.
+   */
+  buttonOnClick?: () => void | Promise<void>;
 }
 
 export interface TooltipProps {

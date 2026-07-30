@@ -91,6 +91,7 @@ const makeChannel = (): FakeChannel => {
   };
   return {
     channel: {
+      fetchEntities: async () => ({entities: []}),
       fetchKeyMaterial: async () => {
         throw new Error("key material not expected in this test");
       },
@@ -173,6 +174,7 @@ describe("createSyncDb", () => {
     });
     expect(client.getSyncStatus()).toEqual({
       blockedEntities: 0,
+      collections: {},
       conflictCount: 0,
       draining: false,
       failedCount: 0,
@@ -476,6 +478,38 @@ describe("createSyncDb", () => {
       await client.stop();
     });
 
+    it("ignores streams for collections the client is not configured to sync", async () => {
+      // A backend can host more collections than this client subscribes to (e.g. a
+      // tenant-scoped `projects` stream exposed to org members while this app only
+      // syncs `todos`). Discovery must skip the unconfigured stream instead of trying
+      // to bootstrap it into a store with no `projects` table (which previously threw
+      // "Unknown collection projects" and failed the whole reconcile).
+      const harness = makeHarness();
+      const unconfigured = "projects|tenant:org1";
+      harness.http.state.streams = [
+        {collection: "todos", stream: DEFAULT_STREAM},
+        {collection: "projects", stream: unconfigured},
+      ];
+      harness.http.state.pages[unconfigured] = {
+        cursor: 1,
+        entities: [{data: {title: "a project"}, deleted: false, id: "p1", seq: 1}],
+        frontierSeq: 1,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: unconfigured,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      // The configured todos stream is bootstrapped and known; the projects stream is
+      // neither known nor bootstrapped, and reconcile did not throw.
+      expect(client.store.getKnownStreams()).toContain(DEFAULT_STREAM);
+      expect(client.store.getKnownStreams()).not.toContain(unconfigured);
+      expect(client.getSyncStatus().paused).toBeUndefined();
+      await client.stop();
+    });
+
     it("leave (HTTP 200): a stream absent from the server set is purged locally", async () => {
       const harness = makeHarness();
       const leaving = "todos|tenant:org1";
@@ -644,7 +678,10 @@ describe("createSyncDb", () => {
         []
       );
       expect(nextClient.outbox.listQueued({userId: "u1"})).toEqual([]);
-      expect(nextClient.getSyncStatus().streams).toEqual({});
+      // u1's delta had advanced this stream's cursor to 2; the wipe reset it. (The row
+      // itself is back because this harness serves the same stream key to every user, so
+      // u2's own post-wipe bootstrap re-registered it — at seq 0, from scratch.)
+      expect(nextClient.getSyncStatus().streams[DEFAULT_STREAM]).toBe(0);
       expect(nextClient.store.getLastUserId()).toBe("u2");
       await nextClient.stop();
     });
@@ -825,6 +862,50 @@ describe("createSyncDb", () => {
       expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
         title: "server wins",
       });
+      await client.stop();
+    });
+
+    it("getSyncStatus attributes conflicts and failures to their collection", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      harness.transport.respondWithNack({
+        code: "conflict",
+        serverDoc: {title: "server wins"},
+        serverSeq: 7,
+      });
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      harness.transport.respondWithNack({code: "validation", message: "bad data"});
+      client.mutate({collection: "todos", data: {title: "bad"}, operation: "create"});
+      await flush();
+
+      expect(client.getSyncStatus().collections).toEqual({
+        todos: {conflictCount: 1, failedCount: 1, queuedCount: 0},
+      });
+
+      client.resolveConflict({mutationId, strategy: "useServer"});
+      expect(client.getSyncStatus().collections).toEqual({
+        todos: {conflictCount: 0, failedCount: 1, queuedCount: 0},
+      });
+      await client.stop();
+    });
+
+    it("getSyncStatus omits healthy collections from the breakdown", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "fine"}, operation: "create"});
+      await flush();
+
+      expect(client.getSyncStatus().collections).toEqual({});
       await client.stop();
     });
   });
@@ -1058,6 +1139,7 @@ describe("createSyncDb", () => {
     };
     let httpMutations = 0;
     const http: HttpChannel = {
+      fetchEntities: async () => ({entities: []}),
       fetchKeyMaterial: harness.http.channel.fetchKeyMaterial,
       fetchSnapshotPage: harness.http.channel.fetchSnapshotPage,
       fetchStreams: harness.http.channel.fetchStreams,
@@ -1143,6 +1225,12 @@ describe("createSyncDb", () => {
       const mutateEvent = client.debug?.getEvents().find((e) => e.type === "mutate");
       expect(mutateEvent?.collection).toBe("todos");
       expect(mutateEvent?.operation).toBe("create");
+
+      // The debug panel shows the create/update body: both the local mutate and
+      // the outbound send carry the request body in `detail.data`.
+      expect(mutateEvent?.detail?.data).toEqual({title: "a"});
+      const sendEvent = client.debug?.getEvents().find((e) => e.type === "send");
+      expect(sendEvent?.detail?.data).toEqual({title: "a"});
       await client.stop();
     });
 
@@ -1166,6 +1254,8 @@ describe("createSyncDb", () => {
       const conflict = client.debug?.getEvents().find((e) => e.type === "conflict");
       expect(conflict?.ok).toBe(false);
       expect(conflict?.detail?.serverSeq).toBe(7);
+      // The conflicting create/update body is surfaced so it can be inspected.
+      expect(conflict?.detail?.data).toEqual({title: "mine"});
       await client.stop();
     });
 

@@ -54,8 +54,6 @@ exports[`TableHeader renders correctly with children 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -119,8 +117,6 @@ exports[`TableHeader renders correctly with children 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -171,11 +167,6 @@ exports[`TableHeader renders correctly with children 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -292,11 +283,6 @@ exports[`TableHeader renders correctly with children 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -401,8 +387,6 @@ exports[`TableHeader renders with tableHeaderGroup display (default) 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -453,11 +437,6 @@ exports[`TableHeader renders with tableHeaderGroup display (default) 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -539,11 +518,6 @@ exports[`TableHeader renders with tableHeaderGroup display (default) 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -648,8 +622,6 @@ exports[`TableHeader renders with visuallyHidden display 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -700,11 +672,6 @@ exports[`TableHeader renders with visuallyHidden display 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -786,11 +753,6 @@ exports[`TableHeader renders with visuallyHidden display 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -895,8 +857,6 @@ exports[`TableHeader renders with custom color 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -947,11 +907,6 @@ exports[`TableHeader renders with custom color 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -1033,11 +988,6 @@ exports[`TableHeader renders with custom color 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,

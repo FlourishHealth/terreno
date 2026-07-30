@@ -1,9 +1,19 @@
 import {DateTime} from "luxon";
 import type React from "react";
-import {useCallback} from "react";
+import {useCallback, useState} from "react";
+import {ScrollView, useWindowDimensions} from "react-native";
 
+import {Badge} from "./Badge";
 import {Box} from "./Box";
 import {Button} from "./Button";
+import {
+  formatConflictFieldLabel,
+  formatConflictFieldValue,
+  getChangedConflictFields,
+  NO_CONFLICT_DIFF_FIELDS,
+  parseConflictPayload,
+  summarizeConflictSide,
+} from "./conflictFieldDiff";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
 
@@ -32,47 +42,181 @@ export interface ConflictSheetProps {
   conflicts: SyncConflictItem[];
   /** Called when the user picks a resolution for a conflict. */
   onResolve: (args: {mutationId: string; strategy: SyncConflictResolutionStrategy}) => void;
+  /**
+   * Modal title. Default avoids sync jargon so non-technical users understand
+   * they need to pick between two versions of the same item.
+   */
+  title?: string;
+  /**
+   * Plain-language explanation shown above the conflict list. Pass an empty
+   * string to hide it.
+   */
+  description?: string;
   testID?: string;
 }
 
-const parseConflictData = (json: string): Record<string, unknown> => {
-  try {
-    const parsed: unknown = JSON.parse(json);
-    if (parsed && typeof parsed === "object") {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    // Fall through to the empty shape; the summary still renders below.
-  }
-  return {};
-};
+const DEFAULT_TITLE = "These changes don't match";
 
-const describeData = (data: Record<string, unknown>): string => {
-  if (typeof data.title === "string") {
-    return data.title;
-  }
-  const json = JSON.stringify(data);
-  return json.length > 120 ? `${json.slice(0, 120)}…` : json;
-};
+const DEFAULT_DESCRIPTION =
+  "The same item was changed in two places at once — for example on this device and on another phone, computer, or by someone else. Choose which version to keep. The other one will be discarded.";
 
-const formatConflictTime = (data: Record<string, unknown>): string => {
+const LOCAL_COLUMN_TITLE = "Your change";
+const REMOTE_COLUMN_TITLE = "Other version";
+
+const KEEP_MINE_BUTTON = "Keep my change";
+const USE_OTHER_BUTTON = "Use the other version";
+const KEEP_MINE_ALL_BUTTON = "Keep all of my changes";
+const USE_OTHER_ALL_BUTTON = "Use all other versions";
+
+const KEEP_MINE_ALL_CONFIRM_TITLE = "Keep all of your changes?";
+const KEEP_MINE_ALL_CONFIRM_TEXT =
+  "Your edits on this device will be kept and sent again. The other versions will be discarded.";
+const USE_OTHER_ALL_CONFIRM_TITLE = "Use the other versions for everything?";
+const USE_OTHER_ALL_CONFIRM_TEXT =
+  "Your edits on this device will be discarded. What's saved elsewhere will be kept instead.";
+
+const EMPTY_STATE = "Nothing left to choose — you're all set.";
+
+const TIME_UNAVAILABLE = "Time unavailable";
+
+/**
+ * Best-effort "when was this last touched" for a conflict side. Payload shapes
+ * vary by collection, so try the usual timestamp fields in order of specificity.
+ */
+const parseConflictTime = (data: Record<string, unknown>): DateTime | null => {
   const value = data.updated ?? data.updatedAt ?? data.created ?? data.createdAt;
   if (typeof value !== "string") {
-    return "Time unavailable";
+    return null;
   }
   const dateTime = DateTime.fromISO(value);
-  if (!dateTime.isValid) {
-    return "Time unavailable";
-  }
-  return dateTime.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
+  return dateTime.isValid ? dateTime : null;
 };
+
+const formatConflictTime = (dateTime: DateTime | null): string =>
+  dateTime ? dateTime.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS) : TIME_UNAVAILABLE;
+
+/** Badge label for each side, or null where there is nothing meaningful to say. */
+type RecencyLabel = "Newer" | "Same time" | null;
+
+/**
+ * Which side is more recent, so the user can tell at a glance which version they
+ * would be discarding. Both sides need a usable timestamp for a comparison to
+ * mean anything; without that we stay silent rather than guess.
+ */
+const compareRecency = ({
+  local,
+  server,
+}: {
+  local: DateTime | null;
+  server: DateTime | null;
+}): {local: RecencyLabel; server: RecencyLabel} => {
+  if (!local || !server) {
+    return {local: null, server: null};
+  }
+  const localMillis = local.toMillis();
+  const serverMillis = server.toMillis();
+  if (localMillis === serverMillis) {
+    return {local: "Same time", server: "Same time"};
+  }
+  if (localMillis > serverMillis) {
+    return {local: "Newer", server: null};
+  }
+  return {local: null, server: "Newer"};
+};
+
+const RecencyBadge: React.FC<{label: RecencyLabel; testID: string}> = ({label, testID}) => {
+  if (!label) {
+    return null;
+  }
+  return (
+    <Badge
+      secondary
+      status={label === "Newer" ? "info" : "neutral"}
+      testID={testID}
+      value={label}
+    />
+  );
+};
+
+interface VersionColumnProps {
+  action: React.ReactNode;
+  changedFields: string[];
+  data: Record<string, unknown>;
+  entityId: string;
+  recency: RecencyLabel;
+  showDiff: boolean;
+  side: "local" | "server";
+  time: DateTime | null;
+  title: string;
+}
+
+const VersionColumn: React.FC<VersionColumnProps> = ({
+  action,
+  changedFields,
+  data,
+  entityId,
+  recency,
+  showDiff,
+  side,
+  time,
+  title,
+}) => (
+  <Box
+    flex="grow"
+    gap={3}
+    justifyContent="between"
+    minWidth={240}
+    testID={`conflict-${side}-column-${entityId}`}
+    width={240}
+  >
+    <Box gap={2}>
+      <Box alignItems="center" direction="row" gap={1}>
+        <Text bold color="secondaryDark" size="sm">
+          {title}
+        </Text>
+        <RecencyBadge label={recency} testID={`conflict-${side}-recency-${entityId}`} />
+      </Box>
+      <Text color="secondaryLight" size="sm" testID={`conflict-${side}-time-${entityId}`}>
+        {formatConflictTime(time)}
+      </Text>
+      {showDiff ? (
+        changedFields.length === 0 ? (
+          <Text color="secondaryLight" size="sm">
+            {NO_CONFLICT_DIFF_FIELDS}
+          </Text>
+        ) : (
+          changedFields.map((field) => (
+            <Box gap={1} key={field} testID={`conflict-${side}-field-${field}-${entityId}`}>
+              <Text bold color="secondaryDark" size="sm">
+                {formatConflictFieldLabel(field)}
+              </Text>
+              <Text size="sm">{formatConflictFieldValue(data[field])}</Text>
+            </Box>
+          ))
+        )
+      ) : (
+        <Text size="sm">{summarizeConflictSide({changedFields, data})}</Text>
+      )}
+    </Box>
+    {action}
+  </Box>
+);
 
 const ConflictItem: React.FC<{
   conflict: SyncConflictItem;
   onResolve: (args: {mutationId: string; strategy: SyncConflictResolutionStrategy}) => void;
 }> = ({conflict, onResolve}) => {
-  const local = parseConflictData(conflict.localData);
-  const server = parseConflictData(conflict.serverData);
+  const [showDiff, setShowDiff] = useState<boolean>(false);
+  const local = parseConflictPayload(conflict.localData);
+  const server = parseConflictPayload(conflict.serverData);
+  const localTime = parseConflictTime(local);
+  const serverTime = parseConflictTime(server);
+  const recency = compareRecency({local: localTime, server: serverTime});
+  const changedFields = getChangedConflictFields({local, server});
+
+  const handleToggleDiff = useCallback((): void => {
+    setShowDiff((prev) => !prev);
+  }, []);
 
   const handleKeepMine = useCallback((): void => {
     onResolve({mutationId: conflict.mutationId, strategy: "keepMine"});
@@ -90,49 +234,58 @@ const ConflictItem: React.FC<{
       rounding="md"
       testID={`conflict-item-${conflict.entityId}`}
     >
-      <Text bold size="sm">
-        {conflict.collection} · {conflict.entityId}
-      </Text>
-      <Box direction="row" gap={3}>
-        <Box flex="grow" gap={1}>
-          <Text bold color="secondaryDark" size="sm">
-            Yours
+      <Box direction="row" gap={2} justifyContent="between" wrap>
+        <Box flex="grow">
+          <Text bold size="sm">
+            {conflict.collection} · {conflict.entityId}
           </Text>
-          <Text
-            color="secondaryLight"
-            size="sm"
-            testID={`conflict-local-time-${conflict.entityId}`}
-          >
-            {formatConflictTime(local)}
-          </Text>
-          <Text size="sm">{describeData(local)}</Text>
         </Box>
-        <Box flex="grow" gap={1}>
-          <Text bold color="secondaryDark" size="sm">
-            Server
-          </Text>
-          <Text
-            color="secondaryLight"
-            size="sm"
-            testID={`conflict-server-time-${conflict.entityId}`}
-          >
-            {formatConflictTime(server)}
-          </Text>
-          <Text size="sm">{describeData(server)}</Text>
-        </Box>
-      </Box>
-      <Box direction="row" gap={2}>
         <Button
-          onClick={handleKeepMine}
-          testID={`conflict-keep-mine-button-${conflict.mutationId}`}
-          text="Keep mine"
+          onClick={handleToggleDiff}
+          size="sm"
+          testID={`conflict-diff-toggle-${conflict.entityId}`}
+          text={showDiff ? "Hide diff" : "Diff"}
           variant="outline"
         />
-        <Button
-          onClick={handleUseServer}
-          testID={`conflict-use-server-button-${conflict.mutationId}`}
-          text="Use server"
-          variant="primary"
+      </Box>
+      <Box direction="row" gap={3} wrap>
+        <VersionColumn
+          action={
+            <Button
+              fullWidth
+              onClick={handleKeepMine}
+              testID={`conflict-keep-mine-button-${conflict.mutationId}`}
+              text={KEEP_MINE_BUTTON}
+              variant="outline"
+            />
+          }
+          changedFields={changedFields}
+          data={local}
+          entityId={conflict.entityId}
+          recency={recency.local}
+          showDiff={showDiff}
+          side="local"
+          time={localTime}
+          title={LOCAL_COLUMN_TITLE}
+        />
+        <VersionColumn
+          action={
+            <Button
+              fullWidth
+              onClick={handleUseServer}
+              testID={`conflict-use-server-button-${conflict.mutationId}`}
+              text={USE_OTHER_BUTTON}
+              variant="primary"
+            />
+          }
+          changedFields={changedFields}
+          data={server}
+          entityId={conflict.entityId}
+          recency={recency.server}
+          showDiff={showDiff}
+          side="server"
+          time={serverTime}
+          title={REMOTE_COLUMN_TITLE}
         />
       </Box>
     </Box>
@@ -140,18 +293,24 @@ const ConflictItem: React.FC<{
 };
 
 /**
- * Presentational modal listing unresolved sync conflicts with local ("Yours") vs server values and
- * timestamps side by side. Users can resolve conflicts individually or replace every local version
- * with its server version after confirmation. It is data-layer agnostic: pass `conflicts` and an
- * `onResolve` callback (e.g. from @terreno/syncdb's `useConflicts`).
+ * Presentational modal listing unresolved sync conflicts. Copy is written for
+ * non-technical users: "Your change" (this device) vs "Other version" (elsewhere
+ * or out of sync), with a short explanation of why they must pick one. Whichever
+ * side is more recent is badged. Users can resolve conflicts individually — each
+ * button lives inside the version column it keeps — or apply a choice to every
+ * conflict after confirmation. Data-layer agnostic: pass `conflicts` and an `onResolve`
+ * callback (e.g. from @terreno/syncdb's `useConflicts`).
  */
 export const ConflictSheet: React.FC<ConflictSheetProps> = ({
   visible,
   onDismiss,
   conflicts,
   onResolve,
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
   testID = "conflict-sheet",
 }) => {
+  const {height: windowHeight} = useWindowDimensions();
   const handleResolve = useCallback(
     (args: {mutationId: string; strategy: SyncConflictResolutionStrategy}): void => {
       onResolve(args);
@@ -169,32 +328,61 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
     onDismiss();
   }, [conflicts, onDismiss, onResolve]);
 
+  const handleUseMineForAll = useCallback((): void => {
+    for (const conflict of conflicts) {
+      onResolve({mutationId: conflict.mutationId, strategy: "keepMine"});
+    }
+    onDismiss();
+  }, [conflicts, onDismiss, onResolve]);
+
   return (
-    <Modal onDismiss={onDismiss} title="Sync conflicts" visible={visible}>
-      <Box gap={3} testID={testID}>
-        {conflicts.length === 0 ? (
-          <Text color="secondaryLight">No conflicts to resolve.</Text>
-        ) : (
-          <>
-            <Button
-              confirmationText="This replaces all of your conflicting local changes with the server versions."
-              modalTitle="Use server versions?"
-              onClick={handleUseServerForAll}
-              testID="conflict-use-server-all-button"
-              text="Use server for all"
-              variant="destructive"
-              withConfirmation
-            />
-            {conflicts.map((conflict) => (
-              <ConflictItem
-                conflict={conflict}
-                key={conflict.mutationId}
-                onResolve={handleResolve}
-              />
-            ))}
-          </>
-        )}
-      </Box>
+    <Modal onDismiss={onDismiss} size="md" title={title} visible={visible}>
+      <ScrollView
+        contentContainerStyle={{paddingBottom: 4}}
+        style={{maxHeight: Math.max(windowHeight * 0.65, 240), width: "100%"}}
+        testID="conflict-sheet-scroll"
+      >
+        <Box gap={3} testID={testID}>
+          {conflicts.length === 0 ? (
+            <Text color="secondaryLight">{EMPTY_STATE}</Text>
+          ) : (
+            <>
+              {description ? (
+                <Text color="secondaryDark" size="sm" testID="conflict-sheet-description">
+                  {description}
+                </Text>
+              ) : null}
+              <Box direction="row" gap={2} wrap>
+                <Button
+                  confirmationText={KEEP_MINE_ALL_CONFIRM_TEXT}
+                  modalTitle={KEEP_MINE_ALL_CONFIRM_TITLE}
+                  onClick={handleUseMineForAll}
+                  testID="conflict-use-mine-all-button"
+                  text={KEEP_MINE_ALL_BUTTON}
+                  variant="outline"
+                  withConfirmation
+                />
+                <Button
+                  confirmationText={USE_OTHER_ALL_CONFIRM_TEXT}
+                  modalTitle={USE_OTHER_ALL_CONFIRM_TITLE}
+                  onClick={handleUseServerForAll}
+                  testID="conflict-use-server-all-button"
+                  text={USE_OTHER_ALL_BUTTON}
+                  variant="destructive"
+                  withConfirmation
+                />
+              </Box>
+              {conflicts.map((conflict) => (
+                <ConflictItem
+                  conflict={conflict}
+                  key={conflict.mutationId}
+                  onResolve={handleResolve}
+                />
+              ))}
+            </>
+          )}
+        </Box>
+      </ScrollView>
     </Modal>
   );
 };

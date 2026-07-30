@@ -15,8 +15,14 @@
  */
 import type {SyncDebugEvent, SyncDebugEventType} from "@terreno/syncdb";
 import {SyncDbProvider, useSyncDebugLog, useSyncStatus} from "@terreno/syncdb/react";
+import {
+  formatConflictFieldLabel,
+  formatConflictFieldValue,
+  getChangedConflictFields,
+  NO_CONFLICT_DIFF_FIELDS,
+} from "@terreno/ui";
 import {useRouter} from "expo-router";
-import React, {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {
   FlatList,
   type ListRenderItem,
@@ -26,6 +32,7 @@ import {
   Text,
   View,
 } from "react-native";
+import {useOpenSyncLab} from "@/hooks/useOpenSyncLab";
 import {syncDb} from "@/store/syncdb";
 
 const PALETTE = {
@@ -173,6 +180,13 @@ const EventRow: React.FC<EventRowProps> = React.memo(({event, selected, onSelect
 EventRow.displayName = "EventRow";
 
 const EventDetail: React.FC<{event: SyncDebugEvent | null}> = ({event}) => {
+  const [showDiff, setShowDiff] = useState<boolean>(false);
+
+  // Reset diff view when the selected event changes.
+  useEffect(() => {
+    setShowDiff(false);
+  }, [event?.id]);
+
   if (!event) {
     return (
       <View style={{alignItems: "center", flex: 1, justifyContent: "center", padding: 16}}>
@@ -182,20 +196,94 @@ const EventDetail: React.FC<{event: SyncDebugEvent | null}> = ({event}) => {
       </View>
     );
   }
+
+  const detail = event.detail as
+    | {
+        localData?: unknown;
+        serverDoc?: unknown;
+      }
+    | undefined;
+  const canDiff =
+    event.type === "conflict" &&
+    detail !== undefined &&
+    (detail.localData !== undefined || detail.serverDoc !== undefined);
+  const localPayload =
+    detail?.localData === undefined
+      ? {}
+      : typeof detail.localData === "object" && detail.localData !== null
+        ? (detail.localData as Record<string, unknown>)
+        : {value: detail.localData};
+  const serverPayload =
+    detail?.serverDoc === undefined
+      ? {}
+      : typeof detail.serverDoc === "object" && detail.serverDoc !== null
+        ? (detail.serverDoc as Record<string, unknown>)
+        : {value: detail.serverDoc};
+  const changedFields = canDiff
+    ? getChangedConflictFields({local: localPayload, server: serverPayload})
+    : [];
+
   return (
     <ScrollView style={{flex: 1}} testID="syncdb-debug-detail">
       <View style={{padding: 12}}>
-        <Text
+        <View
           style={{
-            color: TYPE_COLOR[event.type],
-            fontFamily: monospace,
-            fontSize: 13,
+            alignItems: "center",
+            flexDirection: "row",
+            gap: 8,
+            justifyContent: "space-between",
             marginBottom: 8,
           }}
         >
-          #{event.id} · {event.type}
-          {event.phase ? `:${event.phase}` : ""} · {event.direction}
-        </Text>
+          <Text
+            style={{
+              color: TYPE_COLOR[event.type],
+              flex: 1,
+              fontFamily: monospace,
+              fontSize: 13,
+            }}
+          >
+            #{event.id} · {event.type}
+            {event.phase ? `:${event.phase}` : ""} · {event.direction}
+          </Text>
+          {canDiff ? (
+            <Pressable
+              onPress={() => setShowDiff((prev) => !prev)}
+              style={{
+                backgroundColor: showDiff ? PALETTE.rowSelected : PALETTE.panelAlt,
+                borderColor: showDiff ? PALETTE.accent : PALETTE.border,
+                borderRadius: 4,
+                borderWidth: 1,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+              }}
+              testID="syncdb-debug-diff-toggle"
+            >
+              <Text style={{color: PALETTE.text, fontFamily: monospace, fontSize: 12}}>
+                {showDiff ? "Hide diff" : "Diff"}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {showDiff && canDiff ? (
+          <View style={{marginBottom: 12}} testID="syncdb-debug-diff-panel">
+            {changedFields.length === 0 ? (
+              <Text style={{color: PALETTE.textDim, fontFamily: monospace, fontSize: 12}}>
+                {NO_CONFLICT_DIFF_FIELDS}
+              </Text>
+            ) : (
+              changedFields.map((field) => (
+                <View key={field} style={{marginBottom: 8}}>
+                  <Text style={{color: PALETTE.text, fontFamily: monospace, fontSize: 12}}>
+                    {formatConflictFieldLabel(field)}:{" "}
+                    {formatConflictFieldValue(localPayload[field])} →{" "}
+                    {formatConflictFieldValue(serverPayload[field])}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        ) : null}
         <Text style={{color: PALETTE.text, fontFamily: monospace, fontSize: 12, lineHeight: 18}}>
           {JSON.stringify(event, null, 2)}
         </Text>
@@ -206,6 +294,7 @@ const EventDetail: React.FC<{event: SyncDebugEvent | null}> = ({event}) => {
 
 const SyncDebugContent: React.FC = () => {
   const router = useRouter();
+  const openSyncLab = useOpenSyncLab();
   const {events, stats, clear, enabled, log} = useSyncDebugLog();
   const status = useSyncStatus();
   const [paused, setPaused] = useState<boolean>(false);
@@ -360,6 +449,7 @@ const SyncDebugContent: React.FC = () => {
           label={`events ${stats?.retained ?? 0}/${stats?.total ?? 0}`}
         />
         <View style={{flex: 1}} />
+        <ToolbarButton label="Sync Lab" onPress={openSyncLab} />
         <ToolbarButton active={paused} label={paused ? "Resume" : "Pause"} onPress={togglePause} />
         <ToolbarButton label="Copy JSON" onPress={handleCopy} />
         <ToolbarButton danger label="Clear" onPress={handleClear} />

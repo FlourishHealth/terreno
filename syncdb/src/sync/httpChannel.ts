@@ -1,6 +1,7 @@
 import type {
   AuthProvider,
   SyncAck,
+  SyncEntitiesResponse,
   SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNack,
@@ -38,6 +39,12 @@ export interface FetchSnapshotPageArgs {
  */
 export interface HttpChannel {
   fetchSnapshotPage: (args: FetchSnapshotPageArgs) => Promise<SyncSnapshotResponse>;
+  /**
+   * Point lookup for entity repair: fetch canonical server state for specific ids
+   * (`GET /sync/entities`). Used when deltas were skipped while an entity was
+   * pending-protected and the cursor advanced past the missed seq.
+   */
+  fetchEntities: (args: {collection: string; ids: string[]}) => Promise<SyncEntitiesResponse>;
   /**
    * C2: the authoritative set of streams the caller currently belongs to
    * (`GET /sync/streams`). Drives join-backfill / leave-purge diffs; 401 rejects with
@@ -119,6 +126,24 @@ export const createHttpChannel = ({
     return (await response.json()) as SyncSnapshotResponse;
   };
 
+  const fetchEntities = async ({
+    collection,
+    ids,
+  }: {
+    collection: string;
+    ids: string[];
+  }): Promise<SyncEntitiesResponse> => {
+    const query = new URLSearchParams({
+      collection,
+      ids: ids.join(","),
+    });
+    const response = await request(`/sync/entities?${query.toString()}`);
+    if (!response.ok) {
+      throw new Error(`Entities request for ${collection} failed with status ${response.status}`);
+    }
+    return (await response.json()) as SyncEntitiesResponse;
+  };
+
   const fetchStreams = async (): Promise<SyncStreamInfo[]> => {
     const response = await request("/sync/streams");
     if (!response.ok) {
@@ -184,5 +209,12 @@ export const createHttpChannel = ({
     return body.keyMaterial;
   };
 
-  return {fetchKeyMaterial, fetchSnapshotPage, fetchStreams, sendMutation, sendMutationBatch};
+  return {
+    fetchEntities,
+    fetchKeyMaterial,
+    fetchSnapshotPage,
+    fetchStreams,
+    sendMutation,
+    sendMutationBatch,
+  };
 };

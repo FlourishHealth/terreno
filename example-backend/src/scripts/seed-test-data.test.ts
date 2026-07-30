@@ -11,7 +11,7 @@ describe("seedDefaultData", () => {
     await seedDefaultData();
     await seedDefaultData();
 
-    const admin = await User.findByEmail("superuser@example.com");
+    const admin = await User.findByEmail("admin@example.com");
     const user = await User.findByEmail("test@example.com");
 
     assert.exists(admin);

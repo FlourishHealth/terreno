@@ -31,9 +31,11 @@ Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted 
 
 ```bash
 bun install @terreno/syncdb
-# native persistence (optional peer):
-bun install expo-sqlite
+# native persistence (optional peer) — use `expo install` so the version matches your SDK:
+bunx expo install expo-sqlite
 ```
+
+Install `expo-sqlite` in the **app**, not only in a library that depends on `@terreno/syncdb`: Expo autolinking walks the app's own dependencies, so a nested copy leaves the ExpoSQLite native module out of the build and native persistence fails to start. Rebuild the native project after adding it — reloading JS is not enough.
 
 React bindings live on the `@terreno/syncdb/react` subpath so the main entry stays importable without react.
 
@@ -232,7 +234,7 @@ Sequencing guarantees: validation failures never consume a seq (the claim happen
 
 | Endpoint | Purpose | Auth |
 |---|---|---|
-| `GET /sync/snapshot?collection=&cursor=&limit=` | Bootstrap + catch-up. Returns `{entities: [{id, data, seq, deleted}], cursor, hasMore}`. `cursor=0` = full snapshot (legacy docs without `_syncSeq` arrive in the first page with seq 0). Default page 500, max 1000. | Model `list` permissions + server-enforced scope filter |
+| `GET /sync/snapshot?collection=&cursor=&limit=` | Bootstrap + catch-up. Returns `{entities: [{id, data, seq, deleted}], cursor, hasMore}`. `cursor=0` = full snapshot (legacy docs without `_syncSeq` arrive in the first page with seq 0). Default page 100, max 100. | Model `list` permissions + server-enforced scope filter |
 | `POST /sync/mutate` | HTTP fallback for outbox replay (same handler as the socket channel). Body: `{mutationId, collection, operation, id?, data?, baseVersion?}`. Returns `{ack}` or `{nack}` with status 409 (conflict), 403 (unauthorized), 422 (validation), 429 (rate_limited, carries `retryAfterMs`), 500 (error). | modelRouter create/update/delete write path |
 | `POST /sync/mutate/batch` | HTTP fallback for batched outbox replay. Body: `{mutations: SyncMutateRequest[]}` (max 100; intra-batch duplicate `mutationId`s rejected up front). Returns `{results: ({type:"ack",ack}\|{type:"nack",nack})[]}` — applied strictly in array order, stopping at the first non-ack (a shorter `results` array than the request means everything after it was never attempted). | modelRouter create/update/delete write path, per mutation |
 | `GET /sync/key` | Caller's per-user key material for the server key provider (32 random bytes, base64; created on first call). | Own key only |
@@ -298,13 +300,15 @@ tables:
   _outbox        → rowId = mutationId; cells: collection, operation, entityId, args (JSON),
                    baseVersion?, status (queued|inFlight|acked|conflicted|failed),
                    attemptCount, userId, createdAt, enqueueOrder
-  _cursors       → rowId = stream; cells: seq, updatedAt
+  _cursors       → rowId = stream; cells: seq, updatedAt, snapshotSeq, bootstrapped
   _conflicts     → rowId = mutationId; cells: collection, entityId, localData, serverData,
                    serverSeq, dismissed
 values: schemaVersion, lastUserId, outboxMaxEnqueueOrder
 ```
 
 The outbox replays FIFO over the socket (HTTP fallback while disconnected), with per-user isolation: queued mutations record `userId` and replay skips on mismatch.
+
+A stream's `_cursors` row tracks two independent progress marks. `seq` is the highest seq applied locally and is advanced by both snapshot pages and live deltas; `snapshotSeq` is how far the snapshot endpoint has actually been paged, and only bootstrap advances it. An unfinished bootstrap resumes from `snapshotSeq`, never from `seq`: a live delta at the stream head can overtake `seq` while bootstrap is still on page 3 of 40, and resuming from `seq` would leave every seq in between permanently unreachable (no later reconcile would ask for it again). Once a snapshot pass reaches the head the stream is marked `bootstrapped` and catch-up resumes from `seq`, since deltas carry their own data.
 
 ### Schema versioning
 

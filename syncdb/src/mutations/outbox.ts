@@ -18,10 +18,19 @@ export const generateMutationId = (): string => {
   return `mut_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
-/** Legal outbox lifecycle transitions; anything else throws. */
+/**
+ * Legal outbox lifecycle transitions; anything else throws.
+ *
+ * `conflicted → queued` is intentionally NOT listed here: the only legal way
+ * out of `conflicted` is {@link Outbox.requeue}, which clones under a fresh
+ * mutationId (the spent id is burned on the server's idempotency ledger).
+ * Allowing `markQueued` from `conflicted` used to silently leave a `_conflicts`
+ * row pointing at a now-queued mutation, and the next `keepMine` then threw
+ * `Illegal outbox transition "queued" → "queued"`.
+ */
 const LEGAL_TRANSITIONS: Record<OutboxStatus, readonly OutboxStatus[]> = {
   acked: [],
-  conflicted: ["queued"],
+  conflicted: [],
   failed: [],
   inFlight: ["acked", "conflicted", "failed", "queued"],
   queued: ["inFlight"],
@@ -93,6 +102,18 @@ export interface Outbox {
    * mutation and must carry a new id. Returns the re-enqueued mutation.
    */
   requeue: (args: {mutationId: string; baseVersion?: number}) => OutboxMutation;
+  /**
+   * Repair helper: force a `queued`/`inFlight` row back to `conflicted` so
+   * {@link Outbox.requeue} can run. Used when a `_conflicts` row outlived a
+   * corrupt status transition (see resolveConflict keepMine).
+   */
+  restoreConflicted: (args: {mutationId: string}) => void;
+  /**
+   * Drop a spent outbox row. Used by `useServer` conflict resolution so the
+   * abandoned conflicted mutation cannot be resurrected by
+   * {@link Outbox.recoverStartupState} into a phantom `_conflicts` row.
+   */
+  discard: (args: {mutationId: string}) => void;
   /** Remove every mutation belonging to the given user (wipe-on-user-change). */
   clearForUser: (args: {userId: string}) => void;
   /**
@@ -119,6 +140,16 @@ export interface Outbox {
   /** Count of the user's mutations currently in the given status. */
   countByStatus: (args: {userId: string; status: OutboxStatus}) => number;
   /**
+   * Per-collection counts for the requested statuses in a single table scan,
+   * keyed by collection then status. Collections with no matching rows are
+   * omitted, as are statuses with a zero count, so callers can treat a missing
+   * key as 0.
+   */
+  countsByCollection: (args: {
+    userId: string;
+    statuses: readonly OutboxStatus[];
+  }) => Record<string, Partial<Record<OutboxStatus, number>>>;
+  /**
    * True when ANY outbox row (any status — queued, inFlight, conflicted, or
    * failed) still exists for the given user/collection/entity. Used by the
    * replay coordinator's FIX 4 GC to distinguish "the entity's failed row was
@@ -133,9 +164,10 @@ export interface Outbox {
 
 /**
  * Durable outbox state machine over the `_outbox` table. Enforces the legal
- * lifecycle (`queued → inFlight → acked|conflicted|failed`, `conflicted →
- * queued` via requeue, `inFlight → queued` for transient retries) so replay
- * behavior is deterministic across restarts.
+ * lifecycle (`queued → inFlight → acked|conflicted|failed`, `conflicted`
+ * exits only via {@link Outbox.requeue} under a fresh mutationId, `inFlight →
+ * queued` for transient retries) so replay behavior is deterministic across
+ * restarts.
  */
 export const createOutbox = ({
   store,
@@ -315,6 +347,29 @@ export const createOutbox = ({
     return rowToMutation(retryId, retryRow);
   };
 
+  /**
+   * Repair helper for resolveConflict: if a `_conflicts` row still points at a
+   * mutation that is no longer `conflicted` (corrupt `markQueued` from
+   * conflicted, or a partial resolve), force it back to `conflicted` so
+   * {@link requeue} can mint a fresh id. No-op when already conflicted.
+   */
+  const restoreConflicted = ({mutationId}: {mutationId: string}): void => {
+    const row = requireRow(mutationId);
+    const from = (row.status ?? "queued") as OutboxStatus;
+    if (from === "conflicted") {
+      return;
+    }
+    if (from !== "queued" && from !== "inFlight") {
+      throw new Error(`Cannot restore conflicted status from "${from}" (mutation ${mutationId})`);
+    }
+    store.raw.setCell(OUTBOX_TABLE, mutationId, "status", "conflicted");
+  };
+
+  const discard = ({mutationId}: {mutationId: string}): void => {
+    requireRow(mutationId);
+    store.raw.delRow(OUTBOX_TABLE, mutationId);
+  };
+
   const clearForUser = ({userId}: {userId: string}): void => {
     const table = store.raw.getTable(OUTBOX_TABLE);
     for (const [mutationId, row] of Object.entries(table)) {
@@ -428,6 +483,31 @@ export const createOutbox = ({
     return count;
   };
 
+  const countsByCollection = ({
+    userId,
+    statuses,
+  }: {
+    userId: string;
+    statuses: readonly OutboxStatus[];
+  }): Record<string, Partial<Record<OutboxStatus, number>>> => {
+    const counts: Record<string, Partial<Record<OutboxStatus, number>>> = {};
+    for (const row of Object.values(store.raw.getTable(OUTBOX_TABLE))) {
+      const typedRow = row as Partial<OutboxRow>;
+      if ((typedRow.userId ?? "") !== userId) {
+        continue;
+      }
+      const status = (typedRow.status ?? "queued") as OutboxStatus;
+      if (!statuses.includes(status)) {
+        continue;
+      }
+      const collection = typedRow.collection ?? "";
+      const forCollection = counts[collection] ?? {};
+      forCollection[status] = (forCollection[status] ?? 0) + 1;
+      counts[collection] = forCollection;
+    }
+    return counts;
+  };
+
   const hasAnyRowForEntity = ({
     userId,
     collection,
@@ -453,6 +533,8 @@ export const createOutbox = ({
   return {
     clearForUser,
     countByStatus,
+    countsByCollection,
+    discard,
     enqueue,
     getMutation,
     hasAnyRowForEntity,
@@ -466,5 +548,6 @@ export const createOutbox = ({
     prune,
     recoverStartupState,
     requeue,
+    restoreConflicted,
   };
 };
