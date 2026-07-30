@@ -114,6 +114,7 @@ export const SignatureCaptureField = ({
             nameLabel={nameLabel}
             onChange={emitTyped}
             placeholder={placeholder}
+            testIDs={{input: fieldTestIDs.input}}
             title=""
             value={typedValue}
           />
@@ -139,7 +140,13 @@ export const SignatureCaptureField = ({
       <View style={{marginTop: 12}}>
         {mode === "draw" ? (
           <View>
-            <Signature fullWidth={fullWidth} onChange={emitDrawn} onEnd={onEnd} onStart={onStart} />
+            <Signature
+              fullWidth={fullWidth}
+              onChange={emitDrawn}
+              onEnd={onEnd}
+              onStart={onStart}
+              testID={fieldTestIDs.input}
+            />
             {!drawnImage && (
               <NativeText style={{color: theme.text.secondaryLight, fontSize: 12, marginTop: 4}}>
                 Draw your signature above, then it will be saved automatically.
@@ -152,6 +159,7 @@ export const SignatureCaptureField = ({
             nameLabel={nameLabel}
             onChange={emitTyped}
             placeholder={placeholder}
+            testIDs={{input: fieldTestIDs.input}}
             title=""
             value={typedValue}
           />

@@ -11,6 +11,8 @@ interface Props {
   onStart?: () => void;
   onEnd?: () => void;
   fullWidth?: boolean;
+  /** Test id applied to the drawing surface. */
+  testID?: string;
 }
 
 const STROKE_WIDTH_PX = 2.5;
@@ -32,7 +34,13 @@ const SNAPSHOT_DELAY_MS = 60;
  * Reports the signature to the parent as a base64 PNG data URL via onChange,
  * and pushes "" on clear so "signature required" gating resets immediately.
  */
-export const Signature: FC<Props> = ({fullWidth = false, onChange, onStart, onEnd}: Props) => {
+export const Signature: FC<Props> = ({
+  fullWidth = false,
+  onChange,
+  onStart,
+  onEnd,
+  testID,
+}: Props) => {
   const {theme} = useTheme();
   const canvasRef = useCanvasRef();
   const signaturePadHeight = getSignaturePadHeight(Platform.OS);
@@ -140,7 +148,7 @@ export const Signature: FC<Props> = ({fullWidth = false, onChange, onStart, onEn
   }, [clearSnapshotTimer, onChange]);
 
   return (
-    <View style={{minWidth: 220, width: fullWidth ? "100%" : undefined}}>
+    <View style={{minWidth: 220, width: fullWidth ? "100%" : undefined}} testID={testID}>
       <GestureDetector gesture={panGesture}>
         <View
           style={{

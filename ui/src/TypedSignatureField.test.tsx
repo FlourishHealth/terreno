@@ -88,6 +88,22 @@ describe("TypedSignatureField", () => {
     });
   });
 
+  it("falls back to the bundled fonts when an empty list is supplied", () => {
+    const onChange = mock((_v: TypedSignatureValue) => {});
+    // An empty `fonts` list must not crash — the field falls back to the bundled defaults.
+    const {getByText} = renderWithTheme(<TypedSignatureField fonts={[]} onChange={onChange} />);
+
+    for (const font of DEFAULT_SIGNATURE_FONTS) {
+      expect(getByText(font.label)).toBeTruthy();
+    }
+
+    fireEvent.press(getByText(DEFAULT_SIGNATURE_FONTS[0].label));
+    expect(onChange).toHaveBeenCalledWith({
+      fontKey: DEFAULT_SIGNATURE_FONTS[0].key,
+      typedName: "",
+    });
+  });
+
   it("renders an error message when errorText is provided", () => {
     const {getByText} = renderWithTheme(
       <TypedSignatureField {...defaultProps} errorText="Signature is required" />

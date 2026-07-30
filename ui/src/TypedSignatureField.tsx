@@ -77,8 +77,13 @@ export const TypedSignatureField = ({
 
   const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
 
+  // Guard against an empty `fonts` list: `fonts` is a public prop, so a caller can legitimately
+  // pass `[]`. Fall back to the bundled defaults so the field always has a usable font rather
+  // than dereferencing `undefined` on the first render.
+  const resolvedFonts = fonts.length > 0 ? fonts : DEFAULT_SIGNATURE_FONTS;
+
   const typedName = value?.typedName ?? "";
-  const selectedFont = resolveSelectedFont(fonts, value?.fontKey);
+  const selectedFont = resolveSelectedFont(resolvedFonts, value?.fontKey);
   const hasName = typedName.trim().length > 0;
 
   const emitChange = (next: Partial<TypedSignatureValue>): void => {
@@ -108,7 +113,7 @@ export const TypedSignatureField = ({
       {/* Font picker: each option renders its own label in its own typeface so the signer can
           compare styles before selecting. */}
       <View style={{flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12}}>
-        {fonts.map((font) => {
+        {resolvedFonts.map((font) => {
           const isSelected = font.key === selectedFont.key;
           return (
             <Pressable

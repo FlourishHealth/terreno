@@ -91,6 +91,41 @@ describe("SignatureCaptureField", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("forwards the resolved input test id to the typed name input in type mode", () => {
+    const {UNSAFE_getAllByProps} = renderWithTheme(
+      <SignatureCaptureField {...defaultProps} testID="sig" />
+    );
+    // testID "sig" resolves to input id "sig" and is forwarded to the typed name input.
+    const inputs = UNSAFE_getAllByProps({}).filter(
+      (el) => typeof el.props?.onChangeText === "function"
+    );
+    expect(inputs.length).toBeGreaterThan(0);
+    expect(inputs[0].props.testID).toBe("sig");
+  });
+
+  it("forwards the resolved input test id to the draw pad in draw mode", () => {
+    const {UNSAFE_getAllByProps} = renderWithTheme(
+      <SignatureCaptureField {...defaultProps} defaultMode="draw" testID="sig" />
+    );
+    // The draw pad is the node exposing both onChange and fullWidth; it should carry the id.
+    const drawPads = UNSAFE_getAllByProps({}).filter(
+      (el) => typeof el.props?.onChange === "function" && "fullWidth" in (el.props ?? {})
+    );
+    expect(drawPads.length).toBeGreaterThan(0);
+    expect(drawPads[0].props.testID).toBe("sig");
+  });
+
+  it("forwards an explicit testIDs.input to the active control", () => {
+    const {UNSAFE_getAllByProps} = renderWithTheme(
+      <SignatureCaptureField {...defaultProps} testIDs={{input: "custom-input"}} />
+    );
+    const inputs = UNSAFE_getAllByProps({}).filter(
+      (el) => typeof el.props?.onChangeText === "function"
+    );
+    expect(inputs.length).toBeGreaterThan(0);
+    expect(inputs[0].props.testID).toBe("custom-input");
+  });
+
   it("renders an error message when errorText is provided", () => {
     const {getByText} = renderWithTheme(
       <SignatureCaptureField {...defaultProps} errorText="A signature is required." />
