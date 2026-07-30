@@ -94,7 +94,7 @@ const getNumber = (key: string): number | undefined => {
       code: "invalid-config-value",
       detail: `Config key "${key}" is not a valid number: ${JSON.stringify(raw)}`,
       status: 500,
-      title: `Config key "${key}" is not a valid number`,
+      title: "Invalid config value",
     });
   }
   return parsed;
@@ -127,7 +127,7 @@ const getJSON = <T = unknown>(key: string): T | undefined => {
       code: "invalid-config-value",
       detail: `Config key "${key}" is not valid JSON: ${(error as Error).message}`,
       status: 500,
-      title: `Config key "${key}" is not valid JSON`,
+      title: "Invalid config value",
     });
   }
 };

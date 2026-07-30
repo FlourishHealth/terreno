@@ -173,9 +173,13 @@ export class APIError extends Error {
 
     this.status = normalizeStatus(options.status);
     this.code = options.code;
-    // name precedence: subclass name (set by the subclass constructor after super() returns)
-    // > code > status-derived > "APIError".
+    // name precedence: subclass name (from new.target) > code > status-derived > "APIError".
+    const subclassName =
+      new.target !== APIError && new.target.name && new.target.name !== "APIError"
+        ? new.target.name
+        : undefined;
     this.name =
+      subclassName ??
       (options.code ? errorNameFromCode(options.code) : undefined) ??
       STATUS_ERROR_NAMES[this.status] ??
       "APIError";
@@ -202,7 +206,8 @@ export class APIError extends Error {
     return this.message;
   }
 
-  // Client-facing JSONAPI body. Excludes name/stack/cause and internal reporting config.
+  // Client-facing JSONAPI body. Excludes name/stack/cause; includes
+  // disableExternalErrorTracking only when true (client Sentry suppression).
   toJSON(): APIErrorBody {
     return serializeAPIError(this);
   }
@@ -459,17 +464,14 @@ const logAndCaptureAPIError = (err: APIError): void => {
   const logMessage = `${err.name}(${err.status}): ${err.message}${
     err.detail ? ` — ${err.detail}` : ""
   }${causeStack}`;
+  const logFn = err.status >= 500 ? logger.error.bind(logger) : logger.warn.bind(logger);
   if (err.disableExternalErrorTracking) {
-    logger.warn(logMessage);
+    logFn(logMessage);
     return;
   }
-  if (err.status >= 500) {
-    logger.error(logMessage);
-  } else {
-    logger.warn(logMessage);
-  }
+  logFn(logMessage);
   Sentry.withScope((scope) => {
-    scope.setFingerprint([err.name, err.code ?? err.message, String(err.status)]);
+    scope.setFingerprint([err.name, err.code ?? err.name, String(err.status)]);
     scope.setTag("http.status_code", String(err.status));
     if (err.code) {
       scope.setTag("api_error.code", err.code);

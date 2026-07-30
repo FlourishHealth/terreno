@@ -234,7 +234,7 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toBe("Custom preCreate error");
-    // The flag is internal reporting config: never serialized to clients, and it
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
     // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
@@ -270,7 +270,7 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toContain("preCreate hook error");
-    // The flag is internal reporting config: never serialized to clients, and it
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
     // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
@@ -321,7 +321,7 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toBe("Custom preUpdate error");
-    // The flag is internal reporting config: never serialized to clients, and it
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
     // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
@@ -370,7 +370,7 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toContain("preUpdate hook error");
-    // The flag is internal reporting config: never serialized to clients, and it
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
     // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
@@ -414,7 +414,7 @@ describe("pre and post hooks", () => {
     const res = await agent.delete(`/food/${spinach._id}`).expect(403);
 
     expect(res.body.title).toContain("preDelete hook error");
-    // The flag is internal reporting config: never serialized to clients, and it
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
     // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
@@ -721,7 +721,7 @@ describe("hook error handling", () => {
 
     const res = await agent.delete(`/food/${spinach._id}`).expect(400);
     expect(res.body.title).toBe("Custom preDelete APIError");
-    // The flag is internal reporting config: never serialized to clients, and it
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
     // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();

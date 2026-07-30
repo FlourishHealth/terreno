@@ -226,7 +226,7 @@ describe("withApiErrorHandling", () => {
     expect(normalized.classification).toBe("notFound");
   });
 
-  it("converts to an APIError when rethrowAs is apiError, logging via APIError only", async () => {
+  it("converts to an APIError when rethrowAs is apiError without logging itself", async () => {
     const {logger, entries} = createRecordingLogger();
     const original = buildAxiosError({data: {message: "Rate limit exceeded"}, status: 429});
     let caught: unknown;
@@ -247,9 +247,9 @@ describe("withApiErrorHandling", () => {
     expect(apiError.detail).toBe("Rate limit exceeded");
     expect(apiError.error).toBe(original);
     expect(apiError.meta?.classification).toBe("rateLimited");
-    // Logged exactly once via the wrapper before throwing APIError.
-    expect(entries).toHaveLength(1);
-    expect(entries[0].level).toBe("error");
+    // The wrapper stays silent — apiErrorMiddleware logs the APIError, so logging here
+    // too would produce two log entries for the same failure.
+    expect(entries).toHaveLength(0);
   });
 
   it("defaults the APIError status to 500 when the failure has no status code", async () => {

@@ -192,8 +192,9 @@ export interface WithApiErrorHandlingOptions {
  * once, and rethrown.
  *
  * In "raw" mode (default) the wrapper logs the normalized shape via the injected logger
- * and rethrows the original error. In "apiError" mode the wrapper logs once and throws a
- * terreno APIError with a stable title; per-occurrence text goes in `detail`.
+ * and rethrows the original error. In "apiError" mode the wrapper throws a terreno
+ * APIError with a stable title (per-occurrence text goes in `detail`) and stays silent
+ * itself — apiErrorMiddleware logs APIErrors, so logging here too would double-log.
  */
 export const withApiErrorHandling = async <T>(
   fn: () => Promise<T>,
@@ -212,7 +213,6 @@ export const withApiErrorHandling = async <T>(
     }
     if (options.rethrowAs === "apiError") {
       const statusCode = normalized.statusCode;
-      log.error(`[${options.apiName}] ${options.operation} failed`, normalized);
       throw new APIError({
         cause: error,
         code: "http-client-error",

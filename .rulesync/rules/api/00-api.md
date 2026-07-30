@@ -473,7 +473,7 @@ Rules:
 
 - `title` must be a stable summary of the problem type; put per-occurrence text in `detail` and the wrapped error in `cause` (never concatenate them into `title`).
 - Use `isAPIError(error)` to detect APIErrors — never check `error.name`.
-- Constructing an APIError does not log. `apiErrorMiddleware` (added automatically by `setupServer`) logs `warn` for 4xx / `error` for 5xx, captures to Sentry with a fingerprint on `name + code/title + status`, and serializes the JSONAPI body (`disableExternalErrorTracking` is never sent to clients).
+- Constructing an APIError does not log. `apiErrorMiddleware` (added automatically by `setupServer`) logs `warn` for 4xx / `error` for 5xx, captures to Sentry with a fingerprint on `name + code + status` (falls back to `name` when `code` is absent), and serializes the JSONAPI body (`disableExternalErrorTracking` is included only when `true`, for client-side Sentry suppression).
 
 ## Mongoose Conventions
 

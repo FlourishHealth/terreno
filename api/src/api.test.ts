@@ -656,7 +656,7 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
-      // Internal reporting config is no longer serialized to clients.
+      // Serialized when true so the frontend can suppress duplicate Sentry reporting.
       expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });
@@ -1411,7 +1411,7 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
-      // Internal reporting config is no longer serialized to clients.
+      // Serialized when true so the frontend can suppress duplicate Sentry reporting.
       expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });

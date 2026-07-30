@@ -183,6 +183,15 @@ describe("APIError subclasses", () => {
     expect(error.meta?.fields).toEqual({email: "Required"});
   });
 
+  it("derives name from custom subclasses via new.target", () => {
+    class PaymentError extends APIError {
+      constructor(title: string) {
+        super({status: 402, title});
+      }
+    }
+    expect(new PaymentError("declined").name).toBe("PaymentError");
+  });
+
   it("covers the remaining status subclasses", () => {
     expect(new UnauthorizedError("U").status).toBe(401);
     expect(new UnauthorizedError("U").name).toBe("UnauthorizedError");

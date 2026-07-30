@@ -20,9 +20,10 @@ is invisible to Sentry.
 
 ## Non-Goals
 
-- Changing the client-facing wire format beyond removing `disableExternalErrorTracking` (see
+- Changing the client-facing wire format beyond clarifying `disableExternalErrorTracking` (see
   Decisions). Frontends (`ui/src/Utilities.tsx` `isAPIError`/`printAPIError`, RTK error
-  middleware) keep reading `data.title`, `data.detail`, `data.status`, `data.meta.fields`.
+  middleware, `example-frontend/store/errors.ts`) keep reading `data.title`, `data.detail`,
+  `data.status`, `data.meta.fields`, and `data.disableExternalErrorTracking` when present.
 - Replacing the JSONAPI error model. The extension fields stay; only their relationship to the
   standard `Error` fields changes.
 - A general error-taxonomy overhaul for consuming apps (Flourish, etc.). They get better behavior
@@ -44,8 +45,9 @@ Additional design issues:
 1. **Constructor side effects.** Every construction calls `logger.error`/`logger.warn`, even when
    the error is caught and handled, converted, or expected. Reporting belongs at the handling
    boundary (`apiErrorMiddleware`), not at construction.
-2. **Internal config leaks to clients.** `getAPIErrorBody` serializes
-   `disableExternalErrorTracking` into the HTTP response body.
+2. **Internal config on the wire.** `getAPIErrorBody` serializes
+   `disableExternalErrorTracking` into the HTTP response body when true (needed for client-side
+   Sentry suppression). It is omitted when false/undefined.
 3. **Brittle type guard.** `isAPIError` checks `error.name === "APIError"`, which forbids ever
    making `name` meaningful (the fix for the Sentry headline) and only exists to survive duplicate
    `@terreno/api` instances across packages.
@@ -66,10 +68,10 @@ Additional design issues:
 | What does `name` hold? | The error *type*, by precedence: subclass name (via `new.target.name`) → PascalCased `code` (`"update-admin-error"` → `UpdateAdminError`) → status-derived name (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `InternalServerError`, …) → `APIError`. |
 | How is the wrapped error attached? | Standard ES2022 `cause`: `super(title, {cause})`. The old `error` option is kept as a deprecated alias that feeds `cause`. Sentry then renders the chain as linked exceptions with the original stack. |
 | Where does logging happen? | In `apiErrorMiddleware`, not the constructor: `warn` for 4xx, `error` for 5xx (5xx are bugs/ops issues; 4xx are mostly client mistakes). Non-HTTP boundaries (websockets, scripts) already log via `logger.catch`/`captureException`. |
-| Is `disableExternalErrorTracking` still sent to clients? | No. It is internal reporting config; `toJSON()` omits it. (Small wire-format break — `api.hooks.test.ts` currently asserts it in response bodies and must be updated.) |
+| Is `disableExternalErrorTracking` still sent to clients? | Only when `true`. It lets the frontend suppress duplicate Sentry reporting (`example-frontend/store/errors.ts`). Omitted from the wire body when false/undefined. Still suppresses server-side Sentry capture in `apiErrorMiddleware` when set. |
 | How does `isAPIError` work? | Brand property `isTerrenoAPIError = true` set in the constructor (survives duplicate package instances), with a transition fallback for `name === "APIError"`. |
 | Does Sentry still capture 4xx APIErrors? | Unchanged for now: capture everything unless `disableExternalErrorTracking`. But capture gains a fingerprint and context (below) so 4xx noise at least groups correctly. A follow-up may default 4xx to log-only. |
-| Wire body shape? | Unchanged except the dropped flag: `{status, title, detail?, code?, id?, links?, source?, meta?}`. `meta.fields` unchanged. |
+| Wire body shape? | `{status, title, detail?, code?, id?, links?, source?, meta?, disableExternalErrorTracking?}`. The last field is present only when `true`. `meta.fields` unchanged. |
 
 ## Architecture
 
@@ -136,7 +138,7 @@ export class APIError extends Error {
     return this.message;
   }
 
-  /** Client-facing JSONAPI body. Excludes name/stack/cause/disableExternalErrorTracking. */
+  /** Client-facing JSONAPI body. Excludes name/stack/cause; includes disableExternalErrorTracking when true. */
   toJSON(): APIErrorBody {
     ...
   }
@@ -239,7 +241,7 @@ JSONAPI extension fields and is unaffected.
 
 ## APIs
 
-- **Wire format:** unchanged except `disableExternalErrorTracking` is no longer serialized.
+- **Wire format:** `disableExternalErrorTracking` is included in the body only when `true`.
 - **Public exports:** `APIError`, `APIErrorOptions` (new; `APIErrorConstructor` kept as a
   deprecated alias), `isAPIError`, `errorMessage`, `errorStack`,
   `getDisableExternalErrorTracking`, `mongooseErrorToAPIError`, middlewares — all keep their
@@ -262,8 +264,8 @@ summary and `detail` the occurrence-specific text.
 
 1. **Core class** — rewrite `APIError` (message=title, name derivation, `cause`, brand, `toJSON`,
    no constructor logging); update `isAPIError`, deprecate `getAPIErrorBody`; move logging +
-   Sentry scope/fingerprint into `apiErrorMiddleware`; update `errors.test.ts`,
-   `api.hooks.test.ts` (drop the `res.body.disableExternalErrorTracking` assertions),
+   Sentry scope/fingerprint into    `apiErrorMiddleware`; update `errors.test.ts`, `api.hooks.test.ts` (assert
+   `res.body.disableExternalErrorTracking` when the flag is set),
    `api.errors.test.ts`, `permissions.middleware.test.ts`, `docLoader.test.ts`.
 2. **Framework call sites** — stabilize `title` + move per-occurrence text to `detail`/`cause` in
    `api.ts`, `openApiValidator.ts`, `permissions.ts`, `auth.ts`, `plugins.ts`, and add `code`
@@ -320,11 +322,11 @@ Implemented directly on this branch (all three phases); no separate tasks file.
       the inner error as a linked exception with its own stack.
 - [x] Sentry issue headline shows the derived/subclass name (never a bare "APIError" for errors
       with a mapped status or code), and two errors with different `name`/`code` never share an
-      issue (fingerprint on `name + code/title + status`).
+      issue (fingerprint on `name + code + status`, falling back to `name` when `code` is absent).
 - [x] Constructing an APIError produces no log output; handling one through `apiErrorMiddleware`
       logs `warn` (4xx) or `error` (5xx) exactly once.
-- [x] Response bodies keep `{status, title, detail, code, meta.fields, ...}` and never include
-      `disableExternalErrorTracking`, `name`, `stack`, or `cause`.
+- [x] Response bodies keep `{status, title, detail, code, meta.fields, ...}`; include
+      `disableExternalErrorTracking` only when `true`; never include `name`, `stack`, or `cause`.
 - [x] `isAPIError` returns true across duplicate `@terreno/api` copies and for subclasses.
 - [x] `bun run api:test` passes; `bun run lint` passes for all touched packages (the pre-existing
       `@terreno/ui` `ConsentNavigator.tsx` floating-promise failures are unrelated).
