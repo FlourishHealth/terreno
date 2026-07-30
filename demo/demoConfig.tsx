@@ -40,6 +40,7 @@ import {
   SidebarNavigationExpoRouterConfiguration,
 } from "@story-config/SidebarNavigation.config";
 import {SideDrawerConfiguration} from "@story-config/SideDrawer.config";
+import {SignatureCaptureFieldConfiguration} from "@story-config/SignatureCaptureField.config";
 import {SignatureFieldConfiguration} from "@story-config/SignatureField.config";
 import {SliderConfiguration} from "@story-config/Slider.config";
 import {SpinnerConfiguration} from "@story-config/Spinner.config";
@@ -58,6 +59,7 @@ import {TextFieldConfiguration} from "@story-config/TextField.config";
 import {ThemeConfiguration} from "@story-config/Theme.config";
 import {ToastConfiguration} from "@story-config/Toast.config";
 import {TooltipConfiguration} from "@story-config/Tooltip.config";
+import {TypedSignatureFieldConfiguration} from "@story-config/TypedSignatureField.config";
 import {UserInactivityConfiguration} from "@story-config/UserInactivity.config";
 import type {FieldProps} from "@terreno/ui";
 import type React from "react";
@@ -230,6 +232,7 @@ const Config: DemoConfigurationBase[] = [
   SidebarNavigationConfiguration,
   SidebarNavigationExpoRouterConfiguration,
   SideDrawerConfiguration,
+  SignatureCaptureFieldConfiguration,
   SignatureFieldConfiguration,
   SliderConfiguration,
   SpinnerConfiguration,
@@ -248,6 +251,7 @@ const Config: DemoConfigurationBase[] = [
   ThemeConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
+  TypedSignatureFieldConfiguration,
   UserInactivityConfiguration,
 ];
 

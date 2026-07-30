@@ -609,6 +609,34 @@ mock.module("@expo-google-fonts/titillium-web", () => ({
   useFonts: mock(() => [true, null]),
 }));
 
+// Mock the signature font packages used by TypedSignatureField. The real packages import .ttf
+// assets, which the bun test runner cannot parse, so stub each exported font module as a string.
+mock.module("@expo-google-fonts/dancing-script", () => ({
+  DancingScript_400Regular: "DancingScript_400Regular",
+  DancingScript_500Medium: "DancingScript_500Medium",
+  DancingScript_600SemiBold: "DancingScript_600SemiBold",
+  DancingScript_700Bold: "DancingScript_700Bold",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/great-vibes", () => ({
+  GreatVibes_400Regular: "GreatVibes_400Regular",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/sacramento", () => ({
+  Sacramento_400Regular: "Sacramento_400Regular",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/caveat", () => ({
+  Caveat_400Regular: "Caveat_400Regular",
+  Caveat_500Medium: "Caveat_500Medium",
+  Caveat_600SemiBold: "Caveat_600SemiBold",
+  Caveat_700Bold: "Caveat_700Bold",
+  useFonts: mock(() => [true, null]),
+}));
+
 // Mock DateTimeActionSheet
 mock.module("./DateTimeActionSheet", () => ({
   DateTimeActionSheet: mock(() => null),
