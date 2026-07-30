@@ -107,6 +107,11 @@ export interface SyncSnapshotResponse {
   legacyCursor?: string;
 }
 
+/** Response shape for `GET /sync/entities` (point lookup for repair). */
+export interface SyncEntitiesResponse {
+  entities: SyncEntityPayload[];
+}
+
 /** One stream a user currently belongs to, from `GET /sync/streams`. */
 export interface SyncStreamInfo {
   /** The stream key (e.g. "todos|owner:123"). */

@@ -19,36 +19,26 @@
  * rather than the generated SDK, so the tool needs no SDK regen to work.
  */
 import {baseUrl} from "@terreno/rtk";
-import {generateMutationId, type SyncStatus} from "@terreno/syncdb";
+import type {SyncStatus} from "@terreno/syncdb";
 import {SyncDbProvider, useSyncDbClient} from "@terreno/syncdb/react";
 import {
   Badge,
+  BooleanField,
   Box,
   Button,
   Card,
   Heading,
   NumberField,
   Page,
-  SegmentedControl,
   Text,
 } from "@terreno/ui";
-import {useRouter} from "expo-router";
 import type React from "react";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {SyncLabRateControls} from "@/components/SyncLabRateControls";
+import {SYNC_LAB_COLLECTION, SYNC_LAB_RATE_OPS, useSyncLabRates} from "@/components/syncLabRates";
+import {useOpenSyncDebugger} from "@/hooks/useOpenSyncDebugger";
 import {getSessionToken} from "@/lib/betterAuth";
 import {syncDb} from "@/store/syncdb";
-
-const COLLECTION = "todos";
-const TICK_MS = 1_000;
-
-/** Rate presets → target ops per 1s tick, indexed by the SegmentedControl selection. */
-const RATE_LABELS = ["Off", "Low", "Med", "High", "Max"];
-const RATE_OPS = [0, 5, 25, 100, 250];
-
-const TITLE_WORDS = ["sync", "delta", "outbox", "conflict", "replay", "cursor", "socket", "chaos"];
-const randomInt = (max: number): number => Math.floor(Math.random() * max);
-const randomTitle = (): string =>
-  `local ${TITLE_WORDS[randomInt(TITLE_WORDS.length)]} #${randomInt(100_000)}`;
 
 interface LabMetrics {
   localCount: number;
@@ -83,14 +73,13 @@ const MetricBadge: React.FC<{
 
 const SyncLabContent: React.FC = () => {
   const client = useSyncDbClient();
-  const router = useRouter();
+  const openDebugger = useOpenSyncDebugger();
+  const {showDevPanel, setShowDevPanel} = useSyncLabRates();
 
   const [generateCount, setGenerateCount] = useState<string>("1000");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
-  const [remoteRate, setRemoteRate] = useState<number>(0);
-  const [localRate, setLocalRate] = useState<number>(0);
 
   const [metrics, setMetrics] = useState<LabMetrics>({
     ackRate: 0,
@@ -153,85 +142,11 @@ const SyncLabContent: React.FC = () => {
     }
   }, [callLoadTest]);
 
-  const runLocalChurn = useCallback(
-    (ops: number): void => {
-      const entities = client.store.listEntities<{_id?: string}>({collection: COLLECTION});
-      for (let i = 0; i < ops; i++) {
-        const roll = Math.random();
-        if (roll < 0.5 || entities.length === 0) {
-          const id = generateMutationId();
-          client.mutate({
-            collection: COLLECTION,
-            data: {_id: id, completed: false, title: randomTitle()},
-            id,
-            operation: "create",
-          });
-          continue;
-        }
-        const target = entities[randomInt(entities.length)];
-        if (!target?.id) {
-          continue;
-        }
-        if (roll < 0.85) {
-          client.mutate({
-            collection: COLLECTION,
-            data: {completed: Math.random() < 0.5},
-            id: target.id,
-            operation: "update",
-          });
-          continue;
-        }
-        client.mutate({collection: COLLECTION, id: target.id, operation: "delete"});
-      }
-    },
-    [client]
-  );
-
-  // Server ("other clients") engine: churn via the admin endpoint on each tick. A guard
-  // ref prevents overlapping requests when a tick outruns the network.
-  useEffect(() => {
-    const ops = RATE_OPS[remoteRate];
-    if (ops === 0) {
-      return;
-    }
-    let inFlight = false;
-    const id = setInterval(() => {
-      if (inFlight) {
-        return;
-      }
-      inFlight = true;
-      callLoadTest("todos/churn", {
-        creates: Math.ceil(ops * 0.5),
-        deletes: Math.floor(ops * 0.1),
-        updates: Math.ceil(ops * 0.4),
-      })
-        .catch((err: unknown) => {
-          setError(err instanceof Error ? err.message : "Churn failed");
-        })
-        .finally(() => {
-          inFlight = false;
-        });
-    }, TICK_MS);
-    return (): void => clearInterval(id);
-  }, [remoteRate, callLoadTest]);
-
-  // Local engine: drive optimistic mutations through the outbox on each tick.
-  useEffect(() => {
-    const ops = RATE_OPS[localRate];
-    if (ops === 0) {
-      return;
-    }
-    const id = setInterval(() => {
-      runLocalChurn(ops);
-    }, TICK_MS);
-    return (): void => clearInterval(id);
-  }, [localRate, runLocalChurn]);
-
   // Metrics sampler (2 Hz): reads live status + debug stats and derives per-second rates.
   useEffect(() => {
     const sample = (): void => {
       const status = client.getSyncStatus();
-      const localCount = client.store.listEntities({collection: COLLECTION}).length;
+      const localCount = client.store.listEntities({collection: SYNC_LAB_COLLECTION}).length;
       const stats = client.debug?.getStats();
       const nowMs = Date.now();
 
@@ -270,13 +185,7 @@ const SyncLabContent: React.FC = () => {
     return (): void => clearInterval(id);
   }, [client]);
 
-  const openDebugger = useCallback((): void => {
-    router.push("/syncdb-debug");
-  }, [router]);
-
   const debugEnabled = Boolean(client.debug);
-
-  const rateItems = useMemo(() => RATE_LABELS, []);
 
   return (
     <Page maxWidth="100%" scroll title="SyncDB Load Lab">
@@ -384,36 +293,27 @@ const SyncLabContent: React.FC = () => {
           </Box>
         </Card>
 
-        {/* Continuous engines */}
+        {/* Continuous engines — rates shared with home SyncDB dev panel */}
         <Card>
           <Box gap={4}>
-            <Box gap={2}>
-              <Heading size="sm">Other clients (server churn)</Heading>
-              <Text color="secondaryLight" size="sm">
-                Continuously create/update/delete todos on the server so patches keep streaming in,
-                as if other devices were editing the same data.
-              </Text>
-              <SegmentedControl
-                items={rateItems}
-                onChange={setRemoteRate}
-                selectedIndex={remoteRate}
-              />
-            </Box>
-            <Box gap={2}>
-              <Heading size="sm">This client (local churn)</Heading>
-              <Text color="secondaryLight" size="sm">
-                Continuously apply optimistic local mutations (create/update/delete) through the
-                outbox to exercise the send → ack round-trip.
-              </Text>
-              <SegmentedControl
-                items={rateItems}
-                onChange={setLocalRate}
-                selectedIndex={localRate}
-              />
-            </Box>
+            <Heading size="sm">Continuous churn</Heading>
+            <BooleanField
+              helperText="When on, the SyncDB dev panel (with these rate dropdowns) appears on the home todos screen."
+              onChange={setShowDevPanel}
+              testID="sync-lab-show-dev-panel"
+              title="Show SyncDB dev panel on home"
+              value={showDevPanel}
+              variant="title"
+            />
             <Text color="secondaryLight" size="sm">
-              Rates are approximate ops/sec: Off · {RATE_OPS[1]} · {RATE_OPS[2]} · {RATE_OPS[3]} ·{" "}
-              {RATE_OPS[4]}.
+              Other clients simulates remote devices via server writes; This client drives
+              optimistic mutations through the outbox. Rates stay in sync with the home SyncDB dev
+              panel.
+            </Text>
+            <SyncLabRateControls />
+            <Text color="secondaryLight" size="sm">
+              Approximate rates: Off · Low ≈ 1 op / 5s · Med {SYNC_LAB_RATE_OPS[2]}/s · High{" "}
+              {SYNC_LAB_RATE_OPS[3]}/s · Max {SYNC_LAB_RATE_OPS[4]}/s.
             </Text>
           </Box>
         </Card>

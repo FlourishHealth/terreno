@@ -14,7 +14,7 @@
  * testID (SyncTodosScreen.tsx) converging to an exact expected total — asserting on
  * thousands of unvirtualized DOM rows here would be slow and flaky. See
  * SyncTodosScreen.tsx: the todo list is intentionally left as a plain `.map()` inside
- * a ScrollView (not virtualized) since this spec never inspects individual rows.
+ * a FlashList (virtualized) since this spec never inspects individual rows.
  *
  * Shared suite notes/helpers live in helpers/syncdbSuite.ts. Uses a dedicated
  * admin-capable user (SYNCDB_LOADLAB_USER) so it can run in parallel with the other

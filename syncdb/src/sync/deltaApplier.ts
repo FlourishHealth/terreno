@@ -56,6 +56,12 @@ export const applyDelta = ({
       return {applied: false, seqJump};
     }
     if (existing?.pendingMutationId) {
+      store.markNeedsRepair({
+        collection: delta.collection,
+        entityId: delta.id,
+        missedSeq: delta.seq,
+        stream: delta.stream,
+      });
       advanceCursor();
       return {applied: false, seqJump};
     }
@@ -72,6 +78,7 @@ export const applyDelta = ({
       // C2: record the stream so leave-purge can drop this entity in O(stream).
       stream: delta.stream,
     });
+    store.clearNeedsRepair({collection: delta.collection, entityId: delta.id});
     advanceCursor();
     return {applied: true, seqJump};
   });

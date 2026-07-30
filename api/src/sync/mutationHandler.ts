@@ -4,7 +4,7 @@ import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import type {User} from "../auth";
 import {APIError, isAPIError} from "../errors";
-import {logger} from "../logger";
+import {createFeatureFlaggedLogger, logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
 import {
   executeCreate,
@@ -31,6 +31,15 @@ export type SyncMutationScopeResolver = (
   user: User,
   entry: SyncRegistryEntry
 ) => Promise<string[]> | string[];
+
+/**
+ * Per-mutation success traces (`Mutation applied`) are high-volume. Gate them behind
+ * `SYNC_DEBUG=true` so they stay silent by default even when Winston's console level is
+ * `debug`.
+ */
+const syncDebugLog = createFeatureFlaggedLogger({
+  isEnabled: () => process.env.SYNC_DEBUG === "true",
+});
 
 /**
  * C6 (M6): enforce write scope at the sync boundary regardless of consumer `preCreate`
@@ -561,7 +570,7 @@ const applyClaimedMutation = async ({
       {_id: claimed._id},
       {$set: {resultId, resultSeq, status: "applied"}}
     );
-    logger.info("[sync] Mutation applied", {
+    syncDebugLog.debug("[sync] Mutation applied", {
       collection: mutation.collection,
       mutationId,
       seq: resultSeq,

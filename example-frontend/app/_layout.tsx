@@ -16,9 +16,11 @@ import {
   useTerrenoFeatureFlags,
   useUpgradeCheck,
 } from "@terreno/rtk";
+import {SyncDbProvider} from "@terreno/syncdb/react";
 import {
   Banner,
   Box,
+  ConflictSheet,
   ConsentNavigator,
   Spinner,
   TerrenoProvider,
@@ -26,6 +28,8 @@ import {
 } from "@terreno/ui";
 import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
+import {SyncHealthToast} from "@/components/SyncHealthToast";
+import {SyncLabRuntime} from "@/components/SyncLabRuntime";
 import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession, useGetMeQuery} from "@/store";
@@ -248,6 +252,29 @@ const RootLayoutNav = (): React.ReactElement => {
   const content = (
     <>
       {warningBanner}
+      {userId ? (
+        <SyncDbProvider client={syncDb}>
+          <SyncLabRuntime />
+          <SyncHealthToast
+            collectionLabels={{todos: "Todos"}}
+            renderConflictsModal={({collection, conflicts, onDismiss, resolve, visible}) => (
+              <ConflictSheet
+                conflicts={conflicts}
+                onDismiss={onDismiss}
+                onResolve={resolve}
+                title={
+                  collection === "todos"
+                    ? "These todos don't match"
+                    : collection
+                      ? `These ${collection} don't match`
+                      : undefined
+                }
+                visible={visible}
+              />
+            )}
+          />
+        </SyncDbProvider>
+      ) : null}
       {stack}
     </>
   );

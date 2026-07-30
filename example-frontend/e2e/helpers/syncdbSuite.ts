@@ -48,6 +48,7 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   // Logging out while offline (see syncdb-storage.spec.ts's user-switch scenario)
   // legitimately fails Better Auth's sign-out network call.
   consoleGuard.allow("Better Auth: Error signing out");
+  consoleGuard.allow(/sync needs attention/i);
 };
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>

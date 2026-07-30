@@ -1,6 +1,7 @@
 import {describe, expect, it} from "bun:test";
 
 import {createSyncStore, type SyncStore} from "../storage/store";
+import {NEEDS_REPAIR_TABLE} from "../storage/types";
 import type {SyncDelta} from "../types";
 import {getCursor} from "./cursor";
 import {applyDelta} from "./deltaApplier";
@@ -88,6 +89,8 @@ describe("applyDelta", () => {
     expect(entity?.pendingMutationId).toBe("m1");
     expect(entity?.seq).toBe(1);
     expect(getCursor({store, stream: STREAM})).toBe(4);
+    expect(store.hasNeedsRepair({collection: "todos", entityId: "t1"})).toBe(true);
+    expect(store.raw.getCell(NEEDS_REPAIR_TABLE, "todos:t1", "missedSeq")).toBe(4);
   });
 
   it("applies a tombstone delta, preserving the last known data", () => {

@@ -266,6 +266,14 @@ describe("state machine transitions", () => {
     expect(() => outbox.requeue({mutationId: "m1"})).toThrow(/Illegal outbox transition/);
   });
 
+  it("throws on markQueued from conflicted (must use requeue instead)", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {mutationId: "m1"});
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markConflicted({mutationId: "m1"});
+    expect(() => outbox.markQueued({mutationId: "m1"})).toThrow(/Illegal outbox transition/);
+  });
+
   it("throws on double markInFlight", () => {
     const outbox = makeOutbox();
     enqueueDefault(outbox, {mutationId: "m1"});
@@ -579,6 +587,42 @@ describe("hasAnyRowForEntity (FIX 4)", () => {
     expect(outbox.hasAnyRowForEntity({collection: "todos", entityId: "e2", userId: "user-1"})).toBe(
       false
     );
+  });
+});
+
+describe("countsByCollection", () => {
+  it("groups counts by collection and status for the given user only", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {collection: "todos", entityId: "t1", mutationId: "m1"});
+    enqueueDefault(outbox, {collection: "todos", entityId: "t2", mutationId: "m2"});
+    enqueueDefault(outbox, {collection: "notes", entityId: "n1", mutationId: "m3"});
+    enqueueDefault(outbox, {collection: "notes", entityId: "n2", mutationId: "m4"});
+    enqueueDefault(outbox, {
+      collection: "todos",
+      entityId: "t3",
+      mutationId: "m5",
+      userId: "user-2",
+    });
+    outbox.markInFlight({mutationId: "m2"});
+    outbox.markFailed({mutationId: "m2"});
+    outbox.markInFlight({mutationId: "m4"});
+    outbox.markFailed({mutationId: "m4"});
+
+    expect(outbox.countsByCollection({statuses: ["queued", "failed"], userId: "user-1"})).toEqual({
+      notes: {failed: 1, queued: 1},
+      todos: {failed: 1, queued: 1},
+    });
+  });
+
+  it("omits collections and statuses with no matching rows", () => {
+    const outbox = makeOutbox();
+    enqueueDefault(outbox, {collection: "todos", mutationId: "m1"});
+
+    expect(outbox.countsByCollection({statuses: ["queued", "failed"], userId: "user-1"})).toEqual({
+      todos: {queued: 1},
+    });
+    expect(outbox.countsByCollection({statuses: ["conflicted"], userId: "user-1"})).toEqual({});
+    expect(outbox.countsByCollection({statuses: ["queued"], userId: "user-2"})).toEqual({});
   });
 });
 

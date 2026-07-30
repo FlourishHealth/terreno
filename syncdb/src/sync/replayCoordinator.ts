@@ -16,6 +16,21 @@ import {
   type SendMutationResult,
 } from "./transport";
 
+/**
+ * Parse a mutation's JSON-serialized `args` back into the create/update body for
+ * display in the debug event stream. Falls back to the raw string if it is not
+ * valid JSON. Only ever evaluated when the debug log is enabled — optional
+ * chaining (`debug?.record({...})`) short-circuits the argument object entirely
+ * when `debug` is undefined, so this stays free in production.
+ */
+const debugBody = (mutation: OutboxMutation): Record<string, unknown> | string => {
+  try {
+    return JSON.parse(mutation.args) as Record<string, unknown>;
+  } catch {
+    return mutation.args;
+  }
+};
+
 /** Error-nack retries beyond this attempt count become terminal failures. */
 export const MAX_ERROR_NACK_ATTEMPTS = 5;
 
@@ -161,6 +176,11 @@ export interface CreateReplayCoordinatorArgs {
    * client level). Defaults to always-allow.
    */
   shouldDrain?: () => boolean;
+  /**
+   * Called when a mutation is terminal and the entity's `pendingMutationId` was
+   * released without a server ack seq — skipped server deltas may need repair.
+   */
+  onEntityReleasedWithoutServerAck?: (mutation: OutboxMutation) => void;
 }
 
 const entityKey = (collection: string, entityId: string): string => `${collection}:${entityId}`;
@@ -228,6 +248,7 @@ export const createReplayCoordinator = ({
   onDrainPass,
   onAuthPause,
   onProgress,
+  onEntityReleasedWithoutServerAck,
   shouldDrain = () => true,
 }: CreateReplayCoordinatorArgs): ReplayCoordinator => {
   const inFlightReplays = new Map<string, Promise<ReplayResult>>();
@@ -392,6 +413,7 @@ export const createReplayCoordinator = ({
     releaseEntity(mutation, ack.seq);
     debug?.record({
       collection: mutation.collection,
+      detail: {data: debugBody(mutation)},
       direction: "inbound",
       entityId: mutation.entityId,
       label: `ack ${mutation.collection}/${mutation.entityId} @${ack.seq}`,
@@ -422,7 +444,13 @@ export const createReplayCoordinator = ({
     });
     debug?.record({
       collection: mutation.collection,
-      detail: {message: nack.message, serverSeq: nack.serverSeq},
+      detail: {
+        data: debugBody(mutation),
+        localData: entity?.data ?? null,
+        message: nack.message,
+        serverDoc: nack.serverDoc ?? null,
+        serverSeq: nack.serverSeq,
+      },
       direction: "inbound",
       entityId: mutation.entityId,
       label: `conflict ${mutation.collection}/${mutation.entityId}`,
@@ -440,9 +468,10 @@ export const createReplayCoordinator = ({
     // A failed mutation never replays; leaving pendingMutationId set would
     // block server deltas for this entity forever.
     releaseEntity(mutation);
+    onEntityReleasedWithoutServerAck?.(mutation);
     debug?.record({
       collection: mutation.collection,
-      detail: {reason},
+      detail: {data: debugBody(mutation), reason},
       direction: "inbound",
       entityId: mutation.entityId,
       label: `failed ${mutation.collection}/${mutation.entityId} (${reason})`,
@@ -632,7 +661,7 @@ export const createReplayCoordinator = ({
     outbox.markQueued({mutationId: mutation.mutationId});
     debug?.record({
       collection: mutation.collection,
-      detail: {code: "unauthorized", paused: true},
+      detail: {code: "unauthorized", data: debugBody(mutation), paused: true},
       direction: "inbound",
       entityId: mutation.entityId,
       label: `nack ${mutation.collection}/${mutation.entityId} (unauthorized)`,
@@ -678,7 +707,7 @@ export const createReplayCoordinator = ({
     retryAt.set(mutation.mutationId, wakeAt);
     debug?.record({
       collection: mutation.collection,
-      detail: {attempt: attempts, backoffMs, reason: "error"},
+      detail: {attempt: attempts, backoffMs, data: debugBody(mutation), reason: "error"},
       direction: "system",
       entityId: mutation.entityId,
       label: `retry ${mutation.collection}/${mutation.entityId} (error, ${backoffMs}ms)`,
@@ -715,7 +744,7 @@ export const createReplayCoordinator = ({
     retryAt.set(mutation.mutationId, wakeAt);
     debug?.record({
       collection: mutation.collection,
-      detail: {attempt, backoffMs, reason},
+      detail: {attempt, backoffMs, data: debugBody(mutation), reason},
       direction: "system",
       entityId: mutation.entityId,
       label: `retry ${mutation.collection}/${mutation.entityId} (${reason}, ${backoffMs}ms)`,
@@ -736,7 +765,12 @@ export const createReplayCoordinator = ({
   const applyRateLimited = (mutation: OutboxMutation, nack: SyncNack): OutcomeDecision => {
     debug?.record({
       collection: mutation.collection,
-      detail: {code: "rate_limited", message: nack.message, retryAfterMs: nack.retryAfterMs},
+      detail: {
+        code: "rate_limited",
+        data: debugBody(mutation),
+        message: nack.message,
+        retryAfterMs: nack.retryAfterMs,
+      },
       direction: "inbound",
       entityId: mutation.entityId,
       label: `nack ${mutation.collection}/${mutation.entityId} (rate_limited)`,
@@ -780,7 +814,7 @@ export const createReplayCoordinator = ({
       outbox.markQueued({mutationId: mutation.mutationId});
       debug?.record({
         collection: mutation.collection,
-        detail: {code: "unauthorized", paused: true, source: "http"},
+        detail: {code: "unauthorized", data: debugBody(mutation), paused: true, source: "http"},
         direction: "inbound",
         entityId: mutation.entityId,
         label: `nack ${mutation.collection}/${mutation.entityId} (unauthorized)`,
@@ -807,7 +841,7 @@ export const createReplayCoordinator = ({
     outbox.markInFlight({mutationId: mutation.mutationId});
     debug?.record({
       collection: mutation.collection,
-      detail: {attempt: mutation.attemptCount + 1},
+      detail: {attempt: mutation.attemptCount + 1, data: debugBody(mutation)},
       direction: "outbound",
       entityId: mutation.entityId,
       label: `send ${mutation.operation} ${mutation.collection}/${mutation.entityId}`,
@@ -915,7 +949,7 @@ export const createReplayCoordinator = ({
       outbox.markInFlight({mutationId: mutation.mutationId});
       debug?.record({
         collection: mutation.collection,
-        detail: {attempt: mutation.attemptCount + 1, batch: true},
+        detail: {attempt: mutation.attemptCount + 1, batch: true, data: debugBody(mutation)},
         direction: "outbound",
         entityId: mutation.entityId,
         label: `send ${mutation.operation} ${mutation.collection}/${mutation.entityId}`,
@@ -969,14 +1003,20 @@ export const createReplayCoordinator = ({
     for (let i = 0; i < chunk.length; i++) {
       const mutation = chunk[i];
       if (halted) {
-        outbox.markQueued({mutationId: mutation.mutationId});
+        // Only siblings still `inFlight` need reverting — the mutation that
+        // triggered the halt may already be conflicted/failed/acked.
+        if (outbox.getMutation({mutationId: mutation.mutationId})?.status === "inFlight") {
+          outbox.markQueued({mutationId: mutation.mutationId});
+        }
         continue;
       }
       const result = response.results[i];
       if (!result) {
         // Server halted mid-batch (results shorter than the request): every
         // mutation with no result goes back to queued, untouched budgets.
-        outbox.markQueued({mutationId: mutation.mutationId});
+        if (outbox.getMutation({mutationId: mutation.mutationId})?.status === "inFlight") {
+          outbox.markQueued({mutationId: mutation.mutationId});
+        }
         continue;
       }
       processed += 1;

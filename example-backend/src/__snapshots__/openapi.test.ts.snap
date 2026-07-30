@@ -72,430 +72,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/": {
-      "get": {
-        "parameters": [
-          {
-            "in": "query",
-            "name": "_id",
-            "schema": {
-              "properties": {
-                "$in": {
-                  "items": {
-                    "type": "string",
-                  },
-                  "type": "array",
-                },
-              },
-              "type": "object",
-            },
-          },
-          {
-            "in": "query",
-            "name": "email",
-            "schema": {
-              "oneOf": [
-                {
-                  "description": "The user's email address, used for authentication",
-                  "type": "string",
-                },
-                {
-                  "properties": {
-                    "$in": {
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
-            "name": "name",
-            "schema": {
-              "oneOf": [
-                {
-                  "description": "The user's display name",
-                  "type": "string",
-                },
-                {
-                  "properties": {
-                    "$in": {
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "number",
-            },
-          },
-          {
-            "in": "query",
-            "name": "sort",
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "number",
-            },
-          },
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "properties": {
-                          "_id": {
-                            "type": "string",
-                          },
-                          "admin": {
-                            "description": "Whether the user has admin privileges",
-                            "type": "boolean",
-                          },
-                          "betterAuthId": {
-                            "description": "Identifier linking to the Better Auth session provider",
-                            "type": "string",
-                          },
-                          "created": {
-                            "description": "When this document was created",
-                            "format": "date-time",
-                            "type": "string",
-                          },
-                          "deleted": {
-                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                            "type": "boolean",
-                          },
-                          "email": {
-                            "description": "The user's email address, used for authentication",
-                            "type": "string",
-                          },
-                          "hash": {
-                            "type": "string",
-                          },
-                          "name": {
-                            "description": "The user's display name",
-                            "type": "string",
-                          },
-                          "oauthProvider": {
-                            "description": "OAuth provider used for authentication",
-                            "enum": [
-                              "google",
-                              "github",
-                              "apple",
-                              null,
-                            ],
-                            "type": "string",
-                          },
-                          "organizationIds": {
-                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                            "items": {
-                              "type": "string",
-                            },
-                            "type": "array",
-                          },
-                          "salt": {
-                            "type": "string",
-                          },
-                          "updated": {
-                            "description": "When this document was last updated",
-                            "format": "date-time",
-                            "type": "string",
-                          },
-                        },
-                        "required": [
-                          "email",
-                          "name",
-                          "_id",
-                          "created",
-                          "updated",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "limit": {
-                      "type": "number",
-                    },
-                    "more": {
-                      "type": "boolean",
-                    },
-                    "page": {
-                      "type": "number",
-                    },
-                    "total": {
-                      "type": "number",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful list",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "users",
-        ],
-      },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "admin": {
-                    "description": "Whether the user has admin privileges",
-                    "type": "boolean",
-                  },
-                  "betterAuthId": {
-                    "description": "Identifier linking to the Better Auth session provider",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "email": {
-                    "description": "The user's email address, used for authentication",
-                    "type": "string",
-                  },
-                  "hash": {
-                    "type": "string",
-                  },
-                  "name": {
-                    "description": "The user's display name",
-                    "type": "string",
-                  },
-                  "oauthProvider": {
-                    "description": "OAuth provider used for authentication",
-                    "enum": [
-                      "google",
-                      "github",
-                      "apple",
-                      null,
-                    ],
-                    "type": "string",
-                  },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
-                  "salt": {
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "admin": {
-                      "description": "Whether the user has admin privileges",
-                      "type": "boolean",
-                    },
-                    "betterAuthId": {
-                      "description": "Identifier linking to the Better Auth session provider",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "email": {
-                      "description": "The user's email address, used for authentication",
-                      "type": "string",
-                    },
-                    "hash": {
-                      "type": "string",
-                    },
-                    "name": {
-                      "description": "The user's display name",
-                      "type": "string",
-                    },
-                    "oauthProvider": {
-                      "description": "OAuth provider used for authentication",
-                      "enum": [
-                        "google",
-                        "github",
-                        "apple",
-                        null,
-                      ],
-                      "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
-                    "salt": {
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                  },
-                  "required": [
-                    "email",
-                    "name",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "users",
-        ],
-      },
-    },
     "/admin/audit-logs/": {
       "get": {
         "parameters": [
@@ -8774,6 +8350,1231 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/gpt/histories/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user who owns this conversation history",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Project this conversation belongs to",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "ownerId": {
+                            "type": "any",
+                          },
+                          "projectId": {
+                            "description": "Project this conversation belongs to",
+                            "type": "schemaobjectid",
+                          },
+                          "prompts": {
+                            "description": "Ordered list of messages in this conversation",
+                            "items": {
+                              "properties": {
+                                "args": {
+                                  "description": "Arguments passed to a tool call",
+                                },
+                                "content": {
+                                  "description": "Multipart content attached to this prompt",
+                                  "items": {
+                                    "properties": {
+                                      "filename": {
+                                        "description": "Original filename of the attached file",
+                                        "type": "string",
+                                      },
+                                      "mimeType": {
+                                        "description": "MIME type of the content part",
+                                        "type": "string",
+                                      },
+                                      "text": {
+                                        "description": "Text content of this part",
+                                        "type": "string",
+                                      },
+                                      "type": {
+                                        "description": "The kind of content this part represents",
+                                        "enum": [
+                                          "text",
+                                          "image",
+                                          "file",
+                                        ],
+                                        "type": "string",
+                                      },
+                                      "url": {
+                                        "description": "URL pointing to the content resource",
+                                        "type": "string",
+                                      },
+                                    },
+                                    "required": [
+                                      "type",
+                                    ],
+                                    "type": "object",
+                                  },
+                                  "type": "array",
+                                },
+                                "model": {
+                                  "description": "AI model identifier used for this prompt",
+                                  "type": "string",
+                                },
+                                "rating": {
+                                  "description": "User feedback rating for this prompt",
+                                  "enum": [
+                                    "up",
+                                    "down",
+                                  ],
+                                  "type": "string",
+                                },
+                                "result": {
+                                  "description": "Result returned from a tool call",
+                                },
+                                "text": {
+                                  "description": "Text content of the prompt or response",
+                                  "type": "string",
+                                },
+                                "toolCallId": {
+                                  "description": "Identifier linking a tool result to its originating call",
+                                  "type": "string",
+                                },
+                                "toolName": {
+                                  "description": "Name of the tool that was invoked",
+                                  "type": "string",
+                                },
+                                "type": {
+                                  "description": "Role of this message in the conversation",
+                                  "enum": [
+                                    "user",
+                                    "assistant",
+                                    "system",
+                                    "tool-call",
+                                    "tool-result",
+                                  ],
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "text",
+                                "type",
+                              ],
+                              "type": "object",
+                            },
+                            "type": "array",
+                          },
+                          "title": {
+                            "description": "Auto-generated title from the first assistant response",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "userId": {
+                            "description": "The user who owns this conversation history",
+                            "type": "schemaobjectid",
+                          },
+                        },
+                        "required": [
+                          "userId",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "gpthistories",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "type": "any",
+                  },
+                  "projectId": {
+                    "description": "Project this conversation belongs to",
+                    "type": "schemaobjectid",
+                  },
+                  "prompts": {
+                    "description": "Ordered list of messages in this conversation",
+                    "items": {
+                      "properties": {
+                        "args": {
+                          "description": "Arguments passed to a tool call",
+                        },
+                        "content": {
+                          "description": "Multipart content attached to this prompt",
+                          "items": {
+                            "properties": {
+                              "filename": {
+                                "description": "Original filename of the attached file",
+                                "type": "string",
+                              },
+                              "mimeType": {
+                                "description": "MIME type of the content part",
+                                "type": "string",
+                              },
+                              "text": {
+                                "description": "Text content of this part",
+                                "type": "string",
+                              },
+                              "type": {
+                                "description": "The kind of content this part represents",
+                                "enum": [
+                                  "text",
+                                  "image",
+                                  "file",
+                                ],
+                                "type": "string",
+                              },
+                              "url": {
+                                "description": "URL pointing to the content resource",
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "type",
+                            ],
+                            "type": "object",
+                          },
+                          "type": "array",
+                        },
+                        "model": {
+                          "description": "AI model identifier used for this prompt",
+                          "type": "string",
+                        },
+                        "rating": {
+                          "description": "User feedback rating for this prompt",
+                          "enum": [
+                            "up",
+                            "down",
+                          ],
+                          "type": "string",
+                        },
+                        "result": {
+                          "description": "Result returned from a tool call",
+                        },
+                        "text": {
+                          "description": "Text content of the prompt or response",
+                          "type": "string",
+                        },
+                        "toolCallId": {
+                          "description": "Identifier linking a tool result to its originating call",
+                          "type": "string",
+                        },
+                        "toolName": {
+                          "description": "Name of the tool that was invoked",
+                          "type": "string",
+                        },
+                        "type": {
+                          "description": "Role of this message in the conversation",
+                          "enum": [
+                            "user",
+                            "assistant",
+                            "system",
+                            "tool-call",
+                            "tool-result",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "text",
+                        "type",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "title": {
+                    "description": "Auto-generated title from the first assistant response",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "The user who owns this conversation history",
+                    "type": "schemaobjectid",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "type": "any",
+                    },
+                    "projectId": {
+                      "description": "Project this conversation belongs to",
+                      "type": "schemaobjectid",
+                    },
+                    "prompts": {
+                      "description": "Ordered list of messages in this conversation",
+                      "items": {
+                        "properties": {
+                          "args": {
+                            "description": "Arguments passed to a tool call",
+                          },
+                          "content": {
+                            "description": "Multipart content attached to this prompt",
+                            "items": {
+                              "properties": {
+                                "filename": {
+                                  "description": "Original filename of the attached file",
+                                  "type": "string",
+                                },
+                                "mimeType": {
+                                  "description": "MIME type of the content part",
+                                  "type": "string",
+                                },
+                                "text": {
+                                  "description": "Text content of this part",
+                                  "type": "string",
+                                },
+                                "type": {
+                                  "description": "The kind of content this part represents",
+                                  "enum": [
+                                    "text",
+                                    "image",
+                                    "file",
+                                  ],
+                                  "type": "string",
+                                },
+                                "url": {
+                                  "description": "URL pointing to the content resource",
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                              ],
+                              "type": "object",
+                            },
+                            "type": "array",
+                          },
+                          "model": {
+                            "description": "AI model identifier used for this prompt",
+                            "type": "string",
+                          },
+                          "rating": {
+                            "description": "User feedback rating for this prompt",
+                            "enum": [
+                              "up",
+                              "down",
+                            ],
+                            "type": "string",
+                          },
+                          "result": {
+                            "description": "Result returned from a tool call",
+                          },
+                          "text": {
+                            "description": "Text content of the prompt or response",
+                            "type": "string",
+                          },
+                          "toolCallId": {
+                            "description": "Identifier linking a tool result to its originating call",
+                            "type": "string",
+                          },
+                          "toolName": {
+                            "description": "Name of the tool that was invoked",
+                            "type": "string",
+                          },
+                          "type": {
+                            "description": "Role of this message in the conversation",
+                            "enum": [
+                              "user",
+                              "assistant",
+                              "system",
+                              "tool-call",
+                              "tool-result",
+                            ],
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "text",
+                          "type",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "title": {
+                      "description": "Auto-generated title from the first assistant response",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "The user who owns this conversation history",
+                      "type": "schemaobjectid",
+                    },
+                  },
+                  "required": [
+                    "userId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "gpthistories",
+        ],
+      },
+    },
+    "/gpt/histories/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "gpthistories",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "type": "any",
+                    },
+                    "projectId": {
+                      "description": "Project this conversation belongs to",
+                      "type": "schemaobjectid",
+                    },
+                    "prompts": {
+                      "description": "Ordered list of messages in this conversation",
+                      "items": {
+                        "properties": {
+                          "args": {
+                            "description": "Arguments passed to a tool call",
+                          },
+                          "content": {
+                            "description": "Multipart content attached to this prompt",
+                            "items": {
+                              "properties": {
+                                "filename": {
+                                  "description": "Original filename of the attached file",
+                                  "type": "string",
+                                },
+                                "mimeType": {
+                                  "description": "MIME type of the content part",
+                                  "type": "string",
+                                },
+                                "text": {
+                                  "description": "Text content of this part",
+                                  "type": "string",
+                                },
+                                "type": {
+                                  "description": "The kind of content this part represents",
+                                  "enum": [
+                                    "text",
+                                    "image",
+                                    "file",
+                                  ],
+                                  "type": "string",
+                                },
+                                "url": {
+                                  "description": "URL pointing to the content resource",
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                              ],
+                              "type": "object",
+                            },
+                            "type": "array",
+                          },
+                          "model": {
+                            "description": "AI model identifier used for this prompt",
+                            "type": "string",
+                          },
+                          "rating": {
+                            "description": "User feedback rating for this prompt",
+                            "enum": [
+                              "up",
+                              "down",
+                            ],
+                            "type": "string",
+                          },
+                          "result": {
+                            "description": "Result returned from a tool call",
+                          },
+                          "text": {
+                            "description": "Text content of the prompt or response",
+                            "type": "string",
+                          },
+                          "toolCallId": {
+                            "description": "Identifier linking a tool result to its originating call",
+                            "type": "string",
+                          },
+                          "toolName": {
+                            "description": "Name of the tool that was invoked",
+                            "type": "string",
+                          },
+                          "type": {
+                            "description": "Role of this message in the conversation",
+                            "enum": [
+                              "user",
+                              "assistant",
+                              "system",
+                              "tool-call",
+                              "tool-result",
+                            ],
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "text",
+                          "type",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "title": {
+                      "description": "Auto-generated title from the first assistant response",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "The user who owns this conversation history",
+                      "type": "schemaobjectid",
+                    },
+                  },
+                  "required": [
+                    "userId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "gpthistories",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "type": "any",
+                  },
+                  "projectId": {
+                    "description": "Project this conversation belongs to",
+                    "type": "schemaobjectid",
+                  },
+                  "prompts": {
+                    "description": "Ordered list of messages in this conversation",
+                    "items": {
+                      "properties": {
+                        "args": {
+                          "description": "Arguments passed to a tool call",
+                        },
+                        "content": {
+                          "description": "Multipart content attached to this prompt",
+                          "items": {
+                            "properties": {
+                              "filename": {
+                                "description": "Original filename of the attached file",
+                                "type": "string",
+                              },
+                              "mimeType": {
+                                "description": "MIME type of the content part",
+                                "type": "string",
+                              },
+                              "text": {
+                                "description": "Text content of this part",
+                                "type": "string",
+                              },
+                              "type": {
+                                "description": "The kind of content this part represents",
+                                "enum": [
+                                  "text",
+                                  "image",
+                                  "file",
+                                ],
+                                "type": "string",
+                              },
+                              "url": {
+                                "description": "URL pointing to the content resource",
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "type",
+                            ],
+                            "type": "object",
+                          },
+                          "type": "array",
+                        },
+                        "model": {
+                          "description": "AI model identifier used for this prompt",
+                          "type": "string",
+                        },
+                        "rating": {
+                          "description": "User feedback rating for this prompt",
+                          "enum": [
+                            "up",
+                            "down",
+                          ],
+                          "type": "string",
+                        },
+                        "result": {
+                          "description": "Result returned from a tool call",
+                        },
+                        "text": {
+                          "description": "Text content of the prompt or response",
+                          "type": "string",
+                        },
+                        "toolCallId": {
+                          "description": "Identifier linking a tool result to its originating call",
+                          "type": "string",
+                        },
+                        "toolName": {
+                          "description": "Name of the tool that was invoked",
+                          "type": "string",
+                        },
+                        "type": {
+                          "description": "Role of this message in the conversation",
+                          "enum": [
+                            "user",
+                            "assistant",
+                            "system",
+                            "tool-call",
+                            "tool-result",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "text",
+                        "type",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "title": {
+                    "description": "Auto-generated title from the first assistant response",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "The user who owns this conversation history",
+                    "type": "schemaobjectid",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "type": "any",
+                    },
+                    "projectId": {
+                      "description": "Project this conversation belongs to",
+                      "type": "schemaobjectid",
+                    },
+                    "prompts": {
+                      "description": "Ordered list of messages in this conversation",
+                      "items": {
+                        "properties": {
+                          "args": {
+                            "description": "Arguments passed to a tool call",
+                          },
+                          "content": {
+                            "description": "Multipart content attached to this prompt",
+                            "items": {
+                              "properties": {
+                                "filename": {
+                                  "description": "Original filename of the attached file",
+                                  "type": "string",
+                                },
+                                "mimeType": {
+                                  "description": "MIME type of the content part",
+                                  "type": "string",
+                                },
+                                "text": {
+                                  "description": "Text content of this part",
+                                  "type": "string",
+                                },
+                                "type": {
+                                  "description": "The kind of content this part represents",
+                                  "enum": [
+                                    "text",
+                                    "image",
+                                    "file",
+                                  ],
+                                  "type": "string",
+                                },
+                                "url": {
+                                  "description": "URL pointing to the content resource",
+                                  "type": "string",
+                                },
+                              },
+                              "required": [
+                                "type",
+                              ],
+                              "type": "object",
+                            },
+                            "type": "array",
+                          },
+                          "model": {
+                            "description": "AI model identifier used for this prompt",
+                            "type": "string",
+                          },
+                          "rating": {
+                            "description": "User feedback rating for this prompt",
+                            "enum": [
+                              "up",
+                              "down",
+                            ],
+                            "type": "string",
+                          },
+                          "result": {
+                            "description": "Result returned from a tool call",
+                          },
+                          "text": {
+                            "description": "Text content of the prompt or response",
+                            "type": "string",
+                          },
+                          "toolCallId": {
+                            "description": "Identifier linking a tool result to its originating call",
+                            "type": "string",
+                          },
+                          "toolName": {
+                            "description": "Name of the tool that was invoked",
+                            "type": "string",
+                          },
+                          "type": {
+                            "description": "Role of this message in the conversation",
+                            "enum": [
+                              "user",
+                              "assistant",
+                              "system",
+                              "tool-call",
+                              "tool-result",
+                            ],
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "text",
+                          "type",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "title": {
+                      "description": "Auto-generated title from the first assistant response",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "The user who owns this conversation history",
+                      "type": "schemaobjectid",
+                    },
+                  },
+                  "required": [
+                    "userId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "gpthistories",
+        ],
+      },
+    },
     "/gpt/histories/{id}/rating": {
       "patch": {
         "parameters": [
@@ -11361,7 +12162,431 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/{id}": {
+    "/users/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user's email address, used for authentication",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user's display name",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "admin": {
+                            "description": "Whether the user has admin privileges",
+                            "type": "boolean",
+                          },
+                          "betterAuthId": {
+                            "description": "Identifier linking to the Better Auth session provider",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "email": {
+                            "description": "The user's email address, used for authentication",
+                            "type": "string",
+                          },
+                          "hash": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "description": "The user's display name",
+                            "type": "string",
+                          },
+                          "oauthProvider": {
+                            "description": "OAuth provider used for authentication",
+                            "enum": [
+                              "google",
+                              "github",
+                              "apple",
+                              null,
+                            ],
+                            "type": "string",
+                          },
+                          "organizationIds": {
+                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
+                          "salt": {
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "email",
+                          "name",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "users",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "admin": {
+                    "description": "Whether the user has admin privileges",
+                    "type": "boolean",
+                  },
+                  "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "email": {
+                    "description": "The user's email address, used for authentication",
+                    "type": "string",
+                  },
+                  "hash": {
+                    "type": "string",
+                  },
+                  "name": {
+                    "description": "The user's display name",
+                    "type": "string",
+                  },
+                  "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
+                    "enum": [
+                      "google",
+                      "github",
+                      "apple",
+                      null,
+                    ],
+                    "type": "string",
+                  },
+                  "organizationIds": {
+                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "salt": {
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "admin": {
+                      "description": "Whether the user has admin privileges",
+                      "type": "boolean",
+                    },
+                    "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "email": {
+                      "description": "The user's email address, used for authentication",
+                      "type": "string",
+                    },
+                    "hash": {
+                      "type": "string",
+                    },
+                    "name": {
+                      "description": "The user's display name",
+                      "type": "string",
+                    },
+                    "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
+                      "enum": [
+                        "google",
+                        "github",
+                        "apple",
+                        null,
+                      ],
+                      "type": "string",
+                    },
+                    "organizationIds": {
+                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "salt": {
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "email",
+                    "name",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "users",
+        ],
+      },
+    },
+    "/users/{id}": {
       "delete": {
         "parameters": [
           {

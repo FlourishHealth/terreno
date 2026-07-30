@@ -20,8 +20,14 @@ import {
 } from "./mutationHandler";
 import {findSyncEntryByCollectionTag, getSyncRegistry, type SyncRegistryEntry} from "./registry";
 import {serializeSyncPayload} from "./serialize";
-import {getScopeField, parseStreamKey, resolveUserStreamsForEntry} from "./streams";
+import {
+  getScopeField,
+  parseStreamKey,
+  resolveStreamForDoc,
+  resolveUserStreamsForEntry,
+} from "./streams";
 import type {
+  SyncEntitiesResponse,
   SyncEntityPayload,
   SyncMutateBatchRequest,
   SyncMutateRequest,
@@ -83,12 +89,12 @@ export interface SyncAppOptions {
    * tenant scope.
    */
   getUserScopes?: (user: User, entry: SyncRegistryEntry) => Promise<string[]> | string[];
-  /** Default page size for snapshots (default 500, max 1000). */
+  /** Default page size for snapshots (default 100, max 100). */
   defaultSnapshotLimit?: number;
 }
 
-const MAX_SNAPSHOT_LIMIT = 1000;
-const DEFAULT_SNAPSHOT_LIMIT = 500;
+const MAX_SNAPSHOT_LIMIT = 100;
+const DEFAULT_SNAPSHOT_LIMIT = 100;
 
 /** HTTP status for each nack code returned by `POST /sync/mutate`. */
 const NACK_HTTP_STATUS: Record<SyncNackCode, number> = {
@@ -277,6 +283,9 @@ const frontierBelowStreamHead = async (
  * - POST /sync/mutate — HTTP fallback mutation channel over applySyncMutation
  * - GET /sync/key — per-user key material for the default encryption KeyProvider
  */
+/** Hard cap on ids per `GET /sync/entities` request. */
+const MAX_ENTITY_FETCH = 100;
+
 export const addSyncRoutes = (app: express.Application, options: SyncAppOptions = {}): void => {
   const router = express.Router();
 
@@ -482,6 +491,87 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
     })
   );
 
+  router.get(
+    "/sync/entities",
+    authenticateMiddleware(),
+    asyncHandler(async (req, res) => {
+      const user = req.user as User | undefined;
+      if (!user) {
+        throw new APIError({status: 401, title: "Authentication required"});
+      }
+      const collection = String(req.query.collection ?? "").trim();
+      if (!collection) {
+        throw new APIError({status: 400, title: "collection query parameter is required"});
+      }
+      const idsParam = req.query.ids;
+      const ids =
+        typeof idsParam === "string"
+          ? idsParam
+              .split(",")
+              .map((id) => id.trim())
+              .filter((id) => id.length > 0)
+              .slice(0, MAX_ENTITY_FETCH)
+          : [];
+      if (ids.length === 0) {
+        throw new APIError({status: 400, title: "ids query parameter is required"});
+      }
+
+      const entry = findSyncEntryByCollectionTag(collection);
+      if (!entry) {
+        throw new APIError({
+          status: 404,
+          title: `Unknown sync collection: ${collection}`,
+        });
+      }
+      if (!(await checkPermissions("list", entry.options.permissions.list, user))) {
+        throw new APIError({
+          status: 403,
+          title: `Access to sync entities for ${collection} denied for ${user.id}`,
+        });
+      }
+
+      const memberStreams = await resolveUserStreamsForEntry({
+        entry,
+        getUserScopes: options.getUserScopes,
+        user,
+      });
+      const memberSet = new Set(memberStreams);
+
+      const model = mongoose.model(entry.modelName);
+      const docs = await model.find({
+        _id: {$in: ids},
+        deleted: {$in: [true, false]},
+      });
+
+      const entities: SyncEntityPayload[] = [];
+      for (const doc of docs as mongoose.Document[]) {
+        const allowed = await checkPermissions("read", entry.options.permissions.read, user, doc);
+        if (!allowed) {
+          continue;
+        }
+        const docObj = doc.toObject() as Record<string, unknown>;
+        const stream = resolveStreamForDoc({
+          collectionTag: entry.collectionTag,
+          doc: docObj,
+          scope: entry.config.scope,
+        });
+        if (!memberSet.has(stream)) {
+          continue;
+        }
+        const isTombstone = Boolean(docObj.deleted);
+        entities.push({
+          data: isTombstone ? null : await serializeSyncDoc({doc, entry, req}),
+          deleted: isTombstone,
+          id: String(doc._id),
+          seq: (docObj._syncSeq as number | undefined) ?? 0,
+        });
+      }
+
+      const response: SyncEntitiesResponse = {entities};
+      return res.json(response);
+    })
+  );
+
   router.post(
     "/sync/mutate",
     authenticateMiddleware(),
@@ -584,6 +674,8 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
     })
   );
 
+  // Authenticate middleware rejects with Error("Unauthorized"); convert that to
+  // 401 before the generic error handler (and before Express's default 500).
   router.use(apiUnauthorizedMiddleware);
   router.use(apiErrorMiddleware);
   app.use(router);

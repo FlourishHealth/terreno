@@ -12,7 +12,7 @@
     "@types/luxon": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
-    "expo-sqlite": "~15.2.14",
+    "expo-sqlite": "catalog:",
     "fake-indexeddb": "^6.0.0",
     "react": "catalog:",
     "react-test-renderer": "catalog:",

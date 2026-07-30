@@ -28,6 +28,13 @@ export const CONFLICTS_TABLE = "_conflicts";
  */
 export const KNOWN_STREAMS_TABLE = "_knownStreams";
 
+/**
+ * Entities whose server deltas were skipped while a pending outbox mutation
+ * protected optimistic state. The cursor advanced past the missed seq, so the
+ * entity must be re-fetched once the pending mutation resolves without a server ack.
+ */
+export const NEEDS_REPAIR_TABLE = "_needsRepair";
+
 /** Prefix marking reserved (non-collection) tables. */
 export const RESERVED_TABLE_PREFIX = "_";
 
@@ -93,9 +100,30 @@ export interface OutboxRow {
 
 /** Primitive row shape for the `_cursors` table; rowId = stream key. */
 export interface CursorRow {
-  /** Highest seq applied for the stream. */
+  /** Highest seq applied for the stream (advanced by both deltas and snapshot pages). */
   seq: number;
   updatedAt: string;
+  /**
+   * Highest seq paged through the snapshot endpoint — bootstrap's own resume
+   * point, deliberately separate from `seq`. A live delta advances `seq` to the
+   * stream head regardless of how far bootstrap has got, so `seq` cannot be used
+   * to resume an interrupted bootstrap without permanently skipping every seq in
+   * between (see `sync/cursor.ts`). Absent on streams that predate this cell.
+   */
+  snapshotSeq?: number;
+  /** True once a snapshot pass reached the stream head (`hasMore: false`). */
+  bootstrapped?: boolean;
+}
+
+/** Primitive row shape for the `_needsRepair` table; rowId = `${collection}:${entityId}`. */
+export interface NeedsRepairRow {
+  collection: string;
+  entityId: string;
+  /** Highest server seq skipped while the entity was pending-protected. */
+  missedSeq: number;
+  /** Stream the skipped delta arrived on (used when applying the repair). */
+  stream: string;
+  markedAt: string;
 }
 
 /** Primitive row shape for the `_conflicts` table; rowId = mutationId. */

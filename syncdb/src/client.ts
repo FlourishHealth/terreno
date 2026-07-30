@@ -3,19 +3,21 @@ import type {AnyPersister} from "tinybase/persisters";
 
 import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyProviders";
 import type {KeyProvider} from "./crypto/types";
+import {attachDebugChannel} from "./debug/debugChannel";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
-import {listConflicts} from "./mutations/conflicts";
+import {listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
 import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
 import type {DefaultPersisterFactoryConfig, PersisterFactory} from "./persisters/types";
 import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {createSyncStore, type SyncStore} from "./storage/store";
-import {CURSORS_TABLE} from "./storage/types";
+import {CURSORS_TABLE, KNOWN_STREAMS_TABLE} from "./storage/types";
 import {wipeLocalData} from "./storage/wipe";
 import {bootstrapStream} from "./sync/bootstrap";
 import {getAllCursors} from "./sync/cursor";
 import {applyDelta} from "./sync/deltaApplier";
+import {repairMarkedEntities} from "./sync/entityRepair";
 import {AuthRequiredError, createHttpChannel, type HttpChannel} from "./sync/httpChannel";
 import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
 import {createSocketTransport} from "./sync/socketTransport";
@@ -23,6 +25,8 @@ import type {SendMutationBatchResult, SendMutationResult, SyncTransport} from ".
 import type {
   AuthProvider,
   ConflictResolutionStrategy,
+  SyncCollectionStatus,
+  SyncConflict,
   SyncDelta,
   SyncMutateBatchRequest,
   SyncMutateRequest,
@@ -146,6 +150,22 @@ export interface SyncDbConfig {
   startAuthRetryDelayMs?: number;
 }
 
+/** Why a {@link SyncDb.forceResync} call could not run. */
+export type ForceResyncSkipReason = "noHttpChannel" | "offline" | "authPaused" | "noStreams";
+
+/** Outcome of a {@link SyncDb.forceResync} call. */
+export interface ForceResyncResult {
+  /** False when the resync could not run at all; `reason` explains why. */
+  ok: boolean;
+  reason?: ForceResyncSkipReason;
+  /** Streams purged and re-bootstrapped. */
+  streams: number;
+  /** Local entity rows deleted before re-bootstrapping. */
+  purged: number;
+  /** Entities re-fetched by the point-lookup repair pass. */
+  repaired: number;
+}
+
 export interface MutateArgs {
   collection: string;
   operation: SyncMutationOperation;
@@ -191,6 +211,13 @@ export interface SyncDb {
   mutate: (args: MutateArgs) => {mutationId: string; id: string};
   /** Snapshot-from-cursor catch-up for every collection (no-op without HTTP). */
   reconcile: () => Promise<void>;
+  /**
+   * Purge every known stream locally and re-bootstrap from cursor 0. Use when
+   * devices have diverged and a full server snapshot is needed without wiping
+   * the outbox or conflicts. Reports what it did (or why it could not run) so a
+   * caller can surface the outcome instead of a silent no-op.
+   */
+  forceResync: () => Promise<ForceResyncResult>;
   /** Drain queued mutations for the current user now. */
   replayOutbox: () => Promise<void>;
   /** Resolve a recorded conflict with the given strategy. */
@@ -260,6 +287,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   });
   const outbox = createOutbox({store});
   const debugLog = resolveDebugLog(config.debug);
+  // Mirror the debug log across browser windows/tabs (web only) so a debugger
+  // opened in a second window sees this window's events — including local
+  // mutations. No-ops when BroadcastChannel is unavailable (native/SSR).
+  if (debugLog) {
+    attachDebugChannel({log: debugLog, name: config.name});
+  }
 
   let currentUserId: string | undefined;
   let persister: ReturnType<PersisterFactory> | undefined;
@@ -399,6 +432,17 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     onDrainPass: ({userId}) => {
       outbox.prune({userId});
     },
+    onEntityReleasedWithoutServerAck: (mutation) => {
+      if (!httpChannel) {
+        return;
+      }
+      void repairMarkedEntities({
+        channel: httpChannel,
+        collection: mutation.collection,
+        entityIds: [mutation.entityId],
+        store,
+      }).catch(warn("entity repair failed"));
+    },
     onProgress: () => {
       // B5: drain progress (sentThisDrain/totalThisDrain) is exposed through
       // getSyncStatus() — nudge status listeners so a progress UI re-renders
@@ -464,8 +508,25 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       return undefined;
     }
 
+    // A backend can host more collections than this client is configured to sync
+    // (e.g. a tenant-scoped `projects` stream exposed to org members while this
+    // app only subscribes to `todos`). The socket path already filters deltas by
+    // `config.collections` via `transport.subscribe`; mirror that here so the
+    // discovery/bootstrap path never tries to write an unconfigured collection
+    // into the store (which would throw "Unknown collection" in the store's
+    // schema guard). Streams for unknown collections are simply ignored.
+    const configuredCollections = new Set(store.collections);
     const serverSet = new Map<string, string>();
     for (const {stream, collection} of serverStreams) {
+      if (!configuredCollections.has(collection)) {
+        debugLog?.record({
+          detail: {collection, stream},
+          direction: "system",
+          label: `stream skipped (unconfigured collection): ${stream}`,
+          type: "reconcile",
+        });
+        continue;
+      }
       serverSet.set(stream, collection);
     }
     const known = new Set(store.getKnownStreams());
@@ -553,6 +614,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
           });
         }
       }
+      await repairAllMarkedEntities();
     } catch (error) {
       if (error instanceof AuthRequiredError) {
         setAuthPaused(true);
@@ -602,6 +664,114 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         detail: {migrated},
         direction: "system",
         label: `migrated ${migrated} legacy snapshot cursors`,
+        type: "reconcile",
+      });
+    }
+  };
+
+  const repairAllMarkedEntities = async (): Promise<number> => {
+    if (!httpChannel) {
+      return 0;
+    }
+    const byCollection = new Map<string, string[]>();
+    for (const row of store.listNeedsRepair()) {
+      const ids = byCollection.get(row.collection) ?? [];
+      ids.push(row.entityId);
+      byCollection.set(row.collection, ids);
+    }
+    let repaired = 0;
+    for (const [collection, entityIds] of byCollection) {
+      repaired += await repairMarkedEntities({channel: httpChannel, collection, entityIds, store});
+    }
+    return repaired;
+  };
+
+  const forceResync = async (): Promise<ForceResyncResult> => {
+    const skip = (reason: ForceResyncSkipReason): ForceResyncResult => {
+      debugLog?.record({
+        detail: {reason},
+        direction: "system",
+        label: `force resync skipped (${reason})`,
+        type: "reconcile",
+      });
+      return {ok: false, purged: 0, reason, repaired: 0, streams: 0};
+    };
+    if (!httpChannel) {
+      return skip("noHttpChannel");
+    }
+    if (simulatedOffline) {
+      return skip("offline");
+    }
+    if (authPaused) {
+      return skip("authPaused");
+    }
+    const myGeneration = generation;
+    const myUserId = currentUserId;
+    const isSuperseded = (): boolean => generation !== myGeneration || currentUserId !== myUserId;
+    addSyncing(1);
+    const startedAt = now();
+    debugLog?.record({
+      direction: "system",
+      label: "force resync start",
+      phase: "start",
+      type: "reconcile",
+    });
+    let purged = 0;
+    let repaired = 0;
+    let streamInfos: Array<{stream: string; collection: string}> = [];
+    try {
+      // Always re-discover membership: a stale local `_knownStreams` set is one of
+      // the ways a device diverges in the first place, so it cannot be trusted as
+      // the authoritative list for a repair operation.
+      const streams = await syncStreams({isSuperseded});
+      if (isSuperseded()) {
+        return skip("noStreams");
+      }
+      if (streams) {
+        streamInfos = [...streams].map(([stream, collection]) => ({collection, stream}));
+      }
+      if (streamInfos.length === 0) {
+        for (const stream of store.getKnownStreams()) {
+          const row = store.raw.getRow(KNOWN_STREAMS_TABLE, stream) as {collection?: string};
+          if (row?.collection) {
+            streamInfos.push({collection: row.collection, stream});
+          }
+        }
+      }
+      if (streamInfos.length === 0) {
+        return skip("noStreams");
+      }
+      // Drop rows with no stream provenance once per collection: phantoms from
+      // locally-failed creates carry `stream: ""`, so a per-stream purge alone
+      // leaves them behind and re-bootstrap cannot remove them (the server never
+      // had them). Rows still protected by a pending mutation are preserved.
+      for (const collection of new Set(streamInfos.map((info) => info.collection))) {
+        purged += store.purgeUnknownStreamEntities({collection});
+      }
+      for (const {stream, collection} of streamInfos) {
+        purged += store.purgeStream({stream});
+        store.addKnownStream({collection, stream});
+        await bootstrapStream({channel: httpChannel, collection, store, stream});
+        if (isSuperseded()) {
+          return {ok: false, purged, reason: "noStreams", repaired, streams: streamInfos.length};
+        }
+      }
+      repaired = await repairAllMarkedEntities();
+      return {ok: true, purged, repaired, streams: streamInfos.length};
+    } catch (error) {
+      if (error instanceof AuthRequiredError) {
+        setAuthPaused(true);
+        return {ok: false, purged, reason: "authPaused", repaired, streams: streamInfos.length};
+      }
+      throw error;
+    } finally {
+      addSyncing(-1);
+      debugLog?.record({
+        detail: {purged, repaired, streams: streamInfos.length},
+        direction: "system",
+        durationMs: now() - startedAt,
+        label: `force resync end (${streamInfos.length} streams, ${purged} purged, ${repaired} repaired)`,
+        phase: "end",
         type: "reconcile",
       });
     }
@@ -1064,10 +1234,14 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // never resolved, acked-with-still-pending entity, conflicted with no
       // conflict row written).
       const recovery = outbox.recoverStartupState({userId});
+      // Clear husk conflict rows a pre-fix build left behind (see
+      // pruneGhostConflicts) before recovery's counts are reported, so a store
+      // carrying them recovers without a wipe.
+      const prunedConflicts = pruneGhostConflicts({store});
       debugLog?.record({
-        detail: {...recovery},
+        detail: {...recovery, prunedConflicts},
         direction: "system",
-        label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.repairedConflicts.length} conflicts repaired)`,
+        label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.repairedConflicts.length} conflicts repaired, ${prunedConflicts.length} husk conflicts pruned)`,
         type: "reconcile",
       });
 
@@ -1249,15 +1423,51 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     void replayOutbox().catch(warn("post-retryFailed replay failed"));
   };
 
+  /**
+   * Attribute the queued/failed/conflict totals to the collections they came
+   * from so apps can surface one notification per collection. Collections with
+   * nothing outstanding are omitted.
+   */
+  const buildCollectionStatuses = ({
+    conflicts,
+  }: {
+    conflicts: SyncConflict[];
+  }): Record<string, SyncCollectionStatus> => {
+    const outboxCounts = currentUserId
+      ? outbox.countsByCollection({statuses: ["queued", "failed"], userId: currentUserId})
+      : {};
+    const statuses: Record<string, SyncCollectionStatus> = {};
+    const forCollection = (collection: string): SyncCollectionStatus => {
+      const existing = statuses[collection];
+      if (existing) {
+        return existing;
+      }
+      const created: SyncCollectionStatus = {conflictCount: 0, failedCount: 0, queuedCount: 0};
+      statuses[collection] = created;
+      return created;
+    };
+    for (const [collection, counts] of Object.entries(outboxCounts)) {
+      const entry = forCollection(collection);
+      entry.queuedCount = counts.queued ?? 0;
+      entry.failedCount = counts.failed ?? 0;
+    }
+    for (const conflict of conflicts) {
+      forCollection(conflict.collection).conflictCount += 1;
+    }
+    return statuses;
+  };
+
   const getSyncStatus = (): SyncStatus => {
     const drainProgress = currentUserId
       ? coordinator.getDrainProgress({userId: currentUserId})
       : {draining: false, sentThisDrain: 0, totalThisDrain: 0};
+    const conflicts = listConflicts({store});
     return {
       blockedEntities: currentUserId
         ? coordinator.getBlockedEntities({userId: currentUserId}).length
         : 0,
-      conflictCount: listConflicts({store}).length,
+      collections: buildCollectionStatuses({conflicts}),
+      conflictCount: conflicts.length,
       draining: drainProgress.draining,
       failedCount: currentUserId
         ? outbox.countByStatus({status: "failed", userId: currentUserId})
@@ -1293,6 +1503,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
 
   return {
     debug: debugLog,
+    forceResync,
     getSyncStatus,
     goOffline,
     goOnline,

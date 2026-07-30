@@ -54,8 +54,6 @@ exports[`TableRow renders correctly with children 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -119,8 +117,6 @@ exports[`TableRow renders correctly with children 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -171,11 +167,6 @@ exports[`TableRow renders correctly with children 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -292,11 +283,6 @@ exports[`TableRow renders correctly with children 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -420,11 +406,6 @@ exports[`TableRow renders header row with thicker border 1`] = `
                 "style": {
                   "backgroundColor": "#FFFFFF",
                   "borderBottom": "2px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "2px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -494,11 +475,6 @@ exports[`TableRow renders header row with thicker border 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -635,8 +611,6 @@ exports[`TableRow renders with drawer contents 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -687,11 +661,6 @@ exports[`TableRow renders with drawer contents 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -791,11 +760,6 @@ exports[`TableRow renders with drawer contents 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -932,8 +896,6 @@ exports[`TableRow renders drawer with expand button 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -984,11 +946,6 @@ exports[`TableRow renders drawer with expand button 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -1088,11 +1045,6 @@ exports[`TableRow renders drawer with expand button 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1197,8 +1149,6 @@ exports[`TableRow renders with custom color 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -1249,11 +1199,6 @@ exports[`TableRow renders with custom color 1`] = `
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -1335,11 +1280,6 @@ exports[`TableRow renders with custom color 1`] = `
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1476,8 +1416,6 @@ exports[`TableRow renders a placeholder cell when sibling row has drawer content
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "accessibilityHint": "changes sort alphabetical order",
-                                  "accessibilityLabel": "sort",
                                   "alignItems": "center",
                                   "display": "flex",
                                   "flexDirection": "row",
@@ -1528,11 +1466,6 @@ exports[`TableRow renders a placeholder cell when sibling row has drawer content
                     "style": {
                       "backgroundColor": "#FFFFFF",
                       "borderBottom": "2px solid #e0e0e0",
-                      "dangerouslySetInlineStyle": {
-                        "__style": {
-                          "borderBottom": "2px solid #e0e0e0",
-                        },
-                      },
                       "width": "100%",
                     },
                     "testID": undefined,
@@ -1632,11 +1565,6 @@ exports[`TableRow renders a placeholder cell when sibling row has drawer content
                 "style": {
                   "backgroundColor": "#D9D9D9",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1738,11 +1666,6 @@ exports[`TableRow renders a placeholder cell when sibling row has drawer content
                 "style": {
                   "backgroundColor": "#FFFFFF",
                   "borderBottom": "1px solid #e0e0e0",
-                  "dangerouslySetInlineStyle": {
-                    "__style": {
-                      "borderBottom": "1px solid #e0e0e0",
-                    },
-                  },
                   "width": "100%",
                 },
                 "testID": undefined,

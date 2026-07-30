@@ -3,7 +3,8 @@ import {describe, expect, it} from "bun:test";
 import {createSyncStore, type SyncStore} from "../storage/store";
 import type {SyncSnapshotResponse} from "../types";
 import {type BootstrapProgress, bootstrapStream} from "./bootstrap";
-import {getCursor, setCursor} from "./cursor";
+import {getCursor, markStreamBootstrapped, setCursor, setSnapshotCursor} from "./cursor";
+import {applyDelta} from "./deltaApplier";
 import type {FetchSnapshotPageArgs} from "./httpChannel";
 
 const STREAM = "todos|owner:u1";
@@ -57,6 +58,18 @@ const makeChannel = (
   };
 };
 
+/**
+ * Put a stream in the state of a client that already completed a snapshot pass and is now
+ * only catching up: applied-seq cursor at `seq`, snapshot progress matching it, stream
+ * marked bootstrapped. Bootstrap resumes from `seq` for such a stream (an un-bootstrapped
+ * one deliberately ignores the applied-seq cursor and re-pages from its own progress).
+ */
+const seedBootstrappedStream = ({store, seq}: {store: SyncStore; seq: number}): void => {
+  setCursor({seq, store, stream: STREAM});
+  setSnapshotCursor({seq, store, stream: STREAM});
+  markStreamBootstrapped({store, stream: STREAM});
+};
+
 describe("bootstrapStream", () => {
   it("pages a stream to completion and advances the real stream cursor", async () => {
     const store = makeStore();
@@ -91,7 +104,7 @@ describe("bootstrapStream", () => {
 
   it("resumes from the persisted per-stream cursor", async () => {
     const store = makeStore();
-    setCursor({seq: 10, store, stream: STREAM});
+    seedBootstrappedStream({seq: 10, store});
     const channel = makeChannel({10: page({cursor: 10, entities: [], frontierSeq: 10})});
     await bootstrapStream({channel, collection: "todos", store, stream: STREAM});
     expect(channel.calls).toEqual([
@@ -208,7 +221,7 @@ describe("bootstrapStream", () => {
   it("C7: re-bootstraps from 0 when the stored cursor is below oldestRetainedSeq", async () => {
     const store = makeStore();
     // Client is at cursor 5 with a stale entity written under this stream.
-    setCursor({seq: 5, store, stream: STREAM});
+    seedBootstrappedStream({seq: 5, store});
     store.upsertEntity({
       collection: "todos",
       data: {title: "stale"},
@@ -243,7 +256,7 @@ describe("bootstrapStream", () => {
 
   it("C7: no re-bootstrap when the cursor is at or above the retained floor", async () => {
     const store = makeStore();
-    setCursor({seq: 10, store, stream: STREAM});
+    seedBootstrappedStream({seq: 10, store});
     store.upsertEntity({
       collection: "todos",
       data: {title: "kept"},
@@ -306,6 +319,99 @@ describe("bootstrapStream", () => {
     });
     await bootstrapStream({channel, collection: "todos", store, stream: STREAM});
     expect(channel.calls).toHaveLength(1);
+  });
+
+  it("resumes snapshot paging from its own progress after a live delta raced the cursor ahead", async () => {
+    const store = makeStore();
+    // Pass 1: page one succeeds, then the socket delivers a live delta at seq 100 (which
+    // advances the shared stream cursor), then page two fails. This is the real-world
+    // sequence: a client bootstrapping a large stream while writes are still arriving.
+    const failing = {
+      fetchSnapshotPage: async (args: FetchSnapshotPageArgs): Promise<SyncSnapshotResponse> => {
+        if (args.cursor === 0) {
+          return page({
+            cursor: 2,
+            entities: [
+              {data: {title: "a"}, deleted: false, id: "t1", seq: 1},
+              {data: {title: "b"}, deleted: false, id: "t2", seq: 2},
+            ],
+            frontierSeq: 100,
+            hasMore: true,
+          });
+        }
+        throw new Error("network dropped mid-bootstrap");
+      },
+    };
+    applyDelta({
+      delta: {
+        collection: "todos",
+        data: {title: "live"},
+        frontierSeq: 100,
+        id: "t100",
+        method: "create",
+        seq: 100,
+        stream: STREAM,
+      },
+      store,
+    });
+    await expect(
+      bootstrapStream({channel: failing, collection: "todos", store, stream: STREAM})
+    ).rejects.toThrow("network dropped mid-bootstrap");
+    // The delta legitimately pushed the applied-seq cursor to 100 …
+    expect(getCursor({store, stream: STREAM})).toBe(100);
+
+    // … but seqs 3..99 were never paged, so a resumed bootstrap must start from the
+    // snapshot's own progress (2), not from the delta cursor.
+    const channel = makeChannel({
+      2: page({
+        cursor: 100,
+        entities: [
+          {data: {title: "c"}, deleted: false, id: "t3", seq: 3},
+          {data: {title: "d"}, deleted: false, id: "t4", seq: 4},
+        ],
+        frontierSeq: 100,
+        hasMore: false,
+      }),
+      // A resume that trusted the delta cursor would land here and fetch nothing,
+      // silently losing t3/t4 forever.
+      100: page({cursor: 100, entities: [], frontierSeq: 100, hasMore: false}),
+    });
+    await bootstrapStream({channel, collection: "todos", store, stream: STREAM});
+
+    expect(channel.calls.map((call) => call.cursor)).toEqual([2]);
+    expect(store.getEntity({collection: "todos", id: "t3"})?.data).toEqual({title: "c"});
+    expect(store.getEntity({collection: "todos", id: "t4"})?.data).toEqual({title: "d"});
+  });
+
+  it("catches up from the applied-seq cursor once the stream is fully bootstrapped", async () => {
+    const store = makeStore();
+    const first = makeChannel({
+      0: page({
+        cursor: 2,
+        entities: [{data: {title: "a"}, deleted: false, id: "t1", seq: 2}],
+        frontierSeq: 2,
+        hasMore: false,
+      }),
+    });
+    await bootstrapStream({channel: first, collection: "todos", store, stream: STREAM});
+
+    // Live deltas move the stream on while the app runs; they carry their own data, so a
+    // later reconcile must resume from them rather than re-paging the whole snapshot.
+    applyDelta({
+      delta: {
+        collection: "todos",
+        data: {title: "live"},
+        frontierSeq: 40,
+        id: "t40",
+        method: "create",
+        seq: 40,
+        stream: STREAM,
+      },
+      store,
+    });
+    const second = makeChannel({40: page({cursor: 40, entities: [], frontierSeq: 40})});
+    await bootstrapStream({channel: second, collection: "todos", store, stream: STREAM});
+    expect(second.calls.map((call) => call.cursor)).toEqual([40]);
   });
 
   it("reports progress per page and forwards the limit", async () => {
