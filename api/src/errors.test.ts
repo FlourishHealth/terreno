@@ -170,9 +170,9 @@ describe("APIError subclasses", () => {
     expect(error.cause).toBe(cause);
   });
 
-  it("lets a code override the subclass name", () => {
+  it("keeps the subclass name even when a code is provided", () => {
     const error = new BadRequestError({code: "invalid-cursor", title: "Bad cursor"});
-    expect(error.name).toBe("InvalidCursor");
+    expect(error.name).toBe("BadRequestError");
     expect(error.status).toBe(400);
   });
 
@@ -280,10 +280,10 @@ describe("getAPIErrorBody", () => {
   it("returns title and status by default", () => {
     const error = new APIError({status: 404, title: "Not Found"});
     const body = getAPIErrorBody(error);
-    expect(body).toEqual({meta: {}, status: 404, title: "Not Found"});
+    expect(body).toEqual({status: 404, title: "Not Found"});
   });
 
-  it("includes optional fields when set, but never internal reporting config", () => {
+  it("includes optional fields when set, including disableExternalErrorTracking when true", () => {
     const error = new APIError({
       code: "not-found",
       detail: "Could not find resource",
@@ -298,9 +298,9 @@ describe("getAPIErrorBody", () => {
     expect(body).toEqual({
       code: "not-found",
       detail: "Could not find resource",
+      disableExternalErrorTracking: true,
       id: "err-1",
       links: {about: "https://example.com/help"},
-      meta: {},
       source: {pointer: "/data/id"},
       status: 404,
       title: "Not Found",
@@ -323,11 +323,34 @@ describe("getAPIErrorBody", () => {
     expect(JSON.parse(JSON.stringify(error))).toEqual(JSON.parse(JSON.stringify(body)));
   });
 
+  it("exposes deprecated error getter as alias for cause", () => {
+    const cause = new Error("inner");
+    const error = new APIError({cause, title: "Wrapped"});
+    expect(error.error).toBe(cause);
+    expect(error.cause).toBe(cause);
+  });
+
+  it("prefers explicit title over message when serializing legacy instances", () => {
+    const legacy = new Error("polluted message with stack") as Error & {
+      status: number;
+      title: string;
+    };
+    legacy.status = 404;
+    legacy.title = "Clean title";
+    const body = getAPIErrorBody(legacy as unknown as APIError);
+    expect(body.title).toBe("Clean title");
+  });
+
+  it("truncates fractional and invalid status codes to 500", () => {
+    expect(new APIError({status: 404.7, title: "x"}).status).toBe(404);
+    expect(new APIError({status: Number.NaN, title: "x"}).status).toBe(500);
+    expect(new APIError({status: 200, title: "x"}).status).toBe(500);
+  });
+
   it("omits empty meta and unset optional fields", () => {
     const error = new APIError({status: 400, title: "Bad"});
-    // meta defaults to {} which is truthy, so it is included.
     const body = getAPIErrorBody(error);
-    expect(body.meta).toEqual({});
+    expect(body.meta).toBeUndefined();
     expect(body.code).toBeUndefined();
     expect(body.detail).toBeUndefined();
     expect(body.id).toBeUndefined();

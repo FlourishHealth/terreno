@@ -236,7 +236,7 @@ describe("pre and post hooks", () => {
     expect(res.body.title).toBe("Custom preCreate error");
     // The flag is internal reporting config: never serialized to clients, and it
     // suppresses Sentry capture in apiErrorMiddleware.
-    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
@@ -272,7 +272,7 @@ describe("pre and post hooks", () => {
     expect(res.body.title).toContain("preCreate hook error");
     // The flag is internal reporting config: never serialized to clients, and it
     // suppresses Sentry capture in apiErrorMiddleware.
-    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
@@ -323,7 +323,7 @@ describe("pre and post hooks", () => {
     expect(res.body.title).toBe("Custom preUpdate error");
     // The flag is internal reporting config: never serialized to clients, and it
     // suppresses Sentry capture in apiErrorMiddleware.
-    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
@@ -372,7 +372,7 @@ describe("pre and post hooks", () => {
     expect(res.body.title).toContain("preUpdate hook error");
     // The flag is internal reporting config: never serialized to clients, and it
     // suppresses Sentry capture in apiErrorMiddleware.
-    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
@@ -416,7 +416,7 @@ describe("pre and post hooks", () => {
     expect(res.body.title).toContain("preDelete hook error");
     // The flag is internal reporting config: never serialized to clients, and it
     // suppresses Sentry capture in apiErrorMiddleware.
-    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 });
@@ -723,7 +723,7 @@ describe("hook error handling", () => {
     expect(res.body.title).toBe("Custom preDelete APIError");
     // The flag is internal reporting config: never serialized to clients, and it
     // suppresses Sentry capture in apiErrorMiddleware.
-    expect(res.body.disableExternalErrorTracking).toBeUndefined();
+    expect(res.body.disableExternalErrorTracking).toBe(true);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 });

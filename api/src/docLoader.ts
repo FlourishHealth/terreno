@@ -1,8 +1,7 @@
-import * as Sentry from "@sentry/bun";
 import mongoose, {type Model} from "mongoose";
 
 import {addPopulateToQuery} from "./api";
-import {APIError, isAPIError} from "./errors";
+import {APIError, isAPIError, NotFoundError} from "./errors";
 import type {PopulatePath} from "./populate";
 
 /**
@@ -29,8 +28,9 @@ export const loadDocOr404 = async <T>(
     throw new APIError({
       cause: error,
       code: "get-error",
+      detail: `GET failed on ${id}`,
       status: 500,
-      title: `GET failed on ${id}`,
+      title: "GET error",
     });
   }
   if (!data) {
@@ -38,14 +38,13 @@ export const loadDocOr404 = async <T>(
       _id: new mongoose.Types.ObjectId(id),
     });
 
+    const notFoundDetail = `Document ${id} not found for model ${model.modelName}`;
+
     if (!hiddenDoc) {
-      Sentry.captureMessage(`Document ${id} not found for model ${model.modelName}`);
-      const error = new APIError({
-        status: 404,
-        title: `Document ${id} not found for model ${model.modelName}`,
+      throw new NotFoundError({
+        detail: notFoundDetail,
+        title: "Document not found",
       });
-      error.meta = undefined;
-      throw error;
     }
 
     let reason: {[key: string]: string} | null = null;
@@ -58,18 +57,16 @@ export const loadDocOr404 = async <T>(
     }
 
     if (!reason) {
-      const error = new APIError({
-        status: 404,
-        title: `Document ${id} not found for model ${model.modelName}`,
+      throw new NotFoundError({
+        detail: notFoundDetail,
+        title: "Document not found",
       });
-      error.meta = undefined;
-      throw error;
     }
-    throw new APIError({
+    throw new NotFoundError({
+      detail: notFoundDetail,
       disableExternalErrorTracking: true,
       meta: reason,
-      status: 404,
-      title: `Document ${id} not found for model ${model.modelName}`,
+      title: "Document not found",
     });
   }
 

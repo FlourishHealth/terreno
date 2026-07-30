@@ -1,7 +1,6 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {describe, expect, it, mock, spyOn} from "bun:test";
-import * as Sentry from "@sentry/bun";
+import {describe, expect, it, mock} from "bun:test";
 import type express from "express";
 
 import {APIError} from "./errors";
@@ -81,11 +80,11 @@ describe("permissionMiddleware", () => {
     const [error] = (next as any).mock.calls[0];
     expect(error).toBeInstanceOf(APIError);
     expect(error.status).toBe(500);
-    expect(error.title).toContain("GET failed on 507f1f77bcf86cd799439011");
+    expect(error.title).toBe("GET error");
+    expect(error.detail).toContain("GET failed on 507f1f77bcf86cd799439011");
   });
 
-  it("captures sentry message when document does not exist", async () => {
-    const captureMessageSpy = spyOn(Sentry, "captureMessage");
+  it("returns plain not found when document does not exist", async () => {
     const model = {
       collection: {findOne: mock(async () => null)},
       findById: mock(() => ({exec: mock(async () => null)})),
@@ -100,14 +99,11 @@ describe("permissionMiddleware", () => {
       next as any
     );
 
-    expect(captureMessageSpy).toHaveBeenCalledWith(
-      "Document 507f1f77bcf86cd799439011 not found for model MockModel"
-    );
     const [error] = (next as any).mock.calls[0];
     expect(error).toBeInstanceOf(APIError);
     expect(error.status).toBe(404);
-    expect(error.meta).toBeUndefined();
-    captureMessageSpy.mockRestore();
+    expect(error.title).toBe("Document not found");
+    expect(error.detail).toContain("507f1f77bcf86cd799439011");
   });
 
   it("returns hidden reason metadata when document is deleted", async () => {
@@ -194,6 +190,6 @@ describe("permissionMiddleware", () => {
     const [error] = (next as any).mock.calls[0];
     expect(error).toBeInstanceOf(APIError);
     expect(error.status).toBe(404);
-    expect(error.meta).toBeUndefined();
+    expect(error.title).toBe("Document not found");
   });
 });

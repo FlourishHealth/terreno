@@ -502,7 +502,7 @@ describe("auth tests", () => {
 
   it("signup without credentials is a 400, not a fallthrough 500", async () => {
     const res = await agent.post("/auth/signup").send({email: "new@example.com"}).expect(400);
-    expect(res.body).toEqual({meta: {}, status: 400, title: "Missing credentials"});
+    expect(res.body).toEqual({status: 400, title: "Missing credentials"});
   });
 
   it("signup user with email that is already registered", async () => {

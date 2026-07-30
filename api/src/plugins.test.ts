@@ -507,14 +507,16 @@ describe("DateOnly", () => {
     it("returns 404 with context for hidden document", async () => {
       const doc = await StuffModel.create({deleted: true, name: "test"});
       const res = await agent.get(`/stuff/${doc._id}`).expect(404);
-      expect(res.body.title).toBe(`Document ${doc._id} not found for model Stuff`);
+      expect(res.body.title).toBe("Document not found");
+      expect(res.body.detail).toContain(String(doc._id));
       expect(res.body.meta).toEqual({deleted: "true"});
     });
 
     it("returns 404 without meta for missing document", async () => {
       const nonExistentId = "507f1f77bcf86cd799439011";
       const res = await agent.get(`/stuff/${nonExistentId}`).expect(404);
-      expect(res.body.title).toBe(`Document ${nonExistentId} not found for model Stuff`);
+      expect(res.body.title).toBe("Document not found");
+      expect(res.body.detail).toContain(nonExistentId);
       expect(res.body.meta).toBeUndefined();
     });
   });

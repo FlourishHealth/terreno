@@ -38,14 +38,14 @@ const errorNameFromCode = (code: string): string | undefined => {
 };
 
 const normalizeStatus = (status: number | undefined): number => {
-  if (!status) {
+  if (status === undefined || status === null) {
     return 500;
   }
-  if (status < 400 || status > 599) {
-    logger.warn(`Invalid APIError status code: ${status}, using 500`);
+  const truncated = Math.trunc(status);
+  if (!Number.isFinite(truncated) || truncated < 400 || truncated > 599) {
     return 500;
   }
-  return status;
+  return truncated;
 };
 
 export interface APIErrorOptions {
@@ -100,8 +100,9 @@ export interface APIErrorOptions {
 /** @deprecated Use {@link APIErrorOptions} instead. */
 export type APIErrorConstructor = APIErrorOptions;
 
-// The client-facing JSONAPI error body. Standard Error fields (name, stack, cause) and internal
-// reporting config (disableExternalErrorTracking) are intentionally excluded.
+// The client-facing JSONAPI error body. Standard Error fields (name, stack, cause) are
+// intentionally excluded. disableExternalErrorTracking is included when true so clients can
+// suppress duplicate Sentry reporting for expected errors.
 export interface APIErrorBody {
   status: number;
   title: string;
@@ -111,6 +112,7 @@ export interface APIErrorBody {
   detail?: string;
   source?: {pointer?: string; parameter?: string; header?: string};
   meta?: {[id: string]: unknown};
+  disableExternalErrorTracking?: boolean;
 }
 
 /**
@@ -158,9 +160,6 @@ export class APIError extends Error {
 
   meta: {[id: string]: unknown} | undefined;
 
-  /** @deprecated Use the standard `cause` field instead. */
-  error?: unknown;
-
   disableExternalErrorTracking?: boolean;
 
   constructor(options: APIErrorOptions) {
@@ -190,7 +189,11 @@ export class APIError extends Error {
     if (options.fields) {
       this.meta.fields = options.fields;
     }
-    this.error = cause;
+  }
+
+  /** @deprecated Use the standard `cause` field instead. */
+  get error(): unknown {
+    return this.cause;
   }
 
   // JSONAPI title is the same stable summary as the standard Error message. A getter keeps the
@@ -219,9 +222,7 @@ const withStatus = (options: APIErrorSubclassOptions, status: number): APIErrorO
 export class BadRequestError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 400));
-    if (!this.code) {
-      this.name = "BadRequestError";
-    }
+    this.name = "BadRequestError";
   }
 }
 
@@ -229,9 +230,7 @@ export class BadRequestError extends APIError {
 export class UnauthorizedError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 401));
-    if (!this.code) {
-      this.name = "UnauthorizedError";
-    }
+    this.name = "UnauthorizedError";
   }
 }
 
@@ -239,9 +238,7 @@ export class UnauthorizedError extends APIError {
 export class ForbiddenError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 403));
-    if (!this.code) {
-      this.name = "ForbiddenError";
-    }
+    this.name = "ForbiddenError";
   }
 }
 
@@ -249,9 +246,7 @@ export class ForbiddenError extends APIError {
 export class NotFoundError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 404));
-    if (!this.code) {
-      this.name = "NotFoundError";
-    }
+    this.name = "NotFoundError";
   }
 }
 
@@ -259,9 +254,7 @@ export class NotFoundError extends APIError {
 export class ConflictError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 409));
-    if (!this.code) {
-      this.name = "ConflictError";
-    }
+    this.name = "ConflictError";
   }
 }
 
@@ -269,9 +262,7 @@ export class ConflictError extends APIError {
 export class ValidationError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 400));
-    if (!this.code) {
-      this.name = "ValidationError";
-    }
+    this.name = "ValidationError";
   }
 }
 
@@ -279,9 +270,7 @@ export class ValidationError extends APIError {
 export class InternalServerError extends APIError {
   constructor(options: APIErrorSubclassOptions) {
     super(withStatus(options, 500));
-    if (!this.code) {
-      this.name = "InternalServerError";
-    }
+    this.name = "InternalServerError";
   }
 }
 
@@ -374,14 +363,32 @@ export const getDisableExternalErrorTracking = (error: unknown): boolean | undef
 // older/duplicate copies of @terreno/api that may not have toJSON.
 const serializeAPIError = (error: APIError): APIErrorBody => {
   const indexable = error as unknown as Record<string, unknown>;
+  // Prefer an explicit title property for legacy/duplicate-package instances whose message was
+  // polluted with detail/cause stacks but still carry a clean title field.
+  const title =
+    typeof indexable.title === "string" && indexable.title.length > 0
+      ? indexable.title
+      : error.message;
   const body: Record<string, unknown> = {
     status: typeof indexable.status === "number" ? indexable.status : 500,
-    title: error.message,
+    title,
   };
   for (const key of ["id", "links", "code", "detail", "source", "meta"]) {
-    if (indexable[key]) {
-      body[key] = indexable[key];
+    const value = indexable[key];
+    if (
+      key === "meta" &&
+      value &&
+      typeof value === "object" &&
+      Object.keys(value as object).length === 0
+    ) {
+      continue;
     }
+    if (value) {
+      body[key] = value;
+    }
+  }
+  if (indexable.disableExternalErrorTracking === true) {
+    body.disableExternalErrorTracking = true;
   }
   return body as unknown as APIErrorBody;
 };

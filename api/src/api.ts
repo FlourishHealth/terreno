@@ -376,7 +376,7 @@ const mergeDateRangeQueryParams = <T>(
     }
     const baseField = match[1];
     const path = schema.path(baseField);
-    if (!path || path.instance !== "Date") {
+    if (path?.instance !== "Date") {
       continue;
     }
     dateRangeBases.add(baseField);
@@ -656,9 +656,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         throw new APIError({
           cause: error,
           code: "transform-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           status: 400,
-          title: errorMessage(error),
+          title: "Transform error",
         });
       }
       if (options.preCreate) {
@@ -706,9 +707,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         throw new APIError({
           cause: error,
           code: "create-error",
+          detail: errorMessage(error),
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           status: 400,
-          title: errorMessage(error),
+          title: "Create error",
         });
       }
 
@@ -1203,9 +1205,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           throw new APIError({
             cause: error,
             code: "delete-error",
+            detail: errorMessage(error),
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             status: 400,
-            title: errorMessage(error),
+            title: "Delete error",
           });
         }
       }
@@ -1318,9 +1321,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       throw new APIError({
         cause: error,
         code: "transform-error",
+        detail: errorMessage(error),
         disableExternalErrorTracking: getDisableExternalErrorTracking(error),
         status: 403,
-        title: errorMessage(error),
+        title: "Transform error",
       });
     }
 

@@ -6,7 +6,6 @@ import type {ModelRouterOptions, RESTMethod} from "./api";
 import type {User} from "./auth";
 import {loadDocOr404} from "./docLoader";
 import {APIError} from "./errors";
-import {logger} from "./logger";
 
 export type PermissionMethod<T> = (
   method: RESTMethod,
@@ -158,7 +157,6 @@ export const permissionMiddleware = <T>(
 
       return next();
     } catch (error) {
-      logger.error(`Permissions error: ${error instanceof Error ? error.message : error}`);
       return next(error);
     }
   };

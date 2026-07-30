@@ -70,7 +70,8 @@ describe("modelRouter error path coverage", () => {
     server = supertest(app);
 
     const res = await server.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
-    expect(res.body.title).toContain("array transform boom");
+    expect(res.body.title).toBe("Transform error");
+    expect(res.body.detail).toContain("array transform boom");
   });
 
   it("returns 400 when saving an array operation fails validation", async () => {
@@ -116,6 +117,7 @@ describe("modelRouter error path coverage", () => {
     server = supertest(app);
 
     const res = await server.delete(`/explosive/${doc._id}`).expect(400);
-    expect(res.body.title).toContain("deleteOne exploded");
+    expect(res.body.title).toBe("Delete error");
+    expect(res.body.detail).toContain("deleteOne exploded");
   });
 });

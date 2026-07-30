@@ -247,8 +247,9 @@ describe("withApiErrorHandling", () => {
     expect(apiError.detail).toBe("Rate limit exceeded");
     expect(apiError.error).toBe(original);
     expect(apiError.meta?.classification).toBe("rateLimited");
-    // Logged exactly once: the APIError constructor logs, so the wrapper must not.
-    expect(entries).toHaveLength(0);
+    // Logged exactly once via the wrapper before throwing APIError.
+    expect(entries).toHaveLength(1);
+    expect(entries[0].level).toBe("error");
   });
 
   it("defaults the APIError status to 500 when the failure has no status code", async () => {

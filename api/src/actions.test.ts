@@ -274,7 +274,8 @@ describe("modelRouter actions", () => {
         });
         const missingId = "507f1f77bcf86cd799439011";
         const res = await server.get(`/food/${missingId}/peek`).expect(404);
-        expect(res.body.title).toContain(missingId);
+        expect(res.body.title).toBe("Document not found");
+        expect(res.body.detail).toContain(missingId);
         expect(res.body.meta).toBeUndefined();
       });
 
