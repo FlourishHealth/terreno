@@ -75,7 +75,7 @@ describe("modelRouter error paths", () => {
       .send({calories: 5, name: "Broccoli", ownerId: new mongoose.Types.ObjectId()})
       .expect(400);
     assert.include(res.body.title, "Populate error");
-    assert.include(res.body.title, "populate exploded");
+    assert.include(res.body.detail, "populate exploded");
   });
 
   it("wraps list query failures in a List error", async () => {
@@ -132,7 +132,8 @@ describe("modelRouter error paths", () => {
 
     const created = await BrittleModel.create({name: "doomed"});
     const res = await server.delete(`/brittle/${created._id}`).expect(400);
-    assert.include(res.body.title, "deleteOne exploded");
+    assert.equal(res.body.title, "Delete error");
+    assert.include(res.body.detail, "deleteOne exploded");
   });
 
   it("wraps non-APIError transformer failures during array operations", async () => {
@@ -150,7 +151,8 @@ describe("modelRouter error paths", () => {
     } as Partial<Food>);
 
     const res = await server.post(`/food/${food._id}/tags`).send({tags: "vegetable"}).expect(403);
-    assert.include(res.body.title, "transform exploded");
+    assert.equal(res.body.title, "Transform error");
+    assert.include(res.body.detail, "transform exploded");
   });
 
   it("wraps save failures during array operations", async () => {

@@ -626,7 +626,8 @@ describe("@terreno/api", () => {
       server = supertest(app);
 
       const res = await server.post("/required").send({about: "test"}).expect(400);
-      expect(res.body.title).toContain("Required");
+      expect(res.body.title).toBe("Create error");
+      expect(res.body.detail).toContain("Required");
     });
 
     it("preDelete hook throwing APIError is re-thrown", async () => {
@@ -655,6 +656,7 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
+      // Serialized when true so the frontend can suppress duplicate Sentry reporting.
       expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });
@@ -1379,7 +1381,8 @@ describe("@terreno/api", () => {
 
       // Send without required 'name' field
       const res = await server.post("/required").send({about: "test"}).expect(400);
-      expect(res.body.title).toContain("Required");
+      expect(res.body.title).toBe("Create error");
+      expect(res.body.detail).toContain("Required");
     });
 
     it("preDelete hook throwing APIError is re-thrown", async () => {
@@ -1408,6 +1411,7 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
+      // Serialized when true so the frontend can suppress duplicate Sentry reporting.
       expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });
@@ -2166,7 +2170,8 @@ describe("@terreno/api", () => {
         .send({calories: 10, name: "New Food", ownerId: admin._id})
         .expect(400);
 
-      expect(res.body.title).toContain("generic transform error");
+      expect(res.body.title).toBe("Transform error");
+      expect(res.body.detail).toContain("generic transform error");
     });
   });
 
@@ -2212,7 +2217,8 @@ describe("@terreno/api", () => {
     it("wraps non-APIError transform errors in a 403 APIError on update", async () => {
       const res = await agent.patch(`/food/${spinach._id}`).send({name: "Updated"}).expect(403);
 
-      expect(res.body.title).toContain("update transform error");
+      expect(res.body.title).toBe("PATCH failed");
+      expect(res.body.detail).toContain("update transform error");
     });
   });
 });

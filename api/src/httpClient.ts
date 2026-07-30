@@ -193,9 +193,8 @@ export interface WithApiErrorHandlingOptions {
  *
  * In "raw" mode (default) the wrapper logs the normalized shape via the injected logger
  * and rethrows the original error. In "apiError" mode the wrapper throws a terreno
- * APIError — whose constructor already logs — so the wrapper itself stays silent to
- * preserve the log-once contract. The APIError title is stable per JSONAPI convention;
- * per-occurrence text goes in `detail`, built from the (redacted) normalized messages.
+ * APIError with a stable title (per-occurrence text goes in `detail`) and stays silent
+ * itself — apiErrorMiddleware logs APIErrors, so logging here too would double-log.
  */
 export const withApiErrorHandling = async <T>(
   fn: () => Promise<T>,
@@ -215,8 +214,9 @@ export const withApiErrorHandling = async <T>(
     if (options.rethrowAs === "apiError") {
       const statusCode = normalized.statusCode;
       throw new APIError({
+        cause: error,
+        code: "http-client-error",
         detail: normalized.messages[0] ?? "unknown error",
-        error,
         meta: {classification: normalized.classification},
         status: statusCode !== undefined && statusCode >= 400 ? statusCode : 500,
         title: `${options.apiName} ${options.operation} request failed`,

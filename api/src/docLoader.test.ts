@@ -52,7 +52,8 @@ describe("loadDocOr404", () => {
       expect(error).toBeInstanceOf(APIError);
       const apiError = error as APIError;
       expect(apiError.status).toBe(404);
-      expect(apiError.meta).toBeUndefined();
+      expect(apiError.title).toBe("Document not found");
+      expect(apiError.meta).toEqual({});
     }
   });
 });

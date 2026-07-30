@@ -55,7 +55,9 @@ All part of the [launch program](oss-launch-program.md). The **RTK flag** column
 
 ## Completed
 
-*(Move rows here from Active when the IP status becomes Complete.)*
+| Plan | Status | Created | Tasks |
+|------|--------|---------|-------|
+| [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
 
 ## Deferred / Closed
 

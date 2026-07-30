@@ -173,9 +173,11 @@ export const defaultResponseHandler = async <T>(
   } catch (error: unknown) {
     const errorObj = error as Error;
     throw new APIError({
-      error: errorObj,
+      cause: errorObj,
+      code: "serialization-error",
+      detail: errorObj.message,
       status: 400,
-      title: `Error serializing ${method} response: ${errorObj.message}`,
+      title: `Error serializing ${method} response`,
     });
   }
 };

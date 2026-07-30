@@ -29,24 +29,23 @@ describe("errors module", () => {
       expect(error.status).toBe(500);
     });
 
-    it("includes error stack in message when error is provided", () => {
+    it("exposes a wrapped error as the cause, keeping the message stable", () => {
       const originalError = new Error("Original error");
       const apiError = new APIError({
         error: originalError,
         title: "Wrapped error",
       });
-      expect(apiError.message).toContain("Wrapped error");
-      expect(originalError.stack).toBeDefined();
-      expect(apiError.message).toContain(originalError.stack as string);
+      expect(apiError.message).toBe("Wrapped error");
+      expect(apiError.cause).toBe(originalError);
     });
 
-    it("includes detail in message when provided", () => {
+    it("keeps detail out of the message", () => {
       const error = new APIError({
         detail: "More details here",
         title: "Test error",
       });
-      expect(error.message).toContain("Test error");
-      expect(error.message).toContain("More details here");
+      expect(error.message).toBe("Test error");
+      expect(error.detail).toBe("More details here");
     });
 
     it("sets fields in meta when provided", () => {
