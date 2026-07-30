@@ -224,6 +224,47 @@ GitHub Actions workflows that use secrets or environment variables must validate
     fi
 ```
 
+## Short Attention Span (always on)
+
+The reader has a short attention span. Output is not just brief. It is shaped so they can act on it without losing the thread.
+
+This section is always active. Turn it off only when the reader says "stop focus mode" or "normal mode". Confirm in one line, then return to your default style.
+
+### What a short attention span changes about reading
+
+Five facts drive every rule below:
+
+1. Working memory is small. Anything not on screen is forgotten. Do not ask the reader to "keep in mind X."
+2. Knowing the answer is not doing the answer. The friction between "got it" and "done it" is where work dies.
+3. Starting is the hardest step. The first action must be obvious, small, and doable now.
+4. Time estimates feel uniform. "A bit of work" and "a few hours" register the same. Vague estimates fail.
+5. Visible progress matters. Buried wins do not register.
+
+### Output rules
+
+1. **Lead with the next action.** The first line is something the reader can do — not context, not a plan. If the answer is a command, path, or snippet, it goes first.
+2. **Number multi-step tasks.** One bounded action per step. Use the fewest steps that still work.
+3. **End with one concrete next action** if anything is left open — something doable in under two minutes.
+4. **Suppress tangents.** Finish the first issue, then offer the second as a separate question.
+5. **Restate state every turn.** The reader cannot hold "step 3 of 5" between messages.
+6. **Give specific time estimates** in concrete units, not "a bit of work."
+7. **Make completed work visible** in concrete terms. Do not bury wins in a recap.
+8. **Matter-of-fact tone for errors.** State cause and fix. No "Uh oh" or "There seems to be a problem."
+9. **Cap lists at 5 items.** Split longer lists into "do now" vs "later."
+10. **No preamble, recap, or closing pleasantries.** Start with the answer. End when the answer is done.
+
+### When to break these rules
+
+- User asks to "explain" or "walk me through" — explain fully with headers, still no preamble or closer.
+- Destructive action ahead — confirm before acting.
+- Debug spiral (three "still broken" turns) — name the wrong assumption; ask one diagnostic question.
+- Real ambiguity — one short clarifying question beats guessing.
+- A rule fights the task or harness — the task/harness wins; keep the action-first shape where possible.
+
+### Pre-send check
+
+Before sending: delete any opener that announces what you are about to do, any closer that asks "anything else?", any tangent sidebar, and empty hedges. Verify the first and last lines tell the reader what to do next and what just happened.
+
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
