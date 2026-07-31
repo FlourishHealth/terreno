@@ -609,12 +609,27 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
       const effectiveDoc = isTrueReplacement ? rawUpdate : {...targetObj, ...setFields};
       currentStream = streamForObject(entry, effectiveDoc);
     } else if (scopeField) {
-      const newScopeValue = isTrueReplacement
-        ? rawUpdate[scopeField]
-        : (setFields[scopeField] ?? targetObj[scopeField]);
-      // A replacement (or a $set/$unset) can strip the tenant field off an existing
-      // document, which would move it into an unsubscribable stream just as surely as
-      // creating it without one.
+      // Distinguish "the update clears the scope field" from "the update leaves it
+      // alone": `??` cannot, because it treats an explicit `$set: {field: null}` as
+      // absent and falls back to the document's current value — which both hides the
+      // clear from the guard below and stamps the OLD stream's seq onto a document that
+      // no longer belongs to it.
+      const unsetFields: Record<string, unknown> = hasOperators
+        ? ((rawUpdate.$unset as Record<string, unknown>) ?? {})
+        : {};
+      let newScopeValue: unknown;
+      if (isTrueReplacement) {
+        newScopeValue = rawUpdate[scopeField];
+      } else if (scopeField in unsetFields) {
+        newScopeValue = undefined;
+      } else if (scopeField in setFields) {
+        newScopeValue = setFields[scopeField];
+      } else {
+        newScopeValue = targetObj[scopeField];
+      }
+      // A replacement, a `$set` to null, or an `$unset` can strip the tenant field off an
+      // existing document, which would move it into an unsubscribable stream just as
+      // surely as creating it without one.
       assertWritableStream({
         collectionTag: entry.collectionTag,
         doc: {[scopeField]: newScopeValue},

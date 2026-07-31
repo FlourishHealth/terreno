@@ -418,6 +418,31 @@ describe("sync routes", () => {
       await expect(loaded!.save()).rejects.toThrow(/missing tenant scope field "orgId"/);
     });
 
+    // A query-write can strip the tenant field off a document that already has one. The
+    // effective new value must be read from the update, not coalesced back to the
+    // document's current value — otherwise the guard sees the old org and passes, and the
+    // write is stamped into a stream the document no longer belongs to.
+    it("rejects a query-write that clears the tenant scope field", async () => {
+      const created = await RouteProjectModel.create({orgId: "org1", title: "has an org"});
+
+      await expect(
+        RouteProjectModel.updateOne({_id: created._id}, {$set: {orgId: null}}).exec()
+      ).rejects.toThrow(/missing tenant scope field "orgId"/);
+      await expect(
+        RouteProjectModel.updateOne({_id: created._id}, {$unset: {orgId: 1}}).exec()
+      ).rejects.toThrow(/missing tenant scope field "orgId"/);
+
+      // The document is untouched, and an update that leaves the scope field alone or
+      // moves it to another tenant still works.
+      const untouched = await RouteProjectModel.findById(created._id);
+      expect(untouched?.orgId).toBe("org1");
+      await RouteProjectModel.updateOne({_id: created._id}, {$set: {title: "renamed"}});
+      await RouteProjectModel.updateOne({_id: created._id}, {$set: {orgId: "org2"}});
+      const moved = await RouteProjectModel.findById(created._id);
+      expect(moved?.orgId).toBe("org2");
+      expect(moved?.title).toBe("renamed");
+    });
+
     it("accepts a tenant-scoped create carrying a membership scope value", async () => {
       const res = await agent
         .post("/sync/mutate")
