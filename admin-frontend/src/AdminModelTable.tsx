@@ -7,7 +7,8 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   type DataTableCustomComponentMap,
-  Heading,
+  Filter,
+  type FilterValues,
   IconButton,
   Link,
   Modal,
@@ -16,7 +17,6 @@ import {
   SelectField,
   Spinner,
   Text,
-  TextField,
   useToast,
 } from "@terreno/ui";
 import type {Href} from "expo-router";
@@ -26,7 +26,7 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Pressable} from "react-native";
 import {
   ADMIN_LIST_MAX_SELECTION,
-  type AdminListFilterState,
+  buildAdminFilterDefinitions,
   buildAdminListQueryParams,
 } from "./adminModelListQueryParams";
 import {
@@ -265,7 +265,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const [sortColumn, setSortColumn] = useState<ColumnSortInterface | undefined>();
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filterState, setFilterState] = useState<AdminListFilterState>({});
+  const [filterState, setFilterState] = useState<FilterValues>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmActionId, setConfirmActionId] = useState<string | null>(null);
   const navigation = useNavigation();
@@ -290,18 +290,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     if (!modelConfig) {
       return;
     }
-    const next: AdminListFilterState = {};
-    for (const f of modelConfig.filters ?? []) {
-      if (f.kind === "boolean") {
-        next[f.field] = undefined;
-      } else if (f.kind === "dateRange") {
-        next[`${f.field}_gte`] = "";
-        next[`${f.field}_lte`] = "";
-      } else {
-        next[f.field] = "";
-      }
-    }
-    setFilterState(next);
+    setFilterState({});
     setSelectedIds(new Set());
     setPage(1);
     setSearchText("");
@@ -376,6 +365,23 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     },
     [deleteItem]
   );
+
+  // Narrowing the result set invalidates the current page offset.
+  const handleFiltersChange = useCallback((next: FilterValues) => {
+    setFilterState(next);
+    setPage(1);
+  }, []);
+
+  const handleFiltersClear = useCallback(() => {
+    setFilterState({});
+    setSearchText("");
+    setPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((next: string) => {
+    setSearchText(next);
+    setPage(1);
+  }, []);
 
   const toggleSelected = useCallback(
     (id: string, next: boolean) => {
@@ -606,8 +612,9 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   const pendingAction = modelConfig.actions?.find((a) => a.id === confirmActionId);
 
-  const hasFilterRail =
-    Boolean(modelConfig.searchFields?.length) || Boolean((modelConfig.filters ?? []).length);
+  const filterDefinitions = buildAdminFilterDefinitions(modelConfig);
+  const searchField = modelConfig.searchFields?.[0];
+  const hasFilterRail = Boolean(searchField) || filterDefinitions.length > 0;
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0}>
@@ -681,109 +688,16 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
           {hasFilterRail ? (
             <Box alignSelf="stretch" maxWidth={360} minWidth={260}>
               <Card padding={3}>
-                <Heading size="sm">Filters</Heading>
-                <Box direction="column" gap={3} marginTop={2} width="100%">
-                  {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
-                    <Box width="100%">
-                      <TextField
-                        helperText={`Filter by ${modelConfig.searchFields[0]} (exact match)`}
-                        onChange={setSearchText}
-                        title="Search"
-                        value={searchText}
-                      />
-                    </Box>
-                  ) : null}
-                  {(modelConfig.filters ?? []).map((f) => {
-                    if (f.kind === "boolean") {
-                      const v = filterState[f.field];
-                      return (
-                        <Box key={f.field} width="100%">
-                          <SelectField
-                            onChange={(next: string) => {
-                              setFilterState((prev) => ({...prev, [f.field]: next}));
-                              setPage(1);
-                            }}
-                            options={[
-                              {label: f.label ?? startCase(f.field), value: "all"},
-                              {label: "Yes", value: "true"},
-                              {label: "No", value: "false"},
-                            ]}
-                            title={f.label ?? startCase(f.field)}
-                            value={v === true ? "true" : v === false ? "false" : "all"}
-                          />
-                        </Box>
-                      );
-                    }
-                    if (f.kind === "dateRange") {
-                      const gteKey = `${f.field}_gte`;
-                      const lteKey = `${f.field}_lte`;
-                      return (
-                        <Box direction="column" gap={2} key={f.field} width="100%">
-                          <Box width="100%">
-                            <TextField
-                              helperText="ISO date or datetime"
-                              onChange={(next: string) => {
-                                setFilterState((prev) => ({...prev, [gteKey]: next}));
-                                setPage(1);
-                              }}
-                              title={`${f.label ?? startCase(f.field)} from`}
-                              value={String(filterState[gteKey] ?? "")}
-                            />
-                          </Box>
-                          <Box width="100%">
-                            <TextField
-                              helperText="ISO date or datetime"
-                              onChange={(next: string) => {
-                                setFilterState((prev) => ({...prev, [lteKey]: next}));
-                                setPage(1);
-                              }}
-                              title={`${f.label ?? startCase(f.field)} to`}
-                              value={String(filterState[lteKey] ?? "")}
-                            />
-                          </Box>
-                        </Box>
-                      );
-                    }
-                    if (f.kind === "choice") {
-                      return (
-                        <Box key={f.field} width="100%">
-                          <SelectField
-                            onChange={(next: string) => {
-                              setFilterState((prev) => ({
-                                ...prev,
-                                [f.field]: next === "__all__" ? "" : next,
-                              }));
-                              setPage(1);
-                            }}
-                            options={[
-                              {label: "All", value: "__all__"},
-                              ...((f.choices ?? []) as {label: string; value: string}[]).map(
-                                (c) => ({
-                                  label: c.label,
-                                  value: c.value,
-                                })
-                              ),
-                            ]}
-                            title={f.label ?? startCase(f.field)}
-                            value={String(filterState[f.field] ?? "__all__")}
-                          />
-                        </Box>
-                      );
-                    }
-                    return (
-                      <Box key={f.field} width="100%">
-                        <TextField
-                          onChange={(next: string) => {
-                            setFilterState((prev) => ({...prev, [f.field]: next}));
-                            setPage(1);
-                          }}
-                          title={f.label ?? startCase(f.field)}
-                          value={String(filterState[f.field] ?? "")}
-                        />
-                      </Box>
-                    );
-                  })}
-                </Box>
+                <Filter
+                  filters={filterDefinitions}
+                  onChange={handleFiltersChange}
+                  onClear={handleFiltersClear}
+                  onSearchChange={searchField ? handleSearchChange : undefined}
+                  searchPlaceholder={searchField ? `Exact ${searchField}` : undefined}
+                  searchValue={searchText}
+                  testID={`admin-list-filters-${modelName}`}
+                  values={filterState}
+                />
               </Card>
             </Box>
           ) : null}
