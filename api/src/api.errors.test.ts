@@ -153,5 +153,16 @@ describe("errors module", () => {
       apiUnauthorizedMiddleware(err, {} as any, {} as any, next);
       expect(nextCalled).toBe(true);
     });
+
+    it("calls next for an APIError whose title is Unauthorized", () => {
+      const err = new APIError({code: "not-a-member", status: 403, title: "Unauthorized"});
+      let nextArg: unknown;
+      const next = (error?: unknown) => {
+        nextArg = error;
+      };
+
+      apiUnauthorizedMiddleware(err, {} as any, {} as any, next as any);
+      expect(nextArg).toBe(err);
+    });
   });
 });
