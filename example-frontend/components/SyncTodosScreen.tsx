@@ -38,10 +38,17 @@ type TodoListRow =
   | {type: "todo"; id: string};
 
 const sortByCreatedDesc = (a: SyncTodo, b: SyncTodo): number => {
-  // Optimistic creates have no server timestamp yet; float them to the top.
+  // Optimistic creates stamp `created` locally (see handleCreate), so newest-first holds
+  // before the server ever acks. The MAX_SAFE_INTEGER fallback keeps any row that somehow
+  // lacks a timestamp at the top rather than silently last; `_id` breaks the remaining
+  // ties so the order is total — without it, rows sharing a millisecond (or the fallback)
+  // shuffle between renders, which in a virtualized list can bounce a row off-screen.
   const aMillis = a.created ? DateTime.fromISO(a.created).toMillis() : Number.MAX_SAFE_INTEGER;
   const bMillis = b.created ? DateTime.fromISO(b.created).toMillis() : Number.MAX_SAFE_INTEGER;
-  return bMillis - aMillis;
+  if (aMillis !== bMillis) {
+    return bMillis - aMillis;
+  }
+  return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
 };
 
 const isIncomplete = (todo: SyncTodo): boolean => !todo.completed;
@@ -176,7 +183,7 @@ SyncTodoItem.displayName = "SyncTodoItem";
  * The create form owns its own input state so keystrokes re-render only this
  * small component — never the todo list.
  */
-const NewTodoForm: React.FC<{disabled: boolean; onCreate: (title: string) => void}> = memo(
+const NewTodoForm: React.FC<{disabled: boolean; onCreate: (title: string) => boolean}> = memo(
   ({disabled, onCreate}) => {
     const [newTodoTitle, setNewTodoTitle] = useState<string>("");
 
@@ -185,8 +192,11 @@ const NewTodoForm: React.FC<{disabled: boolean; onCreate: (title: string) => voi
       if (!title) {
         return;
       }
-      onCreate(title);
-      setNewTodoTitle("");
+      // Only clear on an accepted create: the screen declines writes until syncdb has
+      // started, and clearing regardless would silently discard what the user typed.
+      if (onCreate(title)) {
+        setNewTodoTitle("");
+      }
     }, [newTodoTitle, onCreate]);
 
     return (
@@ -280,14 +290,17 @@ const SyncTodosScreen: React.FC = () => {
   }, [completedIds, incompleteIds, totalCount]);
 
   const handleCreate = useCallback(
-    (title: string): void => {
+    (title: string): boolean => {
       if (!isSyncDbReady) {
-        return;
+        return false;
       }
       // Mint the entity id client-side and embed it in the data so the optimistic
       // local row is renderable/addressable before the server ever sees the document.
+      // `created` is stamped locally too (the server overwrites it on save) so the row
+      // sorts newest-first immediately instead of tying with every other unacked create.
       const id = generateMutationId();
-      create({data: {_id: id, completed: false, title}});
+      create({data: {_id: id, completed: false, created: DateTime.now().toISO(), title}});
+      return true;
     },
     [create, isSyncDbReady]
   );
