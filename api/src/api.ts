@@ -596,7 +596,7 @@ export function modelRouter<T>(
         collectionName: model.collection.collectionName,
         config: options.realtime,
         modelName: model.modelName,
-        options,
+        options: options as unknown as ModelRouterOptions<unknown>,
         routePath: path,
       });
     }
