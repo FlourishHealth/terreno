@@ -170,7 +170,7 @@ describe("findOneOrNone", () => {
 
   it("throws error with two matches.", async () => {
     const fn = () => StuffModel.findOneOrNone({ownerId: "123"});
-    await expect(fn()).rejects.toThrow(/Stuff\.findOne query returned multiple documents/);
+    await expect(fn()).rejects.toThrow(/^findOne query returned multiple documents$/);
   });
 
   it("throws custom error with two matches.", async () => {
@@ -184,7 +184,10 @@ describe("findOneOrNone", () => {
       // Check if the error has title and status properties
       expect(error.title).toBe("Oh no!");
       expect(error.status).toBe(400);
-      expect(error.detail).toBe('query: {"ownerId":"123"}');
+      expect(error.detail).toBe(
+        'Stuff.findOne query returned multiple documents. query: {"ownerId":"123"}'
+      );
+      expect(error.code).toBe("find-one-multiple-documents");
     }
   });
 });
@@ -231,7 +234,7 @@ describe("findOneOrNoneFor", () => {
 
     it("throws when multiple documents match", async () => {
       const fn = () => findOneOrNoneFor(StuffModel, {ownerId: "123"});
-      await expect(fn()).rejects.toThrow(/Stuff\.findOne query returned multiple documents/);
+      await expect(fn()).rejects.toThrow(/^findOne query returned multiple documents$/);
     });
 
     it("forwards errorArgs to the thrown APIError", async () => {
@@ -271,7 +274,7 @@ describe("findOneOrNoneFor", () => {
 
     it("throws when multiple documents match", async () => {
       const fn = () => findOneOrNoneFor(BareThingModel, {ownerId: "123"});
-      await expect(fn()).rejects.toThrow(/BareThing\.findOne query returned multiple documents/);
+      await expect(fn()).rejects.toThrow(/^findOne query returned multiple documents$/);
     });
 
     it("forwards errorArgs to the thrown APIError", async () => {
@@ -310,7 +313,22 @@ describe("findExactlyOne", () => {
 
   it("throws error with no matches.", async () => {
     const fn = () => StuffModel.findExactlyOne({name: "OtherStuff"});
-    await expect(fn()).rejects.toThrow(/Stuff\.findExactlyOne query returned no documents/);
+    await expect(fn()).rejects.toThrow(/^findExactlyOne query returned no documents$/);
+  });
+
+  it("throws a NotFoundError carrying the model name in detail and meta", async () => {
+    try {
+      await StuffModel.findExactlyOne({name: "OtherStuff"});
+      throw new Error("Expected promise to reject");
+    } catch (error: any) {
+      expect(error.name).toBe("NotFoundError");
+      expect(error.status).toBe(404);
+      expect(error.code).toBe("find-exactly-one-no-documents");
+      expect(error.detail).toBe(
+        'Stuff.findExactlyOne query returned no documents. query: {"name":"OtherStuff"}'
+      );
+      expect(error.meta).toEqual({model: "Stuff"});
+    }
   });
 
   it("returns a single match", async () => {
@@ -320,7 +338,7 @@ describe("findExactlyOne", () => {
 
   it("throws error with two matches.", async () => {
     const fn = () => StuffModel.findExactlyOne({ownerId: "123"});
-    await expect(fn()).rejects.toThrow(/Stuff\.findExactlyOne query returned multiple documents/);
+    await expect(fn()).rejects.toThrow(/^findExactlyOne query returned multiple documents$/);
   });
 
   it("throws custom error with two matches.", async () => {
@@ -334,7 +352,10 @@ describe("findExactlyOne", () => {
       // Check if the error has title and status properties
       expect(error.title).toBe("Oh no!");
       expect(error.status).toBe(400);
-      expect(error.detail).toBe('query: {"ownerId":"123"}');
+      expect(error.detail).toBe(
+        'Stuff.findExactlyOne query returned multiple documents. query: {"ownerId":"123"}'
+      );
+      expect(error.code).toBe("find-exactly-one-multiple-documents");
     }
   });
 });
@@ -378,7 +399,16 @@ describe("upsertPlugin", () => {
     ]);
 
     const fn = () => (StuffModel as any).upsert({ownerId: "123"}, {name: "Updated"});
-    await expect(fn()).rejects.toThrow(/Stuff\.upsert find query returned multiple documents/);
+    await expect(fn()).rejects.toThrow(/^upsert find query returned multiple documents$/);
+    try {
+      await fn();
+    } catch (error: any) {
+      expect(error.name).toBe("InternalServerError");
+      expect(error.code).toBe("upsert-multiple-documents");
+      expect(error.detail).toBe(
+        'Stuff.upsert find query returned multiple documents. query: {"ownerId":"123"}'
+      );
+    }
   });
 
   it("combines conditions and update data for new documents", async () => {
