@@ -399,6 +399,25 @@ describe("sync routes", () => {
       expect(await RouteProjectModel.countDocuments({title: "no org"})).toBe(0);
     });
 
+    // The write-path guard must not leak into reads: a legacy row predating the scope
+    // field still has to be loadable, or the documents it was meant to protect become
+    // unreadable instead of merely unwritable.
+    it("still hydrates a tenant-scoped document that has no scope value", async () => {
+      const legacyId = new Types.ObjectId();
+      await RouteProjectModel.collection.insertOne({
+        _id: legacyId,
+        _syncSeq: 1,
+        title: "legacy row",
+      } as never);
+
+      const loaded = await RouteProjectModel.findById(legacyId);
+      expect(loaded?.title).toBe("legacy row");
+
+      // Writing it, however, is still refused until the tenant field is supplied.
+      loaded!.title = "renamed";
+      await expect(loaded!.save()).rejects.toThrow(/missing tenant scope field "orgId"/);
+    });
+
     it("accepts a tenant-scoped create carrying a membership scope value", async () => {
       const res = await agent
         .post("/sync/mutate")

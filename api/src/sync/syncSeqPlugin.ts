@@ -72,17 +72,25 @@ import {
 const INITIAL_STREAM_KEY = "_syncInitialStream";
 
 /**
- * Resolve the stream for a plain object under an entry's scope, refusing writes that would
- * land in an unsubscribable stream (Task 9.21). Every seq-stamping write path funnels
- * through here, so this is the single place that sees the effective scope value.
+ * Resolve the stream for a plain object under an entry's scope. Total by design: this also
+ * runs on documents already in the database (hydration, post-commit seq confirmation, and
+ * the previous-stream lookup for a scope move), where a legacy row with no scope value
+ * must still be nameable rather than unreadable.
  */
-const streamForObject = (entry: SyncRegistryEntry, obj: Record<string, unknown>): string => {
+const streamForObject = (entry: SyncRegistryEntry, obj: Record<string, unknown>): string =>
+  resolveStreamForDoc({collectionTag: entry.collectionTag, doc: obj, scope: entry.config.scope});
+
+/**
+ * Same, for the document a write is about to persist: refuses a tenant-scoped write with
+ * no scope value rather than filing it under an unsubscribable `tenant:undefined` stream
+ * (Task 9.21). Only the seq-stamping write paths use this — reads stay total.
+ */
+const writableStreamForObject = (
+  entry: SyncRegistryEntry,
+  obj: Record<string, unknown>
+): string => {
   assertWritableStream({collectionTag: entry.collectionTag, doc: obj, scope: entry.config.scope});
-  return resolveStreamForDoc({
-    collectionTag: entry.collectionTag,
-    doc: obj,
-    scope: entry.config.scope,
-  });
+  return streamForObject(entry, obj);
 };
 
 const unsupportedWrite = (modelName: string, operation: string): Error =>
@@ -356,7 +364,7 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
       }
     }
     const session = this.$session() ?? null;
-    const currentStream = streamForObject(entry, this.toObject());
+    const currentStream = writableStreamForObject(entry, this.toObject());
     let prevStream: string | null = null;
     if (!this.isNew) {
       const initialStream = this.$locals[INITIAL_STREAM_KEY] as string | undefined;
@@ -476,7 +484,7 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
         const session = options?.session ?? null;
         const byStream = new Map<string, Record<string, unknown>[]>();
         for (const doc of docs) {
-          const stream = streamForObject(entry, doc);
+          const stream = writableStreamForObject(entry, doc);
           const group = byStream.get(stream) ?? [];
           group.push(doc);
           byStream.set(stream, group);
@@ -604,6 +612,14 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
       const newScopeValue = isTrueReplacement
         ? rawUpdate[scopeField]
         : (setFields[scopeField] ?? targetObj[scopeField]);
+      // A replacement (or a $set/$unset) can strip the tenant field off an existing
+      // document, which would move it into an unsubscribable stream just as surely as
+      // creating it without one.
+      assertWritableStream({
+        collectionTag: entry.collectionTag,
+        doc: {[scopeField]: newScopeValue},
+        scope: entry.config.scope,
+      });
       currentStream = streamForScopeValue({
         collectionTag: entry.collectionTag,
         scope: entry.config.scope,
