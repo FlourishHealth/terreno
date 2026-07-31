@@ -22,6 +22,12 @@ export const FilterChip: FC<FilterChipProps> = ({
   const labelColor = disabled ? theme.text.extraLight : theme.text.secondaryLight;
   const valueColor = disabled ? theme.text.secondaryLight : theme.text.primary;
 
+  // A multiChoice filter renders one chip per selected option, so the label alone would give
+  // every dismiss button on the row the same accessible name.
+  const dismissLabel =
+    dismissAccessibilityLabel ??
+    (value ? `Remove ${label} filter: ${value}` : `Remove ${label} filter`);
+
   return (
     <View
       style={{
@@ -52,7 +58,7 @@ export const FilterChip: FC<FilterChipProps> = ({
       </Text>
       {Boolean(canDismiss) && (
         <Pressable
-          accessibilityLabel={dismissAccessibilityLabel ?? `Remove ${label} filter`}
+          accessibilityLabel={dismissLabel}
           accessibilityRole="button"
           hitSlop={8}
           onPress={onDismiss}

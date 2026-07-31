@@ -60,10 +60,17 @@ describe("FilterChip", () => {
     expect(valueStyle.color).not.toBe(chipStyle.backgroundColor);
   });
 
-  it("labels the dismiss button for screen readers", () => {
+  // A multiChoice filter renders sibling chips that share a label, so the value has to be in
+  // the default accessible name or every dismiss button announces identically.
+  it("names the dismiss button by label and value", () => {
     const {getByLabelText} = renderWithTheme(
-      <FilterChip label="Status" onDismiss={() => {}} value="Open" />
+      <FilterChip label="Tags" onDismiss={() => {}} value="Urgent" />
     );
+    expect(getByLabelText("Remove Tags filter: Urgent")).toBeTruthy();
+  });
+
+  it("falls back to the label alone when there is no value", () => {
+    const {getByLabelText} = renderWithTheme(<FilterChip label="Status" onDismiss={() => {}} />);
     expect(getByLabelText("Remove Status filter")).toBeTruthy();
   });
 
