@@ -207,3 +207,204 @@
   - Files: none (GitHub action)
   - Depends on: IP PR merged
   - Acceptance: #835 closed with the comment posted.
+
+## Phase 8: Hardening (per `docs/implementationPlans/terreno-syncdb-2.md`)
+
+*Status verified by deep review on 2026-07-31. All six hardening phases are implemented on `worktree-ip-syncdb`; the two noted deviations carry forward as Phase 9 tasks.*
+
+- [x] **Phase A — Client replay correctness & scheduling**: startup recovery (`outbox.recoverStartupState`), send-time baseVersion refresh, drain-until-empty scheduler with timed wake-ups + jittered backoff, separate transport-failure vs error-nack budgets (`errorNackCount` column), auth-pause pipeline (`paused: "auth"`, `onAuthRequired`, one-shot `refresh()`, `wipeOnSignOut` + `client.signOut()`), outbox pruning + O(1) `enqueueOrder` via `_meta` cell.
+- [x] **Phase B — Ordered batch protocol**: `SyncMutateBatchRequest/Response` on both sides, `applySyncMutationBatch` (strict serial, stop-on-first-non-ack), `POST /sync/mutate/batch` + `sync:mutateBatch`, client batched drain (≤1 mutation/entity per chunk), `batchUnsupported` fallback, `haltQueueOnConflict`, `retryFailed`, B5 `SyncStatus` fields + banner states. (Reference app does not wire all banner props — Task 9.22.)
+- [x] **Phase C — Server protocol correctness**: C1 stable frontier (`computeStableFrontier`, `syncFrontier.test.ts`), C2 per-stream cursors + `GET /sync/streams` with join-backfill/leave-purge, C3 `legacyCursor` seq-0 paging, C4 durable `SyncScopeMove` markers, C5 ledger lease takeover, C6 write-scope enforcement + snapshot read parity + upsert guard, C7 `compactTombstones` + `oldestRetainedSeq`, C8 minor batch. (Frontier/marker/pagination edge cases found in review — Tasks 9.4–9.6.)
+- [x] **Phase D — Auth & security**: D1 session re-validation sweep, D2 full user cached on `socket.data.fullUser`, D3 tenant `preCreate` hardening in example-backend, D4 room revocation on sweep, D5 password-set audit logging.
+- [x] **Phase E — Client storage & React**: E1 lifecycle generation counter + promise-chain mutex, E2 schema-version wipe, E3 persistence failure surfacing (`persistence` status, `onDecryptFailure`), E4 transaction-batched page/delta application + `useQuery` null-data guard, E5 client tombstone compaction, E6 UI minor batch. (E1's Playwright follow-up — relaxing the serial-file workaround — not done: Task 9.24.)
+- [x] **Phase F — Test & load infrastructure**: F1 integration additions (socket drop mid-batch, token expiry mid-session, two-device convergence, lost-ack replay), F2 `loadHarness.ts` + `api:load`, F3 chaos proxy + `syncdb-chaos.spec.ts`, F4 `syncdb-loadlab.spec.ts` (`@load`, nightly), F5 resolved via the documentation option (`rtk/README.md` deprecation notice) — needs explicit repo-owner sign-off (Task 9.26).
+
+## Phase 9: Deep-review follow-ups (2026-07-31)
+
+*Findings from a full review of PR #869 against the intent of both IPs and the architecture. Every task is independently implementable. Severity ordering: 9.1–9.9 are merge-blocking (broken CI, cross-user identity leak, frontier holes); 9.10–9.18 are correctness edge cases; 9.19–9.21 security; 9.22–9.24 example app + e2e; 9.25–9.27 cleanup; 9.28–9.29 docs. File/line references are to the PR head at review time — locate by the described code.*
+
+### 9.A Merge blockers
+
+- [ ] **Task 9.1**: Fix the e2e CI workflow (duplicate `if:` key) and get the E2E matrix running
+  - Description: `.github/workflows/e2e-ci.yml` has two `if: ${{ github.actor != 'dependabot[bot]' }}` keys on the `e2e` job (lines ~30 and ~32). GitHub rejects the workflow, so **zero e2e jobs run on this branch** (confirmed on PR #869 — no E2E checks appear at all). Master already carries a fix; merge master or delete the duplicate line.
+  - Files: `.github/workflows/e2e-ci.yml`
+  - Depends on: none
+  - Acceptance: E2E matrix jobs appear and execute on the PR. Expect them to surface Task 9.3.
+
+- [ ] **Task 9.2**: Fix the 6 failing RTK tests on this branch's CI
+  - Description: `RTK Lint and Build` fails on `worktree-ip-syncdb` (passes on master). Failing: `listener middleware side effects > stores tokens in AsyncStorage on web login…`, `…re-throws and logs when AsyncStorage.setItem fails…`, `…removes tokens from AsyncStorage on web logout…`, `getAuthToken > reads AUTH_TOKEN from AsyncStorage when window exists`, `createBetterAuthClient > hands the plugin a storage that repairs the jar…`, `offlineMiddleware > uses list-cache updated timestamp for queued update conflict headers`. Branch-correlated, so likely a dependency/catalog or test-setup interaction introduced by syncdb-era changes, not flake.
+  - Files: `rtk/src/*`, root `package.json` catalog, rtk test setup
+  - Depends on: none
+  - Acceptance: `RTK Lint and Build` green on the PR; root cause noted in the commit message.
+
+- [ ] **Task 9.3**: Fix e2e specs targeting the nonexistent `todos-completed-section` testID
+  - Description: `syncdb-offline.spec.ts` (~83–115), `syncdb-conflicts.spec.ts` (~88, 145), `todos.spec.ts` (~42, 67), and `realtime.spec.ts` (~80) select `page.getByTestId("todos-completed-section")…` but no component renders that testID on this branch (master's screen had only `todos-completed-section-toggle`; `SyncTodosScreen` flattens sections into FlashList rows via a `SectionHeader` that is not a container, so nested `getByTestId` scoping cannot work). These specs cannot pass — masked until 9.1 lands. Rewrite the assertions to check completion state directly (e.g. `todo-toggle-${id}` checked state or a `data-completed` marker per row); do not add a wrapping container inside FlashList.
+  - Files: `example-frontend/e2e/syncdb-offline.spec.ts`, `syncdb-conflicts.spec.ts`, `todos.spec.ts`, `realtime.spec.ts`, `example-frontend/components/SyncTodosScreen.tsx`
+  - Depends on: 9.1
+  - Acceptance: all four specs green in the CI matrix.
+
+- [ ] **Task 9.4**: Client — bounce the transport on user switch (cross-user identity leak)
+  - Description: The socket authenticates per connection (token read inside the Socket.io `auth` callback). `handleAuthChange`'s different-user branch wipes local data via `runUserCheck` but never disconnects/reconnects the transport — `transport.connect/disconnect` are only called from `start()`/`stop()`/`goOffline()`/`goOnline()` (verified). While the old socket lives: (a) the server keeps pushing the OLD user's `sync:delta`s into the NEW user's freshly wiped store (`handleDelta` has no user guard); (b) `sendMutation` prefers the connected socket, so the new user's mutations are attributed to the old identity until the D1 sweep kills the socket. Force a transport bounce (disconnect → connect → resubscribe) in the different-user branch and after a wipe in `start()`.
+  - Files: `syncdb/src/client.ts` (`handleAuthChange`, `runUserCheck`), `syncdb/src/client.test.ts`
+  - Depends on: none
+  - Acceptance: client test asserting the fake transport observes disconnect+reconnect on user switch, and that a delta delivered on the stale connection after the switch never lands in the new user's store.
+
+- [ ] **Task 9.5**: Client — `useQuery`/`useEntityIds` return stale results when options change
+  - Description: `optionsRef` is written in a `useLayoutEffect`, but the memoized `select` only depends on `[client, collection]` and `useCachedExternalStore` reuses the cached value while `cached.select === select && cached.revision === revision` (revision bumps only on store changes). A render that changes `filter`/`sort`/`includeDeleted` (e.g. a `showCompleted` toggle) silently returns the previous array until an unrelated store write — the most common React pattern (state-driven filters) breaks in a way that looks like sync lag. Invalidate the cache on options change (options revision bumped in the layout effect, or key the cache on an options token).
+  - Files: `syncdb/src/react/hooks.ts` (`useCachedExternalStore` ~63–86, `useQuery` ~174–215, `useEntityIds` ~236–270), `syncdb/src/react/hooks.test.tsx`
+  - Depends on: none
+  - Acceptance: hooks test flipping the filter between renders **without any store write** sees the new result immediately; existing referential-stability tests still pass.
+
+- [ ] **Task 9.6**: Server — `insertMany` confirms seqs before commit, breaching the C1 frontier
+  - Description: `syncSeqPlugin`'s `pre("insertMany")` (~247–262) claims AND confirms seqs inside the pre hook, before the documents commit. Once confirmed, `computeStableFrontier` includes those seqs; a snapshot can advance a cursor past them while the docs are still uncommitted → the docs land permanently below every catch-up cursor (`loadtest.ts` generate widens the window to 5k docs). Move the confirm to `post("insertMany")` (mirror the save path), and pass the caller's session through the claim.
+  - Files: `api/src/sync/syncSeqPlugin.ts`, `api/src/sync/syncFrontier.test.ts`
+  - Depends on: none
+  - Acceptance: test racing a snapshot into the claim→commit window (deterministic via stubbed `confirmSyncSeqs` ordering) shows the cursor never passes unconfirmed insertMany seqs; frontier property test extended to drive `insertMany`.
+
+- [ ] **Task 9.7**: Server — scope-move marker durability on both write paths
+  - Description: Two halves. (a) `pre("save")` writes the `SyncScopeMove` marker (with an immediately confirmed old-stream seq) BEFORE the document write commits — a failing save (E11000, VersionError) leaves a durable phantom tombstone that old-stream clients apply, deleting a live doc locally. Move the marker write to a post-commit hook like the query path. (b) The query path's `postQueryWrite` (~397–402) swallows marker-write failures with only `logger.error` — a real move can permanently lack its tombstone (the exact race C4 exists to eliminate). Retry, or backfill from the still-stamped `_syncPrevStream` via a sweep/compaction pass.
+  - Files: `api/src/sync/syncSeqPlugin.ts`, `api/src/sync/syncPhaseC.test.ts`
+  - Depends on: none
+  - Acceptance: failing save leaves no `SyncScopeMove` row; a marker-write failure on the query path is retried or backfilled (test with a stubbed failing insert).
+
+- [ ] **Task 9.8**: Server — snapshot cursor stalls when a full page is permission-denied
+  - Description: `routes.ts` (~441–481) derives `nextCursor` from the last INCLUDED entity; denied docs are dropped. If every doc in a full page fails the per-doc `read` check, `entities` is empty, `nextCursor === cursor`, `hasMore` stays true → the client loops forever. The M2 comment says "still advance the cursor past them" but the code doesn't for trailing/whole-page denials (existing test only covers a denied doc in the middle). Advance the cursor from the last doc of the RAW fetched page (min'd with consumed marker seqs and `frontierSeq`).
+  - Files: `api/src/sync/routes.ts`, `api/src/sync/syncPhaseC.test.ts`
+  - Depends on: none
+  - Acceptance: test with >limit contiguous denied docs — bootstrap terminates; cursor advances past denied strata; no denied doc is ever leaked.
+
+- [ ] **Task 9.9**: Server — ensure sync indexes at startup (`ensureSyncIndexes` has no caller)
+  - Description: The idempotency ledger's unique `mutationId` index and `SyncCounter.stream`'s unique index exist only via schema `unique: true` (dependent on `autoIndex`, commonly off in production). Without them, duplicate deliveries double-apply (INV-3 gone) and the counter upsert race mints duplicate seqs. Additionally, `ensureSyncIndexes()` (the C8 fail-loudly mechanism) is exported but never called by `SyncApp.register`, `TerrenoApp`, or `setupServer` (verified — only its own test references it). Wire `SyncApp.register` (or `TerrenoApp.start`) to await `ensureSyncIndexes()` plus `ensureIndexes()` on `SyncCounter`/`SyncMutation`/`SyncScopeMove`/`SyncKey`, and document the requirement.
+  - Files: `api/src/sync/syncApp.ts`, `api/src/sync/registry.ts`, `api/src/sync/models.ts`, startup integration test
+  - Depends on: none
+  - Acceptance: startup-integration test proves the indexes exist after `register` without manual `ensureIndexes()` calls in test setup; index-build failure fails startup loudly.
+
+### 9.B Correctness edge cases
+
+- [ ] **Task 9.10**: Client — unify the auth-pause pipeline (same-user check, silent refresh everywhere, `signOut` hygiene)
+  - Description: Four related defects in one cluster. (a) `attemptAuthRecovery` unpauses and replays after `refresh()` without verifying the resolved userId equals `currentUserId` — a different user signing in from another tab can drain the OLD user's outbox under the NEW user's token (INV-2). (b) The one-shot silent refresh is wired only through the coordinator's `onAuthPause`; reconcile-401s, `sync:auth-expired`, and other `setAuthPaused(true)` call sites skip it — move the trigger inside `setAuthPaused(true)` (idempotent per episode) and delete per-call-site wiring. (c) `signOut()` bypasses `withLifecycle`/generation and leaves the destroyed persister assigned — wrap it in the mutex, bump generation, clear the module-level `persister`. (d) `signOut({wipeOnSignOut})`'s wipe omits `keyCacheDbNames: [DEFAULT_KEY_CACHE_DB_NAME]` unlike the other two wipe sites — the strongest wipe case keeps the cached CryptoKey.
+  - Files: `syncdb/src/client.ts` (`attemptAuthRecovery` ~825, `setAuthPaused`, `signOut` ~1493), `syncdb/src/client.test.ts`
+  - Depends on: none
+  - Acceptance: tests — refresh resolving a different userId does NOT unpause; a 401 arriving via reconcile attempts exactly one silent refresh; `signOut` racing `handleAuthChange` is serialized; `signOut` wipe clears the key-cache DB.
+
+- [ ] **Task 9.11**: Client — roll back rejected optimistic data; recover orphaned `pendingMutationId`
+  - Description: (a) After a terminal (validation/error) nack, `handleTerminalFailure` releases the entity but `repairMarkedEntities` drops ids without a `_needsRepair` mark, and snapshot reconcile skips the entity (`seq` unchanged) — the server-rejected data persists locally indefinitely. Mark needs-repair unconditionally in the terminal path (or let `repairMarkedEntities` accept explicit entityIds, resolving the stream from the entity row). (b) An entity whose `pendingMutationId` references no outbox row is permanently frozen (delta applier skips, repair refuses) — add a startup sweep clearing pendings with no matching `_outbox` row.
+  - Files: `syncdb/src/sync/replayCoordinator.ts` (`handleTerminalFailure`), `syncdb/src/sync/entityRepair.ts`, `syncdb/src/mutations/outbox.ts` (`recoverStartupState`), tests
+  - Depends on: none
+  - Acceptance: validation-nacked entity converges back to server state without any concurrent server write; a store persisted with an orphaned `pendingMutationId` accepts deltas again after `start()`. Document the resulting semantics in `syncdb/README.md` (pairs with Task 9.28).
+
+- [ ] **Task 9.12**: Conflict protocol — represent "server deleted it" in `useServer` resolution
+  - Description: `resolveConflict`'s `useServer` branch upserts `{data: serverData, seq}` with no `deleted` flag; when the conflict arose from a server-side delete (`serverDoc: null`), the result is a ghost live row (`data: null, deleted: false`) instead of a tombstone. Carry a `serverDeleted` flag on the nack/conflict row (server contract change), or at minimum treat `serverDoc === null && serverSeq > 0` as a tombstone.
+  - Files: `syncdb/src/mutations/resolveConflict.ts`, `syncdb/src/mutations/conflicts.ts`, `syncdb/src/types.ts` + `api/src/sync/types.ts` (`SyncNack`), `api/src/sync/mutationHandler.ts`, tests both sides
+  - Depends on: none
+  - Acceptance: edit-vs-server-delete conflict resolved `useServer` yields a local tombstone; `useQuery`/`useEntity` never surface the ghost.
+
+- [ ] **Task 9.13**: Server — make the `baseVersion` conflict check atomic (TOCTOU lost update)
+  - Description: `executeUpdate` (~442–472) reads `doc._syncSeq`, compares, then `doc.save()` — two concurrent updates with the same `baseVersion` can both pass and both save; one edit is silently lost with acks to both clients. Enforce/require `optimisticConcurrency: true` on synced schemas at registration (mapping `VersionError` to the conflict nack), or re-verify `_syncSeq` in a conditional write.
+  - Files: `api/src/sync/executors.ts`, `api/src/sync/registry.ts`, `api/src/sync/mutationHandler.test.ts`
+  - Depends on: none
+  - Acceptance: two-writers-same-baseVersion race test — exactly one ack, one conflict nack.
+
+- [ ] **Task 9.14**: Server — legacy (seq-0) pagination breaks on string-`_id` models
+  - Description: `pageLegacyStratum` (~routes.ts:200) always casts the legacy cursor via `new mongoose.Types.ObjectId(...)`. Synced models are designed around string `_id`s (client-minted ids): non-hex ids throw (500), and hex-shaped string ids compare across BSON types and match nothing — the stratum reports exhausted after one page and the remaining legacy docs are silently skipped forever. Cast only when the model's `_id` schema type is ObjectId; otherwise compare the raw string.
+  - Files: `api/src/sync/routes.ts`, `api/src/sync/syncPhaseC.test.ts`
+  - Depends on: none
+  - Acceptance: string-`_id` model with >limit legacy docs bootstraps completely; existing ObjectId path regression-tested.
+
+- [ ] **Task 9.15**: Server — real retention watermark; `SyncScopeMove` TTL honors `retentionDays`
+  - Description: (a) `computeOldestRetainedSeq` uses min(retained doc/marker seq) — a live, never-touched early doc pins the floor low forever, so a stale cursor between a compacted tombstone's seq and head passes the check and never learns about the deletion. Have `compactTombstones` record a durable per-stream watermark (e.g. `compactedThroughSeq` on `SyncCounter` = max seq among deleted rows) and serve that. (b) `SYNC_SCOPE_MOVE_TTL_SECONDS` is hardcoded to 90d, ignoring per-model `retentionDays` — markers for long-retention models vanish early with no watermark update. Drop the TTL index and let `compactTombstones` be the only reaper (or set TTL to max configured retention).
+  - Files: `api/src/sync/routes.ts` (`computeOldestRetainedSeq`), `api/src/sync/scripts/compactTombstones.ts`, `api/src/sync/models.ts`, end-to-end test
+  - Depends on: none
+  - Acceptance: the plan's demanded C7 test exists end-to-end — client with a cursor older than the compaction watermark re-bootstraps and converges (currently `oldestRetainedSeq` is only `typeof`-checked).
+
+- [ ] **Task 9.16**: Server — change-stream restart with resume token
+  - Description: `changeStreamWatcher` (~819–830) only logs on `error`/`close`; any transient failure (replica-set election, `ChangeStreamHistoryLost`) permanently kills all delta emission until process restart, silently starving online clients. Re-create the stream with backoff using the last-seen resume token (`resumeAfter`); on unresumable history loss, emit a resync hint to connected sockets.
+  - Files: `api/src/realtime/changeStreamWatcher.ts`, new test
+  - Depends on: none
+  - Acceptance: test — simulated stream error → watcher resumes and subsequent writes still emit `sync:delta`; history-lost path emits the resync hint.
+
+- [ ] **Task 9.17**: Server — detect reaped-lease slow writers in `confirmSyncSeqs`
+  - Description: A writer stalling >60s (not crashed) has its pending claim reaped; the frontier advances; its later commit lands below every cursor — currently silent because `confirmSyncSeqs` ignores the `$pull` result. When the confirm matched zero entries for a `registered` claim, re-stamp the doc with a freshly claimed seq (preferred) or at minimum `logger.error` with stream/seq for operator visibility.
+  - Files: `api/src/sync/models.ts` (`confirmSyncSeqs`), `api/src/sync/syncSeqPlugin.ts`, test
+  - Depends on: none
+  - Acceptance: test simulating a reap-then-confirm shows the doc re-stamped above the frontier (or the loud error path exercised and documented as accepted risk).
+
+- [ ] **Task 9.18**: Server — transient `error` outcomes are sticky per `mutationId` for 30 days
+  - Description: `finalizeNack` records transient executor failures (DB hiccup) as `failed`; every replay of the same mutationId returns the recorded nack — the durable client outbox retries pointlessly and never re-mints. Delete the pending row (instead of finalizing) for non-deterministic `error`-class failures so a retry re-executes, or explicitly document the re-mint contract client-side and implement it. Related: `mongoose.model(entry.modelName)` sits outside the `try` in `applyClaimedMutation` (~453) — a throw wedges the row `pending` for the lease window; move it inside.
+  - Files: `api/src/sync/mutationHandler.ts`, `syncdb/src/sync/replayCoordinator.ts` (if the re-mint contract is chosen), tests
+  - Depends on: none
+  - Acceptance: a mutation that failed on a transient error succeeds on replay without a new mutationId (or the documented alternative is implemented and tested).
+
+### 9.C Security
+
+- [ ] **Task 9.19**: Server — snapshot/entities must honor `queryFilter` (C6/M2 requirement)
+  - Description: `rg queryFilter api/src/sync/` returns nothing — the snapshot and `GET /sync/entities` build only scope + seq filters. The common REST pattern (`read: [IsAuthenticated]` + `OwnerQueryFilter` doing the real scoping) leaks every doc in the stream through sync for `broadcast`/`custom` scopes. `$and` the resolved `queryFilter(user)` into both queries, or fail registration when a broadcast/custom-scoped model has a `queryFilter` sync would ignore. Also fix the adjacent doc drift: a consumer-supplied `snapshotFilter` is silently ignored for owner/tenant scopes (computed at ~382 and discarded) — compose it or reject it at registration.
+  - Files: `api/src/sync/routes.ts`, `api/src/sync/registry.ts`, `api/src/sync/types.ts` docs, `api/src/sync/syncRoutes.test.ts`
+  - Depends on: none
+  - Acceptance: broadcast-scoped model with an owner queryFilter — snapshot only returns the caller's docs; parity test between REST list results and snapshot contents.
+
+- [ ] **Task 9.20**: Server — rate limiting: per-user socket window, eviction, shared implementation
+  - Description: The socket mutation budget lives in a per-connection closure — N sockets = N×budget per user — while HTTP is per-user; `httpMutationWindows` grows unboundedly (never evicted); both transports duplicate the size-cap→rate-limit→validate→apply orchestration with drift, and both burn budget on batches that then fail duplicate-id validation. Extract a shared `runSyncBatch` keyed by userId in one module-level window map with expiry eviction; validate before consuming budget; document per-process semantics for multi-instance deployments.
+  - Files: `api/src/sync/routes.ts`, `api/src/sync/socketHandlers.ts`, new shared module + tests
+  - Depends on: none
+  - Acceptance: one user on two sockets shares one budget; expired windows evicted; invalid batch consumes no budget; HTTP/socket behavior identical under the same inputs.
+
+- [ ] **Task 9.21**: Server — limit conflict `serverDoc` retention in the ledger; require full socket user for tenant scopes
+  - Description: (a) Conflict nacks persist the full serialized server doc (PHI in health apps) in `syncmutations` for the 30-day TTL — far beyond any replay window. Strip `serverDoc` after a short secondary window, or store only `{resultSeq, resultId}` and re-serialize the live doc on duplicate delivery. (b) D2 half-done: `getSocketUser` still silently falls back to the synthetic `{_id, admin, id}` user when `RealtimeAppOptions.userModel` is unset — JWT-claim `admin` trusted over the DB, tenant `getUserScopes` sees no `organizationIds`. Fail (or loudly warn) at startup when the sync registry contains tenant/custom scopes and no `userModel` is configured; close the handshake window where `sync:subscribe` can arrive before the fire-and-forget full-user load resolves.
+  - Files: `api/src/sync/models.ts`, `api/src/sync/mutationHandler.ts`, `api/src/realtime/socketUser.ts`, `api/src/realtime/realtimeApp.ts`, tests
+  - Depends on: none
+  - Acceptance: ledger rows lose `serverDoc` after the window while duplicate delivery still returns a correct conflict; tenant-scoped registration without `userModel` fails startup (or warns loudly, decided with repo owner). Also reject tenant-scoped creates whose scope field is absent (`enforceWriteScope` currently passes `undefined` through, landing docs in an unreachable `tenant:undefined` stream).
+
+### 9.D Example app + e2e
+
+- [ ] **Task 9.22**: example-frontend — surface start failure; wire the full `SyncStatusBanner` prop set
+  - Description: (a) `app/_layout.tsx`: `syncDb.start()` failure only `console.error`s; `syncDbReady` never becomes true, the new-todo form stays disabled forever with zero feedback. Show a retry affordance (toast/state) and re-invoke start. (b) `SyncTodosScreen` passes only 5 of 11 banner props — `paused`, `failedCount`, `draining`, `sentThisDrain`, `totalThisDrain`, `onAuthRequired` are never wired, so the B5 states (auth-pause indicator, drain progress, failed badge) are undemonstrable in the reference app. Wire them from `useSyncStatus` and hook `onAuthRequired` to the re-login flow.
+  - Files: `example-frontend/app/_layout.tsx`, `example-frontend/components/SyncTodosScreen.tsx`
+  - Depends on: none
+  - Acceptance: killing the backend during startup produces a visible retry path; one e2e asserts `sync-paused-auth-indicator` appears under a forced 401 (the conflicts/chaos suites already have the plumbing).
+
+- [ ] **Task 9.23**: UI — ConflictSheet dismissal + single instance; banner/Toast polish
+  - Description: (a) `ConflictSheet.handleResolve` calls `onDismiss()` when `conflicts.length <= 1` BEFORE the async resolution settles — premature close on failure, races prop updates. Dismiss from an effect when `conflicts.length === 0`. (b) Two ConflictSheet instances can mount at once (root `SyncHealthToast` modal + `SyncTodosScreen`) duplicating every `conflict-*` testID — keep one instance (shared state/context). (c) `SyncStatusBanner`: pressable paused-auth indicator and failed badge lack `accessibilityRole="button"`/labels (conflict badge has them); `isSyncing` prop is accepted and never used — deprecate or remove. (d) `Toast` action button: raw `NativeText` with hardcoded font/padding, `aria-role` instead of `accessibilityRole`, fixed `toast-action-button` testID collides when two action toasts stack — theme it and suffix with toast id.
+  - Files: `ui/src/ConflictSheet.tsx`, `ui/src/SyncStatusBanner.tsx`, `ui/src/Toast.tsx`, `example-frontend/app/_layout.tsx`, `example-frontend/components/SyncTodosScreen.tsx`, tests
+  - Depends on: none
+  - Acceptance: strict-mode e2e run shows no duplicate testIDs with the toast + todos screen both live; failed-resolve keeps the sheet open; a11y roles present.
+
+- [ ] **Task 9.24**: e2e — resolve the serial-worker workaround left over from E1
+  - Description: Plan E1 said to remove the serial-file workaround in `playwright.config.ts` once concurrent syncdb clients were stable; the config still chains all six syncdb projects with a comment blaming the client lifecycle race that E1 fixed. Either validate two syncdb specs sharing a worker (the E1 regression proof) and relax the chain, or update the comment to the real remaining reason (shared backend/user state).
+  - Files: `example-frontend/playwright.config.ts`
+  - Depends on: 9.1
+  - Acceptance: config comment matches reality; if parallelized, the matrix stays green across 3 consecutive runs.
+
+### 9.E Cleanup / readability
+
+- [ ] **Task 9.25**: Client cleanup batch (replay hot path, mutate-delete, misc lifecycle leaks)
+  - Description: (a) `computeBlockedEntityKeys` (~561–618): the loop calling `isDirectlyBlocked` per queued mutation re-scans the whole `_conflicts` table per mutation (O(queued × conflicts)) and can never add a key its seeding didn't already add — delete it (or hoist `listConflicts` once per pass). (b) `mutate()` delete path: `softDeleteEntity` followed by `upsertEntity({deleted: true})` is a redundant double-write, and deleting a locally nonexistent id fabricates a phantom tombstone row + a doomed queued mutation — drop the first call and early-return/throw for unknown ids. (c) `forceResync` returns `reason: "noStreams"` for supersession — add a distinct `"superseded"` reason. (d) `reconcile()` has no in-flight coalescing (startup/reconnect/timer/seq-jump can all run full stream discovery concurrently) — coalesce like `inFlightReplays`. (e) The debug `BroadcastChannel` bridge returned by `attachDebugChannel` is never closed — retain it and close in `stop()`.
+  - Files: `syncdb/src/sync/replayCoordinator.ts`, `syncdb/src/client.ts`, `syncdb/src/debug/debugChannel.ts`, tests
+  - Depends on: none
+  - Acceptance: existing suite green; new tests for the phantom-delete guard and reconcile coalescing; no `BroadcastChannel` leak after `stop()` (assert via test hook).
+
+- [ ] **Task 9.26**: Curate the `@terreno/syncdb` public API surface
+  - Description: `index.ts` `export *`s the entire internal module graph — `fakeTransport` (a test double), raw storage row shapes/`RESERVED_TABLE_PREFIX`, cell-level cursor mutators (`setCursor`, `markStreamBootstrapped`), outbox internals, `idb` helpers, debug channel internals. Everything reachable is de-facto semver-protected API and lets host apps corrupt invariants. Move `fakeTransport` to a `@terreno/syncdb/testing` subpath export; reduce `index.ts` to named exports of the intended surface (`createSyncDb`, config/status/conflict types, auth adapter, key providers/codecs, persister factories, React entry). While there: confirm the F5 decision with the repo owner (docs-only deprecation of the RTK offline middleware vs restoring a slim `offline.spec.ts` — the branch chose docs-only; non-sync screens still use the middleware with zero e2e coverage).
+  - Files: `syncdb/src/index.ts`, `syncdb/package.json` (exports map), `rtk/README.md` (if F5 decision changes), downstream imports in `example-frontend` + tests
+  - Depends on: none
+  - Acceptance: `bun run compile` green across the workspace; e2e/tests import test doubles from the testing subpath; README documents the public surface only.
+
+- [ ] **Task 9.27**: Server cleanup batch (dedupe transports, entities input validation, bulkWrite guard)
+  - Description: (a) Extract the duplicated size-cap→rate-limit→validate→apply batch orchestration shared by `routes.ts` (~609–662) and `socketHandlers.ts` (~305–377) — folds into Task 9.20's shared module. (b) `/sync/entities`: invalid ObjectId strings in `ids` throw CastError→500 (should be 400); `.slice(0, MAX_ENTITY_FETCH)` silently truncates so the client believes a repair fetch was complete — return 400 for oversized/invalid input; `parseNonNegativeInt` accepts `"12abc"`. (c) `Model.bulkWrite` bypasses every plugin guard (documented but unenforced) — patch the model's `bulkWrite` at registration to throw the same loud error as the query guards. (d) Extract `pageSeqStratum` from the ~160-line snapshot closure to mirror `pageLegacyStratum`.
+  - Files: `api/src/sync/routes.ts`, `api/src/sync/socketHandlers.ts`, `api/src/sync/registry.ts`, tests
+  - Depends on: 9.20
+  - Acceptance: focused tests per item; snapshot handler under ~80 lines; `bulkWrite` on a synced model throws.
+
+### 9.F Docs
+
+- [ ] **Task 9.28**: `syncdb/README.md` — document the drifted public APIs and failure semantics
+  - Description: The README has zero mentions of: `forceResync` (+ `ForceResyncResult` semantics), `useEntityIds` (the recommended fast-list pattern per its own doc comment), `goOffline`/`goOnline`, `signOut`/`wipeOnSignOut` (INV-2's only sanctioned explicit wipe), `startAuthRetryAttempts`/`startAuthRetryDelayMs`, and the `debug` config / `useSyncDebugLog` surface. Also state the terminal-failure semantics explicitly (what happens to locally diverged data after a validation nack — write whatever Task 9.11 lands).
+  - Files: `syncdb/README.md`
+  - Depends on: 9.11, 9.26
+  - Acceptance: every exported public API appears in the README; failure-semantics section reviewed against the shipped behavior.
+
+- [ ] **Task 9.29**: Docs housekeeping — `USE_SYNCDB` drift, plan index, stale comments
+  - Description: (a) `docs/how-to/migrate-rtk-to-syncdb.md` and this task list's Task 7.2 describe a `USE_SYNCDB` OpenFeature gate that no longer exists (`rg USE_SYNCDB example-frontend` is empty; `SyncTodosScreen` renders unconditionally) — update both to state the example is syncdb-only and present the flag as an optional migration technique. (b) `docs/implementationPlans/PLAN_INDEX.md` omits all three syncdb plans (`syncdb-local-first.md`, `terreno-syncdb-2.md`, `syncdb-phase-c-design.md`) — add them with status. (c) `syncdb-loadlab.spec.ts` still says the todo list is "a plain `.map()`" needing virtualization; it is FlashList-virtualized — fix the comment. (d) `app/syncdb-debug.tsx` intentionally bypasses @terreno/ui/theme for perf — add a one-line comment saying so, to stop it being copied as a pattern.
+  - Files: `docs/how-to/migrate-rtk-to-syncdb.md`, `docs/tasks/syncdb-local-first.md`, `docs/implementationPlans/PLAN_INDEX.md`, `example-frontend/e2e/syncdb-loadlab.spec.ts`, `example-frontend/app/syncdb-debug.tsx`
+  - Depends on: none
+  - Acceptance: docs match the shipped code; plan index lists all syncdb plans.
