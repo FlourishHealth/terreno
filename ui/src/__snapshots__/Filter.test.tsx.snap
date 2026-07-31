@@ -420,9 +420,6 @@ exports[`Filter renders correctly with default props 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "display": "flex",
-                  "flex": 0,
-                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -770,9 +767,6 @@ exports[`Filter renders correctly with default props 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "display": "flex",
-                  "flex": 0,
-                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1028,9 +1022,6 @@ exports[`Filter renders correctly with default props 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "display": "flex",
-                  "flex": 0,
-                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1150,9 +1141,6 @@ exports[`Filter renders correctly with default props 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "display": "flex",
-                  "flex": 0,
-                  "minWidth": 0,
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -1164,10 +1152,8 @@ exports[`Filter renders correctly with default props 1`] = `
             "onPointerEnter": [Function: AsyncFunction],
             "onPointerLeave": [Function: AsyncFunction],
             "style": {
-              "alignItems": "flex-start",
               "display": "flex",
               "flexDirection": "column",
-              "flexWrap": "nowrap",
               "gap": 12,
               "width": "100%",
             },

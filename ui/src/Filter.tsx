@@ -3,9 +3,10 @@ import {Pressable, View} from "react-native";
 
 import {Badge} from "./Badge";
 import {Box} from "./Box";
-import type {FilterDefinition, FilterFieldValue, FilterProps} from "./Common";
+import type {BoxProps, FilterDefinition, FilterFieldValue, FilterProps} from "./Common";
 import {DateTimeField} from "./DateTimeField";
 import {FilterChip} from "./FilterChip";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {
   clearFilterField,
   clearFilterValues,
@@ -62,6 +63,15 @@ export const Filter: FC<FilterProps> = ({
   const isInline = layout === "inline";
   const areControlsVisible = !collapsible || isExpanded;
   const hasSearch = Boolean(onSearchChange);
+
+  // Box maps an explicit `flex` of anything but grow/shrink to `flex: 0`, which zeroes the
+  // flex basis and collapses a column child's height. Stacked wrappers therefore omit `flex`
+  // and `wrap` entirely rather than passing a falsy value.
+  const controlsContainerProps: BoxProps = isInline
+    ? {direction: "row", gap: 4, width: "100%", wrap: true}
+    : {direction: "column", gap: 3, width: "100%"};
+  const controlWrapperProps: BoxProps = isInline ? {flex: "grow", minWidth: 200} : {width: "100%"};
+  const rangeItemProps: BoxProps = isInline ? {flex: "grow", minWidth: 0} : {width: "100%"};
 
   const handleFieldChange = useCallback(
     (field: string, next: FilterFieldValue) => {
@@ -173,11 +183,9 @@ export const Filter: FC<FilterProps> = ({
       const range = getDateRangeValue(value);
       return (
         <Box direction="column" gap={2} width="100%">
-          <Text bold size="sm">
-            {label}
-          </Text>
+          <FieldTitle testID={resolveTestID(controlTestID, "label")} text={label} />
           <Box direction={isInline ? "row" : "column"} gap={2} width="100%">
-            <Box flex="grow" minWidth={0}>
+            <Box {...rangeItemProps}>
               <DateTimeField
                 disabled={definition.disabled}
                 onChange={(next: string) =>
@@ -190,7 +198,7 @@ export const Filter: FC<FilterProps> = ({
                 value={range.from}
               />
             </Box>
-            <Box flex="grow" minWidth={0}>
+            <Box {...rangeItemProps}>
               <DateTimeField
                 disabled={definition.disabled}
                 onChange={(next: string) =>
@@ -217,9 +225,7 @@ export const Filter: FC<FilterProps> = ({
       const range = getNumberRangeValue(value);
       return (
         <Box direction="column" gap={2} width="100%">
-          <Text bold size="sm">
-            {label}
-          </Text>
+          <FieldTitle testID={resolveTestID(controlTestID, "label")} text={label} />
           <Box direction="row" gap={2} width="100%">
             <Box flex="grow" minWidth={0}>
               <NumberField
@@ -341,14 +347,9 @@ export const Filter: FC<FilterProps> = ({
         )}
 
         {Boolean(areControlsVisible) && (
-          <Box
-            direction={isInline ? "row" : "column"}
-            gap={isInline ? 4 : 3}
-            width="100%"
-            wrap={isInline}
-          >
+          <Box {...controlsContainerProps}>
             {Boolean(hasSearch) && (
-              <Box flex={isInline ? "grow" : "none"} minWidth={isInline ? 200 : 0} width="100%">
+              <Box {...controlWrapperProps}>
                 <TextField
                   onChange={(next: string) => onSearchChange?.(next)}
                   placeholder={searchPlaceholder}
@@ -360,12 +361,7 @@ export const Filter: FC<FilterProps> = ({
               </Box>
             )}
             {filters.map((definition) => (
-              <Box
-                flex={isInline ? "grow" : "none"}
-                key={definition.field}
-                minWidth={isInline ? 200 : 0}
-                width="100%"
-              >
+              <Box key={definition.field} {...controlWrapperProps}>
                 {renderControl(definition)}
               </Box>
             ))}

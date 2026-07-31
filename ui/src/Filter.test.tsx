@@ -28,6 +28,23 @@ const filters: FilterDefinition[] = [
   {field: "title", kind: "text", label: "Title"},
 ];
 
+/** Flatten every style object in a rendered tree so layout regressions can be asserted. */
+const collectStyles = (node: unknown): Record<string, unknown>[] => {
+  if (!node || typeof node !== "object") {
+    return [];
+  }
+  if (Array.isArray(node)) {
+    return node.flatMap(collectStyles);
+  }
+  const element = node as {children?: unknown; props?: {style?: unknown}};
+  const style = element.props?.style;
+  const own = Array.isArray(style) ? style : [style];
+  return [
+    ...own.filter((entry): entry is Record<string, unknown> => Boolean(entry)),
+    ...collectStyles(element.children),
+  ];
+};
+
 describe("Filter", () => {
   it("renders correctly with default props", () => {
     const {toJSON} = renderWithTheme(<Filter filters={filters} onChange={() => {}} values={{}} />);
@@ -328,6 +345,18 @@ describe("Filter", () => {
   });
 
   describe("layout", () => {
+    // Box maps any `flex` value other than grow/shrink to `flex: 0`, which zeroes the flex
+    // basis. In the stacked column that collapsed every control to zero height and stacked
+    // the labels on top of each other, so no wrapper may carry it.
+    it("never gives a stacked control a zero flex basis", () => {
+      const {toJSON} = renderWithTheme(
+        <Filter filters={filters} onChange={() => {}} testID="f" values={{}} />
+      );
+      const styles = collectStyles(toJSON());
+      expect(styles.length).toBeGreaterThan(0);
+      expect(styles.some((style) => style.flex === 0)).toBe(false);
+    });
+
     it("renders inline without changing behavior", () => {
       const onChange = mock((_values: FilterValues) => {});
       const {getByTestId} = renderWithTheme(
