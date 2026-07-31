@@ -3253,3 +3253,368 @@ export interface SidebarNavigationPanelProps {
    */
   onOpenChange?: (isOpen: boolean) => void;
 }
+
+/**
+ * A selectable option in a `choice` or `multiChoice` filter.
+ */
+export interface FilterOption {
+  /**
+   * The text shown to the user in the control and in the active filter chip.
+   */
+  label: string;
+
+  /**
+   * The value written into `FilterValues` when this option is selected.
+   */
+  value: string;
+}
+
+interface FilterDefinitionBase {
+  /**
+   * The key this filter reads from and writes to in `FilterValues`. Usually the
+   * backend field name it maps to.
+   */
+  field: string;
+
+  /**
+   * The text shown above the control and as the chip label. Defaults to a title-cased
+   * version of `field`.
+   */
+  label?: string;
+
+  /**
+   * Guidance shown under the control.
+   */
+  helperText?: string;
+
+  /**
+   * When true, the control is read-only and its chip cannot be dismissed.
+   * @default false
+   */
+  disabled?: boolean;
+}
+
+/**
+ * A tri-state filter: unset, true, or false.
+ */
+export interface BooleanFilterDefinition extends FilterDefinitionBase {
+  kind: "boolean";
+
+  /**
+   * Label for the "no preference" option.
+   * @default "All"
+   */
+  anyLabel?: string;
+
+  /**
+   * Label for the `true` option.
+   * @default "Yes"
+   */
+  trueLabel?: string;
+
+  /**
+   * Label for the `false` option.
+   * @default "No"
+   */
+  falseLabel?: string;
+}
+
+/**
+ * A single-select filter backed by a fixed list of options.
+ */
+export interface ChoiceFilterDefinition extends FilterDefinitionBase {
+  kind: "choice";
+
+  /**
+   * The options a user can pick from.
+   */
+  options: FilterOption[];
+
+  /**
+   * Label for the "no selection" option.
+   * @default "All"
+   */
+  anyLabel?: string;
+}
+
+/**
+ * A multi-select filter. Each selected option gets its own dismissible chip.
+ */
+export interface MultiChoiceFilterDefinition extends FilterDefinitionBase {
+  kind: "multiChoice";
+
+  /**
+   * The options a user can pick from.
+   */
+  options: FilterOption[];
+}
+
+/**
+ * A free-text filter.
+ */
+export interface TextFilterDefinition extends FilterDefinitionBase {
+  kind: "text";
+
+  /**
+   * Placeholder shown while the input is empty.
+   */
+  placeholder?: string;
+}
+
+/**
+ * A from/to filter over dates, stored as ISO strings.
+ */
+export interface DateRangeFilterDefinition extends FilterDefinitionBase {
+  kind: "dateRange";
+
+  /**
+   * Whether the pickers capture a date or a date and time.
+   * @default "date"
+   */
+  type?: "date" | "datetime";
+
+  /**
+   * Label for the lower bound picker.
+   * @default "From"
+   */
+  fromLabel?: string;
+
+  /**
+   * Label for the upper bound picker.
+   * @default "To"
+   */
+  toLabel?: string;
+}
+
+/**
+ * A min/max filter over numbers.
+ */
+export interface NumberRangeFilterDefinition extends FilterDefinitionBase {
+  kind: "numberRange";
+
+  /**
+   * Smallest value either bound accepts.
+   */
+  min?: number;
+
+  /**
+   * Largest value either bound accepts.
+   */
+  max?: number;
+
+  /**
+   * Whether the bounds accept integers or decimals.
+   * @default "number"
+   */
+  type?: "number" | "decimal";
+
+  /**
+   * Label for the lower bound input.
+   * @default "Min"
+   */
+  fromLabel?: string;
+
+  /**
+   * Label for the upper bound input.
+   * @default "Max"
+   */
+  toLabel?: string;
+}
+
+/**
+ * One entry in the `filters` list passed to `Filter`. The `kind` selects which
+ * control renders and which shape the field's value takes in `FilterValues`.
+ */
+export type FilterDefinition =
+  | BooleanFilterDefinition
+  | ChoiceFilterDefinition
+  | DateRangeFilterDefinition
+  | MultiChoiceFilterDefinition
+  | NumberRangeFilterDefinition
+  | TextFilterDefinition;
+
+/**
+ * The value of a `dateRange` filter. Both bounds are ISO strings and both are optional,
+ * so an open-ended range is valid.
+ */
+export interface FilterDateRangeValue {
+  from?: string;
+  to?: string;
+}
+
+/**
+ * The value of a `numberRange` filter. Both bounds are optional, so an open-ended
+ * range is valid.
+ */
+export interface FilterNumberRangeValue {
+  from?: number;
+  to?: number;
+}
+
+/**
+ * The value stored for a single filter field. Which member applies is determined by the
+ * matching definition's `kind`: `boolean` for boolean, `string` for choice and text,
+ * `string[]` for multiChoice, and the range objects for dateRange and numberRange.
+ */
+export type FilterFieldValue =
+  | boolean
+  | string
+  | string[]
+  | FilterDateRangeValue
+  | FilterNumberRangeValue
+  | undefined;
+
+/**
+ * The full set of filter values, keyed by each definition's `field`.
+ */
+export type FilterValues = Record<string, FilterFieldValue>;
+
+/**
+ * A filter that currently has a value, flattened for display as a chip.
+ */
+export interface ActiveFilter {
+  /**
+   * The `field` of the definition this came from.
+   */
+  field: string;
+
+  /**
+   * The definition's resolved label.
+   */
+  label: string;
+
+  /**
+   * A human-readable summary of the current value.
+   */
+  value: string;
+
+  /**
+   * For `multiChoice` filters, the single option this chip represents. Dismissing the
+   * chip removes only that option.
+   */
+  optionValue?: string;
+}
+
+/**
+ * A dismissible pill representing one applied filter.
+ */
+export interface FilterChipProps extends WithTestID {
+  /**
+   * The name of the filter, rendered before the value.
+   */
+  label: string;
+
+  /**
+   * The applied value, rendered in bold after the label.
+   */
+  value?: string;
+
+  /**
+   * Called when the user presses the dismiss button. The button is hidden when omitted.
+   */
+  onDismiss?: () => void;
+
+  /**
+   * When true, the chip is muted and cannot be dismissed.
+   * @default false
+   */
+  disabled?: boolean;
+
+  /**
+   * Accessibility label for the dismiss button. Defaults to `Remove {label} filter`.
+   */
+  dismissAccessibilityLabel?: string;
+}
+
+/**
+ * A declarative filter panel. Pass a list of `FilterDefinition`s and a controlled
+ * `FilterValues` record; `Filter` renders the matching controls, a row of dismissible
+ * chips for everything currently applied, and a clear-all action.
+ */
+export interface FilterProps extends WithTestID {
+  /**
+   * The filters to render, in display order.
+   */
+  filters: FilterDefinition[];
+
+  /**
+   * The current value of every filter, keyed by `field`.
+   */
+  values: FilterValues;
+
+  /**
+   * Called with the next full `FilterValues` whenever any control or chip changes.
+   */
+  onChange: (values: FilterValues) => void;
+
+  /**
+   * Heading shown above the controls. Pass an empty string to hide it.
+   * @default "Filters"
+   */
+  title?: string;
+
+  /**
+   * `stacked` fills the width one control per row, for a sidebar rail. `inline` wraps
+   * controls into rows, for a toolbar above a table.
+   * @default "stacked"
+   */
+  layout?: "stacked" | "inline";
+
+  /**
+   * When true, the controls collapse behind a show/hide toggle in the header.
+   * @default false
+   */
+  collapsible?: boolean;
+
+  /**
+   * Whether a collapsible panel starts expanded.
+   * @default true
+   */
+  defaultExpanded?: boolean;
+
+  /**
+   * Whether to render the chip row for applied filters.
+   * @default true
+   */
+  showActiveFilters?: boolean;
+
+  /**
+   * Whether to render the clear-all action when at least one filter is applied.
+   * @default true
+   */
+  showClearAll?: boolean;
+
+  /**
+   * Text for the clear-all action.
+   * @default "Clear all"
+   */
+  clearAllText?: string;
+
+  /**
+   * Called instead of `onChange` when the user clears every filter. Use this when the
+   * consumer needs to reset state the component does not own, such as search text.
+   */
+  onClear?: () => void;
+
+  /**
+   * Renders a search input above the filters. Search is only shown when
+   * `onSearchChange` is also provided.
+   */
+  searchValue?: string;
+
+  /**
+   * Called as the user types in the search input.
+   */
+  onSearchChange?: (value: string) => void;
+
+  /**
+   * Title above the search input.
+   * @default "Search"
+   */
+  searchTitle?: string;
+
+  /**
+   * Placeholder for the search input.
+   */
+  searchPlaceholder?: string;
+}

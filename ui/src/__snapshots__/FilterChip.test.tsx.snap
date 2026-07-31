@@ -1,0 +1,65 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`FilterChip renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Status: ",
+          ],
+          "props": {
+            "style": {
+              "color": "#686868",
+            },
+          },
+          "type": "Text",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Open",
+          ],
+          "props": {
+            "style": {
+              "fontWeight": "700",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "numberOfLines": 1,
+        "style": {
+          "color": "#1C1C1C",
+          "flexShrink": 1,
+          "fontFamily": "text",
+          "fontSize": 14,
+        },
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#D9D9D9",
+      "borderColor": "#CDCDCD",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "flexDirection": "row",
+      "gap": 4,
+      "maxWidth": "100%",
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "paddingVertical": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
