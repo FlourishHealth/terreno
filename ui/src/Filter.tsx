@@ -3,7 +3,13 @@ import {Pressable, View} from "react-native";
 
 import {Badge} from "./Badge";
 import {Box} from "./Box";
-import type {BoxProps, FilterDefinition, FilterFieldValue, FilterProps} from "./Common";
+import type {
+  BoxProps,
+  FilterDefinition,
+  FilterFieldValue,
+  FilterNumberRangeValue,
+  FilterProps,
+} from "./Common";
 import {DateTimeField} from "./DateTimeField";
 import {FilterChip} from "./FilterChip";
 import {FieldTitle} from "./fieldElements/FieldTitle";
@@ -36,6 +42,18 @@ const parseNumber = (raw: string): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+/**
+ * Pick what a number range input should display. A decimal in progress ("1.") parses to a
+ * number that stringifies without the separator, so the raw draft has to win while it still
+ * agrees with the committed bound; once an outside change disagrees, the draft is dropped.
+ */
+const resolveNumberInputValue = (draft: string | undefined, committed?: number): string => {
+  if (draft !== undefined && parseNumber(draft) === committed) {
+    return draft;
+  }
+  return committed === undefined ? "" : String(committed);
+};
+
 export const Filter: FC<FilterProps> = ({
   filters,
   values,
@@ -55,6 +73,7 @@ export const Filter: FC<FilterProps> = ({
   testID,
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [numberDrafts, setNumberDrafts] = useState<Record<string, string>>({});
 
   const activeFilters = useMemo(() => {
     return getActiveFilters({filters, values});
@@ -86,6 +105,15 @@ export const Filter: FC<FilterProps> = ({
   const handleToggleExpanded = useCallback(() => {
     setIsExpanded((previous) => !previous);
   }, []);
+
+  const handleNumberBoundChange = useCallback(
+    (input: {bound: "from" | "to"; field: string; raw: string; range: FilterNumberRangeValue}) => {
+      const {bound, field, raw, range} = input;
+      setNumberDrafts((previous) => ({...previous, [`${field}.${bound}`]: raw}));
+      handleFieldChange(field, {...range, [bound]: parseNumber(raw)});
+    },
+    [handleFieldChange]
+  );
 
   const handleClearAll = useCallback(() => {
     if (onClear) {
@@ -237,12 +265,20 @@ export const Filter: FC<FilterProps> = ({
                 max={definition.max}
                 min={definition.min}
                 onChange={(next: string) =>
-                  handleFieldChange(definition.field, {...range, from: parseNumber(next)})
+                  handleNumberBoundChange({
+                    bound: "from",
+                    field: definition.field,
+                    range,
+                    raw: next,
+                  })
                 }
                 testID={resolveTestID(controlTestID, "from")}
                 title={definition.fromLabel ?? "Min"}
                 type={definition.type ?? "number"}
-                value={range.from === undefined ? "" : String(range.from)}
+                value={resolveNumberInputValue(
+                  numberDrafts[`${definition.field}.from`],
+                  range.from
+                )}
               />
             </Box>
             <Box flex="grow" minWidth={0}>
@@ -251,12 +287,12 @@ export const Filter: FC<FilterProps> = ({
                 max={definition.max}
                 min={definition.min}
                 onChange={(next: string) =>
-                  handleFieldChange(definition.field, {...range, to: parseNumber(next)})
+                  handleNumberBoundChange({bound: "to", field: definition.field, range, raw: next})
                 }
                 testID={resolveTestID(controlTestID, "to")}
                 title={definition.toLabel ?? "Max"}
                 type={definition.type ?? "number"}
-                value={range.to === undefined ? "" : String(range.to)}
+                value={resolveNumberInputValue(numberDrafts[`${definition.field}.to`], range.to)}
               />
             </Box>
           </Box>

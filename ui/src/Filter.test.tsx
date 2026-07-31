@@ -395,6 +395,68 @@ describe("Filter", () => {
       expect(onChange).toHaveBeenCalledWith({score: {from: 3, to: 9}});
     });
 
+    // NumberField emits transitional text like "1." while a decimal is being typed. Storing
+    // only the parsed number rewrote the input back to "1" and the separator could never be
+    // entered, so the draft text has to survive until the next digit lands.
+    it("lets a decimal bound be typed one character at a time", () => {
+      const decimalFilters: FilterDefinition[] = [
+        {field: "score", kind: "numberRange", label: "Score", type: "decimal"},
+      ];
+      let currentValues: FilterValues = {};
+      const onChange = mock((next: FilterValues) => {
+        currentValues = next;
+      });
+
+      const {getByTestId, rerender} = renderWithTheme(
+        <Filter filters={decimalFilters} onChange={onChange} testID="f" values={currentValues} />
+      );
+
+      const typeInto = (text: string): void => {
+        fireEvent.changeText(getByTestId("f.filter.score.from"), text);
+        rerender(
+          <Filter filters={decimalFilters} onChange={onChange} testID="f" values={currentValues} />
+        );
+      };
+
+      // NumberField turns a leading "." into "0.". Storing only the parsed 0 rewrote the input
+      // to "0" and the separator was swallowed before the next digit could be typed.
+      typeInto(".");
+      expect(getByTestId("f.filter.score.from").props.value).toBe("0.");
+
+      typeInto("0.7");
+      expect(getByTestId("f.filter.score.from").props.value).toBe("0.7");
+      expect(currentValues.score).toEqual({from: 0.7});
+
+      // Replacing a committed decimal wholesale is the other case the parsed value clobbered.
+      typeInto("2.");
+      expect(getByTestId("f.filter.score.from").props.value).toBe("2.");
+
+      typeInto("2.25");
+      expect(currentValues.score).toEqual({from: 2.25});
+    });
+
+    it("drops a stale decimal draft when the value is cleared from outside", () => {
+      const decimalFilters: FilterDefinition[] = [
+        {field: "score", kind: "numberRange", label: "Score", type: "decimal"},
+      ];
+      let currentValues: FilterValues = {};
+      const onChange = mock((next: FilterValues) => {
+        currentValues = next;
+      });
+      const render = (values: FilterValues) => (
+        <Filter filters={decimalFilters} onChange={onChange} testID="f" values={values} />
+      );
+
+      const {getByTestId, rerender} = renderWithTheme(render(currentValues));
+      fireEvent.changeText(getByTestId("f.filter.score.from"), "1.5");
+      rerender(render(currentValues));
+      expect(getByTestId("f.filter.score.from").props.value).toBe("1.5");
+
+      // A chip dismissal or clear-all resets the value the component does not hold locally.
+      rerender(render({score: {}}));
+      expect(getByTestId("f.filter.score.from").props.value).toBe("");
+    });
+
     it("clears a numberRange bound when its input is emptied", () => {
       const onChange = mock((_values: FilterValues) => {});
       const {getByTestId} = renderWithTheme(
