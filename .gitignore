@@ -67,6 +67,9 @@ demo/ui-types-documentation.json
 mcp-server/src/docs/ui-types-documentation.json
 mcp-server/src/docs/versioned/
 
+# Local dev database files (see the mongod replica set setup in AGENTS.md)
+.devdata/
+
 # Generated docs site artifacts (built at site build time)
 docs/reference/components/*.mdx
 docs/reference/generated/
