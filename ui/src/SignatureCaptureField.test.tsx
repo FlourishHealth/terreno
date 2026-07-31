@@ -91,6 +91,46 @@ describe("SignatureCaptureField", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders a placeholder box when disabled in draw mode with no captured image", () => {
+    const {toJSON} = renderWithTheme(
+      <SignatureCaptureField disabled onChange={() => {}} value={{image: "", mode: "draw"}} />
+    );
+    // With no image the preview renders a grayed placeholder box rather than an <Image>.
+    const tree = JSON.stringify(toJSON());
+    expect(tree).not.toContain("data:image");
+  });
+
+  it("renders a read-only typed signature when disabled with a typed value", () => {
+    const {getByText} = renderWithTheme(
+      <SignatureCaptureField
+        disabled
+        onChange={() => {}}
+        value={{fontKey: "cursive", mode: "type", typedName: "Jane Doe"}}
+      />
+    );
+    // Disabled type mode renders the typed name read-only, and no Draw/Type toggle.
+    expect(getByText("Jane Doe")).toBeTruthy();
+  });
+
+  it("renders the typed signature field when disabled with no value", () => {
+    const {queryByText} = renderWithTheme(<SignatureCaptureField disabled onChange={() => {}} />);
+    // Falls back to the typed field (not the drawn preview) and omits the mode toggle.
+    expect(queryByText("Draw")).toBeNull();
+    expect(queryByText("Type")).toBeNull();
+  });
+
+  it("renders helper text when disabled", () => {
+    const {getByText} = renderWithTheme(
+      <SignatureCaptureField
+        disabled
+        helperText="Signed on file."
+        onChange={() => {}}
+        value={{image: "data:image/png;base64,xyz", mode: "draw"}}
+      />
+    );
+    expect(getByText("Signed on file.")).toBeTruthy();
+  });
+
   it("forwards the resolved input test id to the typed name input in type mode", () => {
     const {UNSAFE_getAllByProps} = renderWithTheme(
       <SignatureCaptureField {...defaultProps} testID="sig" />

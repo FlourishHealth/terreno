@@ -7,7 +7,14 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth, signupUser} from "./auth";
+import {
+  type UserModel as AuthUserModel,
+  addAuthRoutes,
+  addMeRoutes,
+  generateTokens,
+  setupAuth,
+  signupUser,
+} from "./auth";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {TerrenoApp} from "./terrenoApp";
@@ -1477,5 +1484,50 @@ describe("auth error paths when the user lookup fails", () => {
     } finally {
       authSpy.mockRestore();
     }
+  });
+});
+
+describe("cookie-based JWT authentication", () => {
+  let app: express.Application;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      // Minimal cookie parser so the JWT extractor can read `req.cookies.jwt`.
+      beforeJsonSetup: (application) => {
+        application.use((req: express.Request, _res, next) => {
+          const header = req.headers.cookie;
+          const cookies: Record<string, string> = {};
+          if (header) {
+            for (const part of header.split(";")) {
+              const [name, ...rest] = part.trim().split("=");
+              cookies[name] = rest.join("=");
+            }
+          }
+          (req as unknown as {cookies: Record<string, string>}).cookies = cookies;
+          next();
+        });
+      },
+      skipListen: true,
+      userModel: UserModel as unknown as AuthUserModel,
+    }).build();
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("authenticates /auth/me from the jwt cookie instead of the Authorization header", async () => {
+    const signupRes = await supertest(app)
+      .post("/auth/signup")
+      .send({email: "cookie@example.com", password: "123"})
+      .expect(200);
+    const {token} = signupRes.body.data;
+    expect(token).toBeDefined();
+
+    // The customTokenExtractor prefers req.cookies.jwt over the Authorization header.
+    const meRes = await supertest(app).get("/auth/me").set("Cookie", `jwt=${token}`).expect(200);
+    expect(meRes.body.data.email).toBe("cookie@example.com");
   });
 });
