@@ -16,6 +16,7 @@ import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
 import {EmailFieldConfiguration} from "@story-config/EmailField.config";
 import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
 import {FieldConfiguration} from "@story-config/Field.config";
+import {FilterConfiguration} from "@story-config/Filter.config";
 import {HeadingConfiguration} from "@story-config/Heading.config";
 import {HeightFieldConfiguration} from "@story-config/HeightField.config";
 import {IconConfiguration} from "@story-config/Icon.config";
@@ -206,6 +207,7 @@ const Config: DemoConfigurationBase[] = [
   EmailFieldConfiguration,
   EmojiSelectorConfiguration,
   FieldConfiguration,
+  FilterConfiguration,
   HeadingConfiguration,
   HeightFieldConfiguration,
   IconConfiguration,
