@@ -86,20 +86,13 @@ const enforceWriteScope = async ({
   }
   // Tenant: the incoming value (create) or the changed value (update) must be a membership.
   if (incoming === undefined || incoming === null) {
-    // Task 9.21: an absent tenant value on CREATE used to pass straight through, landing
-    // the document in a `tenant:undefined` stream that no client can ever subscribe to —
-    // written, invisible, and never synced. Reject it UNLESS the model configures a
-    // `preCreate` hook, which is the sanctioned place to inject the tenant field from the
-    // authenticated user (see the example projects router). preCreate runs inside
-    // executeCreate, after this backstop, so the raw mutation data legitimately omits the
-    // field; preCreate itself validates the resolved value against the caller's
-    // memberships. An update that simply does not touch the scope field is always fine.
-    if (operation === "create" && !entry.options.preCreate) {
-      throw new APIError({
-        status: 400,
-        title: `Sync create on ${entry.collectionTag} is missing tenant scope field "${field}"`,
-      });
-    }
+    // Nothing to check against memberships yet. A create may legitimately omit the tenant
+    // field for `preCreate` to inject from the authenticated user (see the example
+    // projects router), and an update that does not touch the scope field leaves it
+    // alone. Task 9.21's "never file a document under `tenant:undefined`" guarantee is
+    // enforced by resolveStreamForDoc on the write path instead, which sees the value
+    // AFTER preCreate has run — inferring intent from the mere presence of a preCreate
+    // hook would let an unrelated one (logging, timestamps) silently reopen that hole.
     return;
   }
   if (!scopeResolver) {

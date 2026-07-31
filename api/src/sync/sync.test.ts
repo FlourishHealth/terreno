@@ -19,7 +19,12 @@ import {
   registerSync,
   warnOnSyncScopesWithoutUserModel,
 } from "./registry";
-import {getScopeField, resolveStreamForDoc, streamForScopeValue} from "./streams";
+import {
+  assertWritableStream,
+  getScopeField,
+  resolveStreamForDoc,
+  streamForScopeValue,
+} from "./streams";
 import {syncPlugin} from "./syncSeqPlugin";
 import type {SyncConfig} from "./types";
 
@@ -130,6 +135,46 @@ describe("sync streams", () => {
     expect(
       resolveStreamForDoc({collectionTag: "banners", doc: {}, scope: {type: "broadcast"}})
     ).toBe("banners|all");
+  });
+
+  // Task 9.21: readers must stay total so the change-stream watcher and the tombstone
+  // compactor can still name a stream for legacy rows, while the write path refuses to
+  // create new unroutable ones.
+  it("still resolves a stream for a tenant doc missing its scope value (readers are total)", () => {
+    expect(
+      resolveStreamForDoc({
+        collectionTag: "projects",
+        doc: {},
+        scope: {field: "orgId", type: "tenant"},
+      })
+    ).toBe("projects|tenant:undefined");
+  });
+
+  it("rejects WRITING a tenant doc with no scope value, whatever the model's hooks do", () => {
+    const scope = {field: "orgId", type: "tenant"} as const;
+    // The guard reads the effective document, so it holds regardless of whether the model
+    // happens to configure a preCreate hook (which may exist for unrelated reasons and
+    // never inject the tenant field).
+    for (const doc of [{}, {orgId: null}, {orgId: undefined}]) {
+      expect(() => assertWritableStream({collectionTag: "projects", doc, scope})).toThrow(
+        /missing tenant scope field "orgId"/
+      );
+    }
+    expect(() =>
+      assertWritableStream({collectionTag: "projects", doc: {orgId: "org9"}, scope})
+    ).not.toThrow();
+  });
+
+  it("leaves owner, broadcast, and custom scopes unguarded on write", () => {
+    expect(() =>
+      assertWritableStream({collectionTag: "todos", doc: {}, scope: {type: "owner"}})
+    ).not.toThrow();
+    expect(() =>
+      assertWritableStream({collectionTag: "banners", doc: {}, scope: {type: "broadcast"}})
+    ).not.toThrow();
+    expect(() =>
+      assertWritableStream({collectionTag: "shops", doc: {}, scope: () => "eu"})
+    ).not.toThrow();
   });
 
   it("resolves custom scope via resolver function", () => {

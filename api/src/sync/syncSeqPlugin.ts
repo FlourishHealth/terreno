@@ -10,7 +10,12 @@ import {logger} from "../logger";
 import {isVersionError} from "./executors";
 import {claimSyncSeqs, confirmSyncSeqs, releaseSyncSeqs, SyncScopeMove} from "./models";
 import {findSyncEntryByModelName, type SyncRegistryEntry} from "./registry";
-import {getScopeField, resolveStreamForDoc, streamForScopeValue} from "./streams";
+import {
+  assertWritableStream,
+  getScopeField,
+  resolveStreamForDoc,
+  streamForScopeValue,
+} from "./streams";
 
 /**
  * Schema plugin for sync-enabled models. Stamps a monotonic per-stream `_syncSeq` on
@@ -66,9 +71,19 @@ import {getScopeField, resolveStreamForDoc, streamForScopeValue} from "./streams
 
 const INITIAL_STREAM_KEY = "_syncInitialStream";
 
-/** Resolve the stream for a plain object under an entry's scope. */
-const streamForObject = (entry: SyncRegistryEntry, obj: Record<string, unknown>): string =>
-  resolveStreamForDoc({collectionTag: entry.collectionTag, doc: obj, scope: entry.config.scope});
+/**
+ * Resolve the stream for a plain object under an entry's scope, refusing writes that would
+ * land in an unsubscribable stream (Task 9.21). Every seq-stamping write path funnels
+ * through here, so this is the single place that sees the effective scope value.
+ */
+const streamForObject = (entry: SyncRegistryEntry, obj: Record<string, unknown>): string => {
+  assertWritableStream({collectionTag: entry.collectionTag, doc: obj, scope: entry.config.scope});
+  return resolveStreamForDoc({
+    collectionTag: entry.collectionTag,
+    doc: obj,
+    scope: entry.config.scope,
+  });
+};
 
 const unsupportedWrite = (modelName: string, operation: string): Error =>
   new Error(

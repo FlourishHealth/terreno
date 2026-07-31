@@ -1,4 +1,5 @@
 import type {User} from "../auth";
+import {APIError} from "../errors";
 import type {SyncRegistryEntry} from "./registry";
 import type {SyncScope} from "./types";
 
@@ -75,7 +76,14 @@ export const parseStreamKey = (
   };
 };
 
-/** Resolve the stream a document belongs to under the given scope. */
+/**
+ * Resolve the stream a document belongs to under the given scope.
+ *
+ * Deliberately total: readers (the change-stream watcher, the tombstone compactor) must
+ * be able to name a stream for any document already in the database, including legacy
+ * rows written before a scope field existed. Rejecting an unroutable document is the
+ * write path's job — see {@link assertWritableStream}.
+ */
 export const resolveStreamForDoc = ({
   collectionTag,
   scope,
@@ -93,6 +101,43 @@ export const resolveStreamForDoc = ({
   }
   const field = getScopeField(scope) as string;
   return streamForScopeValue({collectionTag, scope, scopeValue: doc[field]});
+};
+
+/**
+ * Write-path guard: refuse to file a tenant-scoped document under `tenant:undefined`, a
+ * stream no client can ever subscribe to, which would leave the document written,
+ * invisible, and never synced (Task 9.21).
+ *
+ * Called from the `_syncSeq` plugin's write hooks, so it sees the EFFECTIVE scope value —
+ * after any `preCreate` has injected it and before the write commits — on every write
+ * path, sync mutations and plain REST/model writes alike. That is why the sync mutation
+ * handler does not try to infer the same thing from the raw request body: a create may
+ * legitimately omit the field for `preCreate` to supply.
+ *
+ * Owner scopes are intentionally not guarded: `ownerId` is conventionally stamped by
+ * `preCreate`/`IsOwner` plumbing, and an unowned document is still admin-reachable, so
+ * tightening that is a separate behavioral change.
+ */
+export const assertWritableStream = ({
+  collectionTag,
+  scope,
+  doc,
+}: {
+  collectionTag: string;
+  scope: SyncScope;
+  doc: Record<string, unknown>;
+}): void => {
+  if (typeof scope === "function" || scope.type !== "tenant") {
+    return;
+  }
+  const field = getScopeField(scope) as string;
+  const scopeValue = doc[field];
+  if (scopeValue === undefined || scopeValue === null) {
+    throw new APIError({
+      status: 400,
+      title: `Sync write on ${collectionTag} is missing tenant scope field "${field}"`,
+    });
+  }
 };
 
 /**
