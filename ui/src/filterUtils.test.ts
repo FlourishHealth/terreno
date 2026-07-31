@@ -138,6 +138,16 @@ describe("getActiveFilters", () => {
     expect(to[0]?.value).toBe("On or before Mar 4, 2026");
   });
 
+  // DateTimeField emits a date-only bound as UTC midnight. Formatting that in the device zone
+  // (these tests run under TZ=America/New_York) labelled the previous day.
+  it("labels a UTC-midnight date bound as the day that was picked", () => {
+    const active = getActiveFilters({
+      filters: [dateRangeFilter],
+      values: {created: {from: "2026-03-04T00:00:00.000Z"}},
+    });
+    expect(active[0]?.value).toBe("On or after Mar 4, 2026");
+  });
+
   it("summarizes a closed date range with both bounds", () => {
     const active = getActiveFilters({
       filters: [dateRangeFilter],

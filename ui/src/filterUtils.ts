@@ -55,8 +55,13 @@ export const getMultiChoiceValue = (value: FilterFieldValue): string[] => {
   return value.filter((entry): entry is string => typeof entry === "string");
 };
 
+/**
+ * A date-only bound carries no time of day — `DateTimeField` emits it as UTC midnight — so it
+ * has to be formatted in its own zone or every device west of UTC labels the previous day. A
+ * datetime bound is a real instant, so it reads in the device zone as usual.
+ */
 const formatDate = (iso: string, withTime: boolean): string => {
-  const parsed = DateTime.fromISO(iso);
+  const parsed = DateTime.fromISO(iso, {setZone: !withTime});
   if (!parsed.isValid) {
     return iso;
   }
