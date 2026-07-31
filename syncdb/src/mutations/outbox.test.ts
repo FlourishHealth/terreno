@@ -374,7 +374,10 @@ describe("recoverStartupState (A1)", () => {
     });
     outbox.markInFlight({mutationId: "m1"});
     outbox.markAcked({mutationId: "m1"});
-    // A second optimistic edit re-protects the entity before recovery runs.
+    // A second optimistic edit re-protects the entity before recovery runs. Its
+    // outbox row exists (mutate() enqueues one for every optimistic write), so
+    // the orphan sweep leaves the newer pending lock alone too.
+    enqueueDefault(outbox, {mutationId: "m2"});
     store.upsertEntity({
       collection: "todos",
       data: {title: "v2"},
@@ -412,6 +415,7 @@ describe("recoverStartupState (A1)", () => {
       localData: JSON.stringify({title: "local edit"}),
       mutationId: "m1",
       serverData: JSON.stringify(null),
+      serverDeleted: false,
       serverSeq: 0,
     });
   });
@@ -460,10 +464,86 @@ describe("recoverStartupState (A1)", () => {
     outbox.markFailed({mutationId: "m-failed"});
 
     const result = outbox.recoverStartupState({userId: "user-1"});
-    expect(result).toEqual({recoveredInFlight: [], releasedEntities: [], repairedConflicts: []});
+    expect(result).toEqual({
+      clearedOrphanPendings: [],
+      recoveredInFlight: [],
+      releasedEntities: [],
+      repairedConflicts: [],
+    });
     expect(outbox.getMutation({mutationId: "m-queued"})?.status).toBe("queued");
     expect(outbox.getMutation({mutationId: "m-acked"})?.status).toBe("acked");
     expect(outbox.getMutation({mutationId: "m-failed"})?.status).toBe("failed");
+  });
+
+  // Task 9.11b: an entity whose pendingMutationId references no `_outbox` row at
+  // all (the row was pruned, wiped, or lost with a partially-persisted store) is
+  // frozen forever — the delta applier skips it for pending protection and
+  // repair refuses to touch it. Nothing can ever release it, so the sweep must.
+  it("clears an orphaned pendingMutationId whose outbox row no longer exists (9.11b)", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "Frozen"},
+      id: "t1",
+      pendingMutationId: "gone-forever",
+      seq: 3,
+    });
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.clearedOrphanPendings).toEqual(["t1"]);
+    const entity = store.getEntity({collection: "todos", id: "t1"});
+    expect(entity?.pendingMutationId).toBeUndefined();
+    // The optimistic payload and seq survive — only the stale lock is dropped.
+    expect(entity?.data).toEqual({title: "Frozen"});
+    expect(entity?.seq).toBe(3);
+  });
+
+  it("keeps a pendingMutationId that still has a matching outbox row in any status", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {entityId: "t1", mutationId: "m-queued"});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "Queued"},
+      id: "t1",
+      pendingMutationId: "m-queued",
+    });
+    enqueueDefault(outbox, {entityId: "t2", mutationId: "m-conflicted"});
+    outbox.markInFlight({mutationId: "m-conflicted"});
+    outbox.markConflicted({mutationId: "m-conflicted"});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "Conflicted"},
+      id: "t2",
+      pendingMutationId: "m-conflicted",
+    });
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.clearedOrphanPendings).toEqual([]);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId).toBe("m-queued");
+    expect(store.getEntity({collection: "todos", id: "t2"})?.pendingMutationId).toBe(
+      "m-conflicted"
+    );
+  });
+
+  // A row belonging to ANOTHER user still counts as "matching": the store is
+  // wiped on a user switch, so a surviving cross-user pointer means the row is
+  // genuinely still there and the pending lock is not orphaned.
+  it("keeps a pendingMutationId whose outbox row belongs to a different user", () => {
+    const store = makeStore();
+    const outbox = createOutbox({store});
+    enqueueDefault(outbox, {entityId: "t1", mutationId: "m-theirs", userId: "user-2"});
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "Theirs"},
+      id: "t1",
+      pendingMutationId: "m-theirs",
+    });
+
+    const result = outbox.recoverStartupState({userId: "user-1"});
+    expect(result.clearedOrphanPendings).toEqual([]);
+    expect(store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId).toBe("m-theirs");
   });
 });
 

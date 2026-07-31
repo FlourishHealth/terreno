@@ -11,6 +11,7 @@ const rowToConflict = (mutationId: string, row: Partial<ConflictRow>): SyncConfl
   localData: row.localData ?? "null",
   mutationId,
   serverData: row.serverData ?? "null",
+  serverDeleted: Boolean(row.serverDeleted),
   serverSeq: row.serverSeq ?? 0,
 });
 
@@ -32,7 +33,8 @@ export const writeConflict = ({
   store: SyncStore;
   conflict: SyncConflict;
 }): void => {
-  const {mutationId, ...row} = conflict;
+  const {mutationId, serverDeleted, ...rest} = conflict;
+  const row: ConflictRow = {...rest, serverDeleted: Boolean(serverDeleted)};
   store.raw.setRow(CONFLICTS_TABLE, mutationId, row as unknown as Row);
 };
 

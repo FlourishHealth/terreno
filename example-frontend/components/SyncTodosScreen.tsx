@@ -1,18 +1,11 @@
 import {FlashList, type ListRenderItemInfo} from "@shopify/flash-list";
 import {generateMutationId} from "@terreno/syncdb";
-import {
-  useConflicts,
-  useEntity,
-  useEntityIds,
-  useMutate,
-  useSyncStatus,
-} from "@terreno/syncdb/react";
+import {useEntity, useEntityIds, useMutate, useSyncStatus} from "@terreno/syncdb/react";
 import {
   Box,
   Button,
   Card,
   CheckBox,
-  ConflictSheet,
   Heading,
   IconButton,
   SyncStatusBanner,
@@ -22,8 +15,10 @@ import {
 import {DateTime} from "luxon";
 import type React from "react";
 import {memo, useCallback, useMemo, useState} from "react";
+import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
+import {logout, useAppDispatch} from "@/store";
 
 /**
  * Shape of a todo in the local syncdb store. Server documents carry the full model
@@ -112,10 +107,19 @@ const SyncTodoItem: React.FC<{
   }
 
   return (
-    <Card marginBottom={2} testID={`todo-item-${id}`}>
+    <Card
+      accessibilityLabel={completed ? "completed todo" : "incomplete todo"}
+      marginBottom={2}
+      testID={`todo-item-${id}`}
+    >
       <Box alignItems="center" direction="row" justifyContent="between">
         <Box alignItems="center" direction="row" flex="grow" gap={2}>
-          <Box onClick={handleToggle} testID={`todo-toggle-${id}`}>
+          <Box
+            accessibilityHint="Toggles whether this todo is completed"
+            accessibilityLabel={completed ? "Mark as not done" : "Mark as done"}
+            onClick={handleToggle}
+            testID={`todo-toggle-${id}`}
+          >
             <CheckBox selected={completed} size="md" />
           </Box>
           {isEditing ? (
@@ -130,7 +134,13 @@ const SyncTodoItem: React.FC<{
               />
             </Box>
           ) : (
-            <Box flex="grow" onClick={handleStartEdit} testID={`todo-title-${id}`}>
+            <Box
+              accessibilityHint="Opens an input to rename this todo"
+              accessibilityLabel="Edit title"
+              flex="grow"
+              onClick={handleStartEdit}
+              testID={`todo-title-${id}`}
+            >
               <Text color={completed ? "secondaryLight" : "primary"} underline={completed}>
                 {data.title ?? ""}
               </Text>
@@ -207,13 +217,16 @@ const NewTodoForm: React.FC<{disabled: boolean; onCreate: (title: string) => voi
 
 NewTodoForm.displayName = "NewTodoForm";
 
-const SectionHeader: React.FC<{title: string; count: number}> = memo(({title, count}) => (
-  <Box marginBottom={3} marginTop={2}>
-    <Heading size="lg">
-      {title} ({count})
-    </Heading>
-  </Box>
-));
+const SectionHeader: React.FC<{title: string; count: number}> = memo(({title, count}) => {
+  const sectionSlug = title.toLowerCase().replace(/\s+/g, "-");
+  return (
+    <Box marginBottom={3} marginTop={2} testID={`todos-${sectionSlug}-section`}>
+      <Heading size="lg">
+        {title} ({count})
+      </Heading>
+    </Box>
+  );
+});
 
 SectionHeader.displayName = "SectionHeader";
 
@@ -229,8 +242,10 @@ const SyncTodosScreen: React.FC = () => {
   const isSyncDbReady = useSyncDbReady();
   const {create, update, remove} = useMutate("todos");
   const syncStatus = useSyncStatus();
-  const {conflicts, resolve} = useConflicts();
-  const [isConflictSheetVisible, setIsConflictSheetVisible] = useState<boolean>(false);
+  // The app mounts exactly one ConflictSheet (owned by SyncHealthToast in _layout.tsx);
+  // the banner's conflict badge requests it rather than rendering a second copy.
+  const {openConflicts} = useSyncConflictsController();
+  const dispatch = useAppDispatch();
 
   const incompleteIds = useEntityIds<SyncTodo>("todos", {
     filter: isIncomplete,
@@ -308,12 +323,15 @@ const SyncTodosScreen: React.FC = () => {
   );
 
   const openConflictSheet = useCallback((): void => {
-    setIsConflictSheetVisible(true);
-  }, []);
+    openConflicts("todos");
+  }, [openConflicts]);
 
-  const closeConflictSheet = useCallback((): void => {
-    setIsConflictSheetVisible(false);
-  }, []);
+  // Replay is paused until this user re-authenticates, and the session we hold is no
+  // longer usable — clearing it sends the root layout's redirect effect to /login, and a
+  // successful sign-in resumes the queued mutations for the same user.
+  const handleAuthRequired = useCallback((): void => {
+    dispatch(logout());
+  }, [dispatch]);
 
   const keyExtractor = useCallback((item: TodoListRow): string => {
     if (item.type === "section") {
@@ -346,10 +364,15 @@ const SyncTodosScreen: React.FC = () => {
       <Box>
         <SyncStatusBanner
           conflictCount={syncStatus.conflictCount}
+          draining={syncStatus.draining}
+          failedCount={syncStatus.failedCount}
           isOnline={syncStatus.isOnline}
-          isSyncing={syncStatus.isSyncing}
+          onAuthRequired={handleAuthRequired}
           onOpenConflicts={openConflictSheet}
+          paused={syncStatus.paused}
           queuedCount={syncStatus.queuedCount}
+          sentThisDrain={syncStatus.sentThisDrain}
+          totalThisDrain={syncStatus.totalThisDrain}
         />
         <SyncDevPanel />
         <Box marginBottom={6}>
@@ -365,13 +388,18 @@ const SyncTodosScreen: React.FC = () => {
       </Box>
     ),
     [
+      handleAuthRequired,
       handleCreate,
       isSyncDbReady,
       openConflictSheet,
       syncStatus.conflictCount,
+      syncStatus.draining,
+      syncStatus.failedCount,
       syncStatus.isOnline,
-      syncStatus.isSyncing,
+      syncStatus.paused,
       syncStatus.queuedCount,
+      syncStatus.sentThisDrain,
+      syncStatus.totalThisDrain,
       totalCount,
     ]
   );
@@ -395,12 +423,6 @@ const SyncTodosScreen: React.FC = () => {
       testID="todos-screen"
       width="100%"
     >
-      <ConflictSheet
-        conflicts={conflicts}
-        onDismiss={closeConflictSheet}
-        onResolve={resolve}
-        visible={isConflictSheetVisible}
-      />
       <FlashList
         contentInsetAdjustmentBehavior="automatic"
         data={listData}

@@ -140,6 +140,129 @@ describe("resolveConflict", () => {
     expect(getConflict({mutationId: "m1", store: harness.store})).toBeUndefined();
   });
 
+  // Task 9.12: a conflict whose server state is "no document at a real seq"
+  // (deleted, hard-deleted, or moved out of the client's scope) must resolve to
+  // a TOMBSTONE. Upserting null data over a live row instead leaves a ghost that
+  // lists, renders, and syncs forever as an empty entity.
+  describe("server-deleted conflicts (9.12)", () => {
+    const seedServerDeleted = ({
+      store,
+      outbox,
+      serverSeq,
+      serverDeleted,
+    }: {
+      store: SyncStore;
+      outbox: Outbox;
+      serverSeq: number;
+      serverDeleted?: boolean;
+    }): void => {
+      seedConflict({outbox, store});
+      writeConflict({
+        conflict: {
+          collection: "todos",
+          dismissed: false,
+          entityId: "t1",
+          localData: JSON.stringify({title: "local"}),
+          mutationId: "m1",
+          serverData: JSON.stringify(null),
+          serverSeq,
+          ...(serverDeleted === undefined ? {} : {serverDeleted}),
+        },
+        store,
+      });
+    };
+
+    it("useServer upserts a tombstone when the server has no document at a real seq", () => {
+      const harness = makeHarness();
+      seedServerDeleted({...harness, serverSeq: 9});
+
+      resolveConflict({
+        mutationId: "m1",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "useServer",
+      });
+
+      const entity = harness.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.deleted).toBe(true);
+      expect(entity?.seq).toBe(9);
+      expect(entity?.pendingMutationId).toBeUndefined();
+      // A tombstone is excluded from live reads — no ghost row in the UI.
+      expect(harness.store.listEntities({collection: "todos"})).toHaveLength(0);
+    });
+
+    it("useServer honors an explicit serverDeleted flag even at seq 0", () => {
+      const harness = makeHarness();
+      seedServerDeleted({...harness, serverDeleted: true, serverSeq: 0});
+
+      resolveConflict({
+        mutationId: "m1",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "useServer",
+      });
+      expect(harness.store.getEntity({collection: "todos", id: "t1"})?.deleted).toBe(true);
+    });
+
+    // seq 0 with no flag is the startup-recovery husk shape (recoverStartupState
+    // writes serverData null / serverSeq 0 for a conflicted row it never saw a
+    // nack for). That is "server state unknown", NOT "server deleted" — deleting
+    // the user's local data on it would be silent data loss.
+    it("does not tombstone when serverData is null at seq 0 (server state unknown)", () => {
+      const harness = makeHarness();
+      seedServerDeleted({...harness, serverSeq: 0});
+
+      resolveConflict({
+        mutationId: "m1",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "useServer",
+      });
+      const entity = harness.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.deleted).toBe(false);
+      expect(entity?.data).toBeNull();
+    });
+
+    // The mirror image: a local DELETE that conflicts with a server edit. The
+    // local row is already a tombstone, so accepting the server side has to
+    // resurrect it — otherwise the live server document stays invisible locally
+    // (and keeps arriving as a delta the tombstone hides) until a re-bootstrap.
+    it("useServer resurrects a local tombstone when the server still has the document", () => {
+      const harness = makeHarness();
+      seedConflict(harness);
+      harness.store.softDeleteEntity({collection: "todos", id: "t1"});
+      expect(harness.store.getEntity({collection: "todos", id: "t1"})?.deleted).toBe(true);
+
+      resolveConflict({
+        mutationId: "m1",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "useServer",
+      });
+
+      const entity = harness.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.deleted).toBe(false);
+      expect(entity?.data).toEqual({title: "server"});
+      expect(harness.store.listEntities({collection: "todos"})).toHaveLength(1);
+    });
+
+    it("keepMine still retries against the server seq for a server-deleted conflict", () => {
+      const harness = makeHarness();
+      seedServerDeleted({...harness, serverSeq: 9});
+
+      resolveConflict({
+        mutationId: "m1",
+        outbox: harness.outbox,
+        store: harness.store,
+        strategy: "keepMine",
+      });
+      const entity = harness.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.deleted).toBe(false);
+      expect(entity?.data).toEqual({title: "local"});
+      expect(harness.outbox.listQueued({userId: USER})[0]?.baseVersion).toBe(9);
+    });
+  });
+
   it("throws for an unknown conflict", () => {
     const harness = makeHarness();
     expect(() =>

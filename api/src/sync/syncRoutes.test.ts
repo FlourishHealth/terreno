@@ -1,19 +1,19 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import {model, Schema} from "mongoose";
+import {model, Schema, Types} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
-import type {ModelRouterOptions} from "../api";
+import {type ModelRouterOptions, modelRouter} from "../api";
 import {addAuthRoutes, setupAuth} from "../auth";
 import {APIError} from "../errors";
-import {Permissions} from "../permissions";
+import {OwnerQueryFilter, Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncKey, SyncMutation} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {clearSyncRegistry, registerSync} from "./registry";
-import {MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} from "./routes";
+import {MAX_ENTITY_FETCH, MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} from "./routes";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -49,6 +49,24 @@ routeProjectSchema.plugin(isDeletedPlugin);
 routeProjectSchema.plugin(createdUpdatedPlugin);
 routeProjectSchema.plugin(syncPlugin);
 const RouteProjectModel = model<RouteProject>("SyncRouteProject", routeProjectSchema);
+
+interface RouteBanner extends IsDeleted {
+  _id: string;
+  name: string;
+  ownerId: string;
+  _syncSeq?: number;
+}
+
+// Broadcast-scoped: sync adds no scope clause of its own, so the modelRouter `queryFilter`
+// is the only row-level scoping (Task 9.19).
+const routeBannerSchema = new Schema<RouteBanner>({
+  name: {description: "The banner name", required: true, type: String},
+  ownerId: {description: "The user who owns this banner", type: String},
+});
+routeBannerSchema.plugin(isDeletedPlugin);
+routeBannerSchema.plugin(createdUpdatedPlugin);
+routeBannerSchema.plugin(syncPlugin);
+const RouteBannerModel = model<RouteBanner>("SyncRouteBanner", routeBannerSchema);
 
 const authedOptions = {
   permissions: {
@@ -164,6 +182,10 @@ describe("sync routes", () => {
       const s = encodeURIComponent(ownerStream());
       await agent.get(`/sync/snapshot?stream=${s}&cursor=abc`).expect(400);
       await agent.get(`/sync/snapshot?stream=${s}&limit=-2`).expect(400);
+      // Task 9.27(b): parseInt used to stop at the first non-digit, so these silently
+      // became cursor 12 / limit 1 and the client paged on from the wrong seq.
+      await agent.get(`/sync/snapshot?stream=${s}&cursor=12abc`).expect(400);
+      await agent.get(`/sync/snapshot?stream=${s}&limit=1e9`).expect(400);
     });
 
     it("enforces the model's list permissions", async () => {
@@ -358,6 +380,36 @@ describe("sync routes", () => {
       expect(deleteRes.body.ack.seq).toBe(3);
       const tombstones = await RouteStuffModel.find({_id: doc._id, deleted: true});
       expect(tombstones).toHaveLength(1);
+    });
+
+    // Task 9.21: a create with no tenant value used to be written into a
+    // `tenant:undefined` stream that no client can subscribe to — stored but unsyncable.
+    it("rejects a tenant-scoped create whose scope field is absent", async () => {
+      const res = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeProjects",
+          data: {title: "no org"},
+          mutationId: "hm-tenant-missing",
+          operation: "create",
+        })
+        .expect(422);
+      expect(res.body.nack.code).toBe("validation");
+      expect(res.body.nack.message).toMatch(/missing tenant scope field "orgId"/);
+      expect(await RouteProjectModel.countDocuments({title: "no org"})).toBe(0);
+    });
+
+    it("accepts a tenant-scoped create carrying a membership scope value", async () => {
+      const res = await agent
+        .post("/sync/mutate")
+        .send({
+          collection: "routeProjects",
+          data: {orgId: "org1", title: "with org"},
+          mutationId: "hm-tenant-present",
+          operation: "create",
+        })
+        .expect(200);
+      expect(res.body.ack.mutationId).toBe("hm-tenant-present");
     });
 
     it("returns the recorded ack for a duplicate delivery without re-applying", async () => {
@@ -611,6 +663,36 @@ describe("sync routes", () => {
     });
   });
 
+  // Task 9.27(b): bad caller input on the repair-fetch endpoint used to come back as a 500
+  // (CastError) or, worse, a truncated 200 the client read as "those entities are gone".
+  describe("GET /sync/entities input validation (Task 9.27)", () => {
+    it("400s (not 500s) for ids that cannot be cast to the model's _id type", async () => {
+      const doc = await RouteStuffModel.create({name: "real", ownerId: notAdminId});
+      const res = await agent
+        .get(`/sync/entities?collection=routeStuff&ids=${doc._id},not-an-object-id`)
+        .expect(400);
+      expect(res.body.title).toMatch(/not-an-object-id/);
+    });
+
+    it("400s instead of silently truncating an over-cap id list", async () => {
+      const doc = await RouteStuffModel.create({name: "real", ownerId: notAdminId});
+      const ids = [
+        String(doc._id),
+        ...Array.from({length: MAX_ENTITY_FETCH}, () => new Types.ObjectId().toString()),
+      ];
+      const res = await agent
+        .get(`/sync/entities?collection=routeStuff&ids=${ids.join(",")}`)
+        .expect(400);
+      expect(res.body.title).toMatch(new RegExp(String(MAX_ENTITY_FETCH)));
+
+      // The cap itself still serves a full page.
+      const atCap = await agent
+        .get(`/sync/entities?collection=routeStuff&ids=${ids.slice(0, MAX_ENTITY_FETCH).join(",")}`)
+        .expect(200);
+      expect(atCap.body.entities.map((e: any) => e.id)).toEqual([String(doc._id)]);
+    });
+  });
+
   describe("GET /sync/key", () => {
     it("requires authentication", async () => {
       await server.get("/sync/key").expect(401);
@@ -627,6 +709,112 @@ describe("sync routes", () => {
       const notAdminKey = await agent.get("/sync/key").expect(200);
       const adminKey = await adminAgent.get("/sync/key").expect(200);
       expect(notAdminKey.body.keyMaterial).not.toBe(adminKey.body.keyMaterial);
+    });
+  });
+
+  // Task 9.19: a broadcast-scoped collection contributes no scope clause of its own, so
+  // `queryFilter` is the ONLY thing standing between one user's rows and another's. These
+  // tests pin sync's read paths to the same visible row set the REST list endpoint serves.
+  describe("modelRouter queryFilter parity (Task 9.19)", () => {
+    const bannerStream = "routeBanners|all";
+
+    /** Register the banner model for sync + REST with the given queryFilter and re-auth. */
+    const setupBanners = async (
+      queryFilter: ModelRouterOptions<any>["queryFilter"]
+    ): Promise<{bannerAgent: TestAgent}> => {
+      const bannerOptions = {...authedOptions, queryFilter} as ModelRouterOptions<any>;
+      clearSyncRegistry();
+      registerSync({
+        config: {scope: {type: "broadcast"}},
+        model: RouteBannerModel as any,
+        options: bannerOptions,
+        routePath: "/routeBanners",
+      });
+      const bannerApp = getBaseServer();
+      setupAuth(bannerApp as any, UserModel as any);
+      addAuthRoutes(bannerApp as any, UserModel as any);
+      bannerApp.use("/routeBanners", modelRouter(RouteBannerModel as any, bannerOptions));
+      new SyncApp().register(bannerApp);
+      return {bannerAgent: await authAsUser(bannerApp, "notAdmin")};
+    };
+
+    beforeEach(async () => {
+      await RouteBannerModel.collection.deleteMany({});
+    });
+
+    it("serves the same rows through the snapshot as the REST list endpoint", async () => {
+      const {bannerAgent} = await setupBanners(OwnerQueryFilter);
+      const mine = await RouteBannerModel.create({name: "mine", ownerId: notAdminId});
+      await RouteBannerModel.create({name: "theirs", ownerId: "someoneElse"});
+
+      const rest = await bannerAgent.get("/routeBanners").expect(200);
+      const restIds = rest.body.data.map((d: any) => String(d._id));
+      expect(restIds).toEqual([String(mine._id)]);
+
+      const snapshot = await bannerAgent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(bannerStream)}`)
+        .expect(200);
+      expect(snapshot.body.entities.map((e: any) => e.id)).toEqual(restIds);
+    });
+
+    it("filters GET /sync/entities by the queryFilter", async () => {
+      const {bannerAgent} = await setupBanners(OwnerQueryFilter);
+      const mine = await RouteBannerModel.create({name: "mine", ownerId: notAdminId});
+      const theirs = await RouteBannerModel.create({name: "theirs", ownerId: "someoneElse"});
+
+      const res = await bannerAgent
+        .get(`/sync/entities?collection=routeBanners&ids=${mine._id},${theirs._id}`)
+        .expect(200);
+      expect(res.body.entities).toHaveLength(1);
+      expect(res.body.entities[0].id).toBe(String(mine._id));
+    });
+
+    it("serves a terminal empty page when the queryFilter denies the caller", async () => {
+      const {bannerAgent} = await setupBanners(() => null);
+      const banner = await RouteBannerModel.create({name: "hidden", ownerId: notAdminId});
+
+      const snapshot = await bannerAgent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(bannerStream)}`)
+        .expect(200);
+      expect(snapshot.body.entities).toEqual([]);
+      expect(snapshot.body.hasMore).toBe(false);
+
+      const entities = await bannerAgent
+        .get(`/sync/entities?collection=routeBanners&ids=${banner._id}`)
+        .expect(200);
+      expect(entities.body.entities).toEqual([]);
+    });
+
+    it("denies the read (rather than serving everything) when the queryFilter throws", async () => {
+      const {bannerAgent} = await setupBanners(() => {
+        throw new Error("queryFilter exploded");
+      });
+      await RouteBannerModel.create({name: "hidden", ownerId: notAdminId});
+
+      const snapshot = await bannerAgent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(bannerStream)}`)
+        .expect(200);
+      expect(snapshot.body.entities).toEqual([]);
+    });
+
+    it("composes a snapshotFilter with the scope clause instead of dropping it", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {
+          scope: {type: "owner"},
+          snapshotFilter: () => ({name: "keep"}),
+        },
+        model: RouteStuffModel as any,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      await RouteStuffModel.create({name: "keep", ownerId: notAdminId});
+      await RouteStuffModel.create({name: "drop", ownerId: notAdminId});
+
+      const res = await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(`routeStuff|owner:${notAdminId}`)}`)
+        .expect(200);
+      expect(res.body.entities.map((e: any) => e.data.name)).toEqual(["keep"]);
     });
   });
 });

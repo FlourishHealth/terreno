@@ -7,7 +7,7 @@ import {APIError} from "../errors";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {setupDb} from "../tests";
-import {SyncCounter, SyncMutation} from "./models";
+import {computeStableFrontier, SyncCounter, SyncMutation} from "./models";
 import {
   applySyncMutation,
   applySyncMutationBatch,
@@ -560,7 +560,9 @@ describe("applySyncMutation", () => {
       expect(row?.status).toBe("conflicted");
       expect(row?.nackCode).toBe("conflict");
       expect(row?.resultSeq).toBe(2);
-      expect((row?.serverDoc as {name: string}).name).toBe("v2");
+      // Task 9.21: the ledger stores only the pointer, never document data.
+      expect(row?.resultId).toBe(doc._id.toString());
+      expect((row?.toObject() as unknown as Record<string, unknown>).serverDoc).toBeUndefined();
     });
 
     it("serializes the conflict server doc through the sync responseHandler", async () => {
@@ -616,6 +618,92 @@ describe("applySyncMutation", () => {
       expect(nack.serverDoc).toBeUndefined();
       const row = await SyncMutation.findOne({mutationId: "m-conflict-serialize-fail"});
       expect(row?.status).toBe("conflicted");
+    });
+
+    it("Task 9.13: two concurrent updates with the SAME baseVersion produce one ack and one conflict", async () => {
+      const doc = await MutStuffModel.create({name: "start", ownerId: owner.id});
+      const id = doc._id.toString();
+      const baseVersion = doc._syncSeq as number;
+
+      const [a, b] = await Promise.all([
+        applySyncMutation({
+          mutation: {
+            baseVersion,
+            collection: "mutStuff",
+            data: {name: "writer A"},
+            id,
+            mutationId: "m-race-a",
+            operation: "update",
+          },
+          user: owner,
+        }),
+        applySyncMutation({
+          mutation: {
+            baseVersion,
+            collection: "mutStuff",
+            data: {name: "writer B"},
+            id,
+            mutationId: "m-race-b",
+            operation: "update",
+          },
+          user: owner,
+        }),
+      ]);
+
+      const acks = [a, b].filter((outcome) => outcome.type === "ack");
+      const nacks = [a, b].filter((outcome) => outcome.type === "nack");
+      expect(acks).toHaveLength(1);
+      expect(nacks).toHaveLength(1);
+      if (nacks[0].type !== "nack") {
+        throw new Error("expected a nack");
+      }
+      expect(nacks[0].nack.code).toBe("conflict");
+
+      // The winner's edit survived: the loser never overwrote it.
+      const saved = await MutStuffModel.findById(id);
+      const winner = acks[0].type === "ack" ? acks[0].ack : undefined;
+      expect(saved?._syncSeq).toBe(winner?.seq);
+      expect(["writer A", "writer B"]).toContain(saved?.name ?? "");
+      // The conflict reports the CURRENT server state, not the loser's rejected edit.
+      expect((nacks[0].nack.serverDoc as {name: string} | undefined)?.name).toBe(saved?.name);
+      expect(nacks[0].nack.serverSeq).toBe(saved?._syncSeq);
+    });
+
+    it("Task 9.13: the version-conflicted loser releases its seq claim so the frontier still advances", async () => {
+      const doc = await MutStuffModel.create({name: "start", ownerId: owner.id});
+      const id = doc._id.toString();
+      const baseVersion = doc._syncSeq as number;
+      const stream = `mutStuff|owner:${owner.id}`;
+
+      await Promise.all([
+        applySyncMutation({
+          mutation: {
+            baseVersion,
+            collection: "mutStuff",
+            data: {name: "A"},
+            id,
+            mutationId: "m-frontier-a",
+            operation: "update",
+          },
+          user: owner,
+        }),
+        applySyncMutation({
+          mutation: {
+            baseVersion,
+            collection: "mutStuff",
+            data: {name: "B"},
+            id,
+            mutationId: "m-frontier-b",
+            operation: "update",
+          },
+          user: owner,
+        }),
+      ]);
+
+      const counter = await SyncCounter.findOne({stream});
+      expect(counter?.pending ?? []).toHaveLength(0);
+      // A claim released rather than stranded means the frontier reaches the head.
+      expect(await computeStableFrontier({stream})).toBe(counter?.seq as number);
     });
   });
 
@@ -817,10 +905,65 @@ describe("applySyncMutation", () => {
       );
       expect(nack.code).toBe("error");
       expect(nack.message).toBe("database exploded");
-      const row = await SyncMutation.findOne({mutationId: "m-error-1"});
+      // Task 9.18: an error-class outcome is NOT recorded — it is non-deterministic, so
+      // leaving it on the ledger would make the nack sticky for the 30-day TTL.
+      expect(await SyncMutation.countDocuments({mutationId: "m-error-1"})).toBe(0);
+    });
+
+    it("Task 9.18: a transient error-class failure re-executes on replay of the same mutationId", async () => {
+      let attempts = 0;
+      registerMutStuff({
+        options: {
+          ...ownerOptions,
+          preCreate: (body: unknown) => {
+            attempts += 1;
+            if (attempts === 1) {
+              throw new APIError({status: 500, title: "transient DB hiccup"});
+            }
+            return body;
+          },
+        } as unknown as ModelRouterOptions<any>,
+      });
+      const mutation: SyncMutateRequest = {
+        collection: "mutStuff",
+        data: {name: "retried", ownerId: owner.id},
+        mutationId: "m-transient-retry",
+        operation: "create",
+      };
+      const first = expectNack(await applySyncMutation({mutation, user: owner}));
+      expect(first.code).toBe("error");
+
+      // The client's durable outbox resends the SAME mutationId; it must genuinely re-run.
+      const ack = expectAck(await applySyncMutation({mutation, user: owner}));
+      expect(attempts).toBe(2);
+      const saved = await MutStuffModel.findById(ack.id);
+      expect(saved?.name).toBe("retried");
+      const row = await SyncMutation.findOne({mutationId: "m-transient-retry"});
+      expect(row?.status).toBe("applied");
+    });
+
+    it("Task 9.18: a deterministic validation failure stays recorded and is NOT re-executed", async () => {
+      let attempts = 0;
+      registerMutStuff({
+        options: {
+          ...ownerOptions,
+          preCreate: () => {
+            attempts += 1;
+            throw new APIError({status: 400, title: "name is not allowed"});
+          },
+        } as unknown as ModelRouterOptions<any>,
+      });
+      const mutation: SyncMutateRequest = {
+        collection: "mutStuff",
+        data: {name: "rejected", ownerId: owner.id},
+        mutationId: "m-terminal-sticky",
+        operation: "create",
+      };
+      expect(expectNack(await applySyncMutation({mutation, user: owner})).code).toBe("validation");
+      expect(expectNack(await applySyncMutation({mutation, user: owner})).code).toBe("validation");
+      expect(attempts).toBe(1);
+      const row = await SyncMutation.findOne({mutationId: "m-terminal-sticky"});
       expect(row?.status).toBe("failed");
-      expect(row?.nackCode).toBe("error");
-      expect(row?.error).toBe("database exploded");
     });
 
     it("nacks error when a non-APIError escapes the executor pipeline", async () => {
@@ -852,9 +995,8 @@ describe("applySyncMutation", () => {
       );
       expect(nack.code).toBe("error");
       expect(nack.message).toContain("permission crashed");
-      const row = await SyncMutation.findOne({mutationId: "m-plain-error"});
-      expect(row?.status).toBe("failed");
-      expect(row?.nackCode).toBe("error");
+      // Task 9.18: error-class outcomes release the claim rather than recording it.
+      expect(await SyncMutation.countDocuments({mutationId: "m-plain-error"})).toBe(0);
     });
   });
 });

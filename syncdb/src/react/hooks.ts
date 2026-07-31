@@ -10,7 +10,7 @@
  * (and RNW) compatible.
  */
 
-import {useCallback, useLayoutEffect, useRef, useSyncExternalStore} from "react";
+import {useCallback, useRef, useSyncExternalStore} from "react";
 
 import type {SyncDebugEvent, SyncDebugLog, SyncDebugStats} from "../debug/debugLog";
 import {listConflicts} from "../mutations/conflicts";
@@ -63,26 +63,24 @@ const useCachedExternalStore = <T>(
   const getSnapshot = useCallback((): T => {
     const revision = revisionRef.current;
     const cached = cacheRef.current;
-    if (cached && cached.select === select) {
-      // No store change since the last computation → reuse in O(1) (this is the
-      // common case: unrelated re-renders like a keystroke in a sibling input).
-      if (cached.revision === revision) {
-        return cached.value;
-      }
-      // The store changed: recompute, but keep the old reference when an
-      // equality check says the result is unchanged (e.g. a field update that
-      // did not alter id membership/order).
-      const next = select();
-      if (areEqual?.(cached.value, next)) {
-        cacheRef.current = {revision, select, value: cached.value};
-        return cached.value;
-      }
-      cacheRef.current = {revision, select, value: next};
-      return next;
+    if (cached && cached.select === select && cached.revision === revision) {
+      // Neither the store nor the selector changed since the last computation →
+      // reuse in O(1) (the common case: unrelated re-renders such as a keystroke
+      // in a sibling input).
+      return cached.value;
     }
-    const value = select();
-    cacheRef.current = {revision, select, value};
-    return value;
+    // Either the store changed or the selector did (a new collection/id, or
+    // changed query options — see useQuery). Recompute, but keep the previous
+    // reference when an equality check says the result is unchanged (e.g. a
+    // field update that did not alter id membership/order), which is also what
+    // keeps `useSyncExternalStore` from re-rendering on every recomputation.
+    const next = select();
+    if (cached && areEqual?.(cached.value, next)) {
+      cacheRef.current = {revision, select, value: cached.value};
+      return cached.value;
+    }
+    cacheRef.current = {revision, select, value: next};
+    return next;
   }, [select, areEqual]);
 
   return useSyncExternalStore(wrappedSubscribe, getSnapshot, getSnapshot);
@@ -158,29 +156,23 @@ export interface UseQueryOptions<TData> {
 }
 
 /**
- * Subscribe to a collection; returns the entities' decoded data (memoized by
- * structural equality) and re-renders on any table change. Tombstones are
- * excluded unless `includeDeleted` is set; filter and sort run in JS.
+ * Subscribe to a collection; returns the entities' decoded data and re-renders
+ * on any table change. Tombstones are excluded unless `includeDeleted` is set;
+ * filter and sort run in JS.
+ *
+ * `filter`/`sort`/`includeDeleted` are part of the selection identity (compared
+ * by reference), so a state-driven filter change is reflected on the very next
+ * render without waiting for a store write. The flip side is that a filter/sort
+ * passed as a fresh inline closure every render invalidates the snapshot cache
+ * every render — wrap them in `useCallback` (or hoist them) when the collection
+ * is large enough for the decode/filter/sort pass to matter.
  */
 export const useQuery = <TData = Record<string, unknown>>(
   collection: string,
   options?: UseQueryOptions<TData>
 ): TData[] => {
   const client = useSyncDbClient();
-
-  // Filter/sort callbacks are usually inline (fresh identity every render);
-  // reading them through a ref keeps `select` stable so the snapshot cache and
-  // the store subscription survive re-renders.
-  const optionsRef = useRef(options);
-  // E4: assigning a ref during render is a side effect against React's render
-  // model (StrictMode double-invokes render bodies specifically to surface
-  // this class of bug) — moved into a layout effect, which still runs before
-  // the browser paints (and before any synchronous store-listener callback
-  // triggered by an event between render and the passive-effect phase could
-  // observe a stale ref).
-  useLayoutEffect(() => {
-    optionsRef.current = options;
-  });
+  const {filter, includeDeleted, sort} = options ?? {};
 
   const subscribe = useCallback(
     (onChange: () => void): (() => void) => {
@@ -193,24 +185,20 @@ export const useQuery = <TData = Record<string, unknown>>(
   );
 
   const select = useCallback((): TData[] => {
-    const current = optionsRef.current;
-    const entities = client.store.listEntities<TData>({
-      collection,
-      includeDeleted: current?.includeDeleted,
-    });
+    const entities = client.store.listEntities<TData>({collection, includeDeleted});
     // E4: a corrupt/legacy row decodes to `data: null` (store.ts's decodeData
     // swallows JSON.parse failures and returns null rather than throwing) —
     // skip it here rather than letting it crash list consumers that assume
     // every row's data matches TData (e.g. destructuring a field off it).
     let results = entities.filter((entity) => entity.data !== null).map((entity) => entity.data);
-    if (current?.filter) {
-      results = results.filter(current.filter);
+    if (filter) {
+      results = results.filter(filter);
     }
-    if (current?.sort) {
-      results = [...results].sort(current.sort);
+    if (sort) {
+      results = [...results].sort(sort);
     }
     return results;
-  }, [client, collection]);
+  }, [client, collection, filter, includeDeleted, sort]);
 
   return useCachedExternalStore(subscribe, select);
 };
@@ -224,20 +212,18 @@ export const useQuery = <TData = Record<string, unknown>>(
  * stay fast without virtualization: rendering `ids.map(id => <Row id={id} />)`
  * means a field update (e.g. toggling one row) re-renders ONLY that row's
  * `useEntity` subscriber, and the list container re-renders only when rows are
- * added/removed/reordered. `filter`/`sort` run in JS over the decoded data (a
- * change-only cost — never on unrelated re-renders).
+ * added/removed/reordered. `filter`/`sort` run in JS over the decoded data and,
+ * as in `useQuery`, are part of the selection identity — a changed filter is
+ * reflected on the next render, and memoizing inline callbacks keeps the
+ * recomputation to store changes only. Either way the returned array keeps its
+ * identity whenever the resulting ids are unchanged.
  */
 export const useEntityIds = <TData = Record<string, unknown>>(
   collection: string,
   options?: UseQueryOptions<TData>
 ): string[] => {
   const client = useSyncDbClient();
-
-  const optionsRef = useRef(options);
-  // See useQuery: keep option reads out of the render body so `select` stays stable.
-  useLayoutEffect(() => {
-    optionsRef.current = options;
-  });
+  const {filter, includeDeleted, sort} = options ?? {};
 
   const subscribe = useCallback(
     (onChange: () => void): (() => void) => {
@@ -250,22 +236,16 @@ export const useEntityIds = <TData = Record<string, unknown>>(
   );
 
   const select = useCallback((): string[] => {
-    const current = optionsRef.current;
-    const entities = client.store.listEntities<TData>({
-      collection,
-      includeDeleted: current?.includeDeleted,
-    });
+    const entities = client.store.listEntities<TData>({collection, includeDeleted});
     let results = entities.filter((entity) => entity.data !== null);
-    if (current?.filter) {
-      const predicate = current.filter;
-      results = results.filter((entity) => predicate(entity.data));
+    if (filter) {
+      results = results.filter((entity) => filter(entity.data));
     }
-    if (current?.sort) {
-      const comparator = current.sort;
-      results = [...results].sort((a, b) => comparator(a.data, b.data));
+    if (sort) {
+      results = [...results].sort((a, b) => sort(a.data, b.data));
     }
     return results.map((entity) => entity.id);
-  }, [client, collection]);
+  }, [client, collection, filter, includeDeleted, sort]);
 
   return useCachedExternalStore(subscribe, select, idsEqual);
 };

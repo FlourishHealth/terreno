@@ -15,6 +15,10 @@
  * opens that modal scoped to that collection's conflicts. The modal UI itself is
  * fully owned by the app (e.g. ConflictSheet or a custom screen).
  *
+ * This component is the app's single conflict-sheet owner: which collection is open
+ * lives in SyncConflictsController's context, so other surfaces (the conflict badge in
+ * SyncTodosScreen's SyncStatusBanner) request an open instead of mounting a second sheet.
+ *
  * When a collection only has failed changes, the toast includes a Retry button
  * that calls `client.retryFailed` for each failed entity in that collection so
  * blocked successors can drain again. If retry can't run (offline / auth pause /
@@ -28,9 +32,10 @@ import {OUTBOX_TABLE} from "@terreno/syncdb";
 import {useConflicts, useSyncDbClient, useSyncStatus} from "@terreno/syncdb/react";
 import {useToast} from "@terreno/ui";
 import type React from "react";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef} from "react";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 
+import {useSyncConflictsController} from "./SyncConflictsController";
 import {
   failedEntityIdsForCollection,
   getRetryBlockedReason,
@@ -114,8 +119,13 @@ export const SyncHealthToast: React.FC<SyncHealthToastProps> = ({
   const isSyncDbReady = useSyncDbReady();
   const toast = useToast();
   const {conflicts, resolve} = useConflicts();
-  // Collection the modal is scoped to; null means closed.
-  const [modalCollection, setModalCollection] = useState<string | null>(null);
+  // Collection the modal is scoped to (null means closed), shared with every other
+  // surface that can open it so exactly one sheet is ever mounted.
+  const {
+    closeConflicts,
+    openConflicts: requestConflicts,
+    requestedCollection: modalCollection,
+  } = useSyncConflictsController();
   const canOpenConflicts = Boolean(renderConflictsModal);
 
   // Toast id → the signal key currently shown for it. Drives show/hide and lets
@@ -204,9 +214,9 @@ export const SyncHealthToast: React.FC<SyncHealthToastProps> = ({
       if (!canOpenConflicts) {
         return;
       }
-      setModalCollection(collection);
+      requestConflicts(collection);
     },
-    [canOpenConflicts]
+    [canOpenConflicts, requestConflicts]
   );
 
   const retryFailedForCollection = useCallback(
@@ -262,9 +272,7 @@ export const SyncHealthToast: React.FC<SyncHealthToastProps> = ({
   const retryFailedForCollectionRef = useRef(retryFailedForCollection);
   retryFailedForCollectionRef.current = retryFailedForCollection;
 
-  const closeConflictsModal = useCallback((): void => {
-    setModalCollection(null);
-  }, []);
+  const closeConflictsModal = closeConflicts;
 
   const signals = computeHealthSignals({
     canOpenConflicts,
@@ -346,9 +354,9 @@ export const SyncHealthToast: React.FC<SyncHealthToastProps> = ({
   // from another surface) so it does not linger empty over the app.
   useEffect(() => {
     if (modalCollection !== null && visibleConflicts.length === 0) {
-      setModalCollection(null);
+      closeConflicts();
     }
-  }, [modalCollection, visibleConflicts.length]);
+  }, [closeConflicts, modalCollection, visibleConflicts.length]);
 
   if (!renderConflictsModal) {
     return null;

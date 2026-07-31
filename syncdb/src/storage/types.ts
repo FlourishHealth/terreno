@@ -136,6 +136,8 @@ export interface ConflictRow {
   /** JSON-encoded canonical server entity data. */
   serverData: string;
   serverSeq: number;
+  /** True when the server side of the conflict is a tombstone (Task 9.12). */
+  serverDeleted?: boolean;
 }
 
 /** Decoded, application-facing entity record returned by store accessors. */

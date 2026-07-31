@@ -95,6 +95,30 @@ describe("SyncStatusBanner", () => {
     expect(onAuthRequired).toHaveBeenCalledTimes(1);
   });
 
+  it("gives the paused-for-auth indicator an explicit accessibilityRole of button", () => {
+    const {getByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={0} isOnline={true} paused="auth" queuedCount={0} />
+    );
+    expect(getByTestId("sync-paused-auth-indicator-clickable").props.accessibilityRole).toBe(
+      "button"
+    );
+  });
+
+  it("gives the failed badge an explicit accessibilityRole of button", () => {
+    const {getByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={0} failedCount={3} isOnline={true} queuedCount={0} />
+    );
+    expect(getByTestId("sync-failed-badge-clickable").props.accessibilityRole).toBe("button");
+  });
+
+  it("renders without the deprecated isSyncing prop", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <SyncStatusBanner conflictCount={0} isOnline={true} queuedCount={2} />
+    );
+    expect(getByTestId("sync-queued-count")).toBeTruthy();
+    expect(queryByTestId("sync-syncing-indicator")).toBeNull();
+  });
+
   it("hides the paused-for-auth indicator when not paused", () => {
     const {queryByTestId} = renderWithTheme(
       <SyncStatusBanner conflictCount={0} isOnline={true} isSyncing={false} queuedCount={0} />

@@ -236,7 +236,23 @@ export const startSessionRevalidationSweep = (
  * `getSocketUser`) or the decoded token carries no id (should not happen for a
  * socket that passed auth, but guarded defensively).
  */
-export const loadFullUserForSocket = async (
+export const loadFullUserForSocket = (
+  socket: Socket & {data: SocketDataBag},
+  userModel?: UserModel
+): Promise<void> => {
+  const load = loadFullUserIntoSocketData(socket, userModel);
+  // Task 9.21: publish the in-flight load so the sync handlers can await it. An event that
+  // arrived inside the handshake window would otherwise be authorized against the synthetic
+  // JWT-claim user — no `organizationIds`, so a tenant `sync:subscribe` resolved to no
+  // streams and the client sat connected but never received data.
+  if (socket.data) {
+    socket.data.fullUserLoad = load;
+  }
+  return load;
+};
+
+/** The actual load; separated so {@link loadFullUserForSocket} can publish the promise. */
+const loadFullUserIntoSocketData = async (
   socket: Socket & {data: SocketDataBag},
   userModel?: UserModel
 ): Promise<void> => {

@@ -13,7 +13,7 @@ import {
   SyncScopeMove,
 } from "./models";
 import {clearSyncRegistry, registerSync} from "./registry";
-import {syncPlugin} from "./syncSeqPlugin";
+import {SCOPE_MOVE_MARKER_ATTEMPTS, syncPlugin} from "./syncSeqPlugin";
 import type {SyncConfig} from "./types";
 
 /**
@@ -45,6 +45,40 @@ const frontierSchema = new Schema<FrontierStuff>({
 frontierSchema.plugin(isDeletedPlugin);
 frontierSchema.plugin(createdUpdatedPlugin);
 frontierSchema.plugin(syncPlugin);
+
+/** Set by a test to observe DB state inside `insertMany`'s claim -> commit window. */
+let insertManyProbe: (() => Promise<void>) | null = null;
+
+// Registered AFTER syncPlugin so it runs once the batch's seqs are claimed but before
+// the documents commit — the exact window a snapshot must not page across (C1).
+frontierSchema.pre("insertMany", async (next: any) => {
+  if (insertManyProbe) {
+    await insertManyProbe();
+  }
+  next();
+});
+
+// Registered AFTER syncPlugin so a save can fail once the seq (and, before the fix, the
+// scope-move marker) has been claimed — the phantom-tombstone window (C4).
+frontierSchema.pre("save", async function () {
+  if (this.name === "boom") {
+    throw new Error("simulated save failure");
+  }
+});
+
+/** Set by a Task 9.17 test to simulate the lease reaper clearing this write's claim. */
+let reapClaimsOnStream: string | null = null;
+
+// Registered AFTER syncPlugin so it runs once the seq is claimed AND registered but before
+// the document commits — exactly the window in which `computeStableFrontier` reaps a claim
+// it judges abandoned (a writer that stalled past the lease without crashing).
+frontierSchema.pre("save", async () => {
+  if (!reapClaimsOnStream) {
+    return;
+  }
+  await SyncCounter.updateOne({stream: reapClaimsOnStream}, {$set: {pending: []}});
+});
+
 const FrontierModel = model<FrontierStuff>("FrontierStuff", frontierSchema);
 
 const stubOptions = {
@@ -237,6 +271,46 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
     ).rejects.toThrow(/upsert:true is not supported/);
   });
 
+  // ── Task 9.17: reaped-lease detection ──────────────────────────────────────
+  it("Task 9.17: a claim reaped before its write committed re-stamps the doc above the frontier", async () => {
+    const stream = "frontierStuff|tenant:org1";
+    // Two prior writes so the frontier is well above 0 when the reap happens.
+    await FrontierModel.create({name: "first", orgId: "org1", ownerId: "u1"});
+    const doc = await FrontierModel.create({name: "second", orgId: "org1", ownerId: "u1"});
+    const frontierBefore = await computeStableFrontier({stream});
+
+    reapClaimsOnStream = stream;
+    try {
+      doc.name = "written while its claim was reaped";
+      await doc.save();
+    } finally {
+      reapClaimsOnStream = null;
+    }
+
+    const reStamped = doc._syncSeq as number;
+    // The doc was re-stamped ABOVE the frontier the reap let advance, so a catch-up
+    // cursor parked at that frontier still reaches it.
+    expect(reStamped).toBeGreaterThan(frontierBefore);
+    const persisted = await FrontierModel.findById(doc._id);
+    expect(persisted?._syncSeq).toBe(reStamped);
+    // The re-stamp's own claim was confirmed, so the frontier is back at the head.
+    const counter = await SyncCounter.findOne({stream});
+    expect(counter?.pending ?? []).toHaveLength(0);
+    expect(await computeStableFrontier({stream})).toBe(reStamped);
+  });
+
+  it("Task 9.17: a confirm that DOES clear its claim never re-stamps", async () => {
+    const stream = "frontierStuff|tenant:org1";
+    const doc = await FrontierModel.create({name: "normal", orgId: "org1", ownerId: "u1"});
+    const createSeq = doc._syncSeq as number;
+    doc.name = "renamed";
+    await doc.save();
+    // Exactly one new seq for one meaningful save — no extra re-stamp claim.
+    expect(doc._syncSeq).toBe(createSeq + 1);
+    const counter = await SyncCounter.findOne({stream});
+    expect(counter?.seq).toBe(createSeq + 1);
+  });
+
   it("C4: a scope move writes a durable SyncScopeMove marker on the OLD stream", async () => {
     const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
     doc.orgId = "org2";
@@ -264,6 +338,151 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
     // ...but the durable marker for the org1 -> org2 move survives.
     const markers = await SyncScopeMove.find({entityId: String(doc._id)});
     expect(markers.some((m) => m.fromStream === "frontierStuff|tenant:org1")).toBe(true);
+  });
+
+  it("C1: insertMany seqs stay unconfirmed until the docs commit", async () => {
+    const orgId = "orgInsertMany";
+    const stream = `frontierStuff|tenant:${orgId}`;
+    const observed: {committed: number; frontier: number}[] = [];
+    insertManyProbe = async () => {
+      observed.push({
+        committed: await FrontierModel.collection.countDocuments({orgId}),
+        frontier: await computeStableFrontier({stream}),
+      });
+    };
+    try {
+      await FrontierModel.insertMany([
+        {name: "im-1", orgId, ownerId: "u1"},
+        {name: "im-2", orgId, ownerId: "u1"},
+        {name: "im-3", orgId, ownerId: "u1"},
+      ]);
+    } finally {
+      insertManyProbe = null;
+    }
+    // Inside the claim -> commit window nothing has landed, so a snapshot cursor must not
+    // be allowed past seq 0 — otherwise the three docs land below every catch-up cursor.
+    expect(observed).toHaveLength(1);
+    expect(observed[0].committed).toBe(0);
+    expect(observed[0].frontier).toBe(0);
+    // Once the batch commits, the post hook confirms it and the frontier reaches the head.
+    expect(await computeStableFrontier({stream})).toBe(3);
+    const counter = await SyncCounter.findOne({stream});
+    expect(counter?.seq).toBe(3);
+    expect(counter?.pending ?? []).toHaveLength(0);
+  });
+
+  it("C1 property-style: insertMany batches never let the frontier pass an uncommitted batch", async () => {
+    for (let seed = 0; seed < 12; seed++) {
+      const orgId = `orgProp${seed}`;
+      const stream = `frontierStuff|tenant:${orgId}`;
+      // Half the seeds start from a non-zero head so the batch is not always the first claim.
+      if (seed % 2 === 0) {
+        await FrontierModel.create({name: "seeded", orgId, ownerId: "u1"});
+      }
+      const headBefore = (await SyncCounter.findOne({stream}))?.seq ?? 0;
+      const observed: number[] = [];
+      insertManyProbe = async () => {
+        observed.push(await computeStableFrontier({stream}));
+      };
+      const batchSize = 1 + (seed % 4);
+      try {
+        await FrontierModel.insertMany(
+          Array.from({length: batchSize}, (_v, index) => ({
+            name: `prop-${index}`,
+            orgId,
+            ownerId: "u1",
+          }))
+        );
+      } finally {
+        insertManyProbe = null;
+      }
+      // Mid-window the frontier never includes a seq the in-flight batch claimed.
+      expect(observed[0]).toBeLessThanOrEqual(headBefore);
+      // Committed: every stamped doc is at or below the frontier, so catch-up sees them all.
+      const frontier = await computeStableFrontier({stream});
+      const docs = await FrontierModel.find({orgId});
+      expect(docs).toHaveLength(batchSize + (seed % 2 === 0 ? 1 : 0));
+      for (const doc of docs) {
+        expect(doc._syncSeq as number).toBeLessThanOrEqual(frontier);
+      }
+    }
+  });
+
+  it("C4: a save that fails after the claim leaves no phantom SyncScopeMove marker", async () => {
+    const doc = await FrontierModel.create({name: "movable", orgId: "org1", ownerId: "u1"});
+    doc.orgId = "org2";
+    doc.name = "boom";
+    await expect(doc.save()).rejects.toThrow(/simulated save failure/);
+    // The move never committed, so an old-stream client must not be told to tombstone it.
+    expect(await SyncScopeMove.countDocuments({entityId: String(doc._id)})).toBe(0);
+    const reloaded = await FrontierModel.findById(doc._id);
+    expect(reloaded?.orgId).toBe("org1");
+  });
+
+  it("C4: a transient marker-write failure on the query path is retried until it lands", async () => {
+    const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
+    const originalCreate = SyncScopeMove.create.bind(SyncScopeMove);
+    let attempts = 0;
+    (SyncScopeMove as any).create = async (...args: any[]) => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("transient marker write failure");
+      }
+      return originalCreate(...(args as Parameters<typeof originalCreate>));
+    };
+    try {
+      await FrontierModel.updateOne({_id: doc._id}, {$set: {orgId: "org2"}});
+    } finally {
+      (SyncScopeMove as any).create = originalCreate;
+    }
+    expect(attempts).toBe(2);
+    const markers = await SyncScopeMove.find({entityId: String(doc._id)});
+    expect(markers).toHaveLength(1);
+    expect(markers[0].fromStream).toBe("frontierStuff|tenant:org1");
+  });
+
+  it("C4: a transient marker-write failure on the save path is retried until it lands", async () => {
+    const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
+    const originalCreate = SyncScopeMove.create.bind(SyncScopeMove);
+    let attempts = 0;
+    (SyncScopeMove as any).create = async (...args: any[]) => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("transient marker write failure");
+      }
+      return originalCreate(...(args as Parameters<typeof originalCreate>));
+    };
+    try {
+      doc.orgId = "org2";
+      await doc.save();
+    } finally {
+      (SyncScopeMove as any).create = originalCreate;
+    }
+    expect(attempts).toBe(2);
+    const markers = await SyncScopeMove.find({entityId: String(doc._id)});
+    expect(markers).toHaveLength(1);
+    expect(markers[0].fromStream).toBe("frontierStuff|tenant:org1");
+  });
+
+  it("C4: an exhausted marker-write retry is logged, never failing the committed write", async () => {
+    const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
+    const originalCreate = SyncScopeMove.create.bind(SyncScopeMove);
+    let attempts = 0;
+    (SyncScopeMove as any).create = async () => {
+      attempts += 1;
+      throw new Error("permanent marker write failure");
+    };
+    try {
+      // The document write already committed — a marker failure must not surface as an error.
+      await FrontierModel.updateOne({_id: doc._id}, {$set: {orgId: "org2"}});
+    } finally {
+      (SyncScopeMove as any).create = originalCreate;
+    }
+    expect(attempts).toBe(SCOPE_MOVE_MARKER_ATTEMPTS);
+    expect(await SyncScopeMove.countDocuments({entityId: String(doc._id)})).toBe(0);
+    // The move itself still landed.
+    const reloaded = await FrontierModel.findById(doc._id);
+    expect(reloaded?.orgId).toBe("org2");
   });
 
   it("C1 migration: pre-existing stamped docs (no pending) report frontier = head immediately", async () => {

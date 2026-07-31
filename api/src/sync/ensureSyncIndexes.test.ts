@@ -1,16 +1,26 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeEach, describe, expect, it} from "bun:test";
+import express from "express";
 import {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
+import {setupDb} from "../tests";
+import {SyncCounter, SyncKey, SyncMutation, SyncScopeMove} from "./models";
 import {clearSyncRegistry, ensureSyncIndexes, registerSync} from "./registry";
+import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
 /**
  * C8: `ensureSyncIndexes()` must fail server startup loudly when a snapshot-index
  * createIndex rejects (a missing index table-scans the snapshot/catch-up query under
  * load), and resolve quietly otherwise. Wired into TerrenoApp.start() before listen.
+ *
+ * Task 9.9: registering `SyncApp` also enqueues the bookkeeping-model indexes
+ * (`SyncCounter.stream` / `SyncMutation.mutationId` uniques, the scope-move lookups,
+ * `SyncKey.userId`), so they exist after startup without any manual `ensureIndexes()`
+ * call — without the unique indexes, duplicate mutation deliveries double-apply and the
+ * counter upsert race mints duplicate seqs.
  */
 
 interface IndexTodo extends IsDeleted {
@@ -76,5 +86,58 @@ describe("ensureSyncIndexes (C8)", () => {
     await expect(ensureSyncIndexes()).rejects.toThrow(
       /Failed to create sync snapshot index for EnsureIndexTodoFail/
     );
+  });
+});
+
+describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
+  /** Index key patterns each bookkeeping model must have after startup. */
+  const requiredIndexes = [
+    {isUnique: true, keys: {stream: 1}, model: SyncCounter},
+    {isUnique: true, keys: {mutationId: 1}, model: SyncMutation},
+    {isUnique: false, keys: {fromStream: 1, seq: 1}, model: SyncScopeMove},
+    {isUnique: false, keys: {collectionTag: 1, entityId: 1}, model: SyncScopeMove},
+    {isUnique: true, keys: {userId: 1}, model: SyncKey},
+  ];
+
+  beforeEach(async () => {
+    await setupDb();
+    clearSyncRegistry();
+  });
+
+  it("creates every bookkeeping index after SyncApp.register + ensureSyncIndexes", async () => {
+    // Start from a state with no bookkeeping indexes at all (as in a fresh deploy with
+    // autoIndex disabled), so only the startup wiring can put them back.
+    for (const {model: bookkeepingModel} of requiredIndexes) {
+      await bookkeepingModel.collection.dropIndexes().catch(() => {});
+    }
+
+    new SyncApp().register(express());
+    await ensureSyncIndexes();
+
+    for (const {isUnique, keys, model: bookkeepingModel} of requiredIndexes) {
+      const indexes = (await bookkeepingModel.collection.indexes()) as {
+        key: Record<string, number>;
+        unique?: boolean;
+      }[];
+      const match = indexes.find((index) => JSON.stringify(index.key) === JSON.stringify(keys));
+      const label = `${bookkeepingModel.modelName} ${JSON.stringify(keys)}`;
+      expect(match ? label : `missing index: ${label}`).toBe(label);
+      expect(Boolean(match?.unique)).toBe(isUnique);
+    }
+  });
+
+  it("rejects with an actionable error when a bookkeeping index build fails", async () => {
+    const originalEnsure = SyncMutation.ensureIndexes.bind(SyncMutation);
+    (SyncMutation as any).ensureIndexes = async () => {
+      throw new Error("boom: mutationId index build failed");
+    };
+    try {
+      new SyncApp().register(express());
+      await expect(ensureSyncIndexes()).rejects.toThrow(
+        /Failed to ensure sync indexes for SyncMutation/
+      );
+    } finally {
+      (SyncMutation as any).ensureIndexes = originalEnsure;
+    }
   });
 });

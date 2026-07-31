@@ -107,6 +107,40 @@ describe("Toast", () => {
     expect(handleClick).toHaveBeenCalled();
   });
 
+  it("suffixes the action button testID with the toast id so stacked toasts do not collide", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <>
+        <Toast
+          buttonOnClick={() => {}}
+          buttonText="Resolve"
+          id="sync-conflicts-todos"
+          persistent
+          title="Todos need attention"
+          variant="warning"
+        />
+        <Toast
+          buttonOnClick={() => {}}
+          buttonText="Retry"
+          id="sync-failed-notes"
+          persistent
+          title="Notes need attention"
+          variant="warning"
+        />
+      </>
+    );
+    // getByTestId throws on multiple matches — the shared testID would fail here.
+    expect(getByTestId("toast-action-button-sync-conflicts-todos")).toBeTruthy();
+    expect(getByTestId("toast-action-button-sync-failed-notes")).toBeTruthy();
+    expect(queryByTestId("toast-action-button")).toBeNull();
+  });
+
+  it("gives the action button an accessibilityRole of button", () => {
+    const {getByTestId} = renderWithTheme(
+      <Toast buttonOnClick={() => {}} buttonText="Resolve" persistent title="Sync" />
+    );
+    expect(getByTestId("toast-action-button").props.accessibilityRole).toBe("button");
+  });
+
   it("does not render action button when only buttonText is provided", () => {
     const {queryByTestId} = renderWithTheme(
       <Toast buttonText="Resolve" title="Sync needs attention" variant="warning" />

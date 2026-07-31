@@ -285,10 +285,10 @@ describe("ConflictSheet", () => {
     expect(within(serverColumn).getByTestId("conflict-use-server-button-m-1")).toBeTruthy();
   });
 
-  it("calls onResolve with keepMine and dismisses when resolving the last conflict", async () => {
+  it("calls onResolve with keepMine but keeps the sheet open until the conflict clears", async () => {
     const onResolve = mock(() => {});
     const onDismiss = mock(() => {});
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, rerender} = renderWithTheme(
       <ConflictSheet
         conflicts={[buildConflict()]}
         onDismiss={onDismiss}
@@ -300,7 +300,40 @@ describe("ConflictSheet", () => {
     await flush();
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toEqual({mutationId: "m-1", strategy: "keepMine"});
+    // Resolution has not landed yet (async in the data layer) — a failed resolve must
+    // leave the conflict on screen rather than closing over it.
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    rerender(
+      <ConflictSheet conflicts={[]} onDismiss={onDismiss} onResolve={onResolve} visible={true} />
+    );
+    await flush();
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the sheet open when a resolution never lands", async () => {
+    const onDismiss = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <ConflictSheet
+        conflicts={[buildConflict()]}
+        onDismiss={onDismiss}
+        onResolve={() => {}}
+        visible={true}
+      />
+    );
+    fireEvent.press(getByTestId("conflict-use-server-button-m-1"));
+    await flush();
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(getByTestId("conflict-item-todo-1")).toBeTruthy();
+  });
+
+  it("does not dismiss a sheet opened with no conflicts at all", async () => {
+    const onDismiss = mock(() => {});
+    renderWithTheme(
+      <ConflictSheet conflicts={[]} onDismiss={onDismiss} onResolve={() => {}} visible={true} />
+    );
+    await flush();
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 
   it("calls onResolve with useServer without dismissing when other conflicts remain", async () => {
@@ -321,10 +354,10 @@ describe("ConflictSheet", () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
-  it("uses the server version for every conflict and dismisses after confirmation", async () => {
+  it("uses the server version for every conflict after confirmation, dismissing once they clear", async () => {
     const onResolve = mock(() => {});
     const onDismiss = mock(() => {});
-    const {findByText, getByTestId} = renderWithTheme(
+    const {findByText, getByTestId, rerender} = renderWithTheme(
       <ConflictSheet
         conflicts={[buildConflict(), buildConflict({entityId: "todo-2", mutationId: "m-2"})]}
         onDismiss={onDismiss}
@@ -342,13 +375,19 @@ describe("ConflictSheet", () => {
       {mutationId: "m-1", strategy: "useServer"},
       {mutationId: "m-2", strategy: "useServer"},
     ]);
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    rerender(
+      <ConflictSheet conflicts={[]} onDismiss={onDismiss} onResolve={onResolve} visible={true} />
+    );
+    await flush();
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the local version for every conflict and dismisses after confirmation", async () => {
+  it("keeps the local version for every conflict after confirmation, dismissing once they clear", async () => {
     const onResolve = mock(() => {});
     const onDismiss = mock(() => {});
-    const {findByText, getByTestId} = renderWithTheme(
+    const {findByText, getByTestId, rerender} = renderWithTheme(
       <ConflictSheet
         conflicts={[buildConflict(), buildConflict({entityId: "todo-2", mutationId: "m-2"})]}
         onDismiss={onDismiss}
@@ -366,6 +405,12 @@ describe("ConflictSheet", () => {
       {mutationId: "m-1", strategy: "keepMine"},
       {mutationId: "m-2", strategy: "keepMine"},
     ]);
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    rerender(
+      <ConflictSheet conflicts={[]} onDismiss={onDismiss} onResolve={onResolve} visible={true} />
+    );
+    await flush();
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 

@@ -1,4 +1,4 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
 import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
 import type {Api} from "@reduxjs/toolkit/query/react";
 
@@ -9,6 +9,9 @@ import {
   shouldReplayQueuedMutation,
 } from "./offlineMiddleware";
 import {type OfflineState, type QueuedMutation, selectOfflineQueue} from "./offlineSlice";
+
+// Force IsWeb=true regardless of load order with the native test files.
+mock.module("./platform", () => ({IsWeb: true}));
 
 interface QueryEntry {
   data?: {data: Record<string, unknown>[]};

@@ -17,6 +17,7 @@ import {
   findSyncEntryByModelName,
   getSyncRegistry,
   registerSync,
+  warnOnSyncScopesWithoutUserModel,
 } from "./registry";
 import {getScopeField, resolveStreamForDoc, streamForScopeValue} from "./streams";
 import {syncPlugin} from "./syncSeqPlugin";
@@ -195,6 +196,34 @@ describe("registerSync validation", () => {
     expect(getSyncRegistry()).toHaveLength(1);
     expect(findSyncEntryByModelName("SyncStuff")?.collectionTag).toBe("syncStuff");
     expect(findSyncEntryByCollectionTag("syncStuff")?.modelName).toBe("SyncStuff");
+  });
+
+  it("makes bulkWrite throw on the registered model (it bypasses every plugin guard)", () => {
+    registerStuff();
+    expect(() =>
+      (SyncStuffModel as any).bulkWrite([
+        {updateOne: {filter: {_id: "any"}, update: {$set: {name: "nope"}}}},
+      ])
+    ).toThrow(/bulkWrite is not supported on sync-enabled model SyncStuff/);
+  });
+
+  // Task 9.21: tenant/custom scopes can only be resolved from the full user document, so a
+  // socket layer without a userModel silently serves empty tenant streams.
+  describe("warnOnSyncScopesWithoutUserModel", () => {
+    it("names tenant-scoped collections when no userModel is configured", () => {
+      registerStuff({scope: {field: "orgId", type: "tenant"}});
+      expect(warnOnSyncScopesWithoutUserModel({})).toEqual(["syncStuff"]);
+    });
+
+    it("stays quiet once a userModel is configured", () => {
+      registerStuff({scope: {field: "orgId", type: "tenant"}});
+      expect(warnOnSyncScopesWithoutUserModel({userModel: {} as never})).toEqual([]);
+    });
+
+    it("stays quiet for owner-scoped collections, which need no membership fields", () => {
+      registerStuff();
+      expect(warnOnSyncScopesWithoutUserModel({})).toEqual([]);
+    });
   });
 });
 

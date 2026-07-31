@@ -86,6 +86,16 @@ const enforceWriteScope = async ({
   }
   // Tenant: the incoming value (create) or the changed value (update) must be a membership.
   if (incoming === undefined || incoming === null) {
+    // Task 9.21: an absent tenant value on CREATE used to pass straight through, landing
+    // the document in a `tenant:undefined` stream that no client can ever subscribe to —
+    // written, invisible, and never synced. Reject it; an update that simply does not
+    // touch the scope field is still fine.
+    if (operation === "create") {
+      throw new APIError({
+        status: 400,
+        title: `Sync create on ${entry.collectionTag} is missing tenant scope field "${field}"`,
+      });
+    }
     return;
   }
   if (!scopeResolver) {
@@ -157,8 +167,59 @@ const makeNack = (nack: SyncNack): SyncMutationOutcome => {
   return {nack, type: "nack"};
 };
 
-/** Reconstruct the outcome recorded on a finalized ledger row; undefined while pending. */
-const outcomeFromLedgerRow = (row: SyncMutationDocument): SyncMutationOutcome | undefined => {
+/**
+ * Load a document by id INCLUDING tombstones (`isDeletedPlugin` would otherwise filter a
+ * soft-deleted doc out) and serialize it for a sync payload. Returns undefined when the
+ * document is gone, the id does not cast, or the consumer's serializer throws — callers
+ * treat a missing `serverDoc` as "seq only", which is what the client needs to re-base.
+ */
+const serializeLiveDoc = async ({
+  entry,
+  id,
+  request,
+}: {
+  entry: SyncRegistryEntry;
+  id: string | undefined;
+  request: express.Request;
+}): Promise<unknown> => {
+  if (!id) {
+    return undefined;
+  }
+  try {
+    const model = mongoose.model(entry.modelName);
+    const found = await model.find({_id: id, deleted: {$in: [true, false]}}).limit(1);
+    const doc = found[0] as mongoose.Document | undefined;
+    if (!doc) {
+      return undefined;
+    }
+    return await serializeSyncDoc({doc, entry, req: request});
+  } catch (error: unknown) {
+    logger.warn("[sync] Failed to serialize the server doc for a recorded conflict", {
+      collection: entry.collectionTag,
+      error: String(error),
+      id,
+    });
+    return undefined;
+  }
+};
+
+/**
+ * Reconstruct the outcome recorded on a finalized ledger row; undefined while pending.
+ *
+ * Task 9.21: the row stores no document data, so a recorded `conflicted` outcome
+ * re-serializes the LIVE document from `resultId`. Besides keeping PHI out of
+ * `syncmutations` for the ledger's 30-day TTL, this hands the client current server
+ * state rather than a snapshot frozen at first-conflict time.
+ */
+const outcomeFromLedgerRow = async ({
+  entry,
+  request,
+  row,
+}: {
+  entry: SyncRegistryEntry;
+  request: express.Request;
+  row: SyncMutationDocument;
+}): Promise<SyncMutationOutcome | undefined> => {
   if (row.status === "applied") {
     return {
       ack: {id: row.resultId ?? "", mutationId: row.mutationId, seq: row.resultSeq ?? 0},
@@ -170,7 +231,7 @@ const outcomeFromLedgerRow = (row: SyncMutationDocument): SyncMutationOutcome | 
       code: "conflict",
       message: row.error,
       mutationId: row.mutationId,
-      serverDoc: row.serverDoc,
+      serverDoc: await serializeLiveDoc({entry, id: row.resultId, request}),
       serverSeq: row.resultSeq,
     });
   }
@@ -214,11 +275,15 @@ const takeoverStaleLease = async (
  * owning delivery will still finalize it.
  */
 const waitForRecordedOutcome = async ({
+  entry,
   mutationId,
+  request,
   user,
   onTakeover,
 }: {
+  entry: SyncRegistryEntry;
   mutationId: string;
+  request: express.Request;
   user: User;
   /** Invoked with the re-claimed row when a stale lease is taken over. */
   onTakeover: (row: SyncMutationDocument) => Promise<SyncMutationOutcome>;
@@ -233,7 +298,7 @@ const waitForRecordedOutcome = async ({
           mutationId,
         });
       }
-      const outcome = outcomeFromLedgerRow(row);
+      const outcome = await outcomeFromLedgerRow({entry, request, row});
       if (outcome) {
         return outcome;
       }
@@ -343,14 +408,20 @@ const finalizeNack = async ({
         mutationId: mutation.mutationId,
       });
     }
+    // Task 9.21: record only the pointer ({resultId, resultSeq}), never `serverDoc` —
+    // a duplicate delivery re-serializes the live document from `resultId`.
+    const resultId =
+      (error.doc as {_id?: unknown} | undefined)?._id !== undefined
+        ? String((error.doc as {_id: unknown})._id)
+        : mutation.id;
     await SyncMutation.updateOne(
       {_id: claimedId},
       {
         $set: {
           error: error.title,
           nackCode: "conflict",
+          resultId,
           resultSeq: error.serverSeq,
-          serverDoc,
           status: "conflicted",
         },
       }
@@ -372,6 +443,15 @@ const finalizeNack = async ({
       error: message,
       mutationId: mutation.mutationId,
     });
+    // Task 9.18: an `error`-class failure is non-deterministic (DB hiccup, replica
+    // step-down) — it is not a verdict on the mutation. Recording it `failed` would make
+    // it sticky for the ledger's 30-day TTL, so every replay of the same mutationId reads
+    // the nack back and the client's durable outbox retries forever without the mutation
+    // ever re-executing. Release the claim instead: the next delivery re-claims the
+    // mutationId and genuinely re-runs the write. Deterministic outcomes
+    // (validation/unauthorized/conflict) stay recorded — replaying those must not re-run.
+    await SyncMutation.deleteOne({_id: claimedId});
+    return makeNack({code, message, mutationId: mutation.mutationId});
   }
   await SyncMutation.updateOne(
     {_id: claimedId},
@@ -450,9 +530,12 @@ const applyClaimedMutation = async ({
   isLeaseTakeover?: boolean;
 }): Promise<SyncMutationOutcome> => {
   const mutationId = mutation.mutationId;
-  const model = mongoose.model(entry.modelName);
 
   try {
+    // Task 9.18: resolving the model must be INSIDE the try — a MissingSchemaError thrown
+    // here would escape without finalizing the claimed row, wedging the mutationId
+    // `pending` for the whole lease window instead of nacking it.
+    const model = mongoose.model(entry.modelName);
     // C6 (M6): sync-boundary write-scope backstop before any write pipeline runs.
     await enforceWriteScope({
       data: mutation.data,
@@ -660,6 +743,7 @@ export const applySyncMutation = async ({
       throw error;
     }
     return waitForRecordedOutcome({
+      entry,
       mutationId,
       onTakeover: (takenOver) =>
         applyClaimedMutation({
@@ -671,6 +755,7 @@ export const applySyncMutation = async ({
           scopeResolver,
           user,
         }),
+      request,
       user,
     });
   }

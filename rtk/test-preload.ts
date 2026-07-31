@@ -34,5 +34,6 @@ mock.module("expo-constants", () => ({
 }));
 
 mock.module("expo-network", () => ({
+  addNetworkStateListener: () => ({remove: () => {}}),
   getNetworkStateAsync: async () => ({isConnected: true}),
 }));
