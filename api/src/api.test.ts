@@ -514,7 +514,8 @@ describe("@terreno/api", () => {
       server = supertest(app);
 
       const res = await server.get("/food?calories=100").expect(400);
-      expect(res.body.title).toContain("calories is not allowed as a query param");
+      expect(res.body.title).toBe("Query parameter not allowed");
+      expect(res.body.detail).toContain("calories is not allowed as a query param");
     });
 
     it("queryFilter returning null returns empty array", async () => {
@@ -626,8 +627,9 @@ describe("@terreno/api", () => {
       server = supertest(app);
 
       const res = await server.post("/required").send({about: "test"}).expect(400);
-      expect(res.body.title).toBe("Create error");
+      expect(res.body.title).toBe("Validation failed");
       expect(res.body.detail).toContain("Required");
+      expect(res.body.meta.fields.name).toContain("required");
     });
 
     it("preDelete hook throwing APIError is re-thrown", async () => {
@@ -1214,7 +1216,8 @@ describe("@terreno/api", () => {
       agent = await authAsUser(app, "notAdmin");
 
       const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(405);
-      expect(res.body.title).toContain("Access to PATCH");
+      expect(res.body.title).toBe("Access denied");
+      expect(res.body.detail).toContain("Access to PATCH");
     });
 
     it("array operation on non-existent document returns 404", async () => {
@@ -1236,7 +1239,8 @@ describe("@terreno/api", () => {
 
       const fakeId = "000000000000000000000000";
       const res = await agent.post(`/food/${fakeId}/tags`).send({tags: "organic"}).expect(404);
-      expect(res.body.title).toContain("Could not find document to PATCH");
+      expect(res.body.title).toBe("Document not found");
+      expect(res.body.detail).toContain("Could not find document to PATCH");
     });
 
     it("array operation denied when user cannot update specific doc", async () => {
@@ -1259,7 +1263,8 @@ describe("@terreno/api", () => {
       agent = await authAsUser(app, "notAdmin");
 
       const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
-      expect(res.body.title).toContain("Patch not allowed");
+      expect(res.body.title).toBe("Update not allowed");
+      expect(res.body.detail).toContain("Patch not allowed");
     });
 
     it("array operation transform error is handled", async () => {
@@ -1381,8 +1386,9 @@ describe("@terreno/api", () => {
 
       // Send without required 'name' field
       const res = await server.post("/required").send({about: "test"}).expect(400);
-      expect(res.body.title).toBe("Create error");
+      expect(res.body.title).toBe("Validation failed");
       expect(res.body.detail).toContain("Required");
+      expect(res.body.meta.fields.name).toContain("required");
     });
 
     it("preDelete hook throwing APIError is re-thrown", async () => {
