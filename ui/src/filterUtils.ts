@@ -194,8 +194,9 @@ export const getEmptyFilterValue = (definition: FilterDefinition): FilterFieldVa
 };
 
 /**
- * Reset every field owned by `filters`. Keys the caller stores for other purposes are
- * left untouched.
+ * Reset every clearable field owned by `filters`. Keys the caller stores for other purposes
+ * are left untouched, and disabled filters are preserved so clear-all cannot change a value
+ * the user is not allowed to edit.
  */
 export const clearFilterValues = (input: {
   filters: FilterDefinition[];
@@ -203,6 +204,9 @@ export const clearFilterValues = (input: {
 }): FilterValues => {
   const next: FilterValues = {...input.values};
   for (const definition of input.filters) {
+    if (definition.disabled) {
+      continue;
+    }
     next[definition.field] = getEmptyFilterValue(definition);
   }
   return next;

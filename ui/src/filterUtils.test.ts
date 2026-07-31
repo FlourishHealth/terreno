@@ -201,6 +201,14 @@ describe("clearFilterValues", () => {
     const cleared = clearFilterValues({filters: [textFilter], values: {page: "2", title: "milk"}});
     expect(cleared.page).toBe("2");
   });
+
+  it("preserves a disabled filter, which the user cannot edit anyway", () => {
+    const cleared = clearFilterValues({
+      filters: [{...choiceFilter, disabled: true}, textFilter],
+      values: {status: "open", title: "milk"},
+    });
+    expect(cleared).toEqual({status: "open", title: ""});
+  });
 });
 
 describe("clearFilterField", () => {

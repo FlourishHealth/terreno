@@ -3264,7 +3264,9 @@ export interface FilterOption {
   label: string;
 
   /**
-   * The value written into `FilterValues` when this option is selected.
+   * The value written into `FilterValues` when this option is selected. The empty string is
+   * reserved: it is how `Filter` represents "no selection", so an option cannot use it as a
+   * meaningful value.
    */
   value: string;
 }
@@ -3288,7 +3290,8 @@ interface FilterDefinitionBase {
   helperText?: string;
 
   /**
-   * When true, the control is read-only and its chip cannot be dismissed.
+   * When true, the control is read-only, its chip cannot be dismissed, and clear-all leaves
+   * its value alone.
    * @default false
    */
   disabled?: boolean;

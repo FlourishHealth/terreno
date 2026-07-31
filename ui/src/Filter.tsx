@@ -79,12 +79,21 @@ export const Filter: FC<FilterProps> = ({
     return getActiveFilters({filters, values});
   }, [filters, values]);
 
+  const definitionsByField = useMemo(() => {
+    return new Map(filters.map((definition) => [definition.field, definition]));
+  }, [filters]);
+
   const isInline = layout === "inline";
   const areControlsVisible = !collapsible || isExpanded;
   const hasSearch = Boolean(onSearchChange);
   // Search has no chip, but it still constrains results, so clear-all has to offer to reset it.
+  // Disabled filters are deliberately excluded: clear-all cannot touch them, so offering the
+  // action when they are the only thing applied would make it a no-op.
   const hasActiveSearch = hasSearch && Boolean(searchValue?.trim());
-  const hasActiveConstraints = activeFilters.length > 0 || hasActiveSearch;
+  const hasClearableFilters = activeFilters.some(
+    (activeFilter) => !definitionsByField.get(activeFilter.field)?.disabled
+  );
+  const hasActiveConstraints = hasClearableFilters || hasActiveSearch;
 
   // Box maps an explicit `flex` of anything but grow/shrink to `flex: 0`, which zeroes the
   // flex basis and collapses a column child's height. Stacked wrappers therefore omit `flex`
@@ -126,13 +135,13 @@ export const Filter: FC<FilterProps> = ({
 
   const handleDismissChip = useCallback(
     (field: string, optionValue?: string) => {
-      const definition = filters.find((entry) => entry.field === field);
-      if (!definition) {
+      const definition = definitionsByField.get(field);
+      if (!definition || definition.disabled) {
         return;
       }
       onChange(clearFilterField({definition, optionValue, values}));
     },
-    [filters, onChange, values]
+    [definitionsByField, onChange, values]
   );
 
   const renderControl = (definition: FilterDefinition): ReactElement | null => {
@@ -339,8 +348,15 @@ export const Filter: FC<FilterProps> = ({
                 </Pressable>
               )}
               {Boolean(collapsible) && (
+                // react-native-web ignores accessibilityState and only forwards flat aria-*
+                // props, so the disclosure state needs both to be announced on web and native.
                 <Pressable
+                  accessibilityLabel={
+                    title ? `${isExpanded ? "Hide" : "Show"} ${title}` : undefined
+                  }
                   accessibilityRole="button"
+                  accessibilityState={{expanded: isExpanded}}
+                  aria-expanded={isExpanded}
                   onPress={handleToggleExpanded}
                   testID={resolveTestID(testID, "toggle")}
                 >
@@ -374,7 +390,7 @@ export const Filter: FC<FilterProps> = ({
                 : activeFilter.field;
               return (
                 <FilterChip
-                  disabled={filters.find((entry) => entry.field === activeFilter.field)?.disabled}
+                  disabled={definitionsByField.get(activeFilter.field)?.disabled}
                   key={chipKey}
                   label={activeFilter.label}
                   onDismiss={() => handleDismissChip(activeFilter.field, activeFilter.optionValue)}

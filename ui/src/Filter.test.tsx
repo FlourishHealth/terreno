@@ -237,6 +237,37 @@ describe("Filter", () => {
       expect(queryByTestId("f.clearAll")).toBeNull();
     });
 
+    // A disabled filter's control is read-only and its chip has no dismiss button, so
+    // clear-all must not be the one path that changes it.
+    it("leaves a disabled filter's value alone", () => {
+      const onChange = mock((_values: FilterValues) => {});
+      const withDisabled: FilterDefinition[] = [
+        {disabled: true, field: "completed", kind: "boolean", label: "Completed"},
+        {field: "title", kind: "text", label: "Title"},
+      ];
+      const {getByTestId} = renderWithTheme(
+        <Filter
+          filters={withDisabled}
+          onChange={onChange}
+          testID="f"
+          values={{completed: true, title: "milk"}}
+        />
+      );
+
+      fireEvent.press(getByTestId("f.clearAll"));
+      expect(onChange).toHaveBeenCalledWith({completed: true, title: ""});
+    });
+
+    it("stays hidden when only a disabled filter is applied", () => {
+      const withDisabled: FilterDefinition[] = [
+        {disabled: true, field: "completed", kind: "boolean", label: "Completed"},
+      ];
+      const {queryByTestId} = renderWithTheme(
+        <Filter filters={withDisabled} onChange={() => {}} testID="f" values={{completed: true}} />
+      );
+      expect(queryByTestId("f.clearAll")).toBeNull();
+    });
+
     // Search has no chip, so keying the action off chips alone left a searching user with no
     // way to reset.
     it("appears when search is the only active constraint", () => {
@@ -337,6 +368,21 @@ describe("Filter", () => {
 
       fireEvent.press(getByTestId("f.toggle"));
       expect(queryByTestId("f.filter.title")).not.toBeNull();
+    });
+
+    // react-native-web drops accessibilityState, so the flat aria prop is what actually
+    // reaches the DOM and announces the disclosure state.
+    it("announces its expanded state", () => {
+      const {getByTestId} = renderWithTheme(
+        <Filter collapsible filters={filters} onChange={() => {}} testID="f" values={{}} />
+      );
+      const toggle = getByTestId("f.toggle");
+      expect(toggle.props["aria-expanded"]).toBe(true);
+      expect(toggle.props.accessibilityState.expanded).toBe(true);
+
+      fireEvent.press(toggle);
+      expect(getByTestId("f.toggle").props["aria-expanded"]).toBe(false);
+      expect(getByTestId("f.toggle").props.accessibilityState.expanded).toBe(false);
     });
 
     it("starts collapsed when defaultExpanded is false", () => {
