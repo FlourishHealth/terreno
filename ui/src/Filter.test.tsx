@@ -145,6 +145,19 @@ describe("Filter", () => {
       expect(onChange).toHaveBeenCalledWith({tags: ["followUp"]});
     });
 
+    it("gives sibling multiChoice chips distinct accessible dismiss names", () => {
+      const {getByLabelText} = renderWithTheme(
+        <Filter
+          filters={filters}
+          onChange={() => {}}
+          testID="f"
+          values={{tags: ["urgent", "followUp"]}}
+        />
+      );
+      expect(getByLabelText("Remove Tags filter: Urgent")).toBeTruthy();
+      expect(getByLabelText("Remove Tags filter: Follow up")).toBeTruthy();
+    });
+
     it("hides the chip row when showActiveFilters is false", () => {
       const {queryByTestId} = renderWithTheme(
         <Filter
@@ -222,6 +235,60 @@ describe("Filter", () => {
         />
       );
       expect(queryByTestId("f.clearAll")).toBeNull();
+    });
+
+    // Search has no chip, so keying the action off chips alone left a searching user with no
+    // way to reset.
+    it("appears when search is the only active constraint", () => {
+      const {queryByTestId} = renderWithTheme(
+        <Filter
+          filters={filters}
+          onChange={() => {}}
+          onSearchChange={() => {}}
+          searchValue="milk"
+          testID="f"
+          values={{}}
+        />
+      );
+      expect(queryByTestId("f.clearAll")).not.toBeNull();
+    });
+
+    it("stays hidden for a blank search", () => {
+      const {queryByTestId} = renderWithTheme(
+        <Filter
+          filters={filters}
+          onChange={() => {}}
+          onSearchChange={() => {}}
+          searchValue="   "
+          testID="f"
+          values={{}}
+        />
+      );
+      expect(queryByTestId("f.clearAll")).toBeNull();
+    });
+
+    it("resets the search input alongside the filters", () => {
+      const onChange = mock((_values: FilterValues) => {});
+      const onSearchChange = mock((_value: string) => {});
+      const {getByTestId} = renderWithTheme(
+        <Filter
+          filters={filters}
+          onChange={onChange}
+          onSearchChange={onSearchChange}
+          searchValue="milk"
+          testID="f"
+          values={{status: "open"}}
+        />
+      );
+
+      fireEvent.press(getByTestId("f.clearAll"));
+      expect(onSearchChange).toHaveBeenCalledWith("");
+      expect(onChange).toHaveBeenCalledWith({
+        completed: undefined,
+        status: "",
+        tags: [],
+        title: "",
+      });
     });
   });
 

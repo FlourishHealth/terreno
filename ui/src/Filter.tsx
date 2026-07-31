@@ -63,6 +63,9 @@ export const Filter: FC<FilterProps> = ({
   const isInline = layout === "inline";
   const areControlsVisible = !collapsible || isExpanded;
   const hasSearch = Boolean(onSearchChange);
+  // Search has no chip, but it still constrains results, so clear-all has to offer to reset it.
+  const hasActiveSearch = hasSearch && Boolean(searchValue?.trim());
+  const hasActiveConstraints = activeFilters.length > 0 || hasActiveSearch;
 
   // Box maps an explicit `flex` of anything but grow/shrink to `flex: 0`, which zeroes the
   // flex basis and collapses a column child's height. Stacked wrappers therefore omit `flex`
@@ -90,7 +93,8 @@ export const Filter: FC<FilterProps> = ({
       return;
     }
     onChange(clearFilterValues({filters, values}));
-  }, [filters, onChange, onClear, values]);
+    onSearchChange?.("");
+  }, [filters, onChange, onClear, onSearchChange, values]);
 
   const handleDismissChip = useCallback(
     (field: string, optionValue?: string) => {
@@ -268,7 +272,7 @@ export const Filter: FC<FilterProps> = ({
     return null;
   };
 
-  const hasHeader = Boolean(title) || collapsible || (showClearAll && activeFilters.length > 0);
+  const hasHeader = Boolean(title) || collapsible || (showClearAll && hasActiveConstraints);
 
   return (
     <View style={{width: "100%"}} testID={testID}>
@@ -287,7 +291,7 @@ export const Filter: FC<FilterProps> = ({
               )}
             </Box>
             <Box alignItems="center" direction="row" gap={4}>
-              {Boolean(showClearAll && activeFilters.length > 0) && (
+              {Boolean(showClearAll && hasActiveConstraints) && (
                 <Pressable
                   accessibilityRole="button"
                   onPress={handleClearAll}

@@ -3521,7 +3521,9 @@ export interface FilterChipProps extends WithTestID {
   disabled?: boolean;
 
   /**
-   * Accessibility label for the dismiss button. Defaults to `Remove {label} filter`.
+   * Accessibility label for the dismiss button. Defaults to `Remove {label} filter: {value}`,
+   * so sibling chips from the same multi-select filter stay distinguishable, and to
+   * `Remove {label} filter` when there is no value.
    */
   dismissAccessibilityLabel?: string;
 }
@@ -3591,8 +3593,9 @@ export interface FilterProps extends WithTestID {
   clearAllText?: string;
 
   /**
-   * Called instead of `onChange` when the user clears every filter. Use this when the
-   * consumer needs to reset state the component does not own, such as search text.
+   * Called instead of `onChange` and `onSearchChange` when the user clears every filter.
+   * Clear-all already resets the filters and the search input on its own; provide this only
+   * when the consumer also needs to reset state the component does not own.
    */
   onClear?: () => void;
 
