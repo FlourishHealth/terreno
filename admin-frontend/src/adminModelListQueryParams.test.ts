@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {DateTime} from "luxon";
 
 import {buildAdminFilterDefinitions, buildAdminListQueryParams} from "./adminModelListQueryParams";
 import type {AdminModelConfig} from "./types";
@@ -90,20 +91,38 @@ describe("buildAdminListQueryParams", () => {
   });
 
   it("expands a date range into _gte and _lte", () => {
+    const params = buildAdminListQueryParams({
+      ...baseInput,
+      filterState: {created: {from: "2026-01-01T00:00:00.000Z", to: "2026-02-01T00:00:00.000Z"}},
+    });
+    expect(params.created_gte).toBe("2026-01-01T00:00:00.000Z");
+    expect(params.created_lte).toBeTruthy();
+  });
+
+  // The date picker emits midnight, so a raw _lte would exclude every record later that day.
+  it("widens a date-only upper bound to the end of the picked day", () => {
+    const params = buildAdminListQueryParams({
+      ...baseInput,
+      filterState: {created: {to: "2026-02-01T00:00:00.000Z"}},
+    });
+    expect(DateTime.fromISO(String(params.created_lte)).toUTC().toISO()).toBe(
+      "2026-02-01T23:59:59.999Z"
+    );
+  });
+
+  it("leaves an unparseable upper bound untouched", () => {
     expect(
-      buildAdminListQueryParams({
-        ...baseInput,
-        filterState: {created: {from: "2026-01-01", to: "2026-02-01"}},
-      })
-    ).toMatchObject({created_gte: "2026-01-01", created_lte: "2026-02-01"});
+      buildAdminListQueryParams({...baseInput, filterState: {created: {to: "not-a-date"}}})
+        .created_lte
+    ).toBe("not-a-date");
   });
 
   it("sends only the bound that is set for an open-ended range", () => {
     const params = buildAdminListQueryParams({
       ...baseInput,
-      filterState: {created: {from: "2026-01-01"}},
+      filterState: {created: {from: "2026-01-01T00:00:00.000Z"}},
     });
-    expect(params.created_gte).toBe("2026-01-01");
+    expect(params.created_gte).toBe("2026-01-01T00:00:00.000Z");
     expect(params).not.toHaveProperty("created_lte");
   });
 

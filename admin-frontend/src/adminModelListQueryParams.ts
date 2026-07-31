@@ -1,9 +1,23 @@
 import type {FilterDefinition, FilterValues} from "@terreno/ui";
 import {getDateRangeValue} from "@terreno/ui";
+import {DateTime} from "luxon";
 
 import type {AdminModelConfig} from "./types";
 
 export const ADMIN_LIST_MAX_SELECTION = 1000;
+
+/**
+ * Admin date filters use a date-only picker, which emits midnight. A `_lte` of midnight would
+ * exclude every record later that same day, so the upper bound is widened to the end of the
+ * picked day in the zone the picker used.
+ */
+const toInclusiveRangeEnd = (value: string): string => {
+  const parsed = DateTime.fromISO(value, {setZone: true});
+  if (!parsed.isValid) {
+    return value;
+  }
+  return parsed.endOf("day").toISO() ?? value;
+};
 
 /**
  * Translates a model's admin config filters into the `FilterDefinition` list the
@@ -68,7 +82,7 @@ export const buildAdminListQueryParams = (input: {
         out[`${filter.field}_gte`] = from.trim();
       }
       if (to?.trim()) {
-        out[`${filter.field}_lte`] = to.trim();
+        out[`${filter.field}_lte`] = toInclusiveRangeEnd(to.trim());
       }
       continue;
     }
