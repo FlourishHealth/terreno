@@ -1,0 +1,51 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SignatureCaptureField renders a read-only drawn image when disabled with a drawn value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Signature",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityIgnoresInvertColors": false,
+        "resizeMode": "contain",
+        "source": {
+          "uri": "data:image/png;base64,xyz",
+        },
+        "style": {
+          "borderColor": "#9A9A9A",
+          "borderWidth": 1,
+          "height": 80,
+          "marginVertical": 8,
+          "width": 300,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
