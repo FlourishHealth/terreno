@@ -12,7 +12,14 @@ export const loginAs = async (page: Page, user = TEST_USER): Promise<void> => {
   // hides — a caller that immediately does page.goto() to a different route (e.g.
   // loginAsAdmin() followed by page.goto("/admin")) can race that client-side redirect:
   // the hard navigation can land before Expo Router's replace resolves, which then
-  // overrides it back to "/(tabs)". Waiting for the tabs root to actually mount closes
-  // that window before control returns to the caller.
-  await page.getByTestId("todos-screen").waitFor({state: "visible"});
+  // overrides it back to "/(tabs)". Waiting for the post-login UI to actually mount
+  // closes that window before control returns to the caller.
+  //
+  // The tabs root is the usual landing spot, but a user with pending consents is
+  // intercepted by the consent navigator and never reaches it — so accept either, and
+  // let the caller assert which one it expected.
+  await page
+    .locator('[data-testid="todos-screen"], [data-testid="consent-form-footer"]')
+    .first()
+    .waitFor({state: "visible"});
 };
