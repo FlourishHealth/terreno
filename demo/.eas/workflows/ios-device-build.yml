@@ -1,0 +1,22 @@
+name: Demo iOS Device Build
+
+# Single-platform workflow for the EAS PR slow path when a *new* fingerprint
+# needs an iOS device dev client. Dispatched via eas-pr-selective-build.sh so
+# Apple signing credentials resolve on EAS Cloud (not on the GitHub Actions
+# runner).
+
+on:
+  workflow_dispatch: {}
+
+defaults:
+  tools:
+    bun: 1.3.10
+    node: "22"
+
+jobs:
+  build_ios:
+    name: Build iOS dev client
+    type: build
+    params:
+      platform: ios
+      profile: development

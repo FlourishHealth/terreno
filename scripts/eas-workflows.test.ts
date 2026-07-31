@@ -10,7 +10,9 @@ const readRepoFile = (path: string): string =>
 
 const buildWorkflowPaths = [
   "example-frontend/.eas/workflows/example-frontend-build.yml",
+  "example-frontend/.eas/workflows/ios-device-build.yml",
   "demo/.eas/workflows/demo-build.yml",
+  "demo/.eas/workflows/ios-device-build.yml",
 ];
 
 describe("EAS PR workflows", () => {
@@ -22,14 +24,53 @@ describe("EAS PR workflows", () => {
     assert.match(easPr, /eas update\s+\\\n\s+--branch "pr-\$\{PR_NUMBER\}"/);
     assert.match(easPr, /--message "PR #\$\{PR_NUMBER\}: \$\{PR_TITLE\}"/);
     assert.match(easPr, /EAS_UPDATE_GROUP_ID=\$\{first_id\}/);
-    assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*example-frontend-build\.yml/);
-    assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*demo-build\.yml/);
+    assert.match(easPr, /eas-pr-decide\.sh/);
+    assert.match(easPr, /eas-pr-selective-build\.sh/);
+    assert.match(
+      easPr,
+      /Slow path — queue builds for new fingerprint only[\s\S]*eas-pr-selective-build\.sh/
+    );
     assert.match(
       easPr,
       /if: \$\{\{ !cancelled\(\) && steps\.decide\.outputs\.needs_build == 'true' \}\}/
     );
     assert.doesNotMatch(easPr, /-F "pr_number=/);
     assert.doesNotMatch(easPr, /-F "pr_title=/);
+  });
+
+  it("only queues native builds for brand-new fingerprints", () => {
+    const decide = readRepoFile(".github/workflows/scripts/eas-pr-decide.sh");
+
+    assert.match(decide, /finished_any/);
+    assert.match(
+      decide,
+      /Fingerprint already has at least one finished dev build/
+    );
+    assert.match(decide, /Fingerprint is new \(no finished matches\)/);
+    assert.match(decide, /has_active_or_finished/);
+    assert.match(decide, /needs_build=true/);
+    assert.match(decide, /needs_build=false/);
+  });
+
+  it("dispatches iOS device builds via EAS workflow for credentials", () => {
+    const selective = readRepoFile(
+      ".github/workflows/scripts/eas-pr-selective-build.sh"
+    );
+
+    assert.match(selective, /eas workflow:run "\$IOS_DEVICE_WORKFLOW"/);
+    assert.match(selective, /ios-device-build\.yml/);
+    assert.match(
+      selective,
+      /eas build --profile "\$IOS_SIM_PROFILE" --platform ios/
+    );
+    assert.match(
+      selective,
+      /eas build --profile "\$ANDROID_PROFILE" --platform android/
+    );
+    assert.doesNotMatch(
+      selective,
+      /eas build --profile "\$IOS_DEVICE_PROFILE" --platform ios/
+    );
   });
 
   it("keeps EAS Cloud workflows build-only", () => {
@@ -54,7 +95,9 @@ describe("EAS PR workflows", () => {
   });
 
   it("uses EAS Update group URLs in PR launch links", () => {
-    const commentScript = readRepoFile(".github/workflows/scripts/post-eas-pr-comment.sh");
+    const commentScript = readRepoFile(
+      ".github/workflows/scripts/post-eas-pr-comment.sh"
+    );
 
     assert.match(commentScript, /\/group\/\$EAS_UPDATE_GROUP_ID/);
     assert.doesNotMatch(commentScript, /channel-name=\$branch/);
