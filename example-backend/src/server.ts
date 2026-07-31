@@ -216,6 +216,12 @@ export async function start(skipListen = false): Promise<express.Application> {
             ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
           },
           debug: websocketsDebug,
+          // Required by the tenant-scoped `projects` sync stream: socket authorization
+          // otherwise falls back to the synthetic JWT-claim user, which carries no
+          // `organizationIds`, so tenant streams resolve to nothing and `admin` is
+          // trusted from the token instead of the database (Task 9.21).
+          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+          userModel: User as any,
         })
       );
     } else {

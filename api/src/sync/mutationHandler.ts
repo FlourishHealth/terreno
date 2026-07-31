@@ -88,9 +88,13 @@ const enforceWriteScope = async ({
   if (incoming === undefined || incoming === null) {
     // Task 9.21: an absent tenant value on CREATE used to pass straight through, landing
     // the document in a `tenant:undefined` stream that no client can ever subscribe to —
-    // written, invisible, and never synced. Reject it; an update that simply does not
-    // touch the scope field is still fine.
-    if (operation === "create") {
+    // written, invisible, and never synced. Reject it UNLESS the model configures a
+    // `preCreate` hook, which is the sanctioned place to inject the tenant field from the
+    // authenticated user (see the example projects router). preCreate runs inside
+    // executeCreate, after this backstop, so the raw mutation data legitimately omits the
+    // field; preCreate itself validates the resolved value against the caller's
+    // memberships. An update that simply does not touch the scope field is always fine.
+    if (operation === "create" && !entry.options.preCreate) {
       throw new APIError({
         status: 400,
         title: `Sync create on ${entry.collectionTag} is missing tenant scope field "${field}"`,

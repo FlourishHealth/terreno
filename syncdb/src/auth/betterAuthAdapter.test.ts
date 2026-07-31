@@ -194,6 +194,40 @@ describe("betterAuthAdapter", () => {
       expect(calls).toBe(1);
     });
 
+    it("ignores failed-read emissions so a transient error is never a phantom logout", () => {
+      const atom = makeAtom();
+      const adapter = betterAuthAdapter(
+        makeClient(async () => null, {
+          subscribe: (listener) => {
+            atom.listeners.add(listener);
+            return () => atom.listeners.delete(listener);
+          },
+        })
+      );
+      let count = 0;
+      adapter.onAuthChange(() => {
+        count += 1;
+      });
+
+      atom.emit({data: {session: {token: "tok"}, user: {id: "u1"}}});
+      expect(count).toBe(1);
+
+      // A get-session network failure emits {data: null, error} — shaped exactly like a
+      // signed-out session. Treating it as a logout would clear the client's current
+      // user and break local-first writes, so it must not fire.
+      atom.emit({data: null, error: {message: "Failed to fetch"}});
+      atom.emit({data: null, error: new Error("network down")});
+      expect(count).toBe(1);
+
+      // The identity is unchanged, so recovering to the SAME session is not a change.
+      atom.emit({data: {session: {token: "tok"}, user: {id: "u1"}}});
+      expect(count).toBe(1);
+
+      // A genuine sign-out (successful read, no session) still fires.
+      atom.emit({data: null});
+      expect(count).toBe(2);
+    });
+
     it("forwards opaque emissions it cannot parse (back-compat)", () => {
       const atom = makeAtom();
       const adapter = betterAuthAdapter(
@@ -302,6 +336,46 @@ describe("betterAuthAdapter", () => {
       session = null;
       await timers.tick();
       expect(calls).toBe(2);
+    });
+
+    it("skips polls whose session read failed instead of sampling a phantom logout", async () => {
+      let session: BetterAuthGetSessionResult = {
+        data: {session: {token: "tok-a"}, user: {id: "u1"}},
+      };
+      let shouldThrow = false;
+      const timers = makeTimers();
+      const adapter = betterAuthAdapter(
+        makeClient(async () => {
+          if (shouldThrow) {
+            throw new Error("network down");
+          }
+          return session;
+        }),
+        timers.options
+      );
+      let calls = 0;
+      adapter.onAuthChange(() => {
+        calls += 1;
+      });
+      await flush();
+      await timers.tick();
+      expect(calls).toBe(0);
+
+      // A failing read must not be sampled as a signed-out identity.
+      shouldThrow = true;
+      await timers.tick();
+      await timers.tick();
+      expect(calls).toBe(0);
+
+      // Recovering to the same session is still not a change.
+      shouldThrow = false;
+      await timers.tick();
+      expect(calls).toBe(0);
+
+      // A real sign-out (successful read, no session) still fires.
+      session = null;
+      await timers.tick();
+      expect(calls).toBe(1);
     });
 
     it("uses the first poll as baseline when it beats the subscribe-time sample", async () => {

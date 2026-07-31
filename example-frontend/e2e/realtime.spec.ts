@@ -112,7 +112,7 @@ test.describe("Realtime sync", () => {
 });
 
 test.describe("Realtime cross-user isolation", () => {
-  test.beforeEach(async ({page, consoleGuard}) => {
+  test.beforeEach(async ({consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);
     await clearTodosAs(REALTIME_USER);
     await clearTodosAs(SECOND_USER);
