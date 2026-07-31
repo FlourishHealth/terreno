@@ -14,7 +14,8 @@ export interface RealtimeRegistryEntry {
   /** Real-time configuration from modelRouter options */
   config: RealtimeConfig;
   /**
-   * Full modelRouter options (for responseHandler, permissions, etc.).
+   * Full modelRouter options (for responseHandler, permissions, etc.), erased to
+   * `unknown` since the registry holds entries for every model.
    */
   options: ModelRouterOptions<unknown>;
 }
