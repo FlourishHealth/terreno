@@ -4,6 +4,11 @@ import {fireEvent} from "@testing-library/react-native";
 import {FilterChip} from "./FilterChip";
 import {renderWithTheme} from "./test-utils";
 
+const flattenStyle = (style: unknown): Record<string, unknown> => {
+  const entries = Array.isArray(style) ? style : [style];
+  return Object.assign({}, ...entries.filter(Boolean));
+};
+
 describe("FilterChip", () => {
   it("renders correctly with default props", () => {
     const {toJSON} = renderWithTheme(<FilterChip label="Status" value="Open" />);
@@ -39,6 +44,20 @@ describe("FilterChip", () => {
       <FilterChip disabled label="Status" onDismiss={onDismiss} testID="chip" value="Open" />
     );
     expect(queryByTestId("chip.dismiss")).toBeNull();
+  });
+
+  // theme.text.extraLight and theme.surface.disabled are the same primitive (neutral500),
+  // so pairing them once rendered the disabled chip's value as invisible grey-on-grey.
+  it("keeps a disabled chip's value legible against its own background", () => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <FilterChip disabled label="Owner" testID="chip" value="Me" />
+    );
+    const chipStyle = flattenStyle(getByTestId("chip").props.style);
+    const valueStyle = flattenStyle(getByText("Me").props.style);
+
+    expect(chipStyle.backgroundColor).toBeTruthy();
+    expect(valueStyle.color).toBeTruthy();
+    expect(valueStyle.color).not.toBe(chipStyle.backgroundColor);
   });
 
   it("labels the dismiss button for screen readers", () => {

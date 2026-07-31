@@ -17,11 +17,16 @@ export const FilterChip: FC<FilterChipProps> = ({
   const {theme} = useTheme();
   const canDismiss = Boolean(onDismiss) && !disabled;
 
+  // `text.extraLight` and `surface.disabled` are the same primitive, so a disabled chip
+  // must keep the enabled surface and mute the text one step instead.
+  const labelColor = disabled ? theme.text.extraLight : theme.text.secondaryLight;
+  const valueColor = disabled ? theme.text.secondaryLight : theme.text.primary;
+
   return (
     <View
       style={{
         alignItems: "center",
-        backgroundColor: disabled ? theme.surface.disabled : theme.surface.neutralLight,
+        backgroundColor: theme.surface.neutralLight,
         borderColor: theme.border.default,
         borderRadius: theme.radius.full,
         borderWidth: 1,
@@ -37,14 +42,13 @@ export const FilterChip: FC<FilterChipProps> = ({
       <Text
         numberOfLines={1}
         style={{
-          color: disabled ? theme.text.extraLight : theme.text.primary,
           flexShrink: 1,
           fontFamily: "text",
           fontSize: 14,
         }}
       >
-        <Text style={{color: theme.text.secondaryLight}}>{`${label}: `}</Text>
-        <Text style={{fontWeight: "700"}}>{value}</Text>
+        <Text style={{color: labelColor}}>{`${label}: `}</Text>
+        <Text style={{color: valueColor, fontWeight: "700"}}>{value}</Text>
       </Text>
       {Boolean(canDismiss) && (
         <Pressable
