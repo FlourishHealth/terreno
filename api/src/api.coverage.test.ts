@@ -96,7 +96,8 @@ describe("modelRouter error path coverage", () => {
       .post(`/food/${apple._id}/eatenBy`)
       .send({eatenBy: "not-an-object-id"})
       .expect(400);
-    expect(res.body.title).toContain("PATCH Pre Update error");
+    expect(res.body.title).toBe("Validation failed");
+    expect(res.body.meta.fields["eatenBy.0"]).toContain("ObjectId");
   });
 
   it("returns 400 when a hard delete (no isDeleted plugin) fails", async () => {

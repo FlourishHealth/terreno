@@ -1,7 +1,7 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
-import type express from "express";
+import express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -15,6 +15,7 @@ import {
   setupAuth,
   signupUser,
 } from "./auth";
+import {logger} from "./logger";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {TerrenoApp} from "./terrenoApp";
@@ -1487,47 +1488,117 @@ describe("auth error paths when the user lookup fails", () => {
   });
 });
 
-describe("cookie-based JWT authentication", () => {
-  let app: express.Application;
-
-  beforeEach(async () => {
-    setSystemTime();
-    await setupTestData();
-    app = new TerrenoApp({
-      // Minimal cookie parser so the JWT extractor can read `req.cookies.jwt`.
-      beforeJsonSetup: (application) => {
-        application.use((req: express.Request, _res, next) => {
-          const header = req.headers.cookie;
-          const cookies: Record<string, string> = {};
-          if (header) {
-            for (const part of header.split(";")) {
-              const [name, ...rest] = part.trim().split("=");
-              cookies[name] = rest.join("=");
-            }
-          }
-          (req as unknown as {cookies: Record<string, string>}).cookies = cookies;
-          next();
-        });
-      },
-      skipListen: true,
-      userModel: UserModel as unknown as AuthUserModel,
-    }).build();
-  });
-
+describe("cookie based JWT extraction", () => {
   afterEach(() => {
     setSystemTime();
   });
 
-  it("authenticates /auth/me from the jwt cookie instead of the Authorization header", async () => {
-    const signupRes = await supertest(app)
-      .post("/auth/signup")
-      .send({email: "cookie@example.com", password: "123"})
-      .expect(200);
-    const {token} = signupRes.body.data;
-    expect(token).toBeDefined();
+  it("authenticates /auth/me from a jwt cookie", async () => {
+    setSystemTime();
+    const {users} = await setupTestData();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: String(users.admin._id)}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const app = getBaseServer();
+    // Stand in for cookie-parser: the extractor prefers req.cookies.jwt over the auth header.
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      req.cookies = {jwt: token};
+      next();
+    });
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addMeRoutes(app, UserModel as unknown as AuthUserModel);
 
-    // The customTokenExtractor prefers req.cookies.jwt over the Authorization header.
-    const meRes = await supertest(app).get("/auth/me").set("Cookie", `jwt=${token}`).expect(200);
-    expect(meRes.body.data.email).toBe("cookie@example.com");
+    const res = await supertest.agent(app).get("/auth/me").expect(200);
+    expect(res.body.data.email).toBe("admin@example.com");
+  });
+});
+
+describe("auth logging outside of the test environment", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    setSystemTime();
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it("logs JWT setup and successful logins when NODE_ENV is not test", async () => {
+    setSystemTime();
+    await setupTestData();
+    process.env.NODE_ENV = "development";
+    const debugSpy = spyOn(logger, "debug");
+    const infoSpy = spyOn(logger, "info");
+    try {
+      const app = getBaseServer();
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
+
+      const res = await supertest
+        .agent(app)
+        .post("/auth/login")
+        .send({email: "notAdmin@example.com", password: "password"})
+        .expect(200);
+      expect(res.body.data.token).toBeDefined();
+      expect(
+        debugSpy.mock.calls.some(([message]) =>
+          String(message).includes("Setting up JWT Authentication")
+        )
+      ).toBe(true);
+      expect(
+        infoSpy.mock.calls.some(([message]) => String(message).includes("User logged in"))
+      ).toBe(true);
+    } finally {
+      debugSpy.mockRestore();
+      infoSpy.mockRestore();
+    }
+  });
+});
+
+describe("/me routes with an already populated req.user", () => {
+  const buildApp = (
+    user: {_id?: string; id?: string} | undefined,
+    foundUser: unknown
+  ): express.Application => {
+    const app = express();
+    app.use(express.json());
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      req.user = user as unknown as express.Request["user"];
+      next();
+    });
+    const stubUserModel = {
+      findById: async () => foundUser,
+    } as unknown as AuthUserModel;
+    addMeRoutes(app, stubUserModel);
+    return app;
+  };
+
+  it("returns 401 from GET /auth/me when the request user has no id", async () => {
+    await supertest
+      .agent(buildApp({_id: "abc"}, null))
+      .get("/auth/me")
+      .expect(401);
+  });
+
+  it("returns 401 from PATCH /auth/me when the request user has no id", async () => {
+    await supertest
+      .agent(buildApp({_id: "abc"}, null))
+      .patch("/auth/me")
+      .send({name: "Updated"})
+      .expect(401);
+  });
+
+  it("returns 404 from GET /auth/me when the user record no longer exists", async () => {
+    await supertest
+      .agent(buildApp({id: "abc"}, null))
+      .get("/auth/me")
+      .expect(404);
+  });
+
+  it("returns 404 from PATCH /auth/me when the user record no longer exists", async () => {
+    await supertest
+      .agent(buildApp({id: "abc"}, null))
+      .patch("/auth/me")
+      .send({name: "Updated"})
+      .expect(404);
   });
 });

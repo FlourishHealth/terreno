@@ -91,44 +91,34 @@ describe("SignatureCaptureField", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
-  it("renders a placeholder box when disabled in draw mode with no captured image", () => {
+  it("renders a placeholder box when disabled with a drawn value that has no image", () => {
     const {toJSON} = renderWithTheme(
       <SignatureCaptureField disabled onChange={() => {}} value={{image: "", mode: "draw"}} />
     );
-    // With no image the preview renders a grayed placeholder box rather than an <Image>.
-    const tree = JSON.stringify(toJSON());
-    expect(tree).not.toContain("data:image");
+    expect(toJSON()).toMatchSnapshot();
   });
 
   it("renders a read-only typed signature when disabled with a typed value", () => {
-    const {getByText} = renderWithTheme(
+    const {getByDisplayValue, queryByText} = renderWithTheme(
       <SignatureCaptureField
         disabled
+        helperText="Signed on Jan 1"
         onChange={() => {}}
-        value={{fontKey: "cursive", mode: "type", typedName: "Jane Doe"}}
+        title="Signature"
+        value={{fontKey: "dancing-script", mode: "type", typedName: "Jane Doe"}}
       />
     );
-    // Disabled type mode renders the typed name read-only, and no Draw/Type toggle.
-    expect(getByText("Jane Doe")).toBeTruthy();
-  });
-
-  it("renders the typed signature field when disabled with no value", () => {
-    const {queryByText} = renderWithTheme(<SignatureCaptureField disabled onChange={() => {}} />);
-    // Falls back to the typed field (not the drawn preview) and omits the mode toggle.
+    expect(getByDisplayValue("Jane Doe")).toBeTruthy();
     expect(queryByText("Draw")).toBeNull();
     expect(queryByText("Type")).toBeNull();
   });
 
-  it("renders helper text when disabled", () => {
-    const {getByText} = renderWithTheme(
-      <SignatureCaptureField
-        disabled
-        helperText="Signed on file."
-        onChange={() => {}}
-        value={{image: "data:image/png;base64,xyz", mode: "draw"}}
-      />
+  it("renders the disabled typed field when disabled without a value", () => {
+    const {getByText, queryByText} = renderWithTheme(
+      <SignatureCaptureField disabled helperText="No signature captured" onChange={() => {}} />
     );
-    expect(getByText("Signed on file.")).toBeTruthy();
+    expect(getByText("No signature captured")).toBeTruthy();
+    expect(queryByText("Draw")).toBeNull();
   });
 
   it("forwards the resolved input test id to the typed name input in type mode", () => {
