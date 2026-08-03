@@ -318,7 +318,9 @@ export class DateOnly extends SchemaType {
       return date.toJSDate();
     }
     if (typeof val === "string" || typeof val === "number") {
-      const date = DateTime.fromJSDate(new Date(val)).toUTC().startOf("day");
+      const date = (typeof val === "number" ? DateTime.fromMillis(val) : DateTime.fromISO(val))
+        .toUTC()
+        .startOf("day");
       if (!date.isValid) {
         throw new MongooseError.CastError(
           "DateOnly",

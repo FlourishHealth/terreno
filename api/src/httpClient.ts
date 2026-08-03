@@ -344,7 +344,11 @@ export const createAuthenticatedClient = (
     );
     const accessToken = response.data?.access_token;
     if (typeof accessToken !== "string" || accessToken.length === 0) {
-      throw new Error(`[httpClient] ${apiName} token response has no access_token`);
+      throw new APIError({
+        code: "http-client-error",
+        status: 500,
+        title: `[httpClient] ${apiName} token response has no access_token`,
+      });
     }
     return accessToken;
   };

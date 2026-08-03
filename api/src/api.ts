@@ -619,7 +619,7 @@ export function modelRouter<T>(
   return router;
 }
 
-function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
+const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router => {
   const router = express.Router();
 
   assertNoActionCollisions(model, options);
@@ -1429,7 +1429,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
   router.use(apiErrorMiddleware);
 
   return router;
-}
+};
 
 /**
  * Options for the asyncHandler function.
