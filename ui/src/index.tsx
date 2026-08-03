@@ -104,6 +104,7 @@ export * from "./Text";
 export * from "./TextArea";
 export * from "./TextField";
 export * from "./Theme";
+export * from "./ThumbsUpDownFeedback";
 export * from "./Toast";
 export {Tooltip} from "./Tooltip";
 export * from "./TypedSignatureField";

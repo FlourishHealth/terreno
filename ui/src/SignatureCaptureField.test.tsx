@@ -91,6 +91,36 @@ describe("SignatureCaptureField", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders a placeholder box when disabled with a drawn value that has no image", () => {
+    const {toJSON} = renderWithTheme(
+      <SignatureCaptureField disabled onChange={() => {}} value={{image: "", mode: "draw"}} />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders a read-only typed signature when disabled with a typed value", () => {
+    const {getByDisplayValue, queryByText} = renderWithTheme(
+      <SignatureCaptureField
+        disabled
+        helperText="Signed on Jan 1"
+        onChange={() => {}}
+        title="Signature"
+        value={{fontKey: "dancing-script", mode: "type", typedName: "Jane Doe"}}
+      />
+    );
+    expect(getByDisplayValue("Jane Doe")).toBeTruthy();
+    expect(queryByText("Draw")).toBeNull();
+    expect(queryByText("Type")).toBeNull();
+  });
+
+  it("renders the disabled typed field when disabled without a value", () => {
+    const {getByText, queryByText} = renderWithTheme(
+      <SignatureCaptureField disabled helperText="No signature captured" onChange={() => {}} />
+    );
+    expect(getByText("No signature captured")).toBeTruthy();
+    expect(queryByText("Draw")).toBeNull();
+  });
+
   it("forwards the resolved input test id to the typed name input in type mode", () => {
     const {UNSAFE_getAllByProps} = renderWithTheme(
       <SignatureCaptureField {...defaultProps} testID="sig" />

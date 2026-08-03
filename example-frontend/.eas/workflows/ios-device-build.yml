@@ -1,10 +1,8 @@
 name: Example Frontend iOS Device Build
 
-# Single-platform workflow for the EAS PR slow path when a *new* fingerprint
-# needs an iOS device dev client. Dispatched via eas-pr-selective-build.sh so
-# Apple signing credentials resolve on EAS Cloud (not on the GitHub Actions
-# runner — `eas build` from GHA fails non-interactively with
-# "Credentials are not set up" for com.terreno.todo device profiles).
+# Single-platform workflow for the EAS PR slow path when only the iOS device
+# dev client is missing. Dispatched via eas-pr-selective-build.sh so credential
+# setup runs on EAS Cloud (not on the GitHub Actions runner).
 
 on:
   workflow_dispatch: {}

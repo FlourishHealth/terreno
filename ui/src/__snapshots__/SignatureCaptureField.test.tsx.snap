@@ -49,3 +49,48 @@ exports[`SignatureCaptureField renders a read-only drawn image when disabled wit
   "type": "View",
 }
 `;
+
+exports[`SignatureCaptureField renders a placeholder box when disabled with a drawn value that has no image 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Signature",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": {
+          "backgroundColor": "#D9D9D9",
+          "height": 90,
+          "marginVertical": 8,
+          "width": 300,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

@@ -756,6 +756,11 @@ mock.module("@expo/vector-icons/FontAwesome6", () => ({
   default: mock(() => null),
 }));
 
+// Mock @expo/vector-icons/MaterialIcons
+mock.module("@expo/vector-icons/MaterialIcons", () => ({
+  default: mock(() => null),
+}));
+
 // Mock linkify-it - need to mock the Hyperlink component directly instead
 mock.module("./Hyperlink", () => ({
   Hyperlink: ({children}: MockComponentProps) => React.createElement("View", {}, children),

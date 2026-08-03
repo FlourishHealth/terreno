@@ -193,7 +193,8 @@ describe("modelRouter actions", () => {
         });
         const agent = await authAsUser(app, "admin");
         const res = await agent.post("/food/disabled").send({}).expect(405);
-        expect(res.body.title).toContain("Access to CREATE on Food denied");
+        expect(res.body.title).toBe("Access denied");
+        expect(res.body.detail).toContain("Access to CREATE on Food denied");
       });
 
       it("runs instance POST action with ctx.doc and req.obj", async () => {
@@ -333,7 +334,8 @@ describe("modelRouter actions", () => {
         });
         const agent = await authAsUser(app, "notAdmin");
         const res = await agent.post("/food/adminOnly").send({}).expect(405);
-        expect(res.body.title).toContain("Access to CREATE on Food denied");
+        expect(res.body.title).toBe("Access denied");
+        expect(res.body.detail).toContain("Access to CREATE on Food denied");
       });
 
       it("returns 403 for instance action when post-doc permission denied", async () => {
@@ -357,7 +359,8 @@ describe("modelRouter actions", () => {
         });
         const agent = await authAsUser(app, "notAdmin");
         const res = await agent.post(`/food/${adminFood._id}/ownerOnly`).send({}).expect(403);
-        expect(res.body.title).toContain(`Access to UPDATE on Food:${adminFood._id} denied`);
+        expect(res.body.title).toBe("Access denied");
+        expect(res.body.detail).toContain(`Access to UPDATE on Food:${adminFood._id} denied`);
       });
 
       it("allows IsAuthenticatedOrReadOnly on GET with allowAnonymous", async () => {
@@ -412,6 +415,7 @@ describe("modelRouter actions", () => {
         });
         const res = await server.post("/food/notify").send({email: "not-an-email"}).expect(400);
         expect(res.body.title).toBe("Validation failed");
+        expect(res.body.code).toBe("action-body-validation-failed");
         expect(res.body.meta.fields.email).toBeDefined();
       });
 
@@ -451,6 +455,7 @@ describe("modelRouter actions", () => {
         });
         const res = await server.get("/food/lookup?email=bad").expect(400);
         expect(res.body.title).toBe("Validation failed");
+        expect(res.body.code).toBe("action-query-validation-failed");
         expect(res.body.meta.fields.email).toBeDefined();
       });
 
