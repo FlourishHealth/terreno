@@ -107,12 +107,24 @@ Render these in a conflict sheet (local vs server side by side) instead of rtk's
 
 ## Incremental adoption
 
-Adopt per collection, behind a flag:
+Adopt per collection:
 
 1. Enable `sync` on one model (todos is the canonical first candidate) while leaving its REST routes and `realtime` config untouched — REST and sync share the same write path, so both stacks stay consistent.
-2. Gate the frontend with a feature flag (e.g. a `USE_SYNCDB` boolean via the existing OpenFeature infra / `useTerrenoFeatureFlags`): flag off renders the existing RTK Query screen, flag on renders the syncdb version. Both can ship in the same bundle.
-3. Verify parity (CRUD, offline create/update/delete, reconnect catch-up, conflict resolution, user switch), then flip the flag default and delete the RTK path for that screen.
+2. Re-implement that collection's screen on `useQuery`/`useEntityIds`/`useMutate`.
+3. Verify parity (CRUD, offline create/update/delete, reconnect catch-up, conflict resolution, user switch), then delete the RTK path for that screen.
 4. Repeat per collection. Non-synced endpoints stay on the generated SDK indefinitely.
+
+**Optional: ship both paths behind a flag.** If a collection is high-risk enough that you
+want a runtime kill switch, gate the screen on a boolean feature flag (the existing
+OpenFeature infra / `useTerrenoFeatureFlags`): flag off renders the RTK Query screen, flag
+on renders the syncdb one, and both ship in the same bundle. That buys a rollback without
+a release, at the cost of maintaining two data paths for the same screen until you flip the
+default and delete the old one.
+
+`example-frontend` deliberately does **not** do this: its Todos screen
+(`components/SyncTodosScreen.tsx`) is syncdb-only and renders unconditionally, so the
+reference app has exactly one data path to read, and the e2e suite exercises the syncdb
+behavior without a flag-setup step.
 
 ## Backend prerequisites checklist
 

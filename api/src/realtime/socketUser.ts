@@ -31,6 +31,12 @@ export interface SocketDataBag {
   // biome-ignore lint/suspicious/noExplicitAny: the full user is a consumer Mongoose document with app-specific fields
   fullUser?: any;
   /**
+   * The in-flight handshake load of {@link SocketDataBag.fullUser}, published so handlers
+   * that must not authorize against the synthetic token user can await it
+   * (see {@link awaitSocketFullUser}). Never rejects.
+   */
+  fullUserLoad?: Promise<void>;
+  /**
    * Sync collection tag -> joined `sync:{stream}` rooms (see `socketHandlers.ts`).
    * Lives on the data bag (not the handler closure) so D1's sweep can re-resolve
    * stream membership and `socket.leave()` rooms no longer held (D4) without needing
@@ -69,4 +75,19 @@ export const getSocketUser = (socket: SocketWithDecodedToken): User | undefined 
     id: userId,
     isAnonymous: socket.decodedToken?.isAnonymous,
   };
+};
+
+/**
+ * Task 9.21: {@link getSocketUser}, but first awaiting the handshake full-user load when it
+ * is still in flight. Sync handlers use this so a `sync:subscribe` / `sync:mutate` that
+ * lands inside the handshake window is authorized against the same user every later event
+ * sees — scope membership must not depend on event timing. Falls back to the synthetic
+ * token user exactly as `getSocketUser` does when no `userModel` is configured.
+ */
+export const awaitSocketFullUser = async (
+  socket: SocketWithDecodedToken
+): Promise<User | undefined> => {
+  // The load swallows and logs its own failures; this await only orders the events.
+  await socket.data?.fullUserLoad;
+  return getSocketUser(socket);
 };

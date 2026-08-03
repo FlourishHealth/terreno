@@ -51,6 +51,8 @@ exports[`TableHeader renders correctly with children 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -114,6 +116,8 @@ exports[`TableHeader renders correctly with children 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -384,6 +388,8 @@ exports[`TableHeader renders with tableHeaderGroup display (default) 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -619,6 +625,8 @@ exports[`TableHeader renders with visuallyHidden display 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -854,6 +862,8 @@ exports[`TableHeader renders with custom color 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {

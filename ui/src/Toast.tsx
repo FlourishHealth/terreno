@@ -1,5 +1,5 @@
 import type React from "react";
-import {Text as NativeText, Platform, Pressable, View} from "react-native";
+import {Platform, Pressable, View} from "react-native";
 
 import type {IconName, SurfaceColor, TextColor, ToastProps} from "./Common";
 import {Heading} from "./Heading";
@@ -10,6 +10,12 @@ import {useToastNotifications} from "./ToastNotifications";
 import {isAPIError, printAPIError} from "./Utilities";
 
 const TOAST_DURATION_MS = 3 * 1000;
+
+/**
+ * Base testID of the action button. Suffixed with the toast id when the caller
+ * supplied one, so stacked action toasts stay individually addressable.
+ */
+const ACTION_BUTTON_TEST_ID = "toast-action-button";
 
 interface UseToastVariantOptions {
   /**
@@ -96,6 +102,7 @@ export const useToast = (): {
 // TODO: Support dismissible version of Toast. Currently only persistent are dismissible.
 export const Toast = ({
   title,
+  id,
   variant = "info",
   secondary,
   size = "sm",
@@ -234,7 +241,7 @@ export const Toast = ({
           <Pressable
             accessibilityHint={`Press to ${buttonText}`}
             accessibilityLabel={buttonText}
-            aria-role="button"
+            accessibilityRole="button"
             onPress={buttonOnClick}
             style={{
               alignItems: "center",
@@ -243,20 +250,21 @@ export const Toast = ({
               borderRadius: theme.radius.rounded,
               display: "flex",
               justifyContent: "center",
-              marginLeft: 4,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
+              marginLeft: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: theme.spacing.xs,
             }}
-            testID="toast-action-button"
+            testID={id ? `${ACTION_BUTTON_TEST_ID}-${id}` : ACTION_BUTTON_TEST_ID}
           >
-            <NativeText style={{color: theme.text.primary, fontSize: 12, fontWeight: "600"}}>
+            <Text bold color="primary" size="sm">
               {buttonText}
-            </NativeText>
+            </Text>
           </Pressable>
         ) : null}
         {Boolean(persistent && onDismiss) && (
           <Pressable
-            aria-role="button"
+            accessibilityLabel="Dismiss notification"
+            accessibilityRole="button"
             onPress={onDismiss}
             style={{
               alignItems: "center",

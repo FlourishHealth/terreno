@@ -8,5 +8,6 @@ export * from "./serialize";
 export * from "./socketHandlers";
 export * from "./streams";
 export * from "./syncApp";
+export * from "./syncBatch";
 export * from "./syncSeqPlugin";
 export * from "./types";

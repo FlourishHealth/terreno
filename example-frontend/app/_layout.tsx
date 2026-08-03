@@ -2,7 +2,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, {type FC, type ReactNode, useCallback, useEffect} from "react";
+import React, {type FC, type ReactNode, useCallback, useEffect, useState} from "react";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
@@ -20,14 +20,17 @@ import {SyncDbProvider} from "@terreno/syncdb/react";
 import {
   Banner,
   Box,
+  Button,
   ConflictSheet,
   ConsentNavigator,
   Spinner,
   TerrenoProvider,
+  Text,
   UpgradeRequiredScreen,
 } from "@terreno/ui";
 import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
+import {SyncConflictsProvider} from "@/components/SyncConflictsController";
 import {SyncHealthToast} from "@/components/SyncHealthToast";
 import {SyncLabRuntime} from "@/components/SyncLabRuntime";
 import type {ProfileData} from "@/hooks/useReadProfile";
@@ -113,6 +116,8 @@ const RootLayoutNav = (): React.ReactElement => {
   // /(tabs) root once it does, silently discarding the originally requested
   // route.
   const isAuthLoading = useSelector(selectBetterAuthIsLoading);
+  const [syncDbStartError, setSyncDbStartError] = useState<string | null>(null);
+  const [syncDbStartAttempt, setSyncDbStartAttempt] = useState<number>(0);
   const {data: profileData, isLoading: isProfileLoading} = useGetMeQuery(undefined, {
     skip: !userId,
   });
@@ -131,6 +136,11 @@ const RootLayoutNav = (): React.ReactElement => {
 
   const getAuthToken = useCallback(async (): Promise<string | null> => {
     return getSessionToken();
+  }, []);
+
+  const handleRetrySyncDbStart = useCallback((): void => {
+    setSyncDbStartError(null);
+    setSyncDbStartAttempt((attempt) => attempt + 1);
   }, []);
 
   const {socket} = useSocketConnection({
@@ -156,6 +166,11 @@ const RootLayoutNav = (): React.ReactElement => {
   // Start the local-first syncdb client after login; stop on logout/unmount.
   // setSyncDbReady only flips true once start() resolves a user, so screens gated on
   // useSyncDbReady() don't call mutate() during the window where it would throw.
+  //
+  // A failed start() is terminal for writes — syncDbReady never flips, so the new-todo
+  // form stays disabled — which is why the failure is surfaced with a retry affordance
+  // instead of only logged. Bumping syncDbStartAttempt re-runs this effect, whose
+  // cleanup stops the half-started client first so the retry begins from a clean state.
   useEffect(() => {
     if (!userId) {
       return;
@@ -165,11 +180,15 @@ const RootLayoutNav = (): React.ReactElement => {
       .start()
       .then(() => {
         if (!stopped) {
+          setSyncDbStartError(null);
           setSyncDbReady(true);
         }
       })
       .catch((error: unknown) => {
         console.error("[syncdb] Failed to start client", error);
+        if (!stopped) {
+          setSyncDbStartError(error instanceof Error ? error.message : String(error));
+        }
       });
     return (): void => {
       if (stopped) {
@@ -181,7 +200,7 @@ const RootLayoutNav = (): React.ReactElement => {
         console.warn("[syncdb] Failed to stop client", error);
       });
     };
-  }, [userId]);
+  }, [userId, syncDbStartAttempt]);
 
   useEffect(() => {
     // Don't redirect while the initial Better Auth session sync is still in
@@ -249,9 +268,40 @@ const RootLayoutNav = (): React.ReactElement => {
     </Stack>
   );
 
+  const syncDbStartErrorBanner =
+    userId && syncDbStartError ? (
+      <Box
+        alignItems="center"
+        color="error"
+        direction="row"
+        gap={3}
+        justifyContent="between"
+        paddingX={4}
+        paddingY={3}
+        testID="syncdb-start-error"
+        wrap
+      >
+        <Box flex="grow">
+          <Text bold color="inverted">
+            Offline sync could not start
+          </Text>
+          <Text color="inverted" size="sm">
+            Your changes can't be saved until it does. {syncDbStartError}
+          </Text>
+        </Box>
+        <Button
+          onClick={handleRetrySyncDbStart}
+          testID="syncdb-start-retry"
+          text="Retry"
+          variant="secondary"
+        />
+      </Box>
+    ) : null;
+
   const content = (
-    <>
+    <SyncConflictsProvider>
       {warningBanner}
+      {syncDbStartErrorBanner}
       {userId ? (
         <SyncDbProvider client={syncDb}>
           <SyncLabRuntime />
@@ -276,7 +326,7 @@ const RootLayoutNav = (): React.ReactElement => {
         </SyncDbProvider>
       ) : null}
       {stack}
-    </>
+    </SyncConflictsProvider>
   );
 
   if (userId && !profile?.admin) {

@@ -10,8 +10,8 @@ import {memoryPersisterFactory} from "./persisters/memoryPersister";
 import {idbGet} from "./storage/idb";
 import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {CURSORS_TABLE} from "./storage/types";
-import {createFakeTransport, type FakeTransport} from "./sync/fakeTransport";
 import {AuthRequiredError, type HttpChannel} from "./sync/httpChannel";
+import {createFakeTransport, type FakeTransport} from "./testing/fakeTransport";
 import type {AuthProvider, SyncDelta, SyncSnapshotResponse, SyncStreamInfo} from "./types";
 
 let nameCounter = 0;
@@ -155,6 +155,53 @@ const makeDelta = (overrides: Partial<SyncDelta> = {}): SyncDelta => ({
   stream: "todos|owner:u1",
   ...overrides,
 });
+
+interface ObservableTransport {
+  transport: FakeTransport;
+  /** connect/disconnect/subscribe calls in the order the client made them. */
+  events: string[];
+  /**
+   * Hold the NEXT connect() open until the returned resolver runs, so a test
+   * can act while a reconnect (e.g. a user-switch bounce) is still in flight.
+   */
+  gateNextConnect: () => () => void;
+}
+
+/** Wrap a fake transport to record its lifecycle calls and gate one connect(). */
+const makeObservableTransport = (base: FakeTransport): ObservableTransport => {
+  const events: string[] = [];
+  let gate: Promise<void> | undefined;
+  return {
+    events,
+    gateNextConnect: (): (() => void) => {
+      let release = (): void => {};
+      gate = new Promise<void>((resolve) => {
+        release = (): void => resolve();
+      });
+      return release;
+    },
+    transport: {
+      ...base,
+      connect: async (): Promise<void> => {
+        events.push("connect");
+        const pending = gate;
+        gate = undefined;
+        if (pending !== undefined) {
+          await pending;
+        }
+        await base.connect();
+      },
+      disconnect: (): void => {
+        events.push("disconnect");
+        base.disconnect();
+      },
+      subscribe: (collections: string[]): void => {
+        events.push("subscribe");
+        base.subscribe(collections);
+      },
+    },
+  };
+};
 
 describe("createSyncDb", () => {
   it("requires a transport or a baseUrl", () => {
@@ -723,6 +770,87 @@ describe("createSyncDb", () => {
       await client.stop();
     });
 
+    it("bounces the transport (disconnect, reconnect, resubscribe) on a different-user login", async () => {
+      const harness = makeHarness();
+      const observable = makeObservableTransport(harness.transport);
+      harness.config.transport = observable.transport;
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      observable.events.length = 0;
+
+      harness.auth.setUserId("u2");
+      harness.auth.emitAuthChange();
+      await flush();
+
+      expect(observable.events).toEqual(["disconnect", "connect", "subscribe"]);
+      expect(client.getSyncStatus().isOnline).toBe(true);
+      await client.stop();
+    });
+
+    it("never applies a delta from the stale connection while a user-switch bounce is in flight", async () => {
+      const harness = makeHarness();
+      const observable = makeObservableTransport(harness.transport);
+      harness.config.transport = observable.transport;
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      const releaseConnect = observable.gateNextConnect();
+      harness.auth.setUserId("u2");
+      harness.auth.emitAuthChange();
+      await flush();
+
+      // The wipe has run and the reconnect is still in flight: a delta the OLD
+      // user's socket flushes now must never land in the new user's store.
+      harness.transport.deliverDelta(makeDelta({id: "stale-u1", seq: 7}));
+      expect(client.store.getEntity({collection: "todos", id: "stale-u1"})).toBeUndefined();
+
+      releaseConnect();
+      await flush();
+
+      // The rebound handler applies deltas arriving on the new connection.
+      harness.transport.deliverDelta(makeDelta({id: "fresh-u2", seq: 1}));
+      expect(client.store.getEntity({collection: "todos", id: "fresh-u2"})).toBeDefined();
+      expect(client.store.getEntity({collection: "todos", id: "stale-u1"})).toBeUndefined();
+      await client.stop();
+    });
+
+    it("does not bounce the transport on a same-user re-auth", async () => {
+      const harness = makeHarness();
+      const observable = makeObservableTransport(harness.transport);
+      harness.config.transport = observable.transport;
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      observable.events.length = 0;
+
+      harness.auth.emitAuthChange();
+      await flush();
+
+      expect(observable.events).toEqual([]);
+      expect(client.getSyncStatus().isOnline).toBe(true);
+      await client.stop();
+    });
+
+    it("disconnects without reconnecting on logout", async () => {
+      const harness = makeHarness();
+      const observable = makeObservableTransport(harness.transport);
+      harness.config.transport = observable.transport;
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      observable.events.length = 0;
+
+      harness.auth.setUserId(null);
+      harness.auth.emitAuthChange();
+      await flush();
+
+      expect(observable.events).toEqual(["disconnect"]);
+      expect(client.getSyncStatus().isOnline).toBe(false);
+      await client.stop();
+    });
+
     it("a signed-out auth change clears the current user without wiping", async () => {
       const harness = makeHarness();
       const client = createSyncDb(harness.config);
@@ -862,6 +990,34 @@ describe("createSyncDb", () => {
       expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
         title: "server wins",
       });
+      await client.stop();
+    });
+
+    // Task 9.12: an edit-vs-server-delete conflict resolved `useServer` must
+    // leave a tombstone. A live row holding null data would keep showing up in
+    // every list read (what useQuery/useEntityIds read) as an empty entity.
+    it("useServer on a server-deleted conflict leaves a tombstone, not a ghost row (9.12)", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      // The server reports a real seq with no document at it: deleted, hard-
+      // deleted, or moved out of this client's scope.
+      harness.transport.respondWithNack({code: "conflict", serverSeq: 7});
+
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+      client.resolveConflict({mutationId, strategy: "useServer"});
+
+      const entity = client.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.deleted).toBe(true);
+      expect(entity?.seq).toBe(7);
+      expect(client.store.listEntities({collection: "todos"})).toHaveLength(0);
       await client.stop();
     });
 
@@ -1402,6 +1558,138 @@ describe("createSyncDb", () => {
       expect(conflict?.serverSeq).toBe(0);
       await reopened.stop();
     });
+
+    // Task 9.11b: a pendingMutationId pointing at a mutation with no `_outbox`
+    // row (pruned, wiped, or lost to a partial persist) freezes the entity —
+    // the delta applier skips it for pending protection and repair refuses to
+    // overwrite it. The startup sweep is the only thing that can release it.
+    it("releases an orphaned pendingMutationId on start() so the entity accepts deltas again (9.11b)", async () => {
+      const name = uniqueName();
+      const harness = makeHarness({name});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {title: "frozen"},
+        id: "t1",
+        pendingMutationId: "row-never-persisted",
+        seq: 4,
+        stream: DEFAULT_STREAM,
+      });
+      await flush();
+      await client.stop();
+
+      const second = makeHarness({name});
+      const reopened = createSyncDb(second.config);
+      await reopened.start();
+      const recovered = reopened.store.getEntity({collection: "todos", id: "t1"});
+      // The persisted row survived the reload with its payload intact — only the
+      // dangling pending lock was dropped.
+      expect(recovered?.data).toEqual({title: "frozen"});
+      expect(recovered?.seq).toBe(4);
+      expect(recovered?.pendingMutationId).toBeUndefined();
+
+      second.transport.deliverDelta(
+        makeDelta({data: {title: "from server"}, id: "t1", method: "update", seq: 9})
+      );
+      const entity = reopened.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.data).toEqual({title: "from server"});
+      expect(entity?.seq).toBe(9);
+      await reopened.stop();
+    });
+  });
+
+  // Task 9.11a: a terminal nack leaves optimistic data the server never
+  // accepted. With no concurrent server write the entity's seq never moves, so
+  // snapshot reconcile skips it — the terminal path must mark needs-repair so
+  // the repair fetch pulls canonical state back over the rejected edit.
+  describe("rejected optimistic data (9.11a)", () => {
+    it("converges a validation-nacked entity back to server state", async () => {
+      const harness = makeHarness();
+      harness.http.channel.fetchEntities = async () => ({
+        entities: [{data: {title: "server truth"}, deleted: false, id: "t1", seq: 5}],
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.deliverDelta(
+        makeDelta({data: {title: "server truth"}, id: "t1", method: "create", seq: 5})
+      );
+      harness.transport.setDefaultResponder((request) => ({
+        nack: {code: "validation", message: "title required", mutationId: request.mutationId},
+        type: "nack",
+      }));
+
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "rejected"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      expect(client.outbox.getMutation({mutationId})?.status).toBe("failed");
+      const entity = client.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.data).toEqual({title: "server truth"});
+      expect(entity?.seq).toBe(5);
+      expect(entity?.pendingMutationId).toBeUndefined();
+      // The repair landed, so nothing stays marked for a later reconcile pass.
+      expect(client.store.hasNeedsRepair({collection: "todos", entityId: "t1"})).toBe(false);
+      await client.stop();
+    });
+
+    // Editing a doc the server already deleted is the common shape of this: the
+    // update 404s (a terminal `validation` nack, not a conflict — the server
+    // cannot seq-conflict against a document its own read filter hides), so the
+    // repair fetch is what teaches the client the entity is gone.
+    it("converges to a tombstone when the server deleted the entity out from under the edit", async () => {
+      const harness = makeHarness();
+      harness.http.channel.fetchEntities = async () => ({
+        entities: [{data: null, deleted: true, id: "t1", seq: 6}],
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.deliverDelta(
+        makeDelta({data: {title: "server truth"}, id: "t1", method: "create", seq: 5})
+      );
+      harness.transport.setDefaultResponder((request) => ({
+        nack: {code: "validation", message: "not found", mutationId: request.mutationId},
+        type: "nack",
+      }));
+
+      client.mutate({
+        collection: "todos",
+        data: {title: "edited after delete"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      const entity = client.store.getEntity({collection: "todos", id: "t1"});
+      expect(entity?.deleted).toBe(true);
+      expect(entity?.seq).toBe(6);
+      // No ghost row: the edited data never survives as a live entity.
+      expect(client.store.listEntities({collection: "todos"})).toHaveLength(0);
+      await client.stop();
+    });
+
+    it("keeps the needs-repair mark when the repair fetch fails, so a later reconcile retries it", async () => {
+      const harness = makeHarness();
+      harness.http.channel.fetchEntities = async () => {
+        throw new Error("network down");
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      harness.transport.setDefaultResponder((request) => ({
+        nack: {code: "validation", mutationId: request.mutationId},
+        type: "nack",
+      }));
+
+      client.mutate({collection: "todos", data: {title: "rejected"}, operation: "create"});
+      await flush();
+      const [entity] = client.store.listEntities({collection: "todos"});
+      expect(client.store.hasNeedsRepair({collection: "todos", entityId: entity.id})).toBe(true);
+      await client.stop();
+    });
   });
 
   describe("outbox hygiene (A5)", () => {
@@ -1636,6 +1924,88 @@ describe("createSyncDb", () => {
       expect(client.outbox.getMutation({mutationId: secondMutationId})).toBeUndefined();
       await client.stop();
     });
+
+    it("a refresh resolving a DIFFERENT user never unpauses or replays (INV-2)", async () => {
+      const harness = makeAuthPauseHarness();
+      harness.http.channel.sendMutation = async () => {
+        throw new AuthRequiredError();
+      };
+      // The refresh succeeds, but the session it renewed belongs to another user
+      // (a second tab signed in while this client was paused) — draining u1's
+      // outbox under u2's identity is exactly what INV-2 forbids.
+      harness.config.authProvider = {
+        ...harness.auth.provider,
+        refresh: async () => {
+          harness.auth.setUserId("u2");
+          return true;
+        },
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "x"},
+        operation: "create",
+      });
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBe("auth");
+      expect(client.outbox.getMutation({mutationId})?.status).toBe("queued");
+      await client.stop();
+    });
+
+    // The silent refresh exists to recover a session that expired behind the
+    // app's back. An explicit logout is the auth provider itself reporting "no
+    // user", so there is nothing to refresh — and a refresh that somehow
+    // succeeded could only resolve a user this client is not signed in as.
+    it("does not attempt a silent refresh when the pause came from an explicit logout", async () => {
+      const harness = makeHarness();
+      let refreshCalls = 0;
+      harness.config.authProvider = {
+        ...harness.auth.provider,
+        refresh: async () => {
+          refreshCalls += 1;
+          return true;
+        },
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      harness.auth.setUserId(null);
+      harness.auth.emitAuthChange();
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBe("auth");
+      expect(refreshCalls).toBe(0);
+      await client.stop();
+    });
+
+    it("a 401 surfacing through reconcile attempts exactly one silent refresh per episode", async () => {
+      const harness = makeHarness();
+      let refreshCalls = 0;
+      harness.config.authProvider = {
+        ...harness.auth.provider,
+        refresh: async () => {
+          refreshCalls += 1;
+          return false;
+        },
+      };
+      harness.http.state.streamsError = new AuthRequiredError();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      expect(client.getSyncStatus().paused).toBe("auth");
+      expect(refreshCalls).toBe(1);
+
+      // Every later trigger inside the SAME episode is a no-op for the refresh.
+      await client.reconcile();
+      await client.replayOutbox();
+      await flush();
+      expect(refreshCalls).toBe(1);
+      await client.stop();
+    });
   });
 
   describe("socket session re-validation sweep mapping into auth-pause (D1)", () => {
@@ -1732,6 +2102,35 @@ describe("createSyncDb", () => {
   });
 
   describe("signOut() (A4)", () => {
+    it("serializes against a concurrent auth change and leaves no destroyed persister behind", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "kept"}, id: "t1"});
+
+      // A user switch and a sign-out racing each other: both mutate
+      // currentUserId/persister, so the lifecycle mutex must order them and the
+      // later one must not write state the earlier one already tore down.
+      harness.auth.setUserId("u2");
+      harness.auth.emitAuthChange();
+      const signOutPromise = client.signOut();
+      await signOutPromise;
+      await flush();
+
+      // Sign-out ran last: no current user, and a mutation is rejected until a
+      // fresh start() resolves one again.
+      expect(() => client.mutate({collection: "todos", operation: "create"})).toThrow(
+        "requires start()"
+      );
+      // The client is reusable: start() rebuilds persistence for the new user
+      // rather than reusing the persister signOut() destroyed.
+      await client.start();
+      client.mutate({collection: "todos", data: {title: "after sign out"}, operation: "create"});
+      await flush();
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      await client.stop();
+    });
+
     it("clears the current user without wiping when wipeOnSignOut is not set", async () => {
       const harness = makeHarness();
       const client = createSyncDb(harness.config);
@@ -1753,6 +2152,25 @@ describe("createSyncDb", () => {
 
       await client.signOut();
       expect(client.store.listEntities({collection: "todos", includeDeleted: true})).toEqual([]);
+    });
+
+    it("the wipeOnSignOut wipe also clears the cached derived encryption key (E3f)", async () => {
+      const harness = makeHarness({
+        persisterFactory: createWebPersisterFactory({saveDebounceMs: 0}),
+        wipeOnSignOut: true,
+      });
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      expect(
+        await idbGet<CryptoKey>({databaseName: DEFAULT_KEY_CACHE_DB_NAME, key: "local:local"})
+      ).toBeInstanceOf(CryptoKey);
+
+      await client.signOut();
+
+      expect(
+        await idbGet<CryptoKey>({databaseName: DEFAULT_KEY_CACHE_DB_NAME, key: "local:local"})
+      ).toBeUndefined();
     });
   });
 
@@ -2151,6 +2569,102 @@ describe("createSyncDb", () => {
         true
       );
       await client.stop();
+    });
+  });
+
+  describe("lifecycle hygiene (9.25)", () => {
+    it("refuses to delete an id the local store has never seen", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      expect(() => client.mutate({collection: "todos", id: "ghost", operation: "delete"})).toThrow(
+        /no such entity in the local store/
+      );
+      // No phantom tombstone, and no doomed mutation queued behind it.
+      expect(client.store.getEntity({collection: "todos", id: "ghost"})).toBeUndefined();
+      expect(client.getSyncStatus().queuedCount).toBe(0);
+      await client.stop();
+    });
+
+    it("writes exactly one tombstone row for a delete and keeps the previous data", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      const {id} = client.mutate({
+        collection: "todos",
+        data: {title: "doomed"},
+        operation: "create",
+      });
+      client.mutate({collection: "todos", id, operation: "delete"});
+
+      const entity = client.store.getEntity<{title: string}>({collection: "todos", id});
+      expect(entity?.deleted).toBe(true);
+      expect(entity?.data?.title).toBe("doomed");
+      expect(client.store.raw.getCell("todos", id, "deletedAt")).toBeTruthy();
+      await client.stop();
+    });
+
+    it("coalesces concurrent reconcile calls into a single stream discovery", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      const streamsBefore = harness.http.state.streamsCount;
+
+      const first = client.reconcile();
+      const second = client.reconcile();
+      expect(second).toBe(first);
+      await Promise.all([first, second]);
+
+      expect(harness.http.state.streamsCount).toBe(streamsBefore + 1);
+      // Once the shared pass settles, the next trigger starts a fresh one.
+      await client.reconcile();
+      expect(harness.http.state.streamsCount).toBe(streamsBefore + 2);
+      await client.stop();
+    });
+
+    it("closes the debug BroadcastChannel on stop and re-opens it on start", async () => {
+      const globalScope = globalThis as unknown as {BroadcastChannel?: unknown};
+      const original = globalScope.BroadcastChannel;
+      const channels: Array<{name: string; closed: boolean}> = [];
+      class FakeBroadcastChannel {
+        onmessage: ((event: {data: unknown}) => void) | null = null;
+        private readonly record: {name: string; closed: boolean};
+        constructor(name: string) {
+          this.record = {closed: false, name};
+          channels.push(this.record);
+        }
+        postMessage(): void {}
+        close(): void {
+          this.record.closed = true;
+        }
+      }
+      globalScope.BroadcastChannel = FakeBroadcastChannel;
+      try {
+        const harness = makeHarness({debug: true});
+        const client = createSyncDb(harness.config);
+        await client.start();
+        await flush();
+        expect(channels.length).toBe(1);
+        expect(channels[0].closed).toBe(false);
+
+        await client.stop();
+        expect(channels[0].closed).toBe(true);
+
+        // A restarted client mirrors again rather than going silent.
+        await client.start();
+        await flush();
+        expect(channels.length).toBe(2);
+        expect(channels[1].closed).toBe(false);
+        await client.stop();
+        expect(channels[1].closed).toBe(true);
+      } finally {
+        globalScope.BroadcastChannel = original;
+      }
     });
   });
 });

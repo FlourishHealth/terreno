@@ -39,7 +39,10 @@ test.describe("Todos", () => {
     const itemId = todoTestId.replace("todo-item-", "");
 
     await page.getByTestId(`todo-toggle-${itemId}-clickable`).click();
-    await page.getByTestId("todos-completed-section").waitFor({state: "visible"});
+    await expect(page.getByTestId(`todo-item-${itemId}`)).toHaveAttribute(
+      "aria-label",
+      "completed todo"
+    );
     await expect(page.getByText("Mark me done").first()).toBeVisible();
   });
 
@@ -64,7 +67,11 @@ test.describe("Todos", () => {
     const itemId = todoTestId.replace("todo-item-", "");
 
     await page.getByTestId(`todo-toggle-${itemId}-clickable`).click();
-    await page.getByTestId("todos-completed-section").waitFor({state: "visible"});
+    await expect(page.getByTestId("todos-completed-section")).toBeVisible();
+    await expect(page.getByTestId(`todo-item-${itemId}`)).toHaveAttribute(
+      "aria-label",
+      "completed todo"
+    );
     await expect(todoItemByTitle(page, "Completed todo")).toBeVisible();
   });
 });

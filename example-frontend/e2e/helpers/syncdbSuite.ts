@@ -49,6 +49,9 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   // legitimately fails Better Auth's sign-out network call.
   consoleGuard.allow("Better Auth: Error signing out");
   consoleGuard.allow(/sync needs attention/i);
+  // Queueing mutations against a severed network is the point of these suites, so the
+  // app's own "queue is deep" health warning is expected rather than a defect.
+  consoleGuard.allow(/Sync is falling behind/i);
 };
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>

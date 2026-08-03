@@ -102,6 +102,19 @@ test.describe("SyncDB user switch wipe (AC-7)", () => {
     // Restore the network, then switch users. This scenario is inherently a mid-test
     // user switch, so loginAs is reused here rather than in beforeEach.
     await restoreNetwork(page);
+
+    // The sign-out above ran offline, so it cleared local auth state but never reached
+    // the server — A's session cookie is still valid. Reloading with connectivity back
+    // re-reads that session and lands on the Todos screen instead of /login, so sign out
+    // once more (online this time) to actually revoke it before logging in as B.
+    await page.goto("/login");
+    if ((await page.getByTestId("login-screen").count()) === 0) {
+      await page.goto("/profile");
+      await page.getByTestId("profile-logout-button").waitFor({state: "visible"});
+      await page.getByTestId("profile-logout-button").click();
+      await page.getByTestId("login-screen").first().waitFor({state: "visible"});
+    }
+
     await loginAs(page, SECOND_USER);
     await openSyncTodos(page);
 

@@ -77,10 +77,11 @@ test.describe("Realtime sync", () => {
       });
       expect(patchRes.ok()).toBe(true);
 
-      await page.getByTestId("todos-completed-section").waitFor({
-        state: "visible",
-        timeout: CONVERGE_TIMEOUT,
-      });
+      await expect(page.getByTestId(`todo-item-${seeded._id}`)).toHaveAttribute(
+        "aria-label",
+        "completed todo",
+        {timeout: CONVERGE_TIMEOUT}
+      );
       await expect(page.getByText("Update me").first()).toBeVisible();
     } finally {
       await api.dispose();
@@ -111,7 +112,7 @@ test.describe("Realtime sync", () => {
 });
 
 test.describe("Realtime cross-user isolation", () => {
-  test.beforeEach(async ({page, consoleGuard}) => {
+  test.beforeEach(async ({consoleGuard}) => {
     allowSyncDbNoise(consoleGuard);
     await clearTodosAs(REALTIME_USER);
     await clearTodosAs(SECOND_USER);

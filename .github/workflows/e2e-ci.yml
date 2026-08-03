@@ -29,7 +29,6 @@ jobs:
     name: "E2E · ${{ matrix.spec }}"
     if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
       fail-fast: false
       matrix:

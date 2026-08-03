@@ -70,6 +70,14 @@ export interface SyncNack {
   serverDoc?: unknown;
   /** The server document's current seq (conflict nacks). */
   serverSeq?: number;
+  /**
+   * Set when the conflicting server state is a tombstone rather than a live
+   * document (deleted, hard-deleted, or moved out of this client's scope), so
+   * `useServer` resolution writes a tombstone instead of a null-data ghost row.
+   * A server that omits it is still handled: `serverDoc: null` at a non-zero
+   * `serverSeq` means the same thing (see {@link SyncConflict.serverDeleted}).
+   */
+  serverDeleted?: boolean;
   message?: string;
   /**
    * Minimum time (ms) the client should wait before retrying, filled by the
@@ -184,6 +192,14 @@ export interface SyncConflict {
   /** JSON-serialized canonical server entity data. */
   serverData: string;
   serverSeq: number;
+  /**
+   * True when the server side of this conflict is a tombstone, so `useServer`
+   * resolution must delete the local row rather than write `serverData` over it.
+   * Absent for conflicts recorded before the flag existed (and by servers that
+   * do not send it) — `serverData: null` at a non-zero `serverSeq` is treated
+   * the same way, since the server reported a real seq with no document at it.
+   */
+  serverDeleted?: boolean;
   dismissed: boolean;
 }
 

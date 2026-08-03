@@ -48,12 +48,24 @@ export const betterAuthAdapter = (
     options.clearIntervalFn ??
     ((handle: unknown): void => clearInterval(handle as ReturnType<typeof setInterval>));
 
-  const readSession = async (): Promise<BetterAuthSessionDataLike | null> => {
+  /**
+   * Read the session, distinguishing "read failed" from "signed out". Both surface as
+   * a null session, but only the latter is an identity change — see
+   * {@link classifyEmission}.
+   */
+  const readSessionResult = async (): Promise<{
+    ok: boolean;
+    session: BetterAuthSessionDataLike | null;
+  }> => {
     try {
-      return unwrapSession(await authClient.getSession());
+      return {ok: true, session: unwrapSession(await authClient.getSession())};
     } catch {
-      return null;
+      return {ok: false, session: null};
     }
+  };
+
+  const readSession = async (): Promise<BetterAuthSessionDataLike | null> => {
+    return (await readSessionResult()).session;
   };
 
   /**
@@ -78,24 +90,48 @@ export const betterAuthAdapter = (
     return session?.user?.id ?? null;
   };
 
-  /** Identity snapshot used by the polling fallback to detect auth changes. */
-  const readAuthKey = async (): Promise<string> => {
-    const session = await readSession();
+  /**
+   * Identity snapshot used by the polling fallback to detect auth changes. Returns null
+   * when the read itself failed, so a transient network error is never sampled as a
+   * signed-out identity (the same phantom-logout hazard {@link classifyEmission} guards).
+   */
+  const readAuthKey = async (): Promise<string | null> => {
+    const {ok, session} = await readSessionResult();
+    if (!ok) {
+      return null;
+    }
     return `${session?.user?.id ?? ""}|${session?.session?.token ?? ""}`;
   };
 
   /**
    * Classify a session-atom emission for the subscribe path:
-   * - "pending": an in-flight fetch state (`isPending: true`) — never a change;
+   * - "pending": an in-flight fetch state (`isPending: true`) or a FAILED read
+   *   (`error` set) — never a change;
    * - `{key}`: a parseable session envelope reduced to its identity (userId|token);
    * - null: an opaque value the adapter cannot interpret.
+   *
+   * A failed read is deliberately indistinguishable from "pending" here. Better Auth
+   * emits `{data: null, error}` when a get-session fetch fails, which is shaped exactly
+   * like a signed-out session — forwarding it would report a PHANTOM logout, and the
+   * client's logout path clears its current-user pointer, breaking local-first writes
+   * (`mutate()` throws) until the next real auth event. A transient network failure is a
+   * recoverable state, not a sign-out (INV-2), so the identity is left unchanged and the
+   * next successful emission decides.
    */
   const classifyEmission = (value: unknown): {key: string} | "pending" | null => {
     if (!value || typeof value !== "object") {
       return null;
     }
-    const emission = value as {isPending?: unknown; data?: unknown; user?: unknown};
+    const emission = value as {
+      isPending?: unknown;
+      data?: unknown;
+      user?: unknown;
+      error?: unknown;
+    };
     if (emission.isPending === true) {
+      return "pending";
+    }
+    if (emission.error) {
       return "pending";
     }
     let payload: BetterAuthSessionDataLike | null = null;
@@ -147,13 +183,15 @@ export const betterAuthAdapter = (
     let disposed = false;
     let lastKey: string | undefined;
     void readAuthKey().then((key) => {
-      if (!disposed && lastKey === undefined) {
+      if (!disposed && lastKey === undefined && key !== null) {
         lastKey = key;
       }
     });
     const handle = setIntervalFn(() => {
       void readAuthKey().then((key) => {
-        if (disposed) {
+        if (disposed || key === null) {
+          // Failed read: hold the last known identity rather than sampling it as
+          // signed out.
           return;
         }
         if (lastKey === undefined) {

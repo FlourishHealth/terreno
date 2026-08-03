@@ -10,6 +10,11 @@
  * it is a developer tool. It uses raw RN primitives + a FlatList for a flat,
  * virtualized, high-throughput list, and freezes on pause so a burst can be read.
  *
+ * NOT A PATTERN TO COPY: bypassing @terreno/ui and the theme (raw View/Text plus the
+ * hardcoded PALETTE below) is a deliberate exception for this one debug-only screen,
+ * where per-row render cost dominates at thousands of events. Product screens must use
+ * Box/Text/Card and theme values.
+ *
  * The same data is available programmatically via `client.debug.snapshot()`,
  * which is the shape a future MCP tool will return.
  */

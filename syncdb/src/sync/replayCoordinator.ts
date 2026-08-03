@@ -438,6 +438,9 @@ export const createReplayCoordinator = ({
         localData: JSON.stringify(entity?.data ?? null),
         mutationId: mutation.mutationId,
         serverData: JSON.stringify(nack.serverDoc ?? null),
+        // Task 9.12: preserved so `useServer` resolution knows to write a
+        // tombstone rather than the nack's empty server document.
+        serverDeleted: nack.serverDeleted === true,
         serverSeq: nack.serverSeq ?? 0,
       },
       store,
@@ -465,6 +468,24 @@ export const createReplayCoordinator = ({
     outbox.markFailed({mutationId: mutation.mutationId});
     retryAt.delete(mutation.mutationId);
     transportFailures.delete(mutation.mutationId);
+    // Task 9.11a: the server rejected this mutation outright, so the optimistic
+    // row is backed by nothing. Absent a concurrent server write the entity's
+    // seq never moves, so snapshot reconcile skips it and the rejected data
+    // would persist locally forever. Mark needs-repair UNCONDITIONALLY (before
+    // the repair hook runs) so the entity converges to canonical server state —
+    // and so a later reconcile retries the repair if this one cannot reach the
+    // server. Ids the server declines to return are unmarked by the repair pass
+    // itself, so a rejected create never leaves a permanent mark behind.
+    const pendingEntity = store.getEntity({
+      collection: mutation.collection,
+      id: mutation.entityId,
+    });
+    store.markNeedsRepair({
+      collection: mutation.collection,
+      entityId: mutation.entityId,
+      missedSeq: pendingEntity?.seq ?? 0,
+      stream: pendingEntity?.stream ?? "",
+    });
     // A failed mutation never replays; leaving pendingMutationId set would
     // block server deltas for this entity forever.
     releaseEntity(mutation);
@@ -481,13 +502,6 @@ export const createReplayCoordinator = ({
       type: "failed",
     });
   };
-
-  /** True when `mutation`'s entity has an unresolved conflict recorded (B4), scoped to its user. */
-  const hasUnresolvedConflict = (mutation: OutboxMutation): boolean =>
-    listConflicts({store}).some(
-      (conflict) =>
-        conflict.collection === mutation.collection && conflict.entityId === mutation.entityId
-    );
 
   /**
    * FIX 4: an entity's validation block is garbage-collected once NO outbox
@@ -517,12 +531,6 @@ export const createReplayCoordinator = ({
       }
     }
   };
-
-  /** True when `mutation`'s entity itself is directly blocked (unresolved conflict or skipped validation failure). */
-  const isDirectlyBlocked = (mutation: OutboxMutation): boolean =>
-    validationBlockedEntities.has(
-      userEntityKey(mutation.userId, mutation.collection, mutation.entityId)
-    ) || hasUnresolvedConflict(mutation);
 
   /**
    * FIX 2: recursively scan a parsed JSON value for any string that exactly
@@ -579,17 +587,16 @@ export const createReplayCoordinator = ({
     }
     // Same seeding for unresolved conflicts (the store is scoped one-user-
     // at-a-time — wiped on user switch — so `listConflicts` needs no
-    // additional userId filter here, matching `hasUnresolvedConflict`).
+    // additional userId filter here).
     for (const conflict of listConflicts({store})) {
       blockedKeys.add(entityKey(conflict.collection, conflict.entityId));
       blockedIds.add(conflict.entityId);
     }
-    for (const mutation of queued) {
-      if (isDirectlyBlocked(mutation)) {
-        blockedKeys.add(entityKey(mutation.collection, mutation.entityId));
-        blockedIds.add(mutation.entityId);
-      }
-    }
+    // Seeding above is exhaustive for direct blocks: a queued mutation is directly
+    // blocked only by a `validationBlockedEntities` entry or a recorded conflict for
+    // its own entity, and both sets are fully enumerated above. Re-walking `queued`
+    // to test each mutation individually would rescan the whole `_conflicts` table
+    // per mutation (O(queued × conflicts)) and could never add a key.
     // Fixpoint expansion: a mutation whose args reference a currently-blocked
     // id becomes blocked itself (its own entityId joins the reference set),
     // which can in turn block a mutation referencing IT.

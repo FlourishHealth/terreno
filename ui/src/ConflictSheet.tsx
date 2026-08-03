@@ -1,6 +1,6 @@
 import {DateTime} from "luxon";
 import type React from "react";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {ScrollView, useWindowDimensions} from "react-native";
 
 import {Badge} from "./Badge";
@@ -300,6 +300,10 @@ const ConflictItem: React.FC<{
  * button lives inside the version column it keeps — or apply a choice to every
  * conflict after confirmation. Data-layer agnostic: pass `conflicts` and an `onResolve`
  * callback (e.g. from @terreno/syncdb's `useConflicts`).
+ *
+ * The sheet never closes itself on a button press. It calls `onDismiss` once `conflicts`
+ * becomes empty while open, so the caller's resolutions get to settle (or fail, keeping
+ * the sheet open) before the UI goes away.
  */
 export const ConflictSheet: React.FC<ConflictSheetProps> = ({
   visible,
@@ -311,29 +315,40 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
   testID = "conflict-sheet",
 }) => {
   const {height: windowHeight} = useWindowDimensions();
-  const handleResolve = useCallback(
-    (args: {mutationId: string; strategy: SyncConflictResolutionStrategy}): void => {
-      onResolve(args);
-      if (conflicts.length <= 1) {
-        onDismiss();
-      }
-    },
-    [conflicts.length, onDismiss, onResolve]
-  );
+  // Whether this open episode ever had conflicts, so a sheet opened deliberately
+  // with none (to show the empty state) is not closed out from under the caller.
+  const hadConflictsRef = useRef<boolean>(false);
+
+  // Dismissal is driven purely by the conflict list emptying, never by a button
+  // press: `onResolve` resolutions settle asynchronously in the data layer, and the
+  // parent drops a row from `conflicts` only once its resolution actually landed.
+  // Closing at press time would hide a resolution that then failed, leaving the
+  // conflict unresolved with no visible way back to it.
+  useEffect(() => {
+    if (!visible) {
+      hadConflictsRef.current = false;
+      return;
+    }
+    if (conflicts.length > 0) {
+      hadConflictsRef.current = true;
+      return;
+    }
+    if (hadConflictsRef.current) {
+      onDismiss();
+    }
+  }, [conflicts.length, onDismiss, visible]);
 
   const handleUseServerForAll = useCallback((): void => {
     for (const conflict of conflicts) {
       onResolve({mutationId: conflict.mutationId, strategy: "useServer"});
     }
-    onDismiss();
-  }, [conflicts, onDismiss, onResolve]);
+  }, [conflicts, onResolve]);
 
   const handleUseMineForAll = useCallback((): void => {
     for (const conflict of conflicts) {
       onResolve({mutationId: conflict.mutationId, strategy: "keepMine"});
     }
-    onDismiss();
-  }, [conflicts, onDismiss, onResolve]);
+  }, [conflicts, onResolve]);
 
   return (
     <Modal onDismiss={onDismiss} size="md" title={title} visible={visible}>
@@ -373,11 +388,7 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
                 />
               </Box>
               {conflicts.map((conflict) => (
-                <ConflictItem
-                  conflict={conflict}
-                  key={conflict.mutationId}
-                  onResolve={handleResolve}
-                />
+                <ConflictItem conflict={conflict} key={conflict.mutationId} onResolve={onResolve} />
               ))}
             </>
           )}

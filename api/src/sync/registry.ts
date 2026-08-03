@@ -26,14 +26,27 @@ export interface SyncRegistryEntry {
 const syncRegistry: SyncRegistryEntry[] = [];
 
 /**
- * C8: snapshot-index creation is kicked off (fire-and-forget) at registration, but its
- * failure must be a STARTUP error, not a swallowed warning (a missing index table-scans
- * the snapshot query under load). Each registration records its index promise here;
- * `ensureSyncIndexes()` awaits them and throws on any failure so server startup can fail
- * loudly. A detached failure is also logged so it is never silent even if startup never
- * calls `ensureSyncIndexes`.
+ * C8: index creation is kicked off (fire-and-forget) at registration, but its failure must
+ * be a STARTUP error, not a swallowed warning (a missing index table-scans the snapshot
+ * query under load, and a missing unique index breaks mutation idempotency). Each
+ * registration records its index promise here; `ensureSyncIndexes()` awaits them and
+ * throws on any failure so server startup can fail loudly. A detached failure is also
+ * logged so it is never silent even if startup never calls `ensureSyncIndexes`.
  */
 const indexCreationPromises: Promise<void>[] = [];
+
+/**
+ * Enqueue an index-creation promise for `ensureSyncIndexes()` to await at startup. Used by
+ * `SyncApp.register` for the bookkeeping-model indexes (`SyncCounter`, `SyncMutation`,
+ * `SyncScopeMove`, `SyncKey`), which are correctness-critical and must not depend on
+ * Mongoose `autoIndex` being enabled.
+ */
+export const trackSyncIndexCreation = (promise: Promise<void>): void => {
+  indexCreationPromises.push(promise);
+  // Swallow the detached rejection (the failure is logged where it happens and rethrown
+  // by `ensureSyncIndexes()` via the retained promise above).
+  promise.catch(() => {});
+};
 
 /**
  * Register a model for local-first sync. Called automatically by modelRouter when the
@@ -102,6 +115,20 @@ export const registerSync = ({
     routePath,
   });
 
+  // `Model.bulkWrite` bypasses Mongoose middleware entirely, so `syncPlugin`'s query
+  // guards never see it: writes land with no `_syncSeq`, invisible to both delta emission
+  // and snapshot catch-up, and clients silently never learn about them. The restriction
+  // used to be documentation only — replace the static so it throws the same way the
+  // guarded multi-document paths do. Idempotent: the replacement never delegates, so a
+  // re-registration (tests clearing the registry) re-patching it is harmless.
+  (model as unknown as {bulkWrite: () => never}).bulkWrite = (): never => {
+    throw new Error(
+      `bulkWrite is not supported on sync-enabled model ${name}: it bypasses Mongoose ` +
+        "middleware, so writes are never stamped with a per-stream _syncSeq and become " +
+        "invisible to sync delta emission and snapshot catch-up. Loop per document instead."
+    );
+  };
+
   // Compound index for snapshot/catch-up queries: {scopeField, _syncSeq}. Created
   // directly on the collection because the model is already compiled at registration.
   // C8: track the promise so `ensureSyncIndexes()` (server startup) can fail loudly on a
@@ -125,9 +152,11 @@ export const registerSync = ({
 };
 
 /**
- * C8: await every registered snapshot-index creation, throwing on the first failure.
- * Call at server startup (after all models register) so a missing index fails the boot
- * loudly rather than silently degrading the snapshot query to a table scan.
+ * C8: await every enqueued sync index creation — per-model snapshot indexes from
+ * `registerSync` plus the bookkeeping-model indexes from `SyncApp.register` — throwing on
+ * the first failure. Called at server startup by `TerrenoApp.start()` (after all models
+ * and plugins register) so a missing index fails the boot loudly rather than silently
+ * degrading the snapshot query to a table scan or breaking mutation idempotency.
  */
 export const ensureSyncIndexes = async (): Promise<void> => {
   await Promise.all(indexCreationPromises);
@@ -135,6 +164,49 @@ export const ensureSyncIndexes = async (): Promise<void> => {
 
 /** Get all registered sync models. */
 export const getSyncRegistry = (): SyncRegistryEntry[] => syncRegistry;
+
+/**
+ * Collection tags whose scope can only be resolved from the FULL user document —
+ * tenant scopes read `organizationIds` (or whatever `getUserScopes` looks at) and custom
+ * resolvers may read anything. The synthetic `{_id, admin, id}` user built from JWT claims
+ * carries none of that.
+ */
+const scopesRequiringFullUser = (): string[] =>
+  syncRegistry
+    .filter(
+      (entry) => typeof entry.config.scope === "function" || entry.config.scope.type === "tenant"
+    )
+    .map((entry) => entry.collectionTag);
+
+/**
+ * Task 9.21: warn loudly at startup when a tenant/custom-scoped collection is registered
+ * but no `userModel` is configured for socket handshakes.
+ *
+ * Without one, `getSocketUser` falls back to the synthetic decoded-token user: `admin`
+ * comes from a JWT claim rather than the database, and `getUserScopes` sees no
+ * `organizationIds`, so tenant subscriptions silently resolve to no streams (a client that
+ * appears connected but never receives data). This warns rather than throws so an existing
+ * deployment cannot be bricked by an upgrade; the message names the collections and the
+ * fix. Returns the offending collection tags for tests and callers that want to escalate.
+ */
+export const warnOnSyncScopesWithoutUserModel = ({userModel}: {userModel?: unknown}): string[] => {
+  if (userModel) {
+    return [];
+  }
+  const collections = scopesRequiringFullUser();
+  if (collections.length === 0) {
+    return [];
+  }
+  logger.error(
+    "[sync] Tenant/custom-scoped sync collections are registered but RealtimeApp has no " +
+      "userModel: socket authorization will fall back to the synthetic JWT-claim user, which " +
+      "carries no membership fields, so tenant streams resolve to nothing and `admin` is " +
+      "trusted from the token instead of the database. Pass `userModel` in RealtimeAppOptions " +
+      "(TerrenoApp does this automatically for its own userModel).",
+    {collections}
+  );
+  return collections;
+};
 
 /** Find a sync registry entry by Mongoose model name. */
 export const findSyncEntryByModelName = (modelName: string): SyncRegistryEntry | undefined =>

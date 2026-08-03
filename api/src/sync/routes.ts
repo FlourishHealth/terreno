@@ -4,20 +4,16 @@ import mongoose from "mongoose";
 import {asyncHandler} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
+import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {
   computeStableFrontier,
+  getCompactedThroughSeq,
   getOrCreateSyncKeyMaterial,
   SyncCounter,
   SyncScopeMove,
   type SyncScopeMoveDocument,
 } from "./models";
-import {
-  applySyncMutation,
-  applySyncMutationBatch,
-  MAX_SYNC_MUTATIONS_PER_BATCH,
-  validateSyncMutationBatch,
-} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, getSyncRegistry, type SyncRegistryEntry} from "./registry";
 import {serializeSyncPayload} from "./serialize";
 import {
@@ -26,6 +22,7 @@ import {
   resolveStreamForDoc,
   resolveUserStreamsForEntry,
 } from "./streams";
+import {runSyncBatch, runSyncMutation} from "./syncBatch";
 import type {
   SyncEntitiesResponse,
   SyncEntityPayload,
@@ -37,49 +34,15 @@ import type {
   SyncStreamsResponse,
 } from "./types";
 
-/** Maximum `POST /sync/mutate` and `/sync/mutate/batch` requests per user per second (HTTP). */
-export const MAX_SYNC_HTTP_MUTATIONS_PER_SECOND = 100;
-
 /**
- * Rolling one-second per-user mutation counter for the HTTP mutate routes, mirroring
- * the socket path's rate limit (which counts each mutation in a batch, not each
- * request/batch itself). Module-level so it survives across requests on the same
- * process; per-userId windows keep one heavy user from limiting another.
+ * Maximum mutations per user per second on the HTTP mutate routes.
+ *
+ * Task 9.20: an alias for the shared budget — HTTP and socket mutations now draw from ONE
+ * per-user window (see `syncBatch.ts`), so there is no longer a separate HTTP allowance.
+ * Re-exported (rather than copied) so the two names can never drift; a live re-export also
+ * keeps this module's evaluation independent of `syncBatch`, which imports back into it.
  */
-const httpMutationWindows = new Map<string, {windowStart: number; count: number}>();
-
-/**
- * Returns true when `weight` more mutations would exceed the per-second budget for
- * `userId`, WITHOUT consuming budget (callers decide whether to still count it).
- */
-const wouldExceedHttpMutationRateLimit = (userId: string, weight: number): boolean => {
-  const now = Date.now();
-  const entry = httpMutationWindows.get(userId);
-  if (!entry || now - entry.windowStart >= 1000) {
-    return weight > MAX_SYNC_HTTP_MUTATIONS_PER_SECOND;
-  }
-  return entry.count + weight > MAX_SYNC_HTTP_MUTATIONS_PER_SECOND;
-};
-
-/** Consume `weight` mutations from the user's rolling one-second HTTP window. */
-const consumeHttpMutationRateLimit = (userId: string, weight: number): void => {
-  const now = Date.now();
-  const entry = httpMutationWindows.get(userId);
-  if (!entry || now - entry.windowStart >= 1000) {
-    httpMutationWindows.set(userId, {count: weight, windowStart: now});
-    return;
-  }
-  entry.count += weight;
-};
-
-/** Milliseconds remaining in `userId`'s current rate-limit window, for `retryAfterMs`. */
-const httpMutationRateLimitRetryAfterMs = (userId: string): number => {
-  const entry = httpMutationWindows.get(userId);
-  if (!entry) {
-    return 1000;
-  }
-  return Math.max(0, 1000 - (Date.now() - entry.windowStart));
-};
+export {MAX_SYNC_MUTATIONS_PER_SECOND as MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} from "./syncBatch";
 
 /** Options for the SyncApp plugin's HTTP routes. */
 export interface SyncAppOptions {
@@ -128,6 +91,11 @@ export const serializeSyncDoc = async ({
  *
  * Custom-resolver scopes cannot be inverted into a query field, so they still route
  * through the required `snapshotFilter` (parameterized by the user, as before).
+ *
+ * Task 9.19: for owner/tenant/broadcast scopes a consumer-supplied `snapshotFilter` used
+ * to be computed and then discarded — silently widening the snapshot past what the
+ * consumer asked for. It is now composed with the scope clause via `$and` (never
+ * spread-merged, which would let one clobber the other).
  */
 export const buildSnapshotScopeFilter = ({
   entry,
@@ -149,22 +117,121 @@ export const buildSnapshotScopeFilter = ({
     }
     return snapshotFilterResult;
   }
-  if (scope.type === "broadcast") {
-    return {};
+  const scopeClause: Record<string, unknown> =
+    scope.type === "broadcast" ? {} : {[getScopeField(scope) as string]: scopeValue};
+  if (!snapshotFilterResult) {
+    return scopeClause;
   }
-  const field = getScopeField(scope) as string;
-  return {[field]: scopeValue};
+  return {$and: [scopeClause, snapshotFilterResult]};
 };
 
+/**
+ * Task 9.19: resolve the modelRouter `queryFilter` for a sync read.
+ *
+ * The most common REST shape is `read: [IsAuthenticated]` plus a `queryFilter` (e.g.
+ * `OwnerQueryFilter`) doing the actual row-level scoping. Sync built only scope + seq
+ * clauses, so for a `broadcast`/`custom`-scoped collection every document in the stream
+ * leaked through the snapshot and `GET /sync/entities` even though the REST list endpoint
+ * hid it. Both read paths now `$and` the resolved filter into their query, giving sync and
+ * REST the same visible row set.
+ *
+ * `queryFilter` is called with an empty query object: a sync read carries no user-supplied
+ * query params, so there is nothing to validate — only the filter clause to apply.
+ * Returning `null` means "this caller may see nothing" (REST answers with an empty list),
+ * which sync mirrors by serving an empty page rather than erroring. A throwing filter is
+ * denied the same way the realtime path denies it: fail closed, never fall through open.
+ */
+const resolveSyncQueryFilter = async ({
+  entry,
+  user,
+}: {
+  entry: SyncRegistryEntry;
+  user: User;
+}): Promise<{denied: boolean; filter?: Record<string, unknown>}> => {
+  if (!entry.options.queryFilter) {
+    return {denied: false};
+  }
+  let resolved: Record<string, unknown> | null;
+  try {
+    resolved = await entry.options.queryFilter(user, {});
+  } catch (error: unknown) {
+    logger.error("[sync] queryFilter threw for a sync read; denying the read", {
+      collection: entry.collectionTag,
+      error: String(error),
+      userId: String(user.id),
+    });
+    return {denied: true};
+  }
+  if (resolved === null) {
+    return {denied: true};
+  }
+  return {denied: false, filter: Object.keys(resolved).length > 0 ? resolved : undefined};
+};
+
+/**
+ * `$and` the resolved `queryFilter` onto a sync read's scope filter. Spread-merging would
+ * let either side clobber a same-named key (e.g. both constraining `ownerId`), so both
+ * clauses are kept and both must match.
+ */
+const composeSyncReadFilter = ({
+  queryFilter,
+  scopeFilter,
+}: {
+  queryFilter?: Record<string, unknown>;
+  scopeFilter: Record<string, unknown>;
+}): Record<string, unknown> => {
+  if (!queryFilter) {
+    return scopeFilter;
+  }
+  if (Object.keys(scopeFilter).length === 0) {
+    return queryFilter;
+  }
+  return {$and: [scopeFilter, queryFilter]};
+};
+
+/**
+ * Task 9.27: parse strictly. `Number.parseInt` stops at the first non-digit, so `"12abc"`
+ * and `"1e9"` used to silently become 12 and 1 — a client with a malformed cursor got a
+ * plausible-looking page instead of an error, and resumed paging from the wrong seq.
+ */
 const parseNonNegativeInt = (raw: unknown, name: string, fallback: number): number => {
   if (raw === undefined) {
     return fallback;
   }
-  const value = Number.parseInt(String(raw), 10);
-  if (Number.isNaN(value) || value < 0) {
+  const text = String(raw).trim();
+  if (!/^\d+$/.test(text)) {
+    throw new APIError({status: 400, title: `Invalid ${name}: ${String(raw)}`});
+  }
+  const value = Number.parseInt(text, 10);
+  if (!Number.isSafeInteger(value)) {
     throw new APIError({status: 400, title: `Invalid ${name}: ${String(raw)}`});
   }
   return value;
+};
+
+/**
+ * Task 9.14: the legacy cursor is a raw `_id` string, so it must be compared in the
+ * model's OWN `_id` BSON type. Synced models are designed around client-minted string
+ * `_id`s: casting those to `ObjectId` either throws (non-hex ids) or — worse — silently
+ * compares across BSON types and matches nothing, so the legacy stratum reported itself
+ * exhausted after one page and the remaining documents were never bootstrapped.
+ * Only ObjectId-keyed models get the cast; a malformed cursor for one is a 400, not a 500.
+ */
+const legacyCursorClause = ({
+  model,
+  legacyCursorIn,
+}: {
+  model: any;
+  legacyCursorIn: string;
+}): Record<string, unknown> => {
+  const idInstance = (model.schema?.path("_id") as {instance?: string} | undefined)?.instance;
+  if (idInstance !== "ObjectId") {
+    return {_id: {$gt: legacyCursorIn}};
+  }
+  if (!mongoose.isValidObjectId(legacyCursorIn)) {
+    throw new APIError({status: 400, title: `Invalid legacyCursor: ${legacyCursorIn}`});
+  }
+  return {_id: {$gt: new mongoose.Types.ObjectId(legacyCursorIn)}};
 };
 
 /**
@@ -197,7 +264,7 @@ const pageLegacyStratum = async ({
     $and: [
       scopeFilter,
       {_syncSeq: {$in: [null, 0]}},
-      ...(legacyCursorIn ? [{_id: {$gt: new mongoose.Types.ObjectId(legacyCursorIn)}}] : []),
+      ...(legacyCursorIn ? [legacyCursorClause({legacyCursorIn, model})] : []),
     ],
     deleted: {$in: [true, false]},
   };
@@ -227,43 +294,6 @@ const pageLegacyStratum = async ({
 };
 
 /**
- * C7: the lowest `_syncSeq` still retained for this stream (the retention floor). A
- * client whose stored cursor is below this may have missed compacted tombstones and must
- * re-bootstrap. Computed as the minimum seq present among the stream's non-legacy docs
- * and its scope-move markers; 0 when nothing has been compacted (no retention gap).
- */
-const computeOldestRetainedSeq = async ({
-  model,
-  scopeFilter,
-  streamKey,
-}: {
-  model: any;
-  scopeFilter: Record<string, unknown>;
-  streamKey: string;
-}): Promise<number> => {
-  // `deleted` stays top-level so tombstones (retained rows too) are counted in the floor
-  // rather than hidden by isDeletedPlugin's injected exclusion.
-  const lowestDoc = await model
-    .findOne({$and: [scopeFilter, {_syncSeq: {$gt: 0}}], deleted: {$in: [true, false]}})
-    .sort({_syncSeq: 1})
-    .select({_syncSeq: 1})
-    .lean();
-  const lowestMarker = await SyncScopeMove.findOne({fromStream: streamKey})
-    .sort({seq: 1})
-    .select({seq: 1})
-    .lean();
-  const candidates: number[] = [];
-  if (lowestDoc && typeof (lowestDoc as {_syncSeq?: number})._syncSeq === "number") {
-    candidates.push((lowestDoc as {_syncSeq: number})._syncSeq);
-  }
-  if (lowestMarker && typeof (lowestMarker as {seq?: number}).seq === "number") {
-    candidates.push((lowestMarker as {seq: number}).seq);
-  }
-  // No retained rows → no retention floor to enforce.
-  return candidates.length > 0 ? Math.min(...candidates) : 0;
-};
-
-/**
  * C1: true when the stream's head (highest claimed seq) exceeds the stable frontier —
  * i.e. committed seqs are still coming once the in-flight writes below the frontier land.
  */
@@ -277,14 +307,157 @@ const frontierBelowStreamHead = async (
 };
 
 /**
+ * Page the normal seq stratum: documents with `_syncSeq` in `(cursor, frontierSeq]`, unioned
+ * with the `SyncScopeMove` tombstones for the same seq range (C4). Mirrors
+ * `pageLegacyStratum` as the other half of the snapshot's paging: the caller drains the
+ * legacy stratum first, then hands every subsequent page to this helper.
+ *
+ * Returns the page's entities plus the cursor to resume from and whether more remains.
+ */
+const pageSeqStratum = async ({
+  model,
+  scopeFilter,
+  cursor,
+  limit,
+  frontierSeq,
+  streamKey,
+  entry,
+  req,
+}: {
+  model: any;
+  scopeFilter: Record<string, unknown>;
+  cursor: number;
+  limit: number;
+  frontierSeq: number;
+  streamKey: string;
+  entry: SyncRegistryEntry;
+  req: express.Request;
+}): Promise<{cursor: number; entities: SyncEntityPayload[]; hasMore: boolean}> => {
+  const user = req.user as User | undefined;
+  // C1: never page past the stable frontier — a cursor must not cross an uncommitted hole.
+  const seqFilter = {_syncSeq: {$gt: cursor, $lte: frontierSeq}};
+  // M1: compose the scope + seq clauses with $and (never spread-merge, which lets a
+  // scopeFilter $or clobber the seq clause). `deleted` MUST stay a TOP-LEVEL key:
+  // isDeletedPlugin injects {deleted: {$ne: true}} only when the top-level filter has
+  // no `deleted` key — burying it inside $and would let the plugin re-inject its
+  // exclusion and hide the tombstones catch-up depends on.
+  const query = {$and: [scopeFilter, seqFilter], deleted: {$in: [true, false]}};
+  const docs = await model
+    .find(query)
+    .sort({_syncSeq: 1})
+    .limit(limit + 1);
+
+  // C4: merge SyncScopeMove markers for THIS (old) stream into the page as tombstones,
+  // so an offline old-stream client learns the doc left its stream.
+  const markers = await SyncScopeMove.find({
+    fromStream: streamKey,
+    seq: {$gt: cursor, $lte: frontierSeq},
+  })
+    .sort({seq: 1})
+    .limit(limit + 1)
+    .lean();
+
+  const page = docs.slice(0, limit);
+  const markerPage = markers.slice(0, limit);
+  const docsHaveMore = docs.length > limit;
+  const markersHaveMore = markers.length > limit;
+
+  // The highest seq this page has fully examined. Docs and markers are fetched with
+  // independent limits, so coverage stops at the lower of the two: past that seq, the
+  // truncated side may still hold rows this page never saw. When a side was not
+  // truncated, everything up to the frontier is covered.
+  const lastDocSeq = page.length > 0 ? ((page[page.length - 1]._syncSeq as number) ?? 0) : 0;
+  const lastMarkerSeq = markerPage.length > 0 ? markerPage[markerPage.length - 1].seq : 0;
+  const coveredSeq = Math.min(
+    docsHaveMore ? lastDocSeq : frontierSeq,
+    markersHaveMore ? lastMarkerSeq : frontierSeq
+  );
+
+  // C6 (M2): run the same per-doc read permission the delta path uses; drop denied
+  // docs but still advance the cursor past them (parity with delta behavior).
+  const docEntities: SyncEntityPayload[] = [];
+  for (const doc of page as any[]) {
+    const allowed = await checkPermissions("read", entry.options.permissions.read, user, doc);
+    if (!allowed) {
+      continue;
+    }
+    const isTombstone = Boolean(doc.deleted);
+    docEntities.push({
+      // C7: tombstones carry no data (privacy + payload growth) — only id/seq/deleted.
+      data: isTombstone ? null : await serializeSyncDoc({doc, entry, req}),
+      deleted: isTombstone,
+      id: String(doc._id),
+      seq: doc._syncSeq ?? 0,
+    });
+  }
+  const markerEntities: SyncEntityPayload[] = markerPage.map(
+    (m: SyncScopeMoveDocument): SyncEntityPayload => ({
+      data: null,
+      deleted: true,
+      id: m.entityId,
+      seq: m.seq,
+    })
+  );
+  // Union doc page + marker tombstones, sort by seq, and drop anything beyond the
+  // covered range (it is re-fetched on the next page, in order).
+  const merged = [...docEntities, ...markerEntities]
+    .sort((a, b) => a.seq - b.seq)
+    .filter((entity) => entity.seq <= coveredSeq);
+  const entities = merged.slice(0, limit);
+  const entitiesTruncated = merged.length > entities.length;
+
+  // hasMore when: a full doc page was returned, extra markers remain, included
+  // entities were truncated by the limit, or the frontier sits below the head (more
+  // committed seqs are coming once in-flight writes land).
+  const frontierBelowHead = await frontierBelowStreamHead(streamKey, frontierSeq);
+  const hasMore = docsHaveMore || markersHaveMore || entitiesTruncated || frontierBelowHead;
+
+  // Advance the cursor over every seq this page CONSUMED, not just the entities it
+  // returned: a page whose docs were all read-denied returns nothing, and stalling the
+  // cursor there loops the client forever. Truncation by `limit` still pins the cursor
+  // to the last delivered entity so nothing undelivered is skipped, and the cursor
+  // never crosses the stable frontier (C1) nor moves backwards.
+  const advanceTo = entitiesTruncated ? entities[entities.length - 1].seq : coveredSeq;
+  return {cursor: Math.max(cursor, Math.min(advanceTo, frontierSeq)), entities, hasMore};
+};
+
+/** Hard cap on ids per `GET /sync/entities` request. */
+export const MAX_ENTITY_FETCH = 100;
+
+/**
+ * Task 9.27: `_id: {$in: ids}` leaves the cast to Mongoose, so one non-hex id against an
+ * ObjectId-keyed model threw a CastError that surfaced as a 500 for what is purely bad
+ * caller input. Validate up front and name the offending ids in a 400. Models with
+ * client-minted string `_id`s (the syncdb default, see `legacyCursorClause`) take any shape.
+ */
+const castEntityIds = ({
+  model,
+  ids,
+}: {
+  ids: string[];
+  model: any;
+}): (string | mongoose.Types.ObjectId)[] => {
+  const idInstance = (model.schema?.path("_id") as {instance?: string} | undefined)?.instance;
+  if (idInstance !== "ObjectId") {
+    return ids;
+  }
+  const invalid = ids.filter((id) => !mongoose.isValidObjectId(id));
+  if (invalid.length > 0) {
+    throw new APIError({
+      status: 400,
+      title: `Invalid ids for ${String(model.modelName)}: ${invalid.join(",")}`,
+    });
+  }
+  return ids.map((id) => new mongoose.Types.ObjectId(id));
+};
+
+/**
  * Mount the SyncDB HTTP routes:
  * - GET /sync/streams — the authoritative set of streams the caller belongs to (C2)
  * - GET /sync/snapshot — per-stream bootstrap/catch-up with server-enforced scoping
  * - POST /sync/mutate — HTTP fallback mutation channel over applySyncMutation
  * - GET /sync/key — per-user key material for the default encryption KeyProvider
  */
-/** Hard cap on ids per `GET /sync/entities` request. */
-const MAX_ENTITY_FETCH = 100;
 
 export const addSyncRoutes = (app: express.Application, options: SyncAppOptions = {}): void => {
   const router = express.Router();
@@ -382,14 +555,37 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       const snapshotFilterResult = entry.config.snapshotFilter
         ? await entry.config.snapshotFilter({id: String(user.id)})
         : undefined;
-      const scopeFilter = buildSnapshotScopeFilter({
-        entry,
-        scopeValue: parsed.scopeValue,
-        snapshotFilterResult,
+      const queryFilterResult = await resolveSyncQueryFilter({entry, user});
+      const scopeFilter = composeSyncReadFilter({
+        queryFilter: queryFilterResult.filter,
+        scopeFilter: buildSnapshotScopeFilter({
+          entry,
+          scopeValue: parsed.scopeValue,
+          snapshotFilterResult,
+        }),
       });
       const model = mongoose.model(entry.modelName);
       const frontierSeq = await computeStableFrontier({stream: streamKey});
-      const oldestRetainedSeq = await computeOldestRetainedSeq({model, scopeFilter, streamKey});
+      // C7 (Task 9.15): the retention signal is the durable compaction watermark, not
+      // min(retained seq). The old computation was pinned low forever by any early doc that
+      // was never deleted, so a stale cursor sitting above a compacted tombstone's seq
+      // passed the check and silently never learned about that deletion.
+      const oldestRetainedSeq = await getCompactedThroughSeq({stream: streamKey});
+
+      // Task 9.19: a `queryFilter` that denies this caller means "no visible rows", exactly
+      // as REST's list endpoint answers. Serve a terminal empty page (cursor at the
+      // frontier, hasMore false) so the client settles instead of paging forever.
+      if (queryFilterResult.denied) {
+        const deniedResponse: SyncSnapshotResponse = {
+          cursor: frontierSeq,
+          entities: [],
+          frontierSeq,
+          hasMore: false,
+          oldestRetainedSeq,
+          stream: streamKey,
+        };
+        return res.json(deniedResponse);
+      }
 
       // C3: legacy (seq-0) stratum, paged by _id. Drained fully before seq paging begins.
       if (cursor === 0) {
@@ -415,75 +611,21 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         }
       }
 
-      // C1: never page past the stable frontier — a cursor must not cross an uncommitted hole.
-      const seqFilter = {_syncSeq: {$gt: cursor, $lte: frontierSeq}};
-      // M1: compose the scope + seq clauses with $and (never spread-merge, which lets a
-      // scopeFilter $or clobber the seq clause). `deleted` MUST stay a TOP-LEVEL key:
-      // isDeletedPlugin injects {deleted: {$ne: true}} only when the top-level filter has
-      // no `deleted` key — burying it inside $and would let the plugin re-inject its
-      // exclusion and hide the tombstones catch-up depends on.
-      const query = {$and: [scopeFilter, seqFilter], deleted: {$in: [true, false]}};
-      const docs = await model
-        .find(query)
-        .sort({_syncSeq: 1})
-        .limit(limit + 1);
-
-      // C4: merge SyncScopeMove markers for THIS (old) stream into the page as tombstones,
-      // so an offline old-stream client learns the doc left its stream.
-      const markers = await SyncScopeMove.find({
-        fromStream: streamKey,
-        seq: {$gt: cursor, $lte: frontierSeq},
-      })
-        .sort({seq: 1})
-        .limit(limit + 1)
-        .lean();
-
-      const page = docs.slice(0, limit);
-      // C6 (M2): run the same per-doc read permission the delta path uses; drop denied
-      // docs but still advance the cursor past them (parity with delta behavior).
-      const docEntities: SyncEntityPayload[] = [];
-      for (const doc of page as any[]) {
-        const allowed = await checkPermissions("read", entry.options.permissions.read, user, doc);
-        if (!allowed) {
-          continue;
-        }
-        const isTombstone = Boolean(doc.deleted);
-        docEntities.push({
-          // C7: tombstones carry no data (privacy + payload growth) — only id/seq/deleted.
-          data: isTombstone ? null : await serializeSyncDoc({doc, entry, req}),
-          deleted: isTombstone,
-          id: String(doc._id),
-          seq: doc._syncSeq ?? 0,
-        });
-      }
-      const markerEntities: SyncEntityPayload[] = markers.map(
-        (m: SyncScopeMoveDocument): SyncEntityPayload => ({
-          data: null,
-          deleted: true,
-          id: m.entityId,
-          seq: m.seq,
-        })
-      );
-      // Union doc page + marker tombstones, sort by seq, page by frontier/limit.
-      const merged = [...docEntities, ...markerEntities].sort((a, b) => a.seq - b.seq);
-      const entities = merged.slice(0, limit);
-
-      // hasMore when: a full doc page was returned, extra markers remain, or the frontier
-      // sits below the head (more committed seqs are coming once in-flight writes land).
-      const docsHaveMore = docs.length > limit;
-      const markersHaveMore = markers.length > limit || merged.length > entities.length;
-      const frontierBelowHead = await frontierBelowStreamHead(streamKey, frontierSeq);
-      const hasMore = docsHaveMore || markersHaveMore || frontierBelowHead;
-
-      // C1: never advance the client past an uncommitted hole — clamp the returned cursor
-      // to the frontier (and to the highest entity seq actually included).
-      const lastEntitySeq = entities.length > 0 ? entities[entities.length - 1].seq : cursor;
-      const nextCursor = Math.min(Math.max(lastEntitySeq, cursor), frontierSeq);
-      const response: SyncSnapshotResponse = {
-        cursor: nextCursor,
-        entities,
+      const seqResult = await pageSeqStratum({
+        cursor,
+        entry,
         frontierSeq,
-        hasMore,
+        limit,
+        model,
+        req,
+        scopeFilter,
+        streamKey,
+      });
+      const response: SyncSnapshotResponse = {
+        cursor: seqResult.cursor,
+        entities: seqResult.entities,
+        frontierSeq,
+        hasMore: seqResult.hasMore,
         oldestRetainedSeq,
         stream: streamKey,
       };
@@ -510,10 +652,18 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
               .split(",")
               .map((id) => id.trim())
               .filter((id) => id.length > 0)
-              .slice(0, MAX_ENTITY_FETCH)
           : [];
       if (ids.length === 0) {
         throw new APIError({status: 400, title: "ids query parameter is required"});
+      }
+      // Task 9.27: this used to `.slice(0, MAX_ENTITY_FETCH)`, so an over-cap repair fetch
+      // came back 200 with a partial body and the client treated the entities it never
+      // received as absent. Reject instead, so the caller re-requests in chunks.
+      if (ids.length > MAX_ENTITY_FETCH) {
+        throw new APIError({
+          status: 400,
+          title: `Too many ids: ${ids.length} requested, limit is ${MAX_ENTITY_FETCH}`,
+        });
       }
 
       const entry = findSyncEntryByCollectionTag(collection);
@@ -537,9 +687,24 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       });
       const memberSet = new Set(memberStreams);
 
+      // Task 9.19: mirror the REST list endpoint's row-level scoping. Without this, a
+      // collection that relies on `queryFilter` (rather than a per-doc read permission)
+      // served every requested id here, whatever the caller was allowed to list.
+      const queryFilterResult = await resolveSyncQueryFilter({entry, user});
+      if (queryFilterResult.denied) {
+        const deniedResponse: SyncEntitiesResponse = {entities: []};
+        return res.json(deniedResponse);
+      }
+
       const model = mongoose.model(entry.modelName);
+      const castIds = castEntityIds({ids, model});
       const docs = await model.find({
-        _id: {$in: ids},
+        // `deleted` MUST stay a TOP-LEVEL key so isDeletedPlugin does not re-inject its
+        // {deleted: {$ne: true}} exclusion and hide the tombstones a re-fetching client needs.
+        ...composeSyncReadFilter({
+          queryFilter: queryFilterResult.filter,
+          scopeFilter: {_id: {$in: castIds}},
+        }),
         deleted: {$in: [true, false]},
       });
 
@@ -580,19 +745,9 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       if (!user) {
         throw new APIError({status: 401, title: "Authentication required"});
       }
-      const userId = String(user.id);
-      if (wouldExceedHttpMutationRateLimit(userId, 1)) {
-        return res.status(NACK_HTTP_STATUS.rate_limited).json({
-          nack: {
-            code: "rate_limited",
-            message: `Rate limit of ${MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} mutations per second exceeded`,
-            mutationId: String((req.body as SyncMutateRequest | undefined)?.mutationId ?? ""),
-            retryAfterMs: httpMutationRateLimitRetryAfterMs(userId),
-          },
-        });
-      }
-      consumeHttpMutationRateLimit(userId, 1);
-      const outcome = await applySyncMutation({
+      // Task 9.20: rate limiting + apply live in the shared runner, so this route and
+      // `sync:mutate` behave identically under the same inputs.
+      const {outcome} = await runSyncMutation({
         mutation: req.body as SyncMutateRequest,
         req,
         scopeResolver: options.getUserScopes,
@@ -617,46 +772,20 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       const body = req.body as SyncMutateBatchRequest | undefined;
       const mutations = Array.isArray(body?.mutations) ? body.mutations : [];
 
-      // Batch size cap enforced BEFORE anything else (including rate limiting) —
-      // an oversized batch is a client bug, rejected loudly with no side effects.
-      if (mutations.length > MAX_SYNC_MUTATIONS_PER_BATCH) {
-        const validation = validateSyncMutationBatch(mutations);
-        if (!validation.ok) {
-          return res.status(422).json(validation.response);
-        }
-      }
-
-      const userId = String(user.id);
-      // The socket path's rate limiter counts each mutation in the batch (not
-      // each batch) against the window; mirror that here.
-      if (wouldExceedHttpMutationRateLimit(userId, mutations.length)) {
-        return res.status(NACK_HTTP_STATUS.rate_limited).json({
-          results: [
-            {
-              nack: {
-                code: "rate_limited",
-                message: `Rate limit of ${MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} mutations per second exceeded`,
-                mutationId: "",
-                retryAfterMs: httpMutationRateLimitRetryAfterMs(userId),
-              },
-              type: "nack",
-            },
-          ],
-        });
-      }
-      consumeHttpMutationRateLimit(userId, mutations.length);
-
-      const validation = validateSyncMutationBatch(mutations);
-      if (!validation.ok) {
-        return res.status(422).json(validation.response);
-      }
-
-      const response = await applySyncMutationBatch({
+      // Task 9.20: validate -> rate limit -> apply, shared with `sync:mutateBatch`. An
+      // invalid batch (oversized, duplicate ids) is rejected before any budget is charged.
+      const {response, stage} = await runSyncBatch({
         mutations,
         req,
         scopeResolver: options.getUserScopes,
         user,
       });
+      if (stage === "validation") {
+        return res.status(422).json(response);
+      }
+      if (stage === "rate_limited") {
+        return res.status(NACK_HTTP_STATUS.rate_limited).json(response);
+      }
       return res.json(response);
     })
   );

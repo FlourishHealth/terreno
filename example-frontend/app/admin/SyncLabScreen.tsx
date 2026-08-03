@@ -81,14 +81,16 @@ const SyncLabContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
-  const [metrics, setMetrics] = useState<LabMetrics>({
+  // Seed the status from the client rather than a hand-written literal so this
+  // screen never has to be updated when SyncStatus grows a field.
+  const [metrics, setMetrics] = useState<LabMetrics>(() => ({
     ackRate: 0,
     deltaRate: 0,
     eventTotal: 0,
     localCount: 0,
     mutateRate: 0,
-    status: {conflictCount: 0, isOnline: false, isSyncing: false, queuedCount: 0, streams: {}},
-  });
+    status: client.getSyncStatus(),
+  }));
   const prevSampleRef = useRef<RateSample | null>(null);
 
   const callLoadTest = useCallback(
@@ -271,7 +273,12 @@ const SyncLabContent: React.FC = () => {
             </Text>
             <Box alignItems="end" direction="row" gap={3} wrap>
               <Box width={160}>
-                <NumberField onChange={setGenerateCount} title="Count" value={generateCount} />
+                <NumberField
+                  onChange={setGenerateCount}
+                  title="Count"
+                  type="number"
+                  value={generateCount}
+                />
               </Box>
               <Button
                 disabled={busy !== null}

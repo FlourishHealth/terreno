@@ -13,9 +13,18 @@ const chromium = {...devices["Desktop Chrome"]};
  *
  *   setup → app (everything else, parallel)
  *         → consents      (active consent forms gate every user's login)
- *         → syncdb-*      (one project per file, chained — concurrent syncdb
- *                          clients against one backend race the client's
- *                          start()/mutate() lifecycle)
+ *         → syncdb-*      (one project per file, chained — see below)
+ *
+ * The syncdb chain is no longer about the client lifecycle: Phase E1 (the generation
+ * counter and promise-chain mutex in client.ts) made concurrent syncdb clients safe,
+ * and network simulation is per-page (page.route/page.routeWebSocket), so the suites
+ * cannot sever each other's connections. What remains is contention for the shared
+ * local infrastructure every file talks to: one example-backend process, one mongod,
+ * and one Metro dev server. syncdb-loadlab generates 2000 todos and runs 10 churn
+ * rounds against that stack, so running it beside another syncdb file pushes that
+ * file's convergence assertions past their CONVERGE_TIMEOUT budget. Relaxing the
+ * chain therefore needs a load-budget change (or a per-file backend, as CI already
+ * has) rather than another client fix.
  *
  * Per-suite users (fixtures/testUsers.ts) keep the parallel files from clearing each
  * other's todos. To run a single consents/syncdb file without its dependency phases,

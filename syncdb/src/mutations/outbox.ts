@@ -71,6 +71,11 @@ export interface RecoverStartupStateResult {
   releasedEntities: string[];
   /** mutationIds that were `conflicted` with no matching `_conflicts` row, now repaired. */
   repairedConflicts: string[];
+  /**
+   * entityIds whose `pendingMutationId` pointed at a mutation with no `_outbox`
+   * row at all (pruned, wiped, or lost to a partial persist), now released.
+   */
+  clearedOrphanPendings: string[];
 }
 
 export interface Outbox {
@@ -128,6 +133,10 @@ export interface Outbox {
    * - Every `conflicted` row for the user with no matching `_conflicts` row →
    *   write the conflict row now (localData from the entity, serverData null,
    *   serverSeq 0) so the UI can surface it.
+   * - Every entity whose `pendingMutationId` matches NO `_outbox` row (any
+   *   user, any status) → clear the pending lock (Task 9.11b). Such an entity is
+   *   frozen otherwise: the delta applier skips it for pending protection and
+   *   repair refuses to overwrite it, so nothing can ever release it.
    */
   recoverStartupState: (args: {userId: string}) => RecoverStartupStateResult;
   /**
@@ -381,6 +390,7 @@ export const createOutbox = ({
 
   const recoverStartupState = ({userId}: {userId: string}): RecoverStartupStateResult => {
     const result: RecoverStartupStateResult = {
+      clearedOrphanPendings: [],
       recoveredInFlight: [],
       releasedEntities: [],
       repairedConflicts: [],
@@ -436,6 +446,28 @@ export const createOutbox = ({
         });
         result.repairedConflicts.push(mutationId);
       }
+    }
+
+    // Orphan sweep (Task 9.11b). Runs after the row-driven passes above so an
+    // acked-with-pending release is attributed to `releasedEntities` (its row
+    // still exists here) rather than counted twice. A row belonging to another
+    // user still counts as "matching": the store is wiped on a user switch, so a
+    // surviving pointer means the mutation itself is genuinely still around.
+    for (const pending of store.listPendingEntities()) {
+      if (store.raw.hasRow(OUTBOX_TABLE, pending.pendingMutationId)) {
+        continue;
+      }
+      const entity = store.getEntity({collection: pending.collection, id: pending.entityId});
+      if (!entity) {
+        continue;
+      }
+      store.upsertEntity({
+        collection: pending.collection,
+        data: entity.data,
+        id: pending.entityId,
+        pendingMutationId: "",
+      });
+      result.clearedOrphanPendings.push(pending.entityId);
     }
     return result;
   };

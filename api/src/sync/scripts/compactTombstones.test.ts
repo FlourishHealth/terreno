@@ -6,7 +6,7 @@ import type {ModelRouterOptions} from "../../api";
 import {Permissions} from "../../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../../plugins";
 import {setupDb} from "../../tests";
-import {SyncCounter, SyncScopeMove} from "../models";
+import {getCompactedThroughSeq, SyncCounter, SyncScopeMove} from "../models";
 import {clearSyncRegistry, registerSync} from "../registry";
 import {syncPlugin} from "../syncSeqPlugin";
 import {
@@ -152,6 +152,79 @@ describe("compactTombstones (C7 retention)", () => {
     const result = await compactTombstones();
     expect(result.totalTombstones).toBe(0);
     expect(await CompactStuffModel.collection.countDocuments({})).toBe(1);
+  });
+
+  // ── Task 9.15: the retention watermark ────────────────────────────────────────
+  it("Task 9.15: records compactedThroughSeq per stream from the highest reaped tombstone seq", async () => {
+    registerWithRetention();
+    const old = DateTime.now()
+      .minus({days: DEFAULT_TOMBSTONE_RETENTION_DAYS + 5})
+      .toJSDate();
+    await SyncCounter.create([
+      {seq: 30, stream: "compactStuff|owner:u1"},
+      {seq: 30, stream: "compactStuff|owner:u2"},
+    ]);
+    await CompactStuffModel.collection.insertMany([
+      {_syncSeq: 4, created: old, deleted: true, name: "u1 low", ownerId: "u1", updated: old},
+      {_syncSeq: 11, created: old, deleted: true, name: "u1 high", ownerId: "u1", updated: old},
+      {_syncSeq: 7, created: old, deleted: true, name: "u2 only", ownerId: "u2", updated: old},
+      // A recent tombstone is not reaped, so it must not raise the watermark.
+      {
+        _syncSeq: 29,
+        created: new Date(),
+        deleted: true,
+        name: "u1 recent",
+        ownerId: "u1",
+        updated: new Date(),
+      },
+    ]);
+
+    await compactTombstones();
+
+    expect(await getCompactedThroughSeq({stream: "compactStuff|owner:u1"})).toBe(11);
+    expect(await getCompactedThroughSeq({stream: "compactStuff|owner:u2"})).toBe(7);
+  });
+
+  it("Task 9.15: a reaped scope-move marker raises its OLD stream's watermark", async () => {
+    registerWithRetention();
+    const old = DateTime.now()
+      .minus({days: DEFAULT_TOMBSTONE_RETENTION_DAYS + 1})
+      .toJSDate();
+    await SyncCounter.create([{seq: 20, stream: "compactStuff|owner:u1"}]);
+    await SyncScopeMove.collection.insertMany([
+      {
+        collectionTag: "compactStuff",
+        created: old,
+        entityId: "e-old",
+        fromStream: "compactStuff|owner:u1",
+        seq: 9,
+        toStream: "compactStuff|owner:u2",
+      },
+    ]);
+
+    await compactTombstones();
+
+    expect(await getCompactedThroughSeq({stream: "compactStuff|owner:u1"})).toBe(9);
+    // The destination stream lost nothing, so it has no retention gap.
+    expect(await getCompactedThroughSeq({stream: "compactStuff|owner:u2"})).toBe(0);
+  });
+
+  it("Task 9.15: the watermark never moves backwards across compaction passes", async () => {
+    registerWithRetention(1);
+    const old = DateTime.now().minus({days: 5}).toJSDate();
+    await SyncCounter.create([{seq: 40, stream: "compactStuff|owner:u1"}]);
+    await CompactStuffModel.collection.insertMany([
+      {_syncSeq: 20, created: old, deleted: true, name: "high", ownerId: "u1", updated: old},
+    ]);
+    await compactTombstones();
+    expect(await getCompactedThroughSeq({stream: "compactStuff|owner:u1"})).toBe(20);
+
+    // A later pass reaping only a LOWER seq must not lower the watermark.
+    await CompactStuffModel.collection.insertMany([
+      {_syncSeq: 3, created: old, deleted: true, name: "low", ownerId: "u1", updated: old},
+    ]);
+    await compactTombstones();
+    expect(await getCompactedThroughSeq({stream: "compactStuff|owner:u1"})).toBe(20);
   });
 });
 

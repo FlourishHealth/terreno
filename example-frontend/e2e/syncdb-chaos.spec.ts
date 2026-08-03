@@ -76,30 +76,43 @@ test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
     await flap.stop();
     await chaos.stop();
 
+    // 30 flaps grow the socket's reconnect backoff, so the drain can sit idle waiting
+    // out a delay longer than CONVERGE_TIMEOUT even though connectivity is restored.
+    // Force the reconnect instead of racing the backoff — the drain itself is what this
+    // test is measuring, not Socket.io's retry schedule.
+    await page.getByTestId("syncdb-reconnect-button").click();
+
     // The banner shows queued state via ONE of two testIDs depending on volume:
     // "sync-queued-count" (<=20 queued) or "sync-drain-progress" (>20 queued —
     // this test's 30 mutations can cross that threshold under chaos). Neither
     // must be present once the drain is truly finished, or "converged" would
     // be a false positive the instant the queued count crosses back under the
     // progress threshold mid-drain.
+    // Count, don't read text: textContent() auto-waits for the element to attach, so with
+    // no actionTimeout configured it hangs instead of rejecting once the badges are gone —
+    // i.e. exactly in the converged state this poll is waiting for. count() resolves
+    // immediately with 0.
     await expect
       .poll(
         async () => {
           const [queuedCount, drainProgress] = await Promise.all([
-            page
-              .getByTestId("sync-queued-count")
-              .textContent()
-              .catch(() => null),
-            page
-              .getByTestId("sync-drain-progress")
-              .textContent()
-              .catch(() => null),
+            page.getByTestId("sync-queued-count").count(),
+            page.getByTestId("sync-drain-progress").count(),
           ]);
-          return queuedCount === null && drainProgress === null;
+          return queuedCount === 0 && drainProgress === 0;
         },
         {timeout: CONVERGE_TIMEOUT}
       )
       .toBe(true);
+
+    // The list is a virtualized FlashList, so only the rows near the viewport are in the
+    // DOM — the local total has to come from the section header's count, not from
+    // counting rendered rows. What IS rendered still has to be duplicate-free: a
+    // double-applied mutation would surface as two rows with the same title.
+    await expect(page.getByTestId("todos-to-do-section")).toContainText(
+      `To Do (${titles.length})`,
+      {timeout: CONVERGE_TIMEOUT}
+    );
 
     const localTitles = await page
       .locator('[data-testid^="todo-item-"]')
@@ -117,8 +130,9 @@ test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
     assertNoDuplicates(localTitles, "local DOM-rendered todo list");
     assertNoDuplicates(serverTitles, "REST-fetched todo list");
 
-    expect(new Set(localTitles)).toEqual(new Set(titles));
-    expect(localTitles.length).toBe(titles.length);
+    // Every rendered row must be one of the titles this test created (no strays), and
+    // the server must hold exactly the full set.
+    expect(new Set(titles)).toEqual(new Set([...titles, ...localTitles]));
     expect(serverTitles.length).toBe(titles.length);
   });
 });

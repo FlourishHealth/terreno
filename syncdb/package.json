@@ -27,6 +27,10 @@
     "./react": {
       "default": "./dist/react/index.js",
       "types": "./dist/react/index.d.ts"
+    },
+    "./testing": {
+      "default": "./dist/testing/index.js",
+      "types": "./dist/testing/index.d.ts"
     }
   },
   "files": [

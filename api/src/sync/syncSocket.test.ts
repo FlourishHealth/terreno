@@ -33,12 +33,17 @@ import type {SyncAppOptions} from "./routes";
 import {
   installSyncSocketHandlers,
   MAX_SYNC_COLLECTION_SUBSCRIPTIONS,
-  MAX_SYNC_MUTATIONS_PER_SECOND,
   MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH,
   type SyncSocketLike,
   syncRoomForStream,
 } from "./socketHandlers";
 import {getSyncAppOptions, SyncApp} from "./syncApp";
+import {
+  evictExpiredSyncMutationWindows,
+  MAX_SYNC_MUTATIONS_PER_SECOND,
+  resetSyncMutationRateLimits,
+  syncMutationRateLimitWindowCount,
+} from "./syncBatch";
 import {syncPlugin} from "./syncSeqPlugin";
 import type {SyncAck, SyncDelta, SyncNack} from "./types";
 
@@ -277,6 +282,38 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     expect(socket.rooms.has("sync:sockProjects|tenant:org2")).toBe(true);
   });
 
+  // Task 9.21: the handshake full-user load is fire-and-forget, so an eager client can
+  // subscribe before it resolves. Authorizing that against the synthetic JWT-claim user
+  // (no membership fields) resolved tenant scopes to nothing — connected, but no data.
+  it("waits for the in-flight handshake full-user load before resolving tenant streams", async () => {
+    const socket = createMockSocket({id: "user1"});
+    let landFullUser: () => void = () => {};
+    const handshake = new Promise<void>((resolve) => {
+      landFullUser = resolve;
+    });
+    socket.data = {
+      fullUserLoad: handshake.then(() => {
+        (socket.data as {fullUser?: unknown}).fullUser = {
+          _id: "user1",
+          admin: false,
+          id: "user1",
+          organizationIds: ["org7"],
+        };
+      }),
+    };
+    install(socket, {
+      getUserScopes: (user) =>
+        (user as unknown as {organizationIds?: string[]}).organizationIds ?? [],
+    });
+
+    const subscribing = socket.trigger("sync:subscribe", {collections: ["sockProjects"]});
+    landFullUser();
+    await subscribing;
+
+    expect(socket.rooms.has("sync:sockProjects|tenant:org7")).toBe(true);
+    expect(syncErrors(socket)).toHaveLength(0);
+  });
+
   it("tenant scope without a getUserScopes resolver emits sync:error", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket, {});
@@ -479,6 +516,9 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
 
   beforeEach(async () => {
     registerAll();
+    // Task 9.20: the mutation budget is module-level per user now, so a flooding test
+    // would otherwise leave the next test's user over budget within the same second.
+    resetSyncMutationRateLimits();
     await Promise.all([
       SockStuffModel.collection.deleteMany({}),
       SyncCounter.deleteMany({}),
@@ -636,6 +676,7 @@ describe("installSyncSocketHandlers — sync:mutateBatch", () => {
 
   beforeEach(async () => {
     registerAll();
+    resetSyncMutationRateLimits();
     await Promise.all([
       SockStuffModel.collection.deleteMany({}),
       SyncCounter.deleteMany({}),
@@ -765,6 +806,71 @@ describe("installSyncSocketHandlers — sync:mutateBatch", () => {
     install(socket);
     await triggerBatch(socket, [create("sock-batch-no-id", "a")]);
     expect(socket.emitted.filter((e) => e.event === "sync:batchReceived")).toHaveLength(0);
+  });
+
+  // Task 9.20: the budget used to live in the per-connection handler closure, so a client
+  // could simply open another socket to get another full allowance.
+  it("shares one per-user budget across sockets, and keeps separate users independent", async () => {
+    const firstSocket = createMockSocket({id: "user1"});
+    const secondSocket = createMockSocket({id: "user1"});
+    const otherUserSocket = createMockSocket({id: "user2"});
+    install(firstSocket);
+    install(secondSocket);
+    install(otherUserSocket);
+    const flood = (label: string, length: number): unknown[] =>
+      Array.from({length}, (_v, i) => ({
+        collection: "nope",
+        mutationId: `${label}-${i}`,
+        operation: "create",
+      }));
+
+    // The first socket exhausts the whole per-second budget...
+    await triggerBatch(firstSocket, flood("shared-a", MAX_SYNC_MUTATIONS_PER_BATCH));
+    // ...so the SECOND socket for the same user has nothing left.
+    const secondResponse = await triggerBatch(secondSocket, flood("shared-b", 1));
+    expect(secondResponse.results[0].nack?.code).toBe("rate_limited");
+    // A different user is unaffected — the window is per user, not global.
+    const otherResponse = await triggerBatch(otherUserSocket, flood("shared-c", 1));
+    expect(otherResponse.results[0].nack?.code).toBe("validation");
+  });
+
+  it("charges no budget for a batch that fails validation", async () => {
+    const socket = createMockSocket({id: "user1"});
+    install(socket);
+    // An oversized batch is rejected before the budget is touched, so the follow-up batch
+    // (which would exceed the budget had the invalid one been charged) still applies.
+    const oversized = Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH + 1}, (_v, i) =>
+      create(`no-charge-${i}`, `item ${i}`)
+    );
+    const rejected = await triggerBatch(socket, oversized);
+    expect(rejected.results[0].nack?.code).toBe("validation");
+
+    const applied = await triggerBatch(
+      socket,
+      Array.from({length: MAX_SYNC_MUTATIONS_PER_BATCH}, (_v, i) => ({
+        collection: "nope",
+        mutationId: `after-no-charge-${i}`,
+        operation: "create",
+      }))
+    );
+    // Stop-on-first-nack means one validation result comes back — the point is that it is
+    // NOT a rate_limited result, i.e. the full budget was still available.
+    expect(applied.results[0].nack?.code).toBe("validation");
+  });
+
+  it("evicts expired per-user windows instead of retaining one per user forever", async () => {
+    resetSyncMutationRateLimits();
+    const firstSocket = createMockSocket({id: "user1"});
+    const otherUserSocket = createMockSocket({id: "user2"});
+    install(firstSocket);
+    install(otherUserSocket);
+    await triggerBatch(firstSocket, [create("evict-1", "a")]);
+    await triggerBatch(otherUserSocket, [create("evict-2", "b")]);
+    expect(syncMutationRateLimitWindowCount()).toBe(2);
+    // The sweep is throttled to once a minute in normal operation; drive it directly with a
+    // clock past both windows' expiry rather than waiting.
+    expect(evictExpiredSyncMutationWindows({now: Date.now() + 60_000})).toBe(0);
+    expect(syncMutationRateLimitWindowCount()).toBe(0);
   });
 });
 

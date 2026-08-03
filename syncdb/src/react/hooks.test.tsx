@@ -4,8 +4,8 @@ import React from "react";
 
 import {createSyncDb, type SyncDb} from "../client";
 import {memoryPersisterFactory} from "../persisters/memoryPersister";
-import {createFakeTransport, type FakeTransport} from "../sync/fakeTransport";
 import {AuthRequiredError} from "../sync/httpChannel";
+import {createFakeTransport, type FakeTransport} from "../testing/fakeTransport";
 import type {AuthProvider, SyncDelta} from "../types";
 import {useConflicts, useEntity, useEntityIds, useMutate, useQuery, useSyncStatus} from "./hooks";
 import {SyncDbProvider, useSyncDbClient} from "./provider";
@@ -239,17 +239,15 @@ describe("useQuery", () => {
     });
     // The filter runs inside the hook's `select`; counting its invocations tells
     // us whether an unrelated re-render re-ran the whole decode/filter/sort pass.
+    // The predicate is defined ONCE (as a memoized callback would be) — a fresh
+    // inline function every render is a genuinely different filter as far as the
+    // hook can tell, and must invalidate the cache (see the options-change test).
     let filterCalls = 0;
-    const {rerender} = renderHook(
-      () =>
-        useQuery<TodoData>("todos", {
-          filter: () => {
-            filterCalls += 1;
-            return true;
-          },
-        }),
-      {wrapper}
-    );
+    const filter = (): boolean => {
+      filterCalls += 1;
+      return true;
+    };
+    const {rerender} = renderHook(() => useQuery<TodoData>("todos", {filter}), {wrapper});
     const afterInitial = filterCalls;
     expect(afterInitial).toBeGreaterThan(0);
 
@@ -264,6 +262,90 @@ describe("useQuery", () => {
       client.store.upsertEntity({collection: "todos", data: {title: "three"}, id: "t3"});
     });
     expect(filterCalls).toBeGreaterThan(afterInitial);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("returns the new result immediately when the filter changes between renders (no store write)", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: true, title: "done"},
+        id: "t1",
+      });
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: false, title: "open"},
+        id: "t2",
+      });
+    });
+    const {rerender, result} = renderHook(
+      ({showCompleted}: {showCompleted: boolean}) =>
+        useQuery<TodoData>("todos", {filter: (todo) => todo.completed === showCompleted}),
+      {initialProps: {showCompleted: true}, wrapper}
+    );
+    expect(result.current.map((todo) => todo.title)).toEqual(["done"]);
+
+    // A state-driven filter flip with no store write at all: the previous
+    // implementation kept returning the cached array until an unrelated write.
+    rerender({showCompleted: false});
+    expect(result.current.map((todo) => todo.title)).toEqual(["open"]);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("returns the new result immediately when includeDeleted changes between renders", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "live"}, id: "t1"});
+      client.store.upsertEntity({collection: "todos", data: {title: "gone"}, id: "t2"});
+      client.store.softDeleteEntity({collection: "todos", id: "t2"});
+    });
+    const {rerender, result} = renderHook(
+      ({includeDeleted}: {includeDeleted: boolean}) =>
+        useQuery<TodoData>("todos", {includeDeleted}),
+      {initialProps: {includeDeleted: false}, wrapper}
+    );
+    expect(result.current.map((todo) => todo.title)).toEqual(["live"]);
+
+    rerender({includeDeleted: true});
+    expect(result.current.map((todo) => todo.title).sort()).toEqual(["gone", "live"]);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  // Options being part of the selection identity means an inline filter makes
+  // every render recompute — and `useSyncExternalStore` re-renders whenever the
+  // snapshot it recorded changes. This asserts that recomputation costs exactly
+  // one render per cause (re-render, store write) rather than cascading.
+  it("does not re-render repeatedly when the filter is a fresh inline function every render", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "one"}, id: "t1"});
+    });
+    let renders = 0;
+    const {rerender, result} = renderHook(
+      () => {
+        renders += 1;
+        return useQuery<TodoData>("todos", {filter: (todo) => todo.title !== "hidden"});
+      },
+      {wrapper}
+    );
+    const afterMount = renders;
+    expect(result.current).toHaveLength(1);
+
+    rerender({});
+    expect(renders).toBe(afterMount + 1);
+
+    act(() => {
+      client.store.upsertEntity({collection: "todos", data: {title: "two"}, id: "t2"});
+    });
+    expect(renders).toBe(afterMount + 2);
+    expect(result.current).toHaveLength(2);
     await act(async () => {
       await client.stop();
     });
@@ -332,6 +414,59 @@ describe("useEntityIds", () => {
     });
     expect(result.current).not.toBe(first);
     expect(result.current.slice().sort()).toEqual(["t1", "t2", "t3"]);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("returns the new ids immediately when the filter changes between renders (no store write)", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: true, title: "done"},
+        id: "t1",
+      });
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: false, title: "open"},
+        id: "t2",
+      });
+    });
+    const {rerender, result} = renderHook(
+      ({showCompleted}: {showCompleted: boolean}) =>
+        useEntityIds<TodoData>("todos", {filter: (todo) => todo.completed === showCompleted}),
+      {initialProps: {showCompleted: true}, wrapper}
+    );
+    expect(result.current).toEqual(["t1"]);
+
+    rerender({showCompleted: false});
+    expect(result.current).toEqual(["t2"]);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("keeps the id array identity across re-renders with inline options that select the same ids", async () => {
+    const {client, wrapper} = await setup();
+    act(() => {
+      client.store.upsertEntity({
+        collection: "todos",
+        data: {completed: false, title: "a"},
+        id: "t1",
+      });
+    });
+    // An inline predicate is a new reference every render, so the selection is
+    // recomputed — but an unchanged id list must keep its identity so list
+    // containers do not re-render (and useSyncExternalStore cannot loop).
+    const {rerender, result} = renderHook(
+      () => useEntityIds<TodoData>("todos", {filter: (todo) => todo.completed === false}),
+      {wrapper}
+    );
+    const first = result.current;
+    rerender({});
+    rerender({});
+    expect(result.current).toBe(first);
     await act(async () => {
       await client.stop();
     });
