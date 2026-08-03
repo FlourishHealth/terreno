@@ -1,5 +1,84 @@
 # Changelog
 
+## 0.29.1
+
+Patch release for `@terreno/api` 0.28.0's `APIError` rework. In 0.28.0 `Error.message` became exactly
+`title`, so anywhere the framework re-wrapped an inner error and rebuilt the wrapper's text with
+`errorMessage(inner)`, the inner error's `detail`, `code`, `meta`, `fields`, and `status` were
+silently dropped. This release makes `modelRouter` pass those errors through instead.
+
+### Fixed
+
+- **`modelRouter` no longer re-wraps an `APIError` raised inside your code.** Every catch that used
+  to build a generic wrapper now re-throws an `APIError` untouched, so its `status`, `title`,
+  `detail`, `code`, and `meta` reach the client. This covers `model.create()`, the create/update
+  `doc.save()`, populate-after-create, `postCreate`, `postUpdate`, `postDelete`, `queryFilter`, the
+  list query, list serialization, `doc.deleteOne()`, every `responseHandler` call, and the
+  `preUpdate` / `doc.save()` / `postUpdate` steps of the array-operation `PATCH` helper. Previously
+  only the `transform`, `preCreate`, `preUpdate`, and `preDelete` catches had the guard. The most
+  common casualty was an `APIError` thrown from Mongoose document middleware (`pre("save")`,
+  `pre("validate")`), which reached the client as `{status: 400, title: "Create error", code:
+  "create-error"}` with the consumer's `code` and `meta` gone.
+- **Mongoose validation and cast errors from `modelRouter` writes now carry per-field messages
+  again.** The `model.create()` and `doc.save()` catches run `mongooseErrorToAPIError` before falling
+  back to a generic wrapper, so a `ValidationError` surfaces as
+  `{status: 400, title: "Validation failed", meta: {fields: {...}}}` rather than
+  `{title: "Create error", detail: "Validation failed: name: Path \`name\` is required."}`. These
+  errors are also marked `disableExternalErrorTracking`, so bad client input stops paging Sentry.
+- **`queryFilter` wrapper details are readable.** That catch used `String(error)`, which emitted
+  `"Error: <message>"` for an `Error` and `"[object Object]"` for a thrown non-`Error`. It now uses
+  the same message extraction as every other catch.
+- **Framework-thrown errors follow the 0.28.0 contract.** `api.ts`, `plugins.ts`, `actions.ts`, and
+  `docLoader.ts` no longer interpolate per-occurrence values into `title`; the specific text moved to
+  `detail` (plus `meta` / `source` where it is structured), and each error carries a kebab-case
+  `code` and, where applicable, a status subclass (`BadRequestError`, `ForbiddenError`,
+  `NotFoundError`, `ValidationError`, `InternalServerError`). Titles are now stable strings, so
+  Sentry groups them by logical error instead of by occurrence.
+- **`findOneOrNone`, `findOneOrNoneFor`, and `findExactlyOne` accept `Partial<APIErrorOptions>`** for
+  `errorArgs` instead of the deprecated `Partial<APIErrorConstructor>`. `errorArgs` is still applied
+  last, so every field including `status` remains overridable.
+
+### Added
+
+- **`errorDetail(error)`** — returns `` `${title}: ${detail}` `` for an `APIError` and
+  `errorMessage(error)` for anything else. Used for the `detail` of framework wrapper errors so a
+  nested `APIError`'s text is never lost if one does reach a wrapper.
+
+### Changed (behavior)
+
+- **`apiUnauthorizedMiddleware` only matches a plain `Error("Unauthorized")`.** It is registered
+  ahead of `apiErrorMiddleware`, and because `message` is now exactly `title`, it was rewriting **any**
+  `APIError` titled `"Unauthorized"` into a bare 401 and discarding its status, `code`, and `detail`.
+  A `new ForbiddenError({title: "Unauthorized"})` now stays a **403** with its own body; Passport's
+  plain `Error("Unauthorized")` still becomes a quiet 401.
+- **An `APIError` thrown from a hook or from Mongoose middleware now returns its own status.**
+  Previously the wrapper's hardcoded status (usually 400, or 403 for `transform`/`preDelete`) won.
+  If you throw a non-4xx `APIError` from `postCreate`, `postUpdate`, `postDelete`, `queryFilter`,
+  `responseHandler`, or a `pre("save")` hook, clients now see that status instead of 400.
+- **Framework error titles changed** where they used to embed per-occurrence values. The old text is
+  preserved in `detail`. Notable renames: `` `${param} is not allowed as a query param.` `` →
+  `"Query parameter not allowed"`; `` `Invalid page: ${page}` `` → `"Invalid page"`;
+  `` `Invalid date for query parameter ${key}` `` → `"Invalid date query parameter"`;
+  `` `Could not find ${field}/${itemId}` `` → `"Array item not found"`;
+  `` `Could not find document to PATCH: ${id}` `` → `"Document not found"`;
+  `` `Malformed body, array operations…` `` → `"Malformed array operation body"`;
+  `` `Invalid array operation: ${op}` `` → `"Invalid array operation"`;
+  `` `Patch not allowed for user…` `` → `"Update not allowed"`;
+  `` `Access to ${method} on ${model}…denied` `` → `"Access denied"` (both `modelRouter` array
+  operations and `runActionPermissions`); and the `plugins.ts` query statics now use
+  `"findExactlyOne query returned no documents"`, `"findExactlyOne query returned multiple
+  documents"`, `"findOne query returned multiple documents"`, and `"upsert find query returned
+  multiple documents"` with the model name in `detail`/`meta`. Clients that string-match on `title`
+  should match on `code` instead.
+- **A Mongoose validation failure on an array-operation `PATCH` returns `"Validation failed"`** with
+  `meta.fields` rather than `"PATCH Pre Update error"`.
+
+### Unchanged
+
+No HTTP statuses were changed. The 405 that `runActionPermissions` returns when a pre-document
+permission check fails is kept as-is: `modelRouter`'s array operations return 405 for the same check,
+so it is an existing (if odd) convention rather than a typo to fix in a patch release.
+
 ## 0.20.0
 
 ### Changed (breaking)

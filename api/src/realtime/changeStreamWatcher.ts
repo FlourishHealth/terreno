@@ -196,7 +196,14 @@ export const serializeDoc = async (
       const restMethod = method === "delete" ? "read" : method;
       // Synthesize the minimal request shape responseHandlers commonly inspect.
       const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
-      return ensureApiId(await responseHandler(doc, restMethod, syntheticReq, entry.options));
+      return ensureApiId(
+        await responseHandler(
+          doc as unknown as mongoose.Document<unknown, unknown, unknown>,
+          restMethod,
+          syntheticReq,
+          entry.options
+        )
+      );
     } catch (error) {
       logger.error(
         `[realtime] modelRouter responseHandler threw during realtime serialization for ` +

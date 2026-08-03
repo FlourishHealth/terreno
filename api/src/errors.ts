@@ -339,6 +339,18 @@ export const errorMessage = (error: unknown): string => {
   return String(error);
 };
 
+/**
+ * Extract the fullest human-readable text from an unknown error, for use as the `detail` of a
+ * wrapper error. An `APIError`'s `message` is exactly its `title`, so `errorMessage` alone would
+ * drop the per-occurrence text the caller put in `detail`.
+ */
+export const errorDetail = (error: unknown): string => {
+  if (isAPIError(error) && error.detail) {
+    return `${error.title}: ${error.detail}`;
+  }
+  return errorMessage(error);
+};
+
 /** Extract a stack trace string from an unknown error. */
 export const errorStack = (error: unknown): string => {
   if (error instanceof Error && error.stack) {
@@ -406,13 +418,25 @@ export const getAPIErrorBody = (error: APIError): Record<string, unknown> => {
   return serializeAPIError(error) as unknown as Record<string, unknown>;
 };
 
+/**
+ * Converts the bare `Error("Unauthorized")` that Passport throws into a quiet 401.
+ *
+ * Only the plain `Error` prototype is matched. An `APIError` carries its own status, code,
+ * detail, and meta, so one whose title happens to be "Unauthorized" falls through to
+ * `apiErrorMiddleware`. A domain-specific `Error` subclass with the same message also falls
+ * through so its own handler can respond.
+ */
 export const apiUnauthorizedMiddleware = (
   err: Error,
   _req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (err.message === "Unauthorized") {
+  if (
+    !isAPIError(err) &&
+    err.message === "Unauthorized" &&
+    Object.getPrototypeOf(err) === Error.prototype
+  ) {
     // not using the actual APIError class here because we don't want to log it as an error.
     res.status(401).json({status: 401, title: "Unauthorized"}).send();
   } else {

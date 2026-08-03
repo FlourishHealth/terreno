@@ -57,6 +57,7 @@ import {TextConfiguration} from "@story-config/Text.config";
 import {TextAreaConfiguration} from "@story-config/TextArea.config";
 import {TextFieldConfiguration} from "@story-config/TextField.config";
 import {ThemeConfiguration} from "@story-config/Theme.config";
+import {ThumbsUpDownFeedbackConfiguration} from "@story-config/ThumbsUpDownFeedback.config";
 import {ToastConfiguration} from "@story-config/Toast.config";
 import {TooltipConfiguration} from "@story-config/Tooltip.config";
 import {TypedSignatureFieldConfiguration} from "@story-config/TypedSignatureField.config";
@@ -249,6 +250,7 @@ const Config: DemoConfigurationBase[] = [
   TextAreaConfiguration,
   TextFieldConfiguration,
   ThemeConfiguration,
+  ThumbsUpDownFeedbackConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
   TypedSignatureFieldConfiguration,

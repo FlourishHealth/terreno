@@ -1,7 +1,7 @@
 import mongoose, {type Model} from "mongoose";
 
 import {addPopulateToQuery} from "./api";
-import {APIError, isAPIError, NotFoundError} from "./errors";
+import {APIError, errorDetail, isAPIError, NotFoundError} from "./errors";
 import type {PopulatePath} from "./populate";
 
 /**
@@ -28,7 +28,8 @@ export const loadDocOr404 = async <T>(
     throw new APIError({
       cause: error,
       code: "get-error",
-      detail: `GET failed on ${id}`,
+      detail: `GET failed on ${id}: ${errorDetail(error)}`,
+      meta: {model: model.modelName},
       status: 500,
       title: "GET error",
     });
@@ -42,6 +43,7 @@ export const loadDocOr404 = async <T>(
 
     if (!hiddenDoc) {
       throw new NotFoundError({
+        code: "document-not-found",
         detail: notFoundDetail,
         title: "Document not found",
       });
@@ -58,11 +60,13 @@ export const loadDocOr404 = async <T>(
 
     if (!reason) {
       throw new NotFoundError({
+        code: "document-not-found",
         detail: notFoundDetail,
         title: "Document not found",
       });
     }
     throw new NotFoundError({
+      code: "document-not-found",
       detail: notFoundDetail,
       disableExternalErrorTracking: true,
       meta: reason,

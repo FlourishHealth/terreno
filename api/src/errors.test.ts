@@ -1,7 +1,8 @@
 import {beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
-import type {NextFunction, Request, Response} from "express";
+import express, {type NextFunction, type Request, type Response} from "express";
 import mongoose, {Schema} from "mongoose";
+import supertest from "supertest";
 
 import {
   APIError,
@@ -9,6 +10,7 @@ import {
   apiUnauthorizedMiddleware,
   BadRequestError,
   ConflictError,
+  errorDetail,
   errorMessage,
   errorStack,
   errorsPlugin,
@@ -421,6 +423,109 @@ describe("apiUnauthorizedMiddleware", () => {
     );
     expect(next).toHaveBeenCalledWith(err);
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("forwards an APIError titled Unauthorized so it keeps its own status", () => {
+    const err = new ForbiddenError({
+      code: "org-membership-required",
+      detail: "You are not a member of this organization",
+      title: "Unauthorized",
+    });
+    apiUnauthorizedMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(next).toHaveBeenCalledWith(err);
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("forwards a plain APIError titled Unauthorized rather than rewriting it to a 401", () => {
+    const err = new APIError({status: 403, title: "Unauthorized"});
+    apiUnauthorizedMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(next).toHaveBeenCalledWith(err);
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("forwards an Error subclass whose message is Unauthorized", () => {
+    class DomainUnauthorizedError extends Error {}
+    const err = new DomainUnauthorizedError("Unauthorized");
+    apiUnauthorizedMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(next).toHaveBeenCalledWith(err);
+    expect(res.status).not.toHaveBeenCalled();
+  });
+});
+
+describe("apiUnauthorizedMiddleware in the terrenoApp middleware order", () => {
+  const buildApp = (): express.Express => {
+    const app = express();
+    app.get("/forbidden", (_req, _res, next) => {
+      next(
+        new ForbiddenError({
+          code: "org-membership-required",
+          detail: "You are not a member of this organization",
+          title: "Unauthorized",
+        })
+      );
+    });
+    app.get("/passport", (_req, _res, next) => {
+      next(new Error("Unauthorized"));
+    });
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+    return app;
+  };
+
+  it("keeps a 403 titled Unauthorized a 403", async () => {
+    const res = await supertest(buildApp()).get("/forbidden").expect(403);
+    expect(res.body).toEqual({
+      code: "org-membership-required",
+      detail: "You are not a member of this organization",
+      status: 403,
+      title: "Unauthorized",
+    });
+  });
+
+  it("still converts a plain Passport Unauthorized error to a 401", async () => {
+    const res = await supertest(buildApp()).get("/passport").expect(401);
+    expect(res.body).toEqual({status: 401, title: "Unauthorized"});
+  });
+});
+
+describe("errorDetail", () => {
+  it("combines an APIError's title and detail", () => {
+    const error = new ConflictError({
+      code: "schedule-item-staff-conflict",
+      detail: "Conflict detected for Dr. Ada on 2026-07-31",
+      title: "Conflict detected",
+    });
+    expect(errorDetail(error)).toBe(
+      "Conflict detected: Conflict detected for Dr. Ada on 2026-07-31"
+    );
+  });
+
+  it("falls back to the title when an APIError has no detail", () => {
+    expect(errorDetail(new APIError({title: "Conflict detected"}))).toBe("Conflict detected");
+  });
+
+  it("returns the message for a plain Error", () => {
+    expect(errorDetail(new Error("boom"))).toBe("boom");
+  });
+
+  it("stringifies non-Error values", () => {
+    expect(errorDetail("boom")).toBe("boom");
+    expect(errorDetail(42)).toBe("42");
   });
 });
 
