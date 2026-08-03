@@ -7,7 +7,7 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
-import type {APIErrorConstructor} from "./errors";
+import {type APIErrorConstructor, InternalServerError, isAPIError, NotFoundError} from "./errors";
 import {Permissions} from "./permissions";
 import {
   baseUserPlugin,
@@ -320,8 +320,11 @@ describe("findExactlyOne", () => {
     try {
       await StuffModel.findExactlyOne({name: "OtherStuff"});
       throw new Error("Expected promise to reject");
-    } catch (error: any) {
-      expect(error.name).toBe("NotFoundError");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(NotFoundError);
+      if (!isAPIError(error)) {
+        throw error;
+      }
       expect(error.status).toBe(404);
       expect(error.code).toBe("find-exactly-one-no-documents");
       expect(error.detail).toBe(
@@ -402,8 +405,11 @@ describe("upsertPlugin", () => {
     await expect(fn()).rejects.toThrow(/^upsert find query returned multiple documents$/);
     try {
       await fn();
-    } catch (error: any) {
-      expect(error.name).toBe("InternalServerError");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(InternalServerError);
+      if (!isAPIError(error)) {
+        throw error;
+      }
       expect(error.code).toBe("upsert-multiple-documents");
       expect(error.detail).toBe(
         'Stuff.upsert find query returned multiple documents. query: {"ownerId":"123"}'

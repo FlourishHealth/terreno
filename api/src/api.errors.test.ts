@@ -1,6 +1,7 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
+import type {NextFunction} from "express";
 import mongoose from "mongoose";
 
 import {
@@ -161,7 +162,7 @@ describe("errors module", () => {
         nextArg = error;
       };
 
-      apiUnauthorizedMiddleware(err, {} as any, {} as any, next as any);
+      apiUnauthorizedMiddleware(err, {} as any, {} as any, next as unknown as NextFunction);
       expect(nextArg).toBe(err);
     });
   });
