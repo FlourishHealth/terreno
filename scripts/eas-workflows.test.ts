@@ -38,18 +38,24 @@ describe("EAS PR workflows", () => {
     assert.doesNotMatch(easPr, /-F "pr_title=/);
   });
 
-  it("only queues native builds for brand-new fingerprints", () => {
-    const decide = readRepoFile(".github/workflows/scripts/eas-pr-decide.sh");
+  it("wires decide outputs to the dispatch and comment steps", () => {
+    const easPr = readRepoFile(".github/workflows/eas-pr.yml");
 
-    assert.match(decide, /finished_any/);
-    assert.match(
-      decide,
-      /Fingerprint already has at least one finished dev build/
+    // The comment reports finished builds; dispatch consumes coverage flags.
+    assert.match(easPr, /IOS_DEVICE_MATCH: \$\{\{ steps\.decide\.outputs\.ios_device_finished \}\}/);
+    assert.match(easPr, /ANDROID_MATCH: \$\{\{ steps\.decide\.outputs\.android_finished \}\}/);
+    assert.match(easPr, /IOS_DEVICE_QUEUED: \$\{\{ steps\.decide\.outputs\.ios_device_queued \}\}/);
+    assert.match(easPr, /IOS_DEVICE_MATCH: \$\{\{ steps\.decide\.outputs\.ios_device_match \}\}/);
+  });
+
+  it("distinguishes a missing platform from a queued rebuild in the comment", () => {
+    const commentScript = readRepoFile(
+      ".github/workflows/scripts/post-eas-pr-comment.sh"
     );
-    assert.match(decide, /Fingerprint is new \(no finished matches\)/);
-    assert.match(decide, /has_active_or_finished/);
-    assert.match(decide, /needs_build=true/);
-    assert.match(decide, /needs_build=false/);
+
+    assert.match(commentScript, /New fingerprint — build queued/);
+    assert.match(commentScript, /No finished build for this fingerprint yet/);
+    assert.match(commentScript, /IOS_DEVICE_QUEUED:-false/);
   });
 
   it("dispatches iOS device builds via EAS workflow for credentials", () => {

@@ -6,10 +6,12 @@
 # resolved on EAS Cloud. `eas build` from GitHub Actions fails non-interactively
 # with "Credentials are not set up" for com.terreno.todo device profiles.
 #
-# Required env:
-#   IOS_DEVICE_MATCH  "true" when a finished iOS device dev build matches
-#   IOS_SIM_MATCH     "true" when a finished iOS simulator dev build matches
-#   ANDROID_MATCH     "true" when a finished Android dev build matches
+# Required env (set from eas-pr-decide.sh outputs) — "true" means the platform
+# is already covered for this fingerprint by a finished, queued, or running
+# build, so nothing is dispatched for it:
+#   IOS_DEVICE_MATCH  iOS device dev build is covered
+#   IOS_SIM_MATCH     iOS simulator dev build is covered
+#   ANDROID_MATCH     Android dev build is covered
 #   IOS_SIM_PROFILE      EAS profile for iOS simulator (default: development:simulator)
 
 set -euo pipefail

@@ -19,6 +19,11 @@
 #   IOS_SIM_BUILD_ID    Latest finished iOS simulator dev build ID (may be empty)
 #   ANDROID_BUILD_ID    Latest finished Android dev build ID (may be empty)
 #   EAS_UPDATE_GROUP_ID  Published EAS Update group ID (may be empty if publish failed)
+#
+# Optional env — "true" when this run dispatched a build for that platform.
+# Without them an unmatched platform is only reported as missing, never as
+# rebuilding, since a known fingerprint never queues its missing platforms:
+#   IOS_DEVICE_QUEUED / IOS_SIM_QUEUED / ANDROID_QUEUED
 
 set -euo pipefail
 
@@ -59,12 +64,21 @@ else
   launch_section="EAS Update publish did not complete, so there is no group URL to launch yet."
 fi
 
-ios_device_status="⚠️ Fingerprint changed — rebuilding"
-[ "$IOS_DEVICE_MATCH" = "true" ] && ios_device_status="✅ Existing build matches"
-ios_sim_status="⚠️ Fingerprint changed — rebuilding"
-[ "$IOS_SIM_MATCH" = "true" ] && ios_sim_status="✅ Existing build matches"
-android_status="⚠️ Fingerprint changed — rebuilding"
-[ "$ANDROID_MATCH" = "true" ] && android_status="✅ Existing build matches"
+# build_status <finished> <queued>
+build_status() {
+  local finished="$1" queued="${2:-false}"
+  if [ "$finished" = "true" ]; then
+    echo "✅ Existing build matches"
+  elif [ "$queued" = "true" ]; then
+    echo "🔨 New fingerprint — build queued"
+  else
+    echo "⚠️ No finished build for this fingerprint yet — seed via [Trigger EAS Workflow](https://github.com/$GITHUB_REPOSITORY/actions/workflows/eas-dev-build.yml)"
+  fi
+}
+
+ios_device_status=$(build_status "$IOS_DEVICE_MATCH" "${IOS_DEVICE_QUEUED:-false}")
+ios_sim_status=$(build_status "$IOS_SIM_MATCH" "${IOS_SIM_QUEUED:-false}")
+android_status=$(build_status "$ANDROID_MATCH" "${ANDROID_QUEUED:-false}")
 
 path_line="✅ Fast path (waited on EAS)"
 [ "$PATH_TAKEN" = "slow" ] && path_line="🔨 Slow path (dev build dispatched async)"

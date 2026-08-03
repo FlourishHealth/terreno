@@ -162,9 +162,12 @@ jobs:
           APP_SLUG: terreno-example
           APP_SCHEME: frontend
           PROJECT_ID: ddbe68d9-1142-4991-a02e-4ebb9fd83530
-          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
-          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
-          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
+          IOS_DEVICE_QUEUED: ${{ steps.decide.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.decide.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.decide.outputs.android_queued }}
           IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
           IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
           ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
@@ -268,9 +271,12 @@ jobs:
           APP_SLUG: terreno-demo
           APP_SCHEME: terreno
           PROJECT_ID: 89c320ce-465b-4d71-9fd6-74fea9c5d898
-          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
-          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
-          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
+          IOS_DEVICE_QUEUED: ${{ steps.decide.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.decide.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.decide.outputs.android_queued }}
           IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
           IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
           ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
