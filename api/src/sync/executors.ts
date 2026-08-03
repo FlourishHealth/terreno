@@ -142,6 +142,34 @@ export const isExecutorConflictError = (error: unknown): error is ExecutorConfli
 const stubRequest = (user?: User): express.Request => ({user}) as unknown as express.Request;
 
 /**
+ * True for the Mongoose error thrown when an `optimisticConcurrency` save matched no
+ * document (its `__v` filter failed) — i.e. another write landed since the load.
+ * Name-checked rather than `instanceof` for the same ES5-dist reason as
+ * {@link isExecutorConflictError}.
+ */
+export const isVersionError = (error: unknown): boolean =>
+  (error as {name?: string} | undefined)?.name === "VersionError";
+
+/**
+ * Re-read the document a version-conflicted save lost to, so the conflict response carries
+ * the CURRENT server state (the in-memory instance still holds the caller's rejected
+ * edits). Includes tombstones: the winning write may have been a soft delete, and the
+ * client needs to learn that too. Returns undefined if the read fails — the caller falls
+ * back to its own instance rather than failing the request.
+ */
+const reloadDocForConflict = async <T>(
+  model: Model<T>,
+  id: string
+): Promise<ExecutorDoc<T> | undefined> => {
+  try {
+    const found = await model.find({_id: id, deleted: {$in: [true, false]}} as never).limit(1);
+    return found[0] as ExecutorDoc<T> | undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
  * Create a document through the same pipeline as `POST /`: method-level permissions,
  * `transformer.transform`, `preCreate`, `Model.create` (Mongoose validation), population,
  * and `postCreate`. Throws APIErrors with the same statuses/titles as the REST handler.
@@ -463,6 +491,25 @@ export const executeUpdate = async <T>({
     doc.set(cleanedBody);
     await doc.save();
   } catch (error: unknown) {
+    // Task 9.13: `syncPlugin` enables Mongoose `optimisticConcurrency` on synced schemas, so
+    // this save is conditional on the `__v` the document was loaded at. A concurrent write
+    // that landed between the seq check above and this save therefore throws a VersionError
+    // instead of silently overwriting it — the same lost update the seq check exists to
+    // prevent, just detected at write time. Report it as the conflict the seq check would
+    // have produced had the other write landed a moment earlier.
+    if (concurrencyCheck?.type === "seq" && isVersionError(error)) {
+      const current = await reloadDocForConflict(model, id);
+      const serverSeq = (current as {_syncSeq?: number} | undefined)?._syncSeq ?? 0;
+      throw new ExecutorConflictError({
+        conflictType: "seq",
+        detail: "Document was modified since your last read",
+        disableExternalErrorTracking: true,
+        doc: current ?? doc,
+        serverSeq,
+        status: 409,
+        title: `Sync conflict on ${model.modelName}:${id}: a concurrent write landed while this update was in flight (baseSeq ${concurrencyCheck.baseSeq})`,
+      });
+    }
     throw new APIError({
       disableExternalErrorTracking: getDisableExternalErrorTracking(error),
       error,

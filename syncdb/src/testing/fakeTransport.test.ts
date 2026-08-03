@@ -1,8 +1,7 @@
 import {describe, expect, it} from "bun:test";
-
+import type {TransportStatus} from "../sync/transport";
 import type {SyncDelta} from "../types";
 import {createFakeTransport} from "./fakeTransport";
-import type {TransportStatus} from "./transport";
 
 const makeDelta = (overrides: Partial<SyncDelta> = {}): SyncDelta => ({
   collection: "todos",

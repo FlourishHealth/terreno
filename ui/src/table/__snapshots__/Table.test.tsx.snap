@@ -51,6 +51,8 @@ exports[`Table renders correctly with basic setup 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -114,6 +116,8 @@ exports[`Table renders correctly with basic setup 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -177,6 +181,8 @@ exports[`Table renders correctly with basic setup 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -482,6 +488,8 @@ exports[`Table renders multiple rows 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -545,6 +553,8 @@ exports[`Table renders multiple rows 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -919,6 +929,8 @@ exports[`Table renders without alternate row background 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -982,6 +994,8 @@ exports[`Table renders without alternate row background 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -1252,6 +1266,8 @@ exports[`Table renders with percentage-based columns 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -1315,6 +1331,8 @@ exports[`Table renders with percentage-based columns 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -1585,6 +1603,8 @@ exports[`Table renders with maxHeight 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -1820,6 +1840,8 @@ exports[`Table renders without sticky header 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {

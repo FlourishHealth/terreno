@@ -12,9 +12,8 @@
  * `/todos` CRUD routes and asserts individual `todo-item-{id}` rows), this spec
  * generates thousands of documents and therefore asserts ONLY the `todos-count`
  * testID (SyncTodosScreen.tsx) converging to an exact expected total — asserting on
- * thousands of unvirtualized DOM rows here would be slow and flaky. See
- * SyncTodosScreen.tsx: the todo list is intentionally left as a plain `.map()` inside
- * a FlashList (virtualized) since this spec never inspects individual rows.
+ * thousands of DOM rows would be slow and flaky, and SyncTodosScreen renders its rows
+ * through a virtualized FlashList, so most of them are not in the DOM at all.
  *
  * Shared suite notes/helpers live in helpers/syncdbSuite.ts. Uses a dedicated
  * admin-capable user (SYNCDB_LOADLAB_USER) so it can run in parallel with the other

@@ -78,12 +78,13 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
 
     await goSyncOffline(page);
 
-    // Toggle completion — the item moves to the Completed section immediately.
+    // Toggle completion — the item is marked completed immediately.
     await page.getByTestId(`todo-toggle-${toggled._id}-clickable`).click();
     await expect(page.getByTestId("todos-completed-section")).toBeVisible();
-    await expect(
-      page.getByTestId("todos-completed-section").getByTestId(`todo-item-${toggled._id}`)
-    ).toBeVisible();
+    await expect(page.getByTestId(`todo-item-${toggled._id}`)).toHaveAttribute(
+      "aria-label",
+      "completed todo"
+    );
 
     // Delete — the item disappears immediately.
     await page.getByTestId(`todo-delete-${doomed._id}`).click();
@@ -111,9 +112,11 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
     // State also converges across a reload.
     await page.reload();
     await waitForSyncTodosScreen(page);
-    await expect(
-      page.getByTestId("todos-completed-section").getByTestId(`todo-item-${toggled._id}`)
-    ).toBeVisible({timeout: CONVERGE_TIMEOUT});
+    await expect(page.getByTestId(`todo-item-${toggled._id}`)).toHaveAttribute(
+      "aria-label",
+      "completed todo",
+      {timeout: CONVERGE_TIMEOUT}
+    );
     await expect(page.getByTestId(`todo-item-${doomed._id}`)).toBeHidden();
   });
 });

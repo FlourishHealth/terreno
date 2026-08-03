@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
-import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import {model, Schema} from "mongoose";
 import supertest from "supertest";
@@ -11,7 +11,14 @@ import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins"
 import {DEFAULT_IGNORED_COLLECTIONS} from "../realtime/changeStreamWatcher";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {SyncCounter, SyncKey, SyncMutation} from "./models";
-import {clearSyncRegistry, registerSync, type SyncRegistryEntry} from "./registry";
+import {
+  clearSyncRegistry,
+  ensureSyncIndexes,
+  findSyncEntryByCollectionTag,
+  registerSync,
+  type SyncRegistryEntry,
+} from "./registry";
+import {compactEntryTombstones} from "./scripts/compactTombstones";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -44,6 +51,28 @@ interface PhaseCProject extends IsDeleted {
   _syncSeq?: number;
 }
 
+interface PhaseCNote extends IsDeleted {
+  _id: string;
+  title: string;
+  ownerId: string;
+  _syncSeq?: number;
+}
+
+/**
+ * Task 9.14: a STRING `_id` model — the shape synced models are designed around, since
+ * clients mint their own ids offline. The legacy (seq-0) stratum must page these by raw
+ * string comparison; casting the cursor to ObjectId either throws or matches nothing.
+ */
+const phaseCNoteSchema = new Schema<PhaseCNote>({
+  _id: {description: "Client-minted string id", type: String},
+  ownerId: {description: "The owner", type: String},
+  title: {description: "The title", required: true, type: String},
+});
+phaseCNoteSchema.plugin(isDeletedPlugin);
+phaseCNoteSchema.plugin(createdUpdatedPlugin);
+phaseCNoteSchema.plugin(syncPlugin);
+const PhaseCNoteModel = model<PhaseCNote>("SyncPhaseCNote", phaseCNoteSchema);
+
 const phaseCProjectSchema = new Schema<PhaseCProject>({
   orgId: {description: "The organization", type: String},
   title: {description: "The title", required: true, type: String},
@@ -65,14 +94,6 @@ const authedOptions = {
 
 // Per-user tenant membership, mutable so join tests can extend it.
 const userOrgs = new Map<string, string[]>();
-
-beforeAll(async () => {
-  await Promise.all([
-    SyncCounter.ensureIndexes(),
-    SyncKey.ensureIndexes(),
-    SyncMutation.ensureIndexes(),
-  ]);
-});
 
 describe("Phase C sync routes", () => {
   let app: express.Application;
@@ -102,9 +123,16 @@ describe("Phase C sync routes", () => {
       options: authedOptions,
       routePath: "/phaseCProjects",
     });
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: PhaseCNoteModel as any,
+      options: authedOptions,
+      routePath: "/phaseCNotes",
+    });
 
     await Promise.all([
       PhaseCTodoModel.collection.deleteMany({}),
+      PhaseCNoteModel.collection.deleteMany({}),
       PhaseCProjectModel.collection.deleteMany({}),
       SyncCounter.deleteMany({}),
       SyncKey.deleteMany({}),
@@ -124,6 +152,10 @@ describe("Phase C sync routes", () => {
         return userOrgs.get(String(user.id)) ?? [];
       },
     }).register(app);
+    // Task 9.9: no manual `ensureIndexes()` anywhere in this setup — registering SyncApp
+    // enqueues the bookkeeping index builds, and this is the same await TerrenoApp.start()
+    // performs before listening.
+    await ensureSyncIndexes();
 
     server = supertest(app);
     agent = await authAsUser(app, "notAdmin");
@@ -274,6 +306,68 @@ describe("Phase C sync routes", () => {
       const stamped = page2.body.entities.find((e: any) => e.data?.title === "stamped");
       expect(stamped?.seq).toBe(1);
     });
+
+    it("Task 9.14: a string-_id model with more legacy docs than the limit bootstraps completely", async () => {
+      // Non-hex, client-minted ids: casting the legacy cursor to ObjectId would throw
+      // (500), and a hex-shaped string id would compare across BSON types and match
+      // nothing — either way the stratum reported itself exhausted after one page and the
+      // remaining docs were silently skipped forever.
+      const noteStream = `phaseCNotes|owner:${notAdminId}`;
+      const total = 25;
+      const limit = 10;
+      await PhaseCNoteModel.collection.insertMany(
+        Array.from({length: total}, (_v, i) => ({
+          _id: `note-${String(i).padStart(3, "0")}`,
+          deleted: false,
+          ownerId: notAdminId,
+          title: `legacy note ${i}`,
+        })) as any
+      );
+      await PhaseCNoteModel.create({
+        _id: "note-modern",
+        ownerId: notAdminId,
+        title: "stamped note",
+      });
+
+      const seen = new Set<string>();
+      let cursor = 0;
+      let legacyCursor: string | undefined;
+      for (let page = 0; page < 12; page++) {
+        const qs = new URLSearchParams({limit: String(limit), stream: noteStream});
+        if (cursor > 0) {
+          qs.set("cursor", String(cursor));
+        }
+        if (legacyCursor !== undefined) {
+          qs.set("legacyCursor", legacyCursor);
+        }
+        const res = await agent.get(`/sync/snapshot?${qs.toString()}`).expect(200);
+        for (const entity of res.body.entities) {
+          seen.add(entity.id);
+        }
+        if (res.body.legacyCursor !== undefined) {
+          legacyCursor = res.body.legacyCursor;
+          continue;
+        }
+        legacyCursor = undefined;
+        if (!res.body.hasMore) {
+          break;
+        }
+        cursor = res.body.cursor;
+      }
+      expect(seen.size).toBe(total + 1);
+      expect(seen.has("note-000")).toBe(true);
+      expect(seen.has("note-024")).toBe(true);
+      expect(seen.has("note-modern")).toBe(true);
+    });
+
+    it("Task 9.14: 400s (not 500s) on a malformed legacyCursor for an ObjectId-keyed model", async () => {
+      await PhaseCTodoModel.collection.insertMany([
+        {deleted: false, ownerId: notAdminId, title: "legacy-a"},
+      ] as any);
+      await agent
+        .get(`/sync/snapshot?stream=${enc(ownerStream())}&legacyCursor=not-an-object-id`)
+        .expect(400);
+    });
   });
 
   // ── C6: write-scope enforcement + snapshot read parity ─────────────────────
@@ -359,6 +453,61 @@ describe("Phase C sync routes", () => {
       expect(titles).toEqual(["visible-1", "visible-2"]);
       // The cursor advanced past the denied doc (seq 3), so it is never re-fetched.
       expect(res.body.cursor).toBe(3);
+    });
+
+    it("advances the cursor past a full page of read-denied docs so bootstrap terminates", async () => {
+      // A read permission denying every "denied-*" doc, so a whole page can be dropped.
+      clearSyncRegistry();
+      registerSync({
+        config: {scope: {type: "owner"}},
+        model: PhaseCTodoModel as any,
+        options: {
+          ...authedOptions,
+          permissions: {
+            ...(authedOptions as any).permissions,
+            read: [
+              (_method: any, _user: any, doc?: any) => {
+                if (!doc) {
+                  return true;
+                }
+                return !String(doc.title).startsWith("denied-");
+              },
+            ],
+          },
+        } as unknown as ModelRouterOptions<any>,
+        routePath: "/phaseCTodos",
+      });
+
+      // 5 contiguous denied docs (more than the page limit of 2) then one visible doc.
+      for (let i = 1; i <= 5; i++) {
+        await PhaseCTodoModel.create({ownerId: notAdminId, title: `denied-${i}`});
+      }
+      await PhaseCTodoModel.create({ownerId: notAdminId, title: "visible"});
+
+      const seenTitles: string[] = [];
+      let cursor = 0;
+      let pages = 0;
+      for (;;) {
+        pages += 1;
+        expect(pages).toBeLessThan(10); // termination guard: the old cursor logic looped forever
+        const qs = new URLSearchParams({limit: "2", stream: ownerStream()});
+        if (cursor > 0) {
+          qs.set("cursor", String(cursor));
+        }
+        const res = await agent.get(`/sync/snapshot?${qs.toString()}`).expect(200);
+        for (const entity of res.body.entities) {
+          seenTitles.push(entity.data?.title ?? `tombstone:${entity.id}`);
+        }
+        // Every page consumes seqs, so the cursor always moves forward.
+        expect(res.body.cursor).toBeGreaterThan(cursor);
+        cursor = res.body.cursor;
+        if (!res.body.hasMore) {
+          break;
+        }
+      }
+      // Denied docs are never leaked, and the cursor ends at the stream head.
+      expect(seenTitles).toEqual(["visible"]);
+      expect(cursor).toBe(6);
     });
 
     it("composes a custom-scope $or snapshotFilter with $and (does not clobber deleted/seq)", async () => {
@@ -508,6 +657,61 @@ describe("Phase C sync routes", () => {
       for (const coll of ["synccounters", "syncmutations", "syncscopemoves", "synckeys"]) {
         expect(DEFAULT_IGNORED_COLLECTIONS).toContain(coll);
       }
+    });
+  });
+
+  // ── Task 9.15: retention watermark end-to-end ───────────────────────────────
+  describe("Task 9.15 — retention watermark drives re-bootstrap", () => {
+    /** The registered entry with retention forced to 0 so "now" is already past it. */
+    const zeroRetentionEntry = (collectionTag: string): SyncRegistryEntry => {
+      const entry = findSyncEntryByCollectionTag(collectionTag);
+      if (!entry) {
+        throw new Error(`${collectionTag} is not registered`);
+      }
+      return {...entry, config: {...entry.config, retentionDays: 0}};
+    };
+
+    it("a cursor older than the compaction watermark re-bootstraps and converges", async () => {
+      // Three docs; the middle one is deleted (seq 4) and then compacted away. A client
+      // whose cursor sits at 2 — above the retention floor the OLD min(seq) computation
+      // would have reported, but below the deletion — must be told to re-bootstrap.
+      const keep = await PhaseCTodoModel.create({ownerId: notAdminId, title: "keep"}); // seq 1
+      const doomed = await PhaseCTodoModel.create({ownerId: notAdminId, title: "doomed"}); // seq 2
+      await PhaseCTodoModel.create({ownerId: notAdminId, title: "later"}); // seq 3
+      doomed.deleted = true;
+      await doomed.save(); // seq 4 — the tombstone the stale cursor never saw
+
+      const stream = ownerStream();
+      // Nothing compacted yet: no retention gap to enforce.
+      const before = await agent.get(`/sync/snapshot?stream=${enc(stream)}&cursor=2`).expect(200);
+      expect(before.body.oldestRetainedSeq).toBe(0);
+
+      const counts = await compactEntryTombstones(zeroRetentionEntry("phaseCTodos"));
+      expect(counts.tombstones).toBe(1);
+
+      const after = await agent.get(`/sync/snapshot?stream=${enc(stream)}&cursor=2`).expect(200);
+      // The watermark is the reaped tombstone's seq, so the client's rule
+      // (cursor > 0 && cursor < oldestRetainedSeq) fires.
+      expect(after.body.oldestRetainedSeq).toBe(4);
+      expect(after.body.cursor).toBeLessThan(after.body.oldestRetainedSeq + 1);
+
+      // Re-bootstrapping from 0 converges on live state with the deleted doc absent.
+      const rebootstrap = await agent
+        .get(`/sync/snapshot?stream=${enc(stream)}&cursor=0`)
+        .expect(200);
+      const ids = rebootstrap.body.entities.map((e: any) => e.id).sort();
+      expect(ids).toEqual(
+        [String(keep._id), String((await PhaseCTodoModel.findOne({title: "later"}))?._id)].sort()
+      );
+      expect(rebootstrap.body.entities.some((e: any) => e.id === String(doomed._id))).toBe(false);
+    });
+
+    it("a live never-deleted early doc no longer pins the retention floor", async () => {
+      // The OLD computation returned min(retained seq) = 1 here, so every client with a
+      // cursor of 0 was told there was a retention gap it could not have missed.
+      await PhaseCTodoModel.create({ownerId: notAdminId, title: "early and alive"});
+      const res = await agent.get(`/sync/snapshot?stream=${enc(ownerStream())}`).expect(200);
+      expect(res.body.oldestRetainedSeq).toBe(0);
     });
   });
 });

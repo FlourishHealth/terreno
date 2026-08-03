@@ -3,8 +3,8 @@ import {describe, expect, it} from "bun:test";
 import {getConflict} from "../mutations/conflicts";
 import {createOutbox, type Outbox} from "../mutations/outbox";
 import {createSyncStore, type SyncStore} from "../storage/store";
+import {createFakeTransport, type FakeTransport} from "../testing/fakeTransport";
 import type {SyncMutateRequest} from "../types";
-import {createFakeTransport, type FakeTransport} from "./fakeTransport";
 import {AuthRequiredError} from "./httpChannel";
 import {
   BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS,
@@ -385,11 +385,29 @@ describe("createReplayCoordinator", () => {
       localData: JSON.stringify({title: "local"}),
       mutationId: "m1",
       serverData: JSON.stringify({title: "server"}),
+      serverDeleted: false,
       serverSeq: 9,
     });
     const entity = harness.store.getEntity({collection: "todos", id: "t1"});
     expect(entity?.data).toEqual({title: "local"});
     expect(entity?.pendingMutationId).toBe("m1");
+  });
+
+  // Task 9.12: the flag has to survive onto the `_conflicts` row, since that is
+  // all `resolveConflict` sees when the user eventually picks a side.
+  it("records a conflict nack's serverDeleted flag on the conflict row (9.12)", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {
+      baseVersion: 2,
+      data: {title: "local"},
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "update",
+    });
+    harness.transport.respondWithNack({code: "conflict", serverDeleted: true, serverSeq: 9});
+
+    await harness.coordinator.replay({userId: USER});
+    expect(getConflict({mutationId: "m1", store: harness.store})?.serverDeleted).toBe(true);
   });
 
   it("unauthorized nacks requeue, pause replay for the user, and resume on the next call", async () => {
@@ -453,6 +471,85 @@ describe("createReplayCoordinator", () => {
     expect(
       harness.store.getEntity({collection: "todos", id: "t1"})?.pendingMutationId
     ).toBeUndefined();
+  });
+
+  // Task 9.11a: a terminal nack means the server never accepted the optimistic
+  // payload, and (absent a concurrent server write) the entity's seq never
+  // moves, so snapshot reconcile skips it forever. Marking needs-repair in the
+  // terminal path is what makes the rejected data converge back to the server.
+  it("marks the entity needs-repair on a terminal validation nack (9.11a)", async () => {
+    const harness = makeHarness();
+    harness.store.upsertEntity({
+      collection: "todos",
+      data: {title: "server"},
+      id: "t1",
+      seq: 7,
+      stream: "todos|owner:u1",
+    });
+    enqueue(harness, {
+      baseVersion: 7,
+      data: {title: "rejected"},
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "update",
+    });
+    harness.transport.respondWithNack({code: "validation", message: "title required"});
+
+    await harness.coordinator.replay({userId: USER});
+    expect(harness.store.listNeedsRepair()).toEqual([
+      {collection: "todos", entityId: "t1", missedSeq: 7, stream: "todos|owner:u1"},
+    ]);
+  });
+
+  it("marks the entity needs-repair when the error-nack budget is exhausted (9.11a)", async () => {
+    const harness = makeHarness();
+    harness.store.upsertEntity({
+      collection: "todos",
+      data: {title: "server"},
+      id: "t1",
+      seq: 2,
+      stream: "todos|owner:u1",
+    });
+    enqueue(harness, {
+      baseVersion: 2,
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "update",
+    });
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    for (let attempt = 1; attempt <= MAX_ERROR_NACK_ATTEMPTS; attempt += 1) {
+      harness.clock.value += MAX_BACKOFF_MS;
+      await harness.coordinator.replay({userId: USER});
+    }
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+    expect(harness.store.hasNeedsRepair({collection: "todos", entityId: "t1"})).toBe(true);
+  });
+
+  it("passes the released entity to the repair hook with its needs-repair mark already set (9.11a)", async () => {
+    const store = createSyncStore({collections: ["notes", "todos"]});
+    const outbox = createOutbox({store});
+    const transport = createFakeTransport();
+    const markedWhenNotified: boolean[] = [];
+    const coordinator = createReplayCoordinator({
+      onEntityReleasedWithoutServerAck: (mutation) => {
+        markedWhenNotified.push(
+          store.hasNeedsRepair({collection: mutation.collection, entityId: mutation.entityId})
+        );
+      },
+      outbox,
+      sendMutation: transport.sendMutation,
+      store,
+    });
+    const harness: Harness = {clock: {value: 0}, coordinator, outbox, store, transport};
+    enqueue(harness, {entityId: "t1", mutationId: "m1", operation: "update"});
+    transport.respondWithNack({code: "validation"});
+
+    await coordinator.replay({userId: USER});
+    expect(markedWhenNotified).toEqual([true]);
   });
 
   it("error nacks requeue with exponential backoff and block the collection head", async () => {

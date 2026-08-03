@@ -51,6 +51,8 @@ exports[`TableHeaderCell renders correctly with title 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -287,6 +289,8 @@ exports[`TableHeaderCell renders correctly with children 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -522,6 +526,8 @@ exports[`TableHeaderCell renders with left alignment (default) 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -757,6 +763,8 @@ exports[`TableHeaderCell renders with center alignment 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
@@ -992,6 +1000,8 @@ exports[`TableHeaderCell renders with right alignment 1`] = `
                                 },
                               ],
                               "props": {
+                                "accessibilityHint": "changes sort alphabetical order",
+                                "accessibilityLabel": "sort",
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {

@@ -6,39 +6,152 @@
  * durable outbox, and the server is asynchronous reconciliation over a websocket
  * delta protocol with HTTP snapshot catch-up. Supersedes @terreno/rtk for
  * data-synchronization concerns. See docs/implementationPlans/syncdb-local-first.md.
+ *
+ * This module is the package's public API: everything re-exported here is
+ * semver-protected, and everything else under `src/` is an internal detail that may
+ * change in a patch release. Deliberately absent are the pieces that let a host app
+ * corrupt the store's invariants behind the client's back — cell-level cursor
+ * mutators, outbox/conflict writers, raw row shapes, the IndexedDB helpers, and the
+ * debug broadcast bridge. Reach for `client.store`/`client.outbox` (or the React
+ * hooks) instead, and open an issue if something genuinely needs promoting.
+ *
+ * Two other entry points exist:
+ * - `@terreno/syncdb/react` (src/react/index.ts) — React bindings. They live on
+ *   their own subpath because react is an optional peer dependency and this entry
+ *   must stay importable without it.
+ * - `@terreno/syncdb/testing` (src/testing/index.ts) — test doubles such as
+ *   `createFakeTransport`, kept out of production bundles.
  */
 
-// React bindings intentionally live on the `@terreno/syncdb/react` subpath
-// (src/react/index.ts) rather than here: react is an optional peer dependency
-// and the main entry must stay importable without it.
-export * from "./auth/betterAuthAdapter";
-export * from "./auth/types";
-export * from "./client";
-export * from "./crypto/aesGcmCodec";
-export * from "./crypto/identityCodec";
-export * from "./crypto/keyProviders";
-export * from "./crypto/types";
-export * from "./debug/debugChannel";
-export * from "./debug/debugLog";
-export * from "./mutations/conflicts";
-export * from "./mutations/outbox";
-export * from "./mutations/resolveConflict";
-export * from "./persisters/defaultPersisterFactory";
-export * from "./persisters/encryptedIndexedDbPersister";
-export * from "./persisters/memoryPersister";
-export * from "./persisters/types";
-export * from "./storage/idb";
-export * from "./storage/schema";
-export * from "./storage/store";
-export * from "./storage/types";
-export * from "./storage/wipe";
-export * from "./sync/bootstrap";
-export * from "./sync/cursor";
-export * from "./sync/deltaApplier";
-export * from "./sync/entityRepair";
-export * from "./sync/fakeTransport";
-export * from "./sync/httpChannel";
-export * from "./sync/replayCoordinator";
-export * from "./sync/socketTransport";
-export * from "./sync/transport";
-export * from "./types";
+// --- Client ---------------------------------------------------------------
+
+export {
+  createSyncDb,
+  DEFAULT_RECONCILE_INTERVAL_MS,
+  DEFAULT_SEQ_JUMP_RECONCILE_MIN_INTERVAL_MS,
+  DEFAULT_START_AUTH_RETRY_ATTEMPTS,
+  DEFAULT_START_AUTH_RETRY_DELAY_MS,
+  DEFAULT_TOMBSTONE_RETENTION_MS,
+  type ForceResyncResult,
+  type ForceResyncSkipReason,
+  type MutateArgs,
+  type SyncDb,
+  type SyncDbConfig,
+} from "./client";
+
+// --- Protocol, status, and conflict types --------------------------------
+
+export type {
+  AuthProvider,
+  ConflictResolutionStrategy,
+  OutboxMutation,
+  OutboxStatus,
+  SyncAck,
+  SyncCollectionStatus,
+  SyncConflict,
+  SyncDelta,
+  SyncEntitiesResponse,
+  SyncMutateBatchRequest,
+  SyncMutateBatchResponse,
+  SyncMutateBatchResult,
+  SyncMutateRequest,
+  SyncMutationOperation,
+  SyncNack,
+  SyncNackCode,
+  SyncSnapshotEntity,
+  SyncSnapshotResponse,
+  SyncStatus,
+  SyncStreamInfo,
+} from "./types";
+
+// --- Local store and outbox (read surface) -------------------------------
+// `client.store` is typed as SyncStore and `client.outbox` as Outbox;
+// OUTBOX_TABLE names the table to pass to `client.store.raw.getTable(...)` when
+// inspecting queued mutations directly (what the example app's sync health UI
+// does). Reading conflicts outside React goes through `listConflicts`; writing to
+// any reserved table is the client's job alone.
+
+export {listConflicts} from "./mutations/conflicts";
+export {generateMutationId, type Outbox} from "./mutations/outbox";
+export type {SyncStore} from "./storage/store";
+export {OUTBOX_TABLE, type SyncEntity} from "./storage/types";
+export {wipeLocalData} from "./storage/wipe";
+
+// --- Auth -----------------------------------------------------------------
+
+export {
+  type BetterAuthAdapterOptions,
+  betterAuthAdapter,
+  DEFAULT_AUTH_POLL_INTERVAL_MS,
+} from "./auth/betterAuthAdapter";
+export type {
+  BetterAuthClientLike,
+  BetterAuthGetSessionResult,
+  BetterAuthSessionAtomLike,
+  BetterAuthSessionDataLike,
+  BetterAuthSessionLike,
+  BetterAuthUserLike,
+} from "./auth/types";
+
+// --- Encryption (web persistence) ----------------------------------------
+
+export {
+  AES_GCM_ENVELOPE_VERSION,
+  createAesGcmCodec,
+  PayloadIntegrityError,
+  UnknownEnvelopeVersionError,
+} from "./crypto/aesGcmCodec";
+export {identityCodec} from "./crypto/identityCodec";
+export {
+  createKeyProviderCodec,
+  createLocalKeyProvider,
+  createServerKeyProvider,
+  DEFAULT_KEY_CACHE_DB_NAME,
+} from "./crypto/keyProviders";
+export type {KeyProvider, PayloadCodec} from "./crypto/types";
+
+// --- Persisters -----------------------------------------------------------
+
+export {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
+export {createEncryptedIndexedDbPersister} from "./persisters/encryptedIndexedDbPersister";
+export {
+  clearMemoryPersisterData,
+  createMemoryPersister,
+  memoryPersisterFactory,
+} from "./persisters/memoryPersister";
+export type {DefaultPersisterFactoryConfig, PersisterFactory} from "./persisters/types";
+
+// --- Transports (only needed to override the defaults) -------------------
+
+export {
+  AuthRequiredError,
+  createHttpChannel,
+  type FetchLike,
+  type FetchSnapshotPageArgs,
+  type HttpChannel,
+  type HttpChannelConfig,
+} from "./sync/httpChannel";
+export {createSocketTransport, type SocketTransportConfig} from "./sync/socketTransport";
+export {
+  DEFAULT_BATCH_SIZE,
+  DEFAULT_MUTATION_TIMEOUT_MS,
+  type SendMutationBatchResult,
+  type SendMutationResult,
+  type SyncTransport,
+  type TransportStatus,
+} from "./sync/transport";
+
+// --- Debug log ------------------------------------------------------------
+// Enabled with `SyncDbConfig.debug`, read through `client.debug` or the React
+// `useSyncDebugLog()` hook. The cross-tab BroadcastChannel bridge is internal.
+
+export type {
+  SyncDebugDirection,
+  SyncDebugEvent,
+  SyncDebugEventType,
+  SyncDebugLog,
+  SyncDebugLogOptions,
+  SyncDebugRecordInput,
+  SyncDebugSnapshot,
+  SyncDebugStats,
+} from "./debug/debugLog";

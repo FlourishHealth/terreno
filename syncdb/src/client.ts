@@ -3,7 +3,7 @@ import type {AnyPersister} from "tinybase/persisters";
 
 import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyProviders";
 import type {KeyProvider} from "./crypto/types";
-import {attachDebugChannel} from "./debug/debugChannel";
+import {attachDebugChannel, type DebugChannelBridge} from "./debug/debugChannel";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
 import {listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
@@ -150,8 +150,21 @@ export interface SyncDbConfig {
   startAuthRetryDelayMs?: number;
 }
 
-/** Why a {@link SyncDb.forceResync} call could not run. */
-export type ForceResyncSkipReason = "noHttpChannel" | "offline" | "authPaused" | "noStreams";
+/**
+ * Why a {@link SyncDb.forceResync} call could not run (or could not finish).
+ *
+ * `"superseded"` means a `stop()`/`start()` cycle or a different-user login took over
+ * mid-flight, so the resync abandoned its work rather than writing into a store that
+ * now belongs to another lifecycle or user — distinct from `"noStreams"` (the server
+ * reported no streams for this user, and there was no local set to fall back on),
+ * which is a stable outcome that retrying will reproduce.
+ */
+export type ForceResyncSkipReason =
+  | "noHttpChannel"
+  | "offline"
+  | "authPaused"
+  | "noStreams"
+  | "superseded";
 
 /** Outcome of a {@link SyncDb.forceResync} call. */
 export interface ForceResyncResult {
@@ -230,10 +243,13 @@ export interface SyncDb {
    */
   retryFailed: (args: {entityId: string}) => void;
   /**
-   * Explicit, host-app-initiated sign-out. Always clears the in-memory
-   * current-user pointer; wipes local data ONLY when `wipeOnSignOut` is
-   * configured (INV-2 — a bare 401/logout event never triggers this on its
-   * own). Safe to call whether or not the client is currently paused.
+   * Explicit, host-app-initiated sign-out. Tears the client down like `stop()`
+   * (transport disconnected, listeners and timers cleared, persister flushed and
+   * destroyed) and clears the in-memory current-user pointer; wipes local data
+   * ONLY when `wipeOnSignOut` is configured (INV-2 — a bare 401/logout event
+   * never triggers this on its own). Safe to call whether or not the client is
+   * currently paused, and safe to race against `start()`/`stop()`/an auth
+   * change. Call `start()` again to sync as the next signed-in user.
    */
   signOut: () => Promise<void>;
   /** Aggregate sync state for status UI. */
@@ -289,10 +305,22 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   const debugLog = resolveDebugLog(config.debug);
   // Mirror the debug log across browser windows/tabs (web only) so a debugger
   // opened in a second window sees this window's events — including local
-  // mutations. No-ops when BroadcastChannel is unavailable (native/SSR).
-  if (debugLog) {
-    attachDebugChannel({log: debugLog, name: config.name});
-  }
+  // mutations. No-ops when BroadcastChannel is unavailable (native/SSR). The
+  // bridge is retained so stop()/signOut() can close the underlying
+  // BroadcastChannel (and drop its log subscription) instead of leaking one per
+  // client; start() re-attaches it.
+  let debugChannel: DebugChannelBridge | undefined;
+  const attachDebugBridge = (): void => {
+    if (!debugLog || debugChannel) {
+      return;
+    }
+    debugChannel = attachDebugChannel({log: debugLog, name: config.name});
+  };
+  const closeDebugBridge = (): void => {
+    debugChannel?.close();
+    debugChannel = undefined;
+  };
+  attachDebugBridge();
 
   let currentUserId: string | undefined;
   let persister: ReturnType<PersisterFactory> | undefined;
@@ -301,6 +329,10 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   let syncingCount = 0;
   let reconcileTimer: ReturnType<typeof setInterval> | undefined;
   let unsubscribers: (() => void)[] = [];
+  /** The reconcile pass every concurrent trigger shares; see `reconcile()`. */
+  let inFlightReconcile:
+    | {generation: number; promise: Promise<void>; userId: string | undefined}
+    | undefined;
   const lastSeqJumpReconcileAt = new Map<string, number>();
   const statusListeners = new Set<() => void>();
   // A4: auth-pause state. `authPaused` gates reconcile/replay/timer triggers
@@ -323,6 +355,16 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   // concurrently in the first place).
   let generation = 0;
   let lifecycle: Promise<void> = Promise.resolve();
+  // The socket authenticates per connection (the handshake token is read inside
+  // the transport's auth callback), so a confirmed identity change must bounce
+  // the transport — otherwise the previous user's live socket keeps pushing that
+  // user's deltas into the new user's freshly wiped store and the new user's
+  // mutations go out under the old identity. `connectionEpoch` bumps on every
+  // bounce; the delta handler captures the epoch it was bound under and ignores
+  // anything delivered once a bounce has superseded it, so a delta the old
+  // connection flushes mid-bounce can never be applied.
+  let connectionEpoch = 0;
+  let unbindDeltaHandler: (() => void) | undefined;
   /** True once a start() has completed without a matching stop() (E1 double-start guard). */
   let isStarted = false;
 
@@ -399,11 +441,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       return;
     }
     authPaused = value;
+    refreshAttempted = false;
     if (value) {
-      refreshAttempted = false;
       config.onAuthRequired?.();
-    } else {
-      refreshAttempted = false;
+      // A4 step 5: every pause episode gets exactly one silent refresh attempt,
+      // wherever the auth failure was observed — a drain nack, a reconcile 401,
+      // or the server's session sweep (`sync:auth-expired`). Wiring it here
+      // (rather than per call site) is what makes that uniform; the early return
+      // above plus `refreshAttempted` keep it to one attempt per episode.
+      void attemptAuthRecovery();
     }
     notifyStatusChange();
   };
@@ -419,15 +465,13 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     debug: debugLog,
     haltQueueOnConflict: config.haltQueueOnConflict,
     now,
+    // Report the pause from the coordinator hook (not a replayOutbox()
+    // return-value check): drain-until-empty's internal recheck/wake-timer
+    // continuations can be the call that actually observes the auth failure,
+    // orphaned from whichever replayOutbox() wrapper kicked off the original
+    // drain. The silent-refresh attempt is triggered by setAuthPaused itself.
     onAuthPause: () => {
       setAuthPaused(true);
-      // Fire from the coordinator hook (not a replayOutbox() return-value
-      // check): drain-until-empty's internal recheck/wake-timer continuations
-      // can be the call that actually observes the auth failure, orphaned
-      // from whichever replayOutbox() wrapper kicked off the original drain.
-      // The hook fires exactly once per new pause episode regardless of which
-      // internal call triggered it.
-      void attemptAuthRecovery();
     },
     onDrainPass: ({userId}) => {
       outbox.prune({userId});
@@ -558,7 +602,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     return serverSet;
   };
 
-  const reconcile = async (): Promise<void> => {
+  const runReconcile = async (): Promise<void> => {
     // Simulated offline severs all network activity, including the HTTP
     // channel; an auth pause stands down every network trigger (INV-2) until
     // the same user re-authenticates.
@@ -631,6 +675,33 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         type: "reconcile",
       });
     }
+  };
+
+  /**
+   * Coalesce concurrent reconcile triggers into one pass, the way the replay
+   * coordinator coalesces drains: startup, transport reconnect, the periodic timer, a
+   * rate-limited seq-jump hint, and the post-auth resume all fire independently, and
+   * each pass is a full stream discovery plus snapshot paging for every stream.
+   * Tagged with the lifecycle generation and user it belongs to, so a caller arriving
+   * after a stop()/start() or a user switch starts a fresh pass instead of awaiting
+   * one that is about to abort as superseded.
+   */
+  const reconcile = (): Promise<void> => {
+    const existing = inFlightReconcile;
+    if (existing && existing.generation === generation && existing.userId === currentUserId) {
+      // Joining a pass already past its discovery step can miss a stream that
+      // appeared moments ago; the next trigger (the periodic timer at the latest)
+      // catches it, and every apply is cursor-guarded and idempotent, so sharing a
+      // pass only ever costs latency, never convergence.
+      return existing.promise;
+    }
+    const promise = runReconcile().finally(() => {
+      if (inFlightReconcile?.promise === promise) {
+        inFlightReconcile = undefined;
+      }
+    });
+    inFlightReconcile = {generation, promise, userId: currentUserId};
+    return promise;
   };
 
   /**
@@ -725,7 +796,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // the authoritative list for a repair operation.
       const streams = await syncStreams({isSuperseded});
       if (isSuperseded()) {
-        return skip("noStreams");
+        return skip("superseded");
       }
       if (streams) {
         streamInfos = [...streams].map(([stream, collection]) => ({collection, stream}));
@@ -753,7 +824,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         store.addKnownStream({collection, stream});
         await bootstrapStream({channel: httpChannel, collection, store, stream});
         if (isSuperseded()) {
-          return {ok: false, purged, reason: "noStreams", repaired, streams: streamInfos.length};
+          return {ok: false, purged, reason: "superseded", repaired, streams: streamInfos.length};
         }
       }
       repaired = await repairAllMarkedEntities();
@@ -826,13 +897,36 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     if (refreshAttempted || !config.authProvider.refresh) {
       return;
     }
+    if (!currentUserId) {
+      // An explicit logout (the auth provider reporting no user) is not an
+      // expired session: there is nothing to refresh silently, and a refresh
+      // that did succeed could only resolve some OTHER user's session, which the
+      // INV-2 check below would reject anyway.
+      return;
+    }
     refreshAttempted = true;
     try {
       const refreshed = await config.authProvider.refresh();
-      if (refreshed && authPaused) {
-        setAuthPaused(false);
-        void replayOutbox().catch(warn("post-refresh replay failed"));
+      if (!refreshed || !authPaused) {
+        return;
       }
+      // INV-2: a successful refresh does NOT prove the session still belongs to
+      // the paused user — another tab may have signed a different user in while
+      // this client was paused. Unpausing then would drain the previous user's
+      // outbox under the new user's identity. Stay paused and let
+      // handleAuthChange's different-user path wipe and bounce instead.
+      const refreshedUserId = await config.authProvider.getUserId();
+      if (!refreshedUserId || refreshedUserId !== currentUserId) {
+        debugLog?.record({
+          detail: {currentUserId, refreshedUserId},
+          direction: "system",
+          label: "auth refresh resolved a different user; staying paused",
+          type: "connect",
+        });
+        return;
+      }
+      setAuthPaused(false);
+      void replayOutbox().catch(warn("post-refresh replay failed"));
     } catch (error) {
       warn("auth refresh attempt failed")(error);
     }
@@ -993,10 +1087,14 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
    * store from disk) is the persisted schema version — a mismatch is a
    * sanctioned wipe (schema migration, not an auth event) distinct from the
    * user-change wipe above, so it runs regardless of whether the user changed.
+   *
+   * Reports whether the wipe-on-user-change branch ran so the caller can bounce
+   * the transport for the new identity (9.4).
    */
-  const runUserCheck = async (userId: string): Promise<void> => {
+  const runUserCheck = async (userId: string): Promise<{userChanged: boolean}> => {
     const lastUserId = store.getLastUserId();
-    if (lastUserId !== undefined && lastUserId !== userId) {
+    const userChanged = lastUserId !== undefined && lastUserId !== userId;
+    if (userChanged) {
       // FIX 3: a different-user login must not let the PREVIOUS user's
       // in-memory coordinator state (validationBlockedEntities keyed
       // user-scoped, retry/backoff bookkeeping, the batch-capability latch,
@@ -1026,11 +1124,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     const persistedVersion = store.getSchemaVersion();
     if (persistedVersion !== SYNC_SCHEMA_VERSION) {
       await wipeAndRebootstrap(userId);
-      return;
+      return {userChanged};
     }
     store.raw.setValue("schemaVersion", SYNC_SCHEMA_VERSION);
     store.setLastUserId({userId});
     currentUserId = userId;
+    return {userChanged};
   };
 
   const handleDelta = (delta: SyncDelta): void => {
@@ -1059,6 +1158,52 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     }
     lastSeqJumpReconcileAt.set(delta.stream, now());
     void reconcile().catch(warn("seq-jump reconcile failed"));
+  };
+
+  /**
+   * (Re)bind the delta handler under the CURRENT connection epoch, dropping any
+   * previous binding. The bound closure compares its captured epoch against the
+   * live one, so a delta delivered through a transport whose listener set
+   * survives reconnects (the socket transport keeps one set for the lifetime of
+   * the client) is ignored once a user-switch bounce has moved the epoch on.
+   */
+  const bindDeltaHandler = (): void => {
+    const myEpoch = connectionEpoch;
+    const unbindPrevious = unbindDeltaHandler;
+    unbindDeltaHandler = transport.onDelta((delta: SyncDelta): void => {
+      if (myEpoch !== connectionEpoch) {
+        // A stale connection's delta arriving after a bounce for a new user.
+        return;
+      }
+      handleDelta(delta);
+    });
+    unbindPrevious?.();
+  };
+
+  /**
+   * Re-handshake the transport for the currently-resolved user: invalidate the
+   * old connection's deltas, disconnect, reconnect, and resubscribe. Called only
+   * on a confirmed identity change (never on a same-user re-auth, which must
+   * keep the live socket). Resolves even when the reconnect fails — local-first:
+   * the transport's own background reconnection surfaces a later success.
+   */
+  const bounceTransport = async (): Promise<void> => {
+    connectionEpoch += 1;
+    transport.disconnect();
+    setConnected(false);
+    if (simulatedOffline) {
+      // A simulated outage owns connectivity; rebind so deltas land again after
+      // goOnline() without reconnecting behind the caller's back here.
+      bindDeltaHandler();
+      return;
+    }
+    try {
+      await transport.connect();
+    } catch (error) {
+      warn("transport reconnect after user change failed; continuing offline")(error);
+    }
+    bindDeltaHandler();
+    transport.subscribe(config.collections);
   };
 
   const handleStatusChange = ({
@@ -1117,12 +1262,20 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         // paused — reconcile/replay stand down until the same user (or a
         // different one, via the wipe path below) re-authenticates.
         currentUserId = undefined;
+        // 9.4: drop the socket — its handshake credentials belong to a session
+        // that no longer exists, and anything it still pushes must not be
+        // applied. No reconnect: the next authenticated auth change owns that.
+        connectionEpoch += 1;
+        transport.disconnect();
+        setConnected(false);
         setAuthPaused(true);
         return;
       }
       if (userId === currentUserId) {
         // Same-user re-auth: the pause (if any) clears fully and replay
-        // resumes with the outbox completely intact.
+        // resumes with the outbox completely intact. The live socket already
+        // authenticated as this same identity, so it is deliberately NOT
+        // bounced — a reconnect here would drop deltas for no reason.
         setAuthPaused(false);
         void replayOutbox().catch(warn("post-auth replay failed"));
         return;
@@ -1131,6 +1284,13 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // login after a logout (currentUserId undefined) — either way this is a
       // confirmed identity change, never inferred from a bare 401.
       await runUserCheck(userId);
+      if (generation !== myGeneration) {
+        return;
+      }
+      // 9.4: the connection (and its per-connection server-side subscriptions)
+      // was authenticated as the PREVIOUS identity — or was dropped by the
+      // logout branch above — so re-handshake before any sync work resumes.
+      await bounceTransport();
       if (generation !== myGeneration) {
         return;
       }
@@ -1211,13 +1371,23 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       }
       simulatedOffline = false;
       setAuthPaused(false);
+      // Re-open the cross-window debug bridge a previous stop()/signOut() closed.
+      attachDebugBridge();
       await createAndStartPersister(userId);
       if (generation !== myGeneration) {
         return;
       }
-      await runUserCheck(userId);
+      const {userChanged} = await runUserCheck(userId);
       if (generation !== myGeneration) {
         return;
+      }
+      if (userChanged) {
+        // 9.4: a different user's data was just wiped — invalidate any live
+        // connection authenticated as that user (and its deltas) before the
+        // connect below re-handshakes as the new one.
+        connectionEpoch += 1;
+        transport.disconnect();
+        setConnected(false);
       }
 
       // C2: migrate any legacy snapshot:{collection} cursors before the first discovery
@@ -1241,11 +1411,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       debugLog?.record({
         detail: {...recovery, prunedConflicts},
         direction: "system",
-        label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.repairedConflicts.length} conflicts repaired, ${prunedConflicts.length} husk conflicts pruned)`,
+        label: `startup recovery (${recovery.recoveredInFlight.length} inFlight, ${recovery.releasedEntities.length} released, ${recovery.clearedOrphanPendings.length} orphan pendings cleared, ${recovery.repairedConflicts.length} conflicts repaired, ${prunedConflicts.length} husk conflicts pruned)`,
         type: "reconcile",
       });
 
-      unsubscribers.push(transport.onDelta(handleDelta));
+      bindDeltaHandler();
+      unsubscribers.push((): void => {
+        unbindDeltaHandler?.();
+        unbindDeltaHandler = undefined;
+      });
       unsubscribers.push(transport.onStatusChange(handleStatusChange));
       unsubscribers.push(config.authProvider.onAuthChange(handleAuthChange));
 
@@ -1273,6 +1447,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     withLifecycle(async (): Promise<void> => {
       generation += 1;
       isStarted = false;
+      closeDebugBridge();
       stopReconcileTimer();
       simulatedOffline = false;
       for (const unsubscribe of unsubscribers) {
@@ -1348,10 +1523,21 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     const existing = store.getEntity<Record<string, unknown> | null>({collection, id: entityId});
 
     if (operation === "delete") {
-      store.softDeleteEntity({collection, id: entityId});
+      // Deleting an id the local store has never seen would write a tombstone for a
+      // row that never existed and queue a mutation the server is certain to reject
+      // (404 → terminal validation nack), leaving a phantom behind. Nothing the UI
+      // renders can be in that state, so this is a caller bug worth surfacing.
+      if (!existing) {
+        throw new Error(
+          `mutate() cannot delete ${collection}/${entityId}: no such entity in the local store`
+        );
+      }
+      // One write, not two: upsertEntity flips `deleted` and stamps `deletedAt` on the
+      // transition exactly like softDeleteEntity, and also records the pending
+      // mutation id that protects the row from inbound deltas.
       store.upsertEntity({
         collection,
-        data: existing?.data ?? null,
+        data: existing.data ?? null,
         deleted: true,
         id: entityId,
         pendingMutationId: mutationId,
@@ -1490,16 +1676,56 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     };
   };
 
-  const signOut = async (): Promise<void> => {
-    const userId = currentUserId;
-    setAuthPaused(false);
-    currentUserId = undefined;
-    if (userId && config.wipeOnSignOut) {
-      coordinator.dispose({userId});
-      await wipeLocalData({databaseNames: [config.name], persister, store});
-      lastSeqJumpReconcileAt.clear();
-    }
-  };
+  /**
+   * E1: a sign-out mutates the same shared state as start()/stop()/
+   * handleAuthChange (`currentUserId`, the persister, coordinator state), so it
+   * queues on the same lifecycle mutex and bumps the generation — an in-flight
+   * reconcile/replay from the signed-out session sees itself superseded and
+   * stands down instead of writing into a store that no longer has an owner.
+   */
+  const signOut = async (): Promise<void> =>
+    withLifecycle(async (): Promise<void> => {
+      generation += 1;
+      isStarted = false;
+      closeDebugBridge();
+      const userId = currentUserId;
+      stopReconcileTimer();
+      simulatedOffline = false;
+      for (const unsubscribe of unsubscribers) {
+        unsubscribe();
+      }
+      unsubscribers = [];
+      connectionEpoch += 1;
+      transport.disconnect();
+      setConnected(false);
+      setAuthPaused(false);
+      currentUserId = undefined;
+      // Capture and clear the persister before awaiting, exactly as stop() does:
+      // it is destroyed below (or by the wipe), so leaving the module-level
+      // binding pointing at it would hand a later start() a dead persister.
+      const persisterToStop = persister;
+      persister = undefined;
+      if (userId && config.wipeOnSignOut) {
+        coordinator.dispose({userId});
+        // E3(f): the strongest wipe case must also drop the cached derived
+        // encryption key — the same rationale as the different-user wipe.
+        await wipeLocalData({
+          databaseNames: [config.name],
+          keyCacheDbNames: [DEFAULT_KEY_CACHE_DB_NAME],
+          persister: persisterToStop,
+          store,
+        });
+        lastSeqJumpReconcileAt.clear();
+        return;
+      }
+      coordinator.dispose(userId ? {userId} : undefined);
+      if (persisterToStop) {
+        // Flush any pending autosave so a sign-out without a wipe never loses
+        // local writes (they belong to the user who may sign back in).
+        await persisterToStop.save();
+        await persisterToStop.destroy();
+      }
+    });
 
   return {
     debug: debugLog,

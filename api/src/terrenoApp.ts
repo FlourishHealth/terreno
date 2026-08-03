@@ -420,7 +420,16 @@ export class TerrenoApp {
       if (!hasRealtimePlugin) {
         const realtimeConfig =
           typeof this.options.realtime === "object" ? this.options.realtime : {};
-        this.register(new RealtimeApp(realtimeConfig));
+        this.register(
+          new RealtimeApp({
+            ...realtimeConfig,
+            // Task 9.21 (D2): default the socket full-user load to this app's own user
+            // model. Without it socket authorization falls back to the synthetic
+            // JWT-claim user, which trusts the token's `admin` over the database and
+            // carries no membership fields for tenant-scoped sync.
+            userModel: realtimeConfig.userModel ?? (this.options.userModel as never),
+          })
+        );
       }
     }
 
@@ -428,10 +437,13 @@ export class TerrenoApp {
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
-      // Await sync snapshot-index creation before listening so a failed createIndex
-      // (which would degrade the snapshot/catch-up query to a table scan) is a loud
-      // startup error rather than a silent perf cliff. No-op when no sync models are
-      // registered. Detached because start() returns the app synchronously.
+      // Await sync index creation before listening: the per-model snapshot indexes (a
+      // failed createIndex degrades the snapshot/catch-up query to a table scan) and the
+      // bookkeeping-model indexes enqueued by SyncApp (the unique mutationId index is what
+      // makes duplicate mutation deliveries idempotent, and the unique stream index is what
+      // keeps the counter upsert race from minting duplicate seqs). Either failure is a
+      // loud startup error rather than a silent correctness cliff. No-op when no sync
+      // models or SyncApp are registered. Detached because start() returns synchronously.
       void (async (): Promise<void> => {
         try {
           await ensureSyncIndexes();

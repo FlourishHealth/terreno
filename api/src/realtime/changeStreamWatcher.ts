@@ -16,7 +16,7 @@ import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/reg
 import {serializeSyncPayload} from "../sync/serialize";
 import {syncRoomForStream} from "../sync/socketHandlers";
 import {resolveStreamForDoc} from "../sync/streams";
-import type {SyncDelta, SyncMutationOperation} from "../sync/types";
+import type {SyncDelta, SyncMutationOperation, SyncResyncHint} from "../sync/types";
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
@@ -34,6 +34,61 @@ type WatchedChange = Extract<
 >;
 
 let changeWatcher: ChangeStream | null = null;
+
+/**
+ * Task 9.16: restart state for the single process-wide watcher.
+ *
+ * The watcher used to only LOG on `error`/`close`: a replica-set election, a network blip,
+ * or a dropped cursor permanently killed every realtime event and every `sync:delta` until
+ * the process was restarted — online clients silently stopped receiving data while looking
+ * perfectly connected. The stream is now re-created with backoff, resuming from the last
+ * observed resume token so no events in the gap are missed.
+ */
+/** Resume token of the last change seen, replayed via `resumeAfter` on restart. */
+let lastResumeToken: unknown;
+
+/** Bumped on every open/stop so callbacks from a replaced stream are ignored. */
+let watcherGeneration = 0;
+
+/** True between `stopChangeStreamWatcher()` and the next `startChangeStreamWatcher()`. */
+let watcherStopped = true;
+
+/** Consecutive failed opens, driving the backoff delay. Reset on a successful change. */
+let restartAttempts = 0;
+
+let restartTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** First restart delay; doubles per consecutive attempt up to the max. */
+export const CHANGE_STREAM_RESTART_BASE_DELAY_MS = 250;
+
+/** Ceiling for the restart backoff — a long outage retries once every 30s, forever. */
+export const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
+
+/**
+ * Socket event telling clients their cached cursors may have gaps and they must
+ * re-bootstrap. Emitted when the change stream's oplog history is gone
+ * (`ChangeStreamHistoryLost`), which is the one failure a resume token cannot repair.
+ * Payload: {@link SyncResyncHint}.
+ */
+export const SYNC_RESYNC_EVENT = "sync:resync-required";
+
+/** MongoDB error code / codeName for an unresumable change stream (oplog rolled past). */
+const CHANGE_STREAM_HISTORY_LOST_CODE = 286;
+
+/** True when the error means the resume token can no longer be used. */
+const isHistoryLostError = (error: unknown): boolean => {
+  const {code, codeName, message} = (error ?? {}) as {
+    code?: unknown;
+    codeName?: string;
+    message?: string;
+  };
+  return (
+    code === CHANGE_STREAM_HISTORY_LOST_CODE ||
+    codeName === "ChangeStreamHistoryLost" ||
+    Boolean(message?.includes("ChangeStreamHistoryLost")) ||
+    Boolean(message?.includes("resume point may no longer be in the oplog"))
+  );
+};
 
 /**
  * C8: per-entity serialized dispatch. The change-stream `"change"` handler is async and
@@ -696,12 +751,80 @@ export const emitSyncDeltaForChange = async ({
 
 /**
  * Start watching MongoDB change streams and emitting real-time events.
+ *
+ * Task 9.16: the stream is supervised — an `error`/`close`/`end` schedules a re-open with
+ * exponential backoff, resuming from the last seen token. Call
+ * {@link stopChangeStreamWatcher} to end supervision.
  */
 export const startChangeStreamWatcher = (
   io: Server,
   config: ChangeStreamConfig = {},
   debug = false
 ): void => {
+  watcherStopped = false;
+  restartAttempts = 0;
+  lastResumeToken = undefined;
+  openChangeStream({config, debug, io});
+};
+
+/**
+ * Task 9.16: schedule a re-open after a stream failure. Silently returns when the watcher
+ * was stopped, when a newer stream is already running (a failing stream can fire several
+ * terminal events), or when a restart is already pending.
+ */
+const scheduleChangeStreamRestart = ({
+  config,
+  debug,
+  generation,
+  io,
+  reason,
+}: {
+  config: ChangeStreamConfig;
+  debug: boolean;
+  generation: number;
+  io: Server;
+  reason: string;
+}): void => {
+  if (watcherStopped || generation !== watcherGeneration || restartTimer) {
+    return;
+  }
+  restartAttempts += 1;
+  const delayMs = Math.min(
+    CHANGE_STREAM_RESTART_BASE_DELAY_MS * 2 ** (restartAttempts - 1),
+    CHANGE_STREAM_RESTART_MAX_DELAY_MS
+  );
+  logger.warn(
+    `[realtime] Change stream ${reason}; reopening in ${delayMs}ms (attempt ${restartAttempts})`,
+    {resumable: lastResumeToken !== undefined}
+  );
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
+    if (watcherStopped) {
+      return;
+    }
+    openChangeStream({config, debug, io, isReopen: true});
+  }, delayMs);
+  // Never hold the process open just to retry a watcher.
+  restartTimer.unref?.();
+};
+
+/**
+ * Open (or re-open) the change stream and wire its listeners. Throws only for a
+ * configuration-level failure on the FIRST open (no connection, `watch` returned nothing),
+ * which must fail startup loudly; a failure while reopening is retried with backoff.
+ */
+const openChangeStream = ({
+  config,
+  debug,
+  io,
+  isReopen = false,
+}: {
+  config: ChangeStreamConfig;
+  debug: boolean;
+  io: Server;
+  /** True for a supervised reopen: failures retry with backoff instead of throwing. */
+  isReopen?: boolean;
+}): void => {
   const logInfo = (message: string): void => {
     if (debug) {
       logger.info(message);
@@ -713,6 +836,8 @@ export const startChangeStreamWatcher = (
       logger.debug(message);
     }
   };
+
+  const generation = ++watcherGeneration;
 
   try {
     logInfo("[realtime] Initializing change stream watcher...");
@@ -755,16 +880,30 @@ export const startChangeStreamWatcher = (
       // How long the cursor waits for new events before yielding control.
       // Lower values give more responsive updates at the cost of more frequent driver round-trips.
       maxAwaitTimeMS: 1000,
+      // Task 9.16: resume where the previous stream died so events during the outage are
+      // delivered rather than lost. Absent on a first open and after history loss.
+      ...(lastResumeToken !== undefined ? {resumeAfter: lastResumeToken} : {}),
     };
 
-    changeWatcher = nativeDb.watch(pipeline, options);
+    const stream = nativeDb.watch(pipeline, options);
 
-    if (!changeWatcher) {
+    if (!stream) {
       throw new APIError({status: 500, title: "Failed to create change stream watcher"});
     }
+    changeWatcher = stream;
 
-    changeWatcher.on("change", async (rawChange: ChangeStreamDocument) => {
+    stream.on("change", async (rawChange: ChangeStreamDocument) => {
       try {
+        // Task 9.16: record the resume token FIRST, for every change — including ones this
+        // watcher ignores. A token only from processed events would rewind the stream to an
+        // old position after a restart and re-deliver everything since.
+        const token = (rawChange as {_id?: unknown})._id;
+        if (token !== undefined) {
+          lastResumeToken = token;
+        }
+        // A stream that is delivering events has recovered; drop the accumulated backoff so
+        // the next unrelated failure retries promptly instead of at the previous ceiling.
+        restartAttempts = 0;
         // The pipeline restricts operationType to a subset that always has ns/documentKey;
         // narrow once here so downstream code doesn't need repeated casts.
         if (
@@ -822,31 +961,60 @@ export const startChangeStreamWatcher = (
       }
     });
 
-    changeWatcher.on("error", (err: Error) => {
+    stream.on("error", (err: Error) => {
       Sentry.captureException(err);
       logger.error(`[realtime] Change stream error: ${err?.message || err}`);
+      if (isHistoryLostError(err)) {
+        // The oplog no longer contains the resume point, so the gap can never be replayed.
+        // Reopen from NOW and tell clients to re-bootstrap: their cursors may sit below
+        // changes (including deletions) they will otherwise never hear about.
+        lastResumeToken = undefined;
+        logger.error(
+          "[sync] Change stream history lost; reopening without a resume token and asking " +
+            "clients to resync"
+        );
+        const hint: SyncResyncHint = {reason: "history_lost"};
+        io.emit(SYNC_RESYNC_EVENT, hint);
+      }
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "errored"});
     });
 
-    changeWatcher.on("close", () => {
+    stream.on("close", () => {
       logger.warn("[realtime] Change stream closed");
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "closed"});
     });
 
-    changeWatcher.on("end", () => {
+    stream.on("end", () => {
       logger.warn("[realtime] Change stream ended");
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "ended"});
     });
 
     logInfo("[realtime] Change stream watcher initialized successfully");
   } catch (error) {
     logger.error(`[realtime] Failed to initialize change stream watcher: ${error}`);
     Sentry.captureException(error);
+    // A first open must fail startup loudly; a failed REOPEN (the DB is down mid-flight)
+    // has no caller to throw to, so keep retrying with backoff instead.
+    if (isReopen && !watcherStopped) {
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "failed to open"});
+      return;
+    }
     throw error;
   }
 };
 
 /**
- * Stop the change stream watcher.
+ * Stop the change stream watcher and end Task 9.16's restart supervision (a pending
+ * reopen is cancelled, and terminal events from the closing stream are ignored).
  */
 export const stopChangeStreamWatcher = async (): Promise<void> => {
+  watcherStopped = true;
+  if (restartTimer) {
+    clearTimeout(restartTimer);
+    restartTimer = null;
+  }
+  restartAttempts = 0;
+  lastResumeToken = undefined;
   if (changeWatcher) {
     await changeWatcher.close();
     changeWatcher = null;

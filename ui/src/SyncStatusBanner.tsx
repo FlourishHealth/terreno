@@ -12,9 +12,13 @@ export interface SyncStatusBannerProps {
   isOnline: boolean;
   /** Number of mutations waiting in the durable outbox. */
   queuedCount: number;
-  /** Whether a sync/replay is currently in flight. Kept for API compatibility; initial
-   * bootstrap syncing is shown via toast, not this banner. */
-  isSyncing: boolean;
+  /**
+   * @deprecated Accepted and ignored. Initial bootstrap syncing is surfaced as a
+   * one-shot toast (see SyncHealthToast), not in this banner, and ongoing drain
+   * progress is driven by `draining`/`sentThisDrain`/`totalThisDrain`. Passing it
+   * has no effect; the prop stays only so existing call sites keep compiling.
+   */
+  isSyncing?: boolean;
   /** Number of unresolved conflicts. */
   conflictCount: number;
   /**
@@ -88,6 +92,7 @@ export const SyncStatusBanner: React.FC<SyncStatusBannerProps> = ({
         <Box
           accessibilityHint="Sign in again to resume syncing"
           accessibilityLabel="Sync paused, sign in required"
+          accessibilityRole="button"
           alignItems="center"
           direction="row"
           gap={1}
@@ -111,6 +116,7 @@ export const SyncStatusBanner: React.FC<SyncStatusBannerProps> = ({
         <Box
           accessibilityHint="Opens the failed sync mutations detail view"
           accessibilityLabel="View failed sync mutations"
+          accessibilityRole="button"
           alignItems="center"
           direction="row"
           gap={1}

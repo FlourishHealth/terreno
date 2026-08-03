@@ -362,8 +362,12 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
       </Pressable>
     );
   } else {
+    const accessibilityHint = (props as AccessibilityProps).accessibilityHint;
+    const accessibilityLabel = (props as AccessibilityProps).accessibilityLabel;
     box = (
       <View
+        {...(accessibilityHint ? {accessibilityHint} : {})}
+        {...(accessibilityLabel ? {accessibilityLabel} : {})}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         style={propsToStyle()}

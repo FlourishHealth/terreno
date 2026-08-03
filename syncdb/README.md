@@ -84,6 +84,8 @@ new TerrenoApp({userModel: User})
 
 Registration is validated at startup: a model with a `sync` config but no `isDeletedPlugin`, no `syncPlugin`, a missing scope field, or a custom scope without a `snapshotFilter` throws with an actionable message. The registry also creates the `{scopeField, _syncSeq}` compound index that snapshot/catch-up queries use.
 
+Index requirement: `TerrenoApp.start()` awaits `ensureSyncIndexes()` before listening, which builds both the per-model snapshot indexes and the bookkeeping indexes registering `SyncApp` enqueues (`SyncCounter.stream` and `SyncMutation.mutationId` uniques, the `SyncScopeMove` lookups, `SyncKey.userId`). These are correctness requirements, not just performance: the unique `mutationId` index is what makes duplicate mutation deliveries idempotent, and the unique `stream` index is what keeps the counter upsert race from minting duplicate seqs — so they must not depend on Mongoose `autoIndex`, which is commonly disabled in production. An index-build failure fails startup loudly; hosts that build the Express app without `TerrenoApp.start()` should await `ensureSyncIndexes()` themselves.
+
 `RealtimeApp` requires a MongoDB replica set (change streams). Socket auth accepts legacy JWTs by default; add Better Auth sessions with `new RealtimeApp({betterAuth: {auth, userModel: User}})`.
 
 ### Frontend
@@ -143,22 +145,82 @@ const client = createSyncDb({
   haltQueueOnConflict?,           // conflict policy — see "Conflict handling modes" below (default false)
   onDecryptFailure?,              // override the default wipe+re-bootstrap on undecryptable data (web)
   tombstoneRetentionMs?,          // client-side tombstone compaction window (default 90 days; 0 disables)
+  onAuthRequired?,                // fires once per auth-pause episode — prompt for re-login
+  wipeOnSignOut?,                 // signOut() also wipes local data (default false; see "Sign-out" below)
+  startAuthRetryAttempts?,        // start() attempts at resolving a user (default 3; 1 disables retrying)
+  startAuthRetryDelayMs?,         // delay between those attempts (default 250ms)
+  debug?,                         // in-memory debug event log — see "Debug log" below (default off)
 });
 
 client.start() / client.stop();  // start() is idempotent while already started (a second call is a no-op)
 client.mutate({collection, operation, id?, data?}); // → {mutationId, id}
 client.reconcile();       // HTTP snapshot catch-up for every collection; also runs tombstone compaction on success
+client.forceResync();     // purge every known stream locally and re-bootstrap — see "Forcing a full resync"
 client.replayOutbox();    // drain queued mutations now
 client.resolveConflict({mutationId, strategy: "useServer" | "keepMine"});
 client.retryFailed({entityId});  // re-enable an entity's queued successors after a terminal validation failure
+client.goOffline() / client.goOnline();  // simulated outage — see "Simulated offline" below
+client.signOut();         // explicit sign-out teardown (wipes only with wipeOnSignOut)
 client.getSyncStatus();   // {isOnline, isSyncing, queuedCount, conflictCount, failedCount, blockedEntities,
                            //  paused?, draining, sentThisDrain, totalThisDrain, streams, persistence}
                            //  persistence: "durable" | "memory" | "error" — see "Encryption at rest" below
 client.onStatusChange(cb);
 client.store / client.outbox; // low-level access
+client.debug;             // the debug log when `debug` is enabled, else undefined
 ```
 
-React hooks (`@terreno/syncdb/react`): `SyncDbProvider`, `useSyncDbClient`, `useEntity(collection, id)`, `useQuery(collection, {filter?, sort?, includeDeleted?})`, `useMutate(collection)`, `useSyncStatus()`, `useConflicts()`.
+`start()` needs an authenticated user, and it is normally called right after a login completes — so a `null` from `authProvider.getUserId()` is usually a transient session-fetch race rather than a real logged-out state. It therefore retries up to `startAuthRetryAttempts` times (default 3, `startAuthRetryDelayMs` apart) before rejecting with "requires an authenticated user". Set `startAuthRetryAttempts: 1` to fail fast.
+
+React hooks (`@terreno/syncdb/react`): `SyncDbProvider`, `useSyncDbClient`, `useEntity(collection, id)`, `useQuery(collection, {filter?, sort?, includeDeleted?})`, `useEntityIds(collection, options?)`, `useMutate(collection)`, `useSyncStatus()`, `useConflicts()`, `useSyncDebugLog()`.
+
+**Prefer `useEntityIds` for large lists.** It takes the same options as `useQuery` but returns only the ordered ids, with an array whose identity changes only when the id membership or order changes. Paired with a per-row `useEntity`, a field update re-renders that one row instead of the whole list:
+
+```tsx
+const ids = useEntityIds<Todo>("todos", {filter: (t) => !t.completed, sort: byCreatedDesc});
+return <>{ids.map((id) => <TodoRow id={id} key={id} />)}</>; // TodoRow calls useEntity("todos", id)
+```
+
+### Public API surface
+
+The package has three entry points, and only what they export is API:
+
+- `@terreno/syncdb` — the client (`createSyncDb`), protocol/status/conflict types, the Better Auth adapter, key providers and codecs, persister factories, the transport/HTTP-channel constructors (for DI), `wipeLocalData`, `generateMutationId`, `listConflicts`, and `OUTBOX_TABLE` for inspecting queued mutations via `client.store.raw.getTable(...)`.
+- `@terreno/syncdb/react` — the hooks above plus `SyncDbProvider` (a separate subpath because `react` is an optional peer dependency).
+- `@terreno/syncdb/testing` — test doubles (`createFakeTransport`), kept out of production bundles.
+
+Everything else under `src/` is internal and can change in a patch release. In particular the cursor mutators, outbox/conflict writers, raw row shapes, the IndexedDB helpers, and the debug broadcast bridge are deliberately unexported: writing to a reserved table behind the client's back breaks the invariants replay and reconcile depend on.
+
+## Client operations
+
+### Simulated offline
+
+`goOffline()` disconnects the transport and pauses replay, reconcile, and the periodic timer while keeping the resolved user and persistence alive — mutations keep applying locally and queueing durably, and `getSyncStatus().isOnline` reports `false`. `goOnline()` reconnects, resubscribes, and restarts the timer; the reconnect status event then triggers a reconcile and drains the outbox. This is how the example app's dev panel and the e2e suites exercise offline behavior without touching the real network.
+
+### Sign-out
+
+`signOut()` is the explicit, host-app-initiated teardown: it does everything `stop()` does (disconnect, clear listeners and timers, flush and destroy the persister) and also clears the in-memory current-user pointer. It wipes local data **only** when `createSyncDb` was given `wipeOnSignOut: true`. That is deliberate (INV-2): a bare logout or a 401 never wipes, because unsynced local mutations belong to the user who may sign back in moments later. Local data is otherwise only wiped on a confirmed *different*-user login. Call `start()` again to sync as the next signed-in user.
+
+### Forcing a full resync
+
+`forceResync()` purges every known stream locally and re-bootstraps from cursor 0, without touching the outbox or recorded conflicts. Use it when a device is suspected to have diverged (a support "resync my data" button) rather than as routine catch-up — `reconcile()` is the incremental path. It re-discovers stream membership first, since a stale local set is itself one of the ways a device diverges. The result reports what happened instead of failing silently:
+
+```typescript
+const {ok, reason, streams, purged, repaired} = await client.forceResync();
+```
+
+| `reason` (only when `ok: false`) | Meaning |
+|---|---|
+| `noHttpChannel` | No HTTP channel is configured (no `baseUrl` and none injected). |
+| `offline` | The client is in a simulated outage (`goOffline()`). |
+| `authPaused` | Replay/reconcile are auth-paused, or the resync itself hit a 401. Sign in again. |
+| `noStreams` | The server reported no streams for this user and there was no local set to fall back on. Stable — retrying reproduces it. |
+| `superseded` | A `stop()`/`start()` cycle or a different-user login took over mid-resync, so the pass abandoned its work rather than writing into a store that now belongs to another lifecycle or user. Retry once things settle. |
+
+`purged`/`repaired` are still meaningful on a `superseded` result: they report the work done before the abort.
+
+### Debug log
+
+`createSyncDb({debug: true})` (or `{debug: {capacity}}`) enables an in-memory ring buffer of sync events — local mutations, acks/nacks, inbound deltas, conflicts, reconcile/replay passes, connectivity changes. It is off by default with zero overhead; when on, `client.debug.snapshot()` returns a plain serializable object (the shape a future MCP introspection tool returns), and `useSyncDebugLog()` exposes `{events, stats, log, clear}` for a live debugger UI (see `example-frontend/app/syncdb-debug.tsx`). On the web the log is mirrored across windows/tabs over a `BroadcastChannel`, so a debugger opened in a second window sees the app window's local mutations; the bridge is closed by `stop()`/`signOut()` and re-opened by `start()`.
 
 ## Batched replay & stop-the-line policy
 
@@ -224,7 +286,7 @@ Scope changes (a doc moves owner/tenant) are handled at write time: `syncPlugin`
 
 - `updateMany`, `deleteMany` — multi-document writes cannot stamp per-document seqs. Loop per document instead.
 - `deleteOne` (query and document forms), `findOneAndDelete` — hard deletes are invisible to tombstone catch-up. Use soft delete (`doc.deleted = true; await doc.save()`).
-- `Model.bulkWrite` **bypasses Mongoose middleware entirely** — it neither stamps nor throws. Do not use it on synced models; this is a documented restriction the plugin cannot enforce.
+- `Model.bulkWrite` **bypasses Mongoose middleware entirely**, so the plugin cannot guard it from the schema. `registerSync` instead replaces the static on synced models with one that throws, so the restriction is enforced rather than merely documented. Loop per document instead.
 
 Sequencing guarantees: validation failures never consume a seq (the claim happens post-validation); the claim joins the caller's session when one is present, so caller-managed transactions get counter+write atomicity. A rare write failure after a claim burns a seq, which clients treat as a benign gap.
 
@@ -258,7 +320,21 @@ Limits: 50 collection subscriptions per socket; 100 `sync:mutate` per second per
 
 The client sends `baseVersion` = the `_syncSeq` it last saw for the doc; a mismatch with the current `_syncSeq` yields a `conflict` nack carrying the canonical server doc + seq. The conflict lands in the local `_conflicts` table and surfaces through `useConflicts()`; resolve with `useServer` (accept the server doc) or `keepMine` (re-enqueue with a fresh baseVersion).
 
+`useServer` writes a **tombstone** rather than the server payload when the server side of the conflict is a deletion — either the nack set `serverDeleted`, or it carried no server document at a non-zero `serverSeq` (deleted, hard-deleted, or moved out of this client's scope). Without that, accepting the server side would leave a live local row holding `null` data that lists and renders forever. A conflict with no server document at seq **0** is the opposite case — "server state unknown", the shape startup recovery writes for a conflicted outbox row whose nack was never seen — and never deletes local data. Symmetrically, when the server does still have the document, `useServer` resurrects a local tombstone (a delete that lost the conflict), so accepting the server side always leaves the local row matching it.
+
 Every mutation is idempotent: the handler atomically claims a `SyncMutation` ledger row (unique `mutationId`) before applying, so a re-sent mutation (lost ack, socket retry racing the HTTP fallback) reads back the recorded outcome instead of double-applying.
+
+### Rejected mutations and entity repair
+
+A mutation the server rejects terminally (a `validation` nack, or an `error` nack that exhausts its retry budget) leaves optimistic local data the server never accepted. Since the entity's `seq` never moves in that case, snapshot reconcile has nothing to send and would skip it forever, so the terminal path instead:
+
+1. marks the entity in `_needsRepair`,
+2. releases its `pendingMutationId` (a failed mutation never replays, and leaving the lock set would block every future delta for that entity),
+3. fetches canonical server state for it (`POST /sync/entities`) and overwrites the local row.
+
+The resulting semantics: a rejected **update** converges back to the server's document. A rejected **create** has no server state to converge to — the repair fetch returns nothing, the mark is cleared (so later reconciles do not re-fetch it forever), and the phantom row is removed by the unknown-stream purge, which deletes rows with no stream provenance and no pending mutation. If the repair fetch itself fails (offline, 5xx), the mark stays and the next reconcile retries it.
+
+`start()` also sweeps entities whose `pendingMutationId` names a mutation with **no `_outbox` row at all** (pruned, wiped, or lost to a partially-persisted store) and clears the lock. Such a row is otherwise frozen for good: the delta applier skips it for pending protection and repair refuses to overwrite it, so nothing else could ever release it.
 
 ## Encryption at rest (web)
 
@@ -302,7 +378,7 @@ tables:
                    attemptCount, userId, createdAt, enqueueOrder
   _cursors       → rowId = stream; cells: seq, updatedAt, snapshotSeq, bootstrapped
   _conflicts     → rowId = mutationId; cells: collection, entityId, localData, serverData,
-                   serverSeq, dismissed
+                   serverSeq, serverDeleted, dismissed
 values: schemaVersion, lastUserId, outboxMaxEnqueueOrder
 ```
 
@@ -336,7 +412,7 @@ Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), sa
 
 - **Synced models need a String `_id`** (or clients must mint ObjectId-format ids): offline clients generate entity ids (UUIDs) locally and the mutation channel writes them through as `_id`. A default ObjectId `_id` would cast-fail every client-side create. Declare `_id: {type: String, ...}` on synced schemas.
 - **Multi-tab web**: two tabs of the same user share one IndexedDB blob; concurrent persister saves are last-writer-wins at the blob level and can drop the other tab's queued outbox rows. Single-writer coordination (Web Locks) is not implemented yet — avoid relying on offline writes from multiple simultaneous tabs.
-- **`Model.bulkWrite` bypass**: bulkWrite skips Mongoose middleware, so it neither stamps seqs nor throws on synced models. Nothing can catch this server-side; it is a hard convention.
+- **`Model.bulkWrite` is unavailable on synced models**: it skips Mongoose middleware, so it can never stamp seqs. `registerSync` replaces the static with one that throws — bulk updates to a synced collection have to loop per document.
 - **Native plaintext by design**: no SQLCipher; the OS sandbox is deemed sufficient.
 - **Whole-store persistence**: each save serializes and (on web) encrypts the full store — cost scales with store size, not change size. Bound it by scoping which collections sync; saves are debounced.
 - **`realtime` + `sync` coexistence**: a model may enable both (distinct events, `sync` vs `sync:delta`, so clients never double-apply), at the cost of double emission work. Treat `realtime` as deprecated for a model once `sync` is on.

@@ -53,6 +53,8 @@ export const buildTablesSchema = ({collections}: {collections: string[]}): Table
       entityId: {type: "string"},
       localData: {type: "string"},
       serverData: {type: "string"},
+      /** Task 9.12: server side of the conflict is a tombstone. */
+      serverDeleted: {type: "boolean"},
       serverSeq: {type: "number"},
     },
     [CURSORS_TABLE]: {

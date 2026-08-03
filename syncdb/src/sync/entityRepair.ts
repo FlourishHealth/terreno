@@ -20,7 +20,12 @@ export const applyRepairedEntity = ({
 }: {
   store: SyncStore;
   collection: string;
-  stream: string;
+  /**
+   * Stream the repaired row belongs to. Empty/absent when the mark carries no
+   * provenance (a terminal-nack mark for a row the server never streamed to
+   * this client — Task 9.11a); the existing row's stream is preserved then.
+   */
+  stream?: string;
   entity: SyncSnapshotEntity;
 }): boolean => {
   const existing = store.getEntity({collection, id: entity.id});
@@ -37,7 +42,7 @@ export const applyRepairedEntity = ({
     id: entity.id,
     pendingMutationId: "",
     seq: entity.seq,
-    stream,
+    stream: stream || undefined,
   });
   store.clearNeedsRepair({collection, entityId: entity.id});
   return true;
@@ -100,10 +105,11 @@ export const repairMarkedEntities = async ({
     const returned = new Set<string>();
     for (const entity of response.entities) {
       returned.add(entity.id);
-      const stream = streamByEntityId.get(entity.id) ?? "";
-      if (!stream) {
-        continue;
-      }
+      // A mark with no stream provenance (terminal-nack mark for a row the
+      // server never streamed here — Task 9.11a) still repairs: fall back to the
+      // local row's stream, and preserve whatever is there when both are empty.
+      const stream =
+        streamByEntityId.get(entity.id) || store.getEntity({collection, id: entity.id})?.stream;
       if (applyRepairedEntity({collection, entity, store, stream})) {
         repaired += 1;
       }

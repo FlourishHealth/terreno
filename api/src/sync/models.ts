@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import mongoose, {type ClientSession, type Model, Schema} from "mongoose";
+import {logger} from "../logger";
+import {findOneOrNoneFor} from "../plugins";
 
 /**
  * Mongoose models backing the SyncDB protocol: the per-stream monotonic counter
@@ -24,6 +26,14 @@ export interface SyncCounterDocument {
    * advances past a seq whose owning write has not yet landed.
    */
   pending: SyncPendingClaim[];
+  /**
+   * C7 retention watermark: the highest seq on this stream whose row (tombstone or
+   * scope-move marker) has been hard-deleted by `compactTombstones`. A client whose
+   * cursor is below this may have missed a compacted deletion and must re-bootstrap;
+   * a client at or above it has already seen everything that was reaped. 0 until the
+   * first compaction pass touches the stream.
+   */
+  compactedThroughSeq: number;
 }
 
 /**
@@ -51,6 +61,13 @@ const syncPendingClaimSchema = new Schema<SyncPendingClaim>(
 
 const syncCounterSchema = new Schema<SyncCounterDocument>(
   {
+    compactedThroughSeq: {
+      default: 0,
+      description:
+        "C7 retention watermark: the highest seq whose tombstone/scope-move row has been " +
+        "hard-deleted by compactTombstones; served as the snapshot's oldestRetainedSeq",
+      type: Number,
+    },
     pending: {
       default: [],
       description:
@@ -183,14 +200,70 @@ export const claimSyncSeqs = async ({
   }
 };
 
+/** Outcome of clearing pending claims from a stream's in-flight registry. */
+export interface SyncSeqConfirmResult {
+  /**
+   * True when at least one pending entry was actually removed. False means the claim
+   * was already gone — for a `registered` claim that is the reaped-lease signature
+   * (Task 9.17): the writer stalled past {@link PENDING_CLAIM_LEASE_MS},
+   * `computeStableFrontier` reclaimed its seq, and the frontier has already advanced
+   * past a seq whose write only just landed. Callers must re-stamp the document (see
+   * `restampReapedSeq`) or log loudly rather than silently stranding it.
+   */
+  cleared: boolean;
+}
+
+/** Remove the given pending claims from a stream's in-flight registry. */
+const pullPendingClaims = async ({
+  stream,
+  seqs,
+  session,
+}: {
+  stream: string;
+  seqs: number[];
+  session?: ClientSession | null;
+}): Promise<SyncSeqConfirmResult> => {
+  const result = await SyncCounter.updateOne(
+    {stream},
+    {$pull: {pending: {seq: {$in: seqs}}}},
+    session ? {session} : {}
+  );
+  return {cleared: (result.modifiedCount ?? 0) > 0};
+};
+
 /**
  * C1: confirm that the writes owning `seqs` on `stream` have committed, clearing
  * their pending registry entries so the stable frontier can advance past them.
  * A no-op when `seqs` is empty (a session-backed claim registered nothing). Runs
  * after the document write commits (`post("save")` / query-write post hook); a
  * `$pull` failure is logged by the caller and left to age out via the lease.
+ *
+ * Returns whether anything was actually cleared so callers can detect a reaped
+ * lease — see {@link SyncSeqConfirmResult}.
  */
 export const confirmSyncSeqs = async ({
+  stream,
+  seqs,
+  session,
+}: {
+  stream: string;
+  seqs: number[];
+  session?: ClientSession | null;
+}): Promise<SyncSeqConfirmResult> => {
+  if (seqs.length === 0) {
+    return {cleared: true};
+  }
+  return pullPendingClaims({seqs, session, stream});
+};
+
+/**
+ * Cancel claimed-but-never-used seqs (Task 9.13): the owning write failed, so the seqs
+ * will never be stamped on any document and holding the frontier below them for the
+ * full lease would stall every catch-up cursor on the stream for no reason. Unlike
+ * `confirmSyncSeqs` this is only safe when the write is known NOT to have committed
+ * (e.g. a Mongoose `VersionError`, where the conditional update matched no document).
+ */
+export const releaseSyncSeqs = async ({
   stream,
   seqs,
   session,
@@ -202,11 +275,7 @@ export const confirmSyncSeqs = async ({
   if (seqs.length === 0) {
     return;
   }
-  await SyncCounter.updateOne(
-    {stream},
-    {$pull: {pending: {seq: {$in: seqs}}}},
-    session ? {session} : {}
-  );
+  await pullPendingClaims({seqs, session, stream});
 };
 
 /**
@@ -252,6 +321,34 @@ export const computeStableFrontier = async ({stream}: {stream: string}): Promise
   return minLiveSeq === Number.POSITIVE_INFINITY ? counter.seq : minLiveSeq - 1;
 };
 
+/**
+ * C7: raise a stream's retention watermark to `seq` (never lowers it — `$max`), called by
+ * `compactTombstones` after it hard-deletes rows. Served to clients as the snapshot's
+ * `oldestRetainedSeq`, which is the only signal that a stale cursor must re-bootstrap.
+ * Does not create the counter: a stream with compacted rows always already has one.
+ */
+export const recordCompactedThroughSeq = async ({
+  stream,
+  seq,
+}: {
+  stream: string;
+  seq: number;
+}): Promise<void> => {
+  if (seq <= 0) {
+    return;
+  }
+  await SyncCounter.updateOne({stream}, {$max: {compactedThroughSeq: seq}});
+};
+
+/**
+ * C7: the stream's retention watermark — the highest seq whose tombstone/marker has been
+ * compacted away. 0 when nothing has been compacted (no retention gap to enforce).
+ */
+export const getCompactedThroughSeq = async ({stream}: {stream: string}): Promise<number> => {
+  const counter = await findOneOrNoneFor(SyncCounter, {stream});
+  return counter?.compactedThroughSeq ?? 0;
+};
+
 export interface SyncScopeMoveDocument {
   _id: mongoose.Types.ObjectId;
   collectionTag: string;
@@ -262,9 +359,6 @@ export interface SyncScopeMoveDocument {
   created: Date;
 }
 
-/** C4: scope-move markers share the tombstone retention window (default 90 days). */
-const SYNC_SCOPE_MOVE_TTL_SECONDS = 90 * 24 * 60 * 60;
-
 const syncScopeMoveSchema = new Schema<SyncScopeMoveDocument>(
   {
     collectionTag: {
@@ -274,7 +368,9 @@ const syncScopeMoveSchema = new Schema<SyncScopeMoveDocument>(
     },
     created: {
       default: () => new Date(),
-      description: "When the move was recorded; TTL-indexed to the tombstone retention window",
+      description:
+        "When the move was recorded; reaped by compactTombstones once older than the " +
+        "owning model's retentionDays (deliberately NOT TTL-indexed — see the model doc)",
       type: Date,
     },
     entityId: {
@@ -304,13 +400,27 @@ const syncScopeMoveSchema = new Schema<SyncScopeMoveDocument>(
 // Old-stream snapshot catch-up pages markers by {fromStream, seq}.
 syncScopeMoveSchema.index({fromStream: 1, seq: 1});
 syncScopeMoveSchema.index({collectionTag: 1, entityId: 1});
-syncScopeMoveSchema.index({created: 1}, {expireAfterSeconds: SYNC_SCOPE_MOVE_TTL_SECONDS});
+// `compactTombstones` reaps markers by {collectionTag, created}.
+syncScopeMoveSchema.index({collectionTag: 1, created: 1});
+
+/**
+ * Name of the TTL index earlier versions built on `created`. Task 9.15 removed it:
+ * a fixed 90-day TTL ignored per-model `retentionDays`, so markers for a
+ * longer-retention model vanished with no watermark update and old-stream clients
+ * silently never learned about the move. `compactTombstones` is now the sole reaper
+ * (it raises `compactedThroughSeq` as it deletes), so the stale index is dropped at
+ * startup to stop it from reaping behind the watermark's back.
+ */
+const LEGACY_SCOPE_MOVE_TTL_INDEX_NAME = "created_1";
 
 /**
  * C4: durable marker written in the same op-scope as a scope move, replacing the
  * racy `_syncPrevStream` post-image read. The old stream tombstones the document
  * from this marker (change-stream fan-out + snapshot catch-up), so a racing second
  * write that overwrites `_syncPrevStream` can no longer erase the tombstone.
+ *
+ * Retention: reaped only by `compactTombstones`, which honors the owning model's
+ * `retentionDays` and records a `compactedThroughSeq` watermark as it deletes.
  */
 export const SyncScopeMove: Model<SyncScopeMoveDocument> =
   (mongoose.models.SyncScopeMove as Model<SyncScopeMoveDocument>) ??
@@ -327,7 +437,6 @@ export interface SyncMutationDocument {
   nackCode?: string;
   resultId?: string;
   resultSeq?: number;
-  serverDoc?: unknown;
   error?: string;
   created: Date;
   claimedAt: Date;
@@ -374,16 +483,14 @@ const syncMutationSchema = new Schema<SyncMutationDocument>(
       type: String,
     },
     resultId: {
-      description: "The affected document id, recorded when the mutation is applied",
+      description:
+        "The affected document id, recorded when the mutation is applied or conflicts; a " +
+        "duplicate delivery of a conflict re-serializes the live document from this id",
       type: String,
     },
     resultSeq: {
       description: "The document's _syncSeq after apply (applied) or at conflict time (conflicted)",
       type: Number,
-    },
-    serverDoc: {
-      description: "Canonical serialized server document, recorded for conflict nacks",
-      type: Schema.Types.Mixed,
     },
     status: {
       description: "Lifecycle status: pending while applying, then applied, conflicted, or failed",
@@ -408,6 +515,11 @@ syncMutationSchema.index({created: 1}, {expireAfterSeconds: SYNC_MUTATION_TTL_SE
  * the outcome is recorded on the same row so duplicate deliveries — socket retries or
  * the HTTP fallback racing a socket send — read back the recorded outcome instead of
  * re-applying.
+ *
+ * Task 9.21: a row NEVER stores document data. A conflict records only
+ * `{resultId, resultSeq}`; a duplicate delivery re-serializes the live document from
+ * `resultId` through the collection's sync `responseHandler`, so PHI is not retained in
+ * `syncmutations` for the 30-day TTL and the client also sees current (not stale) state.
  */
 export const SyncMutation: Model<SyncMutationDocument> =
   (mongoose.models.SyncMutation as Model<SyncMutationDocument>) ??
@@ -446,6 +558,69 @@ const syncKeySchema = new Schema<SyncKeyDocument>(
 export const SyncKey: Model<SyncKeyDocument> =
   (mongoose.models.SyncKey as Model<SyncKeyDocument>) ??
   mongoose.model<SyncKeyDocument>("SyncKey", syncKeySchema);
+
+/**
+ * Every model backing the SyncDB protocol. Their indexes are correctness-critical, not
+ * just performance: without the unique `SyncMutation.mutationId` index a duplicate
+ * delivery double-applies a mutation (INV-3), and without the unique `SyncCounter.stream`
+ * index the counter upsert race mints duplicate seqs. Schema-level `unique: true` only
+ * builds them when Mongoose `autoIndex` is on — commonly disabled in production — so
+ * startup builds them explicitly.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: a heterogeneous list of models is only used for ensureIndexes
+const SYNC_BOOKKEEPING_MODELS: Model<any>[] = [SyncCounter, SyncMutation, SyncScopeMove, SyncKey];
+
+/**
+ * Best-effort removal of the pre-Task-9.15 `SyncScopeMove` TTL index. Failure is only
+ * logged: a leftover TTL index degrades retention accounting but must never block
+ * startup, and the index is absent on fresh databases (the common case).
+ */
+const dropLegacyScopeMoveTtlIndex = async (): Promise<void> => {
+  try {
+    const indexes = await SyncScopeMove.collection.indexes();
+    const legacy = indexes.find(
+      (index) =>
+        index.name === LEGACY_SCOPE_MOVE_TTL_INDEX_NAME && index.expireAfterSeconds !== undefined
+    );
+    if (!legacy) {
+      return;
+    }
+    await SyncScopeMove.collection.dropIndex(LEGACY_SCOPE_MOVE_TTL_INDEX_NAME);
+    logger.info(
+      "[sync] Dropped the legacy SyncScopeMove TTL index; compactTombstones is now the " +
+        "sole reaper of scope-move markers (it honors per-model retentionDays)."
+    );
+  } catch (error: unknown) {
+    logger.warn("[sync] Could not drop the legacy SyncScopeMove TTL index", {
+      error: String(error),
+    });
+  }
+};
+
+/**
+ * Build the indexes for every sync bookkeeping model, throwing on the first failure so
+ * server startup fails loudly. Kicked off by `SyncApp.register` and awaited through
+ * `ensureSyncIndexes()`; idempotent, so calling it repeatedly is safe.
+ */
+export const ensureSyncModelIndexes = async (): Promise<void> => {
+  await dropLegacyScopeMoveTtlIndex();
+  await Promise.all(
+    SYNC_BOOKKEEPING_MODELS.map(async (model) => {
+      try {
+        await model.ensureIndexes();
+      } catch (error: unknown) {
+        logger.error(`[sync] Failed to ensure sync indexes for ${model.modelName}`, {
+          error: String(error),
+        });
+        throw new Error(
+          `Failed to ensure sync indexes for ${model.modelName}: ${String(error)}. ` +
+            "The sync protocol depends on these indexes (unique mutationId for mutation " +
+            "idempotency, unique stream for seq allocation); fix the DB and restart."
+        );
+      }
+    })
+  );
+};
 
 /**
  * Return the user's key material, generating it on first call. Race-safe: concurrent

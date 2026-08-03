@@ -72,6 +72,18 @@ export interface SyncStore {
     collection: string;
     includeDeleted?: boolean;
   }) => SyncEntity<TData>[];
+  /**
+   * Every row across every configured collection that currently carries a
+   * `pendingMutationId`, tombstones included. Used by the startup sweep that
+   * releases pendings whose outbox row no longer exists (Task 9.11b) — such a
+   * row is frozen otherwise, since the delta applier skips it for pending
+   * protection and repair refuses to overwrite it.
+   */
+  listPendingEntities: () => Array<{
+    collection: string;
+    entityId: string;
+    pendingMutationId: string;
+  }>;
   softDeleteEntity: (args: {collection: string; id: string}) => void;
   clearCollection: (args: {collection: string}) => void;
   getSchemaVersion: () => number;
@@ -210,6 +222,24 @@ export const createSyncStore = ({
       entities.push(entity);
     }
     return entities;
+  };
+
+  const listPendingEntities = (): Array<{
+    collection: string;
+    entityId: string;
+    pendingMutationId: string;
+  }> => {
+    const pending: Array<{collection: string; entityId: string; pendingMutationId: string}> = [];
+    for (const collection of collections) {
+      for (const [id, row] of Object.entries(raw.getTable(collection))) {
+        const pendingMutationId = (row as Partial<EntityRow>).pendingMutationId;
+        if (!pendingMutationId) {
+          continue;
+        }
+        pending.push({collection, entityId: id, pendingMutationId});
+      }
+    }
+    return pending;
   };
 
   const softDeleteEntity = (args: {collection: string; id: string}): void => {
@@ -418,6 +448,7 @@ export const createSyncStore = ({
     hasNeedsRepair,
     listEntities,
     listNeedsRepair,
+    listPendingEntities,
     markNeedsRepair,
     purgeStream,
     purgeUnknownStreamEntities,

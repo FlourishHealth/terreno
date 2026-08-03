@@ -1,3 +1,15 @@
+/**
+ * In-memory {@link SyncTransport} double for tests and load harnesses. Published
+ * from the `@terreno/syncdb/testing` subpath so the main entry stays free of test
+ * doubles.
+ */
+
+import type {
+  SendMutationBatchResult,
+  SendMutationResult,
+  SyncTransport,
+  TransportStatus,
+} from "../sync/transport";
 import type {
   SyncAck,
   SyncDelta,
@@ -5,12 +17,6 @@ import type {
   SyncMutateRequest,
   SyncNack,
 } from "../types";
-import type {
-  SendMutationBatchResult,
-  SendMutationResult,
-  SyncTransport,
-  TransportStatus,
-} from "./transport";
 
 /** Computes the reply for a sent mutation (may reject to simulate transport failure). */
 export type FakeMutationResponder = (

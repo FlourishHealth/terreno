@@ -71,6 +71,7 @@ exports[`TapToEdit renders correctly with text value 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
@@ -206,6 +207,7 @@ exports[`TapToEdit renders non-editable when editable is false 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
@@ -322,6 +324,7 @@ exports[`TapToEdit renders edit icon when editable 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
@@ -636,6 +639,7 @@ exports[`TapToEdit displays helper text when provided 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
@@ -752,6 +756,7 @@ exports[`TapToEdit renders with textarea type 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {

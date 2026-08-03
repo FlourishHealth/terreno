@@ -85,7 +85,10 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
     await expect(page.getByTestId(`todo-item-${target._id}`)).toContainText("Server edit", {
       timeout: CONVERGE_TIMEOUT,
     });
-    await expect(page.getByTestId("todos-completed-section")).toBeHidden();
+    await expect(page.getByTestId(`todo-item-${target._id}`)).toHaveAttribute(
+      "aria-label",
+      "incomplete todo"
+    );
 
     // No mutation was re-sent — the server keeps completed=false.
     const serverTodos = await listTodosAs(USER);
@@ -140,9 +143,11 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
       )
       .toEqual({completed: true, title: "Server edit"});
 
-    // Local UI reflects the win: the todo sits in the Completed section.
-    await expect(
-      page.getByTestId("todos-completed-section").getByTestId(`todo-item-${target._id}`)
-    ).toBeVisible({timeout: CONVERGE_TIMEOUT});
+    // Local UI reflects the win: the todo is marked completed.
+    await expect(page.getByTestId(`todo-item-${target._id}`)).toHaveAttribute(
+      "aria-label",
+      "completed todo",
+      {timeout: CONVERGE_TIMEOUT}
+    );
   });
 });

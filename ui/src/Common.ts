@@ -2560,6 +2560,12 @@ export interface TextFieldPickerActionSheetProps {
 
 export interface ToastProps {
   title: string;
+  /**
+   * Stable toast id, forwarded by `useToast` from the caller's options. Used to
+   * disambiguate the action button's testID so two stacked action toasts do not
+   * both answer to `toast-action-button`.
+   */
+  id?: string;
   variant?: "error" | "info" | "success" | "warning";
   secondary?: boolean;
   size?: "sm" | "lg";

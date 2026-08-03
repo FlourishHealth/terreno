@@ -8,6 +8,7 @@ import {Server, type Socket} from "socket.io";
 import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
+import {warnOnSyncScopesWithoutUserModel} from "../sync/registry";
 import {installSyncSocketHandlers} from "../sync/socketHandlers";
 import {getSyncAppOptions} from "../sync/syncApp";
 import type {TerrenoPlugin} from "../terrenoPlugin";
@@ -421,6 +422,11 @@ export class RealtimeApp implements TerrenoPlugin {
       logInfo(
         `[realtime] Socket auth middleware added (JWT${this.config.betterAuth ? " + Better Auth" : ""})`
       );
+
+      // Task 9.21: tenant/custom sync scopes can only be resolved from the full user
+      // document, so warn loudly here (once, at startup) rather than silently serving
+      // empty tenant streams for the life of the process.
+      warnOnSyncScopesWithoutUserModel({userModel: this.config.userModel});
 
       // Configure adapter for multi-instance deployments
       this.setupAdapter(logInfo);

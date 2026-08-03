@@ -20,6 +20,7 @@ const RESYNC_SKIP_MESSAGES: Record<string, string> = {
   noHttpChannel: "no HTTP channel configured (missing baseUrl)",
   noStreams: "no sync streams found for this user",
   offline: "client is offline",
+  superseded: "a restart or user switch took over mid-resync (try again)",
 };
 
 /** Conflict resolution strategies, aligned with the toggle labels below. */
