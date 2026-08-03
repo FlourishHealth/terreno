@@ -4,7 +4,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-import {APIError} from "./errors";
+import {APIError, InternalServerError} from "./errors";
 import {logger as defaultLogger} from "./logger";
 
 // Internal per-request state tracked on the axios config across interceptor retries.
@@ -344,10 +344,10 @@ export const createAuthenticatedClient = (
     );
     const accessToken = response.data?.access_token;
     if (typeof accessToken !== "string" || accessToken.length === 0) {
-      throw new APIError({
+      throw new InternalServerError({
         code: "http-client-error",
-        status: 500,
-        title: `[httpClient] ${apiName} token response has no access_token`,
+        detail: `${apiName} token response has no access_token`,
+        title: "[httpClient] token response has no access_token",
       });
     }
     return accessToken;

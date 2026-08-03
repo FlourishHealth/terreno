@@ -318,7 +318,9 @@ export class DateOnly extends SchemaType {
       return date.toJSDate();
     }
     if (typeof val === "string" || typeof val === "number") {
-      const date = (typeof val === "number" ? DateTime.fromMillis(val) : DateTime.fromISO(val))
+      const date = (
+        typeof val === "number" ? DateTime.fromMillis(val) : DateTime.fromISO(val, {zone: "utc"})
+      )
         .toUTC()
         .startOf("day");
       if (!date.isValid) {
