@@ -421,9 +421,10 @@ export const getAPIErrorBody = (error: APIError): Record<string, unknown> => {
 /**
  * Converts the bare `Error("Unauthorized")` that Passport throws into a quiet 401.
  *
- * Only plain errors are matched: an `APIError` carries its own status, code, detail, and meta, so
- * one whose title happens to be "Unauthorized" (e.g. `new ForbiddenError({title: "Unauthorized"})`)
- * falls through to `apiErrorMiddleware` instead of being rewritten to a 401.
+ * Only the plain `Error` prototype is matched. An `APIError` carries its own status, code,
+ * detail, and meta, so one whose title happens to be "Unauthorized" falls through to
+ * `apiErrorMiddleware`. A domain-specific `Error` subclass with the same message also falls
+ * through so its own handler can respond.
  */
 export const apiUnauthorizedMiddleware = (
   err: Error,
@@ -431,7 +432,11 @@ export const apiUnauthorizedMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  if (!isAPIError(err) && err.message === "Unauthorized") {
+  if (
+    !isAPIError(err) &&
+    err.message === "Unauthorized" &&
+    Object.getPrototypeOf(err) === Error.prototype
+  ) {
     // not using the actual APIError class here because we don't want to log it as an error.
     res.status(401).json({status: 401, title: "Unauthorized"}).send();
   } else {

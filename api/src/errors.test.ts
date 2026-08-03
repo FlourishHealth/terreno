@@ -452,6 +452,19 @@ describe("apiUnauthorizedMiddleware", () => {
     expect(next).toHaveBeenCalledWith(err);
     expect(res.status).not.toHaveBeenCalled();
   });
+
+  it("forwards an Error subclass whose message is Unauthorized", () => {
+    class DomainUnauthorizedError extends Error {}
+    const err = new DomainUnauthorizedError("Unauthorized");
+    apiUnauthorizedMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(next).toHaveBeenCalledWith(err);
+    expect(res.status).not.toHaveBeenCalled();
+  });
 });
 
 describe("apiUnauthorizedMiddleware in the terrenoApp middleware order", () => {
