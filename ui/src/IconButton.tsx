@@ -4,6 +4,7 @@ import {type FC, useState} from "react";
 import {ActivityIndicator, Text as NativeText, Pressable, View} from "react-native";
 
 import type {IconButtonProps} from "./Common";
+import {controlHitSlop} from "./ControlSizes";
 import {useCustomIcon} from "./IconRegistry";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
@@ -121,6 +122,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
       aria-label={accessLabel}
       aria-role="button"
       disabled={loading || disabled}
+      hitSlop={controlHitSlop(size === "sm" ? 28 : 32)}
       onPress={debounce(
         // TODO: Allow for a click outside of the confirmation modal to close it.
         async () => {

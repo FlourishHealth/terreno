@@ -51,6 +51,10 @@ exports[`Button renders correctly with default props 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -62,6 +66,7 @@ exports[`Button renders correctly with default props 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -123,6 +128,10 @@ exports[`Button renders primary variant 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -134,6 +143,7 @@ exports[`Button renders primary variant 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -195,6 +205,10 @@ exports[`Button renders secondary variant 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -206,6 +220,7 @@ exports[`Button renders secondary variant 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -267,6 +282,10 @@ exports[`Button renders muted variant 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -278,6 +297,7 @@ exports[`Button renders muted variant 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -339,6 +359,10 @@ exports[`Button renders outline variant 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -350,6 +374,7 @@ exports[`Button renders outline variant 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 6,
       "width": "auto",
@@ -411,6 +436,10 @@ exports[`Button renders destructive variant 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -422,6 +451,7 @@ exports[`Button renders destructive variant 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -483,6 +513,10 @@ exports[`Button renders disabled state 1`] = `
       "disabled": true,
     },
     "disabled": true,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -494,6 +528,7 @@ exports[`Button renders disabled state 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -555,6 +590,10 @@ exports[`Button applies disabled styles when disabled 1`] = `
       "disabled": true,
     },
     "disabled": true,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -566,6 +605,7 @@ exports[`Button applies disabled styles when disabled 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -650,6 +690,10 @@ exports[`Button renders loading state 1`] = `
       "disabled": true,
     },
     "disabled": true,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -661,6 +705,7 @@ exports[`Button renders loading state 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -722,6 +767,10 @@ exports[`Button renders fullWidth button 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -733,6 +782,7 @@ exports[`Button renders fullWidth button 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "100%",
@@ -807,6 +857,10 @@ exports[`Button renders with icon on left 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -818,6 +872,7 @@ exports[`Button renders with icon on left 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -892,6 +947,10 @@ exports[`Button renders with icon on right 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -903,6 +962,7 @@ exports[`Button renders with icon on right 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -964,6 +1024,10 @@ exports[`Button renders with confirmation modal props 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -975,6 +1039,7 @@ exports[`Button renders with confirmation modal props 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -1036,6 +1101,10 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -1047,6 +1116,7 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -1108,6 +1178,10 @@ exports[`Button renders with custom confirmationText and modalSubTitle 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -1119,6 +1193,7 @@ exports[`Button renders with custom confirmationText and modalSubTitle 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -1203,6 +1278,10 @@ exports[`Button shows loading indicator when loading prop is true 1`] = `
       "disabled": true,
     },
     "disabled": true,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -1214,6 +1293,7 @@ exports[`Button shows loading indicator when loading prop is true 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",
@@ -1275,6 +1355,10 @@ exports[`Button renders ghost variant with correct styles 1`] = `
       "disabled": false,
     },
     "disabled": false,
+    "hitSlop": {
+      "bottom": 2,
+      "top": 2,
+    },
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -1286,6 +1370,7 @@ exports[`Button renders ghost variant with correct styles 1`] = `
       "flexDirection": "column",
       "height": undefined,
       "justifyContent": "center",
+      "minHeight": 44,
       "paddingHorizontal": 20,
       "paddingVertical": 8,
       "width": "auto",

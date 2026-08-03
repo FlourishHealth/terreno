@@ -51,12 +51,16 @@ exports[`PickerSelect renders correctly with default props 1`] = `
       ],
       "props": {
         "disabled": false,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -253,7 +257,7 @@ exports[`PickerSelect renders correctly with default props 1`] = `
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {
@@ -319,12 +323,16 @@ exports[`PickerSelect renders with selected value 1`] = `
       ],
       "props": {
         "disabled": false,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -521,7 +529,7 @@ exports[`PickerSelect renders with selected value 1`] = `
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {
@@ -587,12 +595,16 @@ exports[`PickerSelect renders disabled state 1`] = `
       ],
       "props": {
         "disabled": true,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -789,7 +801,7 @@ exports[`PickerSelect renders disabled state 1`] = `
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {
@@ -857,12 +869,16 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
       ],
       "props": {
         "disabled": false,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -1049,7 +1065,7 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {
@@ -1115,12 +1131,16 @@ exports[`PickerSelect matches items by itemKey 1`] = `
       ],
       "props": {
         "disabled": false,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -1307,7 +1327,7 @@ exports[`PickerSelect matches items by itemKey 1`] = `
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {
@@ -1373,12 +1393,16 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
       ],
       "props": {
         "disabled": false,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -1495,7 +1519,7 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {
@@ -1562,12 +1586,16 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
       ],
       "props": {
         "disabled": false,
+        "hitSlop": {
+          "bottom": 2,
+          "top": 2,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
-          "minHeight": 40,
+          "minHeight": 44,
           "paddingHorizontal": 8,
           "width": "100%",
         },
@@ -1764,7 +1792,7 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
         "borderWidth": 1,
         "flexDirection": "row",
         "justifyContent": "flex-start",
-        "minHeight": 40,
+        "minHeight": 44,
         "width": "100%",
       },
       {

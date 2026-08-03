@@ -4,6 +4,7 @@ import {Platform, Pressable, type StyleProp, TextInput, View} from "react-native
 import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import type {HeightFieldProps, TextStyleWithOutline} from "./Common";
+import {CONTROL_MIN_HEIGHT} from "./ControlSizes";
 import {FieldError} from "./fieldElements/FieldError";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {FieldTitle} from "./fieldElements/FieldTitle";
@@ -109,7 +110,7 @@ const HeightSegment: FC<HeightSegmentProps> = ({
           borderRadius: 4,
           borderWidth: focused ? 3 : 1,
           flexDirection: "row",
-          height: 40,
+          height: CONTROL_MIN_HEIGHT,
           justifyContent: "center",
           paddingHorizontal: focused ? 6 : 8,
           width: 50,
@@ -304,7 +305,7 @@ export const HeightField: FC<HeightFieldProps> = ({
               borderRadius: 4,
               borderWidth: 1,
               flexDirection: "row",
-              minHeight: 40,
+              minHeight: CONTROL_MIN_HEIGHT,
               paddingHorizontal: 12,
               paddingVertical: 8,
             }}

@@ -20,6 +20,7 @@ export * from "./ConsentFormScreen";
 export * from "./ConsentHistory";
 export * from "./ConsentNavigator";
 export * from "./Constants";
+export * from "./ControlSizes";
 export * from "./CustomSelectField";
 export * from "./DataTable";
 export * from "./DateTimeActionSheet";

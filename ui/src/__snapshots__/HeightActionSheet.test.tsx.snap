@@ -189,6 +189,10 @@ exports[`HeightActionSheet renders correctly 1`] = `
                                           "disabled": false,
                                         },
                                         "disabled": false,
+                                        "hitSlop": {
+                                          "bottom": 2,
+                                          "top": 2,
+                                        },
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -200,6 +204,7 @@ exports[`HeightActionSheet renders correctly 1`] = `
                                           "flexDirection": "column",
                                           "height": undefined,
                                           "justifyContent": "center",
+                                          "minHeight": 44,
                                           "paddingHorizontal": 20,
                                           "paddingVertical": 8,
                                           "width": "auto",
@@ -884,6 +889,10 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                                           "disabled": false,
                                         },
                                         "disabled": false,
+                                        "hitSlop": {
+                                          "bottom": 2,
+                                          "top": 2,
+                                        },
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -895,6 +904,7 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                                           "flexDirection": "column",
                                           "height": undefined,
                                           "justifyContent": "center",
+                                          "minHeight": 44,
                                           "paddingHorizontal": 20,
                                           "paddingVertical": 8,
                                           "width": "auto",

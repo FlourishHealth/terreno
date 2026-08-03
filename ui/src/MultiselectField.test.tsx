@@ -56,6 +56,23 @@ describe("MultiselectField", () => {
     expect(handleChange).toHaveBeenCalledWith(["b"]);
   });
 
+  // The whole row is the press target so the 16pt checkbox is not the only thing a user
+  // can hit, which keeps each option at Apple's 44pt guidance without overlapping rows.
+  it("uses the full row as a 44pt press target including the label", () => {
+    const handleChange = mock((_values: string[]) => {});
+    const {getByLabelText, getByText} = renderWithTheme(
+      <MultiselectField onChange={handleChange} options={defaultOptions} title="Title" value={[]} />
+    );
+
+    const row = getByLabelText("Option B");
+    const style = row.props.style as Record<string, unknown>;
+    expect(style.minHeight).toBe(44);
+    expect(row.props.hitSlop).toEqual({bottom: 2, top: 2});
+
+    // The label lives inside the row, so it is part of the same target.
+    expect(getByText("Option B")).toBeTruthy();
+  });
+
   it("removes option when deselected", () => {
     const handleChange = mock((_values: string[]) => {});
     const {getByLabelText} = renderWithTheme(
