@@ -1,9 +1,9 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
-import {type ModelRouterOptions, modelRouter} from "./api";
+import {modelRouter} from "./api";
+import type {UserModel as UserMongooseModel} from "./auth";
+import type {AddRoutes} from "./expressServer";
 import {Permissions} from "./permissions";
 import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, setupDb, UserModel} from "./tests";
@@ -130,7 +130,7 @@ describe("action OpenAPI emission", () => {
       const foodRegistration = modelRouter("/food", FoodModel, foodActionRouterOptions);
       const app = new TerrenoApp({
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel as unknown as UserMongooseModel,
       })
         .register(foodRegistration)
         .build();
@@ -151,20 +151,17 @@ describe("action OpenAPI emission", () => {
     let app: express.Application;
 
     beforeEach(() => {
-      const configureApp = (
-        router: express.Router,
-        routerOptions?: Partial<ModelRouterOptions<unknown>>
-      ): void => {
+      const configureApp: AddRoutes = (router, routerOptions) => {
         router.use(
           "/food",
-          modelRouter(FoodModel as any, {...foodActionRouterOptions, ...routerOptions})
+          modelRouter(FoodModel, {...foodActionRouterOptions, openApi: routerOptions?.openApi})
         );
       };
 
       app = new TerrenoApp({
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel as unknown as UserMongooseModel,
       }).build();
     });
 
