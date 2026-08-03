@@ -1,12 +1,12 @@
 import {type FC, useCallback, useEffect, useState} from "react";
-import {Pressable, View} from "react-native";
+import {View} from "react-native";
 
 import {Button} from "./Button";
-import type {AiSuggestionProps} from "./Common";
-import {Icon} from "./Icon";
+import type {AiSuggestionProps, ThumbsUpDownFeedbackValue} from "./Common";
 import {SparklesIcon} from "./icons/SparklesIcon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
+import {ThumbsUpDownFeedback} from "./ThumbsUpDownFeedback";
 
 export interface AiSuggestionBoxProps extends AiSuggestionProps {
   testID?: string;
@@ -111,54 +111,23 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
     }
   }, [status, onShow]);
 
-  const handleThumbsUp = useCallback(() => {
-    if (!onFeedback) {
-      return;
-    }
-    onFeedback(feedback === "like" ? null : "like");
-  }, [onFeedback, feedback]);
-
-  const handleThumbsDown = useCallback(() => {
-    if (!onFeedback) {
-      return;
-    }
-    onFeedback(feedback === "dislike" ? null : "dislike");
-  }, [onFeedback, feedback]);
+  const handleFeedbackChange = useCallback(
+    (nextValue?: ThumbsUpDownFeedbackValue) => {
+      if (!onFeedback) {
+        return;
+      }
+      // ThumbsUpDownFeedback already clears a repeated selection, so undefined means "no feedback".
+      onFeedback(nextValue === undefined ? null : nextValue === "positive" ? "like" : "dislike");
+    },
+    [onFeedback]
+  );
 
   const renderFeedback = () => (
-    <View
-      style={{alignItems: "center", flexDirection: "row"}}
+    <ThumbsUpDownFeedback
+      onChange={handleFeedbackChange}
       testID={testID ? `${testID}-feedback` : undefined}
-    >
-      <Pressable
-        accessibilityLabel="Thumbs up"
-        accessibilityRole="button"
-        onPress={handleThumbsUp}
-        style={{alignItems: "center", height: 24, justifyContent: "center", width: 24}}
-        testID={testID ? `${testID}-thumbs-up` : undefined}
-      >
-        <Icon
-          color={feedback === "like" ? "secondaryDark" : "secondaryLight"}
-          iconName="thumbs-up"
-          size="md"
-          type={feedback === "like" ? "solid" : "regular"}
-        />
-      </Pressable>
-      <Pressable
-        accessibilityLabel="Thumbs down"
-        accessibilityRole="button"
-        onPress={handleThumbsDown}
-        style={{alignItems: "center", height: 24, justifyContent: "center", width: 24}}
-        testID={testID ? `${testID}-thumbs-down` : undefined}
-      >
-        <Icon
-          color={feedback === "dislike" ? "secondaryDark" : "secondaryLight"}
-          iconName="thumbs-down"
-          size="md"
-          type={feedback === "dislike" ? "solid" : "regular"}
-        />
-      </Pressable>
-    </View>
+      value={feedback === "like" ? "positive" : feedback === "dislike" ? "negative" : undefined}
+    />
   );
 
   if (status === "not-started" || status === "generating") {
