@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@better-auth/expo": "^1.2.8",
+    "@better-auth/expo": "^1.6.25",
     "@openfeature/core": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
     "@reduxjs/toolkit": "catalog:",

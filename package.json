@@ -40,7 +40,7 @@
     "ai": "^6.0.97",
     "axios": "^1.13.2",
     "babel-preset-expo": "~56.0.15",
-    "better-auth": "^1.2.8",
+    "better-auth": "^1.6.25",
     "expo": "~56.0.12",
     "expo-clipboard": "~56.0.4",
     "expo-constants": "~56.0.18",
@@ -69,7 +69,7 @@
     "express": "^5.2.1",
     "jspdf": "^4.2.0",
     "libphonenumber-js": "^1.13.8",
-    "linkify-it": "^5.0.0",
+    "linkify-it": "^5.0.2",
     "lodash": "^4.18.1",
     "luxon": "^3.7.2",
     "mdurl": "^2.0.0",
@@ -137,13 +137,14 @@
     }
   },
   "overrides": {
-    "typescript": "6.0.3",
     "ajv": "8.20.0",
+    "linkify-it": "^5.0.2",
     "lodash": "^4.18.1",
     "qs": "^6.15.2",
     "router": "^2.2.0",
     "semver": "^7.5.2",
-    "tar": "^7.5.3"
+    "tar": "^7.5.3",
+    "typescript": "6.0.3"
   },
   "private": true,
   "scripts": {
