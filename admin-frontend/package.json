@@ -12,6 +12,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@reduxjs/toolkit": "catalog:",
+    "@testing-library/react-native": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",

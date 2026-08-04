@@ -4,7 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import {act, fireEvent} from "@testing-library/react-native";
 import type {AdminApi} from "./types";
 
 const routerBack = mock(() => {});

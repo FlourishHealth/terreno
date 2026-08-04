@@ -20,6 +20,19 @@ type EasingFn = (t: number) => number;
 type MockColor = string | number | null | undefined;
 type MockAssetSource = {height?: number; uri?: string; width?: number} | null | undefined;
 
+// Expo SDK 56 vendors react-navigation's elements into expo-router, and those modules import
+// PNG icon assets directly. Metro resolves images to asset descriptors, but the bun test runner
+// tries to parse them as source, so serve a Metro-shaped descriptor instead.
+Bun.plugin({
+  name: "image-asset-stub",
+  setup(build) {
+    build.onLoad({filter: /\.(png|jpe?g|gif|webp|svg|ttf|otf)$/}, () => ({
+      exports: {default: {height: 1, uri: "test-asset", width: 1}},
+      loader: "object",
+    }));
+  },
+});
+
 // Set environment variables
 process.env.TZ = "America/New_York";
 process.env.EXPO_OS = "ios";

@@ -3,7 +3,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
-import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
+import {fireEvent} from "@testing-library/react-native";
 
 mock.module("../AdminNestedArrayField", () => ({
   AdminNestedArrayField: ({title}: {title: string}) =>

@@ -6,7 +6,7 @@ import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
-import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import {act, fireEvent} from "@testing-library/react-native";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const mockRouterPush = mock((_href: string) => {});

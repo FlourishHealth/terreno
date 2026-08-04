@@ -1,8 +1,9 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 
+import {renderWithTheme} from "@terreno/ui/src/test-utils";
+
 import {ConsentHistory} from "./ConsentHistory";
-import {renderWithTheme} from "./test-utils";
 import type {ConsentHistoryEntry} from "./useConsentHistory";
 
 type ConsentHistoryApi = Parameters<typeof ConsentHistory>[0]["api"];
