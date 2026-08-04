@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it} from "bun:test";
 
 import type {SecretProvider} from "./configurationPlugin";
 import {APIError} from "./errors";
@@ -215,13 +215,13 @@ describe("GcpSecretProvider", () => {
   });
 
   it("throws APIError when @google-cloud/secret-manager is not installed", async () => {
-    // Whether the optional peer is resolvable from this package depends on the install
-    // layout (bun's hoisted linker exposes example-backend's copy), so force the import to
-    // fail rather than relying on it being absent.
-    mock.module("@google-cloud/secret-manager", () => {
-      throw new Error("Cannot find module '@google-cloud/secret-manager'");
+    // Whether the optional peer resolves from this package depends on the install layout
+    // (bun's hoisted linker exposes example-backend's copy), so inject a failing loader
+    // instead of relying on it being absent.
+    const provider = new GcpSecretProvider({
+      loadModule: () => Promise.reject(new Error("Cannot find module")),
+      projectId: "my-project",
     });
-    const provider = new GcpSecretProvider({projectId: "my-project"});
     try {
       await provider.getSecret("some-secret");
       expect.unreachable("should have thrown");
