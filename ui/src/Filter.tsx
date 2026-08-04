@@ -1,5 +1,5 @@
-import {type FC, useState} from "react";
-import {Pressable, View} from "react-native";
+import {type FC, useRef, useState} from "react";
+import {Platform, Pressable, View} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -40,9 +40,22 @@ export const Filter: FC<FilterProps> = ({
 }) => {
   const {theme} = useTheme();
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const triggerRef = useRef<View>(null);
 
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
+
+  // Return focus to the trigger after any in-panel dismissal so keyboard users
+  // can continue from the control that opened the popup (web only).
+  const restoreTriggerFocus = (): void => {
+    if (Platform.OS !== "web" || !triggerRef.current) {
+      return;
+    }
+    const node = triggerRef.current as unknown as {
+      querySelector?: (selector: string) => {focus?: () => void} | null;
+    };
+    node.querySelector?.('[role="button"]')?.focus?.();
+  };
 
   const setOpen = (next: boolean): void => {
     if (!isControlled) {
@@ -54,29 +67,36 @@ export const Filter: FC<FilterProps> = ({
   const handleApply = (): void => {
     onApply?.();
     setOpen(false);
+    restoreTriggerFocus();
   };
 
   const handleClear = (): void => {
     onClear?.();
     setOpen(false);
+    restoreTriggerFocus();
   };
 
   const handleCancel = (): void => {
     onCancel?.();
     setOpen(false);
+    restoreTriggerFocus();
   };
 
   const showFooter = showActionButtons && (showApplyButton || showClearButton || showCancelButton);
 
   return (
-    <View style={{position: "relative"}} testID={testID}>
-      <Button
-        iconName={iconName}
-        onClick={() => setOpen(!open)}
-        testID={testID ? resolveTestID(testID, "trigger") : undefined}
-        text={label}
-        variant={variant}
-      />
+    // Raising the whole subtree's stacking context while open keeps the opaque
+    // panel above sibling content so nothing bleeds through it.
+    <View style={{position: "relative", zIndex: open ? 1000 : undefined}} testID={testID}>
+      <View ref={triggerRef}>
+        <Button
+          iconName={iconName}
+          onClick={() => setOpen(!open)}
+          testID={testID ? resolveTestID(testID, "trigger") : undefined}
+          text={label}
+          variant={variant}
+        />
+      </View>
       {Boolean(open) && (
         <>
           {/* Transparent full-screen backdrop closes the panel on outside click. */}
@@ -99,8 +119,9 @@ export const Filter: FC<FilterProps> = ({
               borderRadius: theme.radius.default,
               borderWidth: 1,
               left: 0,
+              opacity: 1,
               position: "absolute",
-              shadowColor: "#000000",
+              shadowColor: theme.primitives.neutral900,
               shadowOffset: {height: 4, width: 0},
               shadowOpacity: 0.15,
               shadowRadius: 12,

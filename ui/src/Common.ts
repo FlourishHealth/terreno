@@ -218,6 +218,7 @@ export interface TextThemeConfig {
 
 export interface SurfaceThemeConfig {
   base: keyof ThemePrimitiveColors;
+  baseAlternate: keyof ThemePrimitiveColors;
   baseHover: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
@@ -287,6 +288,7 @@ export interface TextTheme {
 
 export interface SurfaceTheme {
   base: string;
+  baseAlternate: string;
   baseHover: string;
   primary: string;
   secondaryLight: string;

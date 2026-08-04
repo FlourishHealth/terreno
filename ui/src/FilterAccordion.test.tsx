@@ -40,6 +40,13 @@ describe("FilterAccordion", () => {
     expect(getByText("Content")).toBeTruthy();
   });
 
+  it("exposes the expanded state to assistive technology", () => {
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} expanded testID="acc" />
+    );
+    expect(getByTestId("acc.header")).toHaveProp("accessibilityState", {expanded: true});
+  });
+
   it("calls onToggle with the next state when controlled", () => {
     const onToggle = mock();
     const {getByTestId} = renderWithTheme(

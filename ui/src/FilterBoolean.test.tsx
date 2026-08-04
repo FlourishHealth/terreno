@@ -39,6 +39,20 @@ describe("FilterBoolean", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("exposes the checked state to assistive technology", () => {
+    const on = renderWithTheme(<FilterBoolean {...defaultProps} testID="toggle" value />);
+    expect(on.getByTestId("toggle")).toHaveProp("accessibilityState", {
+      checked: true,
+      disabled: false,
+    });
+
+    const off = renderWithTheme(<FilterBoolean {...defaultProps} testID="toggle" value={false} />);
+    expect(off.getByTestId("toggle")).toHaveProp("accessibilityState", {
+      checked: false,
+      disabled: false,
+    });
+  });
+
   it("shows the changes badge only when enabled", () => {
     const {queryByTestId, rerender} = renderWithTheme(
       <FilterBoolean {...defaultProps} testID="toggle" />

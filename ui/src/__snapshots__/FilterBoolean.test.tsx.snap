@@ -81,10 +81,17 @@ exports[`FilterBoolean renders correctly with default props 1`] = `
     },
   ],
   "props": {
-    "aria-role": "switch",
+    "accessibilityRole": "switch",
+    "accessibilityState": {
+      "checked": false,
+      "disabled": false,
+    },
+    "aria-checked": false,
+    "aria-disabled": false,
     "disabled": false,
     "onHoverIn": [Function],
     "onHoverOut": [Function],
+    "onKeyDown": [Function],
     "onPress": [Function],
     "style": {
       "alignItems": "center",

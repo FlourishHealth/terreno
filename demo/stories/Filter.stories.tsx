@@ -68,16 +68,32 @@ export const FilterDemo = (): React.ReactElement => {
         />
         <FilterAccordion defaultExpanded showChangesBadge={statuses.length > 0} title="Status">
           <Box direction="column" gap={2}>
-            {STATUS_OPTIONS.map((status) => (
-              <Pressable
-                key={status}
-                onPress={() => toggleStatus(status)}
-                style={{alignItems: "center", flexDirection: "row", gap: 8}}
-              >
-                <CheckBox selected={statuses.includes(status)} />
-                <Text>{status}</Text>
-              </Pressable>
-            ))}
+            {STATUS_OPTIONS.map((status) => {
+              const checked = statuses.includes(status);
+              // Pressable does not type the web `onKeyDown`, but RN Web forwards it.
+              const webKeyDownProps = {
+                onKeyDown: (event: {key: string; preventDefault: () => void}) => {
+                  if (event.key === " " || event.key === "Spacebar") {
+                    event.preventDefault();
+                    toggleStatus(status);
+                  }
+                },
+              };
+              return (
+                <Pressable
+                  key={status}
+                  {...webKeyDownProps}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{checked}}
+                  aria-checked={checked}
+                  onPress={() => toggleStatus(status)}
+                  style={{alignItems: "center", flexDirection: "row", gap: 8}}
+                >
+                  <CheckBox selected={checked} />
+                  <Text>{status}</Text>
+                </Pressable>
+              );
+            })}
           </Box>
         </FilterAccordion>
       </Filter>

@@ -8,6 +8,19 @@ import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveTestID} from "./testing/resolveTestId";
 
+// react-native's Pressable does not type the web `onKeyDown` event, but React
+// Native Web forwards it. A disclosure button needs its own spacebar handler
+// (per ARIA, Space activates it) since role="button" only activates on Enter.
+interface WebKeyDownEvent {
+  key: string;
+  preventDefault: () => void;
+  repeat?: boolean;
+}
+
+interface WebKeyDownProps {
+  onKeyDown?: (event: WebKeyDownEvent) => void;
+}
+
 /**
  * An expandable/collapsible filter row. The header (title, optional changes
  * badge, and chevron) is the full click zone. When expanded, the row switches
@@ -39,10 +52,24 @@ export const FilterAccordion: FC<FilterAccordionProps> = ({
 
   let backgroundColor = theme.surface.base;
   if (isExpanded) {
-    backgroundColor = theme.primitives.neutral050;
+    backgroundColor = theme.surface.baseAlternate;
   } else if (isHovered) {
     backgroundColor = theme.surface.baseHover;
   }
+
+  const webKeyDownProps: WebKeyDownProps = {
+    onKeyDown: (event) => {
+      if (event.key !== " " && event.key !== "Spacebar") {
+        return;
+      }
+      event.preventDefault();
+      // A native button activates once per press, so ignore held-key auto-repeat.
+      if (event.repeat) {
+        return;
+      }
+      handleToggle();
+    },
+  };
 
   return (
     <View
@@ -56,7 +83,10 @@ export const FilterAccordion: FC<FilterAccordionProps> = ({
       testID={testID}
     >
       <Pressable
-        aria-role="button"
+        {...webKeyDownProps}
+        accessibilityRole="button"
+        accessibilityState={{expanded: isExpanded}}
+        aria-expanded={isExpanded}
         onHoverIn={() => setIsHovered(true)}
         onHoverOut={() => setIsHovered(false)}
         onPress={handleToggle}
