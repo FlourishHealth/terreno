@@ -42,9 +42,9 @@
     "@types/express": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
-    "@types/supertest": "^6.0.2",
+    "@types/supertest": "catalog:",
     "babel-preset-expo": "catalog:",
-    "supertest": "^7.0.0",
+    "supertest": "catalog:",
     "typescript": "catalog:"
   },
   "exports": {

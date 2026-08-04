@@ -85,19 +85,31 @@ jobs:
         run: |
           set -euo pipefail
           missing=()
-          if [ -z "$BETTER_AUTH_SECRET" ]; then missing+=("BETTER_AUTH_SECRET"); fi
-          if [ -z "$TOKEN_SECRET" ]; then missing+=("TOKEN_SECRET"); fi
-          if [ -z "$REFRESH_TOKEN_SECRET" ]; then missing+=("REFRESH_TOKEN_SECRET"); fi
-          if [ -z "$SESSION_SECRET" ]; then missing+=("SESSION_SECRET"); fi
+          resolve_secret() {
+            local name="$1"
+            local value="$2"
+            local fallback="$3"
+            if [ -n "$value" ]; then
+              echo "$name=$value" >> "$GITHUB_ENV"
+            elif [ "$GITHUB_ACTOR" = "dependabot[bot]" ]; then
+              echo "::warning::Using CI fallback for $name (Dependabot PRs cannot access repository secrets)"
+              echo "$name=$fallback" >> "$GITHUB_ENV"
+            else
+              missing+=("$name")
+            fi
+          }
+          resolve_secret "BETTER_AUTH_SECRET" "$INPUT_SESSION_SECRET" "ci-e2e-session-secret"
+          resolve_secret "TOKEN_SECRET" "$INPUT_TOKEN_SECRET" "ci-e2e-token-secret"
+          resolve_secret "REFRESH_TOKEN_SECRET" "$INPUT_REFRESH_TOKEN_SECRET" "ci-e2e-refresh-secret"
+          resolve_secret "SESSION_SECRET" "$INPUT_SESSION_SECRET" "ci-e2e-session-secret"
           if [ ${#missing[@]} -ne 0 ]; then
             echo "::error::Missing required secrets: ${missing[*]}"
             exit 1
           fi
         env:
-          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
-          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
-          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
-          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          INPUT_TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          INPUT_REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          INPUT_SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
 
       - name: Start backend
         run: |
@@ -121,7 +133,7 @@ jobs:
         working-directory: example-backend
         env:
           AUTH_PROVIDER: better-auth
-          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: http://localhost:4000
           PORT: "4000"
           MONGO_URI: mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0
@@ -139,7 +151,7 @@ jobs:
         working-directory: example-frontend
         env:
           AUTH_PROVIDER: better-auth
-          BETTER_AUTH_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: http://localhost:4000
           CI: true
           MONGO_URI: mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0

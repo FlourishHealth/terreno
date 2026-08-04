@@ -67,10 +67,10 @@
     "@types/supertest": "catalog:",
     "mongodb-memory-server": "catalog:",
     "mongoose": "catalog:",
-    "sinon": "^21.0.1",
-    "supertest": "^7.0.0",
+    "sinon": "^22.0.0",
+    "supertest": "catalog:",
     "typescript": "catalog:",
-    "zod": "^4.3.6"
+    "zod": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [

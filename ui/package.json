@@ -46,7 +46,7 @@
     "expo-sharing": "catalog:",
     "expo-updates": "catalog:",
     "expo-web-browser": "catalog:",
-    "libphonenumber-js": "^1.12.36",
+    "libphonenumber-js": "catalog:",
     "linkify-it": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
@@ -92,7 +92,7 @@
     "@types/react-time-picker": "^6.0.0",
     "babel-preset-react-app": "^10.0.1",
     "expo-modules-core": "catalog:",
-    "mdurl": "^2.0.0",
+    "mdurl": "catalog:",
     "prettier": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
@@ -111,11 +111,11 @@
   "main": "dist/index.js",
   "name": "@terreno/ui",
   "peerDependencies": {
-    "react": "^19.2.0",
+    "react": "catalog:",
     "react-dom": "^19.2.0",
     "react-native": "~0.85.0",
-    "react-router": "^6.26.0",
-    "react-router-dom": "^6.30.0"
+    "react-router": "catalog:",
+    "react-router-dom": "catalog:"
   },
   "peerDependenciesMeta": {
     "react-dom": {

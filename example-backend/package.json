@@ -46,9 +46,8 @@
     "@types/passport-local-mongoose": "catalog:",
     "@types/supertest": "catalog:",
     "@types/winston": "^2.4.4",
-    "bun-types": "latest",
-    "mongodb": "~6.20.0",
-    "supertest": "^7.2.2",
+    "mongodb": "catalog:",
+    "supertest": "catalog:",
     "typescript": "catalog:"
   },
   "name": "@terreno/example-backend",

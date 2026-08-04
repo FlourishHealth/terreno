@@ -18,6 +18,7 @@
   "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@terreno/api": "workspace:*",
     "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",
     "@types/express": "catalog:",
@@ -25,12 +26,11 @@
     "@types/multer": "catalog:",
     "@types/passport-local-mongoose": "catalog:",
     "@types/supertest": "catalog:",
-    "@terreno/api": "workspace:*",
     "mongoose": "catalog:",
-    "passport-local-mongoose": "^9.0.1",
-    "supertest": "^7.0.0",
+    "passport-local-mongoose": "catalog:",
+    "supertest": "catalog:",
     "typescript": "catalog:",
-    "winston": "^3.18.3"
+    "winston": "catalog:"
   },
   "exports": {
     ".": {
