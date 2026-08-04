@@ -2,8 +2,8 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
-import React from "react";
 import {fireEvent} from "@testing-library/react-native";
+import React from "react";
 
 mock.module("../AdminNestedArrayField", () => ({
   AdminNestedArrayField: ({title}: {title: string}) =>

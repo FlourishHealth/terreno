@@ -2,10 +2,10 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {Platform} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act, fireEvent} from "@testing-library/react-native";
 import type {AdminApi} from "./types";
 
 mock.module("react-native-webview", () => ({

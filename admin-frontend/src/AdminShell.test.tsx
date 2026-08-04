@@ -2,11 +2,11 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
-import {act, fireEvent} from "@testing-library/react-native";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const mockRouterPush = mock((_href: string) => {});

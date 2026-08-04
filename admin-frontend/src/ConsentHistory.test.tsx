@@ -1,7 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
-
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
 
 import {ConsentHistory} from "./ConsentHistory";
 import type {ConsentHistoryEntry} from "./useConsentHistory";
