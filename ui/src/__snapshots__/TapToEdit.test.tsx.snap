@@ -71,11 +71,10 @@ exports[`TapToEdit renders correctly with text value 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Link",
                   "justifyContent": "flex-start",
                 },
                 "testID": undefined,
@@ -94,8 +93,6 @@ exports[`TapToEdit renders correctly with text value 1`] = `
                 "onPointerLeave": [Function: AsyncFunction],
                 "onPress": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Edit",
                   "marginLeft": 8,
                   "width": 16,
                 },
@@ -210,11 +207,10 @@ exports[`TapToEdit renders non-editable when editable is false 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Link",
                   "justifyContent": "flex-start",
                 },
                 "testID": undefined,
@@ -328,11 +324,10 @@ exports[`TapToEdit renders edit icon when editable 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Link",
                   "justifyContent": "flex-start",
                 },
                 "testID": undefined,
@@ -351,8 +346,6 @@ exports[`TapToEdit renders edit icon when editable 1`] = `
                 "onPointerLeave": [Function: AsyncFunction],
                 "onPress": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Edit",
                   "marginLeft": 8,
                   "width": 16,
                 },
@@ -646,11 +639,10 @@ exports[`TapToEdit displays helper text when provided 1`] = `
                 },
               ],
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Link",
                   "justifyContent": "flex-start",
                 },
                 "testID": undefined,
@@ -669,8 +661,6 @@ exports[`TapToEdit displays helper text when provided 1`] = `
                 "onPointerLeave": [Function: AsyncFunction],
                 "onPress": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Edit",
                   "marginLeft": 8,
                   "width": 16,
                 },
@@ -766,11 +756,10 @@ exports[`TapToEdit renders with textarea type 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
+                "accessibilityLabel": "Link",
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "accessibilityHint": "",
-                  "accessibilityLabel": "Link",
                   "justifyContent": "flex-start",
                 },
                 "testID": undefined,

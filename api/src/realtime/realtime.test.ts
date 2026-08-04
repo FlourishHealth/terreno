@@ -2221,6 +2221,163 @@ describe("startChangeStreamWatcher", () => {
     mockStream.trigger("end");
   });
 
+  // Task 9.16: a transient stream failure used to be logged and then permanently starve
+  // every realtime event and sync delta until the process restarted.
+  describe("restart with resume token (Task 9.16)", () => {
+    const waitFor = async (
+      predicate: () => boolean,
+      label: string,
+      timeoutMs = 3000
+    ): Promise<void> => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        if (predicate()) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}`);
+    };
+
+    const registerTodos = (): void => {
+      registerRealtime({
+        collectionName: "todos",
+        config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+        modelName: "Todo",
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+        },
+        routePath: "/todos",
+      });
+    };
+
+    /** An io whose room socket records deliveries, plus a recorded server-wide `emit`. */
+    const createRecordingIo = (): {
+      io: import("socket.io").Server;
+      deliveries: {event: string; payload: unknown}[];
+      serverEmissions: {event: string; payload: unknown}[];
+    } => {
+      const deliveries: {event: string; payload: unknown}[] = [];
+      const serverEmissions: {event: string; payload: unknown}[] = [];
+      const rooms = new Map<string, Set<string>>();
+      rooms.set("model:todos", new Set(["sock-1"]));
+      const sockets = new Map<string, any>();
+      sockets.set("sock-1", {
+        decodedToken: {id: "user-1"},
+        emit: (event: string, payload: unknown) => {
+          deliveries.push({event, payload});
+        },
+        id: "sock-1",
+      });
+      return {
+        deliveries,
+        io: {
+          emit: (event: string, payload: unknown) => {
+            serverEmissions.push({event, payload});
+          },
+          sockets: {adapter: {rooms}, sockets},
+          to: () => ({emit: () => {}}),
+        } as unknown as import("socket.io").Server,
+        serverEmissions,
+      };
+    };
+
+    it("reopens with resumeAfter after a stream error and keeps delivering changes", async () => {
+      const firstStream = createMockChangeStream();
+      const secondStream = createMockChangeStream();
+      const streams = [firstStream, secondStream];
+      const mockDb = {watch: mock(() => streams.shift() ?? secondStream)};
+      (mongoose.connection as any).db = mockDb;
+      registerTodos();
+
+      const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+      const {deliveries, io} = createRecordingIo();
+      startChangeStreamWatcher(io, {}, true);
+
+      // A change on the first stream establishes the resume position.
+      await invokeRegisteredChangeHandler(firstStream, {
+        _id: {_data: "token-1"},
+        documentKey: {_id: "doc-1"},
+        fullDocument: {_id: "doc-1", name: "before the failure"},
+        ns: {coll: "todos"},
+        operationType: "insert",
+      });
+      expect(deliveries).toHaveLength(1);
+
+      firstStream.trigger("error", new Error("replica set election"));
+      await waitFor(() => mockDb.watch.mock.calls.length >= 2, "the stream to reopen");
+
+      const reopenOptions = (mockDb.watch.mock.calls[1] as any[])[1];
+      expect(reopenOptions.resumeAfter).toEqual({_data: "token-1"});
+
+      // The reopened stream is fully wired: later writes still fan out.
+      await invokeRegisteredChangeHandler(secondStream, {
+        _id: {_data: "token-2"},
+        documentKey: {_id: "doc-2"},
+        fullDocument: {_id: "doc-2", name: "after the restart"},
+        ns: {coll: "todos"},
+        operationType: "insert",
+      });
+      expect(deliveries).toHaveLength(2);
+    });
+
+    it("drops the resume token and asks clients to resync when the oplog history is lost", async () => {
+      const firstStream = createMockChangeStream();
+      const secondStream = createMockChangeStream();
+      const streams = [firstStream, secondStream];
+      const mockDb = {watch: mock(() => streams.shift() ?? secondStream)};
+      (mongoose.connection as any).db = mockDb;
+
+      const {SYNC_RESYNC_EVENT, startChangeStreamWatcher} = await import("./changeStreamWatcher");
+      const {io, serverEmissions} = createRecordingIo();
+      startChangeStreamWatcher(io, {}, true);
+
+      await invokeRegisteredChangeHandler(firstStream, {
+        _id: {_data: "token-1"},
+        documentKey: {_id: "doc-1"},
+        ns: {coll: "unregistered"},
+        operationType: "insert",
+      });
+
+      const historyLost = Object.assign(new Error("resume of change stream was not possible"), {
+        code: 286,
+        codeName: "ChangeStreamHistoryLost",
+      });
+      firstStream.trigger("error", historyLost);
+
+      expect(serverEmissions).toEqual([
+        {event: SYNC_RESYNC_EVENT, payload: {reason: "history_lost"}},
+      ]);
+
+      await waitFor(() => mockDb.watch.mock.calls.length >= 2, "the stream to reopen");
+      // An unusable token must not be replayed — the reopen starts from now.
+      expect((mockDb.watch.mock.calls[1] as any[])[1].resumeAfter).toBeUndefined();
+    });
+
+    it("does not reopen after the watcher is stopped", async () => {
+      const mockStream = createMockChangeStream();
+      const mockDb = {watch: mock(() => mockStream)};
+      (mongoose.connection as any).db = mockDb;
+
+      const {startChangeStreamWatcher, stopChangeStreamWatcher: stop} = await import(
+        "./changeStreamWatcher"
+      );
+      const {io} = createRecordingIo();
+      startChangeStreamWatcher(io, {}, true);
+
+      mockStream.trigger("error", new Error("shutting down"));
+      await stop();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      expect(mockDb.watch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("uses custom batchSize and fullDocument config", async () => {
     const mockStream = createMockChangeStream();
     const mockDb = {

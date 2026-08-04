@@ -7,6 +7,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
+- **syncdb/** - Local-first data layer (TinyBase store, durable outbox, delta sync) for @terreno/api backends (`@terreno/syncdb`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
@@ -37,6 +38,8 @@ bun run test             # Run tests in api and ui
 ```bash
 bun run api:test         # Test API package
 bun run ui:test          # Test UI package
+bun run syncdb:compile   # Compile syncdb package
+bun run syncdb:test      # Test syncdb package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
 bun run backend:dev      # Start backend example

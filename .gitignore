@@ -73,3 +73,5 @@ docs/reference/generated/
 website/.docusaurus/
 website/build/
 website/node_modules/
+
+.devdata

@@ -96,9 +96,76 @@ export interface SetAdminUserPasswordRequest {
   password: string;
 }
 
+// GptHistory endpoints are hand-maintained: nested modelRouter mounts under /gpt/histories
+// are not always present in the generated OpenAPI SDK after regen.
+export interface GptHistoryPrompt {
+  args?: Record<string, unknown>;
+  content?: Array<{
+    filename?: string;
+    mimeType?: string;
+    text?: string;
+    type: string;
+    url?: string;
+  }>;
+  model?: string;
+  result?: unknown;
+  text: string;
+  toolCallId?: string;
+  toolName?: string;
+  type: "assistant" | "system" | "tool-call" | "tool-result" | "user";
+}
+
+export interface GptHistory {
+  _id: string;
+  created: string;
+  id: string;
+  prompts: GptHistoryPrompt[];
+  title?: string;
+  updated: string;
+  userId: string;
+}
+
+export interface GptHistoriesListResponse {
+  data: GptHistory[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+}
+
+export interface GptHistoryResponse {
+  data: GptHistory;
+}
+
+export interface CreateGptHistoryBody {
+  prompts?: GptHistoryPrompt[];
+  title?: string;
+}
+
+export interface UpdateGptHistoryBody {
+  prompts?: GptHistoryPrompt[];
+  title?: string;
+}
+
+export interface GetGptHistoriesArgs {
+  limit?: number;
+  page?: number;
+  sort?: string;
+}
+
 export const terrenoApi = openapi
   .injectEndpoints({
     endpoints: (builder) => ({
+      deleteGptHistoriesById: builder.mutation<void, {id: string}>({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "gptHistories" as const},
+          {id: "LIST", type: "gptHistories" as const},
+        ],
+        query: ({id}) => ({
+          method: "DELETE",
+          url: `/gpt/histories/${id}`,
+        }),
+      }),
       // Selectable AI chat models (derived from backend config + Vertex enabled-model check)
       getAiModels: builder.query<AiModelsResponse, void>({
         query: () => ({
@@ -117,12 +184,47 @@ export const terrenoApi = openapi
           url: "/aiRequestsExplorer",
         }),
       }),
+      getGptHistories: builder.query<GptHistoriesListResponse, GetGptHistoriesArgs | undefined>({
+        providesTags: (result) =>
+          result?.data
+            ? [
+                ...result.data.map(({id}) => ({id, type: "gptHistories" as const})),
+                {id: "LIST", type: "gptHistories" as const},
+              ]
+            : [{id: "LIST", type: "gptHistories" as const}],
+        query: (args) => ({
+          params: {
+            limit: args?.limit,
+            page: args?.page,
+            sort: args?.sort,
+          },
+          url: "/gpt/histories",
+        }),
+      }),
+      getGptHistoriesById: builder.query<GptHistoryResponse, {id: string}>({
+        providesTags: (_result, _error, {id}) => [{id, type: "gptHistories" as const}],
+        query: ({id}) => ({url: `/gpt/histories/${id}`}),
+      }),
       // Get current user profile
       getMe: builder.query<ProfileResponse, void>({
         providesTags: ["profile"],
         query: () => ({
           method: "GET",
           url: "/auth/me",
+        }),
+      }),
+      patchGptHistoriesById: builder.mutation<
+        GptHistoryResponse,
+        {body: UpdateGptHistoryBody; id: string}
+      >({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "gptHistories" as const},
+          {id: "LIST", type: "gptHistories" as const},
+        ],
+        query: ({body, id}) => ({
+          body,
+          method: "PATCH",
+          url: `/gpt/histories/${id}`,
         }),
       }),
       // Update current user profile
@@ -132,6 +234,14 @@ export const terrenoApi = openapi
           body,
           method: "PATCH",
           url: "/auth/me",
+        }),
+      }),
+      postGptHistories: builder.mutation<GptHistoryResponse, {body: CreateGptHistoryBody}>({
+        invalidatesTags: [{id: "LIST", type: "gptHistories"}],
+        query: ({body}) => ({
+          body,
+          method: "POST",
+          url: "/gpt/histories",
         }),
       }),
       setAdminUserPassword: builder.mutation<
@@ -159,15 +269,20 @@ export const terrenoApi = openapi
   });
 
 export const {
+  useDeleteGptHistoriesByIdMutation,
   useEmailLoginMutation,
   useGoogleLoginMutation,
   useCreateEmailUserMutation,
   useEmailSignUpMutation,
+  useGetGptHistoriesByIdQuery,
+  useGetGptHistoriesQuery,
   useResetPasswordMutation,
   useGetMeQuery,
+  usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,
   useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,
+  usePostGptHistoriesMutation,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";

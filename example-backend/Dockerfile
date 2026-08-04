@@ -21,7 +21,8 @@ RUN bun run --filter "@terreno/admin-spa" compile
 # Node runtime - bun's node shim cannot run it - so borrow node from the official image.
 COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app/admin-spa
-RUN node node_modules/expo/bin/cli export --platform web --output-dir dist
+# Workspace install hoists dependencies to /app/node_modules (see root bunfig.toml).
+RUN node ../node_modules/expo/bin/cli export --platform web --output-dir dist
 WORKDIR /app
 
 WORKDIR /app/example-backend

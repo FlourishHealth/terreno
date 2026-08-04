@@ -40,6 +40,7 @@ const createFixtureRepo = (): string => {
   writeFileSync(
     join(root, "api/src/documented.ts"),
     `// noExplicitAny: framework boundary
+// noExplicitAny: framework boundary
 // biome-ignore lint/suspicious/noExplicitAny: framework boundary
 export const boundary = (value: any): void => {
   void value;

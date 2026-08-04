@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "@terreno/admin-backend - Admin panel backend plugin for @terreno/api"
 globs: ["**/*"]
 ---

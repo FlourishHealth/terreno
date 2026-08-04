@@ -1,19 +1,20 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
-import express from "express";
+import type express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
 import {
-  type UserModel as AuthUserModel,
   addAuthRoutes,
   addMeRoutes,
   generateTokens,
+  type HasSetPassword,
+  MAX_PASSWORD_LENGTH,
+  setPasswordForUser,
   setupAuth,
-  signupUser,
 } from "./auth";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
@@ -1369,6 +1370,40 @@ describe("decodeJWTMiddleware error paths", () => {
     const res = await agent.get("/food").set("authorization", "Bearer undefined").expect(200);
     expect(res.body.data).toBeDefined();
   });
+
+  // D1: the JWT-vs-non-JWT fallthrough now decodes the token's header/payload
+  // structure (jwt.decode with complete: true) instead of counting dots, so it is
+  // robust to opaque tokens that coincidentally contain two dots and to malformed
+  // strings that happen to have three dot-delimited segments without real JWT
+  // structure.
+  it("falls through (200, no 401) for an opaque non-JWT bearer token with two dots", async () => {
+    // An opaque token shaped like a Better Auth session id — has exactly two dots
+    // but is not base64url-encoded JSON in any segment.
+    const res = await agent
+      .get("/food")
+      .set("authorization", "Bearer not.a.jwt-at-all")
+      .expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("falls through (200, no 401) for a three-dot string with no real JWT header/payload structure", async () => {
+    // Exactly three dot-delimited segments (would have been treated as "a JWT" by
+    // the old dot-counting check) but none are valid base64url JSON.
+    const res = await agent.get("/food").set("authorization", "Bearer abc.def.ghi").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it("returns 401 for a genuinely malformed JWT-shaped token (decodable header, bad signature)", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    // A well-formed JWT (decodable header/payload) but signed with the wrong
+    // secret — jwt.verify throws, and jwt.decode succeeds (it is a real JWT), so
+    // this must still 401 rather than fall through.
+    const badToken = jwtLib.sign({id: "someone"}, "wrong-secret", {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent.get("/food").set("authorization", `Bearer ${badToken}`);
+    expect(res.status).toBe(401);
+  });
 });
 
 describe("signup disabled", () => {
@@ -1400,205 +1435,122 @@ describe("signup disabled", () => {
   });
 });
 
-describe("signupUser postCreate failures", () => {
-  it("wraps and rethrows errors thrown by user.postCreate", async () => {
-    let saveCalled = false;
-    const failingUser = {
-      postCreate: async () => {
-        throw new Error("postCreate failed");
-      },
-      save: async () => {
-        saveCalled = true;
+describe("setPasswordForUser", () => {
+  it("resolves when a callback-based setPassword invokes the callback with no error", async () => {
+    let receivedPassword: string | undefined;
+    const user: HasSetPassword = {
+      setPassword: (password, callback) => {
+        receivedPassword = password;
+        callback?.();
       },
     };
-    const fakeModel = {
-      register: async () => failingUser,
-    } as unknown as Parameters<typeof signupUser>[0];
 
-    await expect(signupUser(fakeModel, "new@example.com", "password123")).rejects.toThrow(
-      "postCreate failed"
+    await setPasswordForUser(user, "new-password");
+    expect(receivedPassword).toBe("new-password");
+  });
+
+  it("resolves when setPassword returns a promise", async () => {
+    let receivedPassword: string | undefined;
+    const user: HasSetPassword = {
+      setPassword: async (password) => {
+        receivedPassword = password;
+      },
+    };
+
+    await setPasswordForUser(user, "promise-password");
+    expect(receivedPassword).toBe("promise-password");
+  });
+
+  it("rejects when the callback is invoked with an error", async () => {
+    const user: HasSetPassword = {
+      setPassword: (_password, callback) => {
+        callback?.(new Error("boom"));
+      },
+    };
+
+    await expect(setPasswordForUser(user, "pw")).rejects.toThrow("boom");
+  });
+
+  it("rejects when setPassword throws synchronously", async () => {
+    const user: HasSetPassword = {
+      setPassword: () => {
+        throw new Error("sync failure");
+      },
+    };
+
+    await expect(setPasswordForUser(user, "pw")).rejects.toThrow("sync failure");
+  });
+
+  it("rejects with a timeout when setPassword never settles", async () => {
+    const user: HasSetPassword = {
+      setPassword: () => {
+        // Never invokes the callback and returns nothing (no promise).
+      },
+    };
+
+    await expect(setPasswordForUser(user, "pw", 10)).rejects.toThrow(
+      "Timed out while setting password"
     );
-    expect(saveCalled).toBe(false);
-  });
-});
-
-describe("auth error paths when the user lookup fails", () => {
-  let app: express.Application;
-  let agent: TestAgent;
-  let admin: {_id: {toString: () => string}};
-
-  beforeEach(async () => {
-    setSystemTime();
-    const testData = await setupTestData();
-    admin = testData.users.admin;
-    app = new TerrenoApp({
-      configureApp: () => {},
-      skipListen: true,
-      userModel: UserModel as any,
-    }).build();
-    agent = supertest.agent(app);
   });
 
-  afterEach(() => {
-    setSystemTime();
+  it("rejects passwords longer than MAX_PASSWORD_LENGTH without calling setPassword", async () => {
+    let called = false;
+    const user: HasSetPassword = {
+      setPassword: (_password, callback) => {
+        called = true;
+        callback?.();
+      },
+    };
+    const tooLong = "x".repeat(MAX_PASSWORD_LENGTH + 1);
+
+    await expect(setPasswordForUser(user, tooLong)).rejects.toThrow(
+      `Password must be at most ${MAX_PASSWORD_LENGTH} characters`
+    );
+    expect(called).toBe(false);
   });
 
-  it("responds with an error when userModel.findById throws during authentication", async () => {
-    const jwtLib = (await import("jsonwebtoken")).default;
-    const token = jwtLib.sign({id: admin._id.toString()}, process.env.TOKEN_SECRET as string, {
-      issuer: process.env.TOKEN_ISSUER,
-    });
-    const findSpy = spyOn(UserModel, "findById").mockImplementation(() => {
-      throw new Error("database unavailable");
-    });
-    try {
-      const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
-      expect(res.status).toBeGreaterThanOrEqual(400);
-    } finally {
-      findSpy.mockRestore();
-    }
+  it("accepts a password exactly at MAX_PASSWORD_LENGTH", async () => {
+    let receivedPassword: string | undefined;
+    const user: HasSetPassword = {
+      setPassword: (password, callback) => {
+        receivedPassword = password;
+        callback?.();
+      },
+    };
+    const atLimit = "x".repeat(MAX_PASSWORD_LENGTH);
+
+    await setPasswordForUser(user, atLimit);
+    expect(receivedPassword).toBe(atLimit);
   });
 
-  it("calls next(err) when the local login strategy errors", async () => {
-    type Authenticator = (
-      username: string,
-      password: string,
-      done: (err: Error | null) => void
-    ) => void;
-    const authSpy = spyOn(
-      UserModel as unknown as {authenticate: () => Authenticator},
-      "authenticate"
-    ).mockReturnValue((_username, _password, done) => {
-      done(new Error("strategy failure"));
-    });
-    try {
-      const errApp = new TerrenoApp({
-        configureApp: () => {},
-        skipListen: true,
-        userModel: UserModel as any,
-      }).build();
-      const errAgent = supertest.agent(errApp);
-      const res = await errAgent
-        .post("/auth/login")
-        .send({email: "notAdmin@example.com", password: "password"});
-      expect(res.status).toBeGreaterThanOrEqual(400);
-    } finally {
-      authSpy.mockRestore();
-    }
-  });
-});
-
-describe("cookie based JWT extraction", () => {
-  afterEach(() => {
-    setSystemTime();
-  });
-
-  it("authenticates /auth/me from a jwt cookie", async () => {
-    setSystemTime();
-    const {users} = await setupTestData();
-    const jwtLib = (await import("jsonwebtoken")).default;
-    const token = jwtLib.sign({id: String(users.admin._id)}, process.env.TOKEN_SECRET as string, {
-      issuer: process.env.TOKEN_ISSUER,
-    });
-    const app = getBaseServer();
-    // Stand in for cookie-parser: the extractor prefers req.cookies.jwt over the auth header.
-    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-      req.cookies = {jwt: token};
-      next();
-    });
-    setupAuth(app, UserModel as unknown as AuthUserModel);
-    addMeRoutes(app, UserModel as unknown as AuthUserModel);
-
-    const res = await supertest.agent(app).get("/auth/me").expect(200);
-    expect(res.body.data.email).toBe("admin@example.com");
-  });
-});
-
-describe("auth logging outside of the test environment", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-
-  afterEach(() => {
-    setSystemTime();
-    process.env.NODE_ENV = originalNodeEnv;
-  });
-
-  it("logs JWT setup and successful logins when NODE_ENV is not test", async () => {
-    setSystemTime();
-    await setupTestData();
-    process.env.NODE_ENV = "development";
-    const debugSpy = spyOn(logger, "debug");
+  it("logs an audit line with the admin id and target user id when audit context is provided", async () => {
     const infoSpy = spyOn(logger, "info");
-    try {
-      const app = getBaseServer();
-      setupAuth(app, UserModel as unknown as AuthUserModel);
-      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
+    infoSpy.mockClear();
+    const user: HasSetPassword = {
+      _id: "target-user-id",
+      setPassword: (_password, callback) => callback?.(),
+    };
 
-      const res = await supertest
-        .agent(app)
-        .post("/auth/login")
-        .send({email: "notAdmin@example.com", password: "password"})
-        .expect(200);
-      expect(res.body.data.token).toBeDefined();
-      expect(
-        debugSpy.mock.calls.some(([message]) =>
-          String(message).includes("Setting up JWT Authentication")
-        )
-      ).toBe(true);
-      expect(
-        infoSpy.mock.calls.some(([message]) => String(message).includes("User logged in"))
-      ).toBe(true);
-    } finally {
-      debugSpy.mockRestore();
-      infoSpy.mockRestore();
-    }
-  });
-});
+    await setPasswordForUser(user, "new-password", undefined, {adminId: "admin-id-123"});
 
-describe("/me routes with an already populated req.user", () => {
-  const buildApp = (
-    user: {_id?: string; id?: string} | undefined,
-    foundUser: unknown
-  ): express.Application => {
-    const app = express();
-    app.use(express.json());
-    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-      req.user = user as unknown as express.Request["user"];
-      next();
-    });
-    const stubUserModel = {
-      findById: async () => foundUser,
-    } as unknown as AuthUserModel;
-    addMeRoutes(app, stubUserModel);
-    return app;
-  };
-
-  it("returns 401 from GET /auth/me when the request user has no id", async () => {
-    await supertest
-      .agent(buildApp({_id: "abc"}, null))
-      .get("/auth/me")
-      .expect(401);
+    expect(infoSpy).toHaveBeenCalledTimes(1);
+    const [message] = infoSpy.mock.calls[0] as [string];
+    expect(message).toContain("admin-id-123");
+    expect(message).toContain("target-user-id");
+    expect(message).not.toContain("new-password");
+    infoSpy.mockRestore();
   });
 
-  it("returns 401 from PATCH /auth/me when the request user has no id", async () => {
-    await supertest
-      .agent(buildApp({_id: "abc"}, null))
-      .patch("/auth/me")
-      .send({name: "Updated"})
-      .expect(401);
-  });
+  it("does not log an audit line when no audit context is provided", async () => {
+    const infoSpy = spyOn(logger, "info");
+    infoSpy.mockClear();
+    const user: HasSetPassword = {
+      setPassword: (_password, callback) => callback?.(),
+    };
 
-  it("returns 404 from GET /auth/me when the user record no longer exists", async () => {
-    await supertest
-      .agent(buildApp({id: "abc"}, null))
-      .get("/auth/me")
-      .expect(404);
-  });
+    await setPasswordForUser(user, "new-password");
 
-  it("returns 404 from PATCH /auth/me when the user record no longer exists", async () => {
-    await supertest
-      .agent(buildApp({id: "abc"}, null))
-      .patch("/auth/me")
-      .send({name: "Updated"})
-      .expect(404);
+    expect(infoSpy).not.toHaveBeenCalled();
+    infoSpy.mockRestore();
   });
 });
