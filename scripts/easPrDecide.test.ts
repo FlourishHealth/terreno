@@ -172,7 +172,7 @@ describe("eas-pr-decide.sh", () => {
     assert.equal(outputs.ios_device_match, "false");
     assert.equal(outputs.ios_sim_match, "false");
     assert.equal(outputs.android_match, "true");
-    assert.equal(outputs.android_queued, "false");
+    assert.equal(outputs.android_active, "false");
   });
 
   it("queues Android when only the Android hash is new", async () => {
