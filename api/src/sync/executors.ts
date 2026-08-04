@@ -26,8 +26,9 @@ import {
   APIError,
   type APIErrorConstructor,
   errorMessage,
-  getDisableExternalErrorTracking,
   isAPIError,
+  passthroughOrWrap,
+  passthroughOrWrapWrite,
 } from "../errors";
 import {checkPermissions} from "../permissions";
 import {transform} from "../transformers";
@@ -209,28 +210,20 @@ export const executeCreate = async <T>({
   try {
     cleanedBody = transform<T>(options, body as Partial<T> | Partial<T>[], "create", user);
   } catch (error: unknown) {
-    if (isAPIError(error)) {
-      throw error;
-    }
-    throw new APIError({
-      disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-      error,
+    throw passthroughOrWrap(error, {
+      code: "transform-error",
       status: 400,
-      title: errorMessage(error),
+      title: "Transform error",
     });
   }
   if (options.preCreate) {
     try {
       cleanedBody = await options.preCreate(cleanedBody, request);
     } catch (error: unknown) {
-      if (isAPIError(error)) {
-        throw error;
-      }
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "pre-create-hook-error",
         status: 400,
-        title: `preCreate hook error: ${errorMessage(error)}`,
+        title: "preCreate hook error",
       });
     }
     if (cleanedBody === undefined) {
@@ -259,11 +252,10 @@ export const executeCreate = async <T>({
   try {
     data = (await model.create(cleanedBody as T)) as ExecutorDoc<T>;
   } catch (error: unknown) {
-    throw new APIError({
-      disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-      error,
+    throw passthroughOrWrapWrite(error, {
+      code: "create-error",
       status: 400,
-      title: errorMessage(error),
+      title: "Create error",
     });
   }
 
@@ -275,11 +267,10 @@ export const executeCreate = async <T>({
       populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
       data = await populateQuery.exec();
     } catch (error: unknown) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "populate-error",
         status: 400,
-        title: `Populate error: ${errorMessage(error)}`,
+        title: "Populate error",
       });
     }
   }
@@ -288,11 +279,10 @@ export const executeCreate = async <T>({
     try {
       await options.postCreate(data, request);
     } catch (error: unknown) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "post-create-hook-error",
         status: 400,
-        title: `postCreate hook error: ${errorMessage(error)}`,
+        title: "postCreate hook error",
       });
     }
   }
@@ -377,14 +367,11 @@ export const executeUpdate = async <T>({
   try {
     cleanedBody = transform<T>(options, body as Partial<T>, "update", user) as Partial<T>;
   } catch (error: unknown) {
-    if (isAPIError(error)) {
-      throw error;
-    }
-    throw new APIError({
-      disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-      error,
+    throw passthroughOrWrap(error, {
+      code: "transform-error",
+      detail: `PATCH failed on ${id} for user ${user?.id}: ${errorMessage(error)}`,
       status: 403,
-      title: `PATCH failed on ${id} for user ${user?.id}: ${errorMessage(error)}`,
+      title: "PATCH failed",
     });
   }
 
@@ -401,14 +388,11 @@ export const executeUpdate = async <T>({
     try {
       cleanedBody = await options.preUpdate(cleanedBody as Partial<T>, request);
     } catch (error: unknown) {
-      if (isAPIError(error)) {
-        throw error;
-      }
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "pre-update-hook-error",
+        detail: `preUpdate hook error on ${id}: ${errorMessage(error)}`,
         status: 400,
-        title: `preUpdate hook error on ${id}: ${errorMessage(error)}`,
+        title: "preUpdate hook error",
       });
     }
     if (cleanedBody === undefined) {
@@ -511,11 +495,11 @@ export const executeUpdate = async <T>({
         title: `Sync conflict on ${model.modelName}:${id}: a concurrent write landed while this update was in flight (baseSeq ${concurrencyCheck.baseSeq})`,
       });
     }
-    throw new APIError({
-      disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-      error,
+    throw passthroughOrWrapWrite(error, {
+      code: "update-save-error",
+      detail: `preUpdate hook save error on ${id}: ${errorMessage(error)}`,
       status: 400,
-      title: `preUpdate hook save error on ${id}: ${errorMessage(error)}`,
+      title: "preUpdate hook save error",
     });
   }
 
@@ -531,11 +515,11 @@ export const executeUpdate = async <T>({
     try {
       await options.postUpdate(doc, cleanedBody as Partial<T>, request, prevDoc as T);
     } catch (error: unknown) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "post-update-hook-error",
+        detail: `postUpdate hook error on ${id}: ${errorMessage(error)}`,
         status: 400,
-        title: `postUpdate hook error on ${id}: ${errorMessage(error)}`,
+        title: "postUpdate hook error",
       });
     }
   }
@@ -645,14 +629,11 @@ export const executeDelete = async <T>({
     try {
       body = await options.preDelete(doc, request);
     } catch (error: unknown) {
-      if (isAPIError(error)) {
-        throw error;
-      }
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "pre-delete-hook-error",
+        detail: `preDelete hook error on ${id}: ${errorMessage(error)}`,
         status: 403,
-        title: `preDelete hook error on ${id}: ${errorMessage(error)}`,
+        title: "preDelete hook error",
       });
     }
     if (body === undefined) {
@@ -683,11 +664,10 @@ export const executeDelete = async <T>({
     try {
       await doc.deleteOne();
     } catch (error: unknown) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "delete-error",
         status: 400,
-        title: errorMessage(error),
+        title: "Delete error",
       });
     }
   }
@@ -696,11 +676,10 @@ export const executeDelete = async <T>({
     try {
       await options.postDelete(request, doc);
     } catch (error: unknown) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "post-delete-hook-error",
         status: 400,
-        title: `postDelete hook error: ${errorMessage(error)}`,
+        title: "postDelete hook error",
       });
     }
   }

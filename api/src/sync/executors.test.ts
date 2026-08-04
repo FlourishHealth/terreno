@@ -232,7 +232,8 @@ describe("executeCreate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toBe("preCreate hook error: boom");
+    expect(error.title).toBe("preCreate hook error");
+    expect(error.detail).toBe("boom");
   });
 
   it("returns 400 when the body is undefined", async () => {
@@ -258,7 +259,8 @@ describe("executeCreate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toContain("name");
+    expect(error.title).toBe("Validation failed");
+    expect(error.meta?.fields).toMatchObject({name: expect.any(String)});
   });
 
   it("wraps transformer.transform errors as 400s", async () => {
@@ -278,7 +280,8 @@ describe("executeCreate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toBe("transform rejected");
+    expect(error.title).toBe("Transform error");
+    expect(error.detail).toBe("transform rejected");
   });
 
   it("invokes postCreate with the created document", async () => {
@@ -311,7 +314,8 @@ describe("executeCreate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toBe("postCreate hook error: side effect failed");
+    expect(error.title).toBe("postCreate hook error");
+    expect(error.detail).toBe("side effect failed");
   });
 });
 
@@ -438,7 +442,8 @@ describe("executeUpdate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toBe(`preUpdate hook error on ${doc._id.toString()}: nope`);
+    expect(error.title).toBe("preUpdate hook error");
+    expect(error.detail).toBe(`preUpdate hook error on ${doc._id.toString()}: nope`);
   });
 
   it("strips _updatedAt from the body before preUpdate", async () => {
@@ -602,7 +607,8 @@ describe("executeUpdate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toContain(`preUpdate hook save error on ${doc._id.toString()}`);
+    expect(error.title).toBe("Validation failed");
+    expect(error.meta?.fields).toMatchObject({name: expect.any(String)});
   });
 
   it("invokes postUpdate with the updated doc, cleaned body, and previous doc", async () => {
@@ -646,7 +652,8 @@ describe("executeUpdate", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toBe(`postUpdate hook error on ${doc._id.toString()}: notify failed`);
+    expect(error.title).toBe("postUpdate hook error");
+    expect(error.detail).toBe(`postUpdate hook error on ${doc._id.toString()}: notify failed`);
   });
 });
 
@@ -813,7 +820,8 @@ describe("executeDelete", () => {
       })
     );
     expect(error.status).toBe(403);
-    expect(error.title).toBe(`preDelete hook error on ${doc._id.toString()}: no delete`);
+    expect(error.title).toBe("preDelete hook error");
+    expect(error.detail).toBe(`preDelete hook error on ${doc._id.toString()}: no delete`);
   });
 
   it("rethrows APIErrors from preDelete unchanged", async () => {
@@ -868,6 +876,7 @@ describe("executeDelete", () => {
       })
     );
     expect(error.status).toBe(400);
-    expect(error.title).toBe("postDelete hook error: cascade failed");
+    expect(error.title).toBe("postDelete hook error");
+    expect(error.detail).toBe("cascade failed");
   });
 });

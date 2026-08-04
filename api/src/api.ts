@@ -18,15 +18,14 @@ import {
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
-  type APIErrorOptions,
   apiErrorMiddleware,
   BadRequestError,
   errorDetail,
   ForbiddenError,
-  getDisableExternalErrorTracking,
   isAPIError,
-  mongooseErrorToAPIError,
   NotFoundError,
+  passthroughOrWrap,
+  passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
 import {
@@ -69,39 +68,6 @@ export interface JSONObject {
   [member: string]: JSONValue;
 }
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
-
-/**
- * Picks the error to throw for something caught in a hook, transformer, or Mongoose middleware.
- * An `APIError` is passed through untouched so its status, code, detail, and meta reach the client;
- * anything else is wrapped in the given framework error. `wrapper` may override any field,
- * including `detail`, which defaults to the caught error's text.
- */
-const passthroughOrWrap = (error: unknown, wrapper: APIErrorOptions): APIError => {
-  if (isAPIError(error)) {
-    return error;
-  }
-  return new APIError({
-    cause: error,
-    detail: errorDetail(error),
-    disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-    ...wrapper,
-  });
-};
-
-/**
- * `passthroughOrWrap` for write paths (`model.create`, `doc.save`). Mongoose validation and cast
- * errors are converted first so their per-field messages survive as `meta.fields` instead of being
- * flattened into the wrapper's `detail`.
- */
-const passthroughOrWrapWrite = (error: unknown, wrapper: APIErrorOptions): APIError => {
-  if (!isAPIError(error) && error instanceof Error) {
-    const converted = mongooseErrorToAPIError(error);
-    if (converted) {
-      return converted;
-    }
-  }
-  return passthroughOrWrap(error, wrapper);
-};
 
 export const addPopulateToQuery = (
   // noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
