@@ -5,7 +5,7 @@ import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 import {betterAuthClient, signInWithSocial} from "@/lib/betterAuth";
-import {syncBetterAuthSession, useAppDispatch} from "@/store";
+import {syncBetterAuthSession, useAppDispatch} from "@/store/index";
 
 const Login: React.FC = () => {
   const router = useRouter();

@@ -16,7 +16,8 @@ import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {useSelector} from "react-redux";
-import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
+import {logout, useAppDispatch} from "@/store/index";
+import {terrenoApi, useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();

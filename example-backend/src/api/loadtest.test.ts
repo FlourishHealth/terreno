@@ -8,7 +8,7 @@ import {
 } from "@terreno/api";
 import express from "express";
 import supertest from "supertest";
-import {Todo} from "../models";
+import {Todo} from "../models/todo";
 import {User as UserModel} from "../models/user";
 import {addLoadTestRoutes} from "./loadtest";
 

@@ -18,8 +18,9 @@
 import type {ModelRouterOptions} from "@terreno/api";
 import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
 import type express from "express";
-import {Todo} from "../models";
-import type {TodoDocument, UserDocument} from "../types";
+import {Todo} from "../models/todo";
+import type {TodoDocument} from "../types/models/todoTypes";
+import type {UserDocument} from "../types/models/userTypes";
 
 /** Hard caps so a stray UI value can't wedge the dev server. */
 const MAX_GENERATE = 5_000;

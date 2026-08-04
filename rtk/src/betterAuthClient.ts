@@ -7,6 +7,7 @@
 
 import {expoClient} from "@better-auth/expo/client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type {BetterAuthClientPlugin} from "better-auth/client";
 import {createAuthClient} from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import type {BetterAuthClientConfig} from "./betterAuthTypes";
@@ -175,19 +176,22 @@ export const createBetterAuthClient = (config: BetterAuthClientConfig) => {
     storage: createStorageAdapter(),
   });
 
+  // `expoClient` declares `getActions` against a narrowed `BetterFetch<CreateFetchOption, ...>`
+  // while `BetterAuthClientPlugin` declares the unparameterized `BetterFetch`, so the plugin
+  // does not structurally satisfy its own contract. Runtime behaviour is unaffected.
+  const expoAuthPlugin = expoClient({
+    scheme: config.scheme,
+    // The plugin's storage type is strictly sync (`getItem: (key) => string | null`),
+    // which the native branch satisfies. The union-typed web branch is async but
+    // unreachable here, since the plugin skips storage entirely on web.
+    // biome-ignore lint/suspicious/noExplicitAny: explained above
+    storage: storage as any,
+    storagePrefix,
+  }) as unknown as BetterAuthClientPlugin;
+
   return createAuthClient({
     baseURL: config.baseURL,
-    plugins: [
-      expoClient({
-        scheme: config.scheme,
-        // The plugin's storage type is strictly sync (`getItem: (key) => string | null`),
-        // which the native branch satisfies. The union-typed web branch is async but
-        // unreachable here, since the plugin skips storage entirely on web.
-        // biome-ignore lint/suspicious/noExplicitAny: explained above
-        storage: storage as any,
-        storagePrefix,
-      }),
-    ],
+    plugins: [expoAuthPlugin],
   });
 };
 

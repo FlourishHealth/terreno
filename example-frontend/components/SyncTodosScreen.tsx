@@ -18,7 +18,7 @@ import {memo, useCallback, useMemo, useState} from "react";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
-import {logout, useAppDispatch} from "@/store";
+import {logout, useAppDispatch} from "@/store/index";
 
 /**
  * Shape of a todo in the local syncdb store. Server documents carry the full model

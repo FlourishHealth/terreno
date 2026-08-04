@@ -1,6 +1,7 @@
 import {APIError, modelRouter, OrganizationQueryFilter, Permissions} from "@terreno/api";
-import {Project} from "../models";
-import type {ProjectDocument, UserDocument} from "../types";
+import {Project} from "../models/project";
+import type {ProjectDocument} from "../types/models/projectTypes";
+import type {UserDocument} from "../types/models/userTypes";
 
 const getUserOrganizationIds = (user?: unknown): string[] => {
   return (user as UserDocument | undefined)?.organizationIds ?? [];

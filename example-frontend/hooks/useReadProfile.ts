@@ -1,6 +1,6 @@
 import {selectBetterAuthUserId} from "@terreno/rtk";
 import {useSelector} from "react-redux";
-import {useGetMeQuery} from "@/store";
+import {useGetMeQuery} from "@/store/sdk";
 
 export interface ProfileData {
   _id: string;

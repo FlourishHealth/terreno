@@ -22,8 +22,6 @@ export * from "./ConsentNavigator";
 export * from "./Constants";
 export * from "./CustomSelectField";
 export * from "./conflictFieldDiff";
-export * from "./conflictFieldDiff";
-export * from "./conflictFieldDiff";
 export * from "./DataTable";
 export * from "./DateTimeActionSheet";
 export * from "./DateTimeField";
@@ -87,7 +85,22 @@ export * from "./SocialLoginButton";
 export * from "./Spinner";
 export * from "./SplitPage";
 export * from "./SyncStatusBanner";
-export * from "./signUp";
+export {OAuthButtons} from "./signUp/OAuthButtons";
+export {PasswordRequirements} from "./signUp/PasswordRequirements";
+export {
+  defaultPasswordRequirements,
+  simplePasswordRequirements,
+} from "./signUp/passwordPresets";
+export {SignUpScreen} from "./signUp/SignUpScreen";
+export {Swiper} from "./signUp/Swiper";
+export type {
+  OAuthProvider,
+  OAuthProviderConfig,
+  OnboardingPage,
+  PasswordRequirement,
+  SignUpFieldConfig,
+  SignUpScreenProps,
+} from "./signUp/signUpTypes";
 export * from "./TapToEdit";
 export * from "./TerrenoProvider";
 export * from "./Text";
