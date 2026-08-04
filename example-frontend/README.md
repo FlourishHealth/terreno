@@ -288,8 +288,12 @@ The app uses `"runtimeVersion": {"policy": "fingerprint"}` (`app.json`). The
 of everything that affects the **native** binary (native dependencies, config
 plugins, app icon/scheme, SDK version, etc.). CI (`.github/workflows/eas-pr.yml`)
 publishes an EAS Update for every PR and only triggers a **new native dev build**
-when the fingerprint changes — i.e. when a matching dev build doesn't already
-exist. JS-only changes keep the same fingerprint and ship as fast OTA updates.
+when a fingerprint is brand-new — i.e. when *no* finished matching build exists
+yet for that hash. The iOS and Android hashes are tracked separately, so an
+iOS-only native change still builds iOS while Android stays on the fast path.
+Once a fingerprint has a finished build, later JS-only PRs stay on the
+update-only fast path even if one platform never got an artifact; seed those via
+the manual **Trigger EAS Workflow** job instead of from every PR.
 
 To keep this fast, `fingerprint.config.js` skips the Expo config `extra` section
 (`sourceSkips: ["ExpoConfigExtraSection"]`). Values in `extra` (e.g. `BASE_URL`,
