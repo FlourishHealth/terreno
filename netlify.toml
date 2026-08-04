@@ -1,6 +1,8 @@
 [build]
   base = "website"
   command = "cd .. && bun install --frozen-lockfile && bun run --filter '@terreno/ui' compile && cd ui && bun run types && cd .. && bun run website:build"
+  # GitHub Actions owns docs builds and deployments.
+  ignore = "true"
   publish = "build"
 
 [build.environment]
