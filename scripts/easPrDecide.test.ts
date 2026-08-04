@@ -137,8 +137,8 @@ describe("eas-pr-decide.sh", () => {
     assert.equal(outputs.ios_device_match, "false");
     assert.equal(outputs.ios_sim_match, "false");
     assert.equal(outputs.android_match, "false");
-    assert.equal(outputs.ios_device_queued, "true");
-    assert.equal(outputs.android_queued, "true");
+    assert.equal(outputs.ios_device_active, "false");
+    assert.equal(outputs.android_active, "false");
   });
 
   it("takes the fast path when the fingerprint already has finished builds", async () => {
@@ -161,8 +161,7 @@ describe("eas-pr-decide.sh", () => {
 
     assert.equal(outputs.needs_build, "false");
     assert.equal(outputs.ios_device_finished, "false");
-    // Reported as missing, not as rebuilding, since nothing was dispatched.
-    assert.equal(outputs.ios_device_queued, "false");
+    assert.equal(outputs.ios_device_active, "false");
   });
 
   it("keeps iOS and Android hashes independent", async () => {
@@ -176,7 +175,7 @@ describe("eas-pr-decide.sh", () => {
     assert.equal(outputs.android_queued, "false");
   });
 
-  it("does not queue Android when only the Android hash is new", async () => {
+  it("queues Android when only the Android hash is new", async () => {
     const {outputs} = await runDecide([
       "ios|development|finished",
       "ios|development:simulator|finished",
@@ -184,6 +183,7 @@ describe("eas-pr-decide.sh", () => {
 
     assert.equal(outputs.needs_build, "true");
     assert.equal(outputs.android_match, "false");
+    assert.equal(outputs.android_active, "false");
     assert.equal(outputs.ios_device_match, "true");
     assert.equal(outputs.ios_sim_match, "true");
   });
@@ -202,6 +202,9 @@ describe("eas-pr-decide.sh", () => {
       assert.equal(outputs.android_match, "true");
       // Nothing finished yet, so install links still flag the gap.
       assert.equal(outputs.ios_device_finished, "false");
+      assert.equal(outputs.ios_device_active, "true");
+      assert.equal(outputs.ios_sim_active, "true");
+      assert.equal(outputs.android_active, "true");
     });
   }
 

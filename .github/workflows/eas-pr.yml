@@ -143,6 +143,7 @@ jobs:
           echo "::notice::Fingerprint already known — update-only flow complete"
 
       - name: Slow path — queue builds for new fingerprint only
+        id: dispatch
         if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
         working-directory: example-frontend
         env:
@@ -165,9 +166,12 @@ jobs:
           IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
           IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
           ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
-          IOS_DEVICE_QUEUED: ${{ steps.decide.outputs.ios_device_queued }}
-          IOS_SIM_QUEUED: ${{ steps.decide.outputs.ios_sim_queued }}
-          ANDROID_QUEUED: ${{ steps.decide.outputs.android_queued }}
+          IOS_DEVICE_ACTIVE: ${{ steps.decide.outputs.ios_device_active }}
+          IOS_SIM_ACTIVE: ${{ steps.decide.outputs.ios_sim_active }}
+          ANDROID_ACTIVE: ${{ steps.decide.outputs.android_active }}
+          IOS_DEVICE_QUEUED: ${{ steps.dispatch.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.dispatch.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.dispatch.outputs.android_queued }}
           IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
           IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
           ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
@@ -252,6 +256,7 @@ jobs:
           echo "::notice::Fingerprint already known — update-only flow complete"
 
       - name: Slow path — queue builds for new fingerprint only
+        id: dispatch
         if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
         working-directory: demo
         env:
@@ -274,9 +279,12 @@ jobs:
           IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
           IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
           ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
-          IOS_DEVICE_QUEUED: ${{ steps.decide.outputs.ios_device_queued }}
-          IOS_SIM_QUEUED: ${{ steps.decide.outputs.ios_sim_queued }}
-          ANDROID_QUEUED: ${{ steps.decide.outputs.android_queued }}
+          IOS_DEVICE_ACTIVE: ${{ steps.decide.outputs.ios_device_active }}
+          IOS_SIM_ACTIVE: ${{ steps.decide.outputs.ios_sim_active }}
+          ANDROID_ACTIVE: ${{ steps.decide.outputs.android_active }}
+          IOS_DEVICE_QUEUED: ${{ steps.dispatch.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.dispatch.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.dispatch.outputs.android_queued }}
           IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
           IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
           ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}

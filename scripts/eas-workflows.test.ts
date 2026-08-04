@@ -41,11 +41,13 @@ describe("EAS PR workflows", () => {
   it("wires decide outputs to the dispatch and comment steps", () => {
     const easPr = readRepoFile(".github/workflows/eas-pr.yml");
 
-    // The comment reports finished builds; dispatch consumes coverage flags.
+    // The comment reports finished/active state and successful dispatch outputs.
     assert.match(easPr, /IOS_DEVICE_MATCH: \$\{\{ steps\.decide\.outputs\.ios_device_finished \}\}/);
     assert.match(easPr, /ANDROID_MATCH: \$\{\{ steps\.decide\.outputs\.android_finished \}\}/);
-    assert.match(easPr, /IOS_DEVICE_QUEUED: \$\{\{ steps\.decide\.outputs\.ios_device_queued \}\}/);
+    assert.match(easPr, /IOS_DEVICE_ACTIVE: \$\{\{ steps\.decide\.outputs\.ios_device_active \}\}/);
+    assert.match(easPr, /IOS_DEVICE_QUEUED: \$\{\{ steps\.dispatch\.outputs\.ios_device_queued \}\}/);
     assert.match(easPr, /IOS_DEVICE_MATCH: \$\{\{ steps\.decide\.outputs\.ios_device_match \}\}/);
+    assert.match(easPr, /id: dispatch/);
   });
 
   it("distinguishes a missing platform from a queued rebuild in the comment", () => {
@@ -54,7 +56,9 @@ describe("EAS PR workflows", () => {
     );
 
     assert.match(commentScript, /New fingerprint — build queued/);
+    assert.match(commentScript, /Matching build is queued or running/);
     assert.match(commentScript, /No finished build for this fingerprint yet/);
+    assert.match(commentScript, /IOS_DEVICE_ACTIVE:-false/);
     assert.match(commentScript, /IOS_DEVICE_QUEUED:-false/);
   });
 

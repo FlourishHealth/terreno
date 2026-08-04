@@ -19,7 +19,7 @@
 #   ios_hash / android_hash          computed fingerprints
 #   *_finished                       a finished build matches the hash
 #   *_match                          covered (finished, queued, or running)
-#   *_queued                         a build was dispatched by this run
+#   *_active                         a queued or running build matches the hash
 #   *_latest                         newest finished build id, for install links
 #   needs_build                      "true" when any platform must be built
 #
@@ -116,20 +116,35 @@ android_hash_known=false
 ios_device_match=true
 ios_sim_match=true
 android_match=true
+ios_device_active=false
+ios_sim_active=false
+android_active=false
 
 if [ "$ios_hash_known" = "true" ]; then
   echo "::notice::iOS fingerprint $ios_hash already has a finished dev build — update-only (missing iOS platforms are not re-seeded every PR)."
 else
   echo "::notice::iOS fingerprint $ios_hash is new — queue iOS builds that are not already running."
-  has_active ios "$IOS_DEVICE_PROFILE" "$ios_hash" || ios_device_match=false
-  has_active ios "$IOS_SIM_PROFILE" "$ios_hash" || ios_sim_match=false
+  if has_active ios "$IOS_DEVICE_PROFILE" "$ios_hash"; then
+    ios_device_active=true
+  else
+    ios_device_match=false
+  fi
+  if has_active ios "$IOS_SIM_PROFILE" "$ios_hash"; then
+    ios_sim_active=true
+  else
+    ios_sim_match=false
+  fi
 fi
 
 if [ "$android_hash_known" = "true" ]; then
   echo "::notice::Android fingerprint $android_hash already has a finished dev build — update-only."
 else
   echo "::notice::Android fingerprint $android_hash is new — queue an Android build if one is not already running."
-  has_active android "$ANDROID_PROFILE" "$android_hash" || android_match=false
+  if has_active android "$ANDROID_PROFILE" "$android_hash"; then
+    android_active=true
+  else
+    android_match=false
+  fi
 fi
 
 needs_build=false
@@ -137,8 +152,6 @@ if [ "$ios_device_match" = "false" ] || [ "$ios_sim_match" = "false" ] || [ "$an
   needs_build=true
 fi
 
-# `*_queued` tells the PR comment which platforms this run actually dispatched,
-# so a platform that is merely missing is not reported as "rebuilding".
 {
   echo "ios_hash=$ios_hash"
   echo "android_hash=$android_hash"
@@ -148,9 +161,9 @@ fi
   echo "ios_device_match=$ios_device_match"
   echo "ios_sim_match=$ios_sim_match"
   echo "android_match=$android_match"
-  echo "ios_device_queued=$([ "$ios_device_match" = "false" ] && echo true || echo false)"
-  echo "ios_sim_queued=$([ "$ios_sim_match" = "false" ] && echo true || echo false)"
-  echo "android_queued=$([ "$android_match" = "false" ] && echo true || echo false)"
+  echo "ios_device_active=$ios_device_active"
+  echo "ios_sim_active=$ios_sim_active"
+  echo "android_active=$android_active"
   echo "ios_device_latest=$ios_device_latest"
   echo "ios_sim_latest=$ios_sim_latest"
   echo "android_latest=$android_latest"
