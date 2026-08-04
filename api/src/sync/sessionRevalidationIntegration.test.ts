@@ -1,3 +1,4 @@
+// noExplicitAny: the rig bridges generic model/router/test types
 // biome-ignore-all lint/suspicious/noExplicitAny: the rig bridges generic model/router/test types
 /**
  * Integration coverage for D1 (socket session re-validation sweep) and D4

@@ -1,3 +1,4 @@
+// noExplicitAny: test model typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import express from "express";

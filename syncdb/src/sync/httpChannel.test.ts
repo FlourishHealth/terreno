@@ -23,6 +23,9 @@ const makeFetch = (
   return {fetchImpl, requests};
 };
 
+const headersOf = (request: RecordedRequest | undefined): Record<string, string> =>
+  (request?.init?.headers ?? {}) as Record<string, string>;
+
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
     headers: {"Content-Type": "application/json"},
@@ -51,9 +54,7 @@ describe("createHttpChannel", () => {
       expect(requests[0]?.input).toBe(
         "http://api/sync/snapshot?cursor=3&stream=todos%7Cowner%3Au1&limit=10"
       );
-      expect((requests[0]?.init?.headers as Record<string, string>).Authorization).toBe(
-        "Bearer token-123"
-      );
+      expect(headersOf(requests[0]).Authorization).toBe("Bearer token-123");
     });
 
     it("forwards the legacyCursor token (C3) when provided", async () => {
@@ -97,7 +98,7 @@ describe("createHttpChannel", () => {
       expect(requests[0]?.input).toBe(
         "http://api/sync/snapshot?cursor=0&stream=todos%7Cowner%3Au1"
       );
-      expect((requests[0]?.init?.headers as Record<string, string>).Authorization).toBeUndefined();
+      expect(headersOf(requests[0]).Authorization).toBeUndefined();
     });
 
     it("rejects with AuthRequiredError on 401", async () => {
@@ -137,9 +138,7 @@ describe("createHttpChannel", () => {
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
       await expect(channel.fetchStreams()).resolves.toEqual(streams);
       expect(requests[0]?.input).toBe("http://api/sync/streams");
-      expect((requests[0]?.init?.headers as Record<string, string>).Authorization).toBe(
-        "Bearer token-123"
-      );
+      expect(headersOf(requests[0]).Authorization).toBe("Bearer token-123");
     });
 
     it("returns an empty array when the body has no streams field", async () => {
@@ -238,9 +237,7 @@ describe("createHttpChannel", () => {
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
       await expect(channel.fetchKeyMaterial()).resolves.toBe("material-abc");
       expect(requests[0].input).toBe("http://api/sync/key");
-      expect((requests[0].init?.headers as Record<string, string>).Authorization).toBe(
-        "Bearer token-123"
-      );
+      expect(headersOf(requests[0]).Authorization).toBe("Bearer token-123");
     });
 
     it("rejects with AuthRequiredError on 401", async () => {

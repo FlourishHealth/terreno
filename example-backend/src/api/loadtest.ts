@@ -132,8 +132,10 @@ const clampCount = (value: unknown, max: number): number => {
 };
 
 export const addLoadTestRoutes = (
+  // noExplicitAny: Router type flexibility (matches addSettingsRoutes)
   // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility (matches addSettingsRoutes)
   router: any,
+  // noExplicitAny: Router type flexibility
   // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
   options?: Partial<ModelRouterOptions<any>>
 ): void => {

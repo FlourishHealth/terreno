@@ -1,3 +1,4 @@
+// noExplicitAny: test mocks use dynamic shapes for sockets, io, and models
 // biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for sockets, io, and models
 /**
  * D1: socket session re-validation sweep.

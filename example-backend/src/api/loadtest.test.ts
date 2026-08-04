@@ -1,3 +1,4 @@
+// noExplicitAny: test server/model bridging mirrors projects.test.ts and server.ts
 // biome-ignore-all lint/suspicious/noExplicitAny: test server/model bridging mirrors projects.test.ts and server.ts
 import {beforeEach, describe, expect, it} from "bun:test";
 import {

@@ -1,3 +1,4 @@
+// noExplicitAny: test mocks use dynamic shapes for sockets, io, and documents
 // biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for sockets, io, and documents
 /**
  * Tests for the sync socket layer (Tasks 2.3–2.5):

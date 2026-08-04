@@ -1,10 +1,9 @@
 import {selectBetterAuthUserId} from "@terreno/rtk";
-import {sentrySetUser} from "@utils";
 import axios from "axios";
 import {useEffect} from "react";
 import {useSelector} from "react-redux";
-
 import {getSessionToken} from "@/lib/betterAuth";
+import {sentrySetUser} from "@/utils/sentry";
 import {useReadProfile} from "./useReadProfile";
 
 export const useSentryUserSetup = (): void => {

@@ -269,6 +269,7 @@ export const executeCreate = async <T>({
 
   if (options.populatePaths) {
     try {
+      // noExplicitAny: mongoose Query type varies based on populatePaths
       // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
       let populateQuery: any = model.findById(data._id);
       populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
@@ -519,6 +520,7 @@ export const executeUpdate = async <T>({
   }
 
   if (options.populatePaths) {
+    // noExplicitAny: mongoose Query type varies based on populatePaths
     // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
     let populateQuery: any = model.findById(doc._id);
     populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);

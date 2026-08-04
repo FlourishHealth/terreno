@@ -567,6 +567,7 @@ export const SyncKey: Model<SyncKeyDocument> =
  * builds them when Mongoose `autoIndex` is on — commonly disabled in production — so
  * startup builds them explicitly.
  */
+// noExplicitAny: a heterogeneous list of models is only used for ensureIndexes
 // biome-ignore lint/suspicious/noExplicitAny: a heterogeneous list of models is only used for ensureIndexes
 const SYNC_BOOKKEEPING_MODELS: Model<any>[] = [SyncCounter, SyncMutation, SyncScopeMove, SyncKey];
 

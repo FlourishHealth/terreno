@@ -1,3 +1,4 @@
+// noExplicitAny: operates generically across registered sync models
 // biome-ignore-all lint/suspicious/noExplicitAny: operates generically across registered sync models
 import {DateTime} from "luxon";
 import mongoose from "mongoose";

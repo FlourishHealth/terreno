@@ -1,3 +1,4 @@
+// noExplicitAny: sync routes operate generically across registered models
 // biome-ignore-all lint/suspicious/noExplicitAny: sync routes operate generically across registered models
 import express from "express";
 import mongoose from "mongoose";

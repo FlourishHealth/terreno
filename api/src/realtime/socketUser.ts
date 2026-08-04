@@ -28,6 +28,7 @@ export interface DecodedRealtimeToken {
  * configured, or while the handshake load is still in flight.
  */
 export interface SocketDataBag {
+  // noExplicitAny: the full user is a consumer Mongoose document with app-specific fields
   // biome-ignore lint/suspicious/noExplicitAny: the full user is a consumer Mongoose document with app-specific fields
   fullUser?: any;
   /**

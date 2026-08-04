@@ -1,3 +1,4 @@
+// noExplicitAny: test model typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
@@ -562,7 +563,8 @@ describe("applySyncMutation", () => {
       expect(row?.resultSeq).toBe(2);
       // Task 9.21: the ledger stores only the pointer, never document data.
       expect(row?.resultId).toBe(doc._id.toString());
-      expect((row?.toObject() as unknown as Record<string, unknown>).serverDoc).toBeUndefined();
+      const rowFields = (row?.toObject() ?? {}) as unknown as Record<string, unknown>;
+      expect(rowFields.serverDoc).toBeUndefined();
     });
 
     it("serializes the conflict server doc through the sync responseHandler", async () => {

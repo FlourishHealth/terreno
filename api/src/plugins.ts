@@ -299,6 +299,7 @@ export interface IsArchived {
  * @param defaultValue Default value for the `archived` field (defaults to `false`)
  */
 export const excludeArchivedPlugin = (
+  // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
   // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
   schema: Schema<any, any, any, any>,
   defaultValue = false
@@ -314,6 +315,7 @@ export const excludeArchivedPlugin = (
     },
   });
 
+  // noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
   // biome-ignore lint/suspicious/noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
   schema.pre<Query<any, any>>("find", function () {
     const conditions = this.getFilter();

@@ -1,3 +1,4 @@
+// noExplicitAny: test mock/socket shapes are dynamic
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock/socket shapes are dynamic
 import {beforeEach, describe, expect, it} from "bun:test";
 import {

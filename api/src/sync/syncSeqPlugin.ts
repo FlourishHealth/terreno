@@ -1,3 +1,4 @@
+// noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
 // biome-ignore-all lint/suspicious/noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
 import type {
   CallbackWithoutResultAndOptionalError,

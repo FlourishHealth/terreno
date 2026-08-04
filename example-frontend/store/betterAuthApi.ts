@@ -62,6 +62,7 @@ export const emptySplitApi = createApi({
         url: "/version-check",
       }),
     }),
+    // noExplicitAny: Generic builder from @terreno/rtk
     // biome-ignore lint/suspicious/noExplicitAny: Generic builder from @terreno/rtk
     ...generateProfileEndpoints(builder as any, "users"),
   }),

@@ -1,3 +1,4 @@
+// noExplicitAny: serialization operates generically across registered models
 // biome-ignore-all lint/suspicious/noExplicitAny: serialization operates generically across registered models
 import type express from "express";
 

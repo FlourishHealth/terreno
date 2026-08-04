@@ -1,3 +1,4 @@
+// noExplicitAny: the harness bridges generic model/router/client types, mirroring integration.test.ts
 // biome-ignore-all lint/suspicious/noExplicitAny: the harness bridges generic model/router/client types, mirroring integration.test.ts
 /**
  * This is a manual load-generation script — NOT run by `bun test`. Invoke via

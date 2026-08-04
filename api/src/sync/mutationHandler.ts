@@ -1,3 +1,4 @@
+// noExplicitAny: the mutation handler operates generically across registered models
 // biome-ignore-all lint/suspicious/noExplicitAny: the mutation handler operates generically across registered models
 import type express from "express";
 import {DateTime} from "luxon";

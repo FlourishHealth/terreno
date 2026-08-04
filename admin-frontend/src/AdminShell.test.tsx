@@ -1,3 +1,4 @@
+// noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";

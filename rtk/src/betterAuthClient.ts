@@ -184,6 +184,7 @@ export const createBetterAuthClient = (config: BetterAuthClientConfig) => {
     // The plugin's storage type is strictly sync (`getItem: (key) => string | null`),
     // which the native branch satisfies. The union-typed web branch is async but
     // unreachable here, since the plugin skips storage entirely on web.
+    // noExplicitAny: explained above
     // biome-ignore lint/suspicious/noExplicitAny: explained above
     storage: storage as any,
     storagePrefix,

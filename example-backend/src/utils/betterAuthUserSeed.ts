@@ -112,6 +112,7 @@ export const seedBetterAuthUserInProcess = async (
   app.use(express.json());
   const betterAuthApp = new BetterAuthApp({
     config,
+    // noExplicitAny: User model type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
     userModel: User as any,
   });
@@ -159,6 +160,7 @@ export const seedBetterAuthUserInProcess = async (
 
   if (body.user) {
     await syncBetterAuthUser(
+      // noExplicitAny: User model _id is ObjectId; api UserModel expects string | ObjectId
       // biome-ignore lint/suspicious/noExplicitAny: User model _id is ObjectId; api UserModel expects string | ObjectId
       User as any,
       {

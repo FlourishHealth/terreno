@@ -1,3 +1,4 @@
+// noExplicitAny: test mocks use dynamic shapes for sockets and auth stubs
 // biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for sockets and auth stubs
 /**
  * Full validator matrix for the socket authentication chain (D1):

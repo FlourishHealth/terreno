@@ -133,6 +133,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       ? createBetterAuth({
           config: betterAuthConfig,
           mongoClient: getMongoClientFromMongoose(),
+          // noExplicitAny: User model type mismatch
           // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
           userModel: User as any,
         })
@@ -211,6 +212,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           betterAuth: betterAuthInstance
             ? {
                 auth: betterAuthInstance,
+                // noExplicitAny: User model type mismatch
                 // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
                 userModel: User as any,
               }
@@ -223,6 +225,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           // otherwise falls back to the synthetic JWT-claim user, which carries no
           // `organizationIds`, so tenant streams resolve to nothing and `admin` is
           // trusted from the token instead of the database (Task 9.21).
+          // noExplicitAny: User model type mismatch
           // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
           userModel: User as any,
         })
@@ -334,6 +337,7 @@ export async function start(skipListen = false): Promise<express.Application> {
               listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
               listDisplayLinks: ["title"],
               listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
+              // noExplicitAny: String _id model mismatches Model<any> variance
               // biome-ignore lint/suspicious/noExplicitAny: String _id model mismatches Model<any> variance
               model: Todo as any,
               pageSize: 25,
@@ -527,7 +531,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
-};
+}
 
 process.on("unhandledRejection", (error: unknown) => {
   logger.error(`unhandledRejection: ${(error as Error).message}\n${(error as Error).stack}`);

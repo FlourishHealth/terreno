@@ -1,3 +1,4 @@
+// noExplicitAny: the rig bridges generic model/router/test types
 // biome-ignore-all lint/suspicious/noExplicitAny: the rig bridges generic model/router/test types
 /**
  * End-to-end integration test (Task 5.5): a REAL @terreno/syncdb client speaking to a

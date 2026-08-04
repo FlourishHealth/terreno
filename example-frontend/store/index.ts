@@ -1,13 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {combineReducers, configureStore} from "@reduxjs/toolkit";
 import {generateBetterAuthSlice, registerTerrenoDevStore} from "@terreno/rtk";
-import {createSentryReduxEnhancer} from "@utils";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage as PersistStorage} from "redux-persist";
 import {persistReducer, persistStore} from "redux-persist";
-
 import {betterAuthClient} from "@/lib/betterAuth";
+import {createSentryReduxEnhancer} from "@/utils/sentry";
 import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
 import {terrenoApi} from "./sdk";
@@ -68,6 +67,7 @@ const store = configureStore({
   enhancers: (getDefaultEnhancers) =>
     getDefaultEnhancers({
       autoBatch: {type: "tick"},
+      // noExplicitAny: Sentry enhancer typing mismatch
       // biome-ignore lint/suspicious/noExplicitAny: Sentry enhancer typing mismatch
     }).concat(sentryReduxEnhancer as any),
   middleware: (getDefaultMiddleware) => {
@@ -77,9 +77,11 @@ const store = configureStore({
       thunk: true,
     }).concat([
       ...betterAuth.middleware,
+      // noExplicitAny: RTK Query middleware typing
       // biome-ignore lint/suspicious/noExplicitAny: RTK Query middleware typing
       terrenoApi.middleware as any,
       rtkQueryErrorMiddleware,
+      // noExplicitAny: Middleware array inference
       // biome-ignore lint/suspicious/noExplicitAny: Middleware array inference
     ]) as any;
   },

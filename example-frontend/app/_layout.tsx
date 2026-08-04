@@ -36,8 +36,7 @@ import {SyncLabRuntime} from "@/components/SyncLabRuntime";
 import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession} from "@/store/index";
-import {useGetMeQuery} from "@/store/sdk";
-import {terrenoApi} from "@/store/sdk";
+import {terrenoApi, useGetMeQuery} from "@/store/sdk";
 import {setSyncDbReady, syncDb} from "@/store/syncdb";
 
 const OpenFeatureBridge: FC<{

@@ -1,3 +1,4 @@
+// noExplicitAny: Socket.io handler signatures require dynamic args
 // biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type {Server} from "socket.io";
 

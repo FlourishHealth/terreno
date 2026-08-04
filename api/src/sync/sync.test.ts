@@ -1,3 +1,4 @@
+// noExplicitAny: test model typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {model, Schema} from "mongoose";

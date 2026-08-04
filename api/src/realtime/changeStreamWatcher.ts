@@ -1,3 +1,4 @@
+// noExplicitAny: change stream and socket handlers use dynamic document shapes
 // biome-ignore-all lint/suspicious/noExplicitAny: change stream and socket handlers use dynamic document shapes
 
 import * as Sentry from "@sentry/bun";
@@ -194,7 +195,6 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
  */
 export interface AuthorizedEmitEntry {
   modelName: string;
-  // biome-ignore lint/suspicious/noExplicitAny: permissions are generic across all models
   options: {permissions: {read: PermissionMethod<any>[]}};
 }
 
