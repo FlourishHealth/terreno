@@ -52,21 +52,15 @@ describe("Filter", () => {
     expect(queryByTestId("f.cancel")).toBeNull();
   });
 
-  it("closes on outside click and calls onCancel", async () => {
+  it("closes on outside click and calls onCancel", () => {
     const onCancel = mock();
     const {getByTestId, queryByTestId} = renderWithTheme(
       <Filter defaultOpen onCancel={onCancel} testID="f">
         <Text>Body</Text>
       </Filter>
     );
-    // Box renders its click target with a `-clickable` testID suffix and fires
-    // onClick asynchronously (after a haptic tick).
-    await act(async () => {
-      fireEvent.press(getByTestId("f.backdrop-clickable"));
-    });
-    await waitFor(() => {
-      expect(onCancel).toHaveBeenCalled();
-    });
+    fireEvent.press(getByTestId("f.backdrop"));
+    expect(onCancel).toHaveBeenCalled();
     expect(queryByTestId("f.panel")).toBeNull();
   });
 
