@@ -1,0 +1,78 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`FilterAccordion renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Status",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flex": 1,
+              "flexDirection": "row",
+              "gap": 6,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "aria-role": "button",
+        "onHoverIn": [Function],
+        "onHoverOut": [Function],
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 4,
+      "gap": 16,
+      "paddingHorizontal": 8,
+      "paddingVertical": 12,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

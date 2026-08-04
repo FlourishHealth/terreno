@@ -218,6 +218,7 @@ export interface TextThemeConfig {
 
 export interface SurfaceThemeConfig {
   base: keyof ThemePrimitiveColors;
+  baseHover: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
   secondaryDark: keyof ThemePrimitiveColors;
@@ -286,6 +287,7 @@ export interface TextTheme {
 
 export interface SurfaceTheme {
   base: string;
+  baseHover: string;
   primary: string;
   secondaryLight: string;
   secondaryDark: string;
@@ -395,8 +397,10 @@ export type OnChangeCallback = (result: string) => void;
  * }
  * ```
  */
-// biome-ignore lint/suspicious/noEmptyInterface: Intentionally empty so consumers can augment it via declaration merging.
-export interface CustomIconRegistry {}
+export interface CustomIconRegistry {
+  /** Built-in "bars-filter" glyph (FontAwesome Classic Solid, E0AD). */
+  "bars-filter": true;
+}
 
 /** The set of custom icon names registered via {@link CustomIconRegistry}. */
 export type CustomIconName = keyof CustomIconRegistry & string;
@@ -424,6 +428,97 @@ export type CustomIconComponent = FC<CustomIconProps>;
  * `TerrenoProvider` via the `icons` prop to register custom icons.
  */
 export type IconRegistryMap = Record<string, CustomIconComponent>;
+
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
+/** Small blue dot that signals a filter control differs from its default. */
+export type FilterChangesBadgeProps = WithTestID;
+
+export interface FilterSelectMenuProps extends WithTestID {
+  /** Label shown to the left of the select control. */
+  title: string;
+  /** Selectable options for the single-select control. */
+  options: FilterOption[];
+  /** Currently selected value. */
+  value?: string;
+  /** Called with the newly selected value. */
+  onChange: (value: string) => void;
+  /** Text shown when no value is selected. */
+  placeholder?: string;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+  /** Disables the control. */
+  disabled?: boolean;
+}
+
+export interface FilterBooleanProps extends WithTestID {
+  /** Label shown to the left of the toggle. */
+  title: string;
+  /** Whether the toggle is on. */
+  value: boolean;
+  /** Called with the next toggle value. The entire row is the click zone. */
+  onChange: (value: boolean) => void;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+  /** Disables the toggle and the row click zone. */
+  disabled?: boolean;
+  /** Renders the toggle in a focused (keyboard) state. */
+  focused?: boolean;
+}
+
+export interface FilterAccordionProps extends WithTestID {
+  /** Label shown in the always-visible header row. */
+  title: string;
+  /** Custom content revealed when expanded. Empty by default. */
+  children?: React.ReactNode;
+  /** Controlled expanded state. Omit to use `defaultExpanded`. */
+  expanded?: boolean;
+  /** Initial expanded state when uncontrolled. */
+  defaultExpanded?: boolean;
+  /** Called with the next expanded state when the header row is pressed. */
+  onToggle?: (expanded: boolean) => void;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+}
+
+export interface FilterProps extends WithTestID {
+  /** Composed filter controls rendered inside the dropdown panel. */
+  children: React.ReactNode;
+  /** Trigger button label. */
+  label?: string;
+  /** Trigger button icon. Defaults to the built-in `bars-filter` glyph. */
+  iconName?: IconName;
+  /** Controlled open state. Omit to use `defaultOpen`. */
+  isOpen?: boolean;
+  /** Initial open state when uncontrolled. */
+  defaultOpen?: boolean;
+  /** Called whenever the dropdown opens or closes. */
+  onOpenChange?: (isOpen: boolean) => void;
+  /** Master toggle for the Apply/Clear/Cancel footer. */
+  showActionButtons?: boolean;
+  /** Show the Apply button in the footer. */
+  showApplyButton?: boolean;
+  /** Show the Clear hyperlink in the footer. */
+  showClearButton?: boolean;
+  /** Show the Cancel button in the footer. */
+  showCancelButton?: boolean;
+  applyButtonText?: string;
+  clearButtonText?: string;
+  cancelButtonText?: string;
+  /** Called when Apply is pressed. The dropdown then closes. */
+  onApply?: () => void;
+  /** Called when Clear is pressed. The dropdown then closes. */
+  onClear?: () => void;
+  /** Called when Cancel or a click-outside closes the dropdown. */
+  onCancel?: () => void;
+  /** Primary theming for the trigger and Apply button. */
+  variant?: "primary" | "secondary";
+  /** Panel width in pixels. Defaults to 320 per the design spec. */
+  width?: number;
+}
 
 export type AlignContent = "start" | "end" | "center" | "between" | "around" | "stretch";
 export type AlignSelf = "auto" | "start" | "end" | "center" | "baseline" | "stretch";
