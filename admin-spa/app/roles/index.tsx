@@ -1,8 +1,8 @@
 import {AdminRolesList, AdminShellLayout} from "@terreno/admin-frontend";
 import React from "react";
 
-import {useAppConfig} from "../components/AppConfigGate";
-import {terrenoApi} from "../store/sdk";
+import {useAppConfig} from "../../components/AppConfigGate";
+import {terrenoApi} from "../../store/sdk";
 
 const RolesRoute: React.FC = () => {
   const {appConfig} = useAppConfig();

@@ -13,10 +13,11 @@ import type {PermissionSet, Statements} from "./statements";
  * Uses `any` statements so concrete `TerrenoAccess<AppStatements>` assigns without casts —
  * method params are contravariant and cannot otherwise widen resource unions to `string`.
  */
-// biome-ignore lint/suspicious/noExplicitAny: variance escape hatch for heterogeneous app statements
+// noExplicitAny: variance escape hatch for heterogeneous app statements across consumers
+// biome-ignore lint/suspicious/noExplicitAny: variance escape hatch for heterogeneous app statements across consumers
 export type AnyTerrenoAccess = TerrenoAccess<any>;
 
-/** @deprecated Prefer LoosePermissionRequest only for docs; AnyTerrenoAccess uses TerrenoAccess<any>. */
+/** @deprecated Prefer typed TerrenoAccess; AnyTerrenoAccess uses TerrenoAccess<any>. */
 export type LoosePermissionRequest = {
   [resource: string]: string[] | undefined;
 };
