@@ -79,7 +79,10 @@ const main = async (): Promise<void> => {
   await fetch(`${API_URL}/admin/config`, {headers: {cookie}});
 
   await connectToMongoDB();
-  const result = await User.updateOne({email: ADMIN_EMAIL}, {$set: {admin: true}});
+  const result = await User.updateOne(
+    {email: ADMIN_EMAIL},
+    {$set: {admin: true, roles: ["superadmin"]}}
+  );
   if (result.matchedCount === 0) {
     throw new APIError({
       status: 404,
@@ -91,7 +94,14 @@ const main = async (): Promise<void> => {
   if (!user?.admin) {
     throw new APIError({status: 500, title: `Failed to promote ${ADMIN_EMAIL} to admin`});
   }
-  logger.info(`Promoted ${ADMIN_EMAIL} to admin (id: ${user._id})`);
+  const roles = (user as {roles?: string[]}).roles ?? [];
+  if (!roles.includes("superadmin")) {
+    throw new APIError({
+      status: 500,
+      title: `Failed to assign superadmin role to ${ADMIN_EMAIL}`,
+    });
+  }
+  logger.info(`Promoted ${ADMIN_EMAIL} to admin with superadmin role (id: ${user._id})`);
 
   await Configuration.shutdown();
   await mongoose.disconnect();

@@ -146,7 +146,12 @@ const seedUser = async (testUser: SeedUser): Promise<void> => {
   // noExplicitAny: passport-local-mongoose register is not typed on the model
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
   const user = await (User as any).register(
-    {admin: testUser.admin ?? false, email: testUser.email, name: testUser.name},
+    {
+      admin: testUser.admin ?? false,
+      email: testUser.email,
+      name: testUser.name,
+      ...(testUser.admin ? {roles: ["superadmin"]} : {}),
+    },
     testUser.password
   );
 
