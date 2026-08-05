@@ -46,7 +46,7 @@ import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./pe
 import type {PopulatePath} from "./populate";
 import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
 import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
-import {registerRealtime} from "./realtime/registry";
+import {registerRealtime, updateRealtimeRegistryOptions} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
   defaultResponseHandler,
@@ -667,13 +667,10 @@ export function modelRouter<T>(
           openApi,
         };
         if (options.realtime) {
-          registerRealtime({
-            collectionName: model.collection.collectionName,
-            config: options.realtime,
-            modelName: model.modelName,
-            options: runtimeOptions as unknown as ModelRouterOptions<unknown>,
-            routePath: path,
-          });
+          updateRealtimeRegistryOptions(
+            path,
+            runtimeOptions as unknown as ModelRouterOptions<unknown>
+          );
         }
         return _buildModelRouter(model, runtimeOptions);
       },

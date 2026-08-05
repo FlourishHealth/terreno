@@ -79,6 +79,7 @@ export {
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./realtime/registry";
 export type {
   ChangeStreamConfig,
