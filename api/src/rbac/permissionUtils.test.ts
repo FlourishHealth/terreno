@@ -5,7 +5,12 @@ import type {User} from "../auth";
 import {setupDb} from "../tests";
 import {createAccess} from "./access";
 import {createRequireAccess} from "./middleware";
-import {isPermissionSubset, unionPermissionSets, validatePermissionSet} from "./permissionUtils";
+import {
+  diffPermissionSets,
+  isPermissionSubset,
+  unionPermissionSets,
+  validatePermissionSet,
+} from "./permissionUtils";
 import {terrenoStatements} from "./statements";
 
 const appStatements = {
@@ -40,6 +45,19 @@ describe("rbac permission utils and middleware", () => {
     expect(() => validatePermissionSet({unknown: ["read"]}, appStatements)).toThrow(
       "Unknown resource"
     );
+    expect(() => validatePermissionSet({todo: ["archive"]}, appStatements)).toThrow(
+      "Unknown permission: todo:archive"
+    );
+  });
+
+  it("diffs permission sets into gained and lost actions", () => {
+    const diff = diffPermissionSets(
+      {todo: ["read"], user: ["read"]},
+      {todo: ["read", "update"], user: ["list"]}
+    );
+
+    expect(diff.gained).toEqual({todo: ["update"], user: ["list"]});
+    expect(diff.lost).toEqual({user: ["read"]});
   });
 
   it("checks permission subsets for escalation prevention", () => {

@@ -115,4 +115,203 @@ describe("createAccess", () => {
     expect(access.ac.statements).toEqual(appStatements);
     expect(createAccessControl(appStatements)).toBeDefined();
   });
+
+  it("denies unauthenticated access checks", async () => {
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+
+    const result = await access.can({
+      permissions: {todo: ["read"]},
+      user: undefined,
+    });
+
+    expect(result).toEqual({
+      allowed: false,
+      deniedBy: "role",
+      reason: "Unauthenticated",
+    });
+  });
+
+  it("applies scope checks and filters on documents and queries", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read", "list"]},
+        },
+      ],
+      scopes: {
+        "todo.*": {
+          check: async ({doc, user}) => {
+            if (!doc || !user) {
+              return true;
+            }
+            return (doc as {ownerId?: string}).ownerId === user.id;
+          },
+          filter: async ({user}) => ({ownerId: user.id}),
+        },
+      },
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["reader"]});
+    const ownDoc = {ownerId: user.id, title: "Mine"};
+    const otherDoc = {ownerId: new mongoose.Types.ObjectId().toString(), title: "Other"};
+
+    expect(
+      await access.can({
+        doc: ownDoc,
+        permissions: {todo: ["read"]},
+        user,
+      })
+    ).toEqual({allowed: true});
+
+    expect(
+      await access.can({
+        doc: otherDoc,
+        permissions: {todo: ["read"]},
+        user,
+      })
+    ).toEqual({allowed: false, deniedBy: "scope", reason: "Denied by todo.read"});
+
+    expect(await access.queryFilter({action: "list", resource: "todo", user})).toEqual({
+      ownerId: user.id,
+    });
+    expect(await access.queryFilter({action: "list", resource: "todo", user: undefined})).toBe(
+      null
+    );
+  });
+
+  it("denies scope checks that require extra permissions", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      scopes: {
+        "todo.read": {
+          check: async () => ({todo: ["update"]}),
+        },
+      },
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["reader"]});
+    const result = await access.can({
+      doc: {title: "Todo"},
+      permissions: {todo: ["read"]},
+      user,
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.deniedBy).toBe("scope");
+  });
+
+  it("returns empty query filters when scopes have no filter", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["reader"]});
+    expect(await access.queryFilter({action: "read", resource: "todo", user})).toEqual({});
+  });
+
+  it("applies field views for read and write phases", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read", "update"]},
+        },
+      ],
+      fieldViews: {
+        todo: {
+          select: ({phase}) => (phase === "write" ? "editable" : "public"),
+          views: {
+            editable: {omit: [], read: ["title"], write: ["title"]},
+            public: {omit: [], read: ["title"], write: []},
+          },
+        },
+      },
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["reader"]});
+    const readMask = await access.fieldMask({
+      doc: {secret: "hidden", title: "Todo"},
+      phase: "read",
+      resource: "todo",
+      user,
+    });
+    expect(readMask.read).toEqual(["title"]);
+
+    const writeMask = await access.fieldMask({
+      doc: {secret: "hidden", title: "Todo"},
+      phase: "write",
+      resource: "todo",
+      user,
+    });
+    expect(writeMask.write).toEqual(["title"]);
+
+    const anonymousMask = await access.fieldMask({
+      resource: "todo",
+      user: undefined,
+    });
+    expect(anonymousMask).toEqual({omit: [], read: "*", write: "*"});
+  });
+
+  it("returns custom field masks from select callbacks", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      fieldViews: {
+        todo: {
+          select: () => ({omit: [], read: ["title"], write: ["title"]}),
+          views: {},
+        },
+      },
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["reader"]});
+    const mask = await access.fieldMask({
+      resource: "todo",
+      user,
+    });
+    expect(mask.read).toEqual(["title"]);
+  });
 });

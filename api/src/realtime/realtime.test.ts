@@ -47,6 +47,7 @@ import {
   findRegistryEntryByRoutePath,
   getRealtimeRegistry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./registry";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -582,6 +583,24 @@ describe("realtimeRegistry", () => {
       registerRealtime(makeEntry());
       clearRealtimeRegistry();
       expect(getRealtimeRegistry()).toHaveLength(0);
+    });
+  });
+
+  describe("updateRealtimeRegistryOptions", () => {
+    it("replaces options on an existing entry by route path", () => {
+      registerRealtime(makeEntry({routePath: "/todos"}));
+      const updatedOptions = {permissions: {list: []}} as any;
+      updateRealtimeRegistryOptions("/todos", updatedOptions);
+
+      expect(getRealtimeRegistry()[0]?.options).toBe(updatedOptions);
+    });
+
+    it("no-ops when the route path is not registered", () => {
+      registerRealtime(makeEntry({routePath: "/todos"}));
+      const originalOptions = getRealtimeRegistry()[0]?.options;
+      updateRealtimeRegistryOptions("/missing", {permissions: {}} as any);
+
+      expect(getRealtimeRegistry()[0]?.options).toBe(originalOptions);
     });
   });
 });
