@@ -137,9 +137,19 @@ This consent is optional. You can decline without affecting your use of the appl
 ];
 
 const seedUser = async (testUser: SeedUser): Promise<void> => {
+  const roles = testUser.admin ? ["superadmin"] : ["manager"];
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
-    logger.info(`Test user already exists: ${testUser.email}`);
+    const currentRoles = (existingUser as {roles?: string[]}).roles ?? [];
+    const missingRoles = roles.filter((role) => !currentRoles.includes(role));
+    if (missingRoles.length > 0 || (testUser.admin && !existingUser.admin)) {
+      existingUser.admin = testUser.admin ?? false;
+      (existingUser as {roles: string[]}).roles = [...new Set([...currentRoles, ...roles])];
+      await existingUser.save();
+      logger.info(`Updated test user roles: ${testUser.email} -> ${roles.join(",")}`);
+    } else {
+      logger.info(`Test user already exists: ${testUser.email}`);
+    }
     return;
   }
 
@@ -150,7 +160,7 @@ const seedUser = async (testUser: SeedUser): Promise<void> => {
       admin: testUser.admin ?? false,
       email: testUser.email,
       name: testUser.name,
-      ...(testUser.admin ? {roles: ["superadmin"]} : {}),
+      roles,
     },
     testUser.password
   );
