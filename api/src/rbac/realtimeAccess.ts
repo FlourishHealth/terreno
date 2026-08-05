@@ -1,32 +1,51 @@
+import type {RESTMethod} from "../api";
 import type {User} from "../auth";
 import {checkPermissions} from "../permissions";
 import type {RealtimeRegistryEntry} from "../realtime/registry";
 import {applyReadMask} from "./fieldViews";
-import type {RESTMethod} from "../api";
+import type {ModelRouterAccessOptions} from "./types";
 
-const resolveListAction = (entry: RealtimeRegistryEntry): string => {
-  const access = entry.options.access;
-  const accessControl = entry.options.accessControl;
-  if (!access || !accessControl) {
-    return "read";
+const DEFAULT_METHOD_ACTIONS: Record<"list" | "read", string> = {
+  list: "list",
+  read: "read",
+};
+
+const resolveActionForMethod = (
+  method: "list" | "read",
+  access: ModelRouterAccessOptions,
+  statements: Record<string, readonly string[]>
+): string | null => {
+  const override = access.actions?.[method];
+  if (override === null) {
+    return null;
   }
-  const statements = accessControl.statements as Record<string, readonly string[]>;
+  if (override) {
+    return override;
+  }
+
   const resourceActions = statements[access.resource] ?? [];
-  if (resourceActions.includes("list")) {
+  if (method === "list" && resourceActions.includes("list")) {
     return "list";
   }
-  return "read";
+  if (method === "list") {
+    return "read";
+  }
+  return DEFAULT_METHOD_ACTIONS[method];
 };
 
 export const canSubscribeRealtime = async (
   entry: RealtimeRegistryEntry,
   method: "list" | "read",
-  user?: User,
+  user?: User
 ): Promise<boolean> => {
   const access = entry.options.access;
   const accessControl = entry.options.accessControl;
   if (access && accessControl) {
-    const action = method === "list" ? resolveListAction(entry) : "read";
+    const statements = accessControl.statements as Record<string, readonly string[]>;
+    const action = resolveActionForMethod(method, access, statements);
+    if (!action) {
+      return false;
+    }
     const result = await accessControl.can({
       context: {transport: "socket"},
       permissions: {[access.resource]: [action]},
@@ -42,15 +61,20 @@ export const canSubscribeRealtime = async (
 export const canReadDocumentRealtime = async (
   entry: RealtimeRegistryEntry,
   user?: User,
-  doc?: Record<string, unknown>,
+  doc?: Record<string, unknown>
 ): Promise<boolean> => {
   const access = entry.options.access;
   const accessControl = entry.options.accessControl;
   if (access && accessControl) {
+    const statements = accessControl.statements as Record<string, readonly string[]>;
+    const action = resolveActionForMethod("read", access, statements);
+    if (!action) {
+      return false;
+    }
     const result = await accessControl.can({
       context: {transport: "socket"},
       doc,
-      permissions: {[access.resource]: ["read"]},
+      permissions: {[access.resource]: [action]},
       user,
     });
     return result.allowed;
@@ -63,7 +87,7 @@ export const maskRealtimeDocument = async (
   entry: RealtimeRegistryEntry,
   user: User | undefined,
   doc: unknown,
-  method: RESTMethod,
+  method: RESTMethod
 ): Promise<unknown> => {
   const access = entry.options.access;
   const accessControl = entry.options.accessControl;

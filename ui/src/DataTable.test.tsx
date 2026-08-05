@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
 
@@ -7,6 +5,8 @@ import type {DataTableCustomComponentMap, DataTableProps} from "./Common";
 import {DataTable} from "./DataTable";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
+
+type MoreContentComponent = NonNullable<DataTableProps["moreContentComponent"]>;
 
 describe("DataTable", () => {
   const sampleColumns = [
@@ -112,13 +112,9 @@ describe("DataTable", () => {
   });
 
   it("renders with more content component", () => {
-    const MoreContent = ({rowIndex}: {rowIndex: number}) => <Text>Row {rowIndex} details</Text>;
+    const MoreContent: MoreContentComponent = ({rowIndex}) => <Text>Row {rowIndex} details</Text>;
     const {toJSON} = renderWithTheme(
-      <DataTable
-        columns={sampleColumns}
-        data={sampleData}
-        moreContentComponent={MoreContent as unknown as DataTableProps["moreContentComponent"]}
-      />
+      <DataTable columns={sampleColumns} data={sampleData} moreContentComponent={MoreContent} />
     );
     expect(toJSON()).toMatchSnapshot();
   });
@@ -266,7 +262,7 @@ describe("DataTable", () => {
   });
 
   it("renders with custom column component map", () => {
-    const CustomComponent = ({cellData}: {cellData: {value: unknown}}) => (
+    const CustomComponent: DataTableCustomComponentMap[string] = ({cellData}) => (
       <Text>Custom: {String(cellData.value)}</Text>
     );
     const customColumns = [{columnType: "custom", title: "Custom Col", width: 150}];
@@ -274,7 +270,7 @@ describe("DataTable", () => {
     const {getByText} = renderWithTheme(
       <DataTable
         columns={customColumns}
-        customColumnComponentMap={{custom: CustomComponent as any}}
+        customColumnComponentMap={{custom: CustomComponent}}
         data={customData}
       />
     );
@@ -300,16 +296,16 @@ describe("DataTable", () => {
   });
 
   it("renders with moreContentExtraData", () => {
-    const MoreContent = ({rowIndex, extraInfo}: {rowIndex: number; extraInfo?: string}) => (
+    const MoreContent: MoreContentComponent = ({rowIndex, extraInfo}) => (
       <Text>
-        Row {rowIndex}: {extraInfo}
+        Row {rowIndex}: {String(extraInfo)}
       </Text>
     );
     const {toJSON} = renderWithTheme(
       <DataTable
         columns={sampleColumns}
         data={sampleData}
-        moreContentComponent={MoreContent as any}
+        moreContentComponent={MoreContent}
         moreContentExtraData={[{extraInfo: "info1"}, {extraInfo: "info2"}, {extraInfo: "info3"}]}
       />
     );
@@ -317,13 +313,11 @@ describe("DataTable", () => {
   });
 
   it("opens and dismisses more content modal via MoreButtonCell press", async () => {
-    const MoreContent = ({rowIndex}: {rowIndex: number}) => <Text>Detail for row {rowIndex}</Text>;
+    const MoreContent: MoreContentComponent = ({rowIndex}) => (
+      <Text>Detail for row {rowIndex}</Text>
+    );
     const {UNSAFE_getAllByType} = renderWithTheme(
-      <DataTable
-        columns={sampleColumns}
-        data={sampleData}
-        moreContentComponent={MoreContent as any}
-      />
+      <DataTable columns={sampleColumns} data={sampleData} moreContentComponent={MoreContent} />
     );
 
     const {Pressable: PressableComp} = require("react-native");
@@ -352,7 +346,7 @@ describe("DataTable", () => {
   });
 
   it("renders with customColumnComponentMap", () => {
-    const CustomCell = ({cellData}: {cellData: {value: unknown}; column: unknown}) => (
+    const CustomCell: DataTableCustomComponentMap[string] = ({cellData}) => (
       <Text>Custom: {String(cellData.value)}</Text>
     );
     const customColumns = [
@@ -363,7 +357,7 @@ describe("DataTable", () => {
     const {getByText} = renderWithTheme(
       <DataTable
         columns={customColumns}
-        customColumnComponentMap={{custom: CustomCell} as DataTableCustomComponentMap}
+        customColumnComponentMap={{custom: CustomCell}}
         data={customData}
       />
     );

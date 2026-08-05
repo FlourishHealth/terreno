@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/bun";
 import type {AxiosResponse} from "axios";
 import axios from "axios";
 
-import type {APIError} from "../errors";
+import {type APIError, isAPIError} from "../errors";
 import {sendToZoom} from "./zoomNotifier";
 
 describe("sendToZoom", () => {
@@ -190,7 +190,7 @@ describe("sendToZoom", () => {
       await sendToZoom({body: "err", header: "err"}, {channel: "default", shouldThrow: true});
       throw new Error("Expected sendToZoom to throw APIError");
     } catch (error) {
-      expect((error as APIError).name).toBe("APIError");
+      expect(isAPIError(error)).toBe(true);
       expect((error as APIError).title).toMatch(/Error posting to Zoom/i);
     }
     expect(mockAxiosPost.mock.calls.length).toBe(1);

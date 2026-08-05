@@ -458,8 +458,8 @@ describe("AiSuggestionBox in TextArea", () => {
       );
 
       expect(getByTestId("notes-ai-suggestion")).toBeTruthy();
-      expect(getByTestId("notes-ai-suggestion-thumbs-up")).toBeTruthy();
-      expect(getByTestId("notes-ai-suggestion-thumbs-down")).toBeTruthy();
+      expect(getByTestId("notes-ai-suggestion-feedback-positive")).toBeTruthy();
+      expect(getByTestId("notes-ai-suggestion-feedback-negative")).toBeTruthy();
       expect(getByTestId("notes-ai-suggestion-hide")).toBeTruthy();
       expect(getByTestId("notes-ai-suggestion-add")).toBeTruthy();
     });

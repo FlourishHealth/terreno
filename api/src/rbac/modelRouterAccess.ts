@@ -1,15 +1,10 @@
 import type express from "express";
-
+import type {RESTMethod} from "../api";
 import {APIError} from "../errors";
 import type {PermissionMethod, RESTPermissions} from "../permissions";
 import {applyReadMask, getDisallowedWriteKeys} from "./fieldViews";
 import {createIsPermitted} from "./middleware";
-import type {RESTMethod} from "../api";
-import type {
-  AnyTerrenoAccess,
-  ModelRouterAccessOptions,
-  ResourceScope,
-} from "./types";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions, ResourceScope} from "./types";
 
 const DEFAULT_METHOD_ACTIONS: Record<RESTMethod, string> = {
   create: "create",
@@ -21,7 +16,7 @@ const DEFAULT_METHOD_ACTIONS: Record<RESTMethod, string> = {
 
 const mergeFilters = (
   existing: Record<string, unknown> | null | undefined,
-  scopeFilter: Record<string, unknown> | null | undefined,
+  scopeFilter: Record<string, unknown> | null | undefined
 ): Record<string, unknown> | null => {
   if (existing === null || scopeFilter === null) {
     return null;
@@ -41,7 +36,7 @@ const mergeFilters = (
 const resolveActionForMethod = (
   method: RESTMethod,
   access: ModelRouterAccessOptions,
-  statements: Record<string, readonly string[]>,
+  statements: Record<string, readonly string[]>
 ): string | null => {
   const override = access.actions?.[method];
   if (override === null) {
@@ -61,16 +56,13 @@ const resolveActionForMethod = (
   return DEFAULT_METHOD_ACTIONS[method];
 };
 
-const buildPermissionRequest = (
-  resource: string,
-  action: string,
-): Record<string, string[]> => ({
+const buildPermissionRequest = (resource: string, action: string): Record<string, string[]> => ({
   [resource]: [action],
 });
 
 export const buildAccessPermissions = <T>(
   accessControl: AnyTerrenoAccess,
-  access: ModelRouterAccessOptions,
+  access: ModelRouterAccessOptions
 ): RESTPermissions<T> => {
   const isPermitted = createIsPermitted({can: accessControl.can});
   const statements = accessControl.statements as Record<string, readonly string[]>;
@@ -97,17 +89,17 @@ export const buildAccessPermissions = <T>(
   };
 };
 
-export const buildAccessQueryFilter = <T>(
+export const buildAccessQueryFilter = <_T>(
   accessControl: AnyTerrenoAccess,
   access: ModelRouterAccessOptions,
   existing?: (
     user?: express.Request["user"],
-    query?: Record<string, unknown>,
-  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>,
+    query?: Record<string, unknown>
+  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>
 ) => {
   return async (
     user?: express.Request["user"],
-    query?: Record<string, unknown>,
+    query?: Record<string, unknown>
   ): Promise<Record<string, unknown> | null> => {
     let merged: Record<string, unknown> | null = query ?? {};
 
@@ -142,14 +134,14 @@ export const wrapAccessResponseHandler = <T>(
     value: T | T[],
     method: RESTMethod,
     request: express.Request,
-    options: {access?: ModelRouterAccessOptions},
-  ) => Promise<unknown> | unknown,
+    options: {access?: ModelRouterAccessOptions}
+  ) => Promise<unknown> | unknown
 ) => {
   return async (
     value: T | T[],
     method: "list" | "create" | "read" | "update" | "delete",
     request: express.Request,
-    options: {access?: ModelRouterAccessOptions},
+    options: {access?: ModelRouterAccessOptions}
   ): Promise<unknown> => {
     const serialized = await baseHandler(value, method, request, options);
     const phase = method === "create" ? "create" : "read";
@@ -164,7 +156,7 @@ export const wrapAccessResponseHandler = <T>(
           user: request.user,
         });
         return applyReadMask(doc, mask);
-      }),
+      })
     );
 
     return Array.isArray(serialized) ? masked : masked[0];
@@ -214,26 +206,26 @@ export const resolveModelRouterAccess = <T>(options: {
   permissions?: RESTPermissions<T>;
   queryFilter?: (
     user?: express.Request["user"],
-    query?: Record<string, unknown>,
+    query?: Record<string, unknown>
   ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
   responseHandler?: (
     value: unknown,
     method: RESTMethod,
     request: express.Request,
-    routerOptions: unknown,
+    routerOptions: unknown
   ) => Promise<unknown> | unknown;
   scope?: ResourceScope;
 }): {
   permissions: RESTPermissions<T>;
   queryFilter?: (
     user?: express.Request["user"],
-    query?: Record<string, unknown>,
+    query?: Record<string, unknown>
   ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
   responseHandler?: (
     value: unknown,
     method: RESTMethod,
     request: express.Request,
-    routerOptions: unknown,
+    routerOptions: unknown
   ) => Promise<unknown> | unknown;
 } => {
   if (!options.access || !options.accessControl) {
@@ -257,18 +249,14 @@ export const resolveModelRouterAccess = <T>(options: {
     queryFilter: buildAccessQueryFilter(
       options.accessControl,
       access,
-      options.queryFilter,
+      options.queryFilter
     ) as typeof options.queryFilter,
     responseHandler: (options.responseHandler
-      ? wrapAccessResponseHandler(
-          options.accessControl,
-          access,
-          options.responseHandler as never,
-        )
+      ? wrapAccessResponseHandler(options.accessControl, access, options.responseHandler as never)
       : wrapAccessResponseHandler(
           options.accessControl,
           access,
-          (value) => value,
+          (value) => value
         )) as typeof options.responseHandler,
   };
 };

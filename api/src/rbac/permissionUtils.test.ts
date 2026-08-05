@@ -56,9 +56,11 @@ describe("rbac permission utils and middleware", () => {
     const requireAccess = createRequireAccess({can: access.can});
     const middleware = requireAccess({todo: ["read"]});
 
-    await expect(
-      middleware({user: undefined} as never, {} as never, () => undefined)
-    ).rejects.toMatchObject({status: 403});
+    let capturedError: unknown;
+    await middleware({user: undefined} as never, {} as never, (error?: unknown) => {
+      capturedError = error;
+    });
+    expect(capturedError).toMatchObject({status: 403});
   });
 
   it("caches permissions until invalidateCache is called", async () => {

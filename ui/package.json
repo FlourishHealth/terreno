@@ -17,7 +17,11 @@
     ]
   },
   "dependencies": {
+    "@expo-google-fonts/caveat": "^0.4.2",
+    "@expo-google-fonts/dancing-script": "^0.4.2",
+    "@expo-google-fonts/great-vibes": "^0.4.1",
     "@expo-google-fonts/nunito": "catalog:",
+    "@expo-google-fonts/sacramento": "^0.4.1",
     "@expo-google-fonts/titillium-web": "catalog:",
     "@expo/vector-icons": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
@@ -137,5 +141,5 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "0.26.0"
+  "version": "0.30.0"
 }

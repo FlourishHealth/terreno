@@ -15,7 +15,7 @@ export const SelectField: FC<SelectFieldProps> = ({
   options,
   requireValue = false,
   placeholder = "Please select an option.",
-  searchable = true,
+  disableSearch = false,
   title,
   value,
   onChange,
@@ -32,6 +32,7 @@ export const SelectField: FC<SelectFieldProps> = ({
       <View style={{alignSelf: "stretch", minWidth: 0, width: "100%"}}>
         <RNPickerSelect
           disabled={disabled}
+          disableSearch={disableSearch}
           items={options}
           onValueChange={(v) => {
             if (v === undefined || v === null || v === "") {
@@ -41,7 +42,6 @@ export const SelectField: FC<SelectFieldProps> = ({
             }
           }}
           placeholder={!requireValue ? clearOption : {}}
-          searchable={searchable}
           textInputProps={{testID: fieldTestIDs.input}}
           value={value ?? ""}
         />

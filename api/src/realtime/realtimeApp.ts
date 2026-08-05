@@ -8,8 +8,8 @@ import {Server, type Socket} from "socket.io";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
-import type {TerrenoPlugin} from "../terrenoPlugin";
 import {canSubscribeRealtime} from "../rbac/realtimeAccess";
+import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
   addQuerySubscription,

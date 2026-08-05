@@ -194,7 +194,12 @@ export const serializeDoc = async (
       const restMethod = method === "delete" ? "read" : method;
       // Synthesize the minimal request shape responseHandlers commonly inspect.
       const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
-      const serialized = await responseHandler(doc, restMethod, syntheticReq, entry.options);
+      const serialized = await responseHandler(
+        doc as unknown as mongoose.Document<unknown, unknown, unknown>,
+        restMethod,
+        syntheticReq,
+        entry.options
+      );
       const masked = await maskRealtimeDocument(entry, user, serialized, restMethod);
       return ensureApiId(masked);
     } catch (error) {
@@ -206,9 +211,15 @@ export const serializeDoc = async (
     }
   }
 
-  return ensureApiId(
-    typeof doc.toJSON === "function" ? (doc as {toJSON: () => unknown}).toJSON() : doc
+  const fallback =
+    typeof doc.toJSON === "function" ? (doc as {toJSON: () => unknown}).toJSON() : doc;
+  const maskedFallback = await maskRealtimeDocument(
+    entry,
+    user,
+    fallback,
+    method === "delete" ? "read" : method
   );
+  return ensureApiId(maskedFallback);
 };
 
 export const emitToAuthorizedRoom = async (

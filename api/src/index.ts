@@ -29,6 +29,12 @@ export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
 export * from "./rbac/access";
+export {
+  type BackfillAdminsOptions,
+  type BackfillAdminsResult,
+  backfillAdmins,
+} from "./rbac/backfillAdmins";
+export * from "./rbac/fieldViews";
 export * from "./rbac/middleware";
 export * from "./rbac/permissionUtils";
 export {
@@ -40,12 +46,11 @@ export {
   type RoleDefinition,
   terrenoDefaultRoles,
 } from "./rbac/roleModel";
+export {type RbacRouterOptions, rbacRouter} from "./rbac/routes";
 export * from "./rbac/scopes";
 export * from "./rbac/statements";
 export * from "./rbac/types";
-export * from "./rbac/fieldViews";
-export {rbacRouter, type RbacRouterOptions} from "./rbac/routes";
-export {backfillAdmins, type BackfillAdminsOptions, type BackfillAdminsResult} from "./rbac/backfillAdmins";
+export * from "./rbac/userPlugin";
 export {
   startChangeStreamWatcher,
   stopChangeStreamWatcher,

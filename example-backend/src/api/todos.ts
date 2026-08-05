@@ -10,6 +10,7 @@ const bulkCompleteBodySchema = z
   .strict();
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  access: {resource: "todo"},
   collectionActions: {
     bulkComplete: {
       body: bulkCompleteBodySchema,

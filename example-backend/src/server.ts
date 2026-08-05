@@ -7,6 +7,7 @@ import {
   type AuthProvider,
   BetterAuthApp,
   type BetterAuthConfig,
+  backfillAdmins,
   ConsentApp,
   ConsentForm,
   ConsentResponse,
@@ -118,6 +119,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
   // Connect to MongoDB first
   await connectToMongoDB();
   await access.roles.seedDefaults();
+  await backfillAdmins({
+    access,
+    userModel: User as unknown as TerrenoAuthUserModel,
+    wetRun: true,
+  });
 
   // Sync default consent forms on startup
   await syncConsents(consentDefinitions).catch((err: unknown) => {

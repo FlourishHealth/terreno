@@ -178,12 +178,16 @@ describe("query and list methods", () => {
 
   it("list page 0 ", async () => {
     const res = await agent.get("/food?limit=1&page=0").expect(400);
-    expect(res.body.title).toBe("Invalid page: 0");
+    expect(res.body.title).toBe("Invalid page");
+    expect(res.body.detail).toBe("Invalid page: 0");
+    expect(res.body.source).toEqual({parameter: "page"});
   });
 
   it("list page with garbage ", async () => {
     const res = await agent.get("/food?limit=1&page=abc").expect(400);
-    expect(res.body.title).toBe("Invalid page: abc");
+    expect(res.body.title).toBe("Invalid page");
+    expect(res.body.detail).toBe("Invalid page: abc");
+    expect(res.body.source).toEqual({parameter: "page"});
   });
 
   it("list page over", async () => {
@@ -216,7 +220,9 @@ describe("query and list methods", () => {
 
   it("list returns 400 when created_gte is not a valid date", async () => {
     const res = await agent.get("/food").query({created_gte: "not-a-date", limit: 10}).expect(400);
-    expect(res.body.title).toBe("Invalid date for query parameter created_gte");
+    expect(res.body.title).toBe("Invalid date query parameter");
+    expect(res.body.detail).toBe("Invalid date for query parameter created_gte");
+    expect(res.body.source).toEqual({parameter: "created_gte"});
   });
 
   it("list returns 400 when created_lte is not a valid date", async () => {
@@ -224,7 +230,9 @@ describe("query and list methods", () => {
       .get("/food")
       .query({created_lte: "also-not-a-date", limit: 10})
       .expect(400);
-    expect(res.body.title).toBe("Invalid date for query parameter created_lte");
+    expect(res.body.title).toBe("Invalid date query parameter");
+    expect(res.body.detail).toBe("Invalid date for query parameter created_lte");
+    expect(res.body.source).toEqual({parameter: "created_lte"});
   });
 
   it("applies created_gte alone as a lower Date bound", async () => {
@@ -275,7 +283,8 @@ describe("query and list methods", () => {
 
   it("list query params not in list", async () => {
     const res = await agent.get(`/food?ownerId=${admin._id}`).expect(400);
-    expect(res.body.title).toBe("ownerId is not allowed as a query param.");
+    expect(res.body.title).toBe("Query parameter not allowed");
+    expect(res.body.detail).toBe("ownerId is not allowed as a query param.");
   });
 
   it("list query by nested param", async () => {
@@ -477,16 +486,19 @@ describe("query and list methods", () => {
     let res = await agent
       .get(`/food?${qs.stringify({$and: [{ownerId: "healthy"}, {tags: "cheap"}]})}`)
       .expect(400);
-    expect(res.body.title).toBe("ownerId is not allowed as a query param.");
+    expect(res.body.title).toBe("Query parameter not allowed");
+    expect(res.body.detail).toBe("ownerId is not allowed as a query param.");
     res = await agent
       .get(`/food?${qs.stringify({$and: [{tags: "cheap"}, {ownerId: "healthy"}]})}`)
       .expect(400);
-    expect(res.body.title).toBe("ownerId is not allowed as a query param.");
+    expect(res.body.title).toBe("Query parameter not allowed");
+    expect(res.body.detail).toBe("ownerId is not allowed as a query param.");
 
     res = await agent
       .get(`/food?${qs.stringify({$or: [{tags: "cheap"}, {ownerId: "healthy"}]})}`)
       .expect(400);
-    expect(res.body.title).toBe("ownerId is not allowed as a query param.");
+    expect(res.body.title).toBe("Query parameter not allowed");
+    expect(res.body.detail).toBe("ownerId is not allowed as a query param.");
   });
 
   it("query with a number", async () => {

@@ -2,7 +2,7 @@ import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn}
 import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
-import {APIError} from "../errors";
+import {APIError, isAPIError} from "../errors";
 import {sendToSlack} from "./slackNotifier";
 
 describe("sendToSlack", () => {
@@ -121,7 +121,7 @@ describe("sendToSlack", () => {
       throw new Error("Expected sendToSlack to throw APIError");
     } catch (error) {
       const apiError = error as APIError;
-      expect(apiError.name).toBe("APIError");
+      expect(isAPIError(apiError)).toBe(true);
       expect(apiError.title).toMatch(/Error posting to slack/i);
     }
     expect(mockAxiosPost.mock.calls.length).toBe(1);

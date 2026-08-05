@@ -2,15 +2,24 @@ import type {createAccessControl} from "better-auth/plugins/access";
 import type express from "express";
 import type {RequestHandler} from "express";
 import type {Connection} from "mongoose";
-
+import type {RESTMethod} from "../api";
 import type {User, UserModel} from "../auth";
 import type {PermissionMethod} from "../permissions";
 import type {RbacRoleDocument, RoleDefinition} from "./roleModel";
-import type {RESTMethod} from "../api";
 import type {PermissionSet, Statements} from "./statements";
 
-/** Non-generic TerrenoAccess for runtime wiring (modelRouter, rbacRouter, TerrenoApp). */
-export type AnyTerrenoAccess = TerrenoAccess<Statements>;
+/**
+ * Non-generic TerrenoAccess for runtime wiring (modelRouter, rbacRouter, TerrenoApp).
+ * Uses `any` statements so concrete `TerrenoAccess<AppStatements>` assigns without casts —
+ * method params are contravariant and cannot otherwise widen resource unions to `string`.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: variance escape hatch for heterogeneous app statements
+export type AnyTerrenoAccess = TerrenoAccess<any>;
+
+/** @deprecated Prefer LoosePermissionRequest only for docs; AnyTerrenoAccess uses TerrenoAccess<any>. */
+export type LoosePermissionRequest = {
+  [resource: string]: string[] | undefined;
+};
 
 export interface ModelRouterAccessOptions {
   resource: string;
@@ -111,11 +120,11 @@ export interface ScopeArgs<TDoc> {
   context?: Record<string, unknown>;
 }
 
-export type ResourceScopes<S extends Statements> = {
+export type ResourceScopes<_S extends Statements> = {
   [key: string]: ResourceScope;
 };
 
-export interface ResourceFieldViews<S extends Statements> {
+export interface ResourceFieldViews<_S extends Statements> {
   [resource: string]: {
     views: Record<string, FieldMask>;
     select: (args: {

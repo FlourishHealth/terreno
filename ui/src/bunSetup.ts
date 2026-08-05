@@ -609,9 +609,61 @@ mock.module("@expo-google-fonts/titillium-web", () => ({
   useFonts: mock(() => [true, null]),
 }));
 
+// Mock the signature font packages used by TypedSignatureField. The real packages import .ttf
+// assets, which the bun test runner cannot parse, so stub each exported font module as a string.
+mock.module("@expo-google-fonts/dancing-script", () => ({
+  DancingScript_400Regular: "DancingScript_400Regular",
+  DancingScript_500Medium: "DancingScript_500Medium",
+  DancingScript_600SemiBold: "DancingScript_600SemiBold",
+  DancingScript_700Bold: "DancingScript_700Bold",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/great-vibes", () => ({
+  GreatVibes_400Regular: "GreatVibes_400Regular",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/sacramento", () => ({
+  Sacramento_400Regular: "Sacramento_400Regular",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/caveat", () => ({
+  Caveat_400Regular: "Caveat_400Regular",
+  Caveat_500Medium: "Caveat_500Medium",
+  Caveat_600SemiBold: "Caveat_600SemiBold",
+  Caveat_700Bold: "Caveat_700Bold",
+  useFonts: mock(() => [true, null]),
+}));
+
 // Mock DateTimeActionSheet
 mock.module("./DateTimeActionSheet", () => ({
   DateTimeActionSheet: mock(() => null),
+}));
+
+// Mock react-native-actions-sheet so the native Modal branch is testable. The real component
+// defers rendering until opened via native animation (which react-test-renderer never triggers),
+// so the mock tracks the imperative visibility state instead: it renders its children
+// synchronously when opened via the ref (setModalVisible/show) and renders nothing when closed.
+// This keeps opened content assertable while still letting tests verify the closed/hidden state.
+mock.module("react-native-actions-sheet", () => ({
+  __esModule: true,
+  default: React.forwardRef(function ActionSheetMock(
+    {children}: {children?: React.ReactNode},
+    ref: React.Ref<unknown>
+  ) {
+    const [isVisible, setIsVisible] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({
+      hide: () => setIsVisible(false),
+      setModalVisible: (visible?: boolean) => setIsVisible(Boolean(visible)),
+      show: () => setIsVisible(true),
+    }));
+    if (!isVisible) {
+      return null;
+    }
+    return React.createElement("ActionSheetMock", {}, children);
+  }),
 }));
 
 // Mock MediaQuery
@@ -701,6 +753,11 @@ mock.module("@expo/vector-icons", () => ({
 
 // Mock @expo/vector-icons/FontAwesome6
 mock.module("@expo/vector-icons/FontAwesome6", () => ({
+  default: mock(() => null),
+}));
+
+// Mock @expo/vector-icons/MaterialIcons
+mock.module("@expo/vector-icons/MaterialIcons", () => ({
   default: mock(() => null),
 }));
 

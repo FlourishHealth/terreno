@@ -1,6 +1,6 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {configureStore} from "@reduxjs/toolkit";
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
@@ -21,6 +21,9 @@ import {
   useSelectIsAuthenticating,
 } from "./authSlice";
 import type {RootState} from "./constants";
+
+// Force IsWeb=true regardless of load order with the native test files.
+mock.module("./platform", () => ({IsWeb: true}));
 
 // Create a real RTK Query API with the endpoints that generateAuthSlice expects
 const api = createApi({

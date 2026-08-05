@@ -14,7 +14,11 @@ export interface RbacRouterOptions {
   basePath?: string;
 }
 
-export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOptions): TerrenoPlugin => {
+export const rbacRouter = ({
+  access,
+  userModel,
+  basePath = "/rbac",
+}: RbacRouterOptions): TerrenoPlugin => {
   const auditModel = createRbacAuditModel(userModel.db);
 
   const recordAudit = async (args: {
@@ -49,7 +53,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
               statements: access.statements,
             },
           });
-        }),
+        })
       );
 
       router.get(
@@ -59,7 +63,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
         asyncHandler(async (_req, res) => {
           const roles = await access.roles.list();
           return res.json({data: roles});
-        }),
+        })
       );
 
       router.post(
@@ -78,7 +82,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
             targetRoleName: role.name,
           });
           return res.status(201).json({data: role});
-        }),
+        })
       );
 
       router.patch(
@@ -101,7 +105,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
             targetRoleName: role.name,
           });
           return res.json({data: role});
-        }),
+        })
       );
 
       router.delete(
@@ -120,7 +124,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
             targetRoleName: req.params.name,
           });
           return res.status(204).send();
-        }),
+        })
       );
 
       router.post(
@@ -133,7 +137,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
             roleName: req.params.name,
           });
           return res.json({data: diff});
-        }),
+        })
       );
 
       router.get(
@@ -155,7 +159,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
               roles: withRoles.roles ?? [],
             },
           });
-        }),
+        })
       );
 
       router.put(
@@ -178,7 +182,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
             targetUserId: req.params.id,
           });
           return res.json({data: {success: true}});
-        }),
+        })
       );
 
       router.post(
@@ -191,7 +195,7 @@ export const rbacRouter = ({access, userModel, basePath = "/rbac"}: RbacRouterOp
             userId: req.params.id,
           });
           return res.json({data: diff});
-        }),
+        })
       );
 
       app.use(basePath, router);

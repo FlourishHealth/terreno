@@ -27,7 +27,7 @@ export const backfillAdmins = async ({
 }: BackfillAdminsOptions): Promise<BackfillAdminsResult> => {
   const admins = await userModel.find({admin: true});
   logger.info(
-    `[rbac:backfill-admins] Found ${admins.length} admin user(s); target role=${roleName}; wetRun=${wetRun}`,
+    `[rbac:backfill-admins] Found ${admins.length} admin user(s); target role=${roleName}; wetRun=${wetRun}`
   );
 
   let updated = 0;

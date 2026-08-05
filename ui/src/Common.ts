@@ -1521,6 +1521,34 @@ export interface BadgeProps extends WithTestID {
   variant?: "iconOnly" | "numberOnly";
 }
 
+export type ThumbsUpDownFeedbackValue = "positive" | "negative";
+
+export interface ThumbsUpDownFeedbackProps extends WithTestID {
+  /**
+   * If true, both options are non-interactive and rendered in a muted color.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * Accessibility label for the negative (thumbs down) option.
+   * @default "Thumbs down"
+   */
+  negativeAccessibilityLabel?: string;
+  /**
+   * Called with the newly selected value, or undefined when the current value is deselected.
+   */
+  onChange: (value?: ThumbsUpDownFeedbackValue) => void | Promise<void>;
+  /**
+   * Accessibility label for the positive (thumbs up) option.
+   * @default "Thumbs up"
+   */
+  positiveAccessibilityLabel?: string;
+  /**
+   * The currently selected feedback. Leave undefined for no selection.
+   */
+  value?: ThumbsUpDownFeedbackValue;
+}
+
 export interface SelectBadgeProps {
   /**
    * When status is "custom", determines the badge's background color.
@@ -1794,10 +1822,10 @@ export interface CustomSelectFieldProps extends WithTestID {
   title?: string;
 
   /**
-   * When true, options can be filtered as the user types. See `SelectFieldProps.searchable`.
-   * @default true
+   * When true, hides the type-to-filter search UI. Search is enabled by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
 }
 
 export interface DateTimeActionSheetProps {
@@ -2143,6 +2171,103 @@ export interface SignatureFieldProps {
   disabledText?: string;
   errorText?: string;
   fullWidth?: boolean;
+}
+
+/**
+ * A selectable signature typeface. `key` is the stable identifier consumers persist
+ * (so a stored signature keeps rendering in the same style even if `fontFamily` or
+ * `label` are later renamed); `fontFamily` is the loaded font family used for rendering;
+ * `label` is the human-readable name shown in the font picker.
+ */
+export interface SignatureFont {
+  key: string;
+  label: string;
+  fontFamily: string;
+}
+
+/**
+ * The persisted value of a typed signature: the name the signer typed and the `key` of
+ * the font they chose. Kept minimal so consumers can store it directly and re-render the
+ * signature deterministically.
+ */
+export interface TypedSignatureValue {
+  typedName: string;
+  fontKey: string;
+}
+
+export interface TypedSignatureFieldProps extends WithTestID {
+  testIDs?: FieldTestIDs;
+  /** Section title rendered above the field. Defaults to "Signature". */
+  title?: string;
+  /** Controlled value. When omitted the field starts empty with the first font selected. */
+  value?: TypedSignatureValue;
+  onChange: (value: TypedSignatureValue) => void;
+  /**
+   * Selectable fonts. Defaults to the library's bundled signature fonts. When supplying a
+   * custom list, the consumer is responsible for loading those font families (e.g. via
+   * expo-font) so the preview renders correctly.
+   */
+  fonts?: SignatureFont[];
+  /** Label for the name input. Defaults to "Full name". */
+  nameLabel?: string;
+  /** Placeholder for the name input. Defaults to "Type your full name". */
+  placeholder?: string;
+  helperText?: string;
+  errorText?: string;
+  disabled?: boolean; // default false
+}
+
+/** Which capture method the signer is using in a {@link SignatureCaptureFieldProps} field. */
+export type SignatureMode = "draw" | "type";
+
+/** A signature captured by drawing: a base64 PNG data URL. */
+export interface DrawnSignatureValue {
+  mode: "draw";
+  image: string;
+}
+
+/** A signature captured by typing: a name plus the chosen font key. */
+export interface TypedSignatureCaptureValue extends TypedSignatureValue {
+  mode: "type";
+}
+
+/**
+ * The persisted value of a signature capture field. The `mode` discriminant tells consumers
+ * how to render it: `draw` carries a base64 PNG `image`; `type` carries a `typedName` and
+ * `fontKey`.
+ */
+export type SignatureCaptureValue = DrawnSignatureValue | TypedSignatureCaptureValue;
+
+export interface SignatureCaptureFieldProps extends WithTestID {
+  testIDs?: FieldTestIDs;
+  /** Section title rendered above the field. Defaults to "Signature". */
+  title?: string;
+  /** Controlled value. When omitted the field starts empty in `defaultMode`. */
+  value?: SignatureCaptureValue;
+  onChange: (value: SignatureCaptureValue) => void;
+  /**
+   * Which capture method is shown first when the field is empty. Ignored once `value` has a
+   * mode. Defaults to "type".
+   */
+  defaultMode?: SignatureMode;
+  /**
+   * Fonts offered in "type" mode. Defaults to the library's bundled signature fonts. When
+   * supplying a custom list, the consumer must load those font families themselves.
+   */
+  fonts?: SignatureFont[];
+  /** Label for the typed name input. Defaults to "Full name". */
+  nameLabel?: string;
+  /** Placeholder for the typed name input. Defaults to "Type your full name". */
+  placeholder?: string;
+  /** Stretches the draw pad to the full available width. */
+  fullWidth?: boolean;
+  /** Fired when the signer starts drawing — use to disable a parent ScrollView. */
+  onStart?: () => void;
+  /** Fired when the signer stops drawing — use to re-enable a parent ScrollView. */
+  onEnd?: () => void;
+  helperText?: string;
+  errorText?: string;
+  disabled?: boolean; // default false
 }
 
 export interface SideDrawerProps {
@@ -2867,12 +2992,13 @@ export interface SelectFieldPropsBase extends WithTestID {
   placeholder?: string;
 
   /**
-   * When true, options can be filtered as the user types. On web, search happens
+   * When true, hides the type-to-filter search UI. On web, search normally happens
    * in the trigger field; on native, search appears in the dropdown menu and
-   * Android uses a centered modal similar to the platform picker.
-   * @default true
+   * Android uses a centered modal similar to the platform picker. Search is enabled
+   * by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
 
   /**
    * The title of the select field.

@@ -20,11 +20,11 @@ export const access = createAccess({
     },
   ],
   scopes: {
-    "todo.delete": OwnerScope,
-    "todo.list": OwnerScope,
-    "todo.read": OwnerScope,
-    "todo.update": OwnerScope,
+    "todo.delete": OwnerScope(),
+    "todo.list": OwnerScope(),
+    "todo.read": OwnerScope(),
+    "todo.update": OwnerScope(),
   },
   statements: appStatements,
-  userModel: User,
+  userModel: User as unknown as import("@terreno/api").UserModel,
 });

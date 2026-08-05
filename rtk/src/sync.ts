@@ -33,16 +33,31 @@ interface RtkApiState {
   queries?: Record<string, QueryCacheEntry>;
 }
 
-// noExplicitAny: RTK Query's Api type requires four generic parameters (BaseQuery, Definitions,
-// ReducerPath, TagTypes) that vary per consumer. A structural interface would lose dispatch
-// compatibility for thunk-returning util methods like updateQueryData.
+/**
+ * Structural view of an RTK Query API instance covering only the members this hook uses.
+ * Method shorthand keeps parameters bivariant so generated APIs — whose `endpointName` is a
+ * union of string literals — stay assignable without naming their four generic parameters.
+ */
+interface SyncApiLike {
+  reducerPath: string;
+  util: {
+    invalidateTags(tags: string[]): unknown;
+    updateQueryData(
+      endpointName: string,
+      args: unknown,
+      updateRecipe: (draft: CacheEntryData) => void
+    ): unknown;
+  };
+}
+
+/** Dispatch accepting both plain actions and the thunks returned by `util.updateQueryData`. */
+type SyncDispatch = (action: unknown) => unknown;
+
 interface UseSyncConnectionOptions {
   /** Socket.io client instance (from useSocketConnection) */
   socket: Socket | null;
   /** RTK Query API instance (the enhanced API with tag types) */
-  // noExplicitAny: RTK Query Api generic requires four app-specific type parameters
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query Api generic requires four app-specific type parameters
-  api: any;
+  api: SyncApiLike;
   /** Tag types to listen for (e.g. ["todos", "users"]) — these should match the collection field in events */
   tagTypes: string[];
   /** Enable debug logging */
@@ -76,7 +91,7 @@ export const useSyncConnection = ({
   tagTypes,
   debug = false,
 }: UseSyncConnectionOptions): void => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as SyncDispatch;
   const store = useStore();
   const tagTypesRef = useRef(tagTypes);
   const apiRef = useRef(api);

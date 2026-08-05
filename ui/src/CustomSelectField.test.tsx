@@ -87,12 +87,7 @@ describe("CustomSelectField", () => {
   it("shows custom input when 'custom' is selected from dropdown", async () => {
     const onChange = mock(() => {});
     const {getByTestId, queryByPlaceholderText} = renderWithTheme(
-      <CustomSelectField
-        onChange={onChange}
-        options={defaultOptions}
-        searchable={false}
-        value="a"
-      />
+      <CustomSelectField disableSearch onChange={onChange} options={defaultOptions} value="a" />
     );
 
     const picker = getByTestId("ios_picker");
@@ -112,9 +107,9 @@ describe("CustomSelectField", () => {
     // Start with a custom value so custom input is already shown
     const {getByTestId, queryByPlaceholderText} = renderWithTheme(
       <CustomSelectField
+        disableSearch
         onChange={onChange}
         options={defaultOptions}
-        searchable={false}
         value="my-custom-value"
       />
     );
@@ -134,7 +129,7 @@ describe("CustomSelectField", () => {
   it("calls onChange with selected value for a regular option", async () => {
     const onChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
-      <CustomSelectField onChange={onChange} options={defaultOptions} searchable={false} value="" />
+      <CustomSelectField disableSearch onChange={onChange} options={defaultOptions} value="" />
     );
 
     const picker = getByTestId("ios_picker");

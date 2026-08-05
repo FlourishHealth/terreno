@@ -1,21 +1,22 @@
 name: EAS PR
 
 # Drives the per-app EAS workflows. We compute the project fingerprint
-# locally and check whether matching finished dev builds already exist.
+# locally and decide whether a native rebuild is warranted.
 #
-# - Fingerprint matches existing dev builds →  fast path: publish the
-#   EAS Update directly from GitHub Actions + post the PR comment.
+# - Fingerprint already has any finished matching dev build → fast path:
+#   publish the EAS Update from GitHub Actions + post the PR comment.
+#   Missing platforms are NOT re-seeded on every PR (that was spamming
+#   Expo with iOS device builds for a known fingerprint).
 #
-# - Fingerprint changed, or any target dev build is missing → publish the EAS Update directly, then dispatch
-#   the build-only EAS workflow async and exit. A full dev build can take
-#   15+ minutes; the EAS GitHub App posts per-job status checks for that
-#   run when it eventually finishes.
+# - Fingerprint is brand-new (no finished matches on any profile) →
+#   publish the EAS Update, then queue only the missing platforms via
+#   eas-pr-selective-build.sh. A full native build can take 15+ minutes;
+#   the EAS GitHub App posts per-job status checks when it finishes.
 #
-# New dev builds are only produced when the fingerprint has changed or an
-# iOS device, iOS simulator, or Android dev-client artifact is missing.
-# There is no manual force-build hatch from this workflow — push a change
-# that bumps the fingerprint, or use the `Trigger EAS Workflow` manual
-# dispatch for off-PR seed builds.
+# Native rebuilds happen only when native deps / config plugins / app
+# icons / SDK bumps change the fingerprint. Seed a missing platform for
+# an already-known fingerprint via the `Trigger EAS Workflow` manual
+# dispatch — not from every PR.
 
 on:
   pull_request:
@@ -114,39 +115,7 @@ jobs:
       - name: Decide fast vs slow path
         id: decide
         working-directory: example-frontend
-        run: |
-          set -euo pipefail
-          ios_hash=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
-          android_hash=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
-
-          ios_device_match_count=$(eas build:list --platform ios --profile development --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
-          ios_sim_match_count=$(eas build:list --platform ios --profile development:simulator --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
-          android_match_count=$(eas build:list --platform android --profile development --fingerprint-hash "$android_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
-
-          # Latest finished build per (platform, profile) for the comment's install-page links.
-          ios_device_latest=$(eas build:list --platform ios --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
-          ios_sim_latest=$(eas build:list --platform ios --profile development:simulator --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
-          android_latest=$(eas build:list --platform android --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
-
-          echo "iOS fingerprint:     $ios_hash  matching device builds: $ios_device_match_count  matching sim builds: $ios_sim_match_count  latest device: $ios_device_latest  latest sim: $ios_sim_latest"
-          echo "Android fingerprint: $android_hash  matching builds: $android_match_count  latest: $android_latest"
-
-          {
-            echo "ios_hash=$ios_hash"
-            echo "android_hash=$android_hash"
-            echo "ios_device_match=$([ "$ios_device_match_count" -gt 0 ] && echo true || echo false)"
-            echo "ios_sim_match=$([ "$ios_sim_match_count" -gt 0 ] && echo true || echo false)"
-            echo "android_match=$([ "$android_match_count" -gt 0 ] && echo true || echo false)"
-            echo "ios_device_latest=$ios_device_latest"
-            echo "ios_sim_latest=$ios_sim_latest"
-            echo "android_latest=$android_latest"
-          } >> "$GITHUB_OUTPUT"
-
-          if [ "$ios_device_match_count" -gt 0 ] && [ "$ios_sim_match_count" -gt 0 ] && [ "$android_match_count" -gt 0 ]; then
-            echo "needs_build=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "needs_build=true" >> "$GITHUB_OUTPUT"
-          fi
+        run: ../.github/workflows/scripts/eas-pr-decide.sh
 
       - name: Publish EAS Update for PR
         working-directory: example-frontend
@@ -171,16 +140,17 @@ jobs:
       - name: Fast path — update-only complete
         if: steps.decide.outputs.needs_build == 'false'
         run: |
-          echo "::notice::Fingerprint matches all existing dev builds — update-only flow complete"
+          echo "::notice::Fingerprint already known — update-only flow complete"
 
-      - name: Slow path — dispatch EAS workflow async
+      - name: Slow path — queue builds for new fingerprint only
+        id: dispatch
         if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
         working-directory: example-frontend
-        run: |
-          echo "::notice::Fingerprint changed or a dev build is missing — dispatching build-only workflow to EAS (will not wait)"
-          eas workflow:run .eas/workflows/example-frontend-build.yml \
-            --non-interactive
-          echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
+        env:
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+        run: ../.github/workflows/scripts/eas-pr-selective-build.sh
 
       - name: Post PR comment
         if: always() && steps.decide.outputs.ios_hash != ''
@@ -193,9 +163,15 @@ jobs:
           APP_SLUG: terreno-example
           APP_SCHEME: frontend
           PROJECT_ID: ddbe68d9-1142-4991-a02e-4ebb9fd83530
-          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
-          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
-          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
+          IOS_DEVICE_ACTIVE: ${{ steps.decide.outputs.ios_device_active }}
+          IOS_SIM_ACTIVE: ${{ steps.decide.outputs.ios_sim_active }}
+          ANDROID_ACTIVE: ${{ steps.decide.outputs.android_active }}
+          IOS_DEVICE_QUEUED: ${{ steps.dispatch.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.dispatch.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.dispatch.outputs.android_queued }}
           IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
           IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
           ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
@@ -252,39 +228,7 @@ jobs:
       - name: Decide fast vs slow path
         id: decide
         working-directory: demo
-        run: |
-          set -euo pipefail
-          ios_hash=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
-          android_hash=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
-
-          ios_device_match_count=$(eas build:list --platform ios --profile development --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
-          ios_sim_match_count=$(eas build:list --platform ios --profile development:simulator --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
-          android_match_count=$(eas build:list --platform android --profile development --fingerprint-hash "$android_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
-
-          # Latest finished build per (platform, profile) for the comment's install-page links.
-          ios_device_latest=$(eas build:list --platform ios --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
-          ios_sim_latest=$(eas build:list --platform ios --profile development:simulator --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
-          android_latest=$(eas build:list --platform android --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
-
-          echo "iOS fingerprint:     $ios_hash  matching device builds: $ios_device_match_count  matching sim builds: $ios_sim_match_count  latest device: $ios_device_latest  latest sim: $ios_sim_latest"
-          echo "Android fingerprint: $android_hash  matching builds: $android_match_count  latest: $android_latest"
-
-          {
-            echo "ios_hash=$ios_hash"
-            echo "android_hash=$android_hash"
-            echo "ios_device_match=$([ "$ios_device_match_count" -gt 0 ] && echo true || echo false)"
-            echo "ios_sim_match=$([ "$ios_sim_match_count" -gt 0 ] && echo true || echo false)"
-            echo "android_match=$([ "$android_match_count" -gt 0 ] && echo true || echo false)"
-            echo "ios_device_latest=$ios_device_latest"
-            echo "ios_sim_latest=$ios_sim_latest"
-            echo "android_latest=$android_latest"
-          } >> "$GITHUB_OUTPUT"
-
-          if [ "$ios_device_match_count" -gt 0 ] && [ "$ios_sim_match_count" -gt 0 ] && [ "$android_match_count" -gt 0 ]; then
-            echo "needs_build=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "needs_build=true" >> "$GITHUB_OUTPUT"
-          fi
+        run: ../.github/workflows/scripts/eas-pr-decide.sh
 
       - name: Publish EAS Update for PR
         working-directory: demo
@@ -309,16 +253,17 @@ jobs:
       - name: Fast path — update-only complete
         if: steps.decide.outputs.needs_build == 'false'
         run: |
-          echo "::notice::Fingerprint matches all existing dev builds — update-only flow complete"
+          echo "::notice::Fingerprint already known — update-only flow complete"
 
-      - name: Slow path — dispatch EAS workflow async
+      - name: Slow path — queue builds for new fingerprint only
+        id: dispatch
         if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
         working-directory: demo
-        run: |
-          echo "::notice::Fingerprint changed or a dev build is missing — dispatching build-only workflow to EAS (will not wait)"
-          eas workflow:run .eas/workflows/demo-build.yml \
-            --non-interactive
-          echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
+        env:
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+        run: ../.github/workflows/scripts/eas-pr-selective-build.sh
 
       - name: Post PR comment
         if: always() && steps.decide.outputs.ios_hash != ''
@@ -331,9 +276,15 @@ jobs:
           APP_SLUG: terreno-demo
           APP_SCHEME: terreno
           PROJECT_ID: 89c320ce-465b-4d71-9fd6-74fea9c5d898
-          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
-          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
-          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
+          IOS_DEVICE_ACTIVE: ${{ steps.decide.outputs.ios_device_active }}
+          IOS_SIM_ACTIVE: ${{ steps.decide.outputs.ios_sim_active }}
+          ANDROID_ACTIVE: ${{ steps.decide.outputs.android_active }}
+          IOS_DEVICE_QUEUED: ${{ steps.dispatch.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.dispatch.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.dispatch.outputs.android_queued }}
           IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
           IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
           ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}

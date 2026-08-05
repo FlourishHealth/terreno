@@ -21,8 +21,8 @@ describe("fieldViews", () => {
 
   it("getDisallowedWriteKeys rejects keys outside the write mask", () => {
     const disallowed = getDisallowedWriteKeys(
-      {name: "x", admin: true},
-      {omit: [], read: "*", write: ["name"]},
+      {admin: true, name: "x"},
+      {omit: [], read: "*", write: ["name"]}
     );
     expect(disallowed).toEqual(["admin"]);
   });

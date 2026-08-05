@@ -18,11 +18,15 @@ import {
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
+  type APIErrorOptions,
   apiErrorMiddleware,
-  errorMessage,
-  errorStack,
+  BadRequestError,
+  errorDetail,
+  ForbiddenError,
   getDisableExternalErrorTracking,
   isAPIError,
+  mongooseErrorToAPIError,
+  NotFoundError,
 } from "./errors";
 import {logger} from "./logger";
 import {
@@ -40,6 +44,8 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
+import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
 import {registerRealtime} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
@@ -48,8 +54,6 @@ import {
   type TerrenoTransformer,
   transform,
 } from "./transformers";
-import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
-import type {ModelRouterAccessOptions, AnyTerrenoAccess} from "./rbac/types";
 import {isValidObjectId} from "./utils";
 
 export type JSONPrimitive = string | number | boolean | null;
@@ -58,6 +62,39 @@ export interface JSONObject {
   [member: string]: JSONValue;
 }
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+
+/**
+ * Picks the error to throw for something caught in a hook, transformer, or Mongoose middleware.
+ * An `APIError` is passed through untouched so its status, code, detail, and meta reach the client;
+ * anything else is wrapped in the given framework error. `wrapper` may override any field,
+ * including `detail`, which defaults to the caught error's text.
+ */
+const passthroughOrWrap = (error: unknown, wrapper: APIErrorOptions): APIError => {
+  if (isAPIError(error)) {
+    return error;
+  }
+  return new APIError({
+    cause: error,
+    detail: errorDetail(error),
+    disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+    ...wrapper,
+  });
+};
+
+/**
+ * `passthroughOrWrap` for write paths (`model.create`, `doc.save`). Mongoose validation and cast
+ * errors are converted first so their per-field messages survive as `meta.fields` instead of being
+ * flattened into the wrapper's `detail`.
+ */
+const passthroughOrWrapWrite = (error: unknown, wrapper: APIErrorOptions): APIError => {
+  if (!isAPIError(error) && error instanceof Error) {
+    const converted = mongooseErrorToAPIError(error);
+    if (converted) {
+      return converted;
+    }
+  }
+  return passthroughOrWrap(error, wrapper);
+};
 
 export const addPopulateToQuery = (
   // noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
@@ -361,9 +398,11 @@ export interface ModelRouterOptions<T> {
 const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
   const parsed = DateTime.fromISO(String(rawValue), {zone: "utc"});
   if (!parsed.isValid) {
-    throw new APIError({
-      status: 400,
-      title: `Invalid date for query parameter ${queryKey}`,
+    throw new BadRequestError({
+      code: "invalid-date-query-parameter",
+      detail: `Invalid date for query parameter ${queryKey}`,
+      source: {parameter: queryKey},
+      title: "Invalid date query parameter",
     });
   }
   return parsed.toJSDate();
@@ -387,7 +426,7 @@ const mergeDateRangeQueryParams = <T>(
     }
     const baseField = match[1];
     const path = schema.path(baseField);
-    if (!path || path.instance !== "Date") {
+    if (path?.instance !== "Date") {
       continue;
     }
     dateRangeBases.add(baseField);
@@ -442,9 +481,11 @@ const checkQueryParamAllowed = (
     return;
   }
   if (!queryFields.includes(queryParam)) {
-    throw new APIError({
-      status: 400,
-      title: `${queryParam} is not allowed as a query param.`,
+    throw new BadRequestError({
+      code: "query-param-not-allowed",
+      detail: `${queryParam} is not allowed as a query param.`,
+      source: {parameter: queryParam},
+      title: "Query parameter not allowed",
     });
   }
 };
@@ -559,7 +600,7 @@ export interface ModelRouterRegistration {
   /** @internal Rebuilds the router with the openApi instance injected into options */
   _buildWithOpenApi: (
     openApi: OpenApiMiddleware,
-    runtime?: {accessControl?: AnyTerrenoAccess},
+    runtime?: {accessControl?: AnyTerrenoAccess}
   ) => express.Router;
 }
 
@@ -610,18 +651,32 @@ export function modelRouter<T>(
         collectionName: model.collection.collectionName,
         config: options.realtime,
         modelName: model.modelName,
-        options,
+        options: options as unknown as ModelRouterOptions<unknown>,
         routePath: path,
       });
     }
     return {
       __type: "modelRouter",
-      _buildWithOpenApi: (openApi: OpenApiMiddleware, runtime?: {accessControl?: AnyTerrenoAccess}) =>
-        _buildModelRouter(model, {
+      _buildWithOpenApi: (
+        openApi: OpenApiMiddleware,
+        runtime?: {accessControl?: AnyTerrenoAccess}
+      ) => {
+        const runtimeOptions = {
           ...options,
           accessControl: options.accessControl ?? runtime?.accessControl,
           openApi,
-        }),
+        };
+        if (options.realtime) {
+          registerRealtime({
+            collectionName: model.collection.collectionName,
+            config: options.realtime,
+            modelName: model.modelName,
+            options: runtimeOptions as unknown as ModelRouterOptions<unknown>,
+            routePath: path,
+          });
+        }
+        return _buildModelRouter(model, runtimeOptions);
+      },
       path,
       router,
     };
@@ -637,7 +692,7 @@ export function modelRouter<T>(
   return router;
 }
 
-function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
+const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router => {
   const router = express.Router();
   const resolvedAccess = resolveModelRouterAccess({
     access: options.access,
@@ -650,7 +705,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
   options = {
     ...options,
     permissions: resolvedAccess.permissions,
-    queryFilter: (resolvedAccess.queryFilter ?? options.queryFilter) as ModelRouterOptions<T>["queryFilter"],
+    queryFilter: (resolvedAccess.queryFilter ??
+      options.queryFilter) as ModelRouterOptions<T>["queryFilter"],
     responseHandler: (resolvedAccess.responseHandler ??
       options.responseHandler ??
       defaultResponseHandler) as ModelRouterOptions<T>["responseHandler"],
@@ -687,49 +743,41 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         body = transform<T>(options, req.body, "create", req.user);
       } catch (error: unknown) {
-        if (isAPIError(error)) {
-          throw error;
-        }
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        throw passthroughOrWrap(error, {
+          code: "transform-error",
           status: 400,
-          title: errorMessage(error),
+          title: "Transform error",
         });
       }
       if (options.preCreate) {
         try {
           body = await options.preCreate(body, req);
         } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "pre-create-hook-error",
             status: 400,
-            title: `preCreate hook error: ${errorMessage(error)}`,
+            title: "preCreate hook error",
           });
         }
         if (body === undefined) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "create-not-allowed",
             detail: "A body must be returned from preCreate",
-            status: 403,
             title: "Create not allowed",
           });
         }
         if (body === null) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "create-not-allowed",
             detail: "preCreate hook returned null",
-            status: 403,
             title: "Create not allowed",
           });
         }
       }
       if (body === undefined) {
-        throw new APIError({
+        throw new BadRequestError({
+          code: "invalid-request-body",
           detail: "Body is undefined",
-          status: 400,
           title: "Invalid request body",
         });
       }
@@ -746,11 +794,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         data = (await model.create(body as T)) as Document<unknown, unknown, unknown> & T;
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        throw passthroughOrWrapWrite(error, {
+          code: "create-error",
           status: 400,
-          title: errorMessage(error),
+          title: "Create error",
         });
       }
 
@@ -762,11 +809,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
           data = await populateQuery.exec();
         } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "populate-error",
             status: 400,
-            title: `Populate error: ${errorMessage(error)}`,
+            title: "Populate error",
           });
         }
       }
@@ -775,11 +821,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           await options.postCreate(data, req);
         } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "post-create-hook-error",
             status: 400,
-            title: `postCreate hook error: ${errorMessage(error)}`,
+            title: "postCreate hook error",
           });
         }
       }
@@ -787,10 +832,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         const serialized = await responseHandler(data, "create", req, options);
         return res.status(201).json({data: serialized});
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
     })
@@ -844,11 +888,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           queryFilter = await options.queryFilter(req.user, query);
         } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "query-filter-error",
             status: 400,
-            title: `Query filter error: ${error}`,
+            title: "Query filter error",
           });
         }
 
@@ -875,9 +918,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       const total = await model.countDocuments(query);
       if (req.query.page) {
         if (Number(req.query.page) === 0 || Number.isNaN(Number(req.query.page))) {
-          throw new APIError({
-            status: 400,
-            title: `Invalid page: ${req.query.page}`,
+          throw new BadRequestError({
+            code: "invalid-page",
+            detail: `Invalid page: ${req.query.page}`,
+            source: {parameter: "page"},
+            title: "Invalid page",
           });
         }
         builtQuery = builtQuery.skip((Number(req.query.page) - 1) * limit);
@@ -896,10 +941,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         data = (await populatedQuery.exec()) as (Document<unknown, unknown, unknown> & T)[];
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `List error: ${errorStack(error)}`,
+        throw passthroughOrWrap(error, {
+          code: "list-error",
+          title: "List error",
         });
       }
 
@@ -908,10 +952,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         serialized = await responseHandler(data, "list", req, options);
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
 
@@ -943,10 +986,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
         return res.json({data: serialized});
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `Serialization error: ${errorMessage(error)}`,
+        throw passthroughOrWrap(error, {
+          code: "serialization-error",
+          title: "Serialization error",
         });
       }
     })
@@ -966,10 +1008,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         const serialized = await responseHandler(data, "read", req, options);
         return res.json({data: serialized});
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
     })
@@ -981,6 +1022,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     asyncHandler(async (_req: Request, _res: Response) => {
       // Patch is what we want 90% of the time
       throw new APIError({
+        code: "put-not-supported",
+        detail: "Use PATCH to update a document.",
         title: "PUT is not supported.",
       });
     })
@@ -1002,14 +1045,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         body = transform<T>(options, req.body, "update", req.user) as Partial<T>;
       } catch (error: unknown) {
-        if (isAPIError(error)) {
-          throw error;
-        }
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        throw passthroughOrWrap(error, {
+          code: "transform-error",
+          detail: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorDetail(error)}`,
           status: 403,
-          title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorMessage(error)}`,
+          title: "PATCH failed",
         });
       }
 
@@ -1024,33 +1064,36 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           body = await options.preUpdate(body, req);
         } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "pre-update-hook-error",
+            detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
             status: 400,
-            title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+            title: "preUpdate hook error",
           });
         }
         if (body === undefined) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "update-not-allowed",
             detail: "A body must be returned from preUpdate",
-            status: 403,
             title: "Update not allowed",
           });
         }
         if (body === null) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "update-not-allowed",
             detail: `preUpdate hook on ${req.params.id} returned null`,
-            status: 403,
             title: "Update not allowed",
           });
         }
       }
 
-      if (accessConfig && accessControl && body && typeof body === "object" && !Array.isArray(body)) {
+      if (
+        accessConfig &&
+        accessControl &&
+        body &&
+        typeof body === "object" &&
+        !Array.isArray(body)
+      ) {
         await validateAccessWriteBody({
           access: accessConfig,
           accessControl,
@@ -1081,13 +1124,13 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             : DateTime.fromISO(bodyUpdatedAt);
 
         if (!clientTimestamp.isValid) {
-          throw new APIError({
+          throw new BadRequestError({
+            code: "invalid-conflict-detection-timestamp",
             detail: usingPreciseHeader
               ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
               : usingHttpHeader
                 ? "If-Unmodified-Since header could not be parsed as an HTTP date"
                 : "_updatedAt body field could not be parsed as an ISO date",
-            status: 400,
             title: "Invalid conflict-detection timestamp",
           });
         }
@@ -1102,9 +1145,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
 
         if (serverTimestamp && !serverTimestamp.isValid) {
-          throw new APIError({
+          throw new BadRequestError({
+            code: "invalid-server-timestamp",
             detail: "Document timestamp could not be parsed as a date",
-            status: 400,
             title: "Invalid server timestamp",
           });
         }
@@ -1128,11 +1171,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         doc.set(body);
         await doc.save();
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        throw passthroughOrWrapWrite(error, {
+          code: "update-save-error",
+          detail: `preUpdate hook save error on ${req.params.id}: ${errorDetail(error)}`,
           status: 400,
-          title: `preUpdate hook save error on ${req.params.id}: ${errorMessage(error)}`,
+          title: "preUpdate hook save error",
         });
       }
 
@@ -1148,11 +1191,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           await options.postUpdate(doc, body, req, prevDoc);
         } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "post-update-hook-error",
+            detail: `postUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
             status: 400,
-            title: `postUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+            title: "postUpdate hook error",
           });
         }
       }
@@ -1161,10 +1204,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         const serialized = await responseHandler(doc, "update", req, options);
         return res.json({data: serialized});
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${errorMessage(error)}`,
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
     })
@@ -1187,27 +1229,24 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           body = await options.preDelete(doc, req);
         } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "pre-delete-hook-error",
+            detail: `preDelete hook error on ${req.params.id}: ${errorDetail(error)}`,
             status: 403,
-            title: `preDelete hook error on ${req.params.id}: ${errorMessage(error)}`,
+            title: "preDelete hook error",
           });
         }
         if (body === undefined) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "delete-not-allowed",
             detail: "A body must be returned from preDelete",
-            status: 403,
             title: "Delete not allowed",
           });
         }
         if (body === null) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "delete-not-allowed",
             detail: `preDelete hook for ${req.params.id} returned null`,
-            status: 403,
             title: "Delete not allowed",
           });
         }
@@ -1225,11 +1264,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           await doc.deleteOne();
         } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "delete-error",
             status: 400,
-            title: errorMessage(error),
+            title: "Delete error",
           });
         }
       }
@@ -1238,11 +1276,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         try {
           await options.postDelete(req, doc);
         } catch (error: unknown) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+          throw passthroughOrWrap(error, {
+            code: "post-delete-hook-error",
             status: 400,
-            title: `postDelete hook error: ${errorMessage(error)}`,
+            title: "postDelete hook error",
           });
         }
       }
@@ -1260,8 +1297,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
     if (!(await checkPermissions("update", routerPermissions.update, req.user))) {
       throw new APIError({
+        code: "array-update-not-allowed",
+        detail: `Access to PATCH on ${model.modelName} denied for ${req.user?.id}`,
+        meta: {method: "PATCH", model: model.modelName},
         status: 405,
-        title: `Access to PATCH on ${model.modelName} denied for ${req.user?.id}`,
+        title: "Access denied",
       });
     }
 
@@ -1269,16 +1309,20 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     // Make a copy for passing pre-saved values to hooks.
     const prevDoc = cloneDeep(doc);
     if (!doc) {
-      throw new APIError({
-        status: 404,
-        title: `Could not find document to PATCH: ${req.params.id}`,
+      throw new NotFoundError({
+        code: "document-not-found",
+        detail: `Could not find document to PATCH: ${req.params.id}`,
+        meta: {model: model.modelName},
+        title: "Document not found",
       });
     }
 
     if (!(await checkPermissions("update", routerPermissions.update, req.user, doc))) {
-      throw new APIError({
-        status: 403,
-        title: `Patch not allowed for user ${req.user?.id} on doc ${doc._id}`,
+      throw new ForbiddenError({
+        code: "update-not-allowed",
+        detail: `Patch not allowed for user ${req.user?.id} on doc ${doc._id}`,
+        meta: {model: model.modelName},
+        title: "Update not allowed",
       });
     }
 
@@ -1288,11 +1332,13 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     // We apply the operation *before* the hooks. As far as the callers are concerned, this should
     // be like PATCHing the field and replacing the whole thing.
     if (operation !== "DELETE" && req.body[field] === undefined) {
-      throw new APIError({
-        status: 400,
-        title: `Malformed body, array operations should have a single, top level key, got: ${Object.keys(
+      throw new BadRequestError({
+        code: "malformed-array-operation-body",
+        detail: `Malformed body, array operations should have a single, top level key, got: ${Object.keys(
           req.body
         ).join(",")}`,
+        meta: {field},
+        title: "Malformed array operation body",
       });
     }
 
@@ -1308,9 +1354,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         index = array.indexOf(itemId);
       }
       if (index === -1) {
-        throw new APIError({
-          status: 404,
-          title: `Could not find ${field}/${itemId}`,
+        throw new NotFoundError({
+          code: "array-item-not-found",
+          detail: `Could not find ${field}/${itemId}`,
+          meta: {field, itemId},
+          title: "Array item not found",
         });
       }
       // For PATCHing an item by ID, we need to merge the objects so we don't override the _id or
@@ -1324,9 +1372,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         array.splice(index, 1);
       }
     } else {
-      throw new APIError({
-        status: 400,
-        title: `Invalid array operation: ${operation}`,
+      throw new BadRequestError({
+        code: "invalid-array-operation",
+        detail: `Invalid array operation: ${operation}`,
+        meta: {operation},
+        title: "Invalid array operation",
       });
     }
     let body: Partial<T> | null = {[field]: array} as unknown as Partial<T>;
@@ -1334,14 +1384,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     try {
       body = transform<T>(options, body, "update", req.user) as Partial<T>;
     } catch (error: unknown) {
-      if (isAPIError(error)) {
-        throw error;
-      }
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrap(error, {
+        code: "transform-error",
         status: 403,
-        title: errorMessage(error),
+        title: "Transform error",
       });
     }
 
@@ -1349,24 +1395,24 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         body = await options.preUpdate(body, req);
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        throw passthroughOrWrap(error, {
+          code: "pre-update-hook-error",
+          detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
           status: 400,
-          title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+          title: "preUpdate hook error",
         });
       }
       if (body === undefined) {
-        throw new APIError({
+        throw new ForbiddenError({
+          code: "update-not-allowed",
           detail: "A body must be returned from preUpdate",
-          status: 403,
           title: "Update not allowed",
         });
       }
       if (body === null) {
-        throw new APIError({
+        throw new ForbiddenError({
+          code: "update-not-allowed",
           detail: `preUpdate hook on ${req.params.id} returned null`,
-          status: 403,
           title: "Update not allowed",
         });
       }
@@ -1378,11 +1424,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       Object.assign(doc, body);
       await doc.save();
     } catch (error: unknown) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+      throw passthroughOrWrapWrite(error, {
+        code: "update-save-error",
+        detail: `PATCH Pre Update error on ${req.params.id}: ${errorDetail(error)}`,
         status: 400,
-        title: `PATCH Pre Update error on ${req.params.id}: ${errorMessage(error)}`,
+        title: "PATCH Pre Update error",
       });
     }
 
@@ -1395,11 +1441,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           prevDoc as unknown as T
         );
       } catch (error: unknown) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        throw passthroughOrWrap(error, {
+          code: "post-update-hook-error",
+          detail: `PATCH Post Update error on ${req.params.id}: ${errorDetail(error)}`,
           status: 400,
-          title: `PATCH Post Update error on ${req.params.id}: ${errorMessage(error)}`,
+          title: "PATCH Post Update error",
         });
       }
     }
@@ -1440,7 +1486,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
   router.use(apiErrorMiddleware);
 
   return router;
-}
+};
 
 /**
  * Options for the asyncHandler function.

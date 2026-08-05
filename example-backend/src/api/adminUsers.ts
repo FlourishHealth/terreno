@@ -55,8 +55,13 @@ const setUserPassword = async (
         resolveOnce();
       });
 
-      if (maybePromise && typeof (maybePromise as Promise<unknown>).then === "function") {
-        (maybePromise as Promise<unknown>).then(resolveOnce).catch(rejectOnce);
+      if (
+        typeof maybePromise === "object" &&
+        maybePromise !== null &&
+        "then" in maybePromise &&
+        typeof maybePromise.then === "function"
+      ) {
+        void Promise.resolve(maybePromise).then(resolveOnce).catch(rejectOnce);
       }
     } catch (error) {
       rejectOnce(error);

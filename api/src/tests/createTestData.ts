@@ -1,6 +1,8 @@
+import {DateTime} from "luxon";
 import type {HydratedDocument} from "mongoose";
 import type {PassportLocalMongooseDocument} from "passport-local-mongoose";
 
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {FoodModel, RequiredModel, type User, UserModel} from "./models";
 import type {CachedTestData, TestData, TestFoods, TestRequired, TestUsers} from "./types";
@@ -41,12 +43,12 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     FoodModel.create({
       calories: 1,
       categories: [{name: "Vegetables", show: true}],
-      created: new Date("2021-12-03T00:00:20.000Z"),
+      created: DateTime.fromISO("2021-12-03T00:00:20.000Z").toJSDate(),
       eatenBy: [admin._id],
       expiration: "2026-12-31",
       hidden: false,
       lastEatenWith: {
-        dressing: new Date("2021-12-03T19:00:30.000Z"),
+        dressing: DateTime.fromISO("2021-12-03T19:00:30.000Z").toJSDate(),
       },
       likesIds: [
         {likes: true, userId: admin._id},
@@ -63,7 +65,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     }),
     FoodModel.create({
       calories: 100,
-      created: new Date("2021-12-03T00:00:30.000Z"),
+      created: DateTime.fromISO("2021-12-03T00:00:30.000Z").toJSDate(),
       expiration: "2026-12-31",
       hidden: true,
       likesIds: [{likes: true, userId: admin._id}],
@@ -74,7 +76,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     }),
     FoodModel.create({
       calories: 100,
-      created: new Date("2021-12-03T00:00:00.000Z"),
+      created: DateTime.fromISO("2021-12-03T00:00:00.000Z").toJSDate(),
       eatenBy: [admin._id, notAdmin._id],
       expiration: "2026-12-31",
       hidden: false,
@@ -86,7 +88,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     }),
     FoodModel.create({
       calories: 800,
-      created: new Date("2022-01-01T00:00:00.000Z"),
+      created: DateTime.fromISO("2022-01-01T00:00:00.000Z").toJSDate(),
       expiration: "2026-12-31",
       hidden: false,
       likesIds: [{likes: true, userId: adminOther._id}],
@@ -165,7 +167,10 @@ export const loadTestDataFromDocuments = async (cached: CachedTestData): Promise
     !sample ||
     !withAbout
   ) {
-    throw new Error("[createTestData] Cached test data references missing documents");
+    throw new APIError({
+      status: 500,
+      title: "[createTestData] Cached test data references missing documents",
+    });
   }
 
   return {

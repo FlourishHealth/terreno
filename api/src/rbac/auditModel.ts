@@ -1,10 +1,6 @@
 import mongoose from "mongoose";
 
-import {
-  createdUpdatedPlugin,
-  findExactlyOne,
-  findOneOrNone,
-} from "../plugins";
+import {createdUpdatedPlugin, findExactlyOne, findOneOrNone} from "../plugins";
 import type {PermissionSet} from "./statements";
 
 export interface RbacAuditDocument {
@@ -57,7 +53,7 @@ const rbacAuditSchema = new mongoose.Schema<RbacAuditDocument, RbacAuditModel>(
       type: String,
     },
   },
-  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}},
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
 rbacAuditSchema.plugin(createdUpdatedPlugin);

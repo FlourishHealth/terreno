@@ -70,7 +70,8 @@ describe("modelRouter error path coverage", () => {
     server = supertest(app);
 
     const res = await server.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
-    expect(res.body.title).toContain("array transform boom");
+    expect(res.body.title).toBe("Transform error");
+    expect(res.body.detail).toContain("array transform boom");
   });
 
   it("returns 400 when saving an array operation fails validation", async () => {
@@ -95,7 +96,8 @@ describe("modelRouter error path coverage", () => {
       .post(`/food/${apple._id}/eatenBy`)
       .send({eatenBy: "not-an-object-id"})
       .expect(400);
-    expect(res.body.title).toContain("PATCH Pre Update error");
+    expect(res.body.title).toBe("Validation failed");
+    expect(res.body.meta.fields["eatenBy.0"]).toContain("ObjectId");
   });
 
   it("returns 400 when a hard delete (no isDeleted plugin) fails", async () => {
@@ -116,6 +118,7 @@ describe("modelRouter error path coverage", () => {
     server = supertest(app);
 
     const res = await server.delete(`/explosive/${doc._id}`).expect(400);
-    expect(res.body.title).toContain("deleteOne exploded");
+    expect(res.body.title).toBe("Delete error");
+    expect(res.body.detail).toContain("deleteOne exploded");
   });
 });

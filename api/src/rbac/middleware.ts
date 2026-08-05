@@ -28,22 +28,26 @@ export const createRequireAccess =
     options?: {getDoc?: (req: express.Request) => Promise<unknown>}
   ) => {
     return async (req: express.Request, _res: express.Response, next: NextFunction) => {
-      const doc = options?.getDoc ? await options.getDoc(req) : undefined;
-      const result = await can({
-        context: {req},
-        doc,
-        permissions,
-        user: req.user,
-      });
-
-      if (!result.allowed) {
-        throw new APIError({
-          status: 403,
-          title: result.reason ?? "Access denied",
+      try {
+        const doc = options?.getDoc ? await options.getDoc(req) : undefined;
+        const result = await can({
+          context: {req},
+          doc,
+          permissions,
+          user: req.user,
         });
-      }
 
-      return next();
+        if (!result.allowed) {
+          throw new APIError({
+            status: 403,
+            title: result.reason ?? "Access denied",
+          });
+        }
+
+        return next();
+      } catch (error) {
+        return next(error);
+      }
     };
   };
 

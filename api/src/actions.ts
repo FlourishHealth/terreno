@@ -6,7 +6,7 @@ import type {ZodSchema, ZodType} from "zod";
 import {asyncHandler, type ModelRouterOptions, type RESTMethod} from "./api";
 import {authenticateMiddleware, type User} from "./auth";
 import {loadDocOr404} from "./docLoader";
-import {APIError} from "./errors";
+import {APIError, ForbiddenError, ValidationError} from "./errors";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {checkPermissions, type PermissionMethod} from "./permissions";
 import {createIsPermitted} from "./rbac/middleware";
@@ -80,7 +80,7 @@ export const runActionPermissions = async <T>(
   model: Model<T>,
   req: Request,
   doc?: T,
-  accessControl?: AnyTerrenoAccess,
+  accessControl?: AnyTerrenoAccess
 ): Promise<void> => {
   const method = mapActionToCrudMethod(scope, action.method);
   let permissions = action.permissions;
@@ -99,18 +99,25 @@ export const runActionPermissions = async <T>(
   }
 
   if (!doc) {
+    // Status kept at 405 for backwards compatibility with the same pre-document permission denial
+    // in modelRouter's array operations; changing it would break consumers matching on it.
     throw new APIError({
-      status: 405,
-      title:
+      code: "action-access-denied",
+      detail:
         `Access to ${method.toUpperCase()} on ${model.modelName} ` + `denied for ${req.user?.id}`,
+      meta: {action: method.toUpperCase(), model: model.modelName},
+      status: 405,
+      title: "Access denied",
     });
   }
 
-  throw new APIError({
-    status: 403,
-    title:
+  throw new ForbiddenError({
+    code: "action-access-denied",
+    detail:
       `Access to ${method.toUpperCase()} on ${model.modelName}:${req.params.id} ` +
       `denied for ${req.user?.id}`,
+    meta: {action: method.toUpperCase(), model: model.modelName},
+    title: "Access denied",
   });
 };
 
@@ -137,9 +144,10 @@ export const validateActionRequest = <TBody, TQuery>({
   if (action.body) {
     const parsedBody = action.body.safeParse(req.body);
     if (!parsedBody.success) {
-      throw new APIError({
+      throw new ValidationError({
+        code: "action-body-validation-failed",
+        detail: "The request body did not match the action's schema",
         fields: flattenZodFieldErrors(parsedBody.error.flatten().fieldErrors),
-        status: 400,
         title: "Validation failed",
       });
     }
@@ -152,9 +160,10 @@ export const validateActionRequest = <TBody, TQuery>({
   if (action.query) {
     const parsedQuery = action.query.safeParse(req.query);
     if (!parsedQuery.success) {
-      throw new APIError({
+      throw new ValidationError({
+        code: "action-query-validation-failed",
+        detail: "The query parameters did not match the action's schema",
         fields: flattenZodFieldErrors(parsedQuery.error.flatten().fieldErrors),
-        status: 400,
         title: "Validation failed",
       });
     }

@@ -40,10 +40,7 @@ const pickPaths = (doc: Record<string, unknown>, paths: string[]): Record<string
   return result;
 };
 
-export const applyReadMask = (
-  value: unknown,
-  mask: FieldMask,
-): unknown => {
+export const applyReadMask = (value: unknown, mask: FieldMask): unknown => {
   if (!isPlainObject(value) && !Array.isArray(value)) {
     return value;
   }
@@ -77,7 +74,7 @@ export const applyReadMask = (
 
 export const getDisallowedWriteKeys = (
   body: Record<string, unknown>,
-  mask: FieldMask,
+  mask: FieldMask
 ): string[] => {
   if (mask.write === "*") {
     return [];

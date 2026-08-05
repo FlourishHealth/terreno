@@ -9,12 +9,28 @@ import mongoose, {
   type SchemaTypeOptions,
 } from "mongoose";
 
-import {APIError, type APIErrorConstructor} from "./errors";
+import {APIError, type APIErrorOptions, InternalServerError, NotFoundError} from "./errors";
 
 export interface BaseUser {
   admin: boolean;
   email: string;
 }
+
+/**
+ * Builds the error thrown by the query plugins. `errorArgs` is applied last so consumers can
+ * override every field, including `status`; the status-specific subclass is used when the resulting
+ * status still matches one of them, so Sentry sees a meaningful error type.
+ */
+const pluginError = (defaults: APIErrorOptions, errorArgs?: Partial<APIErrorOptions>): APIError => {
+  const options: APIErrorOptions = {...defaults, ...errorArgs};
+  if (options.status === 404) {
+    return new NotFoundError(options);
+  }
+  if (options.status === 500) {
+    return new InternalServerError(options);
+  }
+  return new APIError(options);
+};
 
 // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
@@ -122,19 +138,23 @@ export const firebaseJWTPlugin = (schema: Schema): void => {
 export const findOneOrNone = <T>(schema: Schema<T>): void => {
   schema.statics.findOneOrNone = async function (
     query: Record<string, unknown>,
-    errorArgs?: Partial<APIErrorConstructor>
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<(Document & T) | null> {
     const results = await this.find(query);
     if (results.length === 0) {
       return null;
     }
     if (results.length > 1) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(query)}`,
-        status: 500,
-        title: `${this.modelName}.findOne query returned multiple documents`,
-        ...errorArgs,
-      });
+      throw pluginError(
+        {
+          code: "find-one-multiple-documents",
+          detail: `${this.modelName}.findOne query returned multiple documents. query: ${JSON.stringify(query)}`,
+          meta: {model: this.modelName},
+          status: 500,
+          title: "findOne query returned multiple documents",
+        },
+        errorArgs
+      );
     }
     return results[0];
   };
@@ -153,7 +173,7 @@ export const findOneOrNone = <T>(schema: Schema<T>): void => {
 export const findOneOrNoneFor = async <T>(
   model: mongoose.Model<T>,
   query: FilterQuery<T>,
-  errorArgs?: Partial<APIErrorConstructor>
+  errorArgs?: Partial<APIErrorOptions>
 ): Promise<(Document & T) | null> => {
   const withStatic = model as mongoose.Model<T> & Partial<FindOneOrNonePlugin<T>>;
   if (typeof withStatic.findOneOrNone === "function") {
@@ -164,12 +184,16 @@ export const findOneOrNoneFor = async <T>(
     return null;
   }
   if (results.length > 1) {
-    throw new APIError({
-      detail: `query: ${JSON.stringify(query)}`,
-      status: 500,
-      title: `${model.modelName}.findOne query returned multiple documents`,
-      ...errorArgs,
-    });
+    throw pluginError(
+      {
+        code: "find-one-multiple-documents",
+        detail: `${model.modelName}.findOne query returned multiple documents. query: ${JSON.stringify(query)}`,
+        meta: {model: model.modelName},
+        status: 500,
+        title: "findOne query returned multiple documents",
+      },
+      errorArgs
+    );
   }
   return results[0] as unknown as Document & T;
 };
@@ -185,24 +209,32 @@ export const findOneOrNoneFor = async <T>(
 export const findExactlyOne = <T>(schema: Schema<T>): void => {
   schema.statics.findExactlyOne = async function (
     query: Record<string, unknown>,
-    errorArgs?: Partial<APIErrorConstructor>
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<Document & T> {
     const results = await this.find(query);
     if (results.length === 0) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(query)}`,
-        status: 404,
-        title: `${this.modelName}.findExactlyOne query returned no documents`,
-        ...errorArgs,
-      });
+      throw pluginError(
+        {
+          code: "find-exactly-one-no-documents",
+          detail: `${this.modelName}.findExactlyOne query returned no documents. query: ${JSON.stringify(query)}`,
+          meta: {model: this.modelName},
+          status: 404,
+          title: "findExactlyOne query returned no documents",
+        },
+        errorArgs
+      );
     }
     if (results.length > 1) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(query)}`,
-        status: 500,
-        title: `${this.modelName}.findExactlyOne query returned multiple documents`,
-        ...errorArgs,
-      });
+      throw pluginError(
+        {
+          code: "find-exactly-one-multiple-documents",
+          detail: `${this.modelName}.findExactlyOne query returned multiple documents. query: ${JSON.stringify(query)}`,
+          meta: {model: this.modelName},
+          status: 500,
+          title: "findExactlyOne query returned multiple documents",
+        },
+        errorArgs
+      );
     }
     return results[0];
   };
@@ -225,10 +257,11 @@ export const upsertPlugin = <T>(schema: Schema<any, any, any, any>): void => {
     // Try to find the document with the given conditions.
     const docs = await this.find(conditions);
     if (docs.length > 1) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(conditions)}`,
-        status: 500,
-        title: `${this.modelName}.upsert find query returned multiple documents`,
+      throw new InternalServerError({
+        code: "upsert-multiple-documents",
+        detail: `${this.modelName}.upsert find query returned multiple documents. query: ${JSON.stringify(conditions)}`,
+        meta: {model: this.modelName},
+        title: "upsert find query returned multiple documents",
       });
     }
     const doc = docs[0];
@@ -254,14 +287,14 @@ export interface HasUpsert<T> {
 export interface FindOneOrNonePlugin<T> {
   findOneOrNone(
     query: Record<string, unknown>,
-    errorArgs?: Partial<APIErrorConstructor>
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<(Document & T) | null>;
 }
 
 export interface FindExactlyOnePlugin<T> {
   findExactlyOne(
     query: Record<string, unknown>,
-    errorArgs?: Partial<APIErrorConstructor>
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<Document & T>;
 }
 
@@ -318,7 +351,11 @@ export class DateOnly extends SchemaType {
       return date.toJSDate();
     }
     if (typeof val === "string" || typeof val === "number") {
-      const date = DateTime.fromJSDate(new Date(val)).toUTC().startOf("day");
+      const date = (
+        typeof val === "number" ? DateTime.fromMillis(val) : DateTime.fromISO(val, {zone: "utc"})
+      )
+        .toUTC()
+        .startOf("day");
       if (!date.isValid) {
         throw new MongooseError.CastError(
           "DateOnly",

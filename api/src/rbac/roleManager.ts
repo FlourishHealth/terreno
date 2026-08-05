@@ -10,7 +10,7 @@ import {
   terrenoDefaultRoles,
 } from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
-import type {RoleInput, RoleManager} from "./types";
+import type {RoleManager} from "./types";
 
 const assertCanManageRoles = async (
   actor: User,
@@ -29,6 +29,27 @@ const assertCanAssignRoles = async (
   const actorPermissions = await getActorPermissions(actor);
   if (!actorPermissions.rbac?.includes("assignRoles")) {
     throw new APIError({status: 403, title: "Missing rbac:assignRoles permission"});
+  }
+};
+
+const assertValidPermissionSet = (
+  permissions: PermissionSet,
+  statements: Parameters<typeof validatePermissionSet>[1]
+): void => {
+  try {
+    validatePermissionSet(permissions, statements);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid permissions";
+    throw new APIError({status: 400, title: message});
+  }
+};
+
+const assertUserSaveAvailable = (targetUser: {save?: unknown}): void => {
+  if (typeof targetUser.save !== "function") {
+    throw new APIError({
+      status: 500,
+      title: "User model does not support saving role assignments",
+    });
   }
 };
 
@@ -104,7 +125,6 @@ export const createRoleManager = (args: {
       if (!targetUser) {
         throw new APIError({status: 404, title: "User not found"});
       }
-      const rbacUser = targetUser as unknown as User & {roles: string[]};
       const uniqueRoleNames = [...new Set(roleNames)];
       for (let i = 0; i < uniqueRoleNames.length; i++) {
         for (let j = i + 1; j < uniqueRoleNames.length; j++) {
@@ -128,13 +148,15 @@ export const createRoleManager = (args: {
         await assertNoEscalation(actor, permissions, getActorPermissions);
       }
 
+      assertUserSaveAvailable(targetUser);
+      const rbacUser = targetUser as unknown as User & {roles: string[]};
       rbacUser.roles = uniqueRoleNames;
       await targetUser.save();
       invalidateCache({userId});
     },
     create: async ({actor, role}) => {
       await assertCanManageRoles(actor, getActorPermissions);
-      validatePermissionSet(role.permissions, statements);
+      assertValidPermissionSet(role.permissions, statements);
       await assertNoEscalation(actor, role.permissions, getActorPermissions);
 
       const created = await rbacRoleModel.create({
@@ -155,9 +177,9 @@ export const createRoleManager = (args: {
       if (!targetUser) {
         throw new APIError({status: 404, title: "User not found"});
       }
-      const rbacUser = targetUser as unknown as User & {roles: string[]};
       const before = await getActorPermissions(targetUser);
       const previewUser = {...targetUser, roles: [...new Set(roleNames)]};
+      invalidateCache({userId});
       const after = await getActorPermissions(previewUser);
       const diff = diffPermissionSets(before, after);
       return {
@@ -193,6 +215,7 @@ export const createRoleManager = (args: {
       if (!targetUser) {
         throw new APIError({status: 404, title: "User not found"});
       }
+      assertUserSaveAvailable(targetUser);
       const rbacUser = targetUser as unknown as User & {roles: string[]};
       rbacUser.roles = rbacUser.roles.filter((role) => !roleNames.includes(role));
       await targetUser.save();
@@ -205,7 +228,7 @@ export const createRoleManager = (args: {
         throw new APIError({status: 400, title: "Cannot modify a sealed role"});
       }
       if (changes.permissions) {
-        validatePermissionSet(changes.permissions, statements);
+        assertValidPermissionSet(changes.permissions, statements);
         await assertNoEscalation(actor, changes.permissions, getActorPermissions);
       }
       if (changes.name && existing.isLocked) {

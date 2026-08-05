@@ -484,7 +484,7 @@ export const addMeRoutes = (
   app: express.Application,
   userModel: UserModel,
   _authOptions?: AuthOptions,
-  accessControl?: import("./rbac/types").AnyTerrenoAccess,
+  accessControl?: import("./rbac/types").AnyTerrenoAccess
 ): void => {
   const router = express.Router();
   router.get("/me", authenticateMiddleware(), async (req, res) => {
