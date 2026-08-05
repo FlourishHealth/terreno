@@ -252,7 +252,7 @@ describe("shouldShowStillThereModal", () => {
 
 describe("refreshAuthToken", () => {
   it("throws when there is no refresh token", async () => {
-    expect(refreshAuthToken()).rejects.toThrow("no refresh token found");
+    await expect(refreshAuthToken()).rejects.toThrow("no refresh token found");
   });
 
   it("stores the new tokens and sets the axios auth header", async () => {
@@ -267,19 +267,21 @@ describe("refreshAuthToken", () => {
   it("throws when the response has no data", async () => {
     setTokens({auth: 10, refresh: 600});
     axiosPostResult = {data: {}};
-    expect(refreshAuthToken()).rejects.toThrow("refresh token API request failed");
+    await expect(refreshAuthToken()).rejects.toThrow("refresh token API request failed");
   });
 
   it("throws when the response is missing the tokens", async () => {
     setTokens({auth: 10, refresh: 600});
     axiosPostResult = {data: {data: {somethingElse: true}}};
-    expect(refreshAuthToken()).rejects.toThrow("refresh token API request didn't return data");
+    await expect(refreshAuthToken()).rejects.toThrow(
+      "refresh token API request didn't return data"
+    );
   });
 
   it("throws when rendering server side because no token can be read", async () => {
     setTokens({auth: 10, refresh: 600});
     await withoutWindow(async () => {
-      expect(refreshAuthToken()).rejects.toThrow("no refresh token found");
+      await expect(refreshAuthToken()).rejects.toThrow("no refresh token found");
     });
   });
 });
