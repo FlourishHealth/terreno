@@ -33,9 +33,7 @@ const createTestUser = (
   };
 };
 
-const makeEntry = (
-  options: RealtimeRegistryEntry["options"]
-): RealtimeRegistryEntry => ({
+const makeEntry = (options: RealtimeRegistryEntry["options"]): RealtimeRegistryEntry => ({
   collectionName: "todos",
   config: {methods: ["create", "update", "delete"], roomStrategy: "owner"},
   modelName: "Todo",
@@ -150,9 +148,9 @@ describe("realtimeAccess", () => {
       accessControl: access as AnyTerrenoAccess,
     });
 
-    expect(
-      await canReadDocumentRealtime(entry, user, {ownerId: user.id, title: "Mine"})
-    ).toBe(true);
+    expect(await canReadDocumentRealtime(entry, user, {ownerId: user.id, title: "Mine"})).toBe(
+      true
+    );
     expect(
       await canReadDocumentRealtime(entry, user, {
         ownerId: new mongoose.Types.ObjectId().toString(),

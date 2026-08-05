@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 
 import type {User} from "../auth";
 import {setupDb} from "../tests";
-import {createRbacRoleModel} from "./roleModel";
 import {createPermissionResolver} from "./resolve";
+import {createRbacRoleModel} from "./roleModel";
 import {terrenoStatements} from "./statements";
 import type {PermissionSource} from "./types";
 

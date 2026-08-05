@@ -21,7 +21,11 @@ const appStatements = {
   todo: ["create", "read", "update", "delete", "list"],
 } as const;
 
-const createTestUser = (roles: string[] = []): User & {roles: string[]} => {
+const createTestUser = (
+  roles: string[] = []
+): User & {roles: string[]} & {
+  [key: string]: unknown;
+} => {
   const id = new mongoose.Types.ObjectId();
   return {
     _id: id as unknown as User["_id"],
@@ -206,7 +210,10 @@ describe("modelRouterAccess", () => {
     );
 
     const masked = await handler(
-      [{secret: "hidden", title: "One"}, {secret: "hidden", title: "Two"}],
+      [
+        {secret: "hidden", title: "One"},
+        {secret: "hidden", title: "Two"},
+      ],
       "list",
       {user: createTestUser(["reader"])} as never,
       {}

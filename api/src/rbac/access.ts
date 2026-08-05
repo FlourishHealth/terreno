@@ -1,5 +1,3 @@
-import type express from "express";
-
 import type {User} from "../auth";
 
 import {createIsPermitted, createRequireAccess} from "./middleware";

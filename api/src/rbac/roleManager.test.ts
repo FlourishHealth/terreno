@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import mongoose, {model, Schema, type Model} from "mongoose";
+import mongoose, {type Model, model, Schema} from "mongoose";
 
 import type {User, UserModel} from "../auth";
 import {setupDb} from "../tests";
@@ -32,9 +32,7 @@ const getRbacTestUserModel = (): Model<RbacTestUser> => {
   return model<RbacTestUser>(modelName, schema);
 };
 
-const createTestUser = (
-  overrides: Partial<RbacTestUser> = {}
-): RbacTestUser => {
+const createTestUser = (overrides: Partial<RbacTestUser> = {}): RbacTestUser => {
   const id = new mongoose.Types.ObjectId();
   return {
     _id: id as unknown as User["_id"],
@@ -169,9 +167,7 @@ describe("roleManager", () => {
       userId: target.id,
     });
     expect(assignmentPreview.gained.todo).toEqual(expect.arrayContaining(["update"]));
-    expect(assignmentPreview.resulting.todo).toEqual(
-      expect.arrayContaining(["read", "update"])
-    );
+    expect(assignmentPreview.resulting.todo).toEqual(expect.arrayContaining(["read", "update"]));
 
     const rolePreview = await access.roles.previewRoleChange({
       permissions: {todo: ["read", "list"]},
@@ -363,9 +359,9 @@ describe("roleManager", () => {
     const actor = createTestUser({roles: ["superadmin"]});
     const userId = new mongoose.Types.ObjectId().toString();
 
-    await expect(
-      access.roles.assign({actor, roleNames: ["member"], userId})
-    ).rejects.toMatchObject({status: 500, title: "User model not configured for role assignment"});
+    await expect(access.roles.assign({actor, roleNames: ["member"], userId})).rejects.toMatchObject(
+      {status: 500, title: "User model not configured for role assignment"}
+    );
 
     await expect(
       access.roles.previewAssignment({roleNames: ["member"], userId})
@@ -406,7 +402,7 @@ describe("roleManager", () => {
     UserModel.findById = (async () => ({
       id: targetId.toString(),
       roles: [],
-    })) as typeof UserModel.findById;
+    })) as unknown as typeof UserModel.findById;
 
     try {
       await expect(
