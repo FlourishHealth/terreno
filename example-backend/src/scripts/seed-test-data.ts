@@ -140,11 +140,13 @@ const seedUser = async (testUser: SeedUser): Promise<void> => {
   const roles = testUser.admin ? ["superadmin"] : ["manager"];
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
-    const currentRoles = (existingUser as {roles?: string[]}).roles ?? [];
+    const currentRoles = (existingUser as unknown as {roles?: string[]}).roles ?? [];
     const missingRoles = roles.filter((role) => !currentRoles.includes(role));
     if (missingRoles.length > 0 || (testUser.admin && !existingUser.admin)) {
       existingUser.admin = testUser.admin ?? false;
-      (existingUser as {roles: string[]}).roles = [...new Set([...currentRoles, ...roles])];
+      (existingUser as unknown as {roles: string[]}).roles = [
+        ...new Set([...currentRoles, ...roles]),
+      ];
       await existingUser.save();
       logger.info(`Updated test user roles: ${testUser.email} -> ${roles.join(",")}`);
     } else {
