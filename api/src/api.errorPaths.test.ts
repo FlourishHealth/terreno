@@ -2,11 +2,12 @@ import {afterEach, beforeEach, describe, it, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import {assert} from "chai";
 import type express from "express";
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {type ModelRouterOptions, modelRouter} from "./api";
+import {type JSONValue, type ModelRouterOptions, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {ConflictError} from "./errors";
 import {Permissions} from "./permissions";
@@ -191,6 +192,51 @@ describe("modelRouter error paths", () => {
     } finally {
       saveSpy.mockRestore();
     }
+  });
+
+  it("wraps failures while assembling the list response", async () => {
+    mountFood({
+      responseHandler: async (data) => {
+        const serialized = [...(data as Food[])] as Food[] & {slice: () => never};
+        serialized.slice = () => {
+          throw new Error("slice exploded");
+        };
+        return serialized as unknown as JSONValue;
+      },
+    });
+    const ownerId = new mongoose.Types.ObjectId();
+    await FoodModel.create([
+      {calories: 1, name: "First", ownerId},
+      {calories: 2, name: "Second", ownerId},
+    ] as Partial<Food>[]);
+
+    // limit=1 fetches an extra doc, so the handler slices off the overflow.
+    const res = await server.get("/food?limit=1");
+    assert.equal(res.body.title, "Serialization error");
+    assert.include(res.body.detail, "slice exploded");
+  });
+
+  it("rejects a patch when the stored timestamp cannot be parsed", async () => {
+    // `updated` is a string here so the router has to parse it as an ISO date.
+    const timestampSchema = new mongoose.Schema({
+      name: {description: "The name", type: String},
+      updated: {description: "Last update, as an ISO string", type: String},
+    });
+    const TimestampModel = mongoose.model(`StringTimestamp_${Date.now()}`, timestampSchema);
+    app.use(
+      "/timestamped",
+      modelRouter(TimestampModel, {allowAnonymous: true, permissions: anyPermissions})
+    );
+    server = supertest(app);
+
+    const doc = await TimestampModel.create({name: "Timeless", updated: "not-a-date"});
+
+    const res = await server
+      .patch(`/timestamped/${doc._id}`)
+      .set("If-Unmodified-Since", DateTime.now().toHTTP() as string)
+      .send({name: "Renamed"})
+      .expect(400);
+    assert.equal(res.body.title, "Invalid server timestamp");
   });
 });
 
