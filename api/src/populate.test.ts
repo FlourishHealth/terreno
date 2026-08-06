@@ -40,7 +40,7 @@ describe("populate functions", () => {
     expect(populated.likesIds[1].userId.id).toBe(notAdmin.id);
     expect(populated.likesIds[1].userId.name).toBe("Not Admin");
 
-    let unpopulated = unpopulate(
+    const unpopulated = unpopulate(
       populated as unknown as Document<unknown>,
       "ownerId"
     ) as unknown as PopulatedFood;
@@ -52,17 +52,11 @@ describe("populate functions", () => {
     expect(populated.likesIds[1].userId.id).toBe(notAdmin.id);
     expect(populated.likesIds[1].userId.name).toBe("Not Admin");
 
-    unpopulated = unpopulate(
-      populated as unknown as Document<unknown>,
-      "eatenBy"
-    ) as unknown as PopulatedFood;
+    unpopulate(populated as unknown as Document<unknown>, "eatenBy");
     expect(populated.eatenBy.toString()).toBe(admin.id);
     expect(populated.eatenBy[0]?.name).toBeUndefined();
 
-    unpopulated = unpopulate(
-      populated as unknown as Document<unknown>,
-      "likesIds.userId"
-    ) as unknown as PopulatedFood;
+    unpopulate(populated as unknown as Document<unknown>, "likesIds.userId");
     expect(populated.likesIds[0].userId.toString()).toBe(admin.id);
     expect(populated.likesIds[0].userId?.name).toBeUndefined();
     expect(populated.likesIds[1].userId.toString()).toBe(notAdmin.id);
