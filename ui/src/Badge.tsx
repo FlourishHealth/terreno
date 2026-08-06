@@ -84,6 +84,8 @@ export const Badge = ({
       badgeColor = "success";
     } else if (status === "neutral") {
       badgeColor = "primary";
+    } else if (status === "active") {
+      badgeColor = "link";
     }
   }
 
@@ -99,6 +101,8 @@ export const Badge = ({
     badgeBgColor = secondary ? "successLight" : "success";
   } else if (status === "neutral") {
     badgeBgColor = secondary ? "neutralLight" : "neutralDark";
+  } else if (status === "active") {
+    badgeBgColor = secondary ? "secondaryLight" : "primary";
   }
 
   const backgroundColor = status === "custom" ? customBackgroundColor : theme.surface[badgeBgColor];

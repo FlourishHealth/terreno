@@ -46,17 +46,21 @@ export const Filter: FC<FilterProps> = ({
 }) => {
   const {theme} = useTheme();
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const [anchorReady, setAnchorReady] = useState(false);
   const {anchor, measure, triggerRef} = useWebDropdownAnchor();
 
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
 
-  // Re-measure the trigger whenever the panel opens so the portaled panel lines
-  // up beneath it across browsers and scroll positions.
+  // Measure-then-show: measure the trigger when the panel opens and only reveal
+  // the portaled panel once the anchor is known, so it never flashes at the
+  // default (0, 0) position before jumping into place.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only re-measure on open transitions; `measure` is recreated each render.
   useEffect(() => {
     if (open) {
-      measure(() => {});
+      measure(() => setAnchorReady(true));
+    } else {
+      setAnchorReady(false);
     }
   }, [open]);
 
@@ -171,6 +175,10 @@ export const Filter: FC<FilterProps> = ({
     // Web: portal to document.body with fixed positioning so the panel escapes
     // every ancestor stacking context and floats above all page content.
     if (Platform.OS === "web" && typeof document !== "undefined") {
+      // Wait for the trigger measurement so the panel appears already anchored.
+      if (!anchorReady) {
+        return null;
+      }
       const overlay = (
         <View
           // box-none lets clicks pass to the backdrop / panel but not the empty overlay.

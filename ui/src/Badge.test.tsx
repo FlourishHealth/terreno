@@ -62,7 +62,7 @@ describe("Badge", () => {
   });
 
   it("applies correct status colors", () => {
-    const statuses = ["error", "warning", "info", "success", "neutral"] as const;
+    const statuses = ["error", "warning", "info", "success", "neutral", "active"] as const;
 
     statuses.forEach((status) => {
       let {getByTestId} = renderWithTheme(
