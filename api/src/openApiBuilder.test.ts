@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import type {Router} from "express";
@@ -7,12 +5,25 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
+import type {UserModel as AuthUserModel} from "./auth";
 import {createOpenApiBuilder, OpenApiMiddlewareBuilder} from "./openApiBuilder";
 import {Permissions} from "./permissions";
 import {TerrenoApp} from "./terrenoApp";
-import {FoodModel, UserModel} from "./tests";
+import {type Food, FoodModel, UserModel} from "./tests";
 
-function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+/** The subset of an OpenAPI parameter object the assertions below inspect. */
+interface OpenApiParameter {
+  name: string;
+  in: string;
+  required?: boolean;
+  description?: string;
+  schema: {type: string};
+}
+
+function addRoutesWithBuilder(
+  router: Router,
+  options?: Partial<ModelRouterOptions<unknown>>
+): void {
   // Add a custom endpoint using the OpenApiMiddlewareBuilder
   const statsMiddleware = createOpenApiBuilder(options ?? {})
     .withTags(["Stats"])
@@ -124,8 +135,8 @@ function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptio
   // Standard modelRouter for food
   router.use(
     "/food",
-    modelRouter(FoodModel as any, {
-      ...options,
+    modelRouter(FoodModel, {
+      ...(options as Partial<ModelRouterOptions<Food>>),
       allowAnonymous: true,
       permissions: {
         create: [Permissions.IsAny],
@@ -149,7 +160,7 @@ describe("OpenApiMiddlewareBuilder", () => {
     app = new TerrenoApp({
       configureApp: addRoutesWithBuilder,
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
   });
 
@@ -189,7 +200,9 @@ describe("OpenApiMiddlewareBuilder", () => {
       expect(statsPath.get.description).toBe("Returns aggregated statistics about food items");
 
       // Check query parameter
-      const categoryParam = statsPath.get.parameters.find((p: any) => p.name === "category");
+      const categoryParam = statsPath.get.parameters.find(
+        (p: OpenApiParameter) => p.name === "category"
+      );
       expect(categoryParam).toBeDefined();
       expect(categoryParam.in).toBe("query");
       expect(categoryParam.schema.type).toBe("string");
@@ -269,7 +282,9 @@ describe("OpenApiMiddlewareBuilder", () => {
       const categoryPath = res.body.paths["/food/categories/{categoryId}"];
       expect(categoryPath).toBeDefined();
 
-      const pathParam = categoryPath.get.parameters.find((p: any) => p.name === "categoryId");
+      const pathParam = categoryPath.get.parameters.find(
+        (p: OpenApiParameter) => p.name === "categoryId"
+      );
       expect(pathParam).toBeDefined();
       expect(pathParam.in).toBe("path");
       expect(pathParam.required).toBe(true);
