@@ -184,8 +184,16 @@ describe("SidebarNavigationPanel", () => {
     }
     fireEvent(rail, "mouseEnter");
 
-    expect(getByText("Alerts")).toBeTruthy();
-    expect(getByText("Home")).toBeTruthy();
+    const fontFamilyOf = (label: string): unknown =>
+      Object.assign(
+        {},
+        ...(Array.isArray(getByText(label).props.style)
+          ? getByText(label).props.style.flat(Number.POSITIVE_INFINITY)
+          : [getByText(label).props.style])
+      ).fontFamily;
+
+    expect(fontFamilyOf("Alerts")).not.toBe(fontFamilyOf("Home"));
+    expect(String(fontFamilyOf("Alerts"))).toContain("bold");
   });
 
   it("applies hover styling to individual items", () => {
