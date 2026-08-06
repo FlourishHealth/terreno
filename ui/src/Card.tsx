@@ -238,9 +238,11 @@ const EditableCard = ({
         {(Boolean(title) || Boolean(badge)) && (
           <Box alignItems="center" direction="row" gap={2}>
             {Boolean(title) && (
-              <Text bold size="md">
-                {title}
-              </Text>
+              <Box flex="shrink" minWidth={0}>
+                <Text bold size="md" truncate>
+                  {title}
+                </Text>
+              </Box>
             )}
             {Boolean(badge) && <Badge {...badge!} />}
           </Box>

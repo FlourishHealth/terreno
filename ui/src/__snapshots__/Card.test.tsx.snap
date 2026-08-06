@@ -475,23 +475,39 @@ exports[`Card editable variant renders correctly with all props 1`] = `
                 {
                   "$$typeof": Symbol(react.test.json),
                   "children": [
-                    "Home Address",
-                  ],
-                  "props": {
-                    "numberOfLines": 0,
-                    "selectable": undefined,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "fontFamily": "text-bold",
-                      "fontSize": 14,
-                      "textAlign": "left",
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Home Address",
+                      ],
+                      "props": {
+                        "numberOfLines": 1,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
                     },
-                    "testID": undefined,
-                  },
-                  "type": "Text",
+                  ],
+                  "props": {},
+                  "type": "View",
                 },
               ],
-              "props": {},
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexShrink": 1,
+                  "minWidth": 0,
+                },
+                "testID": undefined,
+              },
               "type": "View",
             },
             {
