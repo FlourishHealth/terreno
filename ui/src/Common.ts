@@ -219,6 +219,7 @@ export interface TextThemeConfig {
 export interface SurfaceThemeConfig {
   base: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
+  secondaryExtraLight: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
   secondaryDark: keyof ThemePrimitiveColors;
   secondaryExtraDark: keyof ThemePrimitiveColors;
@@ -287,6 +288,7 @@ export interface TextTheme {
 export interface SurfaceTheme {
   base: string;
   primary: string;
+  secondaryExtraLight: string;
   secondaryLight: string;
   secondaryDark: string;
   secondaryExtraDark: string;
@@ -634,9 +636,10 @@ export type CardProps = BoxProps & {
    * The visual variant of the card.
    * - "container": A simple surface wrapper for arbitrary children (default).
    * - "display": A structured card with a colored header, title, description, and optional action button.
+   * - "editable": A compact row with a leading icon, title, badge, description, helper text and an edit button.
    * @default "container"
    */
-  variant?: "container" | "display";
+  variant?: "container" | "display" | "editable";
 
   /**
    * The size of the display card.
@@ -683,6 +686,41 @@ export type CardProps = BoxProps & {
    * @default 160
    */
   imageHeight?: number;
+
+  /**
+   * The name of an icon shown before the title. Used in the "editable" variant.
+   */
+  iconName?: IconName;
+
+  /**
+   * Props for a badge rendered next to the title. Used in the "editable" variant.
+   */
+  badge?: BadgeProps;
+
+  /**
+   * Secondary text displayed below the description, in a muted style.
+   * Used in the "editable" variant.
+   */
+  helperText?: string;
+
+  /**
+   * Callback invoked when the edit button is pressed. The edit button is only rendered when this
+   * is provided. Used in the "editable" variant.
+   */
+  onEdit?: () => void | Promise<void>;
+
+  /**
+   * Accessibility label for the edit button. Used in the "editable" variant.
+   * @default "Edit"
+   */
+  editAccessibilityLabel?: string;
+
+  /**
+   * If true, the card is highlighted to draw attention to it, e.g. for content that needs review.
+   * Used in the "editable" variant.
+   * @default false
+   */
+  attention?: boolean;
 };
 
 export interface ErrorBoundaryProps {
