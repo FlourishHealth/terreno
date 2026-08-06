@@ -1605,7 +1605,14 @@ export interface BadgeProps extends WithTestID {
    * The status of the badge. Determines its color and appearance.
    * @default "info"
    */
-  status?: "info" | "error" | "warning" | "success" | "neutral" | "custom";
+  status?: "info" | "error" | "warning" | "success" | "neutral" | "active" | "custom";
+
+  /**
+   * For the "status" variant, whether the dot uses the bold (saturated) or
+   * subtle (light) tone.
+   * @default "bold"
+   */
+  color?: "bold" | "subtle";
 
   /**
    * The text or number to display inside the badge.
@@ -1613,9 +1620,10 @@ export interface BadgeProps extends WithTestID {
   value?: number | string;
 
   /**
-   * The variant of the badge. Determines if it displays an icon or number only.
+   * The variant of the badge. "status" renders a small colored dot (no text)
+   * used to indicate an active/modified state.
    */
-  variant?: "iconOnly" | "numberOnly";
+  variant?: "iconOnly" | "numberOnly" | "status";
 }
 
 export type ThumbsUpDownFeedbackValue = "positive" | "negative";

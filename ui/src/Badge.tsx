@@ -5,12 +5,33 @@ import type {BadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 
+const STATUS_DOT_SIZE = 8;
+
+// Surface tokens for the "status" dot variant, per bold vs subtle tone.
+const STATUS_DOT_BOLD: Record<string, keyof SurfaceTheme> = {
+  active: "primary",
+  error: "error",
+  info: "secondaryDark",
+  neutral: "neutralDark",
+  success: "success",
+  warning: "warning",
+};
+const STATUS_DOT_SUBTLE: Record<string, keyof SurfaceTheme> = {
+  active: "secondaryLight",
+  error: "errorLight",
+  info: "secondaryLight",
+  neutral: "neutralLight",
+  success: "successLight",
+  warning: "warningLight",
+};
+
 export const Badge = ({
   value,
   iconName,
   status = "info",
   secondary = false,
   variant,
+  color = "bold",
   maxValue = 100,
   customBackgroundColor,
   customTextColor,
@@ -22,10 +43,28 @@ export const Badge = ({
   const {theme} = useTheme();
   const isIconOnly = variant === "iconOnly";
 
+  if (variant === "status") {
+    const dotSurface =
+      (color === "subtle" ? STATUS_DOT_SUBTLE : STATUS_DOT_BOLD)[status] ?? "primary";
+    const dotColor = status === "custom" ? customBackgroundColor : theme.surface[dotSurface];
+    return (
+      <View
+        style={{
+          backgroundColor: dotColor,
+          borderRadius: STATUS_DOT_SIZE,
+          height: STATUS_DOT_SIZE,
+          width: STATUS_DOT_SIZE,
+        }}
+        testID={testID}
+      />
+    );
+  }
+
   let badgeColor: keyof TextTheme = "inverted";
 
   // TODO: Move to theme
   const secondaryBorderColors = {
+    active: "#8FC1D2",
     custom: "#AAAAAA",
     error: "#F39E9E",
     info: "#8FC1D2",
