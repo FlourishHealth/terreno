@@ -78,19 +78,19 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
 
 ## Phase 3: Changelog
 
-- [ ] **Task 3.1**: Create the root `CHANGELOG.md` and backfill releases
+- [x] **Task 3.1**: Create the root `CHANGELOG.md` and backfill releases
   - Description: Create `CHANGELOG.md` in Keep-a-Changelog format with an `## [Unreleased]` section at the top, then one section per released version, newest first. Source the content from `gh release list --limit 40` and `gh release view <tag>` for each release from 0.20.0 to the current version. Group each entry under `Added` / `Changed` / `Fixed` / `Deprecated` / `Removed`. Include a header note that all `@terreno/*` packages are versioned in lockstep and a link to `docs/implementationPlans/oss-launch-program.md` is **not** needed here. Do not invent entries — if a release has no notes, write `- No published release notes.` under that version.
   - Files: `CHANGELOG.md` (new)
   - Depends on: none
   - Acceptance: every version tag returned by `gh release list` between 0.20.0 and current has a section; no section is empty; the file states the lockstep versioning rule.
 
-- [ ] **Task 3.2**: Reduce `api/CHANGELOG.md` to a pointer
+- [x] **Task 3.2**: Reduce `api/CHANGELOG.md` to a pointer
   - Description: Replace the contents of `api/CHANGELOG.md` with a short note that the changelog moved to the repo root, linking `../CHANGELOG.md`. Preserve the historical entries by moving them into the corresponding root `CHANGELOG.md` sections first if they contain detail the GitHub releases lack.
   - Files: `api/CHANGELOG.md`, `CHANGELOG.md`
   - Depends on: Task 3.1
   - Acceptance: `api/CHANGELOG.md` is under 10 lines and links to the root changelog; no historical detail was lost.
 
-- [ ] **Task 3.3**: Make changelog updates part of the release process
+- [x] **Task 3.3**: Make changelog updates part of the release process
   - Description: Edit `.rulesync/skills/release/SKILL.md` to add a required step: before tagging, move `## [Unreleased]` content into a new version section in the root `CHANGELOG.md` with today's date (via Luxon-formatted ISO date), and confirm the section is non-empty. Then run `bun run rules` to regenerate the mirrored skill files under `.cursor/`, `.claude/`, `.devin/`, `.github/`, and `.agents/`.
   - Files: `.rulesync/skills/release/SKILL.md`, plus generated mirrors
   - Depends on: Task 3.1
