@@ -54,6 +54,7 @@ import {
 } from "./transformers";
 import {isValidObjectId} from "./utils";
 
+// noExplicitAny: Framework routers accept consumer models with arbitrary query helpers, methods, virtuals, and hydrated document types
 // biome-ignore lint/suspicious/noExplicitAny: Framework routers accept consumer models with arbitrary query helpers, methods, virtuals, and hydrated document types
 type ModelLike<T> = Model<T, any, any, any, any, any>;
 
