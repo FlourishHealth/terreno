@@ -98,31 +98,31 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
 
 ## Phase 4: GitHub templates
 
-- [ ] **Task 4.1**: Add issue forms
+- [x] **Task 4.1**: Add issue forms
   - Description: Create three GitHub issue forms. `bug_report.yml`: fields for affected package (dropdown listing all published `@terreno/*` packages plus `docs`, `examples`, `mcp`), version, platform (dropdown: iOS / Android / Web / Backend / N/A), reproduction steps (required textarea), expected vs actual, and a checkbox confirming the reporter searched existing issues. `feature_request.yml`: problem statement (required), proposed solution, alternatives considered, and a checkbox asking whether the requester is willing to open a PR. `docs_issue.yml`: page URL, what is wrong or missing, and suggested fix. Add `config.yml` with `blank_issues_enabled: false` and contact links to Discussions (Q&A and Ideas categories) and `SECURITY.md`.
   - Files: `.github/ISSUE_TEMPLATE/bug_report.yml`, `.github/ISSUE_TEMPLATE/feature_request.yml`, `.github/ISSUE_TEMPLATE/docs_issue.yml`, `.github/ISSUE_TEMPLATE/config.yml` (all new)
   - Depends on: Task 2.3
   - Acceptance: all four files parse as valid YAML; the package dropdown in `bug_report.yml` matches the packages published by `publish-on-tag.yml`; `config.yml` disables blank issues.
 
-- [ ] **Task 4.2**: Add a PR template
+- [x] **Task 4.2**: Add a PR template
   - Description: Create `.github/PULL_REQUEST_TEMPLATE.md` with sections: Summary; Related IP or issue; Type of change (checkboxes); Testing performed (with a reminder that frontend changes require screenshots or video per `AGENTS.md`); Checklist (tests added, `bun run lint` passes, `bun run compile` passes, docs updated, changelog `Unreleased` entry added for user-facing changes, DCO signed off). Keep it short enough that contributors actually fill it in — under 40 lines.
   - Files: `.github/PULL_REQUEST_TEMPLATE.md` (new)
   - Depends on: Task 2.1, Task 3.1
   - Acceptance: template is under 40 lines; references the changelog and the frontend-verification requirement.
 
-- [ ] **Task 4.3**: Add `CODEOWNERS`
+- [x] **Task 4.3**: Add `CODEOWNERS`
   - Description: Create `.github/CODEOWNERS` mapping each package directory to its owning team or maintainer, plus a catch-all root owner. Use GitHub team handles if they exist; otherwise use individual maintainer usernames. Include entries for `docs/`, `.github/`, `.rulesync/`, and `terraform/`.
   - Files: `.github/CODEOWNERS` (new)
   - Depends on: none
   - Acceptance: every top-level package directory has an owner; the file has a catch-all `*` line; GitHub's CODEOWNERS validation (visible in repo settings) reports no errors.
 
-- [ ] **Task 4.4**: Document required repository settings
+- [x] **Task 4.4**: Document required repository settings
   - Description: Add a short section to `CONTRIBUTING.md` (or a new `docs/explanation/repository-settings.md` if it exceeds 30 lines) listing the GitHub settings a maintainer must enable manually because they cannot be committed: Discussions enabled with the categories from [`public-roadmap-github.md`](../implementationPlans/public-roadmap-github.md), private vulnerability reporting enabled, branch protection on `master` requiring the CI checks, "Allow squash merging" only, and auto-delete of merged branches.
   - Files: `CONTRIBUTING.md` or `docs/explanation/repository-settings.md`
   - Depends on: Task 2.1
   - Acceptance: the list names each setting and where to find it in the GitHub UI; no setting is described as already enabled unless verified.
 
-- [ ] **Task 4.5**: Append the governance section to `README.md`
+- [x] **Task 4.5**: Append the governance section to `README.md`
   - Description: Add a `## License` section and a `## Contributing` section near the end of `README.md`, plus a license badge next to the existing npm badges. Link `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`. Do not modify any other README content — positioning changes belong to a different IP.
   - Files: `README.md`
   - Depends on: Task 1.1, Task 2.1, Task 2.2, Task 2.3

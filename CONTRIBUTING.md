@@ -140,6 +140,12 @@ This appends a line like `Signed-off-by: Your Name <you@example.com>` to the com
 
 Report vulnerabilities privately — see [SECURITY.md](SECURITY.md). Do not file public issues for security problems.
 
+## Maintainer repository settings
+
+GitHub settings that cannot be committed (Discussions categories, branch
+protection, vulnerability reporting) are documented in
+[docs/explanation/repository-settings.md](docs/explanation/repository-settings.md).
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the
