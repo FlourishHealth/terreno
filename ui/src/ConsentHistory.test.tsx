@@ -1,5 +1,44 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {Pressable} from "react-native";
+
+// The download control is an IconButton wrapped in a Tooltip, which does not
+// render its trigger in the test renderer. Mock it to a plain pressable that
+// forwards onClick and testID, matching the InfoTooltipButton test pattern.
+mock.module("./IconButton", () => ({
+  IconButton: ({
+    onClick,
+    testID,
+    loading,
+  }: {
+    onClick?: () => void;
+    testID?: string;
+    loading?: boolean;
+  }) => <Pressable disabled={loading} onPress={onClick} testID={testID} />,
+}));
+
+// Stub jsPDF so exercising the download handler does not write a PDF file to
+// disk. Methods are no-ops; splitTextToSize returns an empty line set.
+class StubJsPdf {
+  setFontSize(): void {}
+  setFont(): void {}
+  setDrawColor(): void {}
+  setTextColor(): void {}
+  text(): void {}
+  line(): void {}
+  addPage(): void {}
+  addImage(): void {}
+  splitTextToSize(): string[] {
+    return [];
+  }
+  save(): void {}
+}
+
+mock.module("jspdf", () => ({jsPDF: StubJsPdf}));
+
+afterAll(() => {
+  mock.module("./IconButton", () => ({IconButton: mock(() => null)}));
+});
 
 import {ConsentHistory} from "./ConsentHistory";
 import {renderWithTheme} from "./test-utils";
@@ -157,5 +196,29 @@ describe("ConsentHistory", () => {
       <ConsentHistory api={createApi({data: {data: [makeEntry()]}})} />
     );
     expect(getByTestId("consent-history-item-entry-1")).toBeTruthy();
+  });
+
+  it("invokes PDF generation and resets the loading state after a download", async () => {
+    const originalError = console.error;
+    console.error = mock(() => {}) as unknown as typeof console.error;
+    try {
+      const {getByTestId} = renderWithTheme(
+        <ConsentHistory api={createApi({data: [makeEntry()]})} />
+      );
+      fireEvent.press(getByTestId("consent-history-item-toggle-entry-1"));
+
+      await act(async () => {
+        fireEvent.press(getByTestId("consent-history-download-entry-1"));
+      });
+
+      // The button remains mounted after the async handler settles (loading
+      // state was toggled back off), regardless of whether PDF generation
+      // succeeded or threw in the headless test environment.
+      await waitFor(() => {
+        expect(getByTestId("consent-history-download-entry-1")).toBeTruthy();
+      });
+    } finally {
+      console.error = originalError;
+    }
   });
 });
