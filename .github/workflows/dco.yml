@@ -26,6 +26,8 @@ jobs:
       - name: Check DCO sign-off on external PR commits
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
@@ -37,9 +39,13 @@ jobs:
             author_name=$(git log -1 --format='%an' "$sha")
             author_email=$(git log -1 --format='%ae' "$sha")
 
+            # Use GitHub's commit author login for bot exemptions — git author
+            # metadata is attacker-controlled on fork PR commits.
+            api_author=$(gh api "repos/${GH_REPO}/commits/${sha}" --jq '.author.login // ""')
+
             skip=0
             for bot in $BOT_AUTHORS; do
-              if [ "$author_name" = "$bot" ]; then
+              if [ "$api_author" = "$bot" ]; then
                 skip=1
                 break
               fi
