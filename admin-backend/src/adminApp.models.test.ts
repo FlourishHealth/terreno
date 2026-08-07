@@ -22,7 +22,7 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import type {AdminAuditEvent, AdminModelConfig, AdminOptions} from "./adminApp";
-import {AdminApp} from "./adminApp";
+import {AdminApp, getArrayEmbeddedSchemaType} from "./adminApp";
 
 const buildApp = (
   models: AdminModelConfig[] = [],
@@ -60,6 +60,15 @@ const enumArraySchema = new mongoose.Schema({
 });
 const EnumArrayModel =
   mongoose.models.AdminEnumArray ?? mongoose.model("AdminEnumArray", enumArraySchema);
+
+describe("getArrayEmbeddedSchemaType", () => {
+  it("supports the legacy Mongoose 8 caster property", () => {
+    const embeddedSchemaType = new mongoose.Schema({value: String}).path("value");
+    const legacyArrayPath = {caster: embeddedSchemaType} as unknown as mongoose.SchemaType;
+
+    expect(getArrayEmbeddedSchemaType(legacyArrayPath)).toBe(embeddedSchemaType);
+  });
+});
 
 describe("AdminApp /admin/config", () => {
   let app: express.Application;

@@ -319,6 +319,21 @@ interface OpenApiProperty {
   };
 }
 
+interface ArraySchemaTypeCompatibility {
+  caster?: mongoose.SchemaType;
+  getEmbeddedSchemaType?: () => mongoose.SchemaType | undefined;
+}
+
+export const getArrayEmbeddedSchemaType = (
+  schemaPath: mongoose.SchemaType
+): mongoose.SchemaType | undefined => {
+  const compatiblePath = schemaPath as mongoose.SchemaType & ArraySchemaTypeCompatibility;
+  if (typeof compatiblePath.getEmbeddedSchemaType === "function") {
+    return compatiblePath.getEmbeddedSchemaType();
+  }
+  return compatiblePath.caster;
+};
+
 const extractFieldMeta = (
   properties: Record<string, OpenApiProperty>,
   required: string[]
@@ -495,7 +510,7 @@ export class AdminApp {
           }
           // For arrays, use the public embedded schema type to infer the primitive item type/ref.
           if (schemaPath.instance === "Array") {
-            const embeddedSchemaType = schemaPath.getEmbeddedSchemaType();
+            const embeddedSchemaType = getArrayEmbeddedSchemaType(schemaPath);
             if (embeddedSchemaType?.instance && !field.items) {
               const instanceToType: Record<string, string> = {
                 Boolean: "boolean",
