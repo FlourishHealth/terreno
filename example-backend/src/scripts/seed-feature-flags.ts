@@ -102,7 +102,8 @@ export const seedFeatureFlags = async (): Promise<{results: string[]; success: b
           },
         },
       },
-    ]
+    ],
+    {updatePipeline: true}
   );
   if (backfill.modifiedCount > 0) {
     results.push(`Backfilled defaultVariant on ${String(backfill.modifiedCount)} existing flag(s)`);
