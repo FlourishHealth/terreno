@@ -1,26 +1,27 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
+import type {HydratedDocument} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
-import {ConsentApp} from "./consentApp";
+import type {UserModel as UserMongooseModel} from "./auth";
+import {ConsentApp, type ConsentAppOptions} from "./consentApp";
 import {ConsentForm} from "./models/consentForm";
 import {ConsentResponse} from "./models/consentResponse";
 import {TerrenoApp} from "./terrenoApp";
-import {authAsUser, setupDb, UserModel} from "./tests";
+import {authAsUser, setupDb, type User, UserModel} from "./tests";
+import type {ConsentFormDocument} from "./types/consentForm";
 
-const buildApp = (consentAppOptions = {}): express.Application =>
+const buildApp = (consentAppOptions: ConsentAppOptions = {}): express.Application =>
   new TerrenoApp({
     skipListen: true,
-    userModel: UserModel as any,
+    userModel: UserModel as unknown as UserMongooseModel,
   })
     .register(new ConsentApp(consentAppOptions))
     .build();
 
 describe("ConsentApp", () => {
-  let admin: any;
-  let notAdmin: any;
+  let admin: HydratedDocument<User>;
+  let notAdmin: HydratedDocument<User>;
   let adminAgent: TestAgent;
   let userAgent: TestAgent;
 
@@ -344,8 +345,7 @@ describe("ConsentApp", () => {
 
       // Build app with resolver that only returns privacy forms
       const filteredApp = buildApp({
-        resolveConsentForms: (_user: any, forms: any[]) =>
-          forms.filter((f) => f.type === "privacy"),
+        resolveConsentForms: (_user, forms) => forms.filter((f) => f.type === "privacy"),
       });
       const filteredAgent = await authAsUser(filteredApp, "notAdmin");
 
@@ -367,7 +367,7 @@ describe("ConsentApp", () => {
 
       // Build app with resolver that skips admin users
       const filteredApp = buildApp({
-        resolveConsentForms: (user: any, forms: any[]) => (user.admin ? [] : forms),
+        resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
       });
       const filteredAdmin = await authAsUser(filteredApp, "admin");
       const filteredUser = await authAsUser(filteredApp, "notAdmin");
@@ -388,7 +388,7 @@ describe("ConsentApp", () => {
   });
 
   describe("POST /consents/respond", () => {
-    let form: any;
+    let form: ConsentFormDocument;
 
     beforeEach(async () => {
       form = await ConsentForm.create({
