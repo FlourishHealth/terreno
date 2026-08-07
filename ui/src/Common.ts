@@ -636,10 +636,9 @@ export type CardProps = BoxProps & {
    * The visual variant of the card.
    * - "container": A simple surface wrapper for arbitrary children (default).
    * - "display": A structured card with a colored header, title, description, and optional action button.
-   * - "editable": A compact row with a leading icon, title, badge, description, helper text and an edit button.
    * @default "container"
    */
-  variant?: "container" | "display" | "editable";
+  variant?: "container" | "display";
 
   /**
    * The size of the display card.
@@ -686,38 +685,48 @@ export type CardProps = BoxProps & {
    * @default 160
    */
   imageHeight?: number;
+};
 
+export type EditableCardProps = BoxProps & {
   /**
-   * The name of an icon shown before the title. Used in the "editable" variant.
+   * The name of an icon shown before the title.
    */
   iconName?: IconName;
 
   /**
-   * Props for a badge rendered next to the title. Used in the "editable" variant.
+   * The title of the summarized information.
+   */
+  title?: string;
+
+  /**
+   * Props for a badge rendered next to the title.
    */
   badge?: BadgeProps;
 
   /**
+   * The summarized information itself, displayed below the title.
+   */
+  description?: string;
+
+  /**
    * Secondary text displayed below the description, in a muted style.
-   * Used in the "editable" variant.
    */
   helperText?: string;
 
   /**
    * Callback invoked when the edit button is pressed. The edit button is only rendered when this
-   * is provided. Used in the "editable" variant.
+   * is provided.
    */
   onEdit?: () => void | Promise<void>;
 
   /**
-   * Accessibility label for the edit button. Used in the "editable" variant.
+   * Accessibility label for the edit button.
    * @default "Edit"
    */
   editAccessibilityLabel?: string;
 
   /**
    * If true, the card is highlighted to draw attention to it, e.g. for content that needs review.
-   * Used in the "editable" variant.
    * @default false
    */
   attention?: boolean;

@@ -7,7 +7,7 @@ export const CardConfiguration: DemoConfiguration = {
   component: Card,
   related: ["Box"],
   description:
-    "A card serves as a surface for information. It helps organize and highlight information while providing visual hierarchy. This design system has three kinds of cards: Display, Container, and Editable.",
+    "A card serves as a surface for information. It helps organize and highlight information while providing visual hierarchy. Card renders the container and display surfaces; EditableCard builds on Card to summarize saved information the user can edit.",
   shortDescription:
     "A card serves as a surface for information. It helps organize and highlight information while providing visual hierarchy.",
   a11yNotes: [
@@ -30,7 +30,7 @@ export const CardConfiguration: DemoConfiguration = {
     do: [
       "Use a display card to highlight a new feature or flow.",
       "Use a container card to pull longform information into a tidy column, especially on larger screens.",
-      "Use an editable card to show a short summary of saved information the user can edit, and set attention when it needs review.",
+      "Use EditableCard to show a short summary of saved information the user can edit, and set attention when it needs review.",
     ],
     doNot: ["Do not put information for a task or flow on a card. Consider using a modal instead."],
   },
@@ -50,7 +50,7 @@ export const CardConfiguration: DemoConfiguration = {
     },
     Editable: {
       description:
-        "Editable cards summarize saved information in a compact row with an optional icon, badge, helper text, and an edit button. Set attention to highlight a card that needs review.",
+        "EditableCard wraps a Card to summarize saved information in a compact row with an optional icon, badge, helper text, and an edit button. Set attention to highlight a card that needs review.",
       render: EditableCardDemo,
     },
     LightAndDark: {

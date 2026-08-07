@@ -1,13 +1,10 @@
 import type React from "react";
 import {Image, useWindowDimensions} from "react-native";
 
-import {Badge} from "./Badge";
 import {Box} from "./Box";
 import {Button} from "./Button";
 import type {CardProps} from "./Common";
 import {Heading} from "./Heading";
-import {Icon} from "./Icon";
-import {IconButton} from "./IconButton";
 import {Text} from "./Text";
 
 const DEFAULT_DISPLAY_CARD_WIDTH = 600;
@@ -57,12 +54,6 @@ const DisplayCard = ({
   minWidth = 0,
   overflow = "hidden",
   variant: _variant,
-  attention: _attention,
-  badge: _badge,
-  editAccessibilityLabel: _editAccessibilityLabel,
-  helperText: _helperText,
-  iconName: _iconName,
-  onEdit: _onEdit,
   ...rest
 }: DisplayCardProps): React.ReactElement => {
   const isRow = !isMobile && size !== "small";
@@ -161,12 +152,6 @@ const ContainerCard = ({
   imageUri: _imageUri,
   imageAlt: _imageAlt,
   imageHeight: _imageHeight,
-  attention: _attention,
-  badge: _badge,
-  editAccessibilityLabel: _editAccessibilityLabel,
-  helperText: _helperText,
-  iconName: _iconName,
-  onEdit: _onEdit,
   ...rest
 }: ContainerCardProps): React.ReactElement => {
   const containerBoxProps = {
@@ -188,95 +173,12 @@ const ContainerCard = ({
   return <Box {...containerBoxProps}>{children}</Box>;
 };
 
-const EditableCard = ({
-  children,
-  attention = false,
-  badge,
-  color,
-  description,
-  editAccessibilityLabel = "Edit",
-  helperText,
-  iconName,
-  maxWidth = "100%",
-  minWidth = 0,
-  onEdit,
-  overflow = "hidden",
-  padding = 3,
-  title,
-  variant: _variant,
-  size: _size,
-  buttonText: _buttonText,
-  buttonOnClick: _buttonOnClick,
-  imageUri: _imageUri,
-  imageAlt: _imageAlt,
-  imageHeight: _imageHeight,
-  ...rest
-}: CardProps): React.ReactElement => {
-  return (
-    <Box
-      borderBottom="default"
-      borderLeft="default"
-      borderRight="default"
-      borderTop="default"
-      color={color ?? (attention ? "secondaryExtraLight" : "base")}
-      direction="row"
-      gap={2}
-      maxWidth={maxWidth}
-      minWidth={minWidth}
-      overflow={overflow}
-      padding={padding}
-      rounding="md"
-      width="100%"
-      {...rest}
-    >
-      {Boolean(iconName) && (
-        <Box paddingY={1}>
-          <Icon iconName={iconName!} size="md" />
-        </Box>
-      )}
-      <Box direction="column" flex="grow" gap={1} minWidth={0}>
-        {(Boolean(title) || Boolean(badge)) && (
-          <Box alignItems="center" direction="row" gap={2}>
-            {Boolean(title) && (
-              <Box flex="shrink" minWidth={0}>
-                <Text bold size="md" truncate>
-                  {title}
-                </Text>
-              </Box>
-            )}
-            {Boolean(badge) && <Badge {...badge!} />}
-          </Box>
-        )}
-        {Boolean(description) && <Text size="md">{description}</Text>}
-        {Boolean(helperText) && (
-          <Text color="secondaryLight" size="sm">
-            {helperText}
-          </Text>
-        )}
-        {children}
-      </Box>
-      {Boolean(onEdit) && (
-        <IconButton
-          accessibilityLabel={editAccessibilityLabel}
-          iconName="pencil"
-          onClick={onEdit!}
-          variant="ghost"
-        />
-      )}
-    </Box>
-  );
-};
-
 export const Card = ({variant = "container", ...props}: CardProps): React.ReactElement => {
   const {width: windowWidth} = useWindowDimensions();
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
 
   if (variant === "display") {
     return <DisplayCard {...props} isMobile={isMobile} variant={variant} />;
-  }
-
-  if (variant === "editable") {
-    return <EditableCard {...props} variant={variant} />;
   }
 
   return <ContainerCard {...props} isMobile={isMobile} variant={variant} />;
