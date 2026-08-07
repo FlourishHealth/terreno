@@ -49,6 +49,7 @@ Stage and commit:
 - Keep first line under 72 characters
 - No conventional commit prefixes
 - No AI attribution
+- **DCO:** use `git commit -s` on every commit (required for external forks; see [CONTRIBUTING.md](../../CONTRIBUTING.md) and `.github/workflows/dco.yml`)
 
 ## Step 3: Push
 
@@ -62,7 +63,7 @@ git push origin HEAD
 
 When the branch touches frontend paths (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`), the PR **must** include UI verification evidence from `verify-ui-changes`: app launch, login, and feature exercise with saved screenshots/videos.
 
-For all runs, if evidence was captured — screenshots, screen recordings, or videos (e.g. from browser testing, `verify-ui-changes`, Playwright, or emulator sessions) — include it in the PR body under an `## Evidence` section (or `## UI verification` when the change is UI-focused):
+For all runs, if evidence was captured — screenshots, screen recordings, or videos (e.g. from browser testing, `verify-ui-changes`, Playwright, or emulator sessions) — include it in the PR body under `## Evidence` after **Testing performed** (per [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md)):
 
 - Check for media generated during the session (e.g. `/opt/cursor/artifacts/`, `.cursor/artifacts/`, test output dirs, or files you saved while verifying).
 - In Cursor cloud runs, reference artifacts by absolute path with HTML tags — the PR tool uploads them and rewrites the URLs automatically: `<img alt="Description" src="/opt/cursor/artifacts/screenshots/example.png" />` or `<video src="/opt/cursor/artifacts/demo.mp4"></video>`.
@@ -73,26 +74,40 @@ For all runs, if evidence was captured — screenshots, screen recordings, or vi
 
 ### If no PR exists
 
-Use this template for the **initial** body only:
+Use the repo PR template ([`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md)) for the **initial** body:
 
 ```bash
 gh pr create --title "<title>" --body "$(cat <<'EOF'
 ## Summary
 [What changed and why — 2-4 sentences]
 
-## Human Testing Steps
-- [ ] [Step-by-step verification instructions]
+## Related IP or issue
+[#NNN or docs/implementationPlans/<slug>.md]
 
-## Changes
-- [Bullet list of specific changes]
+## Type of change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] Chore / CI
 
-## Automated Tests
-- [Tests that ran and passed, or "None"]
+## Testing performed
+[Commands run, manual steps]
+
+## Checklist
+- [ ] Tests added or updated where appropriate
+- [ ] `bun run lint` passes
+- [ ] `bun run compile` passes (if TypeScript changed)
+- [ ] Docs updated (if user-facing behavior changed)
+- [ ] `CHANGELOG.md` `## [Unreleased]` updated for user-facing changes
+- [ ] DCO signed off (`git commit -s`) on every commit
 EOF
 )" --draft
 ```
 
-Append an `## Evidence` section to the initial body when run evidence exists (see "Include run evidence" above).
+Append an `## Evidence` section after **Testing performed** when run evidence exists (see "Include run evidence" above).
+
+**User-facing changes:** add a bullet under `CHANGELOG.md` `## [Unreleased]` before opening the PR (required by the release skill and PR checklist).
 
 ### If a PR already exists
 
@@ -108,8 +123,10 @@ git diff $(gh pr view --json baseRefName -q .baseRefName)...HEAD --stat
 
 - **Do not replace the entire description** with a fresh template or a short stub. Build the next body by **editing a copy of the existing Markdown**.
 - Keep narrative, reviewer context, links, embedded media/HTML, `<!-- -->` comments, and manual checklist edits unless they are factually wrong for the branch.
-- Prefer **additive** updates: append bullets under **Changes** for new work; extend **Summary** with a brief "Update:" line (and date if helpful) when scope grows, instead of deleting the original explanation.
-- Refresh **Human Testing Steps** / **Automated Tests** only when verification needs changed; add or adjust bullets rather than wiping sections unless an item is now false.
+- Preserve the standard sections from [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md): **Summary**, **Related IP or issue**, **Type of change**, **Testing performed**, **Checklist**. Legacy sections (**Human Testing Steps**, **Changes**, **Automated Tests**) may remain — fold stale content into **Testing performed** / **Summary** when you refresh, but do not delete unrelated reviewer context.
+- Prefer **additive** updates: extend **Summary** with a brief "Update:" line when scope grows; tick or add **Checklist** items as work completes.
+- Refresh **Testing performed** when verification needs changed; add or adjust bullets rather than wiping the section unless an item is now false.
+- Update `CHANGELOG.md` `## [Unreleased]` when new user-facing work lands on the branch.
 - If new work does not fit existing headings, add a **new section at the end** instead of removing unrelated content.
 - If this run produced new evidence (screenshots/videos), add it under the existing `## Evidence` section, or create that section if missing — keep any evidence already in the body.
 - Change the PR **title** only when the overall branch goal changed; otherwise keep the existing title.

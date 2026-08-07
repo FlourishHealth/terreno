@@ -138,7 +138,8 @@ When implementation touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend
 
 1. Invoke the `verify-ui-changes` skill before final handoff or PR submission.
 2. Launch the correct app, log in with seeded credentials when required, and exercise each implemented user-facing behavior.
-3. Save screenshots and videos under `/opt/cursor/artifacts/` for attachment to the PR.
+3. Save screenshots and videos under `/opt/cursor/artifacts/` for attachment to the PR (**Testing performed** / `## Evidence` per [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md)).
+4. Update `CHANGELOG.md` `## [Unreleased]` for user-facing changes before opening the PR.
 
 ## File Modification Rules
 

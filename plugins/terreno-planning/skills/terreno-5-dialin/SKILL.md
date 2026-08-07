@@ -33,9 +33,10 @@ Each cycle:
    - Clarifications / out-of-scope items
 4. Apply code fixes for actionable items.
 5. Run targeted checks.
-6. Commit + push fixes (same commit hygiene rules as Pour — see `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`; no AI attribution).
+6. Commit + push fixes (same commit hygiene rules as Pour — see `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`; no AI attribution; `git commit -s` for DCO).
 7. Re-check CI and continue loop.
 8. Reply to addressed comments and resolve threads when fully fixed.
+9. When user-facing behavior changed, update `CHANGELOG.md` `## [Unreleased]` and tick the changelog item in the PR **Checklist**.
 
 ## CI Handling
 
@@ -63,7 +64,7 @@ When a fix cycle changes files under `ui/`, `demo/`, `example-frontend/`, `admin
 
 1. Re-run `verify-ui-changes` before pushing: launch the app, log in, and exercise the affected feature.
 2. Save new screenshots/videos to `/opt/cursor/artifacts/` when the visible UI or flow changed.
-3. Update the PR `## Evidence` or `## UI verification` section with the new artifacts before resolving related review threads.
+3. Update the PR **Testing performed** section and/or `## Evidence` with the new artifacts before resolving related review threads.
 
 ## Mergeability End State
 

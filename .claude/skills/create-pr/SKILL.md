@@ -38,27 +38,42 @@ Create a pull request for the current branch.
    - Do not mention AI, Claude, or any AI assistant in the title or body
    - Do not add "Generated with Claude" or similar footers
    - Always create as draft
+   - Sign every commit with DCO: `git commit -s` (see [CONTRIBUTING.md](CONTRIBUTING.md))
 
-   **PR Body Structure:**
+   **PR body:** Match [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md). GitHub pre-fills this template on new PRs; when using `gh pr create`, supply the same sections:
 
    ```markdown
    ## Summary
 
    [What changed and why — 2-4 sentences]
 
-   ## Human Testing Steps
+   ## Related IP or issue
 
-   - [ ] [Step-by-step instructions a reviewer can follow to verify the change works]
-   - [ ] [Cover happy path and at least one edge case]
+   [#NNN or docs/implementationPlans/<slug>.md]
 
-   ## Changes
+   ## Type of change
 
-   - [Bullet list of specific changes]
+   - [ ] Bug fix
+   - [ ] New feature
+   - [ ] Breaking change
+   - [ ] Documentation
+   - [ ] Chore / CI
 
-   ## Automated Tests
+   ## Testing performed
 
-   - [Tests that ran and passed, or "No automated tests"]
+   [Commands run, manual steps. Frontend changes: attach screenshots or video per AGENTS.md]
+
+   ## Checklist
+
+   - [ ] Tests added or updated where appropriate
+   - [ ] `bun run lint` passes
+   - [ ] `bun run compile` passes (if TypeScript changed)
+   - [ ] Docs updated (if user-facing behavior changed)
+   - [ ] `CHANGELOG.md` `## [Unreleased]` updated for user-facing changes
+   - [ ] DCO signed off (`git commit -s`) on every commit
    ```
+
+   **Frontend evidence (required when branch touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`):** Add an `## Evidence` section after **Testing performed** with screenshots/videos from `verify-ui-changes` (`/opt/cursor/artifacts/`). In Cursor cloud runs, reference artifacts with HTML tags — the PR tool uploads and rewrites URLs.
 
 5. Return the PR URL to the user.
 
