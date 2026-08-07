@@ -262,6 +262,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore demo CI ordering checks ([#770](https://github.com/FlourishHealth/terreno/pull/770))
 - Fix Appium dev-client smoke tests on Android and iOS ([#773](https://github.com/FlourishHealth/terreno/pull/773))
 
+## [0.16.0] - 2026-06-02
+
+Historical `@terreno/api` release notes preserved from the former
+`api/CHANGELOG.md` (packages now version in lockstep from 0.20.0 onward).
+
+### Added
+
+- **`modelRouter` actions** — `instanceActions` and `collectionActions` on
+  `ModelRouterOptions` for named operations at `/resource/:id/action` and
+  `/resource/action`
+- **`loadDocOr404`** — shared document loader used by permission middleware and
+  instance actions (soft-delete-aware 404 metadata preserved)
+
+### Changed
+
+- Permission middleware doc loading delegates to `loadDocOr404` (behavior-preserving)
+
+### Dependencies
+
+- Added `@asteasolutions/zod-to-openapi` ^8.5.0
+- Added **`zod` ^4.3.6 as a peer dependency** for backends defining action Zod
+  schemas
+
+### Migration
+
+- Regenerate frontend SDKs after adding actions; `operationId` values follow
+  `{tag}_{actionName}` (e.g. `todos_markComplete`)
+
 ## [0.20.0] - 2026-06-14
 
 ### Changed
@@ -307,3 +335,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.20.2]: https://github.com/FlourishHealth/terreno/releases/tag/0.20.2
 [0.20.1]: https://github.com/FlourishHealth/terreno/releases/tag/0.20.1
 [0.20.0]: https://github.com/FlourishHealth/terreno/releases/tag/0.20.0
+[0.16.0]: https://github.com/FlourishHealth/terreno/releases/tag/0.16.0
