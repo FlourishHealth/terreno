@@ -84,6 +84,7 @@ export const seedFeatureFlags = async (): Promise<{results: string[]; success: b
   let skipped = 0;
   const results: string[] = [];
 
+  // Mongoose 9 requires updatePipeline for aggregation pipeline updates.
   const backfill = await FeatureFlag.updateMany(
     {
       $or: [{defaultVariant: {$exists: false}}, {defaultVariant: null}, {defaultVariant: ""}],
