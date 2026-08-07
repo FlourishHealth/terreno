@@ -130,6 +130,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onStartShouldSetResponder": [Function],
                                 "style": {
                                   "backgroundColor": "#D9D9D9",
                                   "borderColor": "#4E4E4E",
@@ -137,6 +138,8 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "borderWidth": 1,
                                   "flexDirection": "column",
                                   "gap": 0,
+                                  "justifyContent": "center",
+                                  "minHeight": 44,
                                   "overflow": "hidden",
                                   "paddingHorizontal": 12,
                                   "paddingVertical": 8,
@@ -236,6 +239,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onStartShouldSetResponder": [Function],
                                 "style": {
                                   "backgroundColor": "#D9D9D9",
                                   "borderColor": "#4E4E4E",
@@ -243,6 +247,8 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "borderWidth": 1,
                                   "flexDirection": "column",
                                   "gap": 0,
+                                  "justifyContent": "center",
+                                  "minHeight": 44,
                                   "overflow": "hidden",
                                   "paddingHorizontal": 12,
                                   "paddingVertical": 8,
@@ -342,6 +348,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onStartShouldSetResponder": [Function],
                                 "style": {
                                   "backgroundColor": "#D9D9D9",
                                   "borderColor": "#4E4E4E",
@@ -349,6 +356,8 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "borderWidth": 1,
                                   "flexDirection": "column",
                                   "gap": 0,
+                                  "justifyContent": "center",
+                                  "minHeight": 44,
                                   "overflow": "hidden",
                                   "paddingHorizontal": 12,
                                   "paddingVertical": 8,
@@ -702,6 +711,10 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "disabled": true,
                                 },
                                 "disabled": true,
+                                "hitSlop": {
+                                  "bottom": 2,
+                                  "top": 2,
+                                },
                                 "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
@@ -713,6 +726,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "flexDirection": "column",
                                   "height": undefined,
                                   "justifyContent": "center",
+                                  "minHeight": 44,
                                   "paddingHorizontal": 20,
                                   "paddingVertical": 8,
                                   "width": "100%",
@@ -785,6 +799,10 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "disabled": true,
                                 },
                                 "disabled": true,
+                                "hitSlop": {
+                                  "bottom": 2,
+                                  "top": 2,
+                                },
                                 "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
@@ -796,6 +814,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                   "flexDirection": "column",
                                   "height": undefined,
                                   "justifyContent": "center",
+                                  "minHeight": 44,
                                   "paddingHorizontal": 20,
                                   "paddingVertical": 8,
                                   "width": "100%",

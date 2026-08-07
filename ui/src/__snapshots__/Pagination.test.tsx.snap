@@ -11,6 +11,10 @@ exports[`Pagination renders correctly with default props 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": true,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -54,6 +58,10 @@ exports[`Pagination renders correctly with default props 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -98,6 +106,10 @@ exports[`Pagination renders correctly with default props 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 2",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -142,6 +154,10 @@ exports[`Pagination renders correctly with default props 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 3",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -186,6 +202,10 @@ exports[`Pagination renders correctly with default props 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 4",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -230,6 +250,10 @@ exports[`Pagination renders correctly with default props 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 5",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -249,6 +273,10 @@ exports[`Pagination renders correctly with default props 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -285,6 +313,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -328,6 +360,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -347,6 +383,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
         "accessibilityHint": "Click to go to more page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -390,6 +430,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 5",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -409,6 +453,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
         "accessibilityHint": "Click to go to more page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -452,6 +500,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 20",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -471,6 +523,10 @@ exports[`Pagination renders with ellipsis for large page count 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -507,6 +563,10 @@ exports[`Pagination highlights current page 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -550,6 +610,10 @@ exports[`Pagination highlights current page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -594,6 +658,10 @@ exports[`Pagination highlights current page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 2",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -638,6 +706,10 @@ exports[`Pagination highlights current page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 3",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -682,6 +754,10 @@ exports[`Pagination highlights current page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 4",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -726,6 +802,10 @@ exports[`Pagination highlights current page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 5",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -745,6 +825,10 @@ exports[`Pagination highlights current page 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -781,6 +865,10 @@ exports[`Pagination disables prev button on first page 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": true,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -824,6 +912,10 @@ exports[`Pagination disables prev button on first page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -868,6 +960,10 @@ exports[`Pagination disables prev button on first page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 2",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -912,6 +1008,10 @@ exports[`Pagination disables prev button on first page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 3",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -956,6 +1056,10 @@ exports[`Pagination disables prev button on first page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 4",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1000,6 +1104,10 @@ exports[`Pagination disables prev button on first page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 5",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1019,6 +1127,10 @@ exports[`Pagination disables prev button on first page 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1055,6 +1167,10 @@ exports[`Pagination disables next button on last page 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1098,6 +1214,10 @@ exports[`Pagination disables next button on last page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1142,6 +1262,10 @@ exports[`Pagination disables next button on last page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 2",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1186,6 +1310,10 @@ exports[`Pagination disables next button on last page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 3",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1230,6 +1358,10 @@ exports[`Pagination disables next button on last page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 4",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1274,6 +1406,10 @@ exports[`Pagination disables next button on last page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 5",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1293,6 +1429,10 @@ exports[`Pagination disables next button on last page 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": true,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1329,6 +1469,10 @@ exports[`Pagination renders correctly with single page 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": true,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1372,6 +1516,10 @@ exports[`Pagination renders correctly with single page 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1391,6 +1539,10 @@ exports[`Pagination renders correctly with single page 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": true,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1427,6 +1579,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1470,6 +1626,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1489,6 +1649,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
         "accessibilityHint": "Click to go to more page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1532,6 +1696,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 18",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1576,6 +1744,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 19",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1620,6 +1792,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 20",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1639,6 +1815,10 @@ exports[`Pagination renders correctly when on last pages 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1675,6 +1855,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1718,6 +1902,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1762,6 +1950,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 2",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1806,6 +1998,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 3",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1825,6 +2021,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
         "accessibilityHint": "Click to go to more page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1868,6 +2068,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 20",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1887,6 +2091,10 @@ exports[`Pagination renders correctly when on first pages 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1923,6 +2131,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1966,6 +2178,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1985,6 +2201,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
         "accessibilityHint": "Click to go to more page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2028,6 +2248,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
       "props": {
         "accessibilityHint": "Click to go to page 18",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2072,6 +2296,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
       "props": {
         "accessibilityHint": "Click to go to page 19",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2116,6 +2344,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
       "props": {
         "accessibilityHint": "Click to go to page 20",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2135,6 +2367,10 @@ exports[`Pagination renders correctly when on the very last page of a large set 
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": true,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2171,6 +2407,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
         "accessibilityHint": "Click to go to prev page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2214,6 +2454,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 1",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2233,6 +2477,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
         "accessibilityHint": "Click to go to more page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2276,6 +2524,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 18",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2320,6 +2572,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 19",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2364,6 +2620,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
       "props": {
         "accessibilityHint": "Click to go to page 20",
         "accessibilityLabel": "Pagination Number",
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -2383,6 +2643,10 @@ exports[`Pagination renders correctly when two pages before the last 1`] = `
         "accessibilityHint": "Click to go to next page",
         "aria-label": "Pagination Button",
         "disabled": false,
+        "hitSlop": {
+          "bottom": 8,
+          "top": 8,
+        },
         "onPress": [Function],
         "style": {
           "alignItems": "center",

@@ -66,6 +66,7 @@ exports[`TextField snapshots should match snapshot with default props 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -73,6 +74,8 @@ exports[`TextField snapshots should match snapshot with default props 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -222,6 +225,7 @@ exports[`TextField snapshots should match snapshot with all props 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#D33232",
@@ -229,6 +233,8 @@ exports[`TextField snapshots should match snapshot with all props 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -359,6 +365,7 @@ exports[`TextField snapshots should match snapshot when disabled 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#D9D9D9",
           "borderColor": "#4E4E4E",
@@ -366,6 +373,8 @@ exports[`TextField snapshots should match snapshot when disabled 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -444,7 +453,7 @@ exports[`TextField snapshots should match snapshot with multiline 1`] = `
                   "fontFamily": "text",
                   "fontSize": 16,
                   "gap": 10,
-                  "height": 120,
+                  "height": 132,
                   "paddingVertical": 0,
                   "width": "100%",
                 },
@@ -467,6 +476,7 @@ exports[`TextField snapshots should match snapshot with multiline 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -474,6 +484,8 @@ exports[`TextField snapshots should match snapshot with multiline 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -614,6 +626,7 @@ exports[`TextField snapshots should match snapshot with error state 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#D33232",
@@ -621,6 +634,8 @@ exports[`TextField snapshots should match snapshot with error state 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,

@@ -1,6 +1,7 @@
 import React, {useMemo} from "react";
 import {ScrollView, useWindowDimensions} from "react-native";
 import {Box} from "./Box";
+import {CONTROL_MIN_HEIGHT} from "./ControlSizes";
 import {Heading} from "./Heading";
 import {MarkdownView} from "./MarkdownView";
 import {TextField} from "./TextField";
@@ -17,7 +18,7 @@ interface MarkdownEditorProps {
 
 const DEFAULT_MAX_HEIGHT = 500;
 const MIN_PANE_HEIGHT = 200;
-const TEXT_FIELD_ROW_HEIGHT = 40;
+const TEXT_FIELD_ROW_HEIGHT = CONTROL_MIN_HEIGHT;
 const TEXT_FIELD_CHROME_HEIGHT = 20;
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({

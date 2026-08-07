@@ -10,6 +10,7 @@ import {Calendar} from "react-native-calendars";
 
 import {Box} from "./Box";
 import type {DateTimeActionSheetProps, IconName} from "./Common";
+import {CONTROL_MIN_HEIGHT} from "./ControlSizes";
 import {Heading} from "./Heading";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
@@ -18,7 +19,7 @@ import {useTheme} from "./Theme";
 import {TimezonePicker} from "./TimezonePicker";
 
 const TIME_PICKER_HEIGHT = 104;
-const INPUT_HEIGHT = 40;
+const INPUT_HEIGHT = CONTROL_MIN_HEIGHT;
 
 const hours = range(1, 13).map((n) => String(n));
 // TODO: support limited picker minutes, e.g. 5 or 15 minute increments.

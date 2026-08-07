@@ -342,6 +342,48 @@ describe("Button", () => {
     expect(tree).toBeTruthy();
   });
 
+  // Hit target sizing: Apple HIG asks for 44pt, Material for a 48dp touch target.
+  describe("hit target", () => {
+    const getStyle = (element: {props: {style?: unknown}}): Record<string, unknown> => {
+      const {style} = element.props;
+      if (Array.isArray(style)) {
+        return Object.assign({}, ...(style as Record<string, unknown>[]));
+      }
+      return (style ?? {}) as Record<string, unknown>;
+    };
+
+    it("gives the default size a 44pt minimum height that can grow", () => {
+      const {getByTestId} = renderWithTheme(
+        <Button onClick={() => {}} testID="default-button" text="Default" />
+      );
+
+      const style = getStyle(getByTestId("default-button"));
+      expect(style.minHeight).toBe(44);
+      // A fixed height would clip wrapped labels and Dynamic Type / fontScale text.
+      expect(style.height).toBeUndefined();
+    });
+
+    it("expands the default size touch area to 48 on native", () => {
+      const {getByTestId} = renderWithTheme(
+        <Button onClick={() => {}} testID="default-button" text="Default" />
+      );
+
+      expect(getByTestId("default-button").props.hitSlop).toEqual({bottom: 2, top: 2});
+    });
+
+    it("leaves the dense sm size at 28 with no added touch area", () => {
+      const {getByTestId} = renderWithTheme(
+        <Button onClick={() => {}} size="sm" testID="sm-button" text="Small" />
+      );
+
+      const element = getByTestId("sm-button");
+      const style = getStyle(element);
+      expect(style.height).toBe(28);
+      expect(style.minHeight).toBeUndefined();
+      expect(element.props.hitSlop).toBeUndefined();
+    });
+  });
+
   it("does not render tooltip wrapper when isMobileDevice is true", () => {
     const nativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
     (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
