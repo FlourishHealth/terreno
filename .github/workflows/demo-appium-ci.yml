@@ -347,6 +347,9 @@ jobs:
         run: |
           mkdir -p demo/logs
           echo "APPIUM_RUN_MODE=$APPIUM_RUN_MODE" > demo/logs/diag-env.txt
+          if [ -f /opt/cursor/logs/debug.log ]; then
+            cp /opt/cursor/logs/debug.log demo/logs/debug.log.ndjson
+          fi
           if [ "$APPIUM_RUN_MODE" = "full" ]; then
             xcodebuild -version > demo/logs/xcode-version.txt || true
             xcrun simctl list > demo/logs/simctl-list.txt || true
