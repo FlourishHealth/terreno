@@ -52,25 +52,25 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
 
 ## Phase 2: Contribution process
 
-- [ ] **Task 2.1**: Write `CONTRIBUTING.md`
+- [x] **Task 2.1**: Write `CONTRIBUTING.md`
   - Description: Create `CONTRIBUTING.md` covering, in this order: (1) Code of Conduct link; (2) ways to contribute (issue, discussion, docs fix, code); (3) development setup — `bun run bootstrap`, Bun version requirement, MongoDB replica-set requirement for `example-backend` (single-node replset is enough, change streams need it), the seeded users `test@example.com` / `superuser@example.com` with password `testpassword123`; (4) per-package commands table pulled from the root `package.json` scripts (`bun run api:test`, `bun run ui:test`, `bun run lint`, `bun run compile`); (5) code style pointers — link `AGENTS.md`, call out the no-barrel-imports rule and `bun run check:no-barrel-imports`, the Luxon requirement, and the logging conventions; (6) test expectations — new features ship with tests, coverage must not drop; (7) the IP process — link `docs/implementationPlans/README.md` and `IP_TEMPLATE.md`, explain when an IP is required (new package, new public API, cross-package change) versus not (bug fix, docs); (8) DCO sign-off instructions (`git commit -s`); (9) PR expectations — draft by default, CI green, screenshots for UI changes.
   - Files: `CONTRIBUTING.md` (new)
   - Depends on: none
   - Acceptance: every command shown in `CONTRIBUTING.md` exists in a `package.json` `scripts` block; the seeded credentials match `example-backend/src/scripts/`; no reference to `.claude/` or other agent-private paths.
 
-- [ ] **Task 2.2**: Add `CODE_OF_CONDUCT.md`
+- [x] **Task 2.2**: Add `CODE_OF_CONDUCT.md`
   - Description: Add Contributor Covenant 2.1 verbatim, with the enforcement contact set to `conduct@terreno.app`. Do not modify the covenant text other than the contact line and the project name.
   - Files: `CODE_OF_CONDUCT.md` (new)
   - Depends on: none
   - Acceptance: file states "Contributor Covenant" and version 2.1; contact address is present and is not a placeholder.
 
-- [ ] **Task 2.3**: Add `SECURITY.md`
+- [x] **Task 2.3**: Add `SECURITY.md`
   - Description: Create `SECURITY.md` with: a supported-versions table (current minor supported; previous minor receives security fixes only), reporting instructions naming GitHub private vulnerability reporting as the primary channel and `security@terreno.app` as fallback, a 5-business-day acknowledgement commitment, a statement that reporters should not open public issues for vulnerabilities, and a note that CodeQL runs on the repo (`.github/workflows/codeql-analysis.yml`).
   - Files: `SECURITY.md` (new)
   - Depends on: none
   - Acceptance: file exists at repo root so GitHub surfaces it under Security → Policy; both reporting channels are named.
 
-- [ ] **Task 2.4**: Add a DCO check for external PRs
+- [x] **Task 2.4**: Add a DCO check for external PRs
   - Description: Add a workflow job (either in `repo-policies.yml` or a new `.github/workflows/dco.yml`) that, for pull requests whose head repository differs from the base repository, verifies every commit message contains a `Signed-off-by:` line matching the commit author. Skip the check for PRs from the same repo and for bot authors (`dependabot[bot]`, `cursor[bot]`). Follow the repo's existing convention of validating required inputs before use.
   - Files: `.github/workflows/dco.yml` (new) or `.github/workflows/repo-policies.yml`
   - Depends on: Task 2.1
