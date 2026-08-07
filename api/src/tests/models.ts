@@ -41,11 +41,11 @@ export interface Food {
     dateAdded?: string;
   };
   tags: string[];
-  eatenBy: [Schema.Types.ObjectId | User];
+  eatenBy: Array<mongoose.Types.ObjectId | User>;
   lastEatenWith: {[name: string]: Date};
   categories: FoodCategory[];
   expiration: string;
-  likesIds: {userId: string; likes: boolean}[];
+  likesIds: {userId: mongoose.Types.ObjectId | string; likes: boolean}[];
 }
 
 export interface RequiredField {

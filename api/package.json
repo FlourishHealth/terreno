@@ -54,7 +54,6 @@
     "@types/express": "catalog:",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash": "catalog:",
-    "@types/mongodb": "^4.0.7",
     "@types/node": "catalog:",
     "@types/on-finished": "^2.3.4",
     "@types/passport": "^1.0.17",

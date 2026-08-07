@@ -1,4 +1,6 @@
-import type {FilterQuery, Model} from "mongoose";
+import type {Model} from "mongoose";
+
+type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
 
 export interface WaitForDocumentsOptions {
   timeoutMs?: number;
@@ -12,13 +14,13 @@ export interface WaitForDocumentsOptions {
  */
 export const waitForDocuments = async <T>(
   model: Model<T>,
-  query: FilterQuery<T>,
+  query: ModelQuery<T>,
   count = 1,
   {timeoutMs = 5000, intervalMs = 100, sort}: WaitForDocumentsOptions = {}
 ): Promise<T[]> => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    let q = model.find(query);
+    let q = model.find(query as never);
     if (sort) {
       q = q.sort(sort);
     }
@@ -29,7 +31,7 @@ export const waitForDocuments = async <T>(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  const found = await model.countDocuments(query);
+  const found = await model.countDocuments(query as never);
   throw new Error(
     `Timed out after ${timeoutMs}ms waiting for ${count} document(s) on ${model.modelName} matching ${JSON.stringify(query)} (found ${found})`
   );
@@ -38,7 +40,7 @@ export const waitForDocuments = async <T>(
 /** Polls until a single document matches the query. */
 export const waitForDocument = async <T>(
   model: Model<T>,
-  query: FilterQuery<T>,
+  query: ModelQuery<T>,
   options: WaitForDocumentsOptions = {}
 ): Promise<T> => {
   const results = await waitForDocuments(model, query, 1, options);
