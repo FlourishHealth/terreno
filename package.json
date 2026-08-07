@@ -31,7 +31,6 @@
     "@types/luxon": "^3.7.1",
     "@types/multer": "^1.4.12",
     "@types/node": "^25.3.0",
-    "@types/passport-local-mongoose": "^6.1.5",
     "@types/qs": "^6.14.0",
     "@types/react": "~19.1.10",
     "@types/supertest": "^7.2.0",
@@ -66,7 +65,7 @@
     "mdurl": "^2.0.0",
     "mongodb": "^6.20.0",
     "mongodb-memory-server": "^11.0.1",
-    "mongoose": "8.23.0",
+    "mongoose": "9.7.4",
     "multer": "2.2.0",
     "passport-local-mongoose": "^9.0.1",
     "pressto": "^0.6.1",
@@ -109,6 +108,9 @@
     "chai": "^6.2.2",
     "rulesync": "^9.6.3",
     "zod": "catalog:"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "name": "@terreno/root",
   "terreno": {

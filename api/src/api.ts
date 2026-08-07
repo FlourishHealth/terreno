@@ -54,6 +54,9 @@ import {
 } from "./transformers";
 import {isValidObjectId} from "./utils";
 
+// biome-ignore lint/suspicious/noExplicitAny: Framework routers accept consumer models with arbitrary query helpers, methods, virtuals, and hydrated document types
+type ModelLike<T> = Model<T, any, any, any, any, any>;
+
 export type JSONPrimitive = string | number | boolean | null;
 export interface JSONArray extends Array<JSONValue> {}
 export interface JSONObject {
@@ -403,7 +406,7 @@ const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
  * so admin changelist date-range filters map to valid Mongoose range queries.
  */
 const mergeDateRangeQueryParams = <T>(
-  model: Model<T>,
+  model: ModelLike<T>,
   query: Record<string, unknown>
 ): Record<string, unknown> => {
   const schema = model.schema;
@@ -526,7 +529,7 @@ const shouldValidate = <T>(
 
 // Get body validation middleware if validation is enabled
 const getBodyValidationMiddleware = <T>(
-  model: Model<T>,
+  model: ModelLike<T>,
   options: ModelRouterOptions<T>,
   operation: "create" | "update"
 ): ((req: Request, res: Response, next: NextFunction) => void) => {
@@ -556,7 +559,7 @@ const getBodyValidationMiddleware = <T>(
 
 // Get query validation middleware if validation is enabled
 const getQueryValidationMiddleware = <T>(
-  model: Model<T>,
+  model: ModelLike<T>,
   options: ModelRouterOptions<T>
 ): ((req: Request, res: Response, next: NextFunction) => void) => {
   const querySchema = buildQuerySchemaFromFields(model, options.queryFields);
@@ -607,22 +610,22 @@ export interface ModelRouterRegistration {
  */
 export function modelRouter<T>(
   path: string,
-  model: Model<T>,
+  model: ModelLike<T>,
   options: ModelRouterOptions<T>
 ): ModelRouterRegistration;
-export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router;
+export function modelRouter<T>(model: ModelLike<T>, options: ModelRouterOptions<T>): express.Router;
 export function modelRouter<T>(
-  pathOrModel: string | Model<T>,
-  modelOrOptions: Model<T> | ModelRouterOptions<T>,
+  pathOrModel: string | ModelLike<T>,
+  modelOrOptions: ModelLike<T> | ModelRouterOptions<T>,
   maybeOptions?: ModelRouterOptions<T>
 ): express.Router | ModelRouterRegistration {
-  let model: Model<T>;
+  let model: ModelLike<T>;
   let options: ModelRouterOptions<T>;
   let path: string | undefined;
 
   if (typeof pathOrModel === "string") {
     path = pathOrModel;
-    model = modelOrOptions as Model<T>;
+    model = modelOrOptions as ModelLike<T>;
     options = maybeOptions as ModelRouterOptions<T>;
   } else {
     model = pathOrModel;
@@ -661,7 +664,10 @@ export function modelRouter<T>(
   return router;
 }
 
-const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router => {
+const _buildModelRouter = <T>(
+  model: ModelLike<T>,
+  options: ModelRouterOptions<T>
+): express.Router => {
   const router = express.Router();
 
   assertNoActionCollisions(model, options);
@@ -1389,7 +1395,11 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
     return arrayOperation(req, res, "DELETE");
   };
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(model.schema.paths).find((config) => config.instance === "Array")) {
+  if (
+    (Object.values(model.schema.paths) as mongoose.SchemaType[]).find(
+      (config) => config.instance === "Array"
+    )
+  ) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),

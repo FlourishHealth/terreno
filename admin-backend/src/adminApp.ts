@@ -493,15 +493,10 @@ export class AdminApp {
           if (Array.isArray(pathOptions?.type) && pathOptions.type[0]?.ref) {
             field.ref = pathOptions.type[0].ref;
           }
-          // For arrays, use the caster to infer the primitive item type/ref.
-          // Mongoose caster.instance is "String" | "Number" | "Boolean" | "ObjectID".
+          // For arrays, use the public embedded schema type to infer the primitive item type/ref.
           if (schemaPath.instance === "Array") {
-            const caster = (
-              schemaPath as unknown as {
-                caster?: {instance?: string; options?: {ref?: string; enum?: string[]}};
-              }
-            ).caster;
-            if (caster?.instance && !field.items) {
+            const embeddedSchemaType = schemaPath.getEmbeddedSchemaType();
+            if (embeddedSchemaType?.instance && !field.items) {
               const instanceToType: Record<string, string> = {
                 Boolean: "boolean",
                 Number: "number",
@@ -510,15 +505,15 @@ export class AdminApp {
                 SchemaObjectId: "objectid",
                 String: "string",
               };
-              const mapped = instanceToType[caster.instance];
+              const mapped = instanceToType[embeddedSchemaType.instance];
               if (mapped) {
                 field.itemType = mapped;
               }
-              if (caster.options?.ref) {
-                field.itemRef = caster.options.ref;
+              if (embeddedSchemaType.options?.ref) {
+                field.itemRef = embeddedSchemaType.options.ref;
               }
-              if (caster.options?.enum) {
-                field.itemEnum = caster.options.enum;
+              if (Array.isArray(embeddedSchemaType.options?.enum)) {
+                field.itemEnum = embeddedSchemaType.options.enum;
               }
             }
           }
@@ -797,7 +792,7 @@ export class AdminApp {
           updateOp.$unset = unsetFields;
         }
         const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, updateOp, {
-          new: true,
+          returnDocument: "after",
           runValidators: true,
           setDefaultsOnInsert: true,
           upsert: true,
@@ -1383,7 +1378,7 @@ export class AdminApp {
               status: "cancelled",
             },
           },
-          {new: true}
+          {returnDocument: "after"}
         );
 
         if (!cancelled) {

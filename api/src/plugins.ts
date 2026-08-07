@@ -1,7 +1,6 @@
 import {DateTime} from "luxon";
 import mongoose, {
   type Document,
-  type FilterQuery,
   Error as MongooseError,
   type Query,
   type Schema,
@@ -10,6 +9,8 @@ import mongoose, {
 } from "mongoose";
 
 import {APIError, type APIErrorOptions, InternalServerError, NotFoundError} from "./errors";
+
+export type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
 
 export interface BaseUser {
   admin: boolean;
@@ -172,14 +173,14 @@ export const findOneOrNone = <T>(schema: Schema<T>): void => {
  */
 export const findOneOrNoneFor = async <T>(
   model: mongoose.Model<T>,
-  query: FilterQuery<T>,
+  query: ModelQuery<T>,
   errorArgs?: Partial<APIErrorOptions>
 ): Promise<(Document & T) | null> => {
   const withStatic = model as mongoose.Model<T> & Partial<FindOneOrNonePlugin<T>>;
   if (typeof withStatic.findOneOrNone === "function") {
     return withStatic.findOneOrNone(query, errorArgs);
   }
-  const results = await model.find(query);
+  const results = await model.find(query as never);
   if (results.length === 0) {
     return null;
   }
