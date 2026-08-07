@@ -14,37 +14,37 @@ See: [`docs/implementationPlans/oss-governance-baseline.md`](../implementationPl
 
 ## Phase 1: Legal baseline
 
-- [ ] **Task 1.1**: Add root `LICENSE` and `NOTICE`
+- [x] **Task 1.1**: Add root `LICENSE` and `NOTICE`
   - Description: Copy the MIT License text to a new root `LICENSE` (use the standard MIT template; `mcp-server` already ships MIT). Create `NOTICE` containing the project name, the copyright line `Copyright 2026 Flourish Health, Inc.`, and a one-line statement that the project is licensed under MIT. Include acknowledgement of vendored `api/src/vendor/wesleytodd-openapi/` with a pointer to its own `LICENSE`.
   - Files: `LICENSE` (new), `NOTICE` (new)
   - Depends on: none
   - Acceptance: `LICENSE` exists at repo root with standard MIT text; `NOTICE` mentions the vendored openapi code. Do not compare against `api/LICENSE` or `ui/LICENSE` — those remain Apache-2.0 until Task 1.4.
 
-- [ ] **Task 1.2**: Audit license coverage across published packages
+- [x] **Task 1.2**: Audit license coverage across published packages
   - Description: Read `.github/workflows/publish-on-tag.yml` and list every package it publishes. For each one, record in a scratch table: whether a `LICENSE` file exists, whether `package.json` has a `files` array, whether `LICENSE` is included in that array, and the `license` field value. Write the findings as a markdown table in the PR description. Do not fix anything in this task.
   - Files: none (findings go in the PR body)
   - Depends on: none
   - Acceptance: PR body contains a table with one row per published package and the four columns above; the table is derived from the actual repo, not copied from the IP.
 
-- [ ] **Task 1.3**: Add `LICENSE` to every published package
+- [x] **Task 1.3**: Add `LICENSE` to every published package
   - Description: For each package identified in Task 1.2 that lacks a `LICENSE`, create one by copying the root `LICENSE`. Packages to cover: `rtk`, `ai`, `admin-backend`, `admin-frontend`, `admin-spa`, `api-health`, `feature-flags`, `mcp-server`, `test`. Do not create `LICENSE` files in non-published directories (`demo`, `example-frontend`, `example-backend`, `website`, `terraform`).
   - Files: `rtk/LICENSE`, `ai/LICENSE`, `admin-backend/LICENSE`, `admin-frontend/LICENSE`, `admin-spa/LICENSE`, `api-health/LICENSE`, `feature-flags/LICENSE`, `mcp-server/LICENSE`, `test/LICENSE` (all new)
   - Depends on: Task 1.1, Task 1.2
   - Acceptance: every published package directory contains a `LICENSE` identical to the root `LICENSE`.
 
-- [ ] **Task 1.4**: Align `license` fields and `files` arrays
+- [x] **Task 1.4**: Align `license` fields and `files` arrays
   - Description: Set `"license": "MIT"` in the root `package.json` and in every published package's `package.json` (relicense `api`/`ui` from Apache-2.0). For every package that has an explicit `files` array, add `"LICENSE"` to it (`ui`, `rtk`, `admin-frontend`, `admin-spa`, `mcp-server` at minimum — confirm against Task 1.2 findings). Do not otherwise reorder or reformat `package.json`.
   - Files: `package.json`, `ui/package.json`, `rtk/package.json`, `admin-frontend/package.json`, `admin-spa/package.json`, `mcp-server/package.json`, plus any others found in Task 1.2
   - Depends on: Task 1.3
   - Acceptance: `bun pm pack --dry-run` run inside each published package lists `LICENSE` among the packed files; no `package.json` declares a license other than `MIT`.
 
-- [ ] **Task 1.5**: Verify relicensing consent for `api` and `ui`
+- [x] **Task 1.5**: Verify relicensing consent for `api` and `ui`
   - Description: Run `git log --format='%an <%ae>' -- api/ ui/ | sort -u` and list every distinct author. Report the list in the PR body, flagging any address that is not a `@flourish.health` address or a known bot. Do **not** proceed to merge the Apache-2.0 → MIT change for `api`/`ui` if a non-Flourish human contributor appears; instead leave a `TODO` note in the PR body requesting sign-off. (`mcp-server` is already MIT.)
   - Files: none (findings go in the PR body)
   - Depends on: Task 1.4
   - Acceptance: PR body lists all `api`/`ui` authors and explicitly states either "all Flourish/bot — safe to relicense" or names the contributors needing sign-off.
 
-- [ ] **Task 1.6**: Add a license-coverage CI check
+- [x] **Task 1.6**: Add a license-coverage CI check
   - Description: Create `scripts/check-license-coverage.ts` (Bun, TypeScript, `const` arrow functions, explicit return types). It should: read the list of published packages from `.github/workflows/publish-on-tag.yml` (parse job names or a hardcoded list with a comment pointing at the workflow), then for each assert (a) `LICENSE` exists, (b) `package.json` `license` equals the root `package.json` `license`, (c) if a `files` array exists it contains `LICENSE`. Print one line per failure and `process.exit(1)` when any check fails. Add a `check:licenses` script to the root `package.json` and a job to `.github/workflows/repo-policies.yml` that runs it.
   - Files: `scripts/check-license-coverage.ts` (new), `package.json`, `.github/workflows/repo-policies.yml`
   - Depends on: Task 1.4

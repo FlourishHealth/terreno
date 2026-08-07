@@ -5,9 +5,12 @@ on:
     paths:
       - "**/*.ts"
       - "**/*.tsx"
+      - "**/package.json"
+      - "LICENSE"
       - "biome/plugins/no-barrel-imports.grit"
       - "scripts/no-barrel-imports/**"
       - "scripts/check-explicit-any/**"
+      - "scripts/check-license-coverage/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
       - ".github/workflows/repo-policies.yml"
@@ -15,9 +18,12 @@ on:
     paths:
       - "**/*.ts"
       - "**/*.tsx"
+      - "**/package.json"
+      - "LICENSE"
       - "biome/plugins/no-barrel-imports.grit"
       - "scripts/no-barrel-imports/**"
       - "scripts/check-explicit-any/**"
+      - "scripts/check-license-coverage/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
       - ".github/workflows/repo-policies.yml"
@@ -80,3 +86,25 @@ jobs:
         with:
           name: explicit-any-inventory
           path: explicit-any-inventory.json
+
+  license-coverage:
+    name: License coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Check published package license coverage
+        run: bun run check:licenses
