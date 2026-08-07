@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import React from "react";
 import {Pressable} from "react-native";
@@ -186,7 +184,7 @@ describe("ConsentNavigator", () => {
     };
 
     const {getByText} = renderWithTheme(
-      <ConsentNavigator api={api as any}>
+      <ConsentNavigator api={api}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
@@ -212,7 +210,7 @@ describe("ConsentNavigator", () => {
     };
 
     const {getByText} = renderWithTheme(
-      <ConsentNavigator api={api as any}>
+      <ConsentNavigator api={api}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
@@ -239,7 +237,7 @@ describe("ConsentNavigator", () => {
     };
 
     const {getByTestId, getByText} = renderWithTheme(
-      <ConsentNavigator api={api as any} onError={onError}>
+      <ConsentNavigator api={api} onError={onError}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
@@ -284,7 +282,7 @@ describe("ConsentNavigator", () => {
     };
 
     const {getByTestId} = renderWithTheme(
-      <ConsentNavigator api={api as any}>
+      <ConsentNavigator api={api}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
@@ -321,7 +319,7 @@ describe("ConsentNavigator", () => {
     };
 
     const {getByTestId} = renderWithTheme(
-      <ConsentNavigator api={api as any} onError={onError}>
+      <ConsentNavigator api={api} onError={onError}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
@@ -361,7 +359,7 @@ describe("ConsentNavigator", () => {
     };
 
     const {getByTestId} = renderWithTheme(
-      <ConsentNavigator api={api as any}>
+      <ConsentNavigator api={api}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
