@@ -5,7 +5,30 @@ import type {MCPConfig, MCPMethod} from "./types";
 
 const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
 
-const mongooseTypeToZod = (schemaPath: any): ZodType => {
+/** Shown to the calling LLM so it knows filters accept Mongo comparison operators. */
+const OPERATOR_HINT = `{"$in": [...]} or {"$gte": ...}`;
+
+/** Operators an LLM may use in a list filter, kept in sync with ALLOWED_FIELD_OPERATORS. */
+const DOCUMENTED_FIELD_OPERATORS = "$eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $exists, $regex";
+
+/** The subset of Mongoose SchemaType internals used to derive MCP tool schemas. */
+interface MongooseSchemaPath {
+  caster?: {instance?: string; options?: {description?: string; ref?: string}};
+  enumValues?: string[];
+  instance?: string;
+  isRequired?: boolean;
+  options?: {description?: string; ref?: string};
+  schema?: unknown;
+}
+
+interface ModelField {
+  path: string;
+  schemaPath: MongooseSchemaPath;
+  required: boolean;
+  description?: string;
+}
+
+const mongooseTypeToZod = (schemaPath: MongooseSchemaPath): ZodType => {
   const instance = schemaPath.instance;
 
   switch (instance) {
@@ -68,13 +91,14 @@ const isFieldExcluded = (fieldPath: string, excludeFields: string[]): boolean =>
 };
 
 const getModelFields = (
+  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   excludeFields: string[]
-): {path: string; schemaPath: any; required: boolean; description?: string}[] => {
-  const fields: {path: string; schemaPath: any; required: boolean; description?: string}[] = [];
+): ModelField[] => {
+  const fields: ModelField[] = [];
   const schemaPaths = model.schema.paths;
 
-  for (const [path, schemaPath] of Object.entries(schemaPaths)) {
+  for (const [path, rawSchemaPath] of Object.entries(schemaPaths)) {
     if (SYSTEM_FIELDS.has(path)) {
       continue;
     }
@@ -82,15 +106,20 @@ const getModelFields = (
       continue;
     }
 
-    const isRequired = Boolean((schemaPath as any).isRequired);
-    const description = (schemaPath as any).options?.description;
-    fields.push({description, path, required: isRequired, schemaPath});
+    const schemaPath = rawSchemaPath as unknown as MongooseSchemaPath;
+    fields.push({
+      description: schemaPath.options?.description,
+      path,
+      required: Boolean(schemaPath.isRequired),
+      schemaPath,
+    });
   }
 
   return fields;
 };
 
 export const generateInputSchema = (
+  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   method: MCPMethod,
   config: MCPConfig,
@@ -144,12 +173,27 @@ export const generateInputSchema = (
         sort: z.string().optional().describe("Sort field (prefix with - for descending)"),
       };
       // Add queryFields as optional filter parameters
-      if (queryFields?.length) {
-        for (const field of queryFields) {
-          if (!isFieldExcluded(field, excludeFields)) {
-            shape[field] = z.any().optional().describe(`Filter by ${field}`);
-          }
-        }
+      const filterableFields = (queryFields ?? []).filter(
+        (field) => !isFieldExcluded(field, excludeFields)
+      );
+      for (const field of filterableFields) {
+        shape[field] = z
+          .any()
+          .optional()
+          .describe(
+            `Filter by ${field}: an exact value or an operator object, e.g. ${OPERATOR_HINT}`
+          );
+      }
+      if (filterableFields.length) {
+        const logicalDescription = `Combine filters on ${filterableFields.join(", ")}, e.g. [{"${filterableFields[0]}": ...}]`;
+        shape.$and = z
+          .array(z.record(z.string(), z.any()))
+          .optional()
+          .describe(`Match all of these filters. ${logicalDescription}`);
+        shape.$or = z
+          .array(z.record(z.string(), z.any()))
+          .optional()
+          .describe(`Match any of these filters. ${logicalDescription}`);
       }
       return z.object(shape);
     }
@@ -164,7 +208,7 @@ export const generateInputSchema = (
   }
 };
 
-const describeField = (field: {path: string; schemaPath: any; required: boolean}): string => {
+const describeField = (field: ModelField): string => {
   const parts = [field.path];
   const instance = field.schemaPath.instance;
 
@@ -192,6 +236,7 @@ const describeField = (field: {path: string; schemaPath: any; required: boolean}
 };
 
 export const generateToolDescription = (
+  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   method: MCPMethod,
   config: MCPConfig,
@@ -212,6 +257,9 @@ export const generateToolDescription = (
       const availableQueryFields = queryFields?.filter((f) => !isFieldExcluded(f, excludeFields));
       if (availableQueryFields?.length) {
         parts.push(`Filterable by: ${availableQueryFields.join(", ")}.`);
+        parts.push(
+          `Filters accept an exact value or an operator object (${DOCUMENTED_FIELD_OPERATORS}), and can be combined with $and/$or.`
+        );
       }
       parts.push(`Sortable. Paginated (max ${maxLimit}).`);
       return parts.join(" ");
@@ -222,7 +270,7 @@ export const generateToolDescription = (
       const parts = [`Read a single ${modelName} by ID.`];
       if (refFields.length) {
         parts.push(
-          `Populate-able refs: ${refFields.map((f) => `${f.path} (${f.schemaPath.options.ref})`).join(", ")}.`
+          `Populate-able refs: ${refFields.map((f) => `${f.path} (${f.schemaPath.options?.ref})`).join(", ")}.`
         );
       }
       return parts.join(" ");

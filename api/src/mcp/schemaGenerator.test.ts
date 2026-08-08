@@ -5,6 +5,11 @@ import {z} from "zod";
 import {generateInputSchema, generateToolDescription} from "./schemaGenerator";
 import type {MCPConfig} from "./types";
 
+/** The slice of the generated JSON Schema these tests assert on. */
+interface JSONSchemaWithProperties {
+  properties?: Record<string, {description?: string} | undefined>;
+}
+
 const createTestModel = () => {
   const schema = new Schema({
     completed: {default: false, description: "Whether the item is complete", type: Boolean},
@@ -78,16 +83,15 @@ describe("generateInputSchema", () => {
 
     // secretField should not cause any error if present (zod strips unknown by default)
     // but shouldn't be in the schema
-    const jsonSchema = z.toJSONSchema(schema);
-    expect((jsonSchema as any).properties?.secretField).toBeUndefined();
+    const jsonSchema = z.toJSONSchema(schema) as JSONSchemaWithProperties;
+    expect(jsonSchema.properties?.secretField).toBeUndefined();
   });
 
   it("respects maxLimit in list description", () => {
     const configWithLimit: MCPConfig = {maxLimit: 25};
     const schema = generateInputSchema(model, "list", configWithLimit);
-    const jsonSchema = z.toJSONSchema(schema);
-    const limitDesc = (jsonSchema as any).properties?.limit?.description;
-    expect(limitDesc).toContain("25");
+    const jsonSchema = z.toJSONSchema(schema) as JSONSchemaWithProperties;
+    expect(jsonSchema.properties?.limit?.description).toContain("25");
   });
 });
 

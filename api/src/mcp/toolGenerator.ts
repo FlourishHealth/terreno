@@ -3,26 +3,30 @@ import {toJSONSchema, type ZodType} from "zod";
 import type {User} from "../auth";
 import {handleCreate, handleDelete, handleList, handleRead, handleUpdate} from "./handlers";
 import {generateInputSchema, generateToolDescription} from "./schemaGenerator";
-import type {MCPMethod, MCPRegistryEntry} from "./types";
+import type {
+  MCPMethod,
+  MCPRegistryEntry,
+  MCPToolArgs,
+  MCPToolInputSchema,
+  MCPToolResult,
+} from "./types";
 
 export interface MCPToolDefinition {
   name: string;
   description: string;
-  inputSchema: Record<string, any>;
+  inputSchema: MCPToolInputSchema;
   zodSchema: ZodType;
-  handler: (
-    args: Record<string, any>,
-    user?: User
-  ) => Promise<{content: Array<{type: "text"; text: string}>}>;
+  handler: (args: MCPToolArgs, user?: User) => Promise<MCPToolResult>;
 }
 
 const getToolPrefix = (entry: MCPRegistryEntry): string => {
   if (entry.config.toolPrefix) {
     return entry.config.toolPrefix;
   }
-  // Default: lowercase model name with simple pluralization
+  // Default: lowercase model name with simple pluralization. Irregular nouns are expected
+  // to set config.toolPrefix rather than growing an exception list here.
   const name = entry.modelName.toLowerCase();
-  if (name.endsWith("s") || name.endsWith("x") || name.endsWith("ch") || name.endsWith("sh")) {
+  if (/(?:s|x|z|ch|sh)$/.test(name)) {
     return `${name}es`;
   }
   if (name.endsWith("y") && !/[aeiou]y$/i.test(name)) {
@@ -33,7 +37,7 @@ const getToolPrefix = (entry: MCPRegistryEntry): string => {
 
 const METHOD_HANDLERS: Record<
   MCPMethod,
-  (entry: MCPRegistryEntry, args: Record<string, any>, user?: User) => Promise<any>
+  (entry: MCPRegistryEntry, args: MCPToolArgs, user?: User) => Promise<MCPToolResult>
 > = {
   create: handleCreate,
   delete: handleDelete,
@@ -72,8 +76,8 @@ export const generateToolsForEntry = (entry: MCPRegistryEntry): MCPToolDefinitio
         entry.config,
         entry.options.queryFields
       ),
-      handler: (args: Record<string, any>, user?: User) => handler(entry, args, user),
-      inputSchema: inputSchema as Record<string, any>,
+      handler: (args: MCPToolArgs, user?: User) => handler(entry, args, user),
+      inputSchema: inputSchema as MCPToolInputSchema,
       name: toolName,
       zodSchema,
     });

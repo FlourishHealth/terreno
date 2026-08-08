@@ -5,6 +5,7 @@ import express from "express";
 import qs from "qs";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import type {BetterAuthInstance} from "./betterAuthSetup";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {
   apiErrorMiddleware,
@@ -28,6 +29,11 @@ import {
 } from "./requestContext";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+
+/** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
+interface BetterAuthProvider {
+  getAuth: () => BetterAuthInstance | undefined;
+}
 
 type CorsOrigin =
   | string
@@ -375,12 +381,17 @@ export class TerrenoApp {
 
     // Mount MCP server if any models have mcp config
     if (getMCPRegistry().length > 0) {
-      // Find Better Auth instance from registered plugins if available
+      // Find Better Auth instance from registered plugins if available. MCP falls back to
+      // JWT when no Better Auth plugin is registered (see extractUserFromHeaders).
       const betterAuthPlugin = this.registrations.find(
-        (r) => "getAuth" in r && typeof (r as any).getAuth === "function"
-      );
-      const betterAuth = betterAuthPlugin ? (betterAuthPlugin as any).getAuth() : undefined;
-      mountMCPServer(app, {betterAuth, userModel: options.userModel as any});
+        (registration) =>
+          "getAuth" in registration &&
+          typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+      ) as BetterAuthProvider | undefined;
+      mountMCPServer(app, {
+        betterAuth: betterAuthPlugin?.getAuth(),
+        userModel: options.userModel,
+      });
     }
 
     if (options.configureApp) {

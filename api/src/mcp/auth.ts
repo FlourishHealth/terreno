@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import type {User, UserModel} from "../auth";
 import type {BetterAuthInstance} from "../betterAuthSetup";
 import {logger} from "../logger";
+import {findOneOrNoneFor} from "../plugins";
 
 export interface MCPAuthContext {
   userModel: UserModel;
@@ -28,12 +29,9 @@ export const extractUserFromHeaders = async (
 
       if (session?.user && session?.session) {
         // betterAuthId is unique per user — findById-like lookup that may return null.
-        // Use findOneOrNone (safe single-doc lookup) if available, otherwise findOne.
-        const q = {betterAuthId: session.user.id};
-        const model = userModel as any;
-        const appUser = await (typeof model.findOneOrNone === "function"
-          ? model.findOneOrNone(q)
-          : model.findOne(q));
+        // findOneOrNoneFor keeps the repo's "never call findOne directly" convention while
+        // working whether or not the consumer's model has the findOneOrNone plugin applied.
+        const appUser = await findOneOrNoneFor(userModel, {betterAuthId: session.user.id});
         if (appUser) {
           return appUser as unknown as User;
         }

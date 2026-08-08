@@ -81,7 +81,7 @@ describe("generateToolsForEntry", () => {
           read: [Permissions.IsOwner],
           update: [Permissions.IsOwner],
         },
-      } as any,
+      },
     });
     const tools = generateToolsForEntry(entry);
 
@@ -131,5 +131,29 @@ describe("tool pluralization", () => {
     const tools = generateToolsForEntry(entry);
     // MCPToolGenTest -> mcptoolgentests
     expect(tools[0].name).toContain("mcptoolgentests");
+  });
+
+  it("adds -es to sibilant endings", () => {
+    const entry = createEntry({config: {methods: ["list"]}, modelName: "Status"});
+    const tools = generateToolsForEntry(entry);
+
+    expect(tools[0].name).toBe("statuses_list");
+  });
+
+  it("adds -ies to consonant-y endings", () => {
+    const entry = createEntry({config: {methods: ["list"]}, modelName: "Category"});
+    const tools = generateToolsForEntry(entry);
+
+    expect(tools[0].name).toBe("categories_list");
+  });
+
+  it("lets toolPrefix override an irregular plural", () => {
+    const entry = createEntry({
+      config: {methods: ["list"], toolPrefix: "people"},
+      modelName: "Person",
+    });
+    const tools = generateToolsForEntry(entry);
+
+    expect(tools[0].name).toBe("people_list");
   });
 });

@@ -1,61 +1,97 @@
+import type express from "express";
+
 import {addPopulateToQuery, type JSONValue} from "../api";
 import type {User} from "../auth";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
-import type {MCPMethod, MCPRegistryEntry} from "./types";
+import {buildListQuery} from "./query";
+import type {
+  MCPDocument,
+  MCPMethod,
+  MCPRegistryEntry,
+  MCPRequest,
+  MCPToolArgs,
+  MCPToolResult,
+} from "./types";
 
-const deleteAtPath = (obj: any, segments: string[]): void => {
-  if (!obj || typeof obj !== "object" || segments.length === 0) {
+/** Methods whose responses go through a responseHandler (delete returns only a status). */
+type SerializableMCPMethod = Exclude<MCPMethod, "delete">;
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+/** Mongoose documents only expose their fields through toObject(). */
+const toPlain = (value: unknown): unknown => {
+  if (isPlainObject(value) && typeof value.toObject === "function") {
+    return (value.toObject as () => unknown)();
+  }
+  return value;
+};
+
+/**
+ * Delete a dot-notation path, descending into arrays element-wise so paths through
+ * arrays of subdocuments (e.g. "items.secret") are removed from every element.
+ */
+const deleteAtPath = (obj: unknown, segments: string[]): void => {
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      deleteAtPath(item, segments);
+    }
     return;
   }
-  if (segments.length === 1) {
-    delete obj[segments[0]];
+  if (!isPlainObject(obj) || segments.length === 0) {
     return;
   }
   const [head, ...rest] = segments;
-  if (obj[head] && typeof obj[head] === "object") {
-    deleteAtPath(obj[head], rest);
+  if (rest.length === 0) {
+    delete obj[head];
+    return;
   }
+  deleteAtPath(obj[head], rest);
 };
 
-const stripExcludedFields = (data: any, excludeFields: string[]): any => {
+/**
+ * Remove excluded fields from an MCP response.
+ *
+ * Bare field names are removed at every depth (including inside arrays and populated
+ * refs) so a redacted name never leaks through a nested document. Use a dot-notation
+ * path when only one specific location should be removed.
+ */
+const stripExcludedFields = (data: unknown, excludeFields: string[]): unknown => {
   if (!excludeFields.length || !data) {
     return data;
   }
 
-  // Split excludeFields into top-level keys and dot-notation paths
-  const topLevelKeys: string[] = [];
-  const dotPaths: string[][] = [];
-  for (const field of excludeFields) {
-    if (field.includes(".")) {
-      dotPaths.push(field.split("."));
-    } else {
-      topLevelKeys.push(field);
-    }
-  }
+  const bareKeys = new Set(excludeFields.filter((field) => !field.includes(".")));
+  const dotPaths = excludeFields
+    .filter((field) => field.includes("."))
+    .map((field) => field.split("."));
 
-  const strip = (obj: any): any => {
-    if (Array.isArray(obj)) {
-      return obj.map(strip);
+  const strip = (value: unknown): unknown => {
+    const plain = toPlain(value);
+    if (Array.isArray(plain)) {
+      return plain.map(strip);
     }
-    if (obj && typeof obj === "object") {
-      const result: Record<string, any> = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (!topLevelKeys.includes(key)) {
-          result[key] = value;
-        }
-      }
-      // Handle dot-notation paths
-      for (const segments of dotPaths) {
-        deleteAtPath(result, segments);
-      }
-      return result;
+    if (!isPlainObject(plain)) {
+      return plain;
     }
-    return obj;
+    const result: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(plain)) {
+      if (bareKeys.has(key)) {
+        continue;
+      }
+      result[key] = strip(nested);
+    }
+    return result;
   };
 
-  return strip(data);
+  const stripped = strip(data);
+  for (const segments of dotPaths) {
+    deleteAtPath(stripped, segments);
+  }
+  return stripped;
 };
 
 const parsePopulate = (
@@ -77,9 +113,46 @@ const parsePopulate = (
   return paths;
 };
 
+const asOptionalString = (value: unknown): string | undefined => {
+  return typeof value === "string" ? value : undefined;
+};
+
+/** Mongoose's populated query result types don't narrow to a single document. */
+const asDocument = (result: unknown): MCPDocument | null => {
+  return (result ?? null) as MCPDocument | null;
+};
+
+/**
+ * Build the Express-shaped request handed to lifecycle hooks and response handlers.
+ *
+ * An MCP tool call is JSON-RPC, not HTTP, so there is no real request to forward. The
+ * authenticated user is the only field with a genuine equivalent — everything else is
+ * filled in with empty defaults so hooks that read `req.body`, `req.query`, `req.params`,
+ * or `req.headers` get the shape they expect instead of a TypeError. `isMCPRequest` lets
+ * a hook detect the MCP path when it needs to behave differently from HTTP.
+ */
+export const createMCPRequest = ({
+  args = {},
+  user,
+}: {
+  args?: MCPToolArgs;
+  user?: User;
+}): express.Request => {
+  const request: MCPRequest = {
+    body: args,
+    headers: {},
+    isMCPRequest: true,
+    method: "MCP",
+    params: {},
+    query: {},
+    user,
+  };
+  return request as unknown as express.Request;
+};
+
 const serializeResponse = async (
-  data: any,
-  method: MCPMethod,
+  data: unknown,
+  method: SerializableMCPMethod,
   entry: MCPRegistryEntry,
   user?: User
 ): Promise<JSONValue> => {
@@ -87,24 +160,21 @@ const serializeResponse = async (
 
   if (entry.config.mcpResponseHandler) {
     const result = await entry.config.mcpResponseHandler(data, method, user);
-    return stripExcludedFields(result, excludeFields);
+    return stripExcludedFields(result, excludeFields) as JSONValue;
   }
 
   // Use the model router's responseHandler if available, otherwise default
   const responseHandler = entry.options.responseHandler ?? defaultResponseHandler;
 
-  // Create a minimal fake request for the response handler
-  const fakeReq = {user} as any;
-  // responseHandler expects method to be "list" | "create" | "read" | "update" | "delete"
-  const result = await responseHandler(data, method as any, fakeReq, entry.options);
-  return stripExcludedFields(result, excludeFields);
+  const result = await responseHandler(data, method, createMCPRequest({user}), entry.options);
+  return stripExcludedFields(result, excludeFields) as JSONValue;
 };
 
 export const handleList = async (
   entry: MCPRegistryEntry,
-  args: Record<string, any>,
+  args: MCPToolArgs,
   user?: User
-): Promise<{content: Array<{type: "text"; text: string}>}> => {
+): Promise<MCPToolResult> => {
   const {model, config, options} = entry;
   const maxLimit = config.maxLimit ?? 50;
 
@@ -113,26 +183,12 @@ export const handleList = async (
     return errorResult("Permission denied: cannot list");
   }
 
-  // Build query from args
-  let query: Record<string, any> = {};
-
-  // Apply default query params
-  if (options.defaultQueryParams) {
-    query = {...options.defaultQueryParams};
+  // Build query from args — only fields in queryFields, with an allowlist of operators
+  const {error: queryError, query: builtFilter} = buildListQuery({args, config, options});
+  if (queryError || !builtFilter) {
+    return errorResult(queryError ?? "Could not build query");
   }
-
-  // Apply filter fields from args — only allow fields in queryFields (same as REST)
-  const reservedKeys = new Set(["limit", "page", "sort", "populate"]);
-  const allowedQueryFields = new Set(options.queryFields ?? []);
-  for (const [key, value] of Object.entries(args)) {
-    if (reservedKeys.has(key) || value === undefined) {
-      continue;
-    }
-    if (!allowedQueryFields.has(key)) {
-      continue;
-    }
-    query[key] = value;
-  }
+  let query: Record<string, unknown> = builtFilter;
 
   // Apply query filter
   if (options.queryFilter) {
@@ -145,7 +201,7 @@ export const handleList = async (
 
   // Pagination
   const limit = Math.max(1, Math.min(Number(args.limit) || maxLimit, maxLimit));
-  const page = Number(args.page) || 1;
+  const page = Math.max(1, Number(args.page) || 1);
 
   let builtQuery = model.find(query).limit(limit + 1);
   const total = await model.countDocuments(query);
@@ -155,14 +211,13 @@ export const handleList = async (
   }
 
   // Sort
-  if (args.sort) {
-    builtQuery = builtQuery.sort(args.sort);
-  } else if (options.sort) {
-    builtQuery = builtQuery.sort(options.sort);
+  const sort = asOptionalString(args.sort) ?? options.sort;
+  if (sort) {
+    builtQuery = builtQuery.sort(sort);
   }
 
   // Populate
-  const populatePaths = parsePopulate(args.populate, options.populatePaths);
+  const populatePaths = parsePopulate(asOptionalString(args.populate), options.populatePaths);
   const populatedQuery = addPopulateToQuery(builtQuery, populatePaths);
 
   const data = await populatedQuery.exec();
@@ -176,9 +231,9 @@ export const handleList = async (
 
 export const handleRead = async (
   entry: MCPRegistryEntry,
-  args: Record<string, any>,
+  args: MCPToolArgs,
   user?: User
-): Promise<{content: Array<{type: "text"; text: string}>}> => {
+): Promise<MCPToolResult> => {
   const {model, options} = entry;
 
   // Check method-level permission
@@ -186,9 +241,8 @@ export const handleRead = async (
     return errorResult("Permission denied: cannot read");
   }
 
-  const populatePaths = parsePopulate(args.populate, options.populatePaths);
-  const builtQuery = model.findById(args.id);
-  const populatedQuery = addPopulateToQuery(builtQuery as any, populatePaths);
+  const populatePaths = parsePopulate(asOptionalString(args.populate), options.populatePaths);
+  const populatedQuery = addPopulateToQuery(model.findById(args.id), populatePaths);
   const data = await populatedQuery.exec();
 
   if (!data) {
@@ -206,55 +260,50 @@ export const handleRead = async (
 
 export const handleCreate = async (
   entry: MCPRegistryEntry,
-  args: Record<string, any>,
+  args: MCPToolArgs,
   user?: User
-): Promise<{content: Array<{type: "text"; text: string}>}> => {
+): Promise<MCPToolResult> => {
   const {model, options} = entry;
 
   if (!(await checkPermissions("create", options.permissions.create, user))) {
     return errorResult("Permission denied: cannot create");
   }
 
-  let body: any;
+  let body: MCPToolArgs | null;
   try {
-    body = transform(options, args, "create", user);
-  } catch (error: any) {
-    return errorResult(`Transform failed: ${error.message}`);
+    body = transform(options, args, "create", user) as MCPToolArgs;
+  } catch (error) {
+    return errorResult(`Transform failed: ${errorMessage(error)}`);
   }
 
   if (options.preCreate) {
     try {
-      const fakeReq = {user} as any;
-      body = await options.preCreate(body, fakeReq);
+      body = await options.preCreate(body, createMCPRequest({args, user}));
       if (body === null || body === undefined) {
         return errorResult("Create not allowed");
       }
-    } catch (error: any) {
-      return errorResult(`preCreate hook failed: ${error.message}`);
+    } catch (error) {
+      return errorResult(`preCreate hook failed: ${errorMessage(error)}`);
     }
   }
 
-  let data;
+  let data: MCPDocument | null;
   try {
-    data = await model.create(body);
-  } catch (error: any) {
-    return errorResult(`Create failed: ${error.message}`);
+    data = asDocument(await model.create(body));
+  } catch (error) {
+    return errorResult(`Create failed: ${errorMessage(error)}`);
   }
 
   if (options.populatePaths) {
-    const populateQuery = addPopulateToQuery(
-      model.findById(data._id) as any,
-      options.populatePaths
-    );
-    data = await populateQuery.exec();
+    const populateQuery = addPopulateToQuery(model.findById(data?._id), options.populatePaths);
+    data = asDocument(await populateQuery.exec());
   }
 
   if (options.postCreate) {
     try {
-      const fakeReq = {user} as any;
-      await options.postCreate(data, fakeReq);
-    } catch (error: any) {
-      return errorResult(`postCreate hook failed: ${error.message}`);
+      await options.postCreate(data, createMCPRequest({args, user}));
+    } catch (error) {
+      return errorResult(`postCreate hook failed: ${errorMessage(error)}`);
     }
   }
 
@@ -264,9 +313,9 @@ export const handleCreate = async (
 
 export const handleUpdate = async (
   entry: MCPRegistryEntry,
-  args: Record<string, any>,
+  args: MCPToolArgs,
   user?: User
-): Promise<{content: Array<{type: "text"; text: string}>}> => {
+): Promise<MCPToolResult> => {
   const {model, options} = entry;
   const {id, ...updateFields} = args;
 
@@ -274,8 +323,8 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update");
   }
 
-  const builtQuery = addPopulateToQuery(model.findById(id) as any, options.populatePaths);
-  let doc: any = await builtQuery.exec();
+  const builtQuery = addPopulateToQuery(model.findById(id), options.populatePaths);
+  let doc = asDocument(await builtQuery.exec());
 
   if (!doc) {
     return errorResult(`Document ${id} not found`);
@@ -285,22 +334,21 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update this document");
   }
 
-  let body: any;
+  let body: MCPToolArgs | null;
   try {
-    body = transform(options, updateFields, "update", user);
-  } catch (error: any) {
-    return errorResult(`Transform failed: ${error.message}`);
+    body = transform(options, updateFields, "update", user) as MCPToolArgs;
+  } catch (error) {
+    return errorResult(`Transform failed: ${errorMessage(error)}`);
   }
 
   if (options.preUpdate) {
     try {
-      const fakeReq = {user} as any;
-      body = await options.preUpdate(body, fakeReq);
+      body = await options.preUpdate(body, createMCPRequest({args: updateFields, user}));
       if (body === null || body === undefined) {
         return errorResult("Update not allowed");
       }
-    } catch (error: any) {
-      return errorResult(`preUpdate hook failed: ${error.message}`);
+    } catch (error) {
+      return errorResult(`preUpdate hook failed: ${errorMessage(error)}`);
     }
   }
 
@@ -309,21 +357,20 @@ export const handleUpdate = async (
   try {
     doc.set(body);
     await doc.save();
-  } catch (error: any) {
-    return errorResult(`Update failed: ${error.message}`);
+  } catch (error) {
+    return errorResult(`Update failed: ${errorMessage(error)}`);
   }
 
   if (options.populatePaths) {
-    const populateQuery = addPopulateToQuery(model.findById(doc._id) as any, options.populatePaths);
-    doc = await populateQuery.exec();
+    const populateQuery = addPopulateToQuery(model.findById(doc._id), options.populatePaths);
+    doc = asDocument(await populateQuery.exec());
   }
 
   if (options.postUpdate) {
     try {
-      const fakeReq = {user} as any;
-      await options.postUpdate(doc, body, fakeReq, prevDoc);
-    } catch (error: any) {
-      return errorResult(`postUpdate hook failed: ${error.message}`);
+      await options.postUpdate(doc, body, createMCPRequest({args: updateFields, user}), prevDoc);
+    } catch (error) {
+      return errorResult(`postUpdate hook failed: ${errorMessage(error)}`);
     }
   }
 
@@ -333,9 +380,9 @@ export const handleUpdate = async (
 
 export const handleDelete = async (
   entry: MCPRegistryEntry,
-  args: Record<string, any>,
+  args: MCPToolArgs,
   user?: User
-): Promise<{content: Array<{type: "text"; text: string}>}> => {
+): Promise<MCPToolResult> => {
   const {model, options} = entry;
   const {id} = args;
 
@@ -343,7 +390,10 @@ export const handleDelete = async (
     return errorResult("Permission denied: cannot delete");
   }
 
-  const doc: any = await model.findById(id);
+  // Populate before the object-level permission check so custom permissions can inspect
+  // populated refs, matching handleRead/handleUpdate and REST's permissionMiddleware.
+  const builtQuery = addPopulateToQuery(model.findById(id), options.populatePaths);
+  const doc = asDocument(await builtQuery.exec());
 
   if (!doc) {
     return errorResult(`Document ${id} not found`);
@@ -355,13 +405,12 @@ export const handleDelete = async (
 
   if (options.preDelete) {
     try {
-      const fakeReq = {user} as any;
-      const result = await options.preDelete(doc, fakeReq);
+      const result = await options.preDelete(doc, createMCPRequest({args, user}));
       if (result === null || result === undefined) {
         return errorResult("Delete not allowed");
       }
-    } catch (error: any) {
-      return errorResult(`preDelete hook failed: ${error.message}`);
+    } catch (error) {
+      return errorResult(`preDelete hook failed: ${errorMessage(error)}`);
     }
   }
 
@@ -376,27 +425,30 @@ export const handleDelete = async (
     } else {
       await doc.deleteOne();
     }
-  } catch (error: any) {
-    return errorResult(`Delete failed: ${error.message}`);
+  } catch (error) {
+    return errorResult(`Delete failed: ${errorMessage(error)}`);
   }
 
   if (options.postDelete) {
     try {
-      const fakeReq = {user} as any;
-      await options.postDelete(fakeReq, doc);
-    } catch (error: any) {
-      return errorResult(`postDelete hook failed: ${error.message}`);
+      await options.postDelete(createMCPRequest({args, user}), doc);
+    } catch (error) {
+      return errorResult(`postDelete hook failed: ${errorMessage(error)}`);
     }
   }
 
   return textResult(JSON.stringify({success: true}));
 };
 
-const textResult = (text: string) => ({
+const errorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : String(error);
+};
+
+const textResult = (text: string): MCPToolResult => ({
   content: [{text, type: "text" as const}],
 });
 
-const errorResult = (message: string) => ({
+const errorResult = (message: string): MCPToolResult => ({
   content: [{text: JSON.stringify({error: message}), type: "text" as const}],
   isError: true,
 });
