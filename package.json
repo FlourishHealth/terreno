@@ -167,6 +167,7 @@
     "check:explicit-any:remediate": "bun run scripts/check-explicit-any/remediate.ts",
     "check:licenses": "bun run scripts/check-license-coverage/check.ts",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
+    "check:upgrade-docs": "bun run scripts/check-upgrade-docs/check.ts",
     "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",
     "demo:android": "bun run --filter 'terreno-demo' android",

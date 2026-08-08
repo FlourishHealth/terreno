@@ -6,7 +6,22 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+*'  # Matches semver: 1.0.0, 2.3.4-beta.1, etc.
 
 jobs:
+  breaking-change-documentation:
+    name: Breaking changes have upgrade notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check release upgrade documentation
+        run: bun run check:upgrade-docs "${{ github.ref_name }}"
+
   check-changes:
+    needs: breaking-change-documentation
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
