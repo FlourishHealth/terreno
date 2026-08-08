@@ -1,4 +1,4 @@
-import {Box, Button, Card, EditableCard, Heading, Text, ThemeProvider} from "@terreno/ui";
+import {Box, Button, Card, Heading, Text, ThemeProvider} from "@terreno/ui";
 import type React from "react";
 
 const darkPrimitives = {
@@ -144,17 +144,6 @@ export const CardVariants = (): React.ReactElement => {
         title="Display Card"
         variant="display"
       />
-
-      <Heading size="sm">Editable</Heading>
-      <EditableCard
-        badge={{iconName: "check", secondary: true, status: "success", value: "Verified"}}
-        description="123 Main Street, Springfield, IL 62704"
-        editAccessibilityLabel="Edit home address"
-        helperText="Last updated 2 days ago"
-        iconName="location-dot"
-        onEdit={() => console.info("clicked")}
-        title="Editable Card"
-      />
     </Box>
   );
 };
@@ -243,43 +232,6 @@ export const LightAndDark = (): React.ReactElement => {
           />
         </Box>
       </ThemeProvider>
-    </Box>
-  );
-};
-
-export const EditableCardDemo = (): React.ReactElement => {
-  return (
-    <Box direction="column" gap={4} padding={4} testID="card-story-editable" width="100%">
-      <EditableCard
-        badge={{iconName: "check", secondary: true, status: "success", value: "Verified"}}
-        description="123 Main Street, Springfield, IL 62704"
-        editAccessibilityLabel="Edit home address"
-        helperText="Last updated 2 days ago"
-        iconName="location-dot"
-        onEdit={() => console.info("Edit home address")}
-        title="Home Address"
-      />
-      <EditableCard
-        attention
-        badge={{
-          iconName: "triangle-exclamation",
-          secondary: true,
-          status: "warning",
-          value: "Needs review",
-        }}
-        description="456 Oak Avenue, Springfield, IL 62704"
-        editAccessibilityLabel="Edit mailing address"
-        helperText="Confirm this address is still correct."
-        iconName="location-dot"
-        onEdit={() => console.info("Edit mailing address")}
-        title="Mailing Address"
-      />
-      <EditableCard
-        description="No icon, badge, or helper text — just a title, description, and edit action."
-        editAccessibilityLabel="Edit preferred name"
-        onEdit={() => console.info("Edit preferred name")}
-        title="Preferred Name"
-      />
     </Box>
   );
 };
