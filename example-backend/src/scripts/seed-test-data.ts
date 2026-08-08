@@ -8,6 +8,7 @@ import {ConsentForm, logger} from "@terreno/api";
 import mongoose from "mongoose";
 import {Configuration} from "../models/configuration";
 import {User} from "../models/user";
+import {DEFAULT_USER_ROLE, SUPERADMIN_ROLE} from "../rbacRoles";
 import {connectToMongoDB} from "../utils/database";
 
 interface SeedUser {
@@ -137,7 +138,7 @@ This consent is optional. You can decline without affecting your use of the appl
 ];
 
 const seedUser = async (testUser: SeedUser): Promise<void> => {
-  const roles = testUser.admin ? ["superadmin"] : ["manager"];
+  const roles = testUser.admin ? [SUPERADMIN_ROLE] : [DEFAULT_USER_ROLE];
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
     const currentRoles = (existingUser as unknown as {roles?: string[]}).roles ?? [];

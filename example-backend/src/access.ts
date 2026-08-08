@@ -2,6 +2,7 @@ import {createAccess, OwnerScope, terrenoStatements} from "@terreno/api";
 import mongoose from "mongoose";
 
 import {User} from "./models/user";
+import {appDefaultRoles} from "./rbacRoles";
 
 export const appStatements = {
   ...terrenoStatements,
@@ -10,15 +11,7 @@ export const appStatements = {
 
 export const access = createAccess({
   connection: mongoose.connection,
-  defaultRoles: [
-    {
-      displayName: "Manager",
-      name: "manager",
-      permissions: {
-        todo: ["create", "read", "update", "list"],
-      },
-    },
-  ],
+  defaultRoles: appDefaultRoles,
   scopes: {
     "todo.delete": OwnerScope(),
     "todo.list": OwnerScope(),

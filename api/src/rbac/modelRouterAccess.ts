@@ -2,6 +2,7 @@ import type express from "express";
 import type {RESTMethod} from "../api";
 import {APIError} from "../errors";
 import type {PermissionMethod, RESTPermissions} from "../permissions";
+import {defaultResponseHandler} from "../transformers";
 import {applyReadMask, getDisallowedWriteKeys} from "./fieldViews";
 import {createIsPermitted} from "./middleware";
 import type {AnyTerrenoAccess, ModelRouterAccessOptions, ResourceScope} from "./types";
@@ -251,12 +252,12 @@ export const resolveModelRouterAccess = <T>(options: {
       access,
       options.queryFilter
     ) as typeof options.queryFilter,
-    responseHandler: (options.responseHandler
-      ? wrapAccessResponseHandler(options.accessControl, access, options.responseHandler as never)
-      : wrapAccessResponseHandler(
-          options.accessControl,
-          access,
-          (value) => value
-        )) as typeof options.responseHandler,
+    // Without an app handler the base must stay defaultResponseHandler: masking a raw
+    // Mongoose document would emit internal state instead of the serialized payload.
+    responseHandler: wrapAccessResponseHandler(
+      options.accessControl,
+      access,
+      (options.responseHandler ?? defaultResponseHandler) as never
+    ) as typeof options.responseHandler,
   };
 };
