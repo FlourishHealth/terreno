@@ -184,6 +184,16 @@ export const createMCPRequest = ({
   return request as unknown as express.Request;
 };
 
+/**
+ * Mirror REST's `authenticateMiddleware(options.allowAnonymous)`, which answers 401 before
+ * any permission check when credentials are missing. Without this, read-only helpers like
+ * `IsAuthenticatedOrReadOnly` would let an anonymous MCP client list or read data that the
+ * same router refuses over HTTP.
+ */
+const requiresAuthentication = (entry: MCPRegistryEntry, user?: User): boolean => {
+  return !user && entry.options.allowAnonymous !== true;
+};
+
 const serializeResponse = async (
   data: unknown,
   method: SerializableMCPMethod,
@@ -211,6 +221,10 @@ export const handleList = async (
 ): Promise<MCPToolResult> => {
   const {model, config, options} = entry;
   const maxLimit = config.maxLimit ?? 50;
+
+  if (requiresAuthentication(entry, user)) {
+    return errorResult("Permission denied: authentication required");
+  }
 
   // Check permissions
   if (!(await checkPermissions("list", options.permissions.list, user))) {
@@ -276,6 +290,10 @@ export const handleRead = async (
 ): Promise<MCPToolResult> => {
   const {model, options} = entry;
 
+  if (requiresAuthentication(entry, user)) {
+    return errorResult("Permission denied: authentication required");
+  }
+
   // Check method-level permission
   if (!(await checkPermissions("read", options.permissions.read, user))) {
     return errorResult("Permission denied: cannot read");
@@ -310,6 +328,10 @@ export const handleCreate = async (
   user?: User
 ): Promise<MCPToolResult> => {
   const {model, options} = entry;
+
+  if (requiresAuthentication(entry, user)) {
+    return errorResult("Permission denied: authentication required");
+  }
 
   if (!(await checkPermissions("create", options.permissions.create, user))) {
     return errorResult("Permission denied: cannot create");
@@ -364,6 +386,10 @@ export const handleUpdate = async (
 ): Promise<MCPToolResult> => {
   const {model, options} = entry;
   const {id, ...updateFields} = args;
+
+  if (requiresAuthentication(entry, user)) {
+    return errorResult("Permission denied: authentication required");
+  }
 
   if (!(await checkPermissions("update", options.permissions.update, user))) {
     return errorResult("Permission denied: cannot update");
@@ -431,6 +457,10 @@ export const handleDelete = async (
 ): Promise<MCPToolResult> => {
   const {model, options} = entry;
   const {id} = args;
+
+  if (requiresAuthentication(entry, user)) {
+    return errorResult("Permission denied: authentication required");
+  }
 
   if (!(await checkPermissions("delete", options.permissions.delete, user))) {
     return errorResult("Permission denied: cannot delete");

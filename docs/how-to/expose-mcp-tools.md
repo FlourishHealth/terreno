@@ -44,6 +44,8 @@ Tools are named `{prefix}_{method}` — `todos_list`, `todos_read`, and so on.
 
 Point any MCP client at `POST /mcp` with the user's `Authorization: Bearer <token>` header. Both JWT and Better Auth sessions are accepted; the resolved user is what the permission checks run against, so an LLM can never see more than that user could see over REST.
 
+Authentication is required by default, matching REST. A tool call with no resolvable user is refused before any permission check unless the model router sets `allowAnonymous: true` — the same flag REST passes to `authenticateMiddleware`. That matters for read-only helpers like `IsAuthenticatedOrReadOnly`, which would otherwise pass for an anonymous `list`. Disabled accounts are refused too, as they are over HTTP.
+
 To run the same tools in-process (for example inside a chat route), use `getMCPTools`:
 
 ```typescript

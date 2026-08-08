@@ -393,6 +393,65 @@ describe("MCP Integration", () => {
     });
   });
 
+  describe("anonymous access", () => {
+    /** Read-only helpers pass for list/read with no user, so only allowAnonymous gates them. */
+    const readOnlyEntry = (allowAnonymous?: boolean): MCPRegistryEntry => ({
+      ...entry,
+      options: {
+        ...entry.options,
+        allowAnonymous,
+        permissions: {
+          ...entry.options.permissions,
+          list: [Permissions.IsAuthenticatedOrReadOnly],
+          read: [Permissions.IsAuthenticatedOrReadOnly],
+        },
+        queryFilter: undefined,
+      },
+    });
+
+    beforeEach(async () => {
+      await TodoModel.create({ownerId: normalUser._id, title: "Not for anonymous"});
+    });
+
+    it("refuses an anonymous list when allowAnonymous is not set", async () => {
+      const parsed = parseResult(await handleList(readOnlyEntry(), {}));
+
+      expect(parsed.error).toContain("authentication required");
+    });
+
+    it("refuses an anonymous read when allowAnonymous is not set", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Hidden"});
+
+      const parsed = parseResult(await handleRead(readOnlyEntry(), {id: doc._id.toString()}));
+
+      expect(parsed.error).toContain("authentication required");
+    });
+
+    it("allows an anonymous list when the router opts in", async () => {
+      const parsed = parseResult(await handleList(readOnlyEntry(true), {}));
+
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.data.length).toBeGreaterThan(0);
+    });
+
+    it("refuses anonymous writes even when allowAnonymous is set", async () => {
+      const anonymousWrites: MCPRegistryEntry = {
+        ...readOnlyEntry(true),
+        options: {
+          ...readOnlyEntry(true).options,
+          permissions: {
+            ...readOnlyEntry(true).options.permissions,
+            create: [Permissions.IsAuthenticatedOrReadOnly],
+          },
+        },
+      };
+
+      const parsed = parseResult(await handleCreate(anonymousWrites, {title: "Anon"}));
+
+      expect(parsed.error).toContain("Permission denied");
+    });
+  });
+
   describe("populate", () => {
     const entryWithPopulate = (): MCPRegistryEntry => ({
       ...entry,
