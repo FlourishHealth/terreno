@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Model Context Protocol support in `modelRouter` via an `mcp` option: opted-in
+  models expose their CRUD operations as MCP tools at `POST /mcp`, reusing the
+  same permissions, query filters, population, and lifecycle hooks as REST
+  ([#358](https://github.com/FlourishHealth/terreno/pull/358))
+- `getMCPTools(user)` in `@terreno/api` returns the same tools as Vercel AI SDK
+  tool objects for in-process use from a chat route
+- MCP list filters accept Mongo comparison operators (`$in`, `$gte`, `$ne`, and
+  friends) and top-level `$and` / `$or` on fields listed in `queryFields`;
+  operators that can execute code (`$where`, `$expr`, `$function`) are rejected
+- `useMCPTools()` and `useTerrenoChat()` hooks in `@terreno/rtk`
+- How-to guide for exposing MCP tools from a Terreno backend
+
 ## [0.30.0] - 2026-08-03
 
 ### Added
