@@ -12,8 +12,10 @@ import {
   addAuthRoutes,
   addMeRoutes,
   generateTokens,
+  PRIVILEGED_USER_FIELDS,
   setupAuth,
   signupUser,
+  stripPrivilegedUserFields,
 } from "./auth";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
@@ -946,6 +948,85 @@ describe("addMeRoutes edge cases", () => {
       .set("authorization", `Bearer ${token}`)
       .send({admin: "not_a_boolean_value_but_will_be_cast"});
     expect([200, 403]).toContain(res.status);
+  });
+});
+
+describe("privileged user fields", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupTestData();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("drops admin and roles, keeping other fields", () => {
+    const sanitized = stripPrivilegedUserFields(
+      {admin: true, age: 42, name: "Someone", roles: ["superadmin"]},
+      "test"
+    );
+
+    expect(sanitized).toEqual({age: 42, name: "Someone"});
+  });
+
+  it("leaves bodies without privileged fields untouched", () => {
+    expect(stripPrivilegedUserFields({name: "Someone"}, "test")).toEqual({name: "Someone"});
+  });
+
+  it("lists admin and roles as privileged", () => {
+    expect([...PRIVILEGED_USER_FIELDS]).toEqual(["admin", "roles"]);
+  });
+
+  it("does not let anonymous signup self-assign admin", async () => {
+    await agent
+      .post("/auth/signup")
+      .send({admin: true, email: "escalate@example.com", password: "Password123!"})
+      .expect(200);
+
+    const created = await UserModel.findOne({email: "escalate@example.com"});
+    expect(created).toBeTruthy();
+    expect((created as unknown as {admin?: boolean})?.admin).toBe(false);
+  });
+
+  it("does not let signupUser self-assign roles", async () => {
+    const user = await signupUser(
+      UserModel as unknown as AuthUserModel,
+      "escalate-roles@example.com",
+      "Password123!",
+      {admin: true, roles: ["superadmin"]}
+    );
+
+    expect((user as unknown as {admin?: boolean}).admin).toBe(false);
+    expect((user as unknown as {roles?: string[]}).roles).toBeUndefined();
+  });
+
+  it("does not let PATCH /auth/me escalate to admin", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+
+    await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({admin: true, name: "Renamed"})
+      .expect(200);
+
+    const reloaded = await UserModel.findById(notAdminId);
+    expect((reloaded as unknown as {admin?: boolean})?.admin).toBe(false);
+    expect((reloaded as unknown as {name?: string})?.name).toBe("Renamed");
   });
 });
 

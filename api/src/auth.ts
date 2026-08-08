@@ -100,6 +100,36 @@ export const authenticateMiddleware = (anonymous = false) => {
   };
 };
 
+/**
+ * User fields that confer authority. Self-service requests (anonymous signup, `PATCH /me`)
+ * must never set them, or any caller could grant themselves admin or an RBAC role. Elevate
+ * users through the admin API or `access.roles.assign` instead.
+ */
+export const PRIVILEGED_USER_FIELDS = ["admin", "roles"] as const;
+
+/**
+ * Removes {@link PRIVILEGED_USER_FIELDS} from a self-service body. Fields are dropped rather
+ * than rejected so clients that echo a whole user object back still succeed.
+ */
+export const stripPrivilegedUserFields = (
+  body: Record<string, unknown>,
+  context: string
+): Record<string, unknown> => {
+  const sanitized: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [key, value] of Object.entries(body)) {
+    if ((PRIVILEGED_USER_FIELDS as readonly string[]).includes(key)) {
+      dropped.push(key);
+      continue;
+    }
+    sanitized[key] = value;
+  }
+  if (dropped.length > 0) {
+    logger.warn(`Ignored privileged user fields on ${context}: ${dropped.join(", ")}`);
+  }
+  return sanitized;
+};
+
 export const signupUser = async (
   userModel: UserModel,
   email: string,
@@ -108,7 +138,8 @@ export const signupUser = async (
 ) => {
   // Strip email and password from the body. They can cause mongoose to throw an error if strict is
   // set.
-  const {email: _email, password: _password, ...bodyRest} = body ?? {};
+  const {email: _email, password: _password, ...rawBody} = body ?? {};
+  const bodyRest = stripPrivilegedUserFields(rawBody, "signup");
 
   try {
     // noExplicitAny: passport-local-mongoose's register() is untyped
@@ -524,7 +555,7 @@ export const addMeRoutes = (
     //   return res.status(403).send({message: (e as Error).message});
     // }
     try {
-      Object.assign(doc, req.body);
+      Object.assign(doc, stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me"));
       await doc.save();
 
       const dataObject = doc.toObject() as unknown as Record<string, unknown>;
