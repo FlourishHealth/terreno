@@ -153,9 +153,12 @@ exports[`ErrorPage renders correctly 1`] = `
       ],
       "props": {
         "accessibilityHint": "Press to perform action",
-        "aria-label": "Try again",
-        "aria-role": "button",
-        "disabled": undefined,
+        "accessibilityLabel": "Try again",
+        "accessibilityRole": "button",
+        "accessibilityState": {
+          "disabled": false,
+        },
+        "disabled": false,
         "onPress": [Function: debounced],
         "style": {
           "alignItems": "center",
@@ -165,6 +168,7 @@ exports[`ErrorPage renders correctly 1`] = `
           "borderRadius": 360,
           "borderWidth": undefined,
           "flexDirection": "column",
+          "height": undefined,
           "justifyContent": "center",
           "paddingHorizontal": 20,
           "paddingVertical": 8,
@@ -172,7 +176,7 @@ exports[`ErrorPage renders correctly 1`] = `
         },
         "testID": undefined,
       },
-      "type": "Pressable",
+      "type": "PressableScale",
     },
   ],
   "props": {

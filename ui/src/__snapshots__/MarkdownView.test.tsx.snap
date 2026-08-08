@@ -19,16 +19,23 @@ exports[`MarkdownView renders correctly with simple text 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -37,6 +44,7 @@ exports[`MarkdownView renders correctly with simple text 1`] = `
         "style": {
           "alignItems": "flex-start",
           "flexDirection": "row",
+          "flexShrink": 1,
           "flexWrap": "wrap",
           "justifyContent": "flex-start",
           "marginBottom": 10,
@@ -49,7 +57,9 @@ exports[`MarkdownView renders correctly with simple text 1`] = `
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -77,15 +87,21 @@ exports[`MarkdownView renders markdown headings 1`] = `
                     "color": "#1C1C1C",
                     "fontFamily": "heading-bold",
                     "fontSize": 28,
+                    "lineHeight": 35,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -115,15 +131,21 @@ exports[`MarkdownView renders markdown headings 1`] = `
                     "color": "#1C1C1C",
                     "fontFamily": "heading-bold",
                     "fontSize": 20,
+                    "lineHeight": 25,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -153,15 +175,21 @@ exports[`MarkdownView renders markdown headings 1`] = `
                     "color": "#1C1C1C",
                     "fontFamily": "heading-bold",
                     "fontSize": 16,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -176,7 +204,9 @@ exports[`MarkdownView renders markdown headings 1`] = `
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -205,10 +235,14 @@ exports[`MarkdownView renders markdown bold and italic 1`] = `
                     "style": [
                       {
                         "color": "#1C1C1C",
-                        "fontFamily": "text",
+                        "fontFamily": "text-regular",
+                        "fontSize": 14,
                         "fontWeight": "bold",
+                        "lineHeight": 20,
                       },
-                      {},
+                      {
+                        "color": "#1C1C1C",
+                      },
                     ],
                   },
                   "type": "Text",
@@ -230,9 +264,13 @@ exports[`MarkdownView renders markdown bold and italic 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
@@ -249,10 +287,14 @@ exports[`MarkdownView renders markdown bold and italic 1`] = `
                     "style": [
                       {
                         "color": "#1C1C1C",
-                        "fontFamily": "text",
+                        "fontFamily": "text-regular",
+                        "fontSize": 14,
                         "fontStyle": "italic",
+                        "lineHeight": 20,
                       },
-                      {},
+                      {
+                        "color": "#1C1C1C",
+                      },
                     ],
                   },
                   "type": "Text",
@@ -274,16 +316,23 @@ exports[`MarkdownView renders markdown bold and italic 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -292,6 +341,7 @@ exports[`MarkdownView renders markdown bold and italic 1`] = `
         "style": {
           "alignItems": "flex-start",
           "flexDirection": "row",
+          "flexShrink": 1,
           "flexWrap": "wrap",
           "justifyContent": "flex-start",
           "marginBottom": 10,
@@ -304,7 +354,9 @@ exports[`MarkdownView renders markdown bold and italic 1`] = `
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -331,11 +383,20 @@ exports[`MarkdownView renders markdown lists 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
-                    "marginLeft": 10,
-                    "marginRight": 10,
+                    "color": "#1C1C1C",
+                    "flexShrink": 0,
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
+                    "marginLeft": 0,
+                    "marginRight": 8,
+                    "minWidth": 16,
+                    "textAlign": "center",
                   },
                 ],
               },
@@ -356,16 +417,23 @@ exports[`MarkdownView renders markdown lists 1`] = `
                         "style": [
                           {
                             "color": "#1C1C1C",
-                            "fontFamily": "text",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "lineHeight": 20,
                           },
-                          {},
+                          {
+                            "color": "#1C1C1C",
+                          },
                         ],
                       },
                       "type": "Text",
                     },
                   ],
                   "props": {
-                    "style": {},
+                    "style": {
+                      "flexShrink": 1,
+                      "minWidth": 0,
+                    },
                   },
                   "type": "Text",
                 },
@@ -373,6 +441,8 @@ exports[`MarkdownView renders markdown lists 1`] = `
               "props": {
                 "style": {
                   "flex": 1,
+                  "flexShrink": 1,
+                  "minWidth": 0,
                 },
                 "testID": undefined,
               },
@@ -381,8 +451,10 @@ exports[`MarkdownView renders markdown lists 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "flex-start",
               "flexDirection": "row",
               "justifyContent": "flex-start",
+              "width": "100%",
             },
             "testID": undefined,
           },
@@ -401,11 +473,20 @@ exports[`MarkdownView renders markdown lists 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
-                    "marginLeft": 10,
-                    "marginRight": 10,
+                    "color": "#1C1C1C",
+                    "flexShrink": 0,
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
+                    "marginLeft": 0,
+                    "marginRight": 8,
+                    "minWidth": 16,
+                    "textAlign": "center",
                   },
                 ],
               },
@@ -426,16 +507,23 @@ exports[`MarkdownView renders markdown lists 1`] = `
                         "style": [
                           {
                             "color": "#1C1C1C",
-                            "fontFamily": "text",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "lineHeight": 20,
                           },
-                          {},
+                          {
+                            "color": "#1C1C1C",
+                          },
                         ],
                       },
                       "type": "Text",
                     },
                   ],
                   "props": {
-                    "style": {},
+                    "style": {
+                      "flexShrink": 1,
+                      "minWidth": 0,
+                    },
                   },
                   "type": "Text",
                 },
@@ -443,6 +531,8 @@ exports[`MarkdownView renders markdown lists 1`] = `
               "props": {
                 "style": {
                   "flex": 1,
+                  "flexShrink": 1,
+                  "minWidth": 0,
                 },
                 "testID": undefined,
               },
@@ -451,8 +541,10 @@ exports[`MarkdownView renders markdown lists 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "flex-start",
               "flexDirection": "row",
               "justifyContent": "flex-start",
+              "width": "100%",
             },
             "testID": undefined,
           },
@@ -471,11 +563,20 @@ exports[`MarkdownView renders markdown lists 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
-                    "marginLeft": 10,
-                    "marginRight": 10,
+                    "color": "#1C1C1C",
+                    "flexShrink": 0,
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
+                    "marginLeft": 0,
+                    "marginRight": 8,
+                    "minWidth": 16,
+                    "textAlign": "center",
                   },
                 ],
               },
@@ -496,16 +597,23 @@ exports[`MarkdownView renders markdown lists 1`] = `
                         "style": [
                           {
                             "color": "#1C1C1C",
-                            "fontFamily": "text",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "lineHeight": 20,
                           },
-                          {},
+                          {
+                            "color": "#1C1C1C",
+                          },
                         ],
                       },
                       "type": "Text",
                     },
                   ],
                   "props": {
-                    "style": {},
+                    "style": {
+                      "flexShrink": 1,
+                      "minWidth": 0,
+                    },
                   },
                   "type": "Text",
                 },
@@ -513,6 +621,8 @@ exports[`MarkdownView renders markdown lists 1`] = `
               "props": {
                 "style": {
                   "flex": 1,
+                  "flexShrink": 1,
+                  "minWidth": 0,
                 },
                 "testID": undefined,
               },
@@ -521,8 +631,10 @@ exports[`MarkdownView renders markdown lists 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "flex-start",
               "flexDirection": "row",
               "justifyContent": "flex-start",
+              "width": "100%",
             },
             "testID": undefined,
           },
@@ -530,14 +642,18 @@ exports[`MarkdownView renders markdown lists 1`] = `
         },
       ],
       "props": {
-        "style": {},
+        "style": {
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -563,16 +679,23 @@ exports[`MarkdownView renders with inverted colors 1`] = `
                 "style": [
                   {
                     "color": "#FFFFFF",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#FFFFFF",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -581,6 +704,7 @@ exports[`MarkdownView renders with inverted colors 1`] = `
         "style": {
           "alignItems": "flex-start",
           "flexDirection": "row",
+          "flexShrink": 1,
           "flexWrap": "wrap",
           "justifyContent": "flex-start",
           "marginBottom": 10,
@@ -593,7 +717,9 @@ exports[`MarkdownView renders with inverted colors 1`] = `
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -620,11 +746,20 @@ exports[`MarkdownView renders numbered lists 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
-                    "marginLeft": 10,
-                    "marginRight": 10,
+                    "color": "#1C1C1C",
+                    "flexShrink": 0,
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
+                    "marginLeft": 0,
+                    "marginRight": 8,
+                    "minWidth": 32,
+                    "textAlign": "right",
                   },
                 ],
               },
@@ -645,16 +780,23 @@ exports[`MarkdownView renders numbered lists 1`] = `
                         "style": [
                           {
                             "color": "#1C1C1C",
-                            "fontFamily": "text",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "lineHeight": 20,
                           },
-                          {},
+                          {
+                            "color": "#1C1C1C",
+                          },
                         ],
                       },
                       "type": "Text",
                     },
                   ],
                   "props": {
-                    "style": {},
+                    "style": {
+                      "flexShrink": 1,
+                      "minWidth": 0,
+                    },
                   },
                   "type": "Text",
                 },
@@ -662,6 +804,8 @@ exports[`MarkdownView renders numbered lists 1`] = `
               "props": {
                 "style": {
                   "flex": 1,
+                  "flexShrink": 1,
+                  "minWidth": 0,
                 },
                 "testID": undefined,
               },
@@ -670,8 +814,10 @@ exports[`MarkdownView renders numbered lists 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "flex-start",
               "flexDirection": "row",
               "justifyContent": "flex-start",
+              "width": "100%",
             },
             "testID": undefined,
           },
@@ -690,11 +836,20 @@ exports[`MarkdownView renders numbered lists 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
-                    "marginLeft": 10,
-                    "marginRight": 10,
+                    "color": "#1C1C1C",
+                    "flexShrink": 0,
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
+                    "marginLeft": 0,
+                    "marginRight": 8,
+                    "minWidth": 32,
+                    "textAlign": "right",
                   },
                 ],
               },
@@ -715,16 +870,23 @@ exports[`MarkdownView renders numbered lists 1`] = `
                         "style": [
                           {
                             "color": "#1C1C1C",
-                            "fontFamily": "text",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "lineHeight": 20,
                           },
-                          {},
+                          {
+                            "color": "#1C1C1C",
+                          },
                         ],
                       },
                       "type": "Text",
                     },
                   ],
                   "props": {
-                    "style": {},
+                    "style": {
+                      "flexShrink": 1,
+                      "minWidth": 0,
+                    },
                   },
                   "type": "Text",
                 },
@@ -732,6 +894,8 @@ exports[`MarkdownView renders numbered lists 1`] = `
               "props": {
                 "style": {
                   "flex": 1,
+                  "flexShrink": 1,
+                  "minWidth": 0,
                 },
                 "testID": undefined,
               },
@@ -740,8 +904,10 @@ exports[`MarkdownView renders numbered lists 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "flex-start",
               "flexDirection": "row",
               "justifyContent": "flex-start",
+              "width": "100%",
             },
             "testID": undefined,
           },
@@ -760,11 +926,20 @@ exports[`MarkdownView renders numbered lists 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
-                    "marginLeft": 10,
-                    "marginRight": 10,
+                    "color": "#1C1C1C",
+                    "flexShrink": 0,
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
+                    "marginLeft": 0,
+                    "marginRight": 8,
+                    "minWidth": 32,
+                    "textAlign": "right",
                   },
                 ],
               },
@@ -785,16 +960,23 @@ exports[`MarkdownView renders numbered lists 1`] = `
                         "style": [
                           {
                             "color": "#1C1C1C",
-                            "fontFamily": "text",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "lineHeight": 20,
                           },
-                          {},
+                          {
+                            "color": "#1C1C1C",
+                          },
                         ],
                       },
                       "type": "Text",
                     },
                   ],
                   "props": {
-                    "style": {},
+                    "style": {
+                      "flexShrink": 1,
+                      "minWidth": 0,
+                    },
                   },
                   "type": "Text",
                 },
@@ -802,6 +984,8 @@ exports[`MarkdownView renders numbered lists 1`] = `
               "props": {
                 "style": {
                   "flex": 1,
+                  "flexShrink": 1,
+                  "minWidth": 0,
                 },
                 "testID": undefined,
               },
@@ -810,8 +994,10 @@ exports[`MarkdownView renders numbered lists 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "flex-start",
               "flexDirection": "row",
               "justifyContent": "flex-start",
+              "width": "100%",
             },
             "testID": undefined,
           },
@@ -819,14 +1005,18 @@ exports[`MarkdownView renders numbered lists 1`] = `
         },
       ],
       "props": {
-        "style": {},
+        "style": {
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -846,7 +1036,9 @@ exports[`MarkdownView renders code blocks 1`] = `
         "style": [
           {
             "color": "#1C1C1C",
-            "fontFamily": "text",
+            "fontFamily": "text-regular",
+            "fontSize": 14,
+            "lineHeight": 20,
           },
           {
             "backgroundColor": "#D9D9D9",
@@ -864,7 +1056,9 @@ exports[`MarkdownView renders code blocks 1`] = `
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -890,9 +1084,13 @@ exports[`MarkdownView renders inline code 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
@@ -906,7 +1104,9 @@ exports[`MarkdownView renders inline code 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
                   {
                     "backgroundColor": "#D9D9D9",
@@ -933,16 +1133,23 @@ exports[`MarkdownView renders inline code 1`] = `
                 "style": [
                   {
                     "color": "#1C1C1C",
-                    "fontFamily": "text",
+                    "fontFamily": "text-regular",
+                    "fontSize": 14,
+                    "lineHeight": 20,
                   },
-                  {},
+                  {
+                    "color": "#1C1C1C",
+                  },
                 ],
               },
               "type": "Text",
             },
           ],
           "props": {
-            "style": {},
+            "style": {
+              "flexShrink": 1,
+              "minWidth": 0,
+            },
           },
           "type": "Text",
         },
@@ -951,6 +1158,7 @@ exports[`MarkdownView renders inline code 1`] = `
         "style": {
           "alignItems": "flex-start",
           "flexDirection": "row",
+          "flexShrink": 1,
           "flexWrap": "wrap",
           "justifyContent": "flex-start",
           "marginBottom": 10,
@@ -963,7 +1171,9 @@ exports[`MarkdownView renders inline code 1`] = `
     },
   ],
   "props": {
-    "style": {},
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",

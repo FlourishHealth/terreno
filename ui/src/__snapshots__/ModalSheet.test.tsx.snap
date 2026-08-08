@@ -29,7 +29,6 @@ exports[`ModalSheet renders correctly with children 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
     "testID": "portal",
   },
   "type": "View",

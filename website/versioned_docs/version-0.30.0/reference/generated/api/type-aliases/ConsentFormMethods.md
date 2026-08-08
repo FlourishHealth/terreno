@@ -1,0 +1,1 @@
+> **ConsentFormMethods** = `object`

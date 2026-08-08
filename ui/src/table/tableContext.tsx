@@ -45,7 +45,7 @@ export const TableContextProvider = ({
   );
 };
 
-export function useTableContext(): TableContextType {
+export const useTableContext = (): TableContextType => {
   const {
     columns,
     hasDrawerContents,
@@ -64,4 +64,4 @@ export function useTableContext(): TableContextType {
     sortColumn,
     stickyHeader,
   };
-}
+};

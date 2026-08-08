@@ -1,103 +1,103 @@
 export interface ScoringFunction {
-  name: string;
-  description: string;
-  scoreType: "numeric" | "categorical" | "boolean";
   categories?: string[];
-  range?: {min: number; max: number};
+  description: string;
+  name: string;
+  range?: {max: number; min: number};
+  scoreType: "numeric" | "categorical" | "boolean";
 }
 
 export interface LangfuseAppOptions {
-  secretKey: string;
-  publicKey: string;
+  adminPath?: string;
+  baseUrl?: string;
+  cache?: {
+    promptTtlSeconds?: number;
+    traceTtlSeconds?: number;
+  };
+  enableAdminUI?: boolean;
+  enableTracing?: boolean;
+  evaluation?: {
+    enabled?: boolean;
+    scoringFunctions?: ScoringFunction[];
+  };
   /** Organization slug in Langfuse (default: "flourish-health") */
   organization?: string;
   /** Project name/slug in Langfuse (default: "terreno") */
   project?: string;
   /** Langfuse project ID (UUID) for trace URLs; optional, keys usually imply project */
   projectId?: string;
-  baseUrl?: string;
-  adminPath?: string;
-  enableAdminUI?: boolean;
-  enableTracing?: boolean;
+  publicKey: string;
+  secretKey: string;
   serviceName?: string;
-  cache?: {
-    promptTtlSeconds?: number;
-    traceTtlSeconds?: number;
-  };
-  evaluation?: {
-    enabled?: boolean;
-    scoringFunctions?: ScoringFunction[];
-  };
 }
 
 export interface ChatMessage {
-  role: string;
   content: string;
+  role: string;
 }
 
 export interface LangfuseCachedPrompt {
-  name: string;
-  version: number;
-  type: "text" | "chat";
-  prompt: string | ChatMessage[];
   config: Record<string, unknown>;
   labels: string[];
+  name: string;
+  prompt: string | ChatMessage[];
   tags: string[];
+  type: "text" | "chat";
+  version: number;
 }
 
 export interface TelemetrySettings {
-  isEnabled?: boolean;
   functionId?: string;
+  isEnabled?: boolean;
   metadata?: Record<string, string | number | boolean>;
 }
 
 export interface PreparePromptResult {
-  prompt?: string;
-  messages?: ChatMessage[];
   config: Record<string, unknown>;
+  messages?: ChatMessage[];
+  prompt?: string;
   telemetry: TelemetrySettings;
 }
 
 export interface GetPromptOptions {
   label?: string;
-  variables?: Record<string, string>;
   userId?: string;
+  variables?: Record<string, string>;
 }
 
 export interface PromptListItem {
-  name: string;
-  version: number;
-  type: "text" | "chat";
-  labels: string[];
-  tags: string[];
   createdAt: string;
+  labels: string[];
+  name: string;
+  tags: string[];
+  type: "text" | "chat";
+  version: number;
 }
 
 export interface TraceListItem {
   id: string;
+  input?: unknown;
+  metadata?: Record<string, unknown>;
   name: string;
-  userId?: string;
+  output?: unknown;
   sessionId?: string;
   timestamp: string;
-  input?: unknown;
-  output?: unknown;
-  metadata?: Record<string, unknown>;
+  userId?: string;
 }
 
 export interface PaginatedResult<T> {
   data: T[];
   meta: {
-    page: number;
     limit: number;
+    page: number;
     total: number;
     totalPages: number;
   };
 }
 
 export interface ScoreSubmission {
-  traceId: string;
-  name: string;
-  value: number | string;
   comment?: string;
   dataType?: "NUMERIC" | "CATEGORICAL" | "BOOLEAN";
+  name: string;
+  traceId: string;
+  value: number | string;
 }

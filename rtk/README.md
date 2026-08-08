@@ -95,3 +95,9 @@ const {socket, isSocketConnected} = useSocketConnection({
 - `generateTags` - RTK Query tag generator for cache invalidation
 - `ListResponse`, `populateId` - Mongoose list response utilities
 
+## Feature flags (OpenFeature)
+
+`useFeatureFlags` and **`useTerrenoFeatureFlags`** wire Terreno’s `GET /feature-flags/flagConfiguration` into OpenFeature. Peer dependencies: **`@openfeature/react-sdk`** and **`@openfeature/web-sdk`** (install them in your app; do not rely on transitive copies).
+
+Full upgrade steps (backend + frontend + SDK regen) live in the **Terreno root README**: [Feature flags: OpenFeature migration](../README.md#feature-flags-openfeature-migration).
+

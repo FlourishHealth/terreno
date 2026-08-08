@@ -8,16 +8,38 @@
  *
  * @see https://github.com/wesleytodd/express-openapi/issues/70
  */
+import type {Application, NextFunction, Request, Response} from "express";
 
 const MOUNT_PATH_KEY = "__openApiMountPath";
+
+interface ExpressKey {
+  name: string;
+  optional: boolean;
+}
+
+interface PatchedLayer {
+  name?: string;
+  regexp?: {fast_slash?: boolean} | RegExp;
+  slash?: boolean;
+  path?: string;
+  route?: {path?: string; stack?: PatchedLayer[]};
+  handle?: {stack?: PatchedLayer[]};
+  keys?: ExpressKey[] | string[];
+  [MOUNT_PATH_KEY]?: string;
+}
+
+interface AppWithRouter {
+  _router?: {stack: PatchedLayer[]};
+  router?: {stack: PatchedLayer[]};
+}
 
 /**
  * Extract Express 4-style keys from a path string.
  * Parses `:paramName` and `*paramName` segments into `{name, optional}` objects
  * that @wesleytodd/openapi expects.
  */
-const extractKeysFromPath = (path: string): Array<{name: string; optional: boolean}> => {
-  const keys: Array<{name: string; optional: boolean}> = [];
+const extractKeysFromPath = (path: string): ExpressKey[] => {
+  const keys: ExpressKey[] = [];
   const paramRegex = /[:*](\w+)\??/g;
   let match: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
@@ -52,7 +74,7 @@ const buildRegexpForPath = (pathStr: string, isMount: boolean): RegExp => {
   return new RegExp(`^${pattern}\\/?$`);
 };
 
-const patchRouterStack = (stack: any[]): void => {
+const patchRouterStack = (stack: PatchedLayer[]): void => {
   for (const layer of stack) {
     if (layer.regexp !== undefined) {
       continue;
@@ -66,13 +88,13 @@ const patchRouterStack = (stack: any[]): void => {
       // Express 5 layers use .slash instead of .regexp.fast_slash
       layer.regexp = {fast_slash: true};
     } else if (layer[MOUNT_PATH_KEY]) {
-      pathStr = layer[MOUNT_PATH_KEY] as string;
+      pathStr = layer[MOUNT_PATH_KEY];
       layer.regexp = buildRegexpForPath(pathStr, isMount);
     } else if (layer.path && typeof layer.path === "string") {
-      pathStr = layer.path as string;
+      pathStr = layer.path;
       layer.regexp = buildRegexpForPath(pathStr, false);
     } else if (layer.route?.path && typeof layer.route.path === "string") {
-      pathStr = layer.route.path as string;
+      pathStr = layer.route.path;
       layer.regexp = buildRegexpForPath(pathStr, false);
     } else {
       layer.regexp = /^\/?$/;
@@ -88,7 +110,7 @@ const patchRouterStack = (stack: any[]): void => {
       }
     } else if (Array.isArray(layer.keys) && typeof layer.keys[0] === "string") {
       // Express 5 stores keys as plain strings after match() — convert to objects
-      layer.keys = layer.keys.map((k: string) => ({name: k, optional: false}));
+      layer.keys = (layer.keys as string[]).map((k) => ({name: k, optional: false}));
     }
 
     // Recursively patch nested stacks
@@ -108,17 +130,18 @@ const patchRouterStack = (stack: any[]): void => {
  *
  * Must be called before any routes are registered.
  */
-export const patchAppUse = (app: any): void => {
+export const patchAppUse = (app: Application): void => {
+  const internal = app as unknown as AppWithRouter;
   const originalUse = app.use.bind(app);
-  app.use = function patchedUse(...args: any[]) {
+  const patchedUse = (...args: unknown[]): unknown => {
     // Track stack length before the call
-    const router = app._router || app.router;
+    const router = internal._router ?? internal.router;
     const stackBefore = router?.stack?.length ?? 0;
 
-    const result = originalUse(...args);
+    const result = (originalUse as (...a: unknown[]) => unknown)(...args);
 
     // After use(), check if new layers were added and annotate them
-    const routerAfter = app._router || app.router;
+    const routerAfter = internal._router ?? internal.router;
     if (routerAfter?.stack) {
       const stackAfter = routerAfter.stack.length;
       // The first arg is the mount path if it's a string
@@ -132,14 +155,16 @@ export const patchAppUse = (app: any): void => {
 
     return result;
   };
+  (app as unknown as {use: typeof patchedUse}).use = patchedUse;
 };
 
 /**
  * Express middleware that patches the router stack before OpenAPI doc
  * generation. Must be mounted before the openapi middleware.
  */
-export const openApiCompatMiddleware = (req: any, _res: any, next: () => void): void => {
-  const router = req.app._router || req.app.router;
+export const openApiCompatMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
+  const internal = req.app as unknown as AppWithRouter;
+  const router = internal._router ?? internal.router;
   if (router?.stack) {
     patchRouterStack(router.stack);
   }

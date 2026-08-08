@@ -1,9 +1,10 @@
 import {useCallback} from "react";
-import {logout, terrenoApi, useAppDispatch} from "@/store";
+import {logout, useAppDispatch} from "@/store/index";
+import {terrenoApi} from "@/store/sdk";
 
 type LogoutUser = () => void;
 
-export function useLogoutUser(): LogoutUser {
+export const useLogoutUser = (): LogoutUser => {
   const dispatch = useAppDispatch();
 
   const handleLogout = useCallback((): void => {
@@ -12,4 +13,4 @@ export function useLogoutUser(): LogoutUser {
   }, [dispatch]);
 
   return handleLogout;
-}
+};

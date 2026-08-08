@@ -20,3 +20,8 @@ export const TRANSLATION_PROMPT =
 export const TITLE_GENERATION_PROMPT =
   "Generate a short title (3-6 words) that summarizes this conversation for a sidebar label. " +
   "Return only the title text with no quotes, punctuation, or additional commentary.";
+
+/** When callers omit systemPrompt for JSON helpers, steer the model away from prose and markdown fences. */
+export const JSON_VALUE_SYSTEM_PROMPT =
+  "You respond with a single JSON value (object, array, string, number, boolean, or null) only. " +
+  "No markdown code fences, no commentary before or after the JSON.";

@@ -5,7 +5,7 @@ import {
   HeightFieldWithErrorDemo,
   HeightFieldWithHelperTextDemo,
   HeightFieldWithValueDemo,
-} from "@stories";
+} from "@stories/HeightField.stories";
 import {HeightField} from "@terreno/ui";
 
 export const HeightFieldConfiguration: DemoConfiguration = {

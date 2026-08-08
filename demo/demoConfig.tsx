@@ -1,63 +1,67 @@
+import {AccordionConfiguration} from "@story-config/Accordion.config";
+import {AddressFieldConfiguration} from "@story-config/AddressField.config";
+import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config";
+import {AvatarConfiguration} from "@story-config/Avatar.config";
+import {BadgeConfiguration} from "@story-config/Badge.config";
+import {BannerConfiguration} from "@story-config/Banner.config";
+import {BooleanFieldConfiguration} from "@story-config/BooleanField.config";
+import {BoxConfiguration} from "@story-config/Box.config";
+import {ButtonConfiguration} from "@story-config/Button.config";
+import {CardConfiguration} from "@story-config/Card.config";
+import {CheckBoxConfiguration} from "@story-config/CheckBox.config";
+import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.config";
+import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
+import {DataTableConfiguration} from "@story-config/DataTable.config";
+import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
+import {EmailFieldConfiguration} from "@story-config/EmailField.config";
+import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
+import {FieldConfiguration} from "@story-config/Field.config";
+import {HeadingConfiguration} from "@story-config/Heading.config";
+import {HeightFieldConfiguration} from "@story-config/HeightField.config";
+import {IconConfiguration} from "@story-config/Icon.config";
+import {IconButtonConfiguration} from "@story-config/IconButton.config";
+import {LinkConfiguration} from "@story-config/Link.config";
+import {MarkdownEditorFieldConfiguration} from "@story-config/MarkdownEditorField.config";
+import {MarkdownViewConfiguration} from "@story-config/MarkdownView.config";
+import {ModalConfiguration} from "@story-config/Modal.config";
+import {MultiselectFieldConfiguration} from "@story-config/MultiselectField.config";
+import {NumberFieldConfiguration} from "@story-config/NumberField.config";
+import {PageConfiguration} from "@story-config/Page.config";
+import {PaginationConfiguration} from "@story-config/Pagination.config";
+import {PasswordFieldConfiguration} from "@story-config/PasswordField.config";
+import {PhoneNumberConfiguration} from "@story-config/PhoneNumberField.config";
+import {RadioFieldConfiguration} from "@story-config/RadioField.config";
+import {SectionDividerConfiguration} from "@story-config/SectionDivider.config";
+import {SegmentedControlConfiguration} from "@story-config/SegmentedControl.config";
+import {SelectBadgeConfiguration} from "@story-config/SelectBadge.config";
+import {SelectFieldConfiguration} from "@story-config/SelectField.config";
 import {
-  AccordionConfiguration,
-  AddressFieldConfiguration,
-  AiSuggestionBoxConfiguration,
-  AvatarConfiguration,
-  BadgeConfiguration,
-  BannerConfiguration,
-  BooleanFieldConfiguration,
-  BoxConfiguration,
-  ButtonConfiguration,
-  CardConfiguration,
-  CheckBoxConfiguration,
-  CustomSelectFieldConfiguration,
-  DataTableConfiguration,
-  DateTimeFieldConfiguration,
-  EmailFieldConfiguration,
-  EmojiSelectorConfiguration,
-  FieldConfiguration,
-  HeadingConfiguration,
-  HeightFieldConfiguration,
-  IconButtonConfiguration,
-  IconConfiguration,
-  LinkConfiguration,
-  MarkdownEditorFieldConfiguration,
-  MarkdownViewConfiguration,
-  ModalConfiguration,
-  MultiselectFieldConfiguration,
-  NumberFieldConfiguration,
-  PageConfiguration,
-  PaginationConfiguration,
-  PasswordFieldConfiguration,
-  PhoneNumberConfiguration,
-  RadioFieldConfiguration,
-  SectionDividerConfiguration,
-  SegmentedControlConfiguration,
-  SelectBadgeConfiguration,
-  SelectFieldConfiguration,
   SidebarNavigationConfiguration,
   SidebarNavigationExpoRouterConfiguration,
-  SideDrawerConfiguration,
-  SignatureFieldConfiguration,
-  SliderConfiguration,
-  SpinnerConfiguration,
-  TableBadgeConfiguration,
-  TableBooleanConfiguration,
-  TableConfiguration,
-  TableDateConfiguration,
-  TableIconButtonConfiguration,
-  TableNumberConfiguration,
-  TableTextConfiguration,
-  TableTitleConfiguration,
-  TapToEditConfiguration,
-  TextAreaConfiguration,
-  TextConfiguration,
-  TextFieldConfiguration,
-  ThemeConfiguration,
-  ToastConfiguration,
-  TooltipConfiguration,
-  UserInactivityConfiguration,
-} from "@story-config";
+} from "@story-config/SidebarNavigation.config";
+import {SideDrawerConfiguration} from "@story-config/SideDrawer.config";
+import {SignatureCaptureFieldConfiguration} from "@story-config/SignatureCaptureField.config";
+import {SignatureFieldConfiguration} from "@story-config/SignatureField.config";
+import {SliderConfiguration} from "@story-config/Slider.config";
+import {SpinnerConfiguration} from "@story-config/Spinner.config";
+import {TableConfiguration} from "@story-config/Table.config";
+import {TableBadgeConfiguration} from "@story-config/TableBadge.config";
+import {TableBooleanConfiguration} from "@story-config/TableBoolean.config";
+import {TableDateConfiguration} from "@story-config/TableDate.config";
+import {TableIconButtonConfiguration} from "@story-config/TableIconButton.config";
+import {TableNumberConfiguration} from "@story-config/TableNumber.config";
+import {TableTextConfiguration} from "@story-config/TableText.config";
+import {TableTitleConfiguration} from "@story-config/TableTitle.config";
+import {TapToEditConfiguration} from "@story-config/TapToEdit.config";
+import {TextConfiguration} from "@story-config/Text.config";
+import {TextAreaConfiguration} from "@story-config/TextArea.config";
+import {TextFieldConfiguration} from "@story-config/TextField.config";
+import {ThemeConfiguration} from "@story-config/Theme.config";
+import {ThumbsUpDownFeedbackConfiguration} from "@story-config/ThumbsUpDownFeedback.config";
+import {ToastConfiguration} from "@story-config/Toast.config";
+import {TooltipConfiguration} from "@story-config/Tooltip.config";
+import {TypedSignatureFieldConfiguration} from "@story-config/TypedSignatureField.config";
+import {UserInactivityConfiguration} from "@story-config/UserInactivity.config";
 import type {FieldProps} from "@terreno/ui";
 import type React from "react";
 
@@ -65,13 +69,17 @@ export type DemoConfigStatus = "planned" | "inProgress" | "ready" | "notSupporte
 
 // Types generated by typedoc in the @terreno/ui package. Only includes types that are put into
 // Common.ts.
-const PropsJSON = require("./ui-types-documentation.json");
+interface TypedocNode {
+  name?: string;
+  children?: TypedocNode[];
+}
+const PropsJSON: {children: TypedocNode[]} = require("./ui-types-documentation.json");
 
 export type Categories = "Foundation" | "Component" | "Pattern" | "Data Entry" | "Form";
 
 interface DemoConfigurationBase {
   name: string;
-  component: any; // TODO: make this typing better
+  component: React.ElementType;
   related: string[];
   description: string;
   // Used for the index page if description is long.
@@ -94,6 +102,8 @@ interface DemoConfigurationBase {
     doNot: string[];
   };
   // Demo is the top component that will show up in the index page and at the top of the page.
+  // noExplicitAny: each story-config supplies a demo with its own concrete prop shape (e.g. HeadingProps & {text: string}). A narrower contract like Record<string, unknown> would reject those narrower functions due to parameter contravariance.
+  // biome-ignore lint/suspicious/noExplicitAny: each story-config supplies a demo with its own concrete prop shape (e.g. HeadingProps & {text: string}). A narrower contract like Record<string, unknown> would reject those narrower functions due to parameter contravariance.
   demo: (props: any) => React.ReactElement;
   demoOptions: {
     // On large screens, "md" will either generate a smaller box with controls to the right
@@ -102,7 +112,10 @@ interface DemoConfigurationBase {
     // "md" is the default.
     size?: "md" | "lg";
     controls?: {
-      [prop: string]: Omit<FieldProps & {defaultValue?: any; options?: any}, "value" | "onChange">;
+      [prop: string]: Omit<
+        FieldProps & {defaultValue?: unknown; options?: unknown},
+        "value" | "onChange"
+      >;
     };
   };
   // Stories represent different states of the component and different examples of using it.
@@ -133,6 +146,8 @@ export interface DemoConfigurationProp {
 }
 
 export interface DemoConfiguration extends DemoConfigurationBase {
+  // noExplicitAny: `props` is a typedoc-generated JSON blob whose full shape leaks through consumer code (see demo/app/demo/[component].tsx which reads props.children). Narrowing to the local TypedocNode interface would cascade type errors into unrelated files.
+  // biome-ignore lint/suspicious/noExplicitAny: `props` is a typedoc-generated JSON blob whose full shape leaks through consumer code (see demo/app/demo/[component].tsx which reads props.children). Narrowing to the local TypedocNode interface would cascade type errors into unrelated files.
   props: any;
 }
 
@@ -187,6 +202,7 @@ const Config: DemoConfigurationBase[] = [
   CardConfiguration,
   // ChatBubbleConfiguration,
   CheckBoxConfiguration,
+  ConsentFormScreenConfiguration,
   CustomSelectFieldConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
@@ -217,6 +233,7 @@ const Config: DemoConfigurationBase[] = [
   SidebarNavigationConfiguration,
   SidebarNavigationExpoRouterConfiguration,
   SideDrawerConfiguration,
+  SignatureCaptureFieldConfiguration,
   SignatureFieldConfiguration,
   SliderConfiguration,
   SpinnerConfiguration,
@@ -233,15 +250,17 @@ const Config: DemoConfigurationBase[] = [
   TextAreaConfiguration,
   TextFieldConfiguration,
   ThemeConfiguration,
+  ThumbsUpDownFeedbackConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
+  TypedSignatureFieldConfiguration,
   UserInactivityConfiguration,
 ];
 
 // Ensure consistent alphabetical sorting
-export const DemoConfig = Config.map((c) => ({
+export const DemoConfig: DemoConfiguration[] = Config.map((c) => ({
   ...c,
   props: PropsJSON.children
-    .flatMap((mod: any) => mod.children ?? [])
-    .find((json: any) => json.name === c.interfaceName),
+    .flatMap((mod) => mod.children ?? [])
+    .find((json) => json.name === c.interfaceName),
 })).sort((a, b) => a.name.localeCompare(b.name));

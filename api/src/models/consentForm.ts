@@ -2,6 +2,15 @@ import mongoose from "mongoose";
 import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 import type {ConsentFormDocument, ConsentFormModel} from "../types/consentForm";
 
+const consentFormTypeValues = [
+  "agreement",
+  "privacy",
+  "hipaa",
+  "research",
+  "terms",
+  "custom",
+] as const;
+
 const consentFormSchema = new mongoose.Schema<ConsentFormDocument, ConsentFormModel>(
   {
     active: {
@@ -95,7 +104,7 @@ const consentFormSchema = new mongoose.Schema<ConsentFormDocument, ConsentFormMo
     },
     type: {
       description: "Category of consent form",
-      enum: ["agreement", "privacy", "hipaa", "research", "terms", "custom"],
+      enum: consentFormTypeValues,
       required: true,
       type: String,
     },
@@ -117,7 +126,6 @@ consentFormSchema.plugin(isDeletedPlugin);
 consentFormSchema.plugin(findOneOrNone);
 consentFormSchema.plugin(findExactlyOne);
 
-export const ConsentForm = mongoose.model<ConsentFormDocument, ConsentFormModel>(
-  "ConsentForm",
-  consentFormSchema
-);
+export const ConsentForm =
+  (mongoose.models.ConsentForm as ConsentFormModel | undefined) ??
+  mongoose.model<ConsentFormDocument, ConsentFormModel>("ConsentForm", consentFormSchema);

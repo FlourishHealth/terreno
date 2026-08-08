@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import type {TodoDocument, TodoModel} from "../types";
+import type {TodoDocument, TodoModel} from "../types/models/todoTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
@@ -14,6 +14,16 @@ const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
       ref: "User",
       required: true,
       type: mongoose.Schema.Types.ObjectId,
+    },
+    priority: {
+      description: "Priority level of the todo",
+      enum: ["low", "medium", "high"],
+      type: String,
+    },
+    tags: {
+      default: [],
+      description: "Free-form tags for categorization",
+      type: [String],
     },
     title: {
       description: "The title of the todo item",

@@ -1,34 +1,22 @@
 import {existsSync, readFileSync} from "node:fs";
-import {dirname, join} from "node:path";
-import {fileURLToPath} from "node:url";
+import {join} from "node:path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const getDocsRoot = (): string => {
-  if (process.env.TERRENO_MCP_DOCS_DIR) {
-    return process.env.TERRENO_MCP_DOCS_DIR;
-  }
-
-  const bundledDocsRoot = join(__dirname, "docs");
-  if (existsSync(bundledDocsRoot)) {
-    return bundledDocsRoot;
-  }
-
-  if (process.execPath) {
-    const execDocsRoot = join(dirname(process.execPath), "docs");
-    if (existsSync(execDocsRoot)) {
-      return execDocsRoot;
-    }
-  }
-
-  return join(__dirname, "docs");
-};
+import {getDocsRoot} from "./docsRoot.js";
 
 const loadMarkdown = (filename: string): string => {
   const filePath = join(getDocsRoot(), "resources", filename);
   return readFileSync(filePath, "utf-8");
 };
+
+interface TypeDocType {
+  type: string;
+  name?: string;
+  value?: unknown;
+  types?: TypeDocType[];
+  elementType?: TypeDocType;
+  typeArguments?: TypeDocType[];
+  declaration?: {signatures?: unknown[]};
+}
 
 interface TypeDocProp {
   id: number;
@@ -40,7 +28,7 @@ interface TypeDocProp {
     summary?: {kind: string; text: string}[];
     blockTags?: {tag: string; content: {kind: string; text: string}[]}[];
   };
-  type?: any;
+  type?: TypeDocType;
 }
 
 interface TypeDocInterface {
@@ -57,7 +45,7 @@ interface TypeDocModule {
   children?: TypeDocInterface[];
 }
 
-interface TypeDocRoot {
+export interface TypeDocRoot {
   children?: TypeDocModule[];
 }
 
@@ -73,7 +61,7 @@ interface ComponentDoc {
   }[];
 }
 
-const loadTypeDocJson = (): TypeDocRoot | null => {
+export const loadTypeDocJson = (): TypeDocRoot | null => {
   const filePath = join(getDocsRoot(), "ui-types-documentation.json");
   if (!existsSync(filePath)) {
     return null;
@@ -81,21 +69,21 @@ const loadTypeDocJson = (): TypeDocRoot | null => {
   return JSON.parse(readFileSync(filePath, "utf-8"));
 };
 
-const extractTypeString = (typeObj: any): string => {
+export const extractTypeString = (typeObj: TypeDocType | null | undefined): string => {
   if (!typeObj) {
     return "unknown";
   }
 
   if (typeObj.type === "intrinsic") {
-    return typeObj.name;
+    return typeObj.name ?? "unknown";
   }
 
   if (typeObj.type === "literal") {
-    return JSON.stringify(typeObj.value);
+    return JSON.stringify(typeObj.value) ?? "unknown";
   }
 
   if (typeObj.type === "union") {
-    return typeObj.types?.map((t: any) => extractTypeString(t)).join(" | ") ?? "unknown";
+    return typeObj.types?.map((t: TypeDocType) => extractTypeString(t)).join(" | ") ?? "unknown";
   }
 
   if (typeObj.type === "array") {
@@ -104,8 +92,8 @@ const extractTypeString = (typeObj: any): string => {
 
   if (typeObj.type === "reference") {
     if (typeObj.typeArguments) {
-      const args = typeObj.typeArguments.map((t: any) => extractTypeString(t)).join(", ");
-      return `${typeObj.name}<${args}>`;
+      const args = typeObj.typeArguments.map((t: TypeDocType) => extractTypeString(t)).join(", ");
+      return `${typeObj.name ?? "unknown"}<${args}>`;
     }
     return typeObj.name ?? "unknown";
   }
@@ -120,7 +108,7 @@ const extractTypeString = (typeObj: any): string => {
   return typeObj.name ?? "unknown";
 };
 
-const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[] => {
+export const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[] => {
   const commonModule = typeDoc.children?.find((m) => m.name === "Common");
   if (!commonModule?.children) {
     return [];
@@ -163,11 +151,11 @@ const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[] => {
   });
 };
 
-const componentToSlug = (name: string): string => {
+export const componentToSlug = (name: string): string => {
   return name.toLowerCase().replace(/\s+/g, "-");
 };
 
-const formatComponentMarkdown = (component: ComponentDoc): string => {
+export const formatComponentMarkdown = (component: ComponentDoc): string => {
   const lines: string[] = [
     `# ${component.name}`,
     "",
@@ -193,7 +181,7 @@ const formatComponentMarkdown = (component: ComponentDoc): string => {
   return lines.join("\n");
 };
 
-const generateComponentListMarkdown = (components: ComponentDoc[]): string => {
+export const generateComponentListMarkdown = (components: ComponentDoc[]): string => {
   const lines: string[] = [
     "# @terreno/ui Component Reference",
     "",

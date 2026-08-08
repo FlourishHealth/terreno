@@ -20,6 +20,7 @@ export const SignatureField = ({
   onEnd,
   disabledText,
   errorText,
+  fullWidth = false,
 }: SignatureFieldProps): ReactElement => {
   const {theme} = useTheme();
   if (disabled) {
@@ -62,6 +63,7 @@ export const SignatureField = ({
       )}
       <View style={{marginVertical: 8}}>
         <Signature
+          fullWidth={fullWidth}
           onChange={onChange}
           onEnd={() => {
             onEnd?.();

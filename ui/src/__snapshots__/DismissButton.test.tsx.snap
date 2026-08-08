@@ -8,7 +8,9 @@ exports[`DismissButton renders correctly with default props 1`] = `
       "$$typeof": Symbol(react.test.json),
       "children": null,
       "props": {
-        "style": undefined,
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {},
         "testID": undefined,
       },
       "type": "View",
@@ -38,7 +40,9 @@ exports[`DismissButton renders with primary color (default) 1`] = `
       "$$typeof": Symbol(react.test.json),
       "children": null,
       "props": {
-        "style": undefined,
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {},
         "testID": undefined,
       },
       "type": "View",
@@ -68,7 +72,9 @@ exports[`DismissButton renders with inverted color 1`] = `
       "$$typeof": Symbol(react.test.json),
       "children": null,
       "props": {
-        "style": undefined,
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {},
         "testID": undefined,
       },
       "type": "View",

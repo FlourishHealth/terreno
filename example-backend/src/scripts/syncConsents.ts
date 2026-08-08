@@ -8,10 +8,10 @@
  * Dry run:  DRY_RUN=true bun run src/scripts/syncConsents.ts
  */
 
-import "dotenv/config";
 import {logger, syncConsents} from "@terreno/api";
 import mongoose from "mongoose";
 import {consentDefinitions} from "../consentDefinitions";
+import {Configuration} from "../models/configuration";
 import {connectToMongoDB} from "../utils/database";
 
 const main = async (): Promise<void> => {
@@ -21,6 +21,7 @@ const main = async (): Promise<void> => {
   const result = await syncConsents(consentDefinitions, {deactivateRemoved: true, dryRun});
 
   logger.info("Sync complete", result);
+  await Configuration.shutdown();
   await mongoose.disconnect();
 };
 

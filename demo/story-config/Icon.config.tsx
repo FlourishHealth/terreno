@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories";
+import {CustomIcons, IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories/Icon.stories";
 import {Icon} from "@terreno/ui";
 
 export const IconConfiguration: DemoConfiguration = {
@@ -10,7 +10,7 @@ export const IconConfiguration: DemoConfiguration = {
   category: "Foundation",
   component: Icon,
   status: {
-    documentation: "planned",
+    documentation: "ready",
     figma: "ready",
     figmaLink:
       "https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Fwww.figma.com%2Ffile%2FykXj5qjjtFjOYkAvTasu9r%2FFlourish-Health-Design-System%3Ftype%3Ddesign%26node-id%3D220%253A7719%26mode%3Ddesign%26t%3DiCiJI3xbrm6rrXPg-1",
@@ -87,6 +87,11 @@ export const IconConfiguration: DemoConfiguration = {
     IconSizes: {
       description: "",
       render: () => IconSizes,
+    },
+    CustomIcons: {
+      description:
+        "Register custom icons (e.g. SVGs) via TerrenoProvider's `icons` prop and use them by name in Icon, Button, IconButton, and other icon-aware components.",
+      render: () => CustomIcons,
     },
   },
 };

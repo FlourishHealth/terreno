@@ -11,6 +11,7 @@ Example Expo app demonstrating full-stack Terreno usage with @terreno/api backen
 - **Profile Management**: User profile viewing and editing
 - **Tab Navigation**: Expo Router with file-based routing
 - **Cross-platform**: Runs on web, iOS, and Android
+- **Admin UI v2**: Profile → Admin uses `@terreno/admin-frontend` with `AdminShellLayout` (sidebar + `AdminHome` dashboard from `/admin/config`), tools/model cards, configuration, scripts, and a static “Admin UI v2 map” screen — backed by the rich `AdminApp` setup in `example-backend`
 
 ## Prerequisites
 
@@ -279,6 +280,31 @@ Requires EAS (Expo Application Services):
 3. Build: `eas build --platform ios` or `eas build --platform android`
 
 See [Expo documentation](https://docs.expo.dev/build/introduction/) for details.
+
+### Native builds vs OTA updates (fingerprint)
+
+The app uses `"runtimeVersion": {"policy": "fingerprint"}` (`app.json`). The
+[fingerprint](https://docs.expo.dev/versions/latest/sdk/fingerprint/) is a hash
+of everything that affects the **native** binary (native dependencies, config
+plugins, app icon/scheme, SDK version, etc.). CI (`.github/workflows/eas-pr.yml`)
+publishes an EAS Update for every PR and only triggers a **new native dev build**
+when a fingerprint is brand-new — i.e. when *no* finished matching build exists
+yet for that hash. The iOS and Android hashes are tracked separately, so an
+iOS-only native change still builds iOS while Android stays on the fast path.
+Once a fingerprint has a finished build, later JS-only PRs stay on the
+update-only fast path even if one platform never got an artifact; seed those via
+the manual **Trigger EAS Workflow** job instead of from every PR.
+
+To keep this fast, `fingerprint.config.js` skips the Expo config `extra` section
+(`sourceSkips: ["ExpoConfigExtraSection"]`). Values in `extra` (e.g. `BASE_URL`,
+`AUTH_DEBUG`, the EAS `projectId`) are read by JS at runtime and shipped in the JS
+bundle via EAS Update — they don't change the native binary, so they must not
+feed the fingerprint. Without this skip, per-environment or per-commit `extra`
+values would force a full native rebuild on every change instead of an OTA update.
+
+**Rule of thumb:** if your change only touches JS/TS (screens, components, store,
+SDK), expect a quick OTA update. Only native dependency/config changes should
+produce a long native build.
 
 ## Learn More
 

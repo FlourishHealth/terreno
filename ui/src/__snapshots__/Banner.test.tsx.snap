@@ -544,3 +544,128 @@ exports[`Banner renders with button and icon 1`] = `
   "type": "View",
 }
 `;
+
+exports[`Banner renders with button loading state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Banner loading",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Loading",
+                          ],
+                          "props": {
+                            "style": {
+                              "fontSize": 12,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "flexDirection": "row-reverse",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "accessibilityHint": "Press to perform action Loading",
+                "aria-label": "Loading",
+                "aria-role": "button",
+                "onPress": [Function: debounced],
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "flexDirection": "column",
+                  "justifyContent": "center",
+                  "paddingHorizontal": 12,
+                  "paddingVertical": 4,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "paddingLeft": 16,
+              "paddingRight": 10,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#2B6072",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

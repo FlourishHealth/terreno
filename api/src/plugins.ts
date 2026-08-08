@@ -1,6 +1,7 @@
 import {DateTime} from "luxon";
 import mongoose, {
   type Document,
+  type FilterQuery,
   Error as MongooseError,
   type Query,
   type Schema,
@@ -8,17 +9,37 @@ import mongoose, {
   type SchemaTypeOptions,
 } from "mongoose";
 
-import {APIError, type APIErrorConstructor} from "./errors";
+import {APIError, type APIErrorOptions, InternalServerError, NotFoundError} from "./errors";
 
 export interface BaseUser {
   admin: boolean;
   email: string;
 }
 
-export function baseUserPlugin(schema: Schema<any, any, any, any>) {
-  schema.add({admin: {default: false, type: Boolean}});
-  schema.add({email: {index: true, type: String}});
-}
+/**
+ * Builds the error thrown by the query plugins. `errorArgs` is applied last so consumers can
+ * override every field, including `status`; the status-specific subclass is used when the resulting
+ * status still matches one of them, so Sentry sees a meaningful error type.
+ */
+const pluginError = (defaults: APIErrorOptions, errorArgs?: Partial<APIErrorOptions>): APIError => {
+  const options: APIErrorOptions = {...defaults, ...errorArgs};
+  if (options.status === 404) {
+    return new NotFoundError(options);
+  }
+  if (options.status === 500) {
+    return new InternalServerError(options);
+  }
+  return new APIError(options);
+};
+
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+export const baseUserPlugin = (schema: Schema<any, any, any, any>): void => {
+  schema.add({
+    admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
+  });
+  schema.add({email: {description: "The user's email address", index: true, type: String}});
+};
 
 /** For models with the isDeletedPlugin, extend this interface to add the appropriate fields. */
 export interface IsDeleted {
@@ -26,7 +47,9 @@ export interface IsDeleted {
   deleted: boolean;
 }
 
-export function isDeletedPlugin(schema: Schema<any, any, any, any>, defaultValue = false) {
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+export const isDeletedPlugin = (schema: Schema<any, any, any, any>, defaultValue = false): void => {
   schema.add({
     deleted: {
       default: defaultValue,
@@ -37,21 +60,28 @@ export function isDeletedPlugin(schema: Schema<any, any, any, any>, defaultValue
       type: Boolean,
     },
   });
-  function applyDeleteFilter(q: Query<any, any>) {
+  // noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  // biome-ignore lint/suspicious/noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  const applyDeleteFilter = (q: Query<any, any>): void => {
     const query = q.getQuery();
     if (query && query.deleted === undefined) {
       void q.where({deleted: {$ne: true}});
     }
-  }
+  };
   schema.pre("find", function () {
     applyDeleteFilter(this);
   });
   schema.pre("findOne", function () {
     applyDeleteFilter(this);
   });
-}
+};
 
-export function isDisabledPlugin(schema: Schema<any, any, any, any>, defaultValue = false) {
+export const isDisabledPlugin = (
+  // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+  // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+  schema: Schema<any, any, any, any>,
+  defaultValue = false
+): void => {
   schema.add({
     disabled: {
       default: defaultValue,
@@ -60,16 +90,20 @@ export function isDisabledPlugin(schema: Schema<any, any, any, any>, defaultValu
       type: Boolean,
     },
   });
-}
+};
 
 export interface CreatedDeleted {
   updated: {type: Date; required: true};
   created: {type: Date; required: true};
 }
 
-export function createdUpdatedPlugin(schema: Schema<any, any, any, any>) {
-  schema.add({updated: {index: true, type: Date}});
-  schema.add({created: {index: true, type: Date}});
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+export const createdUpdatedPlugin = (schema: Schema<any, any, any, any>): void => {
+  schema.add({
+    updated: {description: "When this document was last updated", index: true, type: Date},
+  });
+  schema.add({created: {description: "When this document was created", index: true, type: Date}});
 
   schema.pre("save", function () {
     if (this.disableCreatedUpdatedPlugin === true) {
@@ -77,20 +111,22 @@ export function createdUpdatedPlugin(schema: Schema<any, any, any, any>) {
     }
     // If we aren't specifying created, use now.
     if (!this.created) {
-      this.created = new Date();
+      this.created = DateTime.now().toJSDate();
     }
     // All writes change the updated time.
-    this.updated = new Date();
+    this.updated = DateTime.now().toJSDate();
   });
 
   schema.pre(/save|updateOne|insertMany/, function () {
-    void this.updateOne({}, {$set: {updated: new Date()}});
+    void this.updateOne({}, {$set: {updated: DateTime.now().toJSDate()}});
   });
-}
+};
 
-export function firebaseJWTPlugin(schema: Schema) {
-  schema.add({firebaseId: {index: true, type: String}});
-}
+export const firebaseJWTPlugin = (schema: Schema): void => {
+  schema.add({
+    firebaseId: {description: "The user's Firebase authentication ID", index: true, type: String},
+  });
+};
 
 /**
  * This adds a static method `Model.findOneOrNone` to the schema. This should replace `Model.findOne` in most instances.
@@ -99,26 +135,68 @@ export function firebaseJWTPlugin(schema: Schema) {
  * document, or throws an exception if multiple are found.
  * @param schema Mongoose Schema
  */
-export function findOneOrNone<T>(schema: Schema<T>) {
+export const findOneOrNone = <T>(schema: Schema<T>): void => {
   schema.statics.findOneOrNone = async function (
-    query: Record<string, any>,
-    errorArgs?: Partial<APIErrorConstructor>
+    query: Record<string, unknown>,
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<(Document & T) | null> {
     const results = await this.find(query);
     if (results.length === 0) {
       return null;
     }
     if (results.length > 1) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(query)}`,
-        status: 500,
-        title: `${this.modelName}.findOne query returned multiple documents`,
-        ...errorArgs,
-      });
+      throw pluginError(
+        {
+          code: "find-one-multiple-documents",
+          detail: `${this.modelName}.findOne query returned multiple documents. query: ${JSON.stringify(query)}`,
+          meta: {model: this.modelName},
+          status: 500,
+          title: "findOne query returned multiple documents",
+        },
+        errorArgs
+      );
     }
     return results[0];
   };
-}
+};
+
+/**
+ * Helper that performs a `findOneOrNone` lookup against any Mongoose model. Returns the matching
+ * document, `null` if none match, or throws if more than one matches. If the model's schema has
+ * the {@link findOneOrNone} plugin applied, the plugin static is used; otherwise the lookup is
+ * performed directly via `model.find(...)`. Prefer this helper from framework code where the
+ * consumer's model may or may not have the plugin installed.
+ * @param model Mongoose Model
+ * @param query Mongoose query object
+ * @param errorArgs Optional overrides for the thrown {@link APIError} when multiple match
+ */
+export const findOneOrNoneFor = async <T>(
+  model: mongoose.Model<T>,
+  query: FilterQuery<T>,
+  errorArgs?: Partial<APIErrorOptions>
+): Promise<(Document & T) | null> => {
+  const withStatic = model as mongoose.Model<T> & Partial<FindOneOrNonePlugin<T>>;
+  if (typeof withStatic.findOneOrNone === "function") {
+    return withStatic.findOneOrNone(query, errorArgs);
+  }
+  const results = await model.find(query);
+  if (results.length === 0) {
+    return null;
+  }
+  if (results.length > 1) {
+    throw pluginError(
+      {
+        code: "find-one-multiple-documents",
+        detail: `${model.modelName}.findOne query returned multiple documents. query: ${JSON.stringify(query)}`,
+        meta: {model: model.modelName},
+        status: 500,
+        title: "findOne query returned multiple documents",
+      },
+      errorArgs
+    );
+  }
+  return results[0] as unknown as Document & T;
+};
 
 /**
  * This adds a static method `Model.findExactlyOne` to the schema. This or findOneOrNone should replace `Model.findOne`
@@ -128,31 +206,39 @@ export function findOneOrNone<T>(schema: Schema<T>) {
  * multiple or none are found.
  * @param schema Mongoose Schema
  */
-export function findExactlyOne<T>(schema: Schema<T>) {
+export const findExactlyOne = <T>(schema: Schema<T>): void => {
   schema.statics.findExactlyOne = async function (
-    query: Record<string, any>,
-    errorArgs?: Partial<APIErrorConstructor>
+    query: Record<string, unknown>,
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<Document & T> {
     const results = await this.find(query);
     if (results.length === 0) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(query)}`,
-        status: 404,
-        title: `${this.modelName}.findExactlyOne query returned no documents`,
-        ...errorArgs,
-      });
+      throw pluginError(
+        {
+          code: "find-exactly-one-no-documents",
+          detail: `${this.modelName}.findExactlyOne query returned no documents. query: ${JSON.stringify(query)}`,
+          meta: {model: this.modelName},
+          status: 404,
+          title: "findExactlyOne query returned no documents",
+        },
+        errorArgs
+      );
     }
     if (results.length > 1) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(query)}`,
-        status: 500,
-        title: `${this.modelName}.findExactlyOne query returned multiple documents`,
-        ...errorArgs,
-      });
+      throw pluginError(
+        {
+          code: "find-exactly-one-multiple-documents",
+          detail: `${this.modelName}.findExactlyOne query returned multiple documents. query: ${JSON.stringify(query)}`,
+          meta: {model: this.modelName},
+          status: 500,
+          title: "findExactlyOne query returned multiple documents",
+        },
+        errorArgs
+      );
     }
     return results[0];
   };
-}
+};
 
 /**
  * This adds a static method `Model.upsert` to the schema. This method will either update an existing document
@@ -160,18 +246,22 @@ export function findExactlyOne<T>(schema: Schema<T>) {
  * match the conditions to prevent ambiguous updates.
  * @param schema Mongoose Schema
  */
-export function upsertPlugin<T>(schema: Schema<any, any, any, any>) {
+// noExplicitAny: Schema generics with unknown collide with mongoose's loose this-binding on schema.statics
+// biome-ignore lint/suspicious/noExplicitAny: Schema generics with unknown collide with mongoose's loose this-binding on schema.statics
+export const upsertPlugin = <T>(schema: Schema<any, any, any, any>): void => {
   schema.statics.upsert = async function (
-    conditions: Record<string, any>,
-    update: Record<string, any>
+    this: mongoose.Model<T>,
+    conditions: Record<string, unknown>,
+    update: Record<string, unknown>
   ): Promise<T> {
     // Try to find the document with the given conditions.
     const docs = await this.find(conditions);
     if (docs.length > 1) {
-      throw new APIError({
-        detail: `query: ${JSON.stringify(conditions)}`,
-        status: 500,
-        title: `${this.modelName}.upsert find query returned multiple documents`,
+      throw new InternalServerError({
+        code: "upsert-multiple-documents",
+        detail: `${this.modelName}.upsert find query returned multiple documents. query: ${JSON.stringify(conditions)}`,
+        meta: {model: this.modelName},
+        title: "upsert find query returned multiple documents",
       });
     }
     const doc = docs[0];
@@ -179,45 +269,47 @@ export function upsertPlugin<T>(schema: Schema<any, any, any, any>) {
     if (doc) {
       // If the document exists, update it with the provided update values.
       Object.assign(doc, update);
-      return doc.save();
+      return (await doc.save()) as unknown as T;
     }
     // If the document doesn't exist, create a new one with the combined conditions and update
     // values.
     const combinedData = {...conditions, ...update};
     const newDoc = new this(combinedData);
-    return newDoc.save();
+    return (await newDoc.save()) as unknown as T;
   };
-}
+};
 
 /** For models with the upsertPlugin, extend this interface to add the upsert static method. */
 export interface HasUpsert<T> {
-  upsert(conditions: Record<string, any>, update: Record<string, any>): Promise<T>;
+  upsert(conditions: Record<string, unknown>, update: Record<string, unknown>): Promise<T>;
 }
 
 export interface FindOneOrNonePlugin<T> {
   findOneOrNone(
-    query: Record<string, any>,
-    errorArgs?: Partial<APIErrorConstructor>
+    query: Record<string, unknown>,
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<(Document & T) | null>;
 }
 
 export interface FindExactlyOnePlugin<T> {
   findExactlyOne(
-    query: Record<string, any>,
-    errorArgs?: Partial<APIErrorConstructor>
+    query: Record<string, unknown>,
+    errorArgs?: Partial<APIErrorOptions>
   ): Promise<Document & T>;
 }
 
 export class DateOnly extends SchemaType {
-  constructor(key: string, options: SchemaTypeOptions<any>) {
+  constructor(key: string, options: SchemaTypeOptions<Date>) {
     super(key, options, "DateOnly");
   }
 
-  handleSingle(val) {
+  handleSingle(val: unknown) {
     return this.cast(val);
   }
 
   $conditionalHandlers = {
+    // noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
+    // biome-ignore lint/suspicious/noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
     ...(SchemaType as any).prototype.$conditionalHandlers,
     $gt: this.handleSingle,
     $gte: this.handleSingle,
@@ -227,8 +319,10 @@ export class DateOnly extends SchemaType {
 
   // Based on castForQuery in mongoose/lib/schema/date.js
   // When using $gt, $gte, $lt, $lte, etc, we need to cast the value to a Date
-  castForQuery($conditional, val, context): Date | undefined {
+  castForQuery($conditional: string | undefined, val: unknown, context: unknown): Date | undefined {
     if ($conditional == null) {
+      // noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
+      // biome-ignore lint/suspicious/noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
       return (this as any).applySetters(val, context);
     }
 
@@ -243,7 +337,7 @@ export class DateOnly extends SchemaType {
 
   // When either setting a value to a DateOnly or fetching from the DB,
   // we want to strip off the time portion.
-  cast(val: any): Date | undefined {
+  cast(val: unknown): Date | undefined {
     if (val instanceof Date) {
       const date = DateTime.fromJSDate(val).toUTC().startOf("day");
       if (!date.isValid) {
@@ -257,7 +351,11 @@ export class DateOnly extends SchemaType {
       return date.toJSDate();
     }
     if (typeof val === "string" || typeof val === "number") {
-      const date = DateTime.fromJSDate(new Date(val)).toUTC().startOf("day");
+      const date = (
+        typeof val === "number" ? DateTime.fromMillis(val) : DateTime.fromISO(val, {zone: "utc"})
+      )
+        .toUTC()
+        .startOf("day");
       if (!date.isValid) {
         throw new MongooseError.CastError(
           "DateOnly",
@@ -270,7 +368,7 @@ export class DateOnly extends SchemaType {
     }
     // Handle $gte, $lte, etc
     if (typeof val === "object") {
-      return val;
+      return val as Date;
     }
     throw new MongooseError.CastError(
       "DateOnly",
@@ -280,10 +378,14 @@ export class DateOnly extends SchemaType {
     );
   }
 
-  get(val: any): this {
-    return (val instanceof Date ? DateTime.fromJSDate(val).startOf("day").toJSDate() : val) as any;
+  get(val: unknown): this {
+    return (val instanceof Date
+      ? DateTime.fromJSDate(val).startOf("day").toJSDate()
+      : val) as unknown as this;
   }
 }
 
 // Register DateOnly with Mongoose's Schema.Types
+// noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
+// biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
 (mongoose.Schema.Types as any).DateOnly = DateOnly;

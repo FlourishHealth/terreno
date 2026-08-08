@@ -2,7 +2,7 @@
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
-    "jspdf": "^4.2.0",
+    "jspdf": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "react-native": "catalog:"
@@ -19,10 +19,12 @@
     "typescript": "catalog:"
   },
   "files": [
+    "LICENSE",
     "dist/**/*",
-    "src/**/*"
+    "src/**/*",
+    ".ai/**/*"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/admin-frontend",
   "peerDependencies": {
@@ -36,6 +38,9 @@
       "optional": true
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "compile": "tsc",
     "compile:watch": "tsc -w",
@@ -43,9 +48,10 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
-    "test": "bun test",
-    "test:ci": "bun test"
+    "test": "bun test && for f in ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do bun test \"$f\" || exit 1; done",
+    "test:ci": "bun run test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.9.0"
+  "version": "0.30.0"
 }

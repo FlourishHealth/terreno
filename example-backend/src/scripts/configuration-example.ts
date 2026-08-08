@@ -75,7 +75,7 @@ const main = async (): Promise<void> => {
     try {
       await Configuration.setDB("EXAMPLE_MAX_RETRIES", 99); // Should fail (> 10)
       logger.error("Validation should have failed!");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.info(`Validation correctly prevented invalid value: ${error}`);
     }
 
@@ -96,7 +96,6 @@ const main = async (): Promise<void> => {
   }
 };
 
-// Run the example
 main().catch((error: unknown) => {
   logger.error(`Unhandled error: ${error}`);
   process.exit(1);

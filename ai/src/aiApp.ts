@@ -16,7 +16,9 @@ export interface AiAppOptions {
   /** Pre-configured AIService instance. Optional when using per-request keys or demo mode. */
   aiService?: AIService;
   /** Factory function to create a LanguageModel from a per-request API key (sent via x-ai-api-key header). */
-  createModelFn?: (apiKey: string) => LanguageModel;
+  createModelFn?: (apiKey: string, modelId?: string) => LanguageModel;
+  /** Factory function to create a LanguageModel on the server side without a per-request key (e.g. Vertex AI with ADC). Returns undefined if no provider is configured. */
+  createServerModelFn?: (modelId?: string) => LanguageModel | undefined;
   /** When true and no AI service is available, routes return canned demo responses instead of failing. */
   demoMode?: boolean;
   /** File storage service for handling file uploads to GCS. */
@@ -75,6 +77,7 @@ export class AiApp implements TerrenoPlugin {
     const {
       aiService,
       createModelFn,
+      createServerModelFn,
       demoMode,
       fileStorageService,
       gcsBucket,
@@ -90,6 +93,7 @@ export class AiApp implements TerrenoPlugin {
     addGptRoutes(router, {
       aiService,
       createModelFn,
+      createServerModelFn,
       demoMode,
       maxSteps,
       mcpService,

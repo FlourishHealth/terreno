@@ -3,6 +3,21 @@ import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
+export const TextPreview = (): React.ReactElement => {
+  return (
+    <Box direction="column" gap={1} width="100%">
+      {renderText("Default text", {})}
+      {renderText("Small", {size: "sm"})}
+      {renderText("Large", {size: "lg"})}
+      {renderText("Bold", {bold: true})}
+      {renderText("Italic", {italic: true})}
+      {renderText("Accent", {color: "accent"})}
+      {renderText("Error", {color: "error"})}
+      {renderText("Success", {color: "success"})}
+    </Box>
+  );
+};
+
 export const renderText = (text: string, props: Partial<TextProps>) => {
   return (
     <Box key={text} paddingY={1} width="100%">

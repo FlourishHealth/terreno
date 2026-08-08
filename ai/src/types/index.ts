@@ -8,6 +8,9 @@ import type mongoose from "mongoose";
 
 export const DEFAULT_AI_REQUEST_TYPES = [
   "general",
+  "json_array",
+  "json_object",
+  "json_value",
   "remix",
   "summarization",
   "translation",
@@ -15,7 +18,7 @@ export const DEFAULT_AI_REQUEST_TYPES = [
 export type DefaultAIRequestType = (typeof DEFAULT_AI_REQUEST_TYPES)[number];
 export type AIRequestType = DefaultAIRequestType | (string & {});
 
-export type AIRequestDocument = mongoose.Document<mongoose.Types.ObjectId> & {
+export interface AIRequestDocument extends mongoose.Document<mongoose.Types.ObjectId> {
   created: Date;
   deleted: boolean;
   error?: string;
@@ -32,7 +35,7 @@ export type AIRequestDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   totalTokensUsed?: number;
   updated: Date;
   userId?: mongoose.Types.ObjectId;
-};
+}
 
 export interface AIRequestStatics
   extends FindExactlyOnePlugin<AIRequestDocument>,
@@ -41,7 +44,7 @@ export interface AIRequestStatics
   logRequest(params: LogRequestParams): Promise<AIRequestDocument>;
 }
 
-export type AIRequestModel = mongoose.Model<AIRequestDocument> & AIRequestStatics;
+export interface AIRequestModel extends mongoose.Model<AIRequestDocument>, AIRequestStatics {}
 
 export interface LogRequestParams {
   error?: string;
@@ -105,7 +108,7 @@ export interface GptHistoryPrompt {
   result?: unknown;
 }
 
-export type GptHistoryDocument = mongoose.Document<mongoose.Types.ObjectId> & {
+export interface GptHistoryDocument extends mongoose.Document<mongoose.Types.ObjectId> {
   created: Date;
   deleted: boolean;
   projectId?: mongoose.Types.ObjectId;
@@ -113,13 +116,13 @@ export type GptHistoryDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   title?: string;
   updated: Date;
   userId: mongoose.Types.ObjectId;
-};
+}
 
 export interface GptHistoryStatics
   extends FindExactlyOnePlugin<GptHistoryDocument>,
     FindOneOrNonePlugin<GptHistoryDocument> {}
 
-export type GptHistoryModel = mongoose.Model<GptHistoryDocument> & GptHistoryStatics;
+export interface GptHistoryModel extends mongoose.Model<GptHistoryDocument>, GptHistoryStatics {}
 
 // ============================================================
 // Project Types
@@ -133,7 +136,7 @@ export interface ProjectMemory {
   text: string;
 }
 
-export type ProjectDocument = mongoose.Document<mongoose.Types.ObjectId> & {
+export interface ProjectDocument extends mongoose.Document<mongoose.Types.ObjectId> {
   created: Date;
   deleted: boolean;
   memories: ProjectMemory[];
@@ -141,13 +144,13 @@ export type ProjectDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   systemContext: string;
   updated: Date;
   userId: mongoose.Types.ObjectId;
-};
+}
 
 export interface ProjectStatics
   extends FindExactlyOnePlugin<ProjectDocument>,
     FindOneOrNonePlugin<ProjectDocument> {}
 
-export type ProjectModel = mongoose.Model<ProjectDocument> & ProjectStatics;
+export interface ProjectModel extends mongoose.Model<ProjectDocument>, ProjectStatics {}
 
 // ============================================================
 // AI Service Types
@@ -161,6 +164,8 @@ export interface AIServiceOptions {
 export interface GenerateTextOptions {
   maxOutputTokens?: number;
   prompt: string;
+  // noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
+  // biome-ignore lint/suspicious/noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
   stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
   temperature?: number;
@@ -179,6 +184,8 @@ export interface GenerateStreamOptions {
 
 export interface GenerateChatStreamOptions {
   messages: Array<{content: string; role: "user" | "assistant" | "system"}>;
+  // noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
+  // biome-ignore lint/suspicious/noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
   stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
   toolChoice?: "auto" | "none" | "required";
@@ -203,6 +210,44 @@ export interface TranslateOptions {
   userId?: mongoose.Types.ObjectId;
 }
 
+export interface GenerateJsonValueOptions {
+  maxOutputTokens?: number;
+  /** Optional name passed to the provider for structured-output guidance. */
+  outputName?: string;
+  /** Optional description passed to the provider for structured-output guidance. */
+  outputDescription?: string;
+  prompt: string;
+  systemPrompt?: string;
+  temperature?: number;
+  userId?: mongoose.Types.ObjectId;
+}
+
+export interface GenerateJsonObjectOptions<OBJECT> {
+  maxOutputTokens?: number;
+  prompt: string;
+  /** Zod schema, `jsonSchema(...)`, or other `FlexibleSchema` accepted by the AI SDK. */
+  schema: import("ai").FlexibleSchema<OBJECT>;
+  schemaDescription?: string;
+  schemaName?: string;
+  systemPrompt?: string;
+  temperature?: number;
+  userId?: mongoose.Types.ObjectId;
+}
+
+export interface GenerateJsonArrayOptions<ELEMENT> {
+  /** Schema for each array element. */
+  element: import("ai").FlexibleSchema<ELEMENT>;
+  /** Optional description for the array output (provider guidance). */
+  outputDescription?: string;
+  /** Optional name for the array output (provider guidance). */
+  outputName?: string;
+  maxOutputTokens?: number;
+  prompt: string;
+  systemPrompt?: string;
+  temperature?: number;
+  userId?: mongoose.Types.ObjectId;
+}
+
 // ============================================================
 // Route Option Types
 // ============================================================
@@ -212,6 +257,8 @@ export interface GptRouteOptions {
   aiService?: import("../service/aiService").AIService;
   /** Factory to create a LanguageModel from a per-request API key (x-ai-api-key header). */
   createModelFn?: (apiKey: string, modelId?: string) => import("ai").LanguageModel;
+  /** Factory to create a LanguageModel on the server side without a per-request key (e.g. Vertex AI with ADC). Used for model switching when no x-ai-api-key header is present. Returns undefined if no provider is configured (falls through to demo mode). */
+  createServerModelFn?: (modelId?: string) => import("ai").LanguageModel | undefined;
   /** Factory to create per-request tools (e.g. tools that need the request's API key). Merged with static tools. */
   createRequestTools?: (req: import("express").Request) => Record<string, import("ai").Tool>;
   /** Return canned responses when no AI service is available. */
@@ -267,7 +314,9 @@ export interface FileAttachmentStatics
   extends FindExactlyOnePlugin<FileAttachmentDocument>,
     FindOneOrNonePlugin<FileAttachmentDocument> {}
 
-export type FileAttachmentModel = mongoose.Model<FileAttachmentDocument> & FileAttachmentStatics;
+export interface FileAttachmentModel
+  extends mongoose.Model<FileAttachmentDocument>,
+    FileAttachmentStatics {}
 
 // ============================================================
 // MCP Types

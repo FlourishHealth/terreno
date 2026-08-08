@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TapDemo, TapStory} from "@stories";
+import {TapDemo, TapStory} from "@stories/TapToEdit.stories";
 import {TapToEdit} from "@terreno/ui";
 
 export const TapToEditConfiguration: DemoConfiguration = {

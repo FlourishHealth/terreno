@@ -3,11 +3,13 @@ import {
   AllButtonIconVariants,
   ConfirmationIconButton,
   IconButtonDemo,
+  IconButtonSizes,
+  IconButtonStates,
   IndicatorIconButton,
   LoadingIconButton,
   NavigationIconButton,
   ToolTipIconButton,
-} from "@stories";
+} from "@stories/IconButton.stories";
 import {IconButton} from "@terreno/ui";
 
 export const IconButtonConfiguration: DemoConfiguration = {
@@ -57,7 +59,16 @@ export const IconButtonConfiguration: DemoConfiguration = {
           {label: "Secondary", value: "secondary"},
           {label: "Muted", value: "muted"},
           {label: "Destructive", value: "destructive"},
+          {label: "Ghost", value: "ghost"},
           {label: "Disabled", value: "disabled"},
+        ],
+      },
+      state: {
+        type: "select",
+        defaultValue: "default",
+        options: [
+          {label: "Default", value: "default"},
+          {label: "Active", value: "active"},
         ],
       },
       iconName: {
@@ -80,10 +91,20 @@ export const IconButtonConfiguration: DemoConfiguration = {
         type: "boolean",
         defaultValue: false,
       },
+      size: {
+        type: "select",
+        defaultValue: "default",
+        options: [
+          {label: "Default", value: "default"},
+          {label: "Small", value: "sm"},
+        ],
+      },
     },
   },
   stories: {
     Variants: {render: () => AllButtonIconVariants({})},
+    States: {render: () => IconButtonStates({})},
+    Sizes: {render: () => IconButtonSizes({})},
     Confirmation: {render: () => ConfirmationIconButton({})},
     WithToolTip: {render: () => ToolTipIconButton({})},
     Loading: {render: () => LoadingIconButton({})},

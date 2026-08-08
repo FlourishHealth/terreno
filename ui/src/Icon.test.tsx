@@ -1,7 +1,7 @@
 import {describe, expect, it} from "bun:test";
 
 import {Icon} from "./Icon";
-import {renderWithTheme} from "./test-utils";
+import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
 
 describe("Icon", () => {
   it("renders correctly with default props", () => {
@@ -56,6 +56,28 @@ describe("Icon", () => {
     icons.forEach((iconName) => {
       const {toJSON} = renderWithTheme(<Icon iconName={iconName} />);
       expect(toJSON()).toMatchSnapshot();
+    });
+  });
+
+  describe("custom icons", () => {
+    it("renders a registered custom icon by name", () => {
+      const {queryByTestId} = renderWithIcons(<Icon iconName="testCustomIcon" />);
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).not.toBeNull();
+    });
+
+    it("falls back to FontAwesome for unregistered names", () => {
+      const {queryByTestId} = renderWithIcons(<Icon iconName="check" />);
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).toBeNull();
+    });
+
+    it("passes the resolved pixel size to the custom icon", () => {
+      const {getByTestId} = renderWithIcons(<Icon iconName="testCustomIcon" size="lg" />);
+      expect(getByTestId(TEST_CUSTOM_ICON_TEST_ID).props.accessibilityLabel).toBe("size:20");
+    });
+
+    it("forwards testID to the custom icon", () => {
+      const {queryByTestId} = renderWithIcons(<Icon iconName="testCustomIcon" testID="my-icon" />);
+      expect(queryByTestId("my-icon")).not.toBeNull();
     });
   });
 });

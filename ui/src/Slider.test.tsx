@@ -244,4 +244,63 @@ describe("Slider", () => {
       expect(toJSON()).toMatchSnapshot();
     });
   });
+
+  describe("advanced branches", () => {
+    it("renders icon-based value mapping when useIcons is true", () => {
+      const mockOnChange = mock(() => {});
+      const {toJSON} = renderWithTheme(
+        <Slider
+          maximumValue={2}
+          minimumValue={0}
+          onChange={mockOnChange}
+          showSelection
+          step={1}
+          useIcons
+          value={1}
+          valueMapping={[
+            {label: "face-frown", size: "md", value: 0},
+            {label: "face-meh", size: "lg", value: 1},
+            {label: "face-smile", size: "xl", value: 2},
+          ]}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders custom labels alongside min and max labels", () => {
+      const mockOnChange = mock(() => {});
+      const {getByText} = renderWithTheme(
+        <Slider
+          labels={{
+            custom: [{label: "Middle", value: 50}],
+            max: "High",
+            min: "Low",
+          }}
+          maximumValue={100}
+          minimumValue={0}
+          onChange={mockOnChange}
+          value={50}
+        />
+      );
+      expect(getByText("Low")).toBeTruthy();
+      expect(getByText("Middle")).toBeTruthy();
+      expect(getByText("High")).toBeTruthy();
+    });
+
+    it("falls back to plain numeric formatter when valueMapping is empty", () => {
+      const mockOnChange = mock(() => {});
+      const {getByText} = renderWithTheme(
+        <Slider
+          maximumValue={10}
+          minimumValue={0}
+          onChange={mockOnChange}
+          showSelection
+          step={1}
+          value={7}
+          valueMapping={[]}
+        />
+      );
+      expect(getByText("7")).toBeTruthy();
+    });
+  });
 });

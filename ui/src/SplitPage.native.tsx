@@ -34,6 +34,8 @@ export const SplitPage = ({
   const {width} = Dimensions.get("window");
 
   const onItemSelect = useCallback(
+    // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
+    // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
     async (item: ListRenderItemInfo<any>) => {
       setSelectedId(item.index);
       await onSelectionChange(item);
@@ -58,6 +60,8 @@ export const SplitPage = ({
     return null;
   }
 
+  // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
+  // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
   const renderItem = (itemInfo: ListRenderItemInfo<any>) => {
     return (
       <Box

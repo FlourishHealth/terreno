@@ -1,6 +1,6 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
-import type {AdminConfigResponse} from "./types";
+import {asDynamicHookApi} from "./dynamicHookApi";
+import type {AdminApi, AdminConfigResponse, EndpointBuilder} from "./types";
 
 const ENDPOINT_NAME = "adminConfig";
 
@@ -12,7 +12,7 @@ const ENDPOINT_NAME = "adminConfig";
  * field types, required fields, references, and display settings.
  *
  * @param api - RTK Query API instance to inject the endpoint into
- * @param baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param apiBase - Base URL where admin API requests are sent (e.g., "/admin")
  * @returns Object with `config` (model metadata), `isLoading`, and `error`
  *
  * @example
@@ -33,22 +33,26 @@ const ENDPOINT_NAME = "adminConfig";
  * @see AdminConfigResponse for the returned configuration structure
  * @see AdminModelList for usage in the model list screen
  */
-export const useAdminConfig = (api: Api<any, any, any, any>, baseUrl: string) => {
+export const useAdminConfig = (api: AdminApi, apiBase: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [ENDPOINT_NAME]: build.query({
           query: () => ({
             method: "GET",
-            url: `${baseUrl}/config`,
+            url: `${apiBase}/config`,
           }),
         }),
       }),
       overrideExisting: true,
     });
-  }, [api, baseUrl]);
+  }, [api, apiBase]);
 
-  const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
+  const useConfigQuery = asDynamicHookApi(enhancedApi).useAdminConfigQuery as () => {
+    data?: AdminConfigResponse;
+    error: unknown;
+    isLoading: boolean;
+  };
 
   const {data, isLoading, error} = useConfigQuery();
 

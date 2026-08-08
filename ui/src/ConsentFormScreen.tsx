@@ -1,5 +1,13 @@
 import React, {useState} from "react";
-import {Pressable, ScrollView} from "react-native";
+import {
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -17,6 +25,7 @@ interface ConsentFormScreenProps {
   locale: string;
   onAgree: (data: {checkboxValues: Record<string, boolean>; signature?: string}) => void;
   onDecline?: () => void;
+  variables?: Record<string, string>;
 }
 
 export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
@@ -25,6 +34,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   locale,
   onAgree,
   onDecline,
+  variables,
 }) => {
   const [checkboxValues, setCheckboxValues] = useState<Record<string, boolean>>({});
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(!form.requireScrollToBottom);
@@ -35,7 +45,10 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
 
-  const content = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
+  const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
+  const content = variables
+    ? rawContent.replace(/\{\{(\w+)\}\}/g, (match, key) => variables[key] ?? match)
+    : rawContent;
 
   const allRequiredCheckboxesChecked = form.checkboxes.every((checkbox, index) => {
     if (!checkbox.required) {
@@ -45,8 +58,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   });
 
   const signatureProvided = !form.captureSignature || Boolean(signatureValue);
+  const hasRequiredCheckboxes = form.checkboxes.some((checkbox) => checkbox.required);
+  const hasDeclineButton = Boolean(form.allowDecline && onDecline);
 
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
+  const actionColumnStyle = {flexBasis: 0, minWidth: 0};
 
   // Auto-satisfy scroll requirement when content fits within the viewport
   const handleContentSizeChange = (_w: number, h: number) => {
@@ -56,7 +72,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     }
   };
 
-  const handleLayout = (event: any) => {
+  const handleLayout = (event: LayoutChangeEvent) => {
     const h = event.nativeEvent.layout.height;
     setLayoutHeight(h);
     if (!hasScrolledToBottom && contentHeight > 0 && h > 0 && contentHeight <= h) {
@@ -64,7 +80,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     }
   };
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (hasScrolledToBottom) {
       return;
     }
@@ -111,40 +127,71 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     confirmModalCheckboxIndex !== null ? form.checkboxes[confirmModalCheckboxIndex] : null;
 
   const footer = (
-    <Box direction="column" gap={2} paddingY={2} testID="consent-form-footer" width="100%">
-      {Boolean(form.allowDecline && onDecline) && (
-        <Box width="100%">
+    <Box alignSelf="center" maxWidth={800} testID="consent-form-footer" width="100%">
+      <Box
+        direction={hasDeclineButton ? "row" : "column"}
+        gap={4}
+        paddingY={2}
+        testID="consent-form-action-row"
+        width="100%"
+      >
+        {hasDeclineButton && (
+          <Box
+            dangerouslySetInlineStyle={{__style: actionColumnStyle}}
+            flex="grow"
+            testID="consent-form-action-column"
+          >
+            <Button
+              fullWidth
+              onClick={onDecline!}
+              testID="consent-form-decline-button"
+              text={form.declineButtonText}
+              variant="muted"
+            />
+          </Box>
+        )}
+        <Box
+          dangerouslySetInlineStyle={{__style: hasDeclineButton ? actionColumnStyle : {}}}
+          flex="grow"
+          testID={hasDeclineButton ? "consent-form-action-column" : undefined}
+        >
           <Button
+            disabled={!canAgree}
             fullWidth
-            onClick={onDecline!}
-            testID="consent-form-decline-button"
-            text={form.declineButtonText}
-            variant="muted"
+            loading={isSubmitting}
+            onClick={handleAgree}
+            testID="consent-form-agree-button"
+            text={form.agreeButtonText}
           />
         </Box>
-      )}
-      <Box width="100%">
-        <Button
-          disabled={!canAgree}
-          fullWidth
-          loading={isSubmitting}
-          onClick={handleAgree}
-          testID="consent-form-agree-button"
-          text={form.agreeButtonText}
-        />
       </Box>
+      {Boolean(form.requireScrollToBottom && !hasScrolledToBottom) && (
+        <Text align="center" color="error" size="sm" testID="consent-footer-scroll-hint">
+          Please scroll to the bottom to continue
+        </Text>
+      )}
+      {Boolean(hasRequiredCheckboxes && !allRequiredCheckboxesChecked) && (
+        <Text align="center" color="error" size="sm" testID="consent-footer-checkboxes-hint">
+          Please check all required items marked with *
+        </Text>
+      )}
+      {Boolean(form.captureSignature && !signatureValue) && (
+        <Text align="center" color="error" size="sm" testID="consent-footer-signature-hint">
+          Please provide your signature to continue
+        </Text>
+      )}
     </Box>
   );
 
   return (
-    <Page footer={footer} scroll={false} title={form.title}>
+    <Page color="base" footer={footer} maxWidth="100%" safeArea scroll={false} title={form.title}>
       <ScrollView
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleLayout}
         onScroll={handleScroll}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
-        style={{flex: 1}}
+        style={{alignSelf: "center", flex: 1, maxWidth: 800, width: "100%"}}
         testID="consent-form-scroll-view"
       >
         <Box direction="column" gap={3} paddingY={2}>
@@ -152,6 +199,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
           {form.checkboxes.length > 0 && (
             <Box direction="column" gap={2} testID="consent-form-checkboxes">
+              {hasRequiredCheckboxes && (
+                <Text color="secondaryDark" size="sm" testID="consent-form-required-legend">
+                  * indicates a required item
+                </Text>
+              )}
               {form.checkboxes.map((checkbox, index) => {
                 const key = index.toString();
                 const isChecked = checkboxValues[key] ?? false;
@@ -178,15 +230,20 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
           )}
 
           {Boolean(form.captureSignature) && (
-            <Box direction="column" gap={2} testID="consent-form-signature">
+            <View
+              onTouchEnd={Platform.OS === "ios" ? () => setScrollEnabled(true) : undefined}
+              onTouchStart={Platform.OS === "ios" ? () => setScrollEnabled(false) : undefined}
+              testID="consent-form-signature"
+            >
               <SignatureField
+                fullWidth
                 onChange={(value) => setSignatureValue(value)}
                 onEnd={() => setScrollEnabled(true)}
                 onStart={() => setScrollEnabled(false)}
                 title="Signature"
                 value={signatureValue}
               />
-            </Box>
+            </View>
           )}
 
           {Boolean(form.requireScrollToBottom && !hasScrolledToBottom) && (

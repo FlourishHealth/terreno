@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {BoxColors, BoxDemo, FlexBox} from "@stories";
+import {BoxColors, BoxDemo, FlexBox} from "@stories/Box.stories";
 import {Box} from "@terreno/ui";
 
 export const BoxConfiguration: DemoConfiguration = {

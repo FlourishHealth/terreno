@@ -1,3 +1,5 @@
+// noExplicitAny: test mock typing
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import type {Router} from "express";
@@ -5,12 +7,23 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
+import {
+  createOpenApiMiddleware,
+  deleteOpenApiMiddleware,
+  getOpenApiMiddleware,
+  listOpenApiMiddleware,
+  patchOpenApiMiddleware,
+  readOpenApiMiddleware,
+} from "./openApi";
 import {Permissions} from "./permissions";
+import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
 function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
+  if (!options.openApi) {
+    throw new Error("Expected openApi to be configured for test routes");
+  }
+
   return options.openApi.path({
     parameters: [
       {
@@ -77,13 +90,11 @@ describe("openApi", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   it("gets the openapi.json", async () => {
@@ -176,8 +187,61 @@ describe("openApi", () => {
   });
 });
 
+function addRoutesStringQuery(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+  router.use(
+    "/food",
+    modelRouter(FoodModel as any, {
+      ...options,
+      allowAnonymous: true,
+      permissions: {
+        create: [Permissions.IsAny],
+        delete: [Permissions.IsAny],
+        list: [Permissions.IsAny],
+        read: [Permissions.IsAny],
+        update: [Permissions.IsAny],
+      },
+      queryFields: ["name"],
+    })
+  );
+}
+
+describe("openApi string query fields", () => {
+  let server: TestAgent;
+  let app: express.Application;
+
+  beforeEach(async () => {
+    process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
+    process.env.ENABLE_SWAGGER = "true";
+
+    app = new TerrenoApp({
+      configureApp: addRoutesStringQuery,
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+  });
+
+  it("builds an $in array query param for non-numeric query fields", async () => {
+    server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+    const nameQuery = res.body.paths["/food/"].get.parameters.find((p) => p.name === "name");
+
+    // Non-number/non-datetime fields support equality and $in array matching.
+    expect(nameQuery.schema).toEqual({
+      oneOf: [
+        {description: "The name of the food", type: "string"},
+        {
+          properties: {
+            $in: {items: {type: "string"}, type: "array"},
+          },
+          type: "object",
+        },
+      ],
+    });
+  });
+});
+
 function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
-  options?.openApi.component("schemas", "LimitedUser", {
+  options?.openApi?.component("schemas", "LimitedUser", {
     properties: {
       email: {
         description: "LimitedUser's email",
@@ -233,13 +297,11 @@ describe("openApi without swagger", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "false";
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   it("does not have the swagger ui", async () => {
@@ -255,13 +317,11 @@ describe("openApi populate", () => {
   beforeEach(async () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
 
-    app = setupServer({
-      addRoutes: addRoutesPopulate,
+    app = new TerrenoApp({
+      configureApp: addRoutesPopulate,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   it("gets the openapi.json with populate", async () => {
@@ -330,5 +390,149 @@ describe("openApi populate", () => {
     });
 
     expect(res.body).toMatchSnapshot();
+  });
+});
+
+describe("openApi middleware no-op paths", () => {
+  it("getOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = getOpenApiMiddleware(FoodModel as any, {});
+    expect(typeof mw).toBe("function");
+    expect(mw.length).toBe(3);
+  });
+
+  it("getOpenApiMiddleware returns noop when read permissions are empty", () => {
+    const mw = getOpenApiMiddleware(FoodModel as any, {
+      openApi: {component: () => {}, path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(typeof mw).toBe("function");
+    expect(mw.length).toBe(3);
+  });
+
+  it("listOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = listOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("listOpenApiMiddleware returns noop when list permissions are empty", () => {
+    const mw = listOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("createOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = createOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("createOpenApiMiddleware returns noop when create permissions are empty", () => {
+    const mw = createOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("patchOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = patchOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("patchOpenApiMiddleware returns noop when update permissions are empty", () => {
+    const mw = patchOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("deleteOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = deleteOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("deleteOpenApiMiddleware returns noop when delete permissions are empty", () => {
+    const mw = deleteOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("readOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = readOpenApiMiddleware({}, {}, [], []);
+    expect(mw.length).toBe(3);
+  });
+
+  it("readOpenApiMiddleware returns noop when read permissions are empty", () => {
+    const mw = readOpenApiMiddleware(
+      {
+        openApi: {path: () => (() => {}) as any} as any,
+        permissions: {
+          create: [],
+          delete: [],
+          list: [],
+          read: [],
+          update: [],
+        },
+      },
+      {id: {type: "string"}},
+      ["id"],
+      []
+    );
+    expect(mw.length).toBe(3);
+  });
+
+  it("readOpenApiMiddleware returns middleware when configured with permissions", () => {
+    // Use a simple path stub that returns a middleware function
+    const pathFn = () => ((_req: any, _res: any, next: any) => next()) as any;
+    const mw = readOpenApiMiddleware(
+      {
+        openApi: {path: pathFn} as any,
+        permissions: {
+          create: [],
+          delete: [],
+          list: [],
+          read: [Permissions.IsAny],
+          update: [],
+        },
+      },
+      {name: {type: "string"}},
+      ["name"],
+      [{in: "query", name: "search", schema: {type: "string"}}]
+    );
+    expect(typeof mw).toBe("function");
   });
 });

@@ -3,7 +3,7 @@ import type express from "express";
 
 import type {McpRouteOptions} from "../types";
 
-export const addMcpRoutes = (router: any, options: McpRouteOptions): void => {
+export const addMcpRoutes = (router: express.Router, options: McpRouteOptions): void => {
   const {mcpService} = options;
 
   router.get(
@@ -20,7 +20,7 @@ export const addMcpRoutes = (router: any, options: McpRouteOptions): void => {
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const user = (req as any).user;
+      const user = req.user as {admin?: boolean} | undefined;
       if (!user?.admin) {
         throw new APIError({status: 403, title: "Admin access required"});
       }
@@ -42,11 +42,10 @@ export const addMcpRoutes = (router: any, options: McpRouteOptions): void => {
     ],
     asyncHandler(async (_req: express.Request, res: express.Response) => {
       const tools = await mcpService.getTools();
-      const toolList = Object.entries(tools).map(([name, tool]) => ({
-        description: (tool as any).description,
-        name,
-        parameters: (tool as any).parameters,
-      }));
+      const toolList = Object.entries(tools).map(([name, tool]) => {
+        const t = tool as {description?: string; parameters?: unknown};
+        return {description: t.description, name, parameters: t.parameters};
+      });
       return res.json({data: toolList});
     })
   );
@@ -63,7 +62,7 @@ export const addMcpRoutes = (router: any, options: McpRouteOptions): void => {
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const user = (req as any).user;
+      const user = req.user as {admin?: boolean} | undefined;
       if (!user?.admin) {
         throw new APIError({status: 403, title: "Admin access required"});
       }

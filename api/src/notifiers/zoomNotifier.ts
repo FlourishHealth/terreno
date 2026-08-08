@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
-import {APIError} from "../errors";
+import {APIError, errorMessage} from "../errors";
 import {logger} from "../logger";
 
 /**
@@ -29,15 +29,14 @@ import {logger} from "../logger";
  * Logs errors to Sentry and logger when webhook is missing or request fails.
  * Uses Zoom's rich message format (format=full) with structured header and body.
  */
-export async function sendToZoom(
+export const sendToZoom = async (
   {header, body, subheader}: {header: string; body: string; subheader?: string},
   {channel, shouldThrow = false, env}: {channel: string; shouldThrow?: boolean; env?: string}
-) {
+): Promise<void> => {
   const zoomWebhooksString = process.env.ZOOM_CHAT_WEBHOOKS;
   if (!zoomWebhooksString) {
     const msg = "ZOOM_CHAT_WEBHOOKS not set. Zoom message not sent";
-    Sentry.captureException(new Error(msg));
-    logger.error(msg);
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     return;
   }
   const zoomWebhooks: Record<string, {channel: string; verificationToken: string}> = JSON.parse(
@@ -45,13 +44,11 @@ export async function sendToZoom(
   );
 
   const zoomChannel = channel ?? "default";
-  // Use format full
   const zoomWebhookUrl = zoomWebhooks[zoomChannel]?.channel ?? zoomWebhooks.default?.channel;
 
   if (!zoomWebhookUrl) {
     const msg = `No webhook url set in env for ${zoomChannel}. Zoom message not sent`;
-    Sentry.captureException(new Error(msg));
-    logger.error(msg);
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     return;
   }
 
@@ -59,12 +56,10 @@ export async function sendToZoom(
     zoomWebhooks[zoomChannel]?.verificationToken ?? zoomWebhooks.default?.verificationToken;
   if (!zoomToken) {
     const msg = `No verification token set in env for ${zoomChannel}. Zoom message not sent`;
-    Sentry.captureException(new Error(msg));
-    logger.error(msg);
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     return;
   }
 
-  // Build the message structure
   const messageBody: {
     head: {text: string; sub_head?: {text: string}};
     body: Array<{type: string; text: string}>;
@@ -80,7 +75,6 @@ export async function sendToZoom(
     },
   };
 
-  // Add subheader if provided
   if (subheader) {
     messageBody.head.sub_head = {
       text: subheader,
@@ -98,14 +92,15 @@ export async function sendToZoom(
         },
       }
     );
-  } catch (error: any) {
-    logger.error(`Error posting to Zoom: ${error.text ?? error.message}`);
+  } catch (error: unknown) {
+    const message = errorMessage(error);
+    logger.error(`Error posting to Zoom: ${message}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Zoom: ${error.text ?? error.message}`,
+        title: `Error posting to Zoom: ${message}`,
       });
     }
   }
-}
+};

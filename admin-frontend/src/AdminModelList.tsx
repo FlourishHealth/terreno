@@ -1,17 +1,31 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
+import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminCustomScreen, AdminModelConfig} from "./types";
+import {
+  type AdminApi,
+  type AdminCustomScreen,
+  type AdminModelConfig,
+  resolveAdminBases,
+} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelListProps {
-  baseUrl: string;
-  api: Api<any, any, any, any>;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
+  api: AdminApi;
   /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
   configurationPath?: string;
   /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
   customScreens?: AdminCustomScreen[];
+  /** When true, omits the outer {@link Page} wrapper for composition under a parent screen. */
+  embedded?: boolean;
+  /** When true, hides the model grid (for example when models are shown in {@link AdminHome}). */
+  hideModelsSection?: boolean;
 }
 
 const ScriptsCard: React.FC<{count: number; onPress: () => void}> = ({count, onPress}) => (
@@ -118,35 +132,56 @@ const CustomScreenCard: React.FC<{screen: AdminCustomScreen; onPress: () => void
  */
 export const AdminModelList: React.FC<AdminModelListProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   configurationPath,
   customScreens: propCustomScreens,
+  embedded = false,
+  hideModelsSection = false,
 }) => {
-  const {config, isLoading, error} = useAdminConfig(api, baseUrl);
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading, error} = useAdminConfig(api, resolvedApiBase);
 
   const handlePress = useCallback(
     (modelName: string) => {
-      router.push(`${baseUrl}/${modelName}` as any);
+      router.push(`${resolvedRouteBase}/${modelName}` as Href);
     },
-    [baseUrl]
+    [resolvedRouteBase]
   );
 
   if (isLoading) {
+    const loadingBody = (
+      <Box alignItems="center" justifyContent="center" padding={6}>
+        <Spinner />
+      </Box>
+    );
+    if (embedded) {
+      return loadingBody;
+    }
     return (
-      <Page maxWidth="100%" title="Admin">
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
+      <Page color="transparent" maxWidth="100%" padding={0} title="Admin">
+        {loadingBody}
       </Page>
     );
   }
 
   if (error || !config) {
+    const errorBody = (
+      <Box padding={4}>
+        <Text color="error">Failed to load admin configuration.</Text>
+      </Box>
+    );
+    if (embedded) {
+      return errorBody;
+    }
     return (
-      <Page maxWidth="100%" title="Admin">
-        <Box padding={4}>
-          <Text color="error">Failed to load admin configuration.</Text>
-        </Box>
+      <Page color="transparent" maxWidth="100%" padding={0} title="Admin">
+        {errorBody}
       </Page>
     );
   }
@@ -156,32 +191,53 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   const scripts = config.scripts ?? [];
   const hasToolCards = allCustomScreens.length > 0 || scripts.length > 0 || !!configurationPath;
 
-  return (
-    <Page maxWidth="100%" scroll title="Admin">
-      <Box gap={4} padding={4}>
-        {hasToolCards && (
-          <Box direction="row" gap={4} wrap>
-            {allCustomScreens.map((screen) => (
-              <CustomScreenCard
-                key={screen.name}
-                onPress={() => handlePress(screen.name)}
-                screen={screen}
-              />
-            ))}
-            {scripts.length > 0 && (
-              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
-            )}
-            {configurationPath && (
-              <ConfigurationCard onPress={() => router.push(configurationPath as any)} />
-            )}
-          </Box>
-        )}
-        <Box direction="row" gap={4} wrap>
-          {config.models.map((model: AdminModelConfig) => (
-            <ModelCard key={model.name} model={model} onPress={handlePress} />
-          ))}
-        </Box>
+  const toolsSection = hasToolCards ? (
+    <Box gap={2} width="100%">
+      <Heading size="sm">Tools</Heading>
+      <Box direction="row" gap={4} width="100%" wrap>
+        {allCustomScreens.map((screen) => (
+          <CustomScreenCard
+            key={screen.name}
+            onPress={() => handlePress(screen.name)}
+            screen={screen}
+          />
+        ))}
+        {scripts.length > 0 ? (
+          <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
+        ) : null}
+        {configurationPath ? (
+          <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
+        ) : null}
       </Box>
+    </Box>
+  ) : null;
+
+  const modelsSection = !hideModelsSection ? (
+    <Box gap={2} width="100%">
+      <Heading size="sm">Models</Heading>
+      <Box direction="row" gap={4} width="100%" wrap>
+        {config.models.map((model: AdminModelConfig) => (
+          <ModelCard key={model.name} model={model} onPress={handlePress} />
+        ))}
+      </Box>
+    </Box>
+  ) : null;
+
+  /** Models first so embedded home + list layouts read top-to-bottom; tools stay full-width below. */
+  const listBody = (
+    <Box gap={4} padding={embedded ? 0 : 4} width="100%">
+      {modelsSection}
+      {toolsSection}
+    </Box>
+  );
+
+  if (embedded) {
+    return listBody;
+  }
+
+  return (
+    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Admin">
+      {listBody}
     </Page>
   );
 };

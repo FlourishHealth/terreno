@@ -106,7 +106,7 @@ export const TapStory = (): ReactElement => {
       /> */}
       <Box>
         <TapToEdit
-          onSave={(value: any): void => {
+          onSave={(value: string): void => {
             setSelect(value);
           }}
           options={[

@@ -1,14 +1,13 @@
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
-import type {UserDocument, UserModel} from "../types";
+import type {UserDocument, UserModel} from "../types/models/userTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 // Handle bundling interop - bun build --compile wraps the export incorrectly
 const passportLocalMongoose =
   typeof _passportLocalMongoose === "function"
     ? _passportLocalMongoose
-    : // biome-ignore lint/suspicious/noExplicitAny: Passport Local Mongoose is a function, not an object.
-      (_passportLocalMongoose as any).default;
+    : (_passportLocalMongoose as {default: typeof _passportLocalMongoose}).default;
 
 const userSchema = new mongoose.Schema<UserDocument, UserModel>(
   {
@@ -18,6 +17,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       type: Boolean,
     },
     betterAuthId: {
+      description: "Identifier linking to the Better Auth session provider",
       index: true,
       sparse: true,
       type: String,
@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       type: String,
     },
     oauthProvider: {
+      description: "OAuth provider used for authentication",
       enum: ["google", "github", "apple", null],
       type: String,
     },

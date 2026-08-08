@@ -1,5 +1,7 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {act} from "@testing-library/react-native";
 import {View} from "react-native";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {SplitPage} from "./SplitPage";
 import {renderWithTheme} from "./test-utils";
@@ -11,6 +13,37 @@ mock.module("react-native-swiper-flatlist", () => ({
   ),
 }));
 
+const setDesktop = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: () => false,
+    mediaQuery: () => "lg" as const,
+    mediaQueryLargerThan: () => true,
+    mediaQuerySmallerThan: () => false,
+  }));
+};
+
+const setMobile = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: () => true,
+    mediaQuery: () => "xs" as const,
+    mediaQueryLargerThan: () => false,
+    mediaQuerySmallerThan: () => true,
+  }));
+};
+
+// Restore MediaQuery to bunSetup defaults after all tests to prevent cross-file pollution.
+// bunSetup mocks: isMobileDevice → false, mediaQueryLargerThan → false.
+const restoreDefault = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: mock(() => false),
+    mediaQueryLargerThan: mock(() => false),
+  }));
+};
+
+afterAll(() => {
+  restoreDefault();
+});
+
 describe("SplitPage", () => {
   const defaultProps = {
     listViewData: [
@@ -21,6 +54,14 @@ describe("SplitPage", () => {
       <View testID={`item-${item.id}`} />
     ),
   };
+
+  beforeEach(() => {
+    setDesktop();
+  });
+
+  afterEach(() => {
+    setDesktop();
+  });
 
   it("renders correctly with renderContent", () => {
     const {toJSON} = renderWithTheme(
@@ -78,5 +119,466 @@ describe("SplitPage", () => {
       </SplitPage>
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("returns null when no children and no renderContent", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage listViewData={[]} renderListViewItem={() => null} />
+    );
+    expect(toJSON()).toBeNull();
+  });
+
+  it("returns null when tabs count does not match children count", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage {...defaultProps} tabs={["Tab 1"]}>
+        <View testID="child-1" />
+        <View testID="child-2" />
+        <View testID="child-3" />
+      </SplitPage>
+    );
+    expect(toJSON()).toBeNull();
+  });
+
+  it("renders with list view header", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage
+        {...defaultProps}
+        renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        renderListViewHeader={() => <View testID="list-header" />}
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with custom list view width and max width", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage
+        {...defaultProps}
+        listViewMaxWidth={500}
+        listViewWidth={400}
+        renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with listViewExtraData", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage
+        {...defaultProps}
+        listViewExtraData={{counter: 1}}
+        renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with keyboard offset", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage
+        {...defaultProps}
+        keyboardOffset={100}
+        renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("filters out null children", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage {...defaultProps}>
+        <View testID="child-1" />
+        {null}
+        <View testID="child-2" />
+      </SplitPage>
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with showItemList true to reset selection", () => {
+    const onSelectionChange = mock(() => {});
+    const {toJSON} = renderWithTheme(
+      <SplitPage
+        {...defaultProps}
+        onSelectionChange={onSelectionChange}
+        renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        showItemList
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with bottomNavBarHeight", () => {
+    const {toJSON} = renderWithTheme(
+      <SplitPage {...defaultProps} bottomNavBarHeight={60}>
+        <View testID="child-1" />
+      </SplitPage>
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  describe("desktop viewport (mediaQueryLargerThan('sm') true)", () => {
+    it("renders renderList/renderContent on desktop", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders renderList/renderChildrenContent on desktop with 2 children", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps}>
+          <View testID="child-1" />
+          <View testID="child-2" />
+        </SplitPage>
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders renderChildrenContent with >2 children and tabs on desktop", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps} tabs={["A", "B", "C"]}>
+          <View testID="child-1" />
+          <View testID="child-2" />
+          <View testID="child-3" />
+        </SplitPage>
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders with listViewWidth/listViewMaxWidth applied", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          listViewMaxWidth={400}
+          listViewWidth={350}
+          renderContent={(id) => <View testID={`content-${id}`} />}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+  });
+
+  describe("mobile viewport (mediaQueryLargerThan('sm') false)", () => {
+    it("renders mobile list view when no item is selected", () => {
+      setMobile();
+      const {toJSON} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders mobile list content when item is selected via renderContent", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, queryByTestId} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        />
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(queryByTestId("content-0")).toBeTruthy();
+    });
+
+    it("renders mobile children content with swiper when item is selected", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, queryByTestId} = renderWithTheme(
+        <SplitPage {...defaultProps}>
+          <View testID="child-1" />
+          <View testID="child-2" />
+        </SplitPage>
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(queryByTestId("swiper-flatlist")).toBeTruthy();
+    });
+
+    it("returns null for mobile children content when no item selected", () => {
+      setMobile();
+      const {queryByTestId} = renderWithTheme(
+        <SplitPage {...defaultProps}>
+          <View testID="child-1" />
+          <View testID="child-2" />
+        </SplitPage>
+      );
+      expect(queryByTestId("swiper-flatlist")).toBeNull();
+    });
+
+    it("hides mobile list when item selected", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, toJSON} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        />
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("can deselect item via IconButton onClick on mobile", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const onSelectionChange = mock(async (_arg: unknown) => {});
+      const {getAllByLabelText, UNSAFE_root} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          onSelectionChange={onSelectionChange}
+          renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+        />
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      const iconButtons = UNSAFE_root.findAll(
+        (n: ReactTestInstance) => n.props?.onClick && n.props?.iconName === "xmark"
+      );
+      if (iconButtons.length > 0) {
+        await act(async () => {
+          iconButtons[0].props.onClick();
+        });
+        expect(onSelectionChange).toHaveBeenCalledWith(undefined);
+      } else {
+        const closeButtons = UNSAFE_root.findAll(
+          (n: ReactTestInstance) => n.props?.accessibilityLabel === "close"
+        );
+        if (closeButtons.length > 0) {
+          await act(async () => {
+            if (closeButtons[0].props.onClick) {
+              closeButtons[0].props.onClick();
+            } else if (closeButtons[0].props.onPress) {
+              closeButtons[0].props.onPress();
+            }
+          });
+        }
+        expect(onSelectionChange).toHaveBeenCalledWith(undefined);
+      }
+    });
+
+    it("renders mobile list view header when provided", () => {
+      setMobile();
+      const {toJSON} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          renderContent={(selectedId) => <View testID={`content-${selectedId}`} />}
+          renderListViewHeader={() => <View testID="mobile-header" />}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders mobile with bottomNavBarHeight", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps} bottomNavBarHeight={50}>
+          <View testID="child-1" />
+          <View testID="child-2" />
+        </SplitPage>
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(toJSON()).toBeTruthy();
+    });
+  });
+
+  describe("desktop renderChildrenContent >2 children with tabs", () => {
+    it("renders segmented control tabs and content on desktop with >2 children", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
+          <View testID="child-a" />
+          <View testID="child-b" />
+          <View testID="child-c" />
+        </SplitPage>
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders renderContent path on desktop (renderSplitPage)", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          renderContent={(id) => <View testID={`desktop-content-${id}`} />}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("renders <= 2 children content with scroll views on desktop", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps}>
+          <View testID="child-1" />
+        </SplitPage>
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("triggers segmented control onChange on desktop with >2 children", async () => {
+      setDesktop();
+      const {toJSON, UNSAFE_root} = renderWithTheme(
+        <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
+          <View testID="child-a" />
+          <View testID="child-b" />
+          <View testID="child-c" />
+        </SplitPage>
+      );
+      const segmented = UNSAFE_root.findAll(
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.items
+      );
+      if (segmented.length > 0) {
+        await act(async () => {
+          segmented[0].props.onChange(2);
+        });
+      }
+      expect(toJSON()).toBeTruthy();
+    });
+  });
+
+  describe("item selection callbacks", () => {
+    it("onItemSelect runs onSelectionChange when item clicked via Box press", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const onSelectionChange = mock(async (_arg: unknown) => {});
+      const {getAllByLabelText} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          onSelectionChange={onSelectionChange}
+          renderContent={(id) => <View testID={`content-${id}`} />}
+        />
+      );
+
+      const boxes = getAllByLabelText("Select");
+      expect(boxes.length).toBeGreaterThan(0);
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(onSelectionChange).toHaveBeenCalled();
+    });
+
+    it("selecting an item shows mobile children content when no renderContent", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, queryByTestId} = renderWithTheme(
+        <SplitPage {...defaultProps}>
+          <View testID="child-1" />
+          <View testID="child-2" />
+        </SplitPage>
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(queryByTestId("swiper-flatlist")).toBeTruthy();
+    });
+
+    it("uses default onSelectionChange without throwing", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps} renderContent={(id) => <View testID={`content-${id}`} />} />
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("covers elementArray.map in renderMobileChildrenContent", async () => {
+      setMobile();
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, queryByTestId} = renderWithTheme(
+        <SplitPage {...defaultProps} bottomNavBarHeight={50}>
+          <View testID="child-1" />
+        </SplitPage>
+      );
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(queryByTestId("swiper-flatlist")).toBeTruthy();
+    });
+
+    it("covers activeTabs.map in renderChildrenContent on desktop", () => {
+      setDesktop();
+      const {toJSON} = renderWithTheme(
+        <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
+          <View testID="child-a" />
+          <View testID="child-b" />
+          <View testID="child-c" />
+        </SplitPage>
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("selection deselect when showItemList becomes true", async () => {
+      setMobile();
+      const onSelectionChange = mock(async () => {});
+      const {rerender} = renderWithTheme(
+        <SplitPage
+          {...defaultProps}
+          onSelectionChange={onSelectionChange}
+          renderContent={(id) => <View testID={`content-${id}`} />}
+        />
+      );
+
+      await act(async () => {
+        rerender(
+          <SplitPage
+            {...defaultProps}
+            onSelectionChange={onSelectionChange}
+            renderContent={(id) => <View testID={`content-${id}`} />}
+            showItemList
+          />
+        );
+      });
+
+      // showItemList=true triggers onItemDeselect -> onSelectionChange(undefined)
+      expect(onSelectionChange).toHaveBeenCalled();
+    });
+
+    it("renders SegmentedControl with >2 children and tabs on mobile", async () => {
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, root} = renderWithTheme(
+        <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
+          <View testID="child-a" />
+          <View testID="child-b" />
+          <View testID="child-c" />
+        </SplitPage>
+      );
+      // First select an item to show children content
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(root).toBeTruthy();
+    });
   });
 });

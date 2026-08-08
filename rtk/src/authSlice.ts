@@ -4,17 +4,36 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {createListenerMiddleware, createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {Api, BaseQueryFn, EndpointBuilder} from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
+import {DateTime} from "luxon";
 import {useSelector} from "react-redux";
 
 import {LOGOUT_ACTION_TYPE, type RootState} from "./constants";
 import {IsWeb} from "./platform";
 
-type AuthState = {
+interface AuthState {
   userId: string | null;
   error: string | null;
   isAuthenticating: boolean;
   lastTokenRefreshTimestamp: number | null;
-};
+}
+
+interface AuthErrorData {
+  message?: string;
+}
+
+interface MutationFulfilledAction {
+  meta?: {
+    arg?: {
+      endpointName?: string;
+    };
+  };
+  payload?: {
+    refreshToken?: string;
+    token?: string;
+    userId?: string;
+  };
+  type: string;
+}
 
 export interface UserResponse {
   data: {
@@ -46,12 +65,12 @@ export interface GoogleLoginRequest {
   idToken: string;
 }
 
-// Define a service using a base URL and expected endpoints
-export function generateProfileEndpoints(
+export const generateProfileEndpoints = (
+  // noExplicitAny: Generic
   // biome-ignore lint/suspicious/noExplicitAny: Generic
   builder: EndpointBuilder<BaseQueryFn<unknown, unknown, unknown>, any, string>,
   path: string
-) {
+) => {
   return {
     // This is a slightly different version of emailSignUp for creating another user using the
     // auth/signup endpoint. This is useful for things like creating a user from an admin account.
@@ -99,8 +118,9 @@ export function generateProfileEndpoints(
       }),
     }),
   };
-}
+};
 
+// noExplicitAny: Generic
 // biome-ignore lint/suspicious/noExplicitAny: Generic
 export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
   const authSlice = createSlice({
@@ -117,9 +137,8 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       });
       builder.addMatcher(
         api.endpoints.emailLogin.matchRejected,
-        // biome-ignore lint/suspicious/noExplicitAny: Generic
-        (state, action: PayloadAction<{data: any}>) => {
-          state.error = action.payload?.data?.message;
+        (state, action: PayloadAction<{data?: AuthErrorData}>) => {
+          state.error = action.payload?.data?.message ?? null;
           state.isAuthenticating = false;
           console.debug("Login rejected", action.payload?.data?.message);
         }
@@ -136,9 +155,8 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       });
       builder.addMatcher(
         api.endpoints.emailSignUp.matchRejected,
-        // biome-ignore lint/suspicious/noExplicitAny: Generic
-        (state, action: PayloadAction<{data: any}>) => {
-          state.error = action.payload?.data?.message;
+        (state, action: PayloadAction<{data?: AuthErrorData}>) => {
+          state.error = action.payload?.data?.message ?? null;
           state.isAuthenticating = false;
           console.debug("Signup rejected", action.payload);
         }
@@ -158,9 +176,8 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       });
       builder.addMatcher(
         api.endpoints.googleLogin.matchRejected,
-        // biome-ignore lint/suspicious/noExplicitAny: Generic
-        (state, action: PayloadAction<{data: any}>) => {
-          state.error = action.payload?.data?.message;
+        (state, action: PayloadAction<{data?: AuthErrorData}>) => {
+          state.error = action.payload?.data?.message ?? null;
           state.isAuthenticating = false;
         }
       );
@@ -183,7 +200,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         state.isAuthenticating = false;
       },
       tokenRefreshedSuccess: (state) => {
-        state.lastTokenRefreshTimestamp = Date.now();
+        state.lastTokenRefreshTimestamp = DateTime.now().toMillis();
       },
     },
   });
@@ -191,8 +208,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
   // we need to use a listener middleware.
   const loginListenerMiddleware = createListenerMiddleware();
   loginListenerMiddleware.startListening({
-    // biome-ignore lint/suspicious/noExplicitAny: Generic
-    effect: async (action: any, listenerApi) => {
+    effect: async (action: MutationFulfilledAction, listenerApi) => {
       if (
         action.payload?.token &&
         (action.meta?.arg?.endpointName === "emailLogin" ||
@@ -206,7 +222,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
           }
           try {
             await SecureStore.setItemAsync("AUTH_TOKEN", action.payload.token);
-            await SecureStore.setItemAsync("REFRESH_TOKEN", action.payload.refreshToken);
+            await SecureStore.setItemAsync("REFRESH_TOKEN", action.payload.refreshToken ?? "");
             console.debug("Saved auth token to secure storage.");
           } catch (error) {
             console.error(`Error setting auth token: ${error}`);
@@ -223,7 +239,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
             // Check if we're in a browser environment (not SSR)
             if (typeof window !== "undefined") {
               await AsyncStorage.setItem("AUTH_TOKEN", action.payload.token);
-              await AsyncStorage.setItem("REFRESH_TOKEN", action.payload.refreshToken);
+              await AsyncStorage.setItem("REFRESH_TOKEN", action.payload.refreshToken ?? "");
               console.debug("Saved auth token to async storage.");
             } else {
               console.warn("Cannot store auth token: window is not defined (SSR context)");
@@ -233,7 +249,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
             throw error;
           }
         }
-        listenerApi.dispatch(authSlice.actions.setUserId({userId: action.payload.userId}));
+        listenerApi.dispatch(authSlice.actions.setUserId({userId: action.payload.userId ?? ""}));
       }
     },
     type: "terreno-rtk/executeMutation/fulfilled",
@@ -284,7 +300,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
 
 export const selectCurrentUserId = (state: RootState): string | undefined => state.auth?.userId;
 export const selectLastTokenRefreshTimestamp = (state: RootState): number | null =>
-  state.auth?.lastTokenRefreshTimestamp;
+  state.auth?.lastTokenRefreshTimestamp ?? null;
 export const selectIsAuthenticating = (state: RootState): boolean =>
   state.auth?.isAuthenticating ?? false;
 
@@ -298,7 +314,7 @@ export const useSelectIsAuthenticating = (): boolean => {
   return useSelector((state: RootState): boolean => state.auth?.isAuthenticating ?? false);
 };
 
-export async function getAuthToken(): Promise<string | null> {
+export const getAuthToken = async (): Promise<string | null> => {
   let token: string | null;
 
   if (!IsWeb) {
@@ -313,4 +329,4 @@ export async function getAuthToken(): Promise<string | null> {
     }
   }
   return token;
-}
+};

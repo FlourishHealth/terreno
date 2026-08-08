@@ -1,3 +1,7 @@
+---
+title: Terreno monorepo root guidelines
+trigger: always_on
+---
 # Terreno
 
 A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
@@ -9,7 +13,8 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
-- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
+- **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
+- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
@@ -19,12 +24,17 @@ A monorepo containing shared packages for building full-stack applications with 
 Uses [Bun](https://bun.sh/) as the package manager.
 
 ```bash
+bun run bootstrap        # Install dependencies + compile all packages (dev-ready setup)
+bun run bootstrap:update # Reinstall + recompile after pulling changes or switching branches
 bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
 bun run test             # Run tests in api and ui
 ```
+
+- **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
+- **`bootstrap:update`**: Run when resuming work after pulling changes, switching branches, or when dependencies have changed.
 
 ### Package-specific commands
 
@@ -101,6 +111,7 @@ bun run frontend:web
 - Use camelCase directories (e.g., `components/authWizard`)
 - Favor named exports
 - Use the RORO pattern (Receive an Object, Return an Object)
+- **No barrel imports** — import concrete module files, not directory `index` re-export barrels. See [no-barrel-imports.md](docs/explanation/no-barrel-imports.md). Cross-package `@terreno/*` package roots are allowed; internal barrel `index.ts` files are banned (Biome `noBarrelFile` override) and paths like `../models`, `@/store`, or `@components` without a file are not allowed. Enforced by Biome lint and `bun run check:no-barrel-imports` in CI.
 
 ### Dates and Time
 - Always use Luxon instead of Date or dayjs
@@ -124,6 +135,7 @@ bun run frontend:web
 - Focus on readability over performance
 - Write complete, functional code without TODOs when possible
 - Comments should describe purpose, not effect
+- **Frontend verification is mandatory** for any feature touching frontend packages: launch the app, log in when required, exercise the changed feature, save screenshots/videos to `/opt/cursor/artifacts/`, and attach them to the PR. See the `verify-ui-changes` skill and `02-frontend-verification` rules.
 
 ## Package Reference
 
@@ -317,24 +329,6 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 
 ## CI/CD Workflows
 
-### Expo Builds (EAS)
-
-Native iOS and Android builds run via EAS workflows and are **not triggered automatically**. They only run when the `build-expo` label is added to a pull request.
-
-**Add the `build-expo` label when a PR includes:**
-- Changes to `example-frontend/` or `demo/` app code (screens, navigation, app config)
-- Changes to `ui/` components that affect native rendering (animations, gestures, platform-specific behavior)
-- Changes to `rtk/` that affect native token storage or platform detection
-- Updates to `eas.json`, `app.json`, or Expo/Metro config in any app
-- Changes to native dependencies (anything affecting iOS/Android builds)
-- Any change you want to verify builds successfully on device before merging
-
-**Do not add the `build-expo` label for:**
-- Backend-only changes (`api/`, `example-backend/`)
-- Documentation or config file updates
-- Pure web changes that don't affect native builds
-- `ui/` changes limited to web rendering or test snapshots
-
 ### Required Secret Validation
 
 GitHub Actions workflows that use secrets or environment variables must validate all required variables are set before using them. Add a validation step early in the job that fails fast with a clear error message listing any missing variables.
@@ -350,6 +344,112 @@ GitHub Actions workflows that use secrets or environment variables must validate
     fi
 ```
 
+## Short Attention Span (always on)
+
+The reader has a short attention span. Output is not just brief. It is shaped so they can act on it without losing the thread.
+
+This section is always active. Turn it off only when the reader says "stop focus mode" or "normal mode". Confirm in one line, then return to your default style.
+
+### What a short attention span changes about reading
+
+Five facts drive every rule below:
+
+1. Working memory is small. Anything not on screen is forgotten. Do not ask the reader to "keep in mind X."
+2. Knowing the answer is not doing the answer. The friction between "got it" and "done it" is where work dies.
+3. Starting is the hardest step. The first action must be obvious, small, and doable now.
+4. Time estimates feel uniform. "A bit of work" and "a few hours" register the same. Vague estimates fail.
+5. Visible progress matters. Buried wins do not register.
+
+### Output rules
+
+1. **Lead with the next action.** The first line is something the reader can do — not context, not a plan. If the answer is a command, path, or snippet, it goes first.
+2. **Number multi-step tasks.** One bounded action per step. Use the fewest steps that still work.
+3. **End with one concrete next action** if anything is left open — something doable in under two minutes.
+4. **Suppress tangents.** Finish the first issue, then offer the second as a separate question.
+5. **Restate state every turn.** The reader cannot hold "step 3 of 5" between messages.
+6. **Give specific time estimates** in concrete units, not "a bit of work."
+7. **Make completed work visible** in concrete terms. Do not bury wins in a recap.
+8. **Matter-of-fact tone for errors.** State cause and fix. No "Uh oh" or "There seems to be a problem."
+9. **Cap lists at 5 items.** Split longer lists into "do now" vs "later."
+10. **No preamble, recap, or closing pleasantries.** Start with the answer. End when the answer is done.
+
+### When to break these rules
+
+- User asks to "explain" or "walk me through" — explain fully with headers, still no preamble or closer.
+- Destructive action ahead — confirm before acting.
+- Debug spiral (three "still broken" turns) — name the wrong assumption; ask one diagnostic question.
+- Real ambiguity — one short clarifying question beats guessing.
+- A rule fights the task or harness — the task/harness wins; keep the action-first shape where possible.
+
+### Pre-send check
+
+Before sending: delete any opener that announces what you are about to do, any closer that asks "anything else?", any tangent sidebar, and empty hedges. Verify the first and last lines tell the reader what to do next and what just happened.
+
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+## Cursor Cloud specific instructions
+
+### Bootstrap
+
+From the repo root after clone or when dependencies change:
+
+```bash
+bun bootstrap
+```
+
+Installs workspace dependencies and compiles all packages (`bun install && bun run compile`).
+
+### Cloud VM toolchain
+
+Shared install script (in **flourish** repo): `bash /agent/repos/flourish/scripts/install-cloud-dev-tools.sh` then `source ~/.cloud-dev-tools.env`. Provides **terraform**, **gcloud**, **gh**, **Playwright** (after `bun bootstrap` in packages with `@playwright/test`), **Appium**, and **Android emulator** helpers. Terreno/terraform details: `terraform/README.md`.
+
+### Example full stack
+
+| Service | Port | Start command |
+|---------|------|---------------|
+| example-backend | 4000 | `bun run backend:dev` (from repo root) |
+| example-frontend web | 8082 | `bun run frontend:web` |
+
+The running `example-backend` needs a **real MongoDB replica set** (change streams power the realtime/feature-flag sync) at `MONGO_URI`, plus auth secrets `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET`. (Only the bun **test** suites use the auto-managed in-memory Mongo from `@terreno/test`; the dev server does not.)
+
+A standalone `mongod` binary is available from the `mongodb-memory-server` cache (e.g. `~/.cache/mongodb-binaries/mongod-*`) after the test suites have run once. Run it as a single-node replica set, then point the backend at it:
+
+```bash
+# 1. start mongod (replica set required for change streams)
+"$(ls ~/.cache/mongodb-binaries/mongod-* | head -1)" \
+  --replSet rs0 --port 27017 --bind_ip 127.0.0.1 --dbpath /workspace/.devdata/mongo &
+# 2. initiate the replica set once (use node, not bun — the mongodb driver's bson
+#    package hits a "node:v8 isBuildingSnapshot" error under bun). From example-backend/:
+#    node -e 'import("mongodb").then(async ({MongoClient})=>{const c=new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true");await c.connect();await c.db("admin").command({replSetInitiate:{_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]}}).catch(()=>{});await c.close();})'
+# 3. run backend + frontend
+MONGO_URI="mongodb://127.0.0.1:27017/terreno-example?replicaSet=rs0" \
+  TOKEN_SECRET=dev-token-secret TOKEN_ISSUER=terreno-dev \
+  REFRESH_TOKEN_SECRET=dev-refresh-secret SESSION_SECRET=dev-session-secret \
+  PORT=4000 bun run backend:dev
+EXPO_PUBLIC_API_URL=http://localhost:4000 bun run frontend:web
+```
+
+Seed login users with `bun run backend:seed` (same env vars): creates `test@example.com` and admin `admin@example.com`, both password `testpassword123`. Health check: `curl localhost:4000/health` → `"healthy":true`. The web app shows one-time Terms/Privacy/Consent modals (with a signature draw) on first login before the Todos screen.
+
+### Tests and lint
+
+- `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
+- `demo:start` serves the UI component demo on port **8085**.
+
+### GCP service account secrets
+
+When present, these are injected as environment variables holding GCP service-account credentials (each scoped with viewer plus some write permissions for its environment):
+
+- `GCP_SA_TERRENO` — terreno GCP service account (viewer + some write); use it for gcloud / GCP API access for terreno.
+- The sibling apps in this workspace have their own: `GCP_SA_PRD` (flourish production), `GCP_SA_STG` (flourish staging), and `GCP_SA_ZAPLING` (zapling).
+
+### Sentry API access
+
+When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
+
+### Gotchas
+
+- **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.
+- Use `$HOME/.bun/bin/bun` if `bun` is not on `PATH` in non-interactive shells (install via https://bun.sh).

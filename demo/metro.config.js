@@ -65,6 +65,14 @@ const reactPackages = ["react", "react-dom", "react-native", "react-native-web"]
 const jspdfNativeStub = path.resolve(__dirname, "jspdf-native-stub.js");
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Bundle @terreno/ui from source so demo picks up UI changes without a separate compile step.
+  if (moduleName === "@terreno/ui") {
+    return {
+      type: "sourceFile",
+      filePath: path.resolve(monorepoRoot, "ui/src/index.tsx"),
+    };
+  }
+
   // jspdf uses browser/node APIs (latin1 encoding, Buffer) unavailable in Hermes —
   // stub it on native, force ESM build on web (CJS entry uses AMD require() Metro can't parse).
   if (moduleName === "jspdf") {

@@ -18,6 +18,7 @@ import {DateTime} from "luxon";
 import qs from "qs";
 import {generateProfileEndpoints, getAuthToken} from "./authSlice";
 import {AUTH_DEBUG, baseUrl, LOGOUT_ACTION_TYPE, TOKEN_REFRESHED_SUCCESS} from "./constants";
+import {shouldDeferOfflineMutation} from "./offlineGate";
 import {IsWeb} from "./platform";
 
 const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : (): void => {};
@@ -25,6 +26,8 @@ const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : ():
 /** Response from Terreno `GET /version-check` (VersionCheckPlugin). */
 export interface VersionCheckResponse {
   message?: string;
+  /** How often the client should poll for updates, in milliseconds. */
+  pollingIntervalMs?: number;
   requiredVersion?: number;
   status: "ok" | "warning" | "required";
   updateUrl?: string;
@@ -39,10 +42,10 @@ interface TokenPayload {
   exp: number;
 }
 
-export async function getTokenExpirationTimes(): Promise<{
+export const getTokenExpirationTimes = async (): Promise<{
   refreshRemainingSecs?: number;
   authRemainingSecs?: number;
-}> {
+}> => {
   let refreshToken: string | null;
   let authToken: string | null;
   if (!IsWeb) {
@@ -78,7 +81,7 @@ export async function getTokenExpirationTimes(): Promise<{
   }
 
   return {authRemainingSecs: authTimeRemaining, refreshRemainingSecs: refreshTimeRemaining};
-}
+};
 
 // Helper function to decode token and get expiration info
 export const getFriendlyExpirationInfo = async (): Promise<string> => {
@@ -204,12 +207,16 @@ export const getBaseQuery = (
         return result;
       }
     },
-    // biome-ignore lint/suspicious/noExplicitAny: Weird typing from rtk query
-  })(args, api, extraOptions as any);
+  })(args, api, extraOptions as Parameters<ReturnType<typeof fetchBaseQuery>>[2]);
 };
 
 export const staggeredBaseQuery = retry(
   async (args: string | FetchArgs, api, extraOptions) => {
+    // Short-circuit immediately when offline for configured mutation endpoints
+    if (api.type === "mutation" && shouldDeferOfflineMutation(api.endpoint, api.getState)) {
+      retry.fail({error: "Network unavailable", status: "FETCH_ERROR"});
+    }
+
     // wait until the mutex is available without locking it
     await mutex.waitForUnlock();
     let token = await getAuthToken();
@@ -347,8 +354,10 @@ export const emptySplitApi = createApi({
         url: "/version-check",
       }),
     }),
-    // biome-ignore lint/suspicious/noExplicitAny: Generic
-    ...generateProfileEndpoints(builder as any, "users"), // using 'users' here since it is highly intertwined with Users
+    ...generateProfileEndpoints(
+      builder as unknown as Parameters<typeof generateProfileEndpoints>[0],
+      "users"
+    ), // using 'users' here since it is highly intertwined with Users
   }),
   reducerPath: "terreno-rtk",
 });

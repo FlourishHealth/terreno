@@ -27,28 +27,31 @@ import {Pagination} from "./Pagination";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TableTitle} from "./table/TableTitle";
+import {
+  resolveDataTableRowTestID,
+  resolveDataTableTestIDsFromProps,
+  toTestProps,
+} from "./testing/resolveTestId";
 
 // TODO: Add permanent horizontal scroll bar so users with only a mouse can scroll left/right
 // easily.
 
 const TextCell: FC<{
-  cellData: {value: string; textSize?: "sm" | "md" | "lg"};
+  cellData: DataTableCellData;
   column: DataTableColumn;
 }> = ({cellData}) => {
   return (
     <Box flex="grow" justifyContent="center">
-      <Text size={cellData.textSize || "md"}>{cellData.value}</Text>
+      <Text size={cellData.textSize || "md"}>{String(cellData.value ?? "")}</Text>
     </Box>
   );
 };
 
-const CheckedCell: FC<{cellData: {value: boolean}; column: DataTableColumn}> = ({cellData}) => {
+const CheckedCell: FC<{cellData: DataTableCellData; column: DataTableColumn}> = ({cellData}) => {
+  const isChecked = Boolean(cellData.value);
   return (
     <Box flex="grow" justifyContent="center" width="100%">
-      <Icon
-        color={cellData.value ? "success" : "secondaryDark"}
-        iconName={cellData.value ? "check" : "x"}
-      />
+      <Icon color={isChecked ? "success" : "secondaryDark"} iconName={isChecked ? "check" : "x"} />
     </Box>
   );
 };
@@ -71,7 +74,7 @@ const DataTableCell: FC<DataTableCellProps> = ({
   // Default to TextCell
   let Component: React.ComponentType<{
     column: DataTableColumn;
-    cellData: {value: any; highlight?: SurfaceColor};
+    cellData: DataTableCellData;
   }> = TextCell;
   if (customColumnComponentMap?.[columnDef.columnType]) {
     Component = customColumnComponentMap[columnDef.columnType];
@@ -121,6 +124,7 @@ interface DataTableRowProps {
   alternateRowBackground: boolean;
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
+  testID?: string;
 }
 
 const DataTableRow: FC<DataTableRowProps> = ({
@@ -132,6 +136,7 @@ const DataTableRow: FC<DataTableRowProps> = ({
   alternateRowBackground,
   customColumnComponentMap,
   rowHeight,
+  testID,
 }) => {
   const {theme} = useTheme();
   const backgroundColor =
@@ -145,6 +150,7 @@ const DataTableRow: FC<DataTableRowProps> = ({
         flexDirection: "row",
         height: rowHeight,
       }}
+      {...toTestProps(testID)}
     >
       {rowData.map((cell, colIndex) => (
         <DataTableCell
@@ -265,37 +271,41 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
         }),
       }}
     >
-      {Boolean(column.title) && <TableTitle align="left" title={column.title!} />}
-      <View style={{alignItems: "center", flexDirection: "row"}}>
-        {column.infoModalText && (
-          <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
-        )}
-        {column.sortable && (
-          <Pressable hitSlop={16} onPress={() => onSort(index)}>
-            <View
-              style={{
-                alignItems: "center",
-                backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
-                borderRadius: theme.radius.rounded,
-                height: 16,
-                justifyContent: "center",
-                marginLeft: 8,
-                width: 16,
-              }}
-            >
-              <FontAwesome6
-                color={theme.text.inverted}
-                name={
-                  sort === "asc" ? "arrow-down" : sort === "desc" ? "arrow-up" : "arrows-up-down"
-                }
-                selectable={undefined}
-                size={10}
-                solid
-              />
-            </View>
-          </Pressable>
-        )}
-      </View>
+      {[
+        column.title ? (
+          <TableTitle align="left" key="data-table-header-title" title={column.title!} />
+        ) : null,
+        <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>
+          {column.infoModalText && (
+            <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
+          )}
+          {column.sortable && (
+            <Pressable hitSlop={16} onPress={() => onSort(index)}>
+              <View
+                style={{
+                  alignItems: "center",
+                  backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
+                  borderRadius: theme.radius.rounded,
+                  height: 16,
+                  justifyContent: "center",
+                  marginLeft: 8,
+                  width: 16,
+                }}
+              >
+                <FontAwesome6
+                  color={theme.text.inverted}
+                  name={
+                    sort === "asc" ? "arrow-down" : sort === "desc" ? "arrow-up" : "arrows-up-down"
+                  }
+                  selectable={undefined}
+                  size={10}
+                  solid
+                />
+              </View>
+            </Pressable>
+          )}
+        </View>,
+      ]}
     </View>
   );
 };
@@ -311,6 +321,7 @@ interface DataTableHeaderProps {
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
   rowHeight: number;
   headerHeight?: number;
+  testID?: string;
 }
 
 const DataTableHeader: FC<DataTableHeaderProps> = ({
@@ -324,11 +335,12 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
   onScroll,
   rowHeight,
   headerHeight,
+  testID,
 }) => {
   const {theme} = useTheme();
 
   return (
-    <View style={{flexDirection: "row", position: "relative"}}>
+    <View style={{flexDirection: "row", position: "relative"}} testID={testID}>
       {/* Fixed-width container for "more" content button if present */}
       {hasMoreContent && (
         <View
@@ -401,23 +413,27 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
 };
 
 interface DataTableContentProps {
-  data: any[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   pinnedColumns: number;
   alternateRowBackground: boolean;
   columnWidths: number[];
   bodyScrollRef: React.RefObject<ScrollView | null>;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
-  moreContentComponent?: React.ComponentType<{
-    column: DataTableColumn;
-    rowData: any[];
-    rowIndex: number;
-  }>;
+  moreContentComponent?: React.ComponentType<
+    {
+      column: DataTableColumn;
+      rowData: DataTableCellData[];
+      rowIndex: number;
+    } & Record<string, unknown>
+  >;
   // Extra props to pass to the more modal, one per row.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Record<string, unknown>[];
   moreContentSize?: "sm" | "md" | "lg";
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
+  rowTestIdBase?: string;
+  getRowTestID?: (row: DataTableCellData[], rowIndex: number) => string | number;
 }
 
 const DataTableContent: FC<DataTableContentProps> = ({
@@ -433,9 +449,16 @@ const DataTableContent: FC<DataTableContentProps> = ({
   moreContentExtraData,
   moreContentSize = "md",
   rowHeight,
+  rowTestIdBase,
+  getRowTestID,
 }) => {
   const [modalRow, setModalRow] = useState<number | null>(null);
   const {theme} = useTheme();
+
+  const resolveRowTestId = (row: DataTableCellData[], rowIndex: number): string | undefined => {
+    const rowKey = getRowTestID ? getRowTestID(row, rowIndex) : rowIndex;
+    return resolveDataTableRowTestID(rowTestIdBase, rowKey);
+  };
 
   return (
     <>
@@ -492,6 +515,7 @@ const DataTableContent: FC<DataTableContentProps> = ({
                   rowData={row.slice(0, pinnedColumns)}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
+                  testID={pinnedColumns > 0 ? resolveRowTestId(row, rowIndex) : undefined}
                 />
               ))}
             </View>
@@ -523,6 +547,7 @@ const DataTableContent: FC<DataTableContentProps> = ({
                   rowData={row.slice(pinnedColumns)}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
+                  testID={pinnedColumns === 0 ? resolveRowTestId(row, rowIndex) : undefined}
                 />
               ))}
             </View>
@@ -564,8 +589,12 @@ export const DataTable: FC<DataTableProps> = ({
   rowHeight = 54,
   headerHeight,
   defaultTextSize = "md",
+  testID,
+  testIDs,
+  getRowTestID,
 }) => {
   const {theme} = useTheme();
+  const tableTestIDs = resolveDataTableTestIDsFromProps({testID, testIDs});
   const headerScrollRef = useRef<ScrollView>(null);
   const bodyScrollRef = useRef<ScrollView>(null);
 
@@ -618,7 +647,10 @@ export const DataTable: FC<DataTableProps> = ({
   }, [data, defaultTextSize]);
 
   return (
-    <View style={{display: "flex", flexDirection: "column", height: "100%"}}>
+    <View
+      style={{display: "flex", flexDirection: "column", height: "100%"}}
+      testID={tableTestIDs.root}
+    >
       <View
         style={{
           borderColor: theme.border.default,
@@ -627,6 +659,7 @@ export const DataTable: FC<DataTableProps> = ({
           height: "100%",
           minHeight: 0,
         }}
+        testID={tableTestIDs.body}
       >
         <DataTableHeader
           columns={columns}
@@ -639,6 +672,7 @@ export const DataTable: FC<DataTableProps> = ({
           pinnedColumns={pinnedColumns}
           rowHeight={rowHeight}
           sortColumn={sortColumn}
+          testID={tableTestIDs.header}
         />
 
         <View style={{flex: 1, minHeight: 0}}>
@@ -649,11 +683,13 @@ export const DataTable: FC<DataTableProps> = ({
             columnWidths={columnWidths}
             customColumnComponentMap={customColumnComponentMap}
             data={processedData}
+            getRowTestID={getRowTestID}
             moreContentComponent={moreContentComponent}
             moreContentExtraData={moreContentExtraData}
             onScroll={handleScroll}
             pinnedColumns={pinnedColumns}
             rowHeight={rowHeight}
+            rowTestIdBase={tableTestIDs.row}
           />
         </View>
       </View>
@@ -666,7 +702,12 @@ export const DataTable: FC<DataTableProps> = ({
             padding: 16,
           }}
         >
-          <Pagination page={page} setPage={setPage!} totalPages={totalPages} />
+          <Pagination
+            page={page}
+            setPage={setPage!}
+            testID={tableTestIDs.pagination}
+            totalPages={totalPages}
+          />
         </View>
       )}
     </View>

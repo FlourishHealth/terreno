@@ -45,9 +45,12 @@ exports[`Button renders correctly with default props 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Click me",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Click me",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -57,6 +60,7 @@ exports[`Button renders correctly with default props 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -64,7 +68,7 @@ exports[`Button renders correctly with default props 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -113,9 +117,12 @@ exports[`Button renders primary variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Primary",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Primary",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -125,6 +132,7 @@ exports[`Button renders primary variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -132,7 +140,7 @@ exports[`Button renders primary variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -181,9 +189,12 @@ exports[`Button renders secondary variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Secondary",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Secondary",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -193,6 +204,7 @@ exports[`Button renders secondary variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -200,7 +212,7 @@ exports[`Button renders secondary variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -249,9 +261,12 @@ exports[`Button renders muted variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Muted",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Muted",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -261,6 +276,7 @@ exports[`Button renders muted variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -268,7 +284,7 @@ exports[`Button renders muted variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -317,9 +333,12 @@ exports[`Button renders outline variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Outline",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Outline",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -329,14 +348,15 @@ exports[`Button renders outline variant 1`] = `
       "borderRadius": 360,
       "borderWidth": 2,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
-      "paddingVertical": 8,
+      "paddingVertical": 6,
       "width": "auto",
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -385,9 +405,12 @@ exports[`Button renders destructive variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Delete",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Delete",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -397,6 +420,7 @@ exports[`Button renders destructive variant 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -404,7 +428,7 @@ exports[`Button renders destructive variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -453,8 +477,11 @@ exports[`Button renders disabled state 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Disabled",
-    "aria-role": "button",
+    "accessibilityLabel": "Disabled",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
     "disabled": true,
     "onPress": [Function: debounced],
     "style": {
@@ -465,6 +492,7 @@ exports[`Button renders disabled state 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -521,8 +549,11 @@ exports[`Button applies disabled styles when disabled 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Disabled",
-    "aria-role": "button",
+    "accessibilityLabel": "Disabled",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
     "disabled": true,
     "onPress": [Function: debounced],
     "style": {
@@ -533,6 +564,7 @@ exports[`Button applies disabled styles when disabled 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -612,8 +644,11 @@ exports[`Button renders loading state 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Loading",
-    "aria-role": "button",
+    "accessibilityLabel": "Loading",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
     "disabled": true,
     "onPress": [Function: debounced],
     "style": {
@@ -624,6 +659,7 @@ exports[`Button renders loading state 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -680,9 +716,12 @@ exports[`Button renders fullWidth button 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Full Width",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Full Width",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -692,6 +731,7 @@ exports[`Button renders fullWidth button 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -699,7 +739,7 @@ exports[`Button renders fullWidth button 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -761,9 +801,12 @@ exports[`Button renders with icon on left 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "With Icon",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "With Icon",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -773,6 +816,7 @@ exports[`Button renders with icon on left 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -780,7 +824,7 @@ exports[`Button renders with icon on left 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -842,9 +886,12 @@ exports[`Button renders with icon on right 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Next",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Next",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -854,6 +901,7 @@ exports[`Button renders with icon on right 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -861,7 +909,7 @@ exports[`Button renders with icon on right 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -910,9 +958,12 @@ exports[`Button renders with confirmation modal props 1`] = `
   ],
   "props": {
     "accessibilityHint": "Opens a confirmation dialog",
-    "aria-label": "Delete",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Delete",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -922,6 +973,246 @@ exports[`Button renders with confirmation modal props 1`] = `
       "borderRadius": 360,
       "borderWidth": undefined,
       "flexDirection": "column",
+      "height": undefined,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
+}
+`;
+
+exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Hover me",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "accessibilityLabel": "Hover me",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "height": undefined,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
+}
+`;
+
+exports[`Button renders with custom confirmationText and modalSubTitle 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Confirm Btn",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Opens a confirmation dialog",
+    "accessibilityLabel": "Confirm Btn",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "height": undefined,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
+}
+`;
+
+exports[`Button shows loading indicator when loading prop is true 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Loading",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "color": "#FFFFFF",
+                "size": "small",
+              },
+              "type": "ActivityIndicator",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "marginLeft": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "accessibilityLabel": "Loading",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
+    "disabled": true,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "height": undefined,
       "justifyContent": "center",
       "paddingHorizontal": 20,
       "paddingVertical": 8,
@@ -930,5 +1221,77 @@ exports[`Button renders with confirmation modal props 1`] = `
     "testID": undefined,
   },
   "type": "Pressable",
+}
+`;
+
+exports[`Button renders ghost variant with correct styles 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Ghost",
+              ],
+              "props": {
+                "style": {
+                  "color": "#2B6072",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "accessibilityLabel": "Ghost",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "transparent",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "height": undefined,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
 }
 `;

@@ -40,6 +40,8 @@ export const SplitPage = ({
   const elementArray = Children.toArray(children).filter((c) => c !== null);
 
   const onItemSelect = useCallback(
+    // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
+    // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
     async (item: ListRenderItemInfo<any>): Promise<void> => {
       setSelectedId(item.index);
       await onSelectionChange(item);
@@ -69,6 +71,8 @@ export const SplitPage = ({
     return null;
   }
 
+  // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
+  // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
   const renderItem = (itemInfo: ListRenderItemInfo<any>) => {
     return (
       <Box
@@ -297,7 +301,11 @@ export const SplitPage = ({
       padding={2}
       width="100%"
     >
-      {loading === true && <Spinner color={theme.text.primary as any} size="md" />}
+      {loading === true && (
+        // noExplicitAny: Spinner color is a token enum but the legacy code passes theme.text.primary (a resolved hex string); preserving original behavior
+        // biome-ignore lint/suspicious/noExplicitAny: Spinner color is a token enum but the legacy code passes theme.text.primary (a resolved hex string); preserving original behavior
+        <Spinner color={theme.text.primary as any} size="md" />
+      )}
       {isMobileDevice ? renderMobileSplitPage() : renderSplitPage()}
     </Box>
   );

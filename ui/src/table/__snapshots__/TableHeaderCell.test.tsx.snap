@@ -1544,6 +1544,8 @@ exports[`TableHeaderCell renders sortable header with sort indicator when sorted
                                       "$$typeof": Symbol(react.test.json),
                                       "children": null,
                                       "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
                                         "style": {
                                           "alignItems": "center",
                                           "backgroundColor": "#0E9DCD",

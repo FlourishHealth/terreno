@@ -1,5 +1,10 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {Platform, Image as RNImage, type ScrollView as RNScrollView} from "react-native";
+import {
+  Platform,
+  Image as RNImage,
+  type ScrollView as RNScrollView,
+  type TextInput as RNTextInput,
+} from "react-native";
 
 import {AttachmentPreview} from "./AttachmentPreview";
 import {Box} from "./Box";
@@ -782,15 +787,13 @@ export const GPTChat = ({
   // On web: Enter sends, Shift+Enter inserts a new line
   const handleSubmitRef = useRef(handleSubmit);
   handleSubmitRef.current = handleSubmit;
-  const inputElementRef = useRef<HTMLElement | null>(null);
-
   // Attach keydown listener directly to the textarea element for reliable Enter-to-send.
-  // Re-runs when inputElementRef.current changes (set asynchronously via ref callback).
+  // Tracked in state (not a ref) so the effect re-runs when the textarea remounts.
   const [inputElement, setInputElement] = useState<HTMLElement | null>(null);
 
-  const handleInputRef = useCallback((ref: HTMLElement | null) => {
-    inputElementRef.current = ref;
-    setInputElement(ref);
+  // On React Native Web the TextInput ref is the underlying DOM element.
+  const handleInputRef = useCallback((ref: RNTextInput | null) => {
+    setInputElement(ref as unknown as HTMLElement | null);
   }, []);
 
   useEffect(() => {

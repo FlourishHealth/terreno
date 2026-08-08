@@ -1,5 +1,4 @@
-// Stuck as a class component because React doesn't support error boundaries in functional
-// components yet.
+// React does not support error boundaries in functional components yet.
 import React, {type ReactNode} from "react";
 import {Pressable, Text} from "react-native";
 

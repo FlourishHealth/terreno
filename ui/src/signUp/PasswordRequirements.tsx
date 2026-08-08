@@ -1,6 +1,6 @@
 import type {FC} from "react";
-import {View} from "react-native";
 
+import {Box} from "../Box";
 import {Icon} from "../Icon";
 import {Text} from "../Text";
 import type {PasswordRequirement} from "./signUpTypes";
@@ -23,13 +23,16 @@ export const PasswordRequirements: FC<PasswordRequirementsProps> = ({
   testID = "password-requirements",
 }) => {
   return (
-    <View testID={testID}>
+    <Box testID={testID}>
       {requirements.map((req) => {
         const isMet = password.length > 0 && req.validate(password);
         return (
-          <View
+          <Box
+            alignItems="center"
+            direction="row"
+            gap={2}
             key={req.key}
-            style={{alignItems: "center", flexDirection: "row", gap: 8, marginBottom: 4}}
+            marginBottom={1}
             testID={`${testID}-${req.key}`}
           >
             <Icon
@@ -41,9 +44,9 @@ export const PasswordRequirements: FC<PasswordRequirementsProps> = ({
             <Text color={isMet ? "success" : "secondaryLight"} size="sm">
               {req.label}
             </Text>
-          </View>
+          </Box>
         );
       })}
-    </View>
+    </Box>
   );
 };

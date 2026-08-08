@@ -1,9 +1,10 @@
 import {type ModelRouterOptions, modelRouter, Permissions} from "@terreno/api";
+import type express from "express";
 import {GptHistory} from "../models/gptHistory";
 import type {GptHistoryDocument, GptHistoryRouteOptions} from "../types";
 
 export const addGptHistoryRoutes = (
-  router: any,
+  router: express.Router,
   options?: Partial<ModelRouterOptions<GptHistoryDocument>> & GptHistoryRouteOptions
 ): void => {
   router.use(

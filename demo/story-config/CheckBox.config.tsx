@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {CheckboxColors, CheckboxDemo, CheckboxSizes} from "@stories";
+import {CheckboxColors, CheckboxDemo, CheckboxSizes} from "@stories/CheckBox.stories";
 import {CheckBox} from "@terreno/ui";
 
 export const CheckBoxConfiguration: DemoConfiguration = {

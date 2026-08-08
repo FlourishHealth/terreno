@@ -50,7 +50,7 @@ export const Field: FC<FieldProps> = ({type, ...rest}) => {
   } else if (type && ["date", "time", "datetime"].includes(type)) {
     return (
       <DateTimeField
-        {...(rest as DateTimeFieldProps as any)}
+        {...(rest as Omit<DateTimeFieldProps, "type">)}
         type={type as "date" | "time" | "datetime"}
       />
     );

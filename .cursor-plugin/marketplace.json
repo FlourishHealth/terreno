@@ -1,0 +1,20 @@
+{
+  "name": "terreno",
+  "displayName": "Terreno",
+  "owner": {
+    "name": "Flourish Health",
+    "email": "josh@flourish.health"
+  },
+  "metadata": {
+    "description": "Team marketplace for Terreno: SDLC planning and execution plugins.",
+    "version": "1.0.0",
+    "pluginRoot": "plugins"
+  },
+  "plugins": [
+    {
+      "name": "terreno-planning",
+      "source": "terreno-planning",
+      "description": "Plugins for planning and executing plans for the whole SDLC"
+    }
+  ]
+}

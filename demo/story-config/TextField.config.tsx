@@ -5,7 +5,7 @@ import {
   TextFieldWithErrorMsgDemo,
   TextFieldWithHelperTextDemo,
   TextFieldWithLabelDemo,
-} from "@stories";
+} from "@stories/TextField.stories";
 import {TextField} from "@terreno/ui";
 
 export const TextFieldConfiguration: DemoConfiguration = {

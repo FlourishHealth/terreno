@@ -49,11 +49,29 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
   });
 
   const monoFont = isWeb ? "monospace" : Platform.select({android: "monospace", ios: "Menlo"});
+  const textFontSize = isWeb ? 16 : 14;
+  const textLineHeight = isWeb ? 24 : 20;
+  const markdownTextStyle = {
+    fontFamily: "text-regular",
+    fontSize: textFontSize,
+    lineHeight: textLineHeight,
+    ...color,
+  };
 
   return (
     <Markdown
       style={{
-        body: {fontFamily: "text", ...color},
+        body: {width: "100%", ...markdownTextStyle},
+        bullet_list: {width: "100%"},
+        bullet_list_content: {flex: 1, flexShrink: 1, minWidth: 0},
+        bullet_list_icon: {
+          flexShrink: 0,
+          marginLeft: 0,
+          marginRight: 8,
+          minWidth: 16,
+          textAlign: "center",
+          ...markdownTextStyle,
+        },
         code_block: {
           backgroundColor: theme.surface.neutralLight,
           borderColor: theme.border.default,
@@ -85,13 +103,57 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
           padding: 8,
           ...color,
         },
-        heading1: {fontFamily: "heading-bold", fontSize: sizes.xl, ...color},
-        heading2: {fontFamily: "heading-bold", fontSize: sizes.lg, ...color},
-        heading3: {fontFamily: "heading-bold", fontSize: sizes.md, ...color},
-        heading4: {fontFamily: "heading-semibold", fontSize: sizes.sm, ...color},
+        heading1: {
+          fontFamily: "heading-bold",
+          fontSize: sizes.xl,
+          lineHeight: sizes.xl * 1.25,
+          ...color,
+        },
+        heading2: {
+          fontFamily: "heading-bold",
+          fontSize: sizes.lg,
+          lineHeight: sizes.lg * 1.25,
+          ...color,
+        },
+        heading3: {
+          fontFamily: "heading-bold",
+          fontSize: sizes.md,
+          lineHeight: sizes.md * 1.25,
+          ...color,
+        },
+        heading4: {
+          fontFamily: "heading-semibold",
+          fontSize: sizes.sm,
+          lineHeight: sizes.sm * 1.25,
+          ...color,
+        },
         // h5/h6 map to small as well for consistency, slightly smaller visually handled by weight
-        heading5: {fontFamily: "heading-semibold", fontSize: sizes.sm, ...color},
-        heading6: {fontFamily: "heading-semibold", fontSize: sizes.sm, ...color},
+        heading5: {
+          fontFamily: "heading-semibold",
+          fontSize: sizes.sm,
+          lineHeight: sizes.sm * 1.25,
+          ...color,
+        },
+        heading6: {
+          fontFamily: "heading-semibold",
+          fontSize: sizes.sm,
+          lineHeight: sizes.sm * 1.25,
+          ...color,
+        },
+        list_item: {alignItems: "flex-start", flexDirection: "row", width: "100%"},
+        ordered_list: {width: "100%"},
+        ordered_list_content: {flex: 1, flexShrink: 1, minWidth: 0},
+        ordered_list_icon: {
+          flexShrink: 0,
+          marginLeft: 0,
+          marginRight: 8,
+          minWidth: 32,
+          textAlign: "right",
+          ...markdownTextStyle,
+        },
+        paragraph: {flexShrink: 1, width: "100%", ...markdownTextStyle},
+        text: color,
+        textgroup: {flexShrink: 1, minWidth: 0},
       }}
     >
       {children}

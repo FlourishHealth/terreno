@@ -5,12 +5,23 @@ import type {FileAttachmentDocument, FileAttachmentModel} from "../types";
 
 const fileAttachmentSchema = new mongoose.Schema<FileAttachmentDocument, FileAttachmentModel>(
   {
-    filename: {required: true, type: String},
-    gcsKey: {required: true, type: String, unique: true},
-    mimeType: {required: true, type: String},
-    size: {required: true, type: Number},
-    url: {required: true, type: String},
-    userId: {index: true, ref: "User", required: true, type: mongoose.Schema.Types.ObjectId},
+    filename: {description: "Original name of the uploaded file", required: true, type: String},
+    gcsKey: {
+      description: "Google Cloud Storage key identifying this file",
+      required: true,
+      type: String,
+      unique: true,
+    },
+    mimeType: {description: "MIME type of the uploaded file", required: true, type: String},
+    size: {description: "File size in bytes", required: true, type: Number},
+    url: {description: "Public or signed URL for accessing the file", required: true, type: String},
+    userId: {
+      description: "The user who uploaded this file",
+      index: true,
+      ref: "User",
+      required: true,
+      type: mongoose.Schema.Types.ObjectId,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );

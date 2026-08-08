@@ -1,8 +1,9 @@
 import {Box, EmailField, Text} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
-export const EmailFieldDemo = (): ReactElement => {
+export const EmailFieldDemo = (props: {preview?: boolean}): ReactElement => {
   const [value, setValue] = useState("dwight@example.com");
+
   return (
     <>
       <EmailField
@@ -11,10 +12,12 @@ export const EmailFieldDemo = (): ReactElement => {
         title="Email"
         value={value}
       />
-      <Box marginTop={2}>
-        <Text>We only return correct email address back to the parent component.</Text>
-        <Text>Returned Value: {value}</Text>
-      </Box>
+      {!props.preview && (
+        <Box marginTop={2}>
+          <Text>We only return correct email address back to the parent component.</Text>
+          <Text>Returned Value: {value}</Text>
+        </Box>
+      )}
     </>
   );
 };

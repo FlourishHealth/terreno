@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {EmailFieldDemo} from "@stories";
+import {EmailFieldDemo} from "@stories/EmailField.stories";
 import {EmailField} from "@terreno/ui";
 
 export const EmailFieldConfiguration: DemoConfiguration = {
@@ -27,7 +27,7 @@ export const EmailFieldConfiguration: DemoConfiguration = {
   demoOptions: {},
   stories: {
     "Email Field": {
-      render: EmailFieldDemo,
+      render: () => <EmailFieldDemo />,
     },
   },
 };

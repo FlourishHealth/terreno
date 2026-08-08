@@ -71,4 +71,10 @@ describe("Spinner", () => {
 
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("clears the delay timer on unmount", () => {
+    const {unmount, toJSON} = renderWithTheme(<Spinner />);
+    expect(toJSON()).toBeNull();
+    expect(() => unmount()).not.toThrow();
+  });
 });

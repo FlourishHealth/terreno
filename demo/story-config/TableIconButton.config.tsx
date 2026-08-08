@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableIconButtonDemo, TableIconButtonStates} from "@stories";
+import {TableIconButtonDemo, TableIconButtonStates} from "@stories/TableIconButton.stories";
 import {TableIconButton} from "@terreno/ui";
 
 export const TableIconButtonConfiguration: DemoConfiguration = {

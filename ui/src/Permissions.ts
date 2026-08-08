@@ -3,13 +3,14 @@
 // import Permissions from "react-native-permissions";
 import type {PermissionKind, PermissionStatus} from "./Common";
 
-export async function requestPermissions(_kind: PermissionKind): Promise<PermissionStatus> {
+export const requestPermissions = async (_kind: PermissionKind): Promise<PermissionStatus> => {
   return new Promise((_resolve, _reject) => {
     return "denied";
   });
   // const userPropertyKey = `PermissionsFor${capitalize(kind)}`;
 
   //   let k = kind;
+  //   // noExplicitAny: Dead commented-out code; types cannot be resolved without the full uncommented context and Permissions library types
   //   let options: any = undefined;
   //   if (kind === "locationAlways") {
   //     k = "location";
@@ -21,6 +22,7 @@ export async function requestPermissions(_kind: PermissionKind): Promise<Permiss
 
   //   // TODO check soft request status.
 
+  //   // noExplicitAny: Dead commented-out code; MAP[k] type depends on unreferenced MAP constant
   //   const current = await Permissions.check(MAP[k] as any);
   //   // Tracking.log(`[permissions] ${k} permissions are ${current}`);
   //   if (current === "denied" || current === "limited") {
@@ -31,6 +33,7 @@ export async function requestPermissions(_kind: PermissionKind): Promise<Permiss
   //     return resolve("authorized");
   //   }
 
+  //   // noExplicitAny: Dead commented-out code; MAP[k] type depends on unreferenced MAP constant
   //   const response = await Permissions.request(MAP[k] as any, options);
   //   if (response === "granted") {
   //     // Tracking.setUserProperty(userPropertyKey, "true");
@@ -40,4 +43,4 @@ export async function requestPermissions(_kind: PermissionKind): Promise<Permiss
   //     return reject(MAP_RESULTS[response]);
   //   }
   // });
-}
+};

@@ -8,7 +8,7 @@ export * from "./AiSuggestionBox";
 export * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";
-export * from "./Banner";
+export {Banner, hideBanner} from "./Banner";
 export * from "./Body";
 export * from "./BooleanField";
 export * from "./Box";
@@ -42,12 +42,14 @@ export * from "./HeightActionSheet";
 export * from "./HeightField";
 export * from "./Icon";
 export * from "./IconButton";
+export * from "./IconRegistry";
 export * from "./Image";
 export * from "./ImageBackground";
 export * from "./InfoModalIcon";
 export * from "./InfoTooltipButton";
 export * from "./Link";
-export * from "./login";
+export * from "./login/LoginScreen";
+export type {LoginFieldConfig, LoginScreenProps} from "./login/loginTypes";
 export * from "./MarkdownEditor";
 export * from "./MarkdownEditorField";
 export * from "./MarkdownView";
@@ -58,6 +60,7 @@ export * from "./ModalSheet";
 export * from "./MultiselectField";
 export * from "./NumberField";
 export * from "./NumberPickerActionSheet";
+export * from "./OfflineBanner";
 export * from "./OpenAPIContext";
 export * from "./Page";
 export * from "./Pagination";
@@ -73,20 +76,38 @@ export * from "./SelectField";
 export * from "./SidebarNavigation";
 export * from "./SideDrawer";
 export * from "./Signature";
+export * from "./SignatureCaptureField";
 export * from "./SignatureField";
 export * from "./Slider";
 export * from "./SocialLoginButton";
 export * from "./Spinner";
 export * from "./SplitPage";
-export * from "./signUp";
+export {OAuthButtons} from "./signUp/OAuthButtons";
+export {PasswordRequirements} from "./signUp/PasswordRequirements";
+export {
+  defaultPasswordRequirements,
+  simplePasswordRequirements,
+} from "./signUp/passwordPresets";
+export {SignUpScreen} from "./signUp/SignUpScreen";
+export {Swiper} from "./signUp/Swiper";
+export type {
+  OAuthProvider,
+  OAuthProviderConfig,
+  OnboardingPage,
+  PasswordRequirement,
+  SignUpFieldConfig,
+  SignUpScreenProps,
+} from "./signUp/signUpTypes";
 export * from "./TapToEdit";
 export * from "./TerrenoProvider";
 export * from "./Text";
 export * from "./TextArea";
 export * from "./TextField";
 export * from "./Theme";
+export * from "./ThumbsUpDownFeedback";
 export * from "./Toast";
-export * from "./Tooltip";
+export {Tooltip} from "./Tooltip";
+export * from "./TypedSignatureField";
 export * from "./table/Table";
 export * from "./table/Table";
 export * from "./table/TableBadge";
@@ -259,8 +280,8 @@ export interface LayoutRoot {
    * Set the root
    */
   root: Layout;
-  modals?: any;
-  overlays?: any;
+  modals?: Layout[];
+  overlays?: Layout[];
 }
 export interface ExternalComponent {
   /**

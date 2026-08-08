@@ -3,6 +3,12 @@
     "name": "Terreno Example",
     "slug": "terreno-example",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ddbe68d9-1142-4991-a02e-4ebb9fd83530"
+    },
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",

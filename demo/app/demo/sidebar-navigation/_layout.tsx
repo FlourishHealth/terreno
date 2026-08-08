@@ -1,13 +1,13 @@
-import type {SidebarNavigationItem} from "@terreno/ui";
-import {SidebarNavigation} from "@terreno/ui";
+import {SidebarNavigation, type SidebarNavigationItem} from "@terreno/ui";
 import {router} from "expo-router";
 import {Pressable, StyleSheet, Text} from "react-native";
 
 const topItems: SidebarNavigationItem[] = [
   {iconName: "house", label: "Home", route: "index"},
   {iconName: "chart-line", label: "Dashboard", route: "dashboard"},
-  {iconName: "folder", label: "Projects", route: "projects"},
-  {iconName: "envelope", label: "Messages", route: "messages"},
+  {badge: 5, iconName: "folder", label: "Projects", route: "projects"},
+  {badge: 142, iconName: "envelope", label: "Messages", route: "messages"},
+  {badge: true, iconName: "code", label: "Tools", route: "projects"},
 ];
 
 const bottomItems: SidebarNavigationItem[] = [
@@ -17,7 +17,7 @@ const bottomItems: SidebarNavigationItem[] = [
 
 const headerRight = () => (
   <Pressable onPress={() => router.navigate("/dev")} style={styles.headerButton}>
-    <Text style={styles.headerButtonText}>Dev Mode</Text>
+    <Text style={{fontWeight: "bold"}}>Dev Mode</Text>
   </Pressable>
 );
 
@@ -27,12 +27,9 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
   },
-  headerButtonText: {
-    fontWeight: "bold",
-  },
 });
 
-export default function SidebarNavigationLayout() {
+const SidebarNavigationLayout = () => {
   return (
     <SidebarNavigation
       bottomItems={bottomItems}
@@ -47,4 +44,6 @@ export default function SidebarNavigationLayout() {
       <SidebarNavigation.Screen name="help" options={{title: "Help"}} />
     </SidebarNavigation>
   );
-}
+};
+
+export default SidebarNavigationLayout;

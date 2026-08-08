@@ -1,5 +1,5 @@
 import {test as setup} from "@playwright/test";
-import {ADMIN_USER, TEST_USER} from "./fixtures/testUsers";
+import {ADMIN_USER, SECOND_USER, TEST_USER} from "./fixtures/testUsers";
 import {setUserAdmin} from "./helpers/adminAuth";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
@@ -8,6 +8,10 @@ setup("create test user", async ({request}) => {
   // Create the regular test user
   await createUser(request, TEST_USER);
   await acceptPendingConsentForms(request, TEST_USER);
+
+  // Create a second non-admin user used by realtime isolation tests
+  await createUser(request, SECOND_USER);
+  await acceptPendingConsentForms(request, SECOND_USER);
 
   // Create the admin user and promote
   await createUser(request, ADMIN_USER);

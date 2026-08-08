@@ -1,7 +1,9 @@
 import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
+import type {AxiosResponse} from "axios";
 import axios from "axios";
 
+import {type APIError, isAPIError} from "../errors";
 import {sendToGoogleChat} from "./googleChatNotifier";
 
 describe("sendToGoogleChat", () => {
@@ -10,7 +12,7 @@ describe("sendToGoogleChat", () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    mockAxiosPost = spyOn(axios, "post").mockResolvedValue({status: 200} as any);
+    mockAxiosPost = spyOn(axios, "post").mockResolvedValue({status: 200} as AxiosResponse);
     process.env = {...ORIGINAL_ENV};
     process.env.GOOGLE_CHAT_WEBHOOKS = undefined;
     (Sentry.captureException as Mock<typeof Sentry.captureException>).mockClear();
@@ -96,8 +98,8 @@ describe("sendToGoogleChat", () => {
       await sendToGoogleChat("err", {shouldThrow: true});
       throw new Error("Expected sendToGoogleChat to throw APIError");
     } catch (error) {
-      expect((error as any).name).toBe("APIError");
-      expect((error as any).title).toMatch(/Error posting to Google Chat/i);
+      expect(isAPIError(error)).toBe(true);
+      expect((error as APIError).title).toMatch(/Error posting to Google Chat/i);
     }
     expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
@@ -110,5 +112,29 @@ describe("sendToGoogleChat", () => {
 
     await sendToGoogleChat("err", {shouldThrow: false});
     expect(mockAxiosPost.mock.calls.length).toBe(1);
+  });
+
+  it("returns early when webhook url is missing for channel and no default exists", async () => {
+    process.env.GOOGLE_CHAT_WEBHOOKS = JSON.stringify({
+      ops: "https://chat.example/ops",
+    });
+
+    await sendToGoogleChat("no default", {channel: "missing"});
+    expect(mockAxiosPost.mock.calls.length).toBe(0);
+    expect(Sentry.captureException).toHaveBeenCalled();
+  });
+
+  it("prefixes message with [ENV] and posts when channel matches", async () => {
+    process.env.GOOGLE_CHAT_WEBHOOKS = JSON.stringify({
+      default: "https://chat.example/default",
+      ops: "https://chat.example/ops",
+    });
+    mockAxiosPost.mockResolvedValue({status: 200});
+
+    await sendToGoogleChat("deploy complete", {channel: "ops", env: "staging"});
+    const callArgs = mockAxiosPost.mock.calls[0];
+    const [url, payload] = callArgs;
+    expect(url).toBe("https://chat.example/ops");
+    expect(payload).toEqual({text: "[STAGING] deploy complete"});
   });
 });

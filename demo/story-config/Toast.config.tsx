@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {ToastDemo, Toasts} from "@stories";
+import {ToastDemo, Toasts} from "@stories/Toast.stories";
 import {Toast} from "@terreno/ui";
 
 export const ToastConfiguration: DemoConfiguration = {
@@ -16,7 +16,7 @@ export const ToastConfiguration: DemoConfiguration = {
     documentation: "ready",
     figma: "ready",
     figmaLink:
-      "https://www.figma.com/file/ykXj5qjjtFjOYkAvTasu9r/Flourish-Health-Design-System?type=design&node-id=656%3A23406&mode=design&t=IZ8oGBzUmBzUtZMr-1",
+      "https://www.figma.com/design/ykXj5qjjtFjOYkAvTasu9r/Terreno-Design-System?node-id=3611-6847&t=Oy9DQ55rqjZ987fn-1",
     ios: "ready",
     android: "ready",
     web: "ready",

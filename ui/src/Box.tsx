@@ -62,6 +62,7 @@ const isValidWidthHeight = (value: number | string): boolean => {
 
 export const Box = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
+  const resolvedTestID = props.testID;
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -86,7 +87,11 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
 
   const BOX_STYLE_MAP: {
     [prop: string]: (
+      // noExplicitAny: Box's style mapper accepts heterogeneous prop values (spacing, colors, dimensions, theme tokens, booleans) that cannot be enumerated in a single union; the mapper functions narrow at call site
+      // biome-ignore lint/suspicious/noExplicitAny: Box's style mapper accepts heterogeneous prop values (spacing, colors, dimensions, theme tokens, booleans) that cannot be enumerated in a single union; the mapper functions narrow at call site
       value: any,
+      // noExplicitAny: see above - heterogeneous prop values
+      // biome-ignore lint/suspicious/noExplicitAny: see above - heterogeneous prop values
       all: {[prop: string]: any}
     ) => {[style: string]: string | number} | {};
   } = {
@@ -125,8 +130,8 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
     bottom: (bottom) => ({bottom: bottom ? 0 : undefined}),
     color: (value: keyof SurfaceTheme) => ({backgroundColor: theme.surface[value]}),
-    direction: (value: any) => ({display: "flex", flexDirection: value}),
-    display: (value: any) => {
+    direction: (value: "row" | "column") => ({display: "flex", flexDirection: value}),
+    display: (value: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden") => {
       if (value === "none") {
         return {display: "none"};
       }
@@ -157,7 +162,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
     justifyContent: (value: JustifyContent) => ({justifyContent: ALIGN_CONTENT[value]}),
     left: (left) => ({left: left ? 0 : undefined}),
-    lgDirection: (value: any) =>
+    lgDirection: (value: "row" | "column") =>
       mediaQueryLargerThan("lg") ? {display: "flex", flexDirection: value} : {},
     margin: (value) => ({margin: getSpacing(value)}),
     marginBottom: (value) => ({marginBottom: getSpacing(value)}),
@@ -182,7 +187,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
       }
       return {maxWidth: value};
     },
-    mdDirection: (value: any) =>
+    mdDirection: (value: "row" | "column") =>
       mediaQueryLargerThan("md") ? {display: "flex", flexDirection: value} : {},
     minHeight: (value) => {
       if (!isValidWidthHeight(value)) {
@@ -240,7 +245,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         return {elevation: 4};
       }
     },
-    smDirection: (value: any) =>
+    smDirection: (value: "row" | "column") =>
       mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
     top: (top) => ({top: top ? 0 : undefined}),
     width: (value) => {
@@ -262,7 +267,11 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
 
   const scrollRef = props.scrollRef ?? React.createRef();
 
+  // noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
+  // biome-ignore lint/suspicious/noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
   const propsToStyle = (): any => {
+    // noExplicitAny: same as above - heterogeneous style assembly
+    // biome-ignore lint/suspicious/noExplicitAny: same as above - heterogeneous style assembly
     let style: any = {};
     for (const prop of Object.keys(props) as Array<keyof typeof props>) {
       const value = props[prop];
@@ -294,7 +303,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     await props.onHoverEnd?.();
   };
 
-  let box;
+  let box: React.ReactElement;
 
   // Adding the accessibilityRole of button throws a warning in React Native since we nest buttons
   // within Box and RN does not support nested buttons
@@ -312,7 +321,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
           await props.onClick?.();
         }}
         style={propsToStyle()}
-        testID={props.testID ? `${props.testID}-clickable` : undefined}
+        testID={resolvedTestID ? `${resolvedTestID}-clickable` : undefined}
       >
         {props.children}
       </Pressable>
@@ -323,7 +332,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         style={propsToStyle()}
-        testID={props.testID}
+        testID={resolvedTestID}
       >
         {props.children}
       </View>

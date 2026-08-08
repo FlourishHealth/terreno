@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {AvatarDemo, AvatarImage, AvatarInitials, AvatarOutlines, AvatarSizes} from "@stories";
+import {AvatarDemo, AvatarImage, AvatarInitials, AvatarOutlines, AvatarSizes} from "@stories/Avatar.stories";
 import {Avatar} from "@terreno/ui";
 
 export const AvatarConfiguration: DemoConfiguration = {

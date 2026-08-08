@@ -1,12 +1,28 @@
-import {type ConfigurationModel, configurationPlugin, createdUpdatedPlugin} from "@terreno/api";
+import {
+  CachingSecretProvider,
+  CompositeSecretProvider,
+  type ConfigurationModel,
+  configurationPlugin,
+  createdUpdatedPlugin,
+  EnvSecretProvider,
+} from "@terreno/api";
 import mongoose, {Schema} from "mongoose";
 
 /**
  * Example configuration model demonstrating the Terreno configuration system.
  *
  * Each top-level subschema becomes a section in the admin configuration UI.
- * Fields marked with `secret: true` can be resolved from a SecretProvider.
+ * Fields marked with `secret: true` are resolved on-demand from a
+ * SecretProvider (never persisted to the document).
+ *
+ * The provider below composes sources (here just env vars, but production apps
+ * typically prepend a `GcpSecretProvider`) and wraps them in a short-TTL cache:
+ *   new CachingSecretProvider(new CompositeSecretProvider([gcp, env]), {ttlMs})
  */
+const secretProvider = new CachingSecretProvider(
+  new CompositeSecretProvider([new EnvSecretProvider()]),
+  {ttlMs: 60_000}
+);
 
 const generalSchema = new Schema(
   {
@@ -77,6 +93,17 @@ const notificationsSchema = new Schema(
   {_id: false}
 );
 
+const debugSchema = new Schema(
+  {
+    websocketsDebug: {
+      default: false,
+      description: "Enable verbose WebSocket and realtime sync debug logging",
+      type: Boolean,
+    },
+  },
+  {_id: false}
+);
+
 export interface AppConfigDocument {
   general: {
     appName: string;
@@ -93,10 +120,17 @@ export interface AppConfigDocument {
     emailNotificationsEnabled: boolean;
     slackWebhookUrl: string;
   };
+  debug: {
+    websocketsDebug: boolean;
+  };
 }
 
 const appConfigSchema = new Schema<AppConfigDocument>(
   {
+    debug: {
+      description: "Debug and diagnostic settings",
+      type: debugSchema,
+    },
     general: {
       description: "General application settings",
       type: generalSchema,
@@ -113,7 +147,7 @@ const appConfigSchema = new Schema<AppConfigDocument>(
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
-appConfigSchema.plugin(configurationPlugin);
+appConfigSchema.plugin(configurationPlugin, {secretProvider});
 appConfigSchema.plugin(createdUpdatedPlugin);
 
 export const AppConfiguration = mongoose.model<AppConfigDocument>(

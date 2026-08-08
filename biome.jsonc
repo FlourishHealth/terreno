@@ -96,11 +96,32 @@
             "allow": ["assert", "debug", "error", "info", "warn"]
           }
         },
-        "noExplicitAny": "off",
-        "noImplicitAnyLet": "off"
+        "noExplicitAny": "error",
+        "noImplicitAnyLet": "error"
       }
     }
   },
+  "overrides": [
+    {
+      // Internal barrel index files are banned. Package public entries
+      // (src/index.ts[x]) and Expo Router route files (app/**) are exempt.
+      "includes": [
+        "**/index.ts",
+        "**/index.tsx",
+        "!src/index.ts",
+        "!src/index.tsx",
+        "!app/**",
+        "!**/app/**"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "error"
+          }
+        }
+      }
+    }
+  ],
   "vcs": {
     "clientKind": "git",
     "defaultBranch": "master",

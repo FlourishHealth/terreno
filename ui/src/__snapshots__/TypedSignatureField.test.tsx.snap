@@ -1,0 +1,372 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TypedSignatureField renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Signature",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Full name",
+              ],
+              "props": {
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontSize": 14,
+                  "fontWeight": 600,
+                  "lineHeight": 22.4,
+                },
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Enter text here",
+                        "accessibilityState": {
+                          "disabled": false,
+                        },
+                        "aria-label": "Text input field",
+                        "autoCapitalize": "sentences",
+                        "autoCorrect": true,
+                        "blurOnSubmit": true,
+                        "enterKeyHint": undefined,
+                        "keyboardType": "default",
+                        "multiline": undefined,
+                        "nativeID": undefined,
+                        "numberOfLines": 1,
+                        "onBlur": [Function],
+                        "onChangeText": [Function],
+                        "onContentSizeChange": [Function],
+                        "onFocus": [Function],
+                        "onSubmitEditing": [Function],
+                        "placeholder": "Type your full name",
+                        "placeholderTextColor": "#686868",
+                        "readOnly": false,
+                        "ref": [Function],
+                        "secureTextEntry": false,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                          "fontFamily": "text",
+                          "fontSize": 16,
+                          "gap": 10,
+                          "height": 24,
+                          "paddingVertical": 0,
+                          "width": "100%",
+                        },
+                        "testID": undefined,
+                        "textContentType": "none",
+                        "underlineColorAndroid": "transparent",
+                        "value": "",
+                      },
+                      "type": "TextInput",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#FFFFFF",
+                  "borderColor": "#9A9A9A",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "column",
+                  "gap": 0,
+                  "overflow": "hidden",
+                  "paddingHorizontal": 12,
+                  "paddingVertical": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "column",
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "marginTop": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Dancing Script",
+              ],
+              "props": {
+                "numberOfLines": 1,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "signature-dancing-script",
+                  "fontSize": 22,
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sets the style of your signature",
+            "accessibilityLabel": "Signature font Dancing Script",
+            "accessibilityState": {
+              "disabled": false,
+              "selected": true,
+            },
+            "aria-role": "button",
+            "disabled": false,
+            "hitSlop": 8,
+            "onPress": [Function],
+            "style": {
+              "backgroundColor": "#D9D9D9",
+              "borderColor": "#D69C0E",
+              "borderRadius": 8,
+              "borderWidth": 2,
+              "minWidth": 96,
+              "opacity": 1,
+              "paddingHorizontal": 12,
+              "paddingVertical": 8,
+            },
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Great Vibes",
+              ],
+              "props": {
+                "numberOfLines": 1,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "signature-great-vibes",
+                  "fontSize": 22,
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sets the style of your signature",
+            "accessibilityLabel": "Signature font Great Vibes",
+            "accessibilityState": {
+              "disabled": false,
+              "selected": false,
+            },
+            "aria-role": "button",
+            "disabled": false,
+            "hitSlop": 8,
+            "onPress": [Function],
+            "style": {
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#CDCDCD",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "minWidth": 96,
+              "opacity": 1,
+              "paddingHorizontal": 12,
+              "paddingVertical": 8,
+            },
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Sacramento",
+              ],
+              "props": {
+                "numberOfLines": 1,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "signature-sacramento",
+                  "fontSize": 22,
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sets the style of your signature",
+            "accessibilityLabel": "Signature font Sacramento",
+            "accessibilityState": {
+              "disabled": false,
+              "selected": false,
+            },
+            "aria-role": "button",
+            "disabled": false,
+            "hitSlop": 8,
+            "onPress": [Function],
+            "style": {
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#CDCDCD",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "minWidth": 96,
+              "opacity": 1,
+              "paddingHorizontal": 12,
+              "paddingVertical": 8,
+            },
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Caveat",
+              ],
+              "props": {
+                "numberOfLines": 1,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "signature-caveat",
+                  "fontSize": 22,
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sets the style of your signature",
+            "accessibilityLabel": "Signature font Caveat",
+            "accessibilityState": {
+              "disabled": false,
+              "selected": false,
+            },
+            "aria-role": "button",
+            "disabled": false,
+            "hitSlop": 8,
+            "onPress": [Function],
+            "style": {
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#CDCDCD",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "minWidth": 96,
+              "opacity": 1,
+              "paddingHorizontal": 12,
+              "paddingVertical": 8,
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 8,
+          "marginTop": 12,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Type your full name",
+          ],
+          "props": {
+            "numberOfLines": 1,
+            "style": {
+              "color": "#686868",
+              "fontFamily": "signature-dancing-script",
+              "fontSize": 40,
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "justifyContent": "center",
+          "marginTop": 12,
+          "minHeight": 96,
+          "paddingHorizontal": 16,
+          "paddingVertical": 12,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

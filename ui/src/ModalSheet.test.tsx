@@ -7,16 +7,13 @@ import {renderWithTheme} from "./test-utils";
 
 // Mock react-native-modalize
 mock.module("react-native-modalize", () => ({
-  Modalize: forwardRef(({children}: {children: React.ReactNode}, ref) => (
-    <View ref={ref as any} testID="modalize">
-      {children}
-    </View>
-  )),
-}));
-
-// Mock react-native-portalize
-mock.module("react-native-portalize", () => ({
-  Portal: ({children}: {children: React.ReactNode}) => <View testID="portal">{children}</View>,
+  Modalize: forwardRef<React.ElementRef<typeof View>, {children: React.ReactNode}>(
+    ({children}, ref) => (
+      <View ref={ref} testID="modalize">
+        {children}
+      </View>
+    )
+  ),
 }));
 
 describe("ModalSheet", () => {

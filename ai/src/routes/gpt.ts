@@ -8,6 +8,7 @@ import {
 import type {Tool} from "ai";
 import {stepCountIs, streamText} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 import {createTelemetryConfig, preparePromptForAI} from "../langfuseVercelAi";
 
@@ -16,7 +17,26 @@ import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
 import {TITLE_GENERATION_PROMPT} from "../service/prompts";
-import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../types";
+import type {
+  GptHistoryDocument,
+  GptHistoryPrompt,
+  GptRouteOptions,
+  MessageContentPart,
+} from "../types";
+
+interface GeneratedImageFile {
+  base64: string;
+  mediaType: string;
+}
+
+const isGeneratedImageFile = (value: unknown): value is GeneratedImageFile =>
+  typeof value === "object" &&
+  value !== null &&
+  "base64" in value &&
+  typeof value.base64 === "string" &&
+  "mediaType" in value &&
+  typeof value.mediaType === "string" &&
+  value.mediaType.startsWith("image/");
 
 const DEMO_RESPONSE =
   "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
@@ -33,9 +53,10 @@ const sendDemoResponse = (res: express.Response, historyId?: string): void => {
 
 /**
  * Resolve the AIService for a request. Priority:
- * 1. Per-request API key via `x-ai-api-key` header (creates a temporary AIService)
- * 2. Pre-configured aiService from route options
- * 3. undefined (triggers demo mode response)
+ * 1. Per-request API key via `x-ai-api-key` header (creates a temporary AIService via createModelFn)
+ * 2. Specific model requested + server-side model factory (creates a temporary AIService via createServerModelFn)
+ * 3. Pre-configured aiService from route options
+ * 4. undefined (triggers demo mode response)
  */
 const resolveAiService = (
   req: express.Request,
@@ -45,6 +66,12 @@ const resolveAiService = (
   const perRequestKey = req.headers["x-ai-api-key"] as string | undefined;
   if (perRequestKey && options.createModelFn) {
     return new AIService({model: options.createModelFn(perRequestKey, modelId)});
+  }
+  if (modelId && options.createServerModelFn) {
+    const serverModel = options.createServerModelFn(modelId);
+    if (serverModel) {
+      return new AIService({model: serverModel});
+    }
   }
   return options.aiService;
 };
@@ -59,10 +86,17 @@ const generateTitle = async (
 ): Promise<string | undefined> => {
   try {
     let titleService = aiService;
-    if (options.titleModelId && options.createModelFn && perRequestApiKey) {
-      titleService = new AIService({
-        model: options.createModelFn(perRequestApiKey, options.titleModelId),
-      });
+    if (options.titleModelId) {
+      if (options.createModelFn && perRequestApiKey) {
+        titleService = new AIService({
+          model: options.createModelFn(perRequestApiKey, options.titleModelId),
+        });
+      } else if (options.createServerModelFn) {
+        const titleModel = options.createServerModelFn(options.titleModelId);
+        if (titleModel) {
+          titleService = new AIService({model: titleModel});
+        }
+      }
     }
     const conversationSnippet = `User: ${prompt}\nAssistant: ${response.substring(0, 500)}`;
     const title = await titleService.generateText({
@@ -76,7 +110,7 @@ const generateTitle = async (
   }
 };
 
-export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
+export const addGptRoutes = (router: express.Router, options: GptRouteOptions): void => {
   const {mcpService, tools: routeTools, createRequestTools, toolChoice, maxSteps} = options;
 
   router.post(
@@ -121,7 +155,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           model: requestModel,
           projectId,
         } = req.body;
-        const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+        const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
         if (!prompt || typeof prompt !== "string") {
           throw new APIError({status: 400, title: "prompt is required"});
@@ -144,7 +178,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         }
 
         // Load or create history
-        let history;
+        let history: GptHistoryDocument | null;
         if (historyId) {
           history = await GptHistory.findById(historyId);
           if (!history) {
@@ -214,7 +248,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         if (attachments && Array.isArray(attachments)) {
           logger.debug("Processing attachments", {
             count: attachments.length,
-            types: attachments.map((a: any) => ({
+            types: attachments.map((a: {mimeType?: string; type?: string; url?: string}) => ({
               mimeType: a.mimeType,
               type: a.type,
               urlLength: a.url?.length ?? 0,
@@ -282,7 +316,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
         let fullResponse = "";
         const generatedImages: Array<{mimeType: string; url: string}> = [];
-        const startTime = Date.now();
+        const startTime = DateTime.now().toMillis();
         try {
           logger.debug("Starting streamText", {model: modelId, supportsTools});
           const telemetry = createTelemetryConfig({
@@ -297,13 +331,16 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           const result = streamText({
             experimental_telemetry: telemetry,
             messages,
-            model: (aiService as any).model,
+            model: aiService.model,
             providerOptions: !supportsTools
-              ? {google: {responseModalities: ["TEXT", "IMAGE"]}}
+              ? {
+                  google: {responseModalities: ["TEXT", "IMAGE"]},
+                  vertex: {responseModalities: ["TEXT", "IMAGE"]},
+                }
               : undefined,
             stopWhen: allTools ? stepCountIs(maxSteps ?? 5) : stepCountIs(1),
             system: effectiveSystemPrompt ?? undefined,
-            temperature: (aiService as any).defaultTemperature,
+            temperature: aiService.defaultTemperature,
             toolChoice: allTools ? (toolChoice ?? "auto") : undefined,
             tools: allTools,
           });
@@ -315,14 +352,16 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
           for await (const part of result.fullStream as AsyncIterable<{
             type: string;
-            [key: string]: any;
+            [key: string]: unknown;
           }>) {
             partCount++;
             if (partCount <= 5 || part.type === "error" || part.type === "file") {
               logger.debug("Stream part", {
                 partCount,
                 type: part.type,
-                ...(part.type === "file" ? {mediaType: part.mediaType} : {}),
+                ...(part.type === "file" && isGeneratedImageFile(part.file)
+                  ? {mediaType: part.file.mediaType}
+                  : {}),
                 ...(part.type === "error" ? {error: String(part.error ?? part)} : {}),
               });
             }
@@ -360,12 +399,13 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               continue;
             }
             if (part.type === "file") {
-              const mediaType = part.mediaType as string | undefined;
-              if (mediaType?.startsWith("image/")) {
-                const dataUrl = `data:${mediaType};base64,${part.base64}`;
-                generatedImages.push({mimeType: mediaType, url: dataUrl});
+              if (isGeneratedImageFile(part.file)) {
+                const dataUrl = `data:${part.file.mediaType};base64,${part.file.base64}`;
+                generatedImages.push({mimeType: part.file.mediaType, url: dataUrl});
                 res.write(
-                  `data: ${JSON.stringify({image: {mimeType: mediaType, url: dataUrl}})}\n\n`
+                  `data: ${JSON.stringify({
+                    image: {mimeType: part.file.mediaType, url: dataUrl},
+                  })}\n\n`
                 );
                 logger.debug("Sent inline image from stream");
               }
@@ -390,9 +430,9 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               // Persist tool call in history
               history.prompts.push({
                 args: part.input as Record<string, unknown>,
-                text: `Tool call: ${part.toolName}`,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
+                text: `Tool call: ${part.toolName as string}`,
+                toolCallId: part.toolCallId as string,
+                toolName: part.toolName as string,
                 type: "tool-call",
               });
             } else if (part.type === "tool-result") {
@@ -430,9 +470,9 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               // Persist tool result in history (without the large file data)
               history.prompts.push({
                 result: cleanResult as unknown,
-                text: `Tool result: ${part.toolName}`,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
+                text: `Tool result: ${part.toolName as string}`,
+                toolCallId: part.toolCallId as string,
+                toolName: part.toolName as string,
                 type: "tool-result",
               });
             }
@@ -495,7 +535,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               prompt,
               requestType: "general",
               response: fullResponse,
-              responseTime: Date.now() - startTime,
+              responseTime: DateTime.now().toMillis() - startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -543,7 +583,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               error: error instanceof Error ? error.message : String(error),
               prompt,
               requestType: "general",
-              responseTime: Date.now() - startTime,
+              responseTime: DateTime.now().toMillis() - startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -598,7 +638,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const {id} = req.params;
       const {promptIndex, rating} = req.body;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       if (typeof promptIndex !== "number" || promptIndex < 0) {
         throw new APIError({status: 400, title: "promptIndex must be a non-negative number"});
@@ -645,7 +685,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const {text} = req.body;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});

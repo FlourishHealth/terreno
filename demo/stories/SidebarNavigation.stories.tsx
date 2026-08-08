@@ -4,11 +4,16 @@ import {router} from "expo-router";
 import {type FC, useState} from "react";
 
 export const SidebarNavigationDemo: FC<{
+  preview?: boolean;
   panelBackgroundColor?: string;
   itemBackgroundColor?: string;
   badgeStatus?: SidebarBadgeStatus;
-}> = ({panelBackgroundColor, itemBackgroundColor, badgeStatus}) => {
+}> = ({preview, panelBackgroundColor, itemBackgroundColor, badgeStatus}) => {
   const [activeRoute, setActiveRoute] = useState("index");
+
+  if (preview) {
+    return <Box />;
+  }
 
   const panelStyle = panelBackgroundColor ? {backgroundColor: panelBackgroundColor} : undefined;
   const itemStyle = itemBackgroundColor ? {backgroundColor: itemBackgroundColor} : undefined;

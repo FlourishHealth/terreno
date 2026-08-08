@@ -1,0 +1,292 @@
+name: EAS PR
+
+# Drives the per-app EAS workflows. We compute the project fingerprint
+# locally and decide whether a native rebuild is warranted.
+#
+# - Fingerprint already has any finished matching dev build → fast path:
+#   publish the EAS Update from GitHub Actions + post the PR comment.
+#   Missing platforms are NOT re-seeded on every PR (that was spamming
+#   Expo with iOS device builds for a known fingerprint).
+#
+# - Fingerprint is brand-new (no finished matches on any profile) →
+#   publish the EAS Update, then queue only the missing platforms via
+#   eas-pr-selective-build.sh. A full native build can take 15+ minutes;
+#   the EAS GitHub App posts per-job status checks when it finishes.
+#
+# Native rebuilds happen only when native deps / config plugins / app
+# icons / SDK bumps change the fingerprint. Seed a missing platform for
+# an already-known fingerprint via the `Trigger EAS Workflow` manual
+# dispatch — not from every PR.
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize]
+    paths:
+      - example-frontend/**
+      - demo/**
+      - ui/**
+      - rtk/**
+      - package.json
+      - bun.lock
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: eas-pr-${{ github.event.pull_request.number }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect affected apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      example_frontend: ${{ steps.changes.outputs.example_frontend }}
+      demo: ${{ steps.changes.outputs.demo }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          fetch-depth: 0
+
+      - id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || echo "")
+          ef=false
+          dm=false
+          if echo "$changed" | grep -qE "^(example-frontend/|ui/|rtk/|package\.json$|bun\.lock$)"; then
+            ef=true
+          fi
+          if echo "$changed" | grep -qE "^(demo/|ui/|package\.json$|bun\.lock$)"; then
+            dm=true
+          fi
+          echo "example_frontend=$ef" >> "$GITHUB_OUTPUT"
+          echo "demo=$dm" >> "$GITHUB_OUTPUT"
+
+  example_frontend:
+    name: EAS — example-frontend
+    needs: detect
+    if: needs.detect.outputs.example_frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing required secret EXPO_TOKEN"
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Cache bun + node_modules
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile workspace packages
+        run: bun run compile
+
+      - name: Decide fast vs slow path
+        id: decide
+        working-directory: example-frontend
+        run: ../.github/workflows/scripts/eas-pr-decide.sh
+
+      - name: Publish EAS Update for PR
+        working-directory: example-frontend
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          update_json=$(eas update \
+            --branch "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
+            --non-interactive \
+            --json)
+          first_id=$(echo "$update_json" | jq -r '.[0].group')
+          if [ -z "$first_id" ] || [ "$first_id" = "null" ]; then
+            echo "::error::EAS update did not return a group id"
+            exit 1
+          fi
+          echo "EAS_UPDATE_GROUP_ID=${first_id}" >> "$GITHUB_ENV"
+          echo "EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
+
+      - name: Fast path — update-only complete
+        if: steps.decide.outputs.needs_build == 'false'
+        run: |
+          echo "::notice::Fingerprint already known — update-only flow complete"
+
+      - name: Slow path — queue builds for new fingerprint only
+        id: dispatch
+        if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
+        working-directory: example-frontend
+        env:
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+        run: ../.github/workflows/scripts/eas-pr-selective-build.sh
+
+      - name: Post PR comment
+        if: always() && steps.decide.outputs.ios_hash != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          APP_NAME: example-frontend
+          APP_DISPLAY: Terreno Example
+          APP_ICON: "📱"
+          APP_SLUG: terreno-example
+          APP_SCHEME: frontend
+          PROJECT_ID: ddbe68d9-1142-4991-a02e-4ebb9fd83530
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
+          IOS_DEVICE_ACTIVE: ${{ steps.decide.outputs.ios_device_active }}
+          IOS_SIM_ACTIVE: ${{ steps.decide.outputs.ios_sim_active }}
+          ANDROID_ACTIVE: ${{ steps.decide.outputs.android_active }}
+          IOS_DEVICE_QUEUED: ${{ steps.dispatch.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.dispatch.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.dispatch.outputs.android_queued }}
+          IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
+          IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
+          ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
+          PATH_TAKEN: ${{ steps.decide.outputs.needs_build == 'true' && 'slow' || 'fast' }}
+        run: .github/workflows/scripts/post-eas-pr-comment.sh
+
+  demo:
+    name: EAS — demo
+    needs: detect
+    if: needs.detect.outputs.demo == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing required secret EXPO_TOKEN"
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Cache bun + node_modules
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile workspace packages
+        run: bun run compile
+
+      - name: Generate UI type documentation
+        working-directory: ui
+        run: bun run types
+
+      - name: Decide fast vs slow path
+        id: decide
+        working-directory: demo
+        run: ../.github/workflows/scripts/eas-pr-decide.sh
+
+      - name: Publish EAS Update for PR
+        working-directory: demo
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          update_json=$(eas update \
+            --branch "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
+            --non-interactive \
+            --json)
+          first_id=$(echo "$update_json" | jq -r '.[0].group')
+          if [ -z "$first_id" ] || [ "$first_id" = "null" ]; then
+            echo "::error::EAS update did not return a group id"
+            exit 1
+          fi
+          echo "EAS_UPDATE_GROUP_ID=${first_id}" >> "$GITHUB_ENV"
+          echo "EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
+
+      - name: Fast path — update-only complete
+        if: steps.decide.outputs.needs_build == 'false'
+        run: |
+          echo "::notice::Fingerprint already known — update-only flow complete"
+
+      - name: Slow path — queue builds for new fingerprint only
+        id: dispatch
+        if: ${{ !cancelled() && steps.decide.outputs.needs_build == 'true' }}
+        working-directory: demo
+        env:
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_match }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_match }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+        run: ../.github/workflows/scripts/eas-pr-selective-build.sh
+
+      - name: Post PR comment
+        if: always() && steps.decide.outputs.ios_hash != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          APP_NAME: demo
+          APP_DISPLAY: Terreno Demo
+          APP_ICON: "🧪"
+          APP_SLUG: terreno-demo
+          APP_SCHEME: terreno
+          PROJECT_ID: 89c320ce-465b-4d71-9fd6-74fea9c5d898
+          IOS_DEVICE_MATCH: ${{ steps.decide.outputs.ios_device_finished }}
+          IOS_SIM_MATCH: ${{ steps.decide.outputs.ios_sim_finished }}
+          ANDROID_MATCH: ${{ steps.decide.outputs.android_finished }}
+          IOS_DEVICE_ACTIVE: ${{ steps.decide.outputs.ios_device_active }}
+          IOS_SIM_ACTIVE: ${{ steps.decide.outputs.ios_sim_active }}
+          ANDROID_ACTIVE: ${{ steps.decide.outputs.android_active }}
+          IOS_DEVICE_QUEUED: ${{ steps.dispatch.outputs.ios_device_queued }}
+          IOS_SIM_QUEUED: ${{ steps.dispatch.outputs.ios_sim_queued }}
+          ANDROID_QUEUED: ${{ steps.dispatch.outputs.android_queued }}
+          IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
+          IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
+          ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
+          PATH_TAKEN: ${{ steps.decide.outputs.needs_build == 'true' && 'slow' || 'fast' }}
+        run: .github/workflows/scripts/post-eas-pr-comment.sh

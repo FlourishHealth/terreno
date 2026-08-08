@@ -8,6 +8,8 @@ export type VersionCheckStatus = "ok" | "warning" | "required";
 
 export interface VersionCheckResponse {
   message?: string;
+  /** How often the client should poll for updates, in milliseconds. */
+  pollingIntervalMs?: number;
   requiredVersion?: number;
   status: VersionCheckStatus;
   updateUrl?: string;
@@ -17,6 +19,7 @@ export interface VersionCheckResponse {
 const DEFAULT_WARNING_MESSAGE =
   "A new version is available. Please update for the best experience.";
 const DEFAULT_REQUIRED_MESSAGE = "This version is no longer supported. Please update to continue.";
+const DEFAULT_POLLING_INTERVAL_MINUTES = 1440;
 
 /**
  * TerrenoPlugin that adds a public GET /version-check endpoint for upgrade enforcement.
@@ -30,12 +33,12 @@ export class VersionCheckPlugin implements TerrenoPlugin {
         const versionParam = req.query.version;
         const platform = req.query.platform as string | undefined;
 
-        const version =
-          typeof versionParam === "string"
-            ? parseInt(versionParam, 10)
-            : typeof versionParam === "number"
-              ? versionParam
-              : undefined;
+        let version: number | undefined;
+        if (typeof versionParam === "string") {
+          version = parseInt(versionParam, 10);
+        } else if (typeof versionParam === "number") {
+          version = versionParam;
+        }
 
         if (version === undefined || Number.isNaN(version)) {
           return res.json({status: "ok" as VersionCheckStatus});
@@ -46,7 +49,10 @@ export class VersionCheckPlugin implements TerrenoPlugin {
         const config = await VersionConfig.findOneOrNone({_singleton: "config"});
 
         if (!config) {
-          return res.json({status: "ok" as VersionCheckStatus});
+          return res.json({
+            pollingIntervalMs: DEFAULT_POLLING_INTERVAL_MINUTES * 60 * 1000,
+            status: "ok" as VersionCheckStatus,
+          });
         }
 
         const requiredVersion =
@@ -59,6 +65,8 @@ export class VersionCheckPlugin implements TerrenoPlugin {
             : (config.mobileWarningVersion ?? 0);
 
         const response: VersionCheckResponse = {
+          pollingIntervalMs:
+            (config.pollingIntervalMinutes ?? DEFAULT_POLLING_INTERVAL_MINUTES) * 60 * 1000,
           requiredVersion: requiredVersion > 0 ? requiredVersion : undefined,
           status: "ok",
           updateUrl: config.updateUrl || undefined,

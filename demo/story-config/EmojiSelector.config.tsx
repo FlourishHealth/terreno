@@ -1,7 +1,7 @@
 import {DemoConfiguration} from "@config";
 import {EmojiSelector} from "@terreno/ui";
 
-import {EmojiSelectorDemo} from "../stories";
+import {EmojiSelectorDemo} from "../stories/EmojiSelector.stories";
 
 export const EmojiSelectorConfiguration: DemoConfiguration = {
   name: "Emoji selector",

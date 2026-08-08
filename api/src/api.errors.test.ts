@@ -1,4 +1,7 @@
+// noExplicitAny: test mock typing
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
+import type {NextFunction} from "express";
 import mongoose from "mongoose";
 
 import {
@@ -27,24 +30,23 @@ describe("errors module", () => {
       expect(error.status).toBe(500);
     });
 
-    it("includes error stack in message when error is provided", () => {
+    it("exposes a wrapped error as the cause, keeping the message stable", () => {
       const originalError = new Error("Original error");
       const apiError = new APIError({
         error: originalError,
         title: "Wrapped error",
       });
-      expect(apiError.message).toContain("Wrapped error");
-      expect(originalError.stack).toBeDefined();
-      expect(apiError.message).toContain(originalError.stack as string);
+      expect(apiError.message).toBe("Wrapped error");
+      expect(apiError.cause).toBe(originalError);
     });
 
-    it("includes detail in message when provided", () => {
+    it("keeps detail out of the message", () => {
       const error = new APIError({
         detail: "More details here",
         title: "Test error",
       });
-      expect(error.message).toContain("Test error");
-      expect(error.message).toContain("More details here");
+      expect(error.message).toBe("Test error");
+      expect(error.detail).toBe("More details here");
     });
 
     it("sets fields in meta when provided", () => {
@@ -151,6 +153,17 @@ describe("errors module", () => {
 
       apiUnauthorizedMiddleware(err, {} as any, {} as any, next);
       expect(nextCalled).toBe(true);
+    });
+
+    it("calls next for an APIError whose title is Unauthorized", () => {
+      const err = new APIError({code: "not-a-member", status: 403, title: "Unauthorized"});
+      let nextArg: unknown;
+      const next = (error?: unknown) => {
+        nextArg = error;
+      };
+
+      apiUnauthorizedMiddleware(err, {} as any, {} as any, next as unknown as NextFunction);
+      expect(nextArg).toBe(err);
     });
   });
 });

@@ -6,7 +6,10 @@ import {Platform} from "react-native";
 import type {APIError, BaseProfile, IconSize} from "./Common";
 import {COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES} from "./Constants";
 
-export function mergeInlineStyles(inlineStyle?: any, newStyle?: any) {
+export const mergeInlineStyles = (
+  inlineStyle?: {__style?: Record<string, unknown>} | undefined,
+  newStyle?: Record<string, unknown> | undefined
+) => {
   const inline = get(inlineStyle, "__style");
   return {
     __style: {
@@ -14,14 +17,14 @@ export function mergeInlineStyles(inlineStyle?: any, newStyle?: any) {
       ...newStyle,
     },
   };
-}
+};
 
-export function isTestUser(profile?: BaseProfile) {
+export const isTestUser = (profile?: BaseProfile) => {
   return (
     profile?.email &&
     (profile.email.indexOf("nang.io") > -1 || profile.email.indexOf("example.com") > -1)
   );
-}
+};
 
 export const iconNumberToSize = (size = 16): IconSize => {
   let iconSize: IconSize;
@@ -104,7 +107,7 @@ export const toProps = ({
   className,
   inlineStyle,
 }: Style): {className: string; style: InlineStyle} => {
-  const props: any = {};
+  const props: {className?: string; style?: InlineStyle} = {};
 
   if (className.size > 0) {
     // Sorting here ensures that classNames are always stable, reducing diff
@@ -117,7 +120,7 @@ export const toProps = ({
     props.style = inlineStyle;
   }
 
-  return props;
+  return props as {className: string; style: InlineStyle};
 };
 
 /*
@@ -167,17 +170,17 @@ export const rangeWithoutZero =
 // Binds a string classname to the value in an object. Useful when interacting
 // with ranges that need to come dynamically from a style object. This is
 // similar to the NPM package 'classnames/bind'.
-export function bind<T>(
+export const bind = <T,>(
   fn: Functor<T>,
   scope:
     | {
         readonly [key: string]: string;
       }
-    | any
-): (val: T) => Style {
+    | Record<string, string>
+): ((val: T) => Style) => {
   const map = mapClassName((name) => scope[name]);
   return (val: T): Style => map(fn(val));
-}
+};
 
 // This takes a series of the previously defined functors, runs them all
 // against a value and returns the set of their classnames.
@@ -291,15 +294,13 @@ export const isValidGoogleApiKey = (apiKey: string): boolean => {
   return true;
 };
 
-export function formattedCountyCode(state: string, countyName: string): string {
-  // Remove whitespace and convert to lowercase for comparison
+export const formattedCountyCode = (state: string, countyName: string): string => {
   const stateKey = state
     .replace(/\s+/g, "")
     .toLowerCase() as keyof typeof COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES;
 
   const stateData = COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES[stateKey];
 
-  // Remove whitespace, periods, apostrophes, and dashes for comparison
   const countyKey = countyName
     .trim()
     .toLowerCase()
@@ -314,16 +315,16 @@ export function formattedCountyCode(state: string, countyName: string): string {
   }
 
   return `${countyData.stateFP}${countyData.countyFP}`;
-}
+};
 
-export function isAPIError(error: any): error is APIError {
-  return error?.data?.title;
-}
+export const isAPIError = (error: unknown): error is APIError => {
+  return Boolean((error as {data?: {title?: unknown}} | null | undefined)?.data?.title);
+};
 
-export function printAPIError(error: APIError, details = true): string {
+export const printAPIError = (error: APIError, details = true): string => {
   let message = error.data?.title;
   if (error.data?.detail && details) {
     message = `${message}: ${error.data?.detail}`;
   }
   return message;
-}
+};

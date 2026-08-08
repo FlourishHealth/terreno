@@ -6,10 +6,28 @@
 import * as Sentry from "@sentry/bun";
 import express, {type NextFunction, type Request, type Response} from "express";
 import cloneDeep from "lodash/cloneDeep";
+import {DateTime} from "luxon";
 import mongoose, {type Document, type Model} from "mongoose";
 
+import {
+  assertNoActionCollisions,
+  type CollectionActionConfig,
+  type InstanceActionConfig,
+  registerActionRoutes,
+} from "./actions";
 import {authenticateMiddleware, type User} from "./auth";
-import {APIError, apiErrorMiddleware, getDisableExternalErrorTracking, isAPIError} from "./errors";
+import {
+  APIError,
+  type APIErrorOptions,
+  apiErrorMiddleware,
+  BadRequestError,
+  errorDetail,
+  ForbiddenError,
+  getDisableExternalErrorTracking,
+  isAPIError,
+  mongooseErrorToAPIError,
+  NotFoundError,
+} from "./errors";
 import {logger} from "./logger";
 import {registerMCPModel} from "./mcp/registry";
 import type {MCPConfig} from "./mcp/types";
@@ -28,6 +46,8 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
+import {registerRealtime} from "./realtime/registry";
+import type {RealtimeConfig} from "./realtime/types";
 import {
   defaultResponseHandler,
   serialize,
@@ -38,13 +58,50 @@ import {isValidObjectId} from "./utils";
 
 export type JSONPrimitive = string | number | boolean | null;
 export interface JSONArray extends Array<JSONValue> {}
-export type JSONObject = {[member: string]: JSONValue};
+export interface JSONObject {
+  [member: string]: JSONValue;
+}
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
-export function addPopulateToQuery(
+/**
+ * Picks the error to throw for something caught in a hook, transformer, or Mongoose middleware.
+ * An `APIError` is passed through untouched so its status, code, detail, and meta reach the client;
+ * anything else is wrapped in the given framework error. `wrapper` may override any field,
+ * including `detail`, which defaults to the caught error's text.
+ */
+const passthroughOrWrap = (error: unknown, wrapper: APIErrorOptions): APIError => {
+  if (isAPIError(error)) {
+    return error;
+  }
+  return new APIError({
+    cause: error,
+    detail: errorDetail(error),
+    disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+    ...wrapper,
+  });
+};
+
+/**
+ * `passthroughOrWrap` for write paths (`model.create`, `doc.save`). Mongoose validation and cast
+ * errors are converted first so their per-field messages survive as `meta.fields` instead of being
+ * flattened into the wrapper's `detail`.
+ */
+const passthroughOrWrapWrite = (error: unknown, wrapper: APIErrorOptions): APIError => {
+  if (!isAPIError(error) && error instanceof Error) {
+    const converted = mongooseErrorToAPIError(error);
+    if (converted) {
+      return converted;
+    }
+  }
+  return passthroughOrWrap(error, wrapper);
+};
+
+export const addPopulateToQuery = (
+  // noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
+  // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
   builtQuery: mongoose.Query<any[], any, Record<string, never>, any>,
   populatePaths?: PopulatePath[]
-) {
+) => {
   const paths = populatePaths ?? [];
   let query = builtQuery;
 
@@ -54,7 +111,7 @@ export function addPopulateToQuery(
     query = builtQuery.populate({path, select});
   }
   return query;
-}
+};
 
 // TODOS:
 // Support bulk actions
@@ -73,6 +130,30 @@ const COMPLEX_QUERY_PARAMS = ["$and", "$or"];
  * @returns The sum of `a` and `b`
  */
 export type RESTMethod = "list" | "create" | "read" | "update" | "delete";
+
+/**
+ * Interface for the vendored @wesleytodd/openapi Express middleware.
+ * Provides methods for building OpenAPI documentation from Express routes.
+ */
+export interface OpenApiMiddleware {
+  /** The middleware itself is callable as Express middleware. */
+  (req: express.Request, res: express.Response, next: express.NextFunction): void;
+  /** Register a path-level OpenAPI schema, returning an Express middleware that attaches the schema to the route. */
+  path: (schema?: Record<string, unknown>) => express.RequestHandler;
+  /** Register or retrieve an OpenAPI component definition (schemas, responses, parameters, etc). */
+  component: (
+    type: string,
+    name?: string,
+    description?: Record<string, unknown>
+  ) => OpenApiMiddleware | {$ref: string} | Record<string, unknown> | undefined;
+  /** Shorthand for component("schemas", ...) */
+  schema: (
+    name?: string,
+    description?: Record<string, unknown>
+  ) => OpenApiMiddleware | {$ref: string} | Record<string, unknown> | undefined;
+  /** The generated OpenAPI document */
+  document: Record<string, unknown>;
+}
 
 /**
  * This is the main configuration.
@@ -112,8 +193,8 @@ export interface ModelRouterOptions<T> {
    */
   queryFilter?: (
     user?: User,
-    query?: Record<string, any>
-  ) => Record<string, any> | null | Promise<Record<string, any> | null>;
+    query?: Record<string, unknown>
+  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
   /**
    * Transformers allow data to be transformed before actions are executed,
    * and serialized before being returned to the user.
@@ -139,7 +220,7 @@ export interface ModelRouterOptions<T> {
    * list queries. Accepts any Mongoose-style queries, and runs for all user types.
    *    defaultQueryParams: \{hidden: false\} // By default, don't show objects with hidden=true
    * These can be overridden by the user if not disallowed by queryFilter. */
-  defaultQueryParams?: {[key: string]: any};
+  defaultQueryParams?: Record<string, unknown>;
   /**
    * Manages Mongoose populations before returning from all methods (list, read, create, etc).
    * For each population:
@@ -163,14 +244,21 @@ export interface ModelRouterOptions<T> {
    *  or 500. */
   maxLimit?: number; // defaults to 500
   /** Custom route setup function. Receives the router and optionally the full options (including openApi). */
-  endpoints?: (router: any, options?: Partial<ModelRouterOptions<T>>) => void;
+  endpoints?: (router: express.Router, options?: Partial<ModelRouterOptions<T>>) => void;
+  /** Named instance-scoped operations at `/:id/:actionName` (GET or POST). */
+  instanceActions?: Record<string, InstanceActionConfig<T, unknown, unknown, unknown>>;
+  /** Named collection-scoped operations at `/:actionName` (GET or POST). */
+  collectionActions?: Record<string, CollectionActionConfig<unknown, unknown, unknown>>;
   /**
    * Hook that runs after `transformer.transform` but before the object is created.
    * Can update the body fields based on the request or the user.
    * Return null to return a generic 403 error. Throw an APIError to return a 400 with specific
    * error information.
    */
-  preCreate?: (value: any, request: express.Request) => T | Promise<T> | null;
+  preCreate?: (
+    value: Partial<T> | (Partial<T> | undefined)[] | null | undefined,
+    request: express.Request
+  ) => T | Promise<T> | null;
   /**
    * Hook that runs after `transformer.transform` but before changes are made for update operations.
    * Can update the body fields based on the request or the user.
@@ -235,16 +323,16 @@ export interface ModelRouterOptions<T> {
    * @deprecated: Use responseHandler instead.
    */
   postList?: (
-    value: (Document<any, any, any> & T)[],
+    value: (Document<unknown, unknown, unknown> & T)[],
     request: express.Request
-  ) => Promise<(Document<any, any, any> & T)[]>;
+  ) => Promise<(Document<unknown, unknown, unknown> & T)[]>;
   /**
    * Serialize an object or list of objects before returning to the client.
    * This is a good spot to remove sensitive information from the object, such as passwords or API
    * keys. Throw an APIError to return a 400 with an error message.
    */
   responseHandler?: (
-    value: (Document<any, any, any> & T) | (Document<any, any, any> & T)[],
+    value: (Document<unknown, unknown, unknown> & T) | (Document<unknown, unknown, unknown> & T)[],
     method: "list" | "create" | "read" | "update" | "delete",
     request: express.Request,
     options: ModelRouterOptions<T>
@@ -252,17 +340,17 @@ export interface ModelRouterOptions<T> {
   /**
    * The OpenAPI generator for this server. This is used to generate the OpenAPI documentation.
    */
-  openApi?: any;
+  openApi?: OpenApiMiddleware;
   /**
    * Overwrite parts of the configuration for the OpenAPI generator.
    * This will be merged with the generated configuration.
    */
   openApiOverwrite?: {
-    get?: any;
-    list?: any;
-    create?: any;
-    update?: any;
-    delete?: any;
+    get?: Record<string, unknown>;
+    list?: Record<string, unknown>;
+    create?: Record<string, unknown>;
+    update?: Record<string, unknown>;
+    delete?: Record<string, unknown>;
   };
   /**
    * Overwrite parts of the model properties for the OpenAPI generator.
@@ -270,7 +358,7 @@ export interface ModelRouterOptions<T> {
    * This is useful if you add custom properties to the model during serialize, for example,
    * that you want to be documented and typed in the SDK.
    */
-  openApiExtraModelProperties?: any;
+  openApiExtraModelProperties?: Record<string, unknown>;
   /**
    * Enable runtime validation of request bodies against the OpenAPI schema.
    * When enabled, requests that don't match the documented schema will return 400 errors.
@@ -303,19 +391,100 @@ export interface ModelRouterOptions<T> {
    * ```
    */
   mcp?: MCPConfig;
+  /**
+   * Enable real-time sync for this model via WebSocket events.
+   * When configured, CRUD operations will emit events to connected clients
+   * through the RealtimeApp plugin's change stream watcher.
+   *
+   * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   */
+  realtime?: RealtimeConfig;
 }
 
+/**
+ * Parses a date-range query bound from an ISO-8601 string using Luxon, throwing a 400
+ * APIError when the value cannot be parsed. Centralizes date-string parsing so the repo's
+ * Luxon convention is honored for admin changelist date-range filters.
+ */
+const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
+  const parsed = DateTime.fromISO(String(rawValue), {zone: "utc"});
+  if (!parsed.isValid) {
+    throw new BadRequestError({
+      code: "invalid-date-query-parameter",
+      detail: `Invalid date for query parameter ${queryKey}`,
+      source: {parameter: queryKey},
+      title: "Invalid date query parameter",
+    });
+  }
+  return parsed.toJSDate();
+};
+
+/**
+ * Collapses `field_gte` / `field_lte` query pairs into `{ field: { $gte, $lte } }` for Date paths,
+ * so admin changelist date-range filters map to valid Mongoose range queries.
+ */
+const mergeDateRangeQueryParams = <T>(
+  model: Model<T>,
+  query: Record<string, unknown>
+): Record<string, unknown> => {
+  const schema = model.schema;
+  const result: Record<string, unknown> = {...query};
+  const dateRangeBases = new Set<string>();
+  for (const key of Object.keys(result)) {
+    const match = /^(.+)_(gte|lte)$/.exec(key);
+    if (!match) {
+      continue;
+    }
+    const baseField = match[1];
+    const path = schema.path(baseField);
+    if (path?.instance !== "Date") {
+      continue;
+    }
+    dateRangeBases.add(baseField);
+  }
+  for (const baseField of dateRangeBases) {
+    const gteKey = `${baseField}_gte`;
+    const lteKey = `${baseField}_lte`;
+    const gteRaw = result[gteKey];
+    const lteRaw = result[lteKey];
+    const bounds: {$gte?: Date; $lte?: Date} = {};
+    if (gteRaw !== undefined && gteRaw !== null && String(gteRaw).trim() !== "") {
+      bounds.$gte = parseDateRangeBound(gteRaw, gteKey);
+    }
+    if (lteRaw !== undefined && lteRaw !== null && String(lteRaw).trim() !== "") {
+      bounds.$lte = parseDateRangeBound(lteRaw, lteKey);
+    }
+    if (Object.keys(bounds).length === 0) {
+      continue;
+    }
+    delete result[gteKey];
+    delete result[lteKey];
+    const direct = result[baseField];
+    if (direct !== undefined && direct !== null && typeof direct !== "object") {
+      delete result[baseField];
+    }
+    if (typeof direct === "object" && direct !== null && !Array.isArray(direct)) {
+      result[baseField] = {...(direct as Record<string, unknown>), ...bounds};
+    } else {
+      result[baseField] = bounds;
+    }
+  }
+  return result;
+};
+
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
-function checkQueryParamAllowed(
+const checkQueryParamAllowed = (
   queryParam: string,
-  queryParamValue: any,
+  queryParamValue: unknown,
   queryFields: string[] = []
-) {
+) => {
+  // Cast for iteration through complex query values
+  const complexValue = queryParamValue as Array<Record<string, unknown>>;
   // Check the values of each of the complex query params. We don't support recursive queries here,
   // just one level of and/or
   if (COMPLEX_QUERY_PARAMS.includes(queryParam)) {
     // Complex query of the form `$and: [{key1: value1}, {key2: value2}]`
-    for (const subQuery of queryParamValue) {
+    for (const subQuery of complexValue) {
       for (const subKey of Object.keys(subQuery)) {
         checkQueryParamAllowed(subKey, subQuery[subKey], queryFields);
       }
@@ -323,12 +492,14 @@ function checkQueryParamAllowed(
     return;
   }
   if (!queryFields.includes(queryParam)) {
-    throw new APIError({
-      status: 400,
-      title: `${queryParam} is not allowed as a query param.`,
+    throw new BadRequestError({
+      code: "query-param-not-allowed",
+      detail: `${queryParam} is not allowed as a query param.`,
+      source: {parameter: queryParam},
+      title: "Query parameter not allowed",
     });
   }
-}
+};
 
 // Handles dot notation patches, creates a normal object to be used for updates.
 // function flattenDotNotationPatch(data: any) {
@@ -352,10 +523,10 @@ function checkQueryParamAllowed(
 // Helper to determine if validation should be enabled for a specific operation.
 // When options.validation is not set, returns true — the middleware's own
 // isConfigured check will decide whether to actually validate.
-function shouldValidate(
-  options: ModelRouterOptions<any>,
+const shouldValidate = <T>(
+  options: ModelRouterOptions<T>,
   operation: "create" | "update" | "query"
-): boolean {
+): boolean => {
   // Check route-specific validation option first
   if (options.validation !== undefined) {
     if (typeof options.validation === "boolean") {
@@ -372,14 +543,14 @@ function shouldValidate(
 
   // Default: let middleware's isConfigured check decide
   return true;
-}
+};
 
 // Get body validation middleware if validation is enabled
-function getBodyValidationMiddleware<T>(
+const getBodyValidationMiddleware = <T>(
   model: Model<T>,
   options: ModelRouterOptions<T>,
   operation: "create" | "update"
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const validationOptions: import("./openApiValidator").RequestBodyValidatorOptions = {};
   if (!shouldValidate(options, operation)) {
     validationOptions.enabled = false;
@@ -402,13 +573,13 @@ function getBodyValidationMiddleware<T>(
   }
 
   return validateModelRequestBody(model, validationOptions);
-}
+};
 
 // Get query validation middleware if validation is enabled
-function getQueryValidationMiddleware<T>(
+const getQueryValidationMiddleware = <T>(
   model: Model<T>,
   options: ModelRouterOptions<T>
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const querySchema = buildQuerySchemaFromFields(model, options.queryFields);
   const validationOptions: import("./openApiValidator").QueryValidatorOptions = {};
   if (!shouldValidate(options, "query")) {
@@ -419,7 +590,7 @@ function getQueryValidationMiddleware<T>(
   }
 
   return validateQueryParams(querySchema, validationOptions);
-}
+};
 
 /**
  * Registration object returned by modelRouter when called with a path.
@@ -438,7 +609,7 @@ export interface ModelRouterRegistration {
   /** The Express router containing CRUD endpoints */
   router: express.Router;
   /** @internal Rebuilds the router with the openApi instance injected into options */
-  _buildWithOpenApi: (openApi: any) => express.Router;
+  _buildWithOpenApi: (openApi: OpenApiMiddleware) => express.Router;
 }
 
 /**
@@ -487,20 +658,42 @@ export function modelRouter<T>(
   }
 
   if (path !== undefined) {
+    // Register for real-time sync if configured
+    if (options.realtime) {
+      registerRealtime({
+        collectionName: model.collection.collectionName,
+        config: options.realtime,
+        modelName: model.modelName,
+        options: options as unknown as ModelRouterOptions<unknown>,
+        routePath: path,
+      });
+    }
     return {
       __type: "modelRouter",
-      _buildWithOpenApi: (openApi: any) => _buildModelRouter(model, {...options, openApi}),
+      _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
+        _buildModelRouter(model, {...options, openApi}),
       path,
       router,
     };
   }
+
+  if (options.realtime) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
+        "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+
   return router;
 }
 
-function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
+const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router => {
   const router = express.Router();
 
-  // Do before the other router options so endpoints take priority.
+  assertNoActionCollisions(model, options);
+  registerActionRoutes(router, model, options);
+
+  // User endpoints run after actions; actions win on path conflicts.
   if (options.endpoints) {
     options.endpoints(router, options);
   }
@@ -524,73 +717,68 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
       try {
         body = transform<T>(options, req.body, "create", req.user);
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "transform-error",
           status: 400,
-          title: error.message,
+          title: "Transform error",
         });
       }
       if (options.preCreate) {
         try {
           body = await options.preCreate(body, req);
-        } catch (error: any) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "pre-create-hook-error",
             status: 400,
-            title: `preCreate hook error: ${error.message}`,
+            title: "preCreate hook error",
           });
         }
         if (body === undefined) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "create-not-allowed",
             detail: "A body must be returned from preCreate",
-            status: 403,
             title: "Create not allowed",
           });
         }
         if (body === null) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "create-not-allowed",
             detail: "preCreate hook returned null",
-            status: 403,
             title: "Create not allowed",
           });
         }
       }
       if (body === undefined) {
-        throw new APIError({
+        throw new BadRequestError({
+          code: "invalid-request-body",
           detail: "Body is undefined",
-          status: 400,
           title: "Invalid request body",
         });
       }
-      let data;
+      let data: Document<unknown, unknown, unknown> & T;
       try {
-        data = await model.create(body as any);
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        data = (await model.create(body as T)) as Document<unknown, unknown, unknown> & T;
+      } catch (error: unknown) {
+        throw passthroughOrWrapWrite(error, {
+          code: "create-error",
           status: 400,
-          title: error.message,
+          title: "Create error",
         });
       }
 
       if (options.populatePaths) {
         try {
+          // noExplicitAny: mongoose Query type varies based on populatePaths
+          // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
           let populateQuery: any = model.findById(data._id);
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
           data = await populateQuery.exec();
-        } catch (error: any) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "populate-error",
             status: 400,
-            title: `Populate error: ${error.message}`,
+            title: "Populate error",
           });
         }
       }
@@ -598,23 +786,21 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       if (options.postCreate) {
         try {
           await options.postCreate(data, req);
-        } catch (error: any) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "post-create-hook-error",
             status: 400,
-            title: `postCreate hook error: ${error.message}`,
+            title: "postCreate hook error",
           });
         }
       }
       try {
         const serialized = await responseHandler(data, "create", req, options);
         return res.status(201).json({data: serialized});
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${error.message}`,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
     })
@@ -630,7 +816,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       queryValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let query: any = {};
+      let query: Record<string, unknown> = {};
       for (const queryParam of Object.keys(options.defaultQueryParams ?? [])) {
         query[queryParam] = options.defaultQueryParams?.[queryParam];
       }
@@ -651,6 +837,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
       }
 
+      query = mergeDateRangeQueryParams(model, query);
+
       // Special operators. NOTE: these request Mongo Atlas.
       if (req.query.$search) {
         mongoose.connection.db?.collection(model.collection.collectionName);
@@ -662,15 +850,14 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
       // Check if any of the keys in the query are not allowed by options.queryFilter
       if (options.queryFilter) {
-        let queryFilter;
+        let queryFilter: Record<string, unknown> | null | undefined;
         try {
           queryFilter = await options.queryFilter(req.user, query);
-        } catch (error: any) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "query-filter-error",
             status: 400,
-            title: `Query filter error: ${error}`,
+            title: "Query filter error",
           });
         }
 
@@ -697,9 +884,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       const total = await model.countDocuments(query);
       if (req.query.page) {
         if (Number(req.query.page) === 0 || Number.isNaN(Number(req.query.page))) {
-          throw new APIError({
-            status: 400,
-            title: `Invalid page: ${req.query.page}`,
+          throw new BadRequestError({
+            code: "invalid-page",
+            detail: `Invalid page: ${req.query.page}`,
+            source: {parameter: "page"},
+            title: "Invalid page",
           });
         }
         builtQuery = builtQuery.skip((Number(req.query.page) - 1) * limit);
@@ -714,30 +903,28 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
       const populatedQuery = addPopulateToQuery(builtQuery, options.populatePaths);
 
-      let data: (Document<any, any, any> & T)[];
+      let data: (Document<unknown, unknown, unknown> & T)[];
       try {
-        data = await populatedQuery.exec();
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `List error: ${error.stack}`,
+        data = (await populatedQuery.exec()) as (Document<unknown, unknown, unknown> & T)[];
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "list-error",
+          title: "List error",
         });
       }
 
-      let serialized;
+      let serialized: JSONValue | Partial<T> | (Partial<T> | undefined)[] | undefined;
 
       try {
         serialized = await responseHandler(data, "list", req, options);
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${error.message}`,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
 
-      let more;
+      let more: boolean | undefined;
       try {
         if (serialized && Array.isArray(serialized)) {
           more = serialized.length === limit + 1 && serialized.length > 0;
@@ -764,11 +951,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           });
         }
         return res.json({data: serialized});
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `Serialization error: ${error.message}`,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "serialization-error",
+          title: "Serialization error",
         });
       }
     })
@@ -782,16 +968,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const data: mongoose.Document & T = (req as any).obj;
+      const data: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T}).obj;
 
       try {
         const serialized = await responseHandler(data, "read", req, options);
         return res.json({data: serialized});
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${error.message}`,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
     })
@@ -803,6 +988,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     asyncHandler(async (_req: Request, _res: Response) => {
       // Patch is what we want 90% of the time
       throw new APIError({
+        code: "put-not-supported",
+        detail: "Use PATCH to update a document.",
         title: "PUT is not supported.",
       });
     })
@@ -817,51 +1004,109 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       updateValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let doc: mongoose.Document & T = (req as any).obj;
+      let doc: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T}).obj;
 
-      let body;
+      let body: Partial<T> | T | null | undefined;
 
       try {
-        body = transform<T>(options, req.body, "update", req.user);
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        body = transform<T>(options, req.body, "update", req.user) as Partial<T>;
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "transform-error",
+          detail: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorDetail(error)}`,
           status: 403,
-          title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${error.message}`,
+          title: "PATCH failed",
         });
+      }
+
+      // Remove _updatedAt from body before preUpdate processes it
+      const bodyUpdatedAt = req.body._updatedAt;
+      delete req.body._updatedAt;
+      if (body && typeof body === "object") {
+        delete (body as Record<string, unknown>)._updatedAt;
       }
 
       if (options.preUpdate) {
         try {
-          // TODO: Send flattened dot notation body to preUpdate, then merge the returned body
-          // with the original body, maintaining the dot notation. This way we don't have to write
-          // two preUpdate branches downstream, one looking at the dot notation style and
-          // one looking at normal object style.
           body = await options.preUpdate(body, req);
-        } catch (error: any) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "pre-update-hook-error",
+            detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
             status: 400,
-            title: `preUpdate hook error on ${req.params.id}: ${error.message}`,
+            title: "preUpdate hook error",
           });
         }
         if (body === undefined) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "update-not-allowed",
             detail: "A body must be returned from preUpdate",
-            status: 403,
             title: "Update not allowed",
           });
         }
         if (body === null) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "update-not-allowed",
             detail: `preUpdate hook on ${req.params.id} returned null`,
-            status: 403,
             title: "Update not allowed",
+          });
+        }
+      }
+
+      // Conflict detection runs after preUpdate so that unauthorized mutations
+      // are rejected before we leak document data in a 409 response.
+      const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
+      const httpUnmodifiedSince = req.headers["if-unmodified-since"];
+      const timestampValue = Array.isArray(preciseUnmodifiedSince)
+        ? preciseUnmodifiedSince[0]
+        : preciseUnmodifiedSince;
+      const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
+        ? httpUnmodifiedSince[0]
+        : httpUnmodifiedSince;
+      if (timestampValue || httpTimestampValue || bodyUpdatedAt) {
+        const usingPreciseHeader = Boolean(timestampValue);
+        const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
+        const clientTimestamp = timestampValue
+          ? DateTime.fromISO(timestampValue)
+          : httpTimestampValue
+            ? DateTime.fromHTTP(httpTimestampValue)
+            : DateTime.fromISO(bodyUpdatedAt);
+
+        if (!clientTimestamp.isValid) {
+          throw new BadRequestError({
+            code: "invalid-conflict-detection-timestamp",
+            detail: usingPreciseHeader
+              ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
+              : usingHttpHeader
+                ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+                : "_updatedAt body field could not be parsed as an ISO date",
+            title: "Invalid conflict-detection timestamp",
+          });
+        }
+
+        const docRecord = doc as {created?: Date | string; updated?: Date | string};
+        let serverTimestamp: DateTime | null = null;
+        const serverTimestampValue = docRecord.updated ?? docRecord.created;
+        if (serverTimestampValue instanceof Date) {
+          serverTimestamp = DateTime.fromJSDate(serverTimestampValue);
+        } else if (typeof serverTimestampValue === "string") {
+          serverTimestamp = DateTime.fromISO(serverTimestampValue);
+        }
+
+        if (serverTimestamp && !serverTimestamp.isValid) {
+          throw new BadRequestError({
+            code: "invalid-server-timestamp",
+            detail: "Document timestamp could not be parsed as a date",
+            title: "Invalid server timestamp",
+          });
+        }
+
+        if (serverTimestamp && clientTimestamp < serverTimestamp) {
+          const serialized = await responseHandler(doc, "update", req, options);
+          return res.status(409).json({
+            data: serialized,
+            error: "Conflict",
+            message: "Document was modified since your last read",
           });
         }
       }
@@ -874,16 +1119,18 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         doc.set(body);
         await doc.save();
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+      } catch (error: unknown) {
+        throw passthroughOrWrapWrite(error, {
+          code: "update-save-error",
+          detail: `preUpdate hook save error on ${req.params.id}: ${errorDetail(error)}`,
           status: 400,
-          title: `preUpdate hook save error on ${req.params.id}: ${error.message}`,
+          title: "preUpdate hook save error",
         });
       }
 
       if (options.populatePaths) {
+        // noExplicitAny: mongoose Query type varies based on populatePaths
+        // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
         let populateQuery: any = model.findById(doc._id);
         populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
         doc = await populateQuery.exec();
@@ -892,12 +1139,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       if (options.postUpdate) {
         try {
           await options.postUpdate(doc, body, req, prevDoc);
-        } catch (error: any) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "post-update-hook-error",
+            detail: `postUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
             status: 400,
-            title: `postUpdate hook error on ${req.params.id}: ${error.message}`,
+            title: "postUpdate hook error",
           });
         }
       }
@@ -905,11 +1152,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         const serialized = await responseHandler(doc, "update", req, options);
         return res.json({data: serialized});
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
-          title: `responseHandler error: ${error.message}`,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "response-handler-error",
+          title: "responseHandler error",
         });
       }
     })
@@ -923,34 +1169,33 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const doc: mongoose.Document & T & {deleted?: boolean} = (req as any).obj;
+      const doc: mongoose.Document & T & {deleted?: boolean} = (
+        req as Request & {obj: mongoose.Document & T & {deleted?: boolean}}
+      ).obj;
 
       if (options.preDelete) {
-        let body;
+        let body: T | null | undefined;
         try {
           body = await options.preDelete(doc, req);
-        } catch (error: any) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "pre-delete-hook-error",
+            detail: `preDelete hook error on ${req.params.id}: ${errorDetail(error)}`,
             status: 403,
-            title: `preDelete hook error on ${req.params.id}: ${error.message}`,
+            title: "preDelete hook error",
           });
         }
         if (body === undefined) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "delete-not-allowed",
             detail: "A body must be returned from preDelete",
-            status: 403,
             title: "Delete not allowed",
           });
         }
         if (body === null) {
-          throw new APIError({
+          throw new ForbiddenError({
+            code: "delete-not-allowed",
             detail: `preDelete hook for ${req.params.id} returned null`,
-            status: 403,
             title: "Delete not allowed",
           });
         }
@@ -967,12 +1212,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         // For models without the isDeleted plugin
         try {
           await doc.deleteOne();
-        } catch (error: any) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "delete-error",
             status: 400,
-            title: error.message,
+            title: "Delete error",
           });
         }
       }
@@ -980,12 +1224,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       if (options.postDelete) {
         try {
           await options.postDelete(req, doc);
-        } catch (error: any) {
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
+        } catch (error: unknown) {
+          throw passthroughOrWrap(error, {
+            code: "post-delete-hook-error",
             status: 400,
-            title: `postDelete hook error: ${error.message}`,
+            title: "postDelete hook error",
           });
         }
       }
@@ -994,17 +1237,20 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     })
   );
 
-  async function arrayOperation(
+  const arrayOperation = async (
     req: Request,
     res: Response,
     operation: "POST" | "PATCH" | "DELETE"
-  ) {
+  ) => {
     // TODO Combine array operations and .patch(), as they are very similar.
 
     if (!(await checkPermissions("update", options.permissions.update, req.user))) {
       throw new APIError({
+        code: "array-update-not-allowed",
+        detail: `Access to PATCH on ${model.modelName} denied for ${req.user?.id}`,
+        meta: {method: "PATCH", model: model.modelName},
         status: 405,
-        title: `Access to PATCH on ${model.modelName} denied for ${req.user?.id}`,
+        title: "Access denied",
       });
     }
 
@@ -1012,16 +1258,20 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     // Make a copy for passing pre-saved values to hooks.
     const prevDoc = cloneDeep(doc);
     if (!doc) {
-      throw new APIError({
-        status: 404,
-        title: `Could not find document to PATCH: ${req.params.id}`,
+      throw new NotFoundError({
+        code: "document-not-found",
+        detail: `Could not find document to PATCH: ${req.params.id}`,
+        meta: {model: model.modelName},
+        title: "Document not found",
       });
     }
 
     if (!(await checkPermissions("update", options.permissions.update, req.user, doc))) {
-      throw new APIError({
-        status: 403,
-        title: `Patch not allowed for user ${req.user?.id} on doc ${doc._id}`,
+      throw new ForbiddenError({
+        code: "update-not-allowed",
+        detail: `Patch not allowed for user ${req.user?.id} on doc ${doc._id}`,
+        meta: {model: model.modelName},
+        title: "Update not allowed",
       });
     }
 
@@ -1031,35 +1281,39 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     // We apply the operation *before* the hooks. As far as the callers are concerned, this should
     // be like PATCHing the field and replacing the whole thing.
     if (operation !== "DELETE" && req.body[field] === undefined) {
-      throw new APIError({
-        status: 400,
-        title: `Malformed body, array operations should have a single, top level key, got: ${Object.keys(
+      throw new BadRequestError({
+        code: "malformed-array-operation-body",
+        detail: `Malformed body, array operations should have a single, top level key, got: ${Object.keys(
           req.body
         ).join(",")}`,
+        meta: {field},
+        title: "Malformed array operation body",
       });
     }
 
-    const array = [...doc[field]];
+    const array = [...(doc as unknown as Record<string, unknown[]>)[field]];
     if (operation === "POST") {
       array.push(req.body[field]);
     } else if (operation === "PATCH" || operation === "DELETE") {
       // Check for subschema vs String array:
-      let index;
+      let index: number;
       if (isValidObjectId(itemId)) {
-        index = array.findIndex((x: any) => x.id === itemId);
+        index = array.findIndex((x) => (x as {id?: string})?.id === itemId);
       } else {
-        index = array.findIndex((x: string) => x === itemId);
+        index = array.indexOf(itemId);
       }
       if (index === -1) {
-        throw new APIError({
-          status: 404,
-          title: `Could not find ${field}/${itemId}`,
+        throw new NotFoundError({
+          code: "array-item-not-found",
+          detail: `Could not find ${field}/${itemId}`,
+          meta: {field, itemId},
+          title: "Array item not found",
         });
       }
       // For PATCHing an item by ID, we need to merge the objects so we don't override the _id or
       // other parts of the subdocument.
       if (operation === "PATCH" && isValidObjectId(itemId)) {
-        Object.assign(array[index], req.body[field]);
+        Object.assign(array[index] as object, req.body[field]);
       } else if (operation === "PATCH") {
         // For PATCHing a string array, we can replace the whole object.
         array[index] = req.body[field];
@@ -1067,46 +1321,47 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         array.splice(index, 1);
       }
     } else {
-      throw new APIError({
-        status: 400,
-        title: `Invalid array operation: ${operation}`,
+      throw new BadRequestError({
+        code: "invalid-array-operation",
+        detail: `Invalid array operation: ${operation}`,
+        meta: {operation},
+        title: "Invalid array operation",
       });
     }
     let body: Partial<T> | null = {[field]: array} as unknown as Partial<T>;
 
     try {
       body = transform<T>(options, body, "update", req.user) as Partial<T>;
-    } catch (error: any) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+    } catch (error: unknown) {
+      throw passthroughOrWrap(error, {
+        code: "transform-error",
         status: 403,
-        title: error.message,
+        title: "Transform error",
       });
     }
 
     if (options.preUpdate) {
       try {
         body = await options.preUpdate(body, req);
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "pre-update-hook-error",
+          detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
           status: 400,
-          title: `preUpdate hook error on ${req.params.id}: ${error.message}`,
+          title: "preUpdate hook error",
         });
       }
       if (body === undefined) {
-        throw new APIError({
+        throw new ForbiddenError({
+          code: "update-not-allowed",
           detail: "A body must be returned from preUpdate",
-          status: 403,
           title: "Update not allowed",
         });
       }
       if (body === null) {
-        throw new APIError({
+        throw new ForbiddenError({
+          code: "update-not-allowed",
           detail: `preUpdate hook on ${req.params.id} returned null`,
-          status: 403,
           title: "Update not allowed",
         });
       }
@@ -1117,43 +1372,50 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     try {
       Object.assign(doc, body);
       await doc.save();
-    } catch (error: any) {
-      throw new APIError({
-        disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-        error,
+    } catch (error: unknown) {
+      throw passthroughOrWrapWrite(error, {
+        code: "update-save-error",
+        detail: `PATCH Pre Update error on ${req.params.id}: ${errorDetail(error)}`,
         status: 400,
-        title: `PATCH Pre Update error on ${req.params.id}: ${error.message}`,
+        title: "PATCH Pre Update error",
       });
     }
 
     if (options.postUpdate) {
       try {
-        await options.postUpdate(doc as any, body, req, prevDoc as any);
-      } catch (error: any) {
-        throw new APIError({
-          disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-          error,
+        await options.postUpdate(
+          doc as unknown as Document<unknown, unknown, unknown> & T,
+          body,
+          req,
+          prevDoc as unknown as T
+        );
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "post-update-hook-error",
+          detail: `PATCH Post Update error on ${req.params.id}: ${errorDetail(error)}`,
           status: 400,
-          title: `PATCH Post Update error on ${req.params.id}: ${error.message}`,
+          title: "PATCH Post Update error",
         });
       }
     }
-    return res.json({data: serialize<T>(req, options, doc as any)});
-  }
+    return res.json({
+      data: serialize<T>(req, options, doc as unknown as Document<unknown, unknown, unknown> & T),
+    });
+  };
 
-  async function arrayPost(req: Request, res: Response) {
+  const arrayPost = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "POST");
-  }
+  };
 
-  async function arrayPatch(req: Request, res: Response) {
+  const arrayPatch = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "PATCH");
-  }
+  };
 
-  async function arrayDelete(req: Request, res: Response) {
+  const arrayDelete = async (req: Request, res: Response) => {
     return arrayOperation(req, res, "DELETE");
-  }
+  };
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(model.schema.paths).find((config: any) => config.instance === "Array")) {
+  if (Object.values(model.schema.paths).find((config) => config.instance === "Array")) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),
@@ -1173,7 +1435,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
   router.use(apiErrorMiddleware);
 
   return router;
-}
+};
 
 /**
  * Options for the asyncHandler function.
@@ -1231,7 +1493,11 @@ export interface AsyncHandlerOptions {
  * }));
  * ```
  */
-export const asyncHandler = (fn: any, options?: AsyncHandlerOptions) => {
+// noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
+// biome-ignore lint/suspicious/noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
+type AsyncHandlerFn = (req: any, res: Response, next: NextFunction) => Promise<unknown> | unknown;
+
+export const asyncHandler = (fn: AsyncHandlerFn, options?: AsyncHandlerOptions) => {
   // If no validation options, return simple handler
   if (!options?.bodySchema && !options?.querySchema) {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -1271,13 +1537,13 @@ export const asyncHandler = (fn: any, options?: AsyncHandlerOptions) => {
       }
 
       try {
-        validators[index](req, res, (err?: any) => {
+        validators[index](req, res, ((err?: unknown) => {
           if (err) {
             next(err);
             return;
           }
           runValidators(index + 1);
-        });
+        }) as NextFunction);
       } catch (err) {
         next(err);
       }

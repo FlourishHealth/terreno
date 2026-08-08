@@ -26,6 +26,13 @@
     "strictNullChecks": true,
     "target": "es5"
   },
-  "exclude": ["node_modules", "src/**/*.test.ts", "src/**/*.test.tsx", "src/tests"],
+  "exclude": [
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.isolated.ts",
+    "src/**/*.isolated.tsx",
+    "src/tests"
+  ],
   "include": ["src/**/*.ts*", "src/*.ts", "types.d.ts"]
 }

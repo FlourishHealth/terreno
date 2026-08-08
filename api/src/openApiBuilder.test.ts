@@ -5,17 +5,30 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
+import type {UserModel as AuthUserModel} from "./auth";
 import {createOpenApiBuilder, OpenApiMiddlewareBuilder} from "./openApiBuilder";
 import {Permissions} from "./permissions";
-import {FoodModel, UserModel} from "./tests";
+import {TerrenoApp} from "./terrenoApp";
+import {type Food, FoodModel, UserModel} from "./tests";
 
-function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+/** The subset of an OpenAPI parameter object the assertions below inspect. */
+interface OpenApiParameter {
+  name: string;
+  in: string;
+  required?: boolean;
+  description?: string;
+  schema: {type: string};
+}
+
+function addRoutesWithBuilder(
+  router: Router,
+  options?: Partial<ModelRouterOptions<unknown>>
+): void {
   // Add a custom endpoint using the OpenApiMiddlewareBuilder
   const statsMiddleware = createOpenApiBuilder(options ?? {})
     .withTags(["Stats"])
     .withSummary("Get food statistics")
+    .withOperationId("getFoodStats")
     .withDescription("Returns aggregated statistics about food items")
     .withQueryParameter(
       "category",
@@ -122,8 +135,8 @@ function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptio
   // Standard modelRouter for food
   router.use(
     "/food",
-    modelRouter(FoodModel as any, {
-      ...options,
+    modelRouter(FoodModel, {
+      ...(options as Partial<ModelRouterOptions<Food>>),
       allowAnonymous: true,
       permissions: {
         create: [Permissions.IsAny],
@@ -144,13 +157,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
-      addRoutes: addRoutesWithBuilder,
+    app = new TerrenoApp({
+      configureApp: addRoutesWithBuilder,
       skipListen: true,
-      userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+      userModel: UserModel as unknown as AuthUserModel,
+    }).build();
   });
 
   describe("builder pattern", () => {
@@ -189,12 +200,22 @@ describe("OpenApiMiddlewareBuilder", () => {
       expect(statsPath.get.description).toBe("Returns aggregated statistics about food items");
 
       // Check query parameter
-      const categoryParam = statsPath.get.parameters.find((p: any) => p.name === "category");
+      const categoryParam = statsPath.get.parameters.find(
+        (p: OpenApiParameter) => p.name === "category"
+      );
       expect(categoryParam).toBeDefined();
       expect(categoryParam.in).toBe("query");
       expect(categoryParam.schema.type).toBe("string");
       expect(categoryParam.description).toBe("Filter by food category");
       expect(categoryParam.required).toBe(false);
+    });
+
+    it("includes the explicit operationId in OpenAPI spec", async () => {
+      server = supertest(app);
+      const res = await server.get("/openapi.json").expect(200);
+
+      const statsPath = res.body.paths["/food/stats"];
+      expect(statsPath.get.operationId).toBe("getFoodStats");
     });
 
     it("includes request body schema in OpenAPI spec", async () => {
@@ -261,7 +282,9 @@ describe("OpenApiMiddlewareBuilder", () => {
       const categoryPath = res.body.paths["/food/categories/{categoryId}"];
       expect(categoryPath).toBeDefined();
 
-      const pathParam = categoryPath.get.parameters.find((p: any) => p.name === "categoryId");
+      const pathParam = categoryPath.get.parameters.find(
+        (p: OpenApiParameter) => p.name === "categoryId"
+      );
       expect(pathParam).toBeDefined();
       expect(pathParam.in).toBe("path");
       expect(pathParam.required).toBe(true);
@@ -301,7 +324,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("stats endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/stats").expect(200);
-      expect(res.body).toEqual({avgCalories: 250, count: 10});
+      expect(res.body).toEqual({
+        avgCalories: 250,
+        count: 10,
+        requestId: res.headers["x-request-id"],
+      });
     });
 
     it("reports endpoint returns correct data", async () => {
@@ -310,7 +337,10 @@ describe("OpenApiMiddlewareBuilder", () => {
         .post("/food/reports")
         .send({endDate: "2024-12-31", startDate: "2024-01-01"})
         .expect(201);
-      expect(res.body).toEqual({reportId: "report-123"});
+      expect(res.body).toEqual({
+        reportId: "report-123",
+        requestId: res.headers["x-request-id"],
+      });
     });
 
     it("categories endpoint returns array data", async () => {
@@ -324,7 +354,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("category by id endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/categories/cat-123").expect(200);
-      expect(res.body).toEqual({id: "cat-123", name: "Fruits"});
+      expect(res.body).toEqual({
+        id: "cat-123",
+        name: "Fruits",
+        requestId: res.headers["x-request-id"],
+      });
     });
   });
 
@@ -344,24 +378,24 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
       .withTags(["test"])
       .withSummary("Test")
       .withResponse(200, {id: {type: "string"}})
-      .build();
+      .build() as express.RequestHandler;
 
     // Middleware should be a function
     expect(typeof middleware).toBe("function");
 
     // Should call next() without error
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
   });
 
   it("build returns noop middleware when options is empty", () => {
-    const middleware = createOpenApiBuilder({}).build();
+    const middleware = createOpenApiBuilder({}).build() as express.RequestHandler;
 
     let nextCalled = false;
-    middleware({}, {}, () => {
+    middleware({} as express.Request, {} as express.Response, () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(true);
@@ -438,5 +472,86 @@ describe("OpenApiMiddlewareBuilder configuration", () => {
       .withResponse(404, "Not found");
 
     expect(builder).toBeInstanceOf(OpenApiMiddlewareBuilder);
+  });
+});
+
+describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
+  beforeEach(() => {
+    const {resetOpenApiValidatorConfig} = require("./openApiValidator");
+    resetOpenApiValidatorConfig();
+  });
+
+  it("buildWithSchemas returns bodySchema and querySchema", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .buildWithSchemas();
+
+    expect(result.bodySchema).toBeDefined();
+    expect(result.bodySchema?.name).toBeDefined();
+    expect(result.querySchema).toBeDefined();
+    expect(result.querySchema?.page).toBeDefined();
+    expect(typeof result.middleware).toBe("function");
+  });
+
+  it("buildWithSchemas returns undefined schemas when no body/query defined", () => {
+    const result = createOpenApiBuilder({}).buildWithSchemas();
+    expect(result.bodySchema).toBeUndefined();
+    expect(result.querySchema).toBeUndefined();
+  });
+
+  it("withValidation with defaults enables body and query validation", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .withValidation()
+      .buildWithSchemas();
+
+    expect(result.validationEnabled).toBe(true);
+  });
+
+  it("withValidation with enabled=false disables validation", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withValidation({enabled: false})
+      .buildWithSchemas();
+
+    expect(result.validationEnabled).toBe(false);
+  });
+
+  it("build() returns an array when validation is enabled with body and query", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .withValidation()
+      .build();
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(3);
+  });
+
+  it("build() returns a single middleware when validation is disabled", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .build();
+
+    expect(typeof result).toBe("function");
+  });
+
+  it("build() falls back to single middleware when there is nothing to validate", () => {
+    const result = createOpenApiBuilder({}).withValidation().build();
+
+    expect(typeof result).toBe("function");
+  });
+
+  it("withValidation options body=false and query=false is respected", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .withValidation({body: false, query: false})
+      .build();
+
+    // No body/query validation = just the openApi middleware (single fn)
+    expect(typeof result).toBe("function");
   });
 });

@@ -5,17 +5,43 @@ import {
   addGptHistoryRoutes,
   addGptRoutes,
   addMcpRoutes,
+  createVertexProvider,
   FileStorageService,
+  listEnabledVertexModels,
+  listGeminiApiModels,
   MCPService,
+  normalizeVertexModelId,
   preparePromptForAI,
+  type TerrenoVertexProvider,
+  verifyVertexModelsEnabled,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
-import {getMCPTools, logger} from "@terreno/api";
-import type {Tool} from "ai";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  getMCPTools,
+  logger,
+} from "@terreno/api";
+import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
+
+/** A provider that creates language models and image models from model IDs. */
+interface AIProvider {
+  (modelId: string): LanguageModel;
+  image: (modelId: string) => ImageModel;
+}
+
+/** The subset of @ai-sdk/google we use (loaded dynamically). */
+interface GoogleModule {
+  createGoogleGenerativeAI: (opts: {apiKey: string}) => AIProvider;
+  google: AIProvider;
+}
 
 let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
@@ -28,13 +54,180 @@ export const setFileStorageService = (service: FileStorageService | undefined): 
   fileStorageServiceInstance = service;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-const getGoogleModule = (): any => {
+const getGoogleModule = (): GoogleModule | undefined => {
   try {
-    return require("@ai-sdk/google");
+    return require("@ai-sdk/google") as GoogleModule;
   } catch {
     return undefined;
   }
+};
+
+const DEFAULT_MODEL = "gemini-2.5-flash";
+const VERTEX_IMAGE_MODEL = "imagen-4.0-fast-generate-001";
+
+/**
+ * Curated fallback chat models, used only when the live Google model listing cannot be retrieved
+ * (no provider/API key configured, or the request failed). Kept to current, generally-available
+ * models so the picker never offers a retired model.
+ */
+const DEFAULT_CHAT_MODEL_IDS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+
+interface SelectableModel {
+  label: string;
+  value: string;
+}
+
+/** Derive a human-friendly label from a model id, e.g. "gemini-2.5-flash" -> "Gemini 2.5 Flash". */
+const prettifyModelId = (id: string): string =>
+  id
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => (/^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join(" ");
+
+const toSelectableModel = (id: string): SelectableModel => ({
+  label: prettifyModelId(id),
+  value: id,
+});
+
+/**
+ * Parse the optional GOOGLE_VERTEX_ALLOWED_MODELS env var (comma-separated). When unset/empty, all
+ * Vertex models are permitted (the default).
+ */
+const getAllowedVertexModels = (): string[] | undefined => {
+  const raw = process.env.GOOGLE_VERTEX_ALLOWED_MODELS;
+  if (!raw) {
+    return undefined;
+  }
+  const models = raw
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+  return models.length > 0 ? models : undefined;
+};
+
+let vertexProviderInstance: TerrenoVertexProvider | undefined;
+
+/**
+ * Resolve the Vertex AI (Gemini Enterprise Agent Platform, formerly Vertex AI) provider. Uses
+ * Application Default Credentials and honors an optional GOOGLE_VERTEX_ALLOWED_MODELS allow-list.
+ * Only a successfully created provider is cached, so a later call can retry if config/SDK
+ * become available.
+ */
+const getVertexProvider = (): TerrenoVertexProvider | undefined => {
+  if (vertexProviderInstance) {
+    return vertexProviderInstance;
+  }
+  vertexProviderInstance = createVertexProvider({
+    allowedModels: getAllowedVertexModels(),
+    location: process.env.GOOGLE_VERTEX_LOCATION,
+    project: process.env.GOOGLE_VERTEX_PROJECT,
+  });
+  return vertexProviderInstance;
+};
+
+/** Pick a default model that respects the configured allow-list. */
+const resolveDefaultVertexModel = (provider: TerrenoVertexProvider): string => {
+  if (provider.isModelAllowed(DEFAULT_MODEL)) {
+    return DEFAULT_MODEL;
+  }
+  return provider.allowedModels?.[0] ?? DEFAULT_MODEL;
+};
+
+/**
+ * Verify configured allow-listed Vertex models are enabled/available for the project using the
+ * Gemini Enterprise Agent Platform (Vertex AI) APIs. Logs results; never throws so startup is safe.
+ */
+const verifyAllowedVertexModels = async (provider: TerrenoVertexProvider): Promise<void> => {
+  if (!provider.allowedModels || provider.allowedModels.length === 0) {
+    return;
+  }
+  try {
+    const result = await verifyVertexModelsEnabled({
+      location: provider.location,
+      models: provider.allowedModels,
+      project: provider.project,
+    });
+    if (!result.checked) {
+      logger.warn(
+        "Could not verify configured Vertex models against the Gemini Enterprise Agent Platform APIs (missing credentials or network)."
+      );
+      return;
+    }
+    if (result.unavailable.length > 0) {
+      logger.error(
+        `Configured Vertex models are not enabled/available for project ${provider.project}: ${result.unavailable.join(
+          ", "
+        )}`
+      );
+      return;
+    }
+    logger.info(
+      `Verified ${result.available.length} configured Vertex model(s) are enabled for project ${provider.project}.`
+    );
+  } catch (error) {
+    logger.warn(`Vertex model verification skipped: ${(error as Error).message}`);
+  }
+};
+
+/**
+ * List the models actually available from Google for the configured provider: the Vertex / Gemini
+ * Enterprise Agent Platform enabled-models list when Vertex is configured, otherwise the Gemini
+ * Developer API models list for the configured API key. Returns `undefined` when no provider/key is
+ * configured or the listing could not be retrieved.
+ */
+const listGoogleModels = async (): Promise<string[] | undefined> => {
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    return listEnabledVertexModels({
+      location: vertexProvider.location,
+      project: vertexProvider.project,
+    });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    return listGeminiApiModels({apiKey});
+  }
+
+  return undefined;
+};
+
+/**
+ * Resolve the chat models to offer in the picker. The source of truth is Google's live model list.
+ * When the backend configures an acceptable allow-list, it is returned (narrowed to the models
+ * Google reports as available, when that list is retrievable). Otherwise the full Google model list
+ * is returned. Falls back to a small curated set only when Google can't be reached.
+ */
+const listAvailableModels = async (): Promise<SelectableModel[]> => {
+  const allowed = getAllowedVertexModels();
+  const available = await listGoogleModels();
+
+  // Backend specified an acceptable allow-list: return it, narrowed to what Google reports as
+  // available when we could retrieve that list.
+  if (allowed && allowed.length > 0) {
+    if (available && available.length > 0) {
+      const availableSet = new Set(available.map(normalizeVertexModelId));
+      const filtered = allowed.filter((id) => availableSet.has(normalizeVertexModelId(id)));
+      return (filtered.length > 0 ? filtered : allowed).map(toSelectableModel);
+    }
+    return allowed.map(toSelectableModel);
+  }
+
+  // No allow-list: expose the full list of models from Google.
+  if (available && available.length > 0) {
+    return available.map(toSelectableModel);
+  }
+
+  // Google listing unavailable: no Vertex project and no Gemini API key are configured, so we can't
+  // ask Google which models exist. Surface a curated current set and explain how to get the full,
+  // live list (which is the only way newer models like 3.x appear — they must exist for the key).
+  logger.info(
+    "/ai/models: no GOOGLE_VERTEX_PROJECT or GEMINI_API_KEY configured; returning the curated " +
+      "fallback model set. Configure a Gemini API key or Vertex project to serve Google's live " +
+      "model list."
+  );
+  return DEFAULT_CHAT_MODEL_IDS.map(toSelectableModel);
 };
 
 const getAiService = (): AIService | undefined => {
@@ -42,6 +235,16 @@ const getAiService = (): AIService | undefined => {
     return aiServiceInstance;
   }
 
+  // Prefer Vertex AI / Gemini Enterprise Agent Platform (uses Application Default Credentials)
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    aiServiceInstance = new AIService({
+      model: vertexProvider.languageModel(resolveDefaultVertexModel(vertexProvider)),
+    });
+    return aiServiceInstance;
+  }
+
+  // Fall back to Gemini API key
   const google = getGoogleModule();
   if (!google) {
     return undefined;
@@ -52,19 +255,38 @@ const getAiService = (): AIService | undefined => {
     return undefined;
   }
 
+  const provider = google.createGoogleGenerativeAI({apiKey});
   aiServiceInstance = new AIService({
-    model: google.google("gemini-3-flash-preview"),
+    model: provider(DEFAULT_MODEL),
   });
   return aiServiceInstance;
 };
 
+/** Create a LanguageModel on the server side (Vertex AI / Gemini Enterprise Agent Platform or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). Throws if the requested model is not in the configured allow-list. */
+const createServerModel = (modelId?: string) => {
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    return vertexProvider.languageModel(modelId ?? resolveDefaultVertexModel(vertexProvider));
+  }
+
+  const google = getGoogleModule();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (google && apiKey) {
+    const provider = google.createGoogleGenerativeAI({apiKey});
+    return provider(modelId ?? DEFAULT_MODEL);
+  }
+
+  return undefined;
+};
+
+/** Create a LanguageModel from a per-request API key (always uses Gemini API). */
 const createModelFromKey = (apiKey: string, modelId?: string) => {
   const google = getGoogleModule();
   if (!google) {
-    throw new Error("Missing @ai-sdk/google dependency.");
+    throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider(modelId ?? "gemini-3-flash-preview");
+  return provider(modelId ?? DEFAULT_MODEL);
 };
 
 const getMcpService = (): MCPService | undefined => {
@@ -275,13 +497,25 @@ const generatePdfBytes = async ({
   return pdfDoc.save();
 };
 
-const createImageModel = (apiKey: string) => {
+const createImageModel = (apiKey?: string) => {
+  // Prefer Vertex AI / Gemini Enterprise Agent Platform for image generation, but only when the
+  // Imagen model is permitted by the allow-list. Otherwise fall back to the Gemini API key.
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider && !apiKey && vertexProvider.isModelAllowed(VERTEX_IMAGE_MODEL)) {
+    return vertexProvider.imageModel(VERTEX_IMAGE_MODEL);
+  }
+
+  // Fall back to Gemini API with the provided key
   const google = getGoogleModule();
   if (!google) {
-    throw new Error("Missing @ai-sdk/google dependency.");
+    throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
   }
-  const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider.image("imagen-4.0-fast-generate-001");
+  const effectiveKey = apiKey ?? process.env.GEMINI_API_KEY;
+  if (!effectiveKey) {
+    throw new APIError({status: 500, title: "No API key available for image generation."});
+  }
+  const provider = google.createGoogleGenerativeAI({apiKey: effectiveKey});
+  return provider.image(VERTEX_IMAGE_MODEL);
 };
 
 const GENERATE_IMAGE_DESCRIPTION =
@@ -290,15 +524,7 @@ const GENERATE_IMAGE_DESCRIPTION =
 const GENERATE_PDF_DESCRIPTION =
   "Generate a PDF document. ONLY use this tool when the user explicitly asks to create or generate a PDF file. Do NOT use for regular text questions. Use markdown-style formatting in content: # for main headings, ## for subheadings, - for bullet points, and blank lines between paragraphs.";
 
-const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
-  // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-  const tools: Record<string, Tool> = {...(getMCPTools(req.user as any) as any)};
-
-  const apiKey = req.headers["x-ai-api-key"] as string | undefined;
-  if (!apiKey) {
-    return tools;
-  }
-
+const createImageTool = (apiKey?: string): Tool => {
   const imageTool = tool({
     description: GENERATE_IMAGE_DESCRIPTION,
     execute: async ({prompt}: {prompt: string}) => {
@@ -318,7 +544,7 @@ const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
       return {
         description: `Generated image for: "${prompt}"`,
         fileData: dataUrl,
-        filename: `image-${Date.now()}.png`,
+        filename: `image-${DateTime.now().toMillis()}.png`,
         mimeType: mediaType,
       };
     },
@@ -328,12 +554,24 @@ const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
       })
     ),
   });
-  // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-  (imageTool as any).toModelOutput = ({output}: {output: any}) => [
-    {text: output.description ?? "Image generated.", type: "text"},
-  ];
+  // toModelOutput is an internal AI SDK property for tool output → model message conversion
+  (imageTool as Record<string, unknown>).toModelOutput = ({
+    output,
+  }: {
+    output: Record<string, unknown>;
+  }) => [{text: (output.description as string) ?? "Image generated.", type: "text"}];
+  return imageTool as Tool;
+};
 
-  tools.generate_image = imageTool as Tool;
+const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
+  const tools: Record<string, Tool> = {...(getMCPTools(req.user as any) as any)};
+
+  const apiKey = req.headers["x-ai-api-key"] as string | undefined;
+  if (apiKey) {
+    tools.generate_image = createImageTool(apiKey);
+  }
+
   return tools;
 };
 
@@ -363,10 +601,12 @@ const pdfTool = tool({
     })
   ),
 });
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-(pdfTool as any).toModelOutput = ({output}: {output: any}) => [
-  {text: output.description ?? "PDF generated.", type: "text"},
-];
+// toModelOutput is an internal AI SDK property for tool output → model message conversion
+(pdfTool as Record<string, unknown>).toModelOutput = ({
+  output,
+}: {
+  output: Record<string, unknown>;
+}) => [{text: (output.description as string) ?? "PDF generated.", type: "text"}];
 
 const JOKE_FALLBACK_SYSTEM_PROMPT =
   "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
@@ -412,46 +652,97 @@ const jokeGeneratorTool = tool({
 });
 
 // Sample tools for demo purposes
-const demoTools = {
-  generate_joke: jokeGeneratorTool,
-  generate_pdf: pdfTool,
-  get_current_time: tool({
-    description: "Get the current date and time",
-    execute: async ({timezone}: {timezone?: string}) => {
-      const now = new Date();
-      return {
-        time: now.toLocaleString("en-US", {timeZone: timezone ?? "UTC"}),
-        timezone: timezone ?? "UTC",
-      };
-    },
-    inputSchema: zodSchema(
-      z.object({
-        timezone: z.string().optional().describe("IANA timezone name (e.g., America/New_York)"),
-      })
-    ),
-  }),
+const getDemoTools = (): Record<string, Tool> => {
+  const tools: Record<string, Tool> = {
+    generate_joke: jokeGeneratorTool,
+    generate_pdf: pdfTool,
+    get_current_time: tool({
+      description: "Get the current date and time",
+      execute: async ({timezone}: {timezone?: string}) => {
+        const now = DateTime.now().setZone(timezone ?? "UTC");
+        if (!now.isValid) {
+          throw new APIError({status: 400, title: `Invalid timezone: ${timezone}`});
+        }
+        return {
+          time: now.setLocale("en-US").toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS),
+          timezone: timezone ?? "UTC",
+        };
+      },
+      inputSchema: zodSchema(
+        z.object({
+          timezone: z.string().optional().describe("IANA timezone name (e.g., America/New_York)"),
+        })
+      ),
+    }),
+  };
+
+  // Add server-side image generation when a permitted Vertex image model or a server API key is available
+  const vertexProvider = getVertexProvider();
+  const vertexImageAvailable = Boolean(vertexProvider?.isModelAllowed(VERTEX_IMAGE_MODEL));
+  if (vertexImageAvailable || process.env.GEMINI_API_KEY) {
+    tools.generate_image = createImageTool();
+  }
+
+  return tools;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
+export const addAiRoutes = (
+  router: express.Router,
+  // noExplicitAny: ModelRouterOptions generic varies per downstream caller
+  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
+  options?: Partial<ModelRouterOptions<any>>
+): void => {
   const aiService = getAiService();
   const mcpService = getMcpService();
   const fileStorageService = initFileStorageService();
+
+  // Verify any configured Vertex model allow-list is enabled/available via the Google APIs.
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    void verifyAllowedVertexModels(vertexProvider);
+  }
+
+  router.get("/ai/models", [
+    authenticateMiddleware(),
+    createOpenApiBuilder(options ?? {})
+      .withTags(["ai"])
+      .withSummary("List selectable AI chat models")
+      .withResponse(200, {
+        models: {
+          items: {
+            properties: {
+              label: {type: "string"},
+              value: {type: "string"},
+            },
+            type: "object",
+          },
+          type: "array",
+        },
+      })
+      .build(),
+    asyncHandler(async (_req, res) => {
+      const models = await listAvailableModels();
+      return res.json({models});
+    }),
+  ]);
 
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
+    createServerModelFn: createServerModel,
     demoMode: !aiService,
     langfuseSystemPromptName: "chat-assistant",
     maxSteps: 5,
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
+    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    tools: demoTools as any,
+    tools: getDemoTools() as any,
   });
   addAiRequestsExplorerRoutes(router, {openApiOptions: options});
 

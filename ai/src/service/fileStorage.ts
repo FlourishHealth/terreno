@@ -1,4 +1,5 @@
 import {Storage, type StorageOptions} from "@google-cloud/storage";
+import {DateTime} from "luxon";
 
 import {FileAttachment} from "../models/fileAttachment";
 
@@ -31,7 +32,7 @@ export class FileStorageService {
   }
 
   async upload({buffer, filename, mimeType, userId}: UploadFileParams): Promise<UploadFileResult> {
-    const timestamp = Date.now();
+    const timestamp = DateTime.now().toMillis();
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
     const gcsKey = `uploads/${userId.toString()}/${timestamp}-${sanitizedFilename}`;
 
@@ -59,7 +60,7 @@ export class FileStorageService {
     const file = this.bucket.file(gcsKey);
     const [url] = await file.getSignedUrl({
       action: "read",
-      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+      expires: DateTime.now().plus({hours: 1}).toMillis(),
       version: "v4",
     });
     return url;

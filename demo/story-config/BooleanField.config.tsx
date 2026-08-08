@@ -6,7 +6,7 @@ import {
   BooleanFieldNoLabelDemo,
   BooleanFieldWithStoredStateDemo,
   BooleanFieldWithTitleDemo,
-} from "@stories";
+} from "@stories/BooleanField.stories";
 import {BooleanField} from "@terreno/ui";
 import React from "react";
 

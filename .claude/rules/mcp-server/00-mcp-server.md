@@ -2,7 +2,7 @@
 paths:
   - '**/*'
 ---
-# @terreno/mcp-server
+# @terreno/mcp
 
 Model Context Protocol (MCP) server that provides tools, prompts, and resources for AI coding assistants to generate Terreno-compatible code. Built with Express and JSON-RPC 2.0.
 
@@ -31,11 +31,14 @@ src/
 
 | Tool | Description |
 |------|-------------|
-| `generate_model` | Creates Mongoose schemas with Terreno conventions (plugins, types, methods/statics) |
-| `generate_route` | Creates modelRouter configurations with permission setup |
-| `generate_screen` | Creates React Native screens (list, detail, form, empty types) |
-| `generate_form_fields` | Generates form field components with validation |
-| `validate_model_schema` | Validates schemas against Terreno conventions |
+| `terreno_bootstrap_app` | Scaffold a new full-stack Terreno app (frontend, backend, rules, MCP) |
+| `terreno_bootstrap_ai_rules` | Scaffold AI assistant rules for Cursor, Claude Code, Copilot, etc. |
+| `terreno_generate_model` | Creates Mongoose schemas with Terreno conventions (plugins, types, methods/statics) |
+| `terreno_generate_route` | Creates modelRouter configurations with permission setup |
+| `terreno_generate_screen` | Creates React Native screens (list, detail, form, empty types) |
+| `terreno_generate_form_fields` | Generates form field components with validation |
+| `terreno_validate_model_schema` | Validates schemas against Terreno conventions |
+| `terreno_install_admin` | Generates admin panel integration files and instructions |
 
 Each tool returns generated code wrapped with file path instructions and additional setup steps.
 
@@ -43,11 +46,13 @@ Each tool returns generated code wrapped with file path instructions and additio
 
 | Prompt | Description |
 |--------|-------------|
-| `create_crud_feature` | Full CRUD generation: model + routes + screens |
-| `create_api_endpoint` | Custom API endpoint with OpenAPI docs |
-| `create_ui_component` | Reusable UI component (display, interactive, form, layout) |
-| `create_form_screen` | Form screen with validation |
-| `add_authentication` | Auth setup with feature selection |
+| `terreno_bootstrap` | Workflow for scaffolding a new Terreno application |
+| `terreno_create_crud_feature` | Full CRUD generation: model + routes + screens |
+| `terreno_create_api_endpoint` | Custom API endpoint with OpenAPI docs |
+| `terreno_create_ui_component` | Reusable UI component (display, interactive, form, layout) |
+| `terreno_create_form_screen` | Form screen with validation |
+| `terreno_add_authentication` | Auth setup with feature selection |
+| `terreno_migrate_to_terreno_app` | Migrate from setupServer to TerrenoApp pattern |
 | `terreno_style_guide` | Code style guide from project markdown |
 
 Prompts provide detailed requirements, example code patterns, and step-by-step setup instructions.
@@ -74,7 +79,7 @@ Resources are loaded from markdown files with dynamic path resolution.
 ```typescript
 // In src/tools.ts
 {
-  name: "my_tool",
+  name: "terreno_my_tool",
   description: "What it does",
   inputSchema: {
     type: "object",

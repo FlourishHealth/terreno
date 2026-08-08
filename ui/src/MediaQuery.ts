@@ -1,6 +1,6 @@
 import {Dimensions} from "react-native";
 
-export function mediaQuery(): "xs" | "sm" | "md" | "lg" {
+export const mediaQuery = (): "xs" | "sm" | "md" | "lg" => {
   const width = Dimensions.get("window").width;
   if (width < 576) {
     return "xs";
@@ -11,9 +11,9 @@ export function mediaQuery(): "xs" | "sm" | "md" | "lg" {
   } else {
     return "lg";
   }
-}
+};
 
-export function mediaQueryLargerThan(size: "xs" | "sm" | "md" | "lg"): boolean {
+export const mediaQueryLargerThan = (size: "xs" | "sm" | "md" | "lg"): boolean => {
   const media = mediaQuery();
   if (size === "xs") {
     return true;
@@ -25,9 +25,9 @@ export function mediaQueryLargerThan(size: "xs" | "sm" | "md" | "lg"): boolean {
     return ["lg"].includes(media);
   }
   return false;
-}
+};
 
-export function mediaQuerySmallerThan(size: "xs" | "sm" | "md" | "lg"): boolean {
+export const mediaQuerySmallerThan = (size: "xs" | "sm" | "md" | "lg"): boolean => {
   const media = mediaQuery();
   if (size === "lg") {
     return true;
@@ -39,8 +39,8 @@ export function mediaQuerySmallerThan(size: "xs" | "sm" | "md" | "lg"): boolean 
     return ["xs"].includes(media);
   }
   return false;
-}
+};
 
-export function isMobileDevice(): boolean {
+export const isMobileDevice = (): boolean => {
   return !mediaQueryLargerThan("sm");
-}
+};

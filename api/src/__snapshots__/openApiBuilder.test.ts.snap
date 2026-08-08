@@ -910,6 +910,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
     "/food/stats": {
       "get": {
         "description": "Returns aggregated statistics about food items",
+        "operationId": "getFoodStats",
         "parameters": [
           {
             "description": "Filter by food category",

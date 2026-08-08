@@ -1,8 +1,9 @@
-import {describe, expect, it} from "bun:test";
-import {render} from "@testing-library/react-native";
-import {createRef} from "react";
+import {describe, expect, it, mock} from "bun:test";
+import {act, render} from "@testing-library/react-native";
+import React, {createRef} from "react";
 
 import type {ActionSheet} from "./ActionSheet";
+import {Button} from "./Button";
 import {HeightActionSheet} from "./HeightActionSheet";
 import {ThemeProvider} from "./Theme";
 
@@ -30,5 +31,75 @@ describe("HeightActionSheet", () => {
       </ThemeProvider>
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with title and min/max values", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const {getByText} = render(
+      <ThemeProvider>
+        <HeightActionSheet
+          actionSheetRef={actionSheetRef}
+          max={84}
+          min={36}
+          onChange={() => {}}
+          title="Select Height"
+          value="60"
+        />
+      </ThemeProvider>
+    );
+    expect(getByText("Select Height")).toBeTruthy();
+  });
+
+  it("invokes onChange when feet picker changes", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const handleChange = mock((_val: string) => {});
+    const {UNSAFE_getAllByProps} = render(
+      <ThemeProvider>
+        <HeightActionSheet actionSheetRef={actionSheetRef} onChange={handleChange} value="72" />
+      </ThemeProvider>
+    );
+    // feet picker has selectedValue "6" (72 / 12)
+    const feetPickers = UNSAFE_getAllByProps({selectedValue: "6"});
+    const feetPicker = feetPickers.find((p) => typeof p.props.onValueChange === "function");
+    act(() => {
+      if (feetPicker) {
+        feetPicker.props.onValueChange(5);
+      }
+    });
+    expect(handleChange).toHaveBeenCalled();
+  });
+
+  it("invokes onChange when inches picker changes", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const handleChange = mock((_val: string) => {});
+    const {UNSAFE_getAllByProps} = render(
+      <ThemeProvider>
+        <HeightActionSheet actionSheetRef={actionSheetRef} onChange={handleChange} value="73" />
+      </ThemeProvider>
+    );
+    // inches picker has selectedValue "1" (73 % 12)
+    const inchPickers = UNSAFE_getAllByProps({selectedValue: "1"});
+    const inchPicker = inchPickers.find((p) => typeof p.props.onValueChange === "function");
+    act(() => {
+      if (inchPicker) {
+        inchPicker.props.onValueChange(5);
+      }
+    });
+    expect(handleChange).toHaveBeenCalled();
+  });
+
+  it("calls the Done button onClick handler directly", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const {UNSAFE_root} = render(
+      <ThemeProvider>
+        <HeightActionSheet actionSheetRef={actionSheetRef} onChange={() => {}} value="60" />
+      </ThemeProvider>
+    );
+    const buttons = UNSAFE_root.findAllByType(Button as never);
+    const doneBtn = buttons.find((b) => b.props.text === "Done");
+    expect(doneBtn).toBeTruthy();
+    act(() => {
+      doneBtn!.props.onClick();
+    });
   });
 });

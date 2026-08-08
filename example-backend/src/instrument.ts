@@ -2,6 +2,7 @@
 import {DateOnly} from "@terreno/api";
 import mongoose from "mongoose";
 
+// noExplicitAny: Setting a custom type on mongoose.Schema.Types
 // biome-ignore lint/suspicious/noExplicitAny: Setting a custom type on mongoose.Schema.Types
 (mongoose.Schema.Types as any).DateOnly = DateOnly;
 
@@ -82,34 +83,37 @@ if (isTracingEnabled) {
 import * as Sentry from "@sentry/bun";
 
 // import {nodeProfilingIntegration} from "@sentry/profiling-node";
-
-if (process.env.NODE_ENV === "production" && !process.env.SENTRY_DSN) {
-  throw new Error("SENTRY_DSN must be set");
-}
+const sentryDsn = process.env.SENTRY_DSN;
 
 const IGNORE_TRACES = ["health"];
 
-// Ensure to call this before requiring any other modules!
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  enableLogs: true,
-  // debug: true,
-  environment: process.env.APP_ENV ?? "development",
-  ignoreErrors: [/^.*ECONNRESET*$/, /^.*socket hang up*$/],
-  integrations: [
-    // Only profile integration needs to be added, the rest are defaults and are already added,
-    // including Express, mongoose, HTTP, etc. MongoDB/Mongoose instrumentation is automatic.
-    // nodeProfilingIntegration(),
-  ],
-  tracesSampler: (samplingContext) => {
-    const transactionName = samplingContext.name.toLowerCase();
-    // ignore any transactions that include a match from the ignoreTraces list
-    if (IGNORE_TRACES.some((trace) => transactionName.includes(trace.toLowerCase()))) {
-      return 0.0;
-    }
-    // otherwise just use the standard sample rate
-    return process.env.SENTRY_TRACES_SAMPLE_RATE
-      ? Number.parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE)
-      : 0.1;
-  },
-});
+if (!sentryDsn && process.env.NODE_ENV === "production") {
+  process.stderr.write("SENTRY_DSN is not set; Sentry initialization skipped.\n");
+}
+
+if (sentryDsn) {
+  // Ensure to call this before requiring any other modules!
+  Sentry.init({
+    dsn: sentryDsn,
+    enableLogs: true,
+    // debug: true,
+    environment: process.env.APP_ENV ?? "development",
+    ignoreErrors: [/^.*ECONNRESET*$/, /^.*socket hang up*$/],
+    integrations: [
+      // Only profile integration needs to be added, the rest are defaults and are already added,
+      // including Express, mongoose, HTTP, etc. MongoDB/Mongoose instrumentation is automatic.
+      // nodeProfilingIntegration(),
+    ],
+    tracesSampler: (samplingContext) => {
+      const transactionName = samplingContext.name.toLowerCase();
+      // ignore any transactions that include a match from the ignoreTraces list
+      if (IGNORE_TRACES.some((trace) => transactionName.includes(trace.toLowerCase()))) {
+        return 0.0;
+      }
+      // otherwise just use the standard sample rate
+      return process.env.SENTRY_TRACES_SAMPLE_RATE
+        ? Number.parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE)
+        : 0.1;
+    },
+  });
+}

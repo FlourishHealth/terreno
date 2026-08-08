@@ -1,4 +1,4 @@
-import {usePatchMeMutation} from "@/store";
+import {usePatchMeMutation} from "@/store/sdk";
 
 export interface UpdateProfileArgs {
   name?: string;
@@ -12,7 +12,7 @@ export interface UpdateProfileResult {
   error: unknown;
 }
 
-export function useUpdateProfile(): UpdateProfileResult {
+export const useUpdateProfile = (): UpdateProfileResult => {
   const [patchMe, {isLoading, error}] = usePatchMeMutation();
 
   const updateProfile = async (updates: UpdateProfileArgs): Promise<void> => {
@@ -24,4 +24,4 @@ export function useUpdateProfile(): UpdateProfileResult {
     isLoading,
     updateProfile,
   };
-}
+};

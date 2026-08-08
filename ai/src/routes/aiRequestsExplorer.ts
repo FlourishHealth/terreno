@@ -1,11 +1,12 @@
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
 import type express from "express";
+import {DateTime} from "luxon";
 
 import {AIRequest} from "../models/aiRequest";
 import type {AiRequestsExplorerRouteOptions} from "../types";
 
 export const addAiRequestsExplorerRoutes = (
-  router: any,
+  router: express.Router,
   options?: AiRequestsExplorerRouteOptions
 ): void => {
   router.get(
@@ -31,7 +32,7 @@ export const addAiRequestsExplorerRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const user = (req as any).user;
+      const user = req.user as {admin?: boolean} | undefined;
       if (!user?.admin) {
         return res.status(403).json({error: "Admin access required"});
       }
@@ -43,7 +44,9 @@ export const addAiRequestsExplorerRoutes = (
       );
       const skip = (page - 1) * limit;
 
-      const match: Record<string, any> = {deleted: {$ne: true}};
+      const match: Record<string, unknown> & {created?: {$gte?: Date; $lte?: Date}} = {
+        deleted: {$ne: true},
+      };
 
       if (req.query.requestType) {
         match.requestType = req.query.requestType;
@@ -54,10 +57,21 @@ export const addAiRequestsExplorerRoutes = (
       if (req.query.startDate || req.query.endDate) {
         match.created = {};
         if (req.query.startDate) {
-          match.created.$gte = new Date(req.query.startDate as string);
+          const startDt = DateTime.fromISO(req.query.startDate as string, {zone: "utc"});
+          if (!startDt.isValid) {
+            throw new APIError({
+              status: 400,
+              title: "Invalid startDate format (expected ISO 8601)",
+            });
+          }
+          match.created.$gte = startDt.toJSDate();
         }
         if (req.query.endDate) {
-          match.created.$lte = new Date(req.query.endDate as string);
+          const endDt = DateTime.fromISO(req.query.endDate as string, {zone: "utc"});
+          if (!endDt.isValid) {
+            throw new APIError({status: 400, title: "Invalid endDate format (expected ISO 8601)"});
+          }
+          match.created.$lte = endDt.toJSDate();
         }
       }
 

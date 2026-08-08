@@ -4,7 +4,7 @@ import {
   MarkdownEditorFieldDisabled,
   MarkdownEditorFieldWithError,
   MarkdownEditorFieldWithHelper,
-} from "@stories";
+} from "@stories/MarkdownEditorField.stories";
 import {MarkdownEditorField} from "@terreno/ui";
 
 export const MarkdownEditorFieldConfiguration: DemoConfiguration = {

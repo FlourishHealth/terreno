@@ -41,7 +41,7 @@ export const ChevronTooltip = ({
             : `chevron-${idealPosition}`
     }
     onClick={() => {}}
-    tooltipIdealPosition={idealPosition as any}
+    tooltipIdealPosition={idealPosition === "none" ? undefined : idealPosition}
     tooltipIncludeArrow={includeArrow}
     tooltipText={text}
   />

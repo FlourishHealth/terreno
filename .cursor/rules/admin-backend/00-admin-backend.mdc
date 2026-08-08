@@ -1,5 +1,5 @@
 ---
-description: @terreno/admin-backend - Admin panel backend plugin for @terreno/api
+description: '@terreno/admin-backend - Admin panel backend plugin for @terreno/api'
 globs: **/*
 ---
 

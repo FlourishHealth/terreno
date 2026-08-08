@@ -10,7 +10,7 @@ export const BadgeDemo = (props: Partial<BadgeProps>) => {
   );
 };
 
-function badgeLine(text: string, badgeProps: Partial<BadgeProps>) {
+const badgeLine = (text: string, badgeProps: Partial<BadgeProps>) => {
   return (
     <Box direction="row" paddingY={2}>
       <Box width={100}>
@@ -21,7 +21,7 @@ function badgeLine(text: string, badgeProps: Partial<BadgeProps>) {
       </Box>
     </Box>
   );
-}
+};
 
 export const BadgeStories = () => {
   return (

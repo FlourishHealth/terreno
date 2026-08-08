@@ -1,4 +1,4 @@
-import {Box, Icon, type IconProps, Text} from "@terreno/ui";
+import {Box, Button, Icon, IconButton, type IconProps, Text} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -35,6 +35,28 @@ export const IconStyles = (
     <Box padding={6}>
       <Text>Regular</Text>
       <Icon iconName="heart" size="xl" type="regular" />
+    </Box>
+  </StorybookContainer>
+);
+
+export const CustomIcons = (
+  <StorybookContainer>
+    <Box gap={4} padding={6}>
+      <Text>
+        The "sparkle" icon is a custom SVG registered on the demo's root TerrenoProvider (see
+        components/customIcons.tsx). Once registered, it is usable by name anywhere an iconName is
+        accepted.
+      </Text>
+      <Box alignItems="center" direction="row" gap={4}>
+        <Icon color="primary" iconName="sparkle" size="xs" />
+        <Icon color="primary" iconName="sparkle" size="md" />
+        <Icon color="accent" iconName="sparkle" size="xl" />
+        <Icon color="error" iconName="sparkle" size="2xl" />
+      </Box>
+      <Box alignItems="center" direction="row" gap={4}>
+        <Button iconName="sparkle" onClick={() => {}} text="Sparkle" />
+        <IconButton accessibilityLabel="Sparkle" iconName="sparkle" onClick={() => {}} />
+      </Box>
     </Box>
   </StorybookContainer>
 );

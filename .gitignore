@@ -21,6 +21,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Code coverage
 coverage/
+coverage-main/
+coverage-iso-*/
 *.lcov
 .nyc_output/
 
@@ -53,6 +55,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+research.md
 
 .claude/settings.local.json
 
@@ -62,3 +65,11 @@ temp/
 # Generated typedoc output (embeds commit SHA, causes noisy diffs)
 demo/ui-types-documentation.json
 mcp-server/src/docs/ui-types-documentation.json
+mcp-server/src/docs/versioned/
+
+# Generated docs site artifacts (built at site build time)
+docs/reference/components/*.mdx
+docs/reference/generated/
+website/.docusaurus/
+website/build/
+website/node_modules/

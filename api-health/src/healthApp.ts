@@ -8,7 +8,7 @@ export interface HealthCheckResult {
   /** Whether the service is healthy */
   healthy: boolean;
   /** Optional additional details about the health status */
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 /**

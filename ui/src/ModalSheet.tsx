@@ -1,14 +1,23 @@
-import {forwardRef, useEffect, useRef} from "react";
+import {
+  forwardRef,
+  type MutableRefObject,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useRef,
+} from "react";
 import {Animated} from "react-native";
 import {Modalize} from "react-native-modalize";
 import {Portal} from "react-native-portalize";
 
-export const useCombinedRefs = (...refs: any) => {
-  const targetRef = useRef<any>(null);
+export const useCombinedRefs = <T,>(
+  ...refs: Array<Ref<T> | undefined>
+): MutableRefObject<T | null> => {
+  const targetRef = useRef<T | null>(null);
 
   // Iterate through the refs array, and set the ref.current value to the targetRef
   useEffect(() => {
-    refs.forEach((ref: any) => {
+    refs.forEach((ref) => {
       if (!ref) {
         return;
       }
@@ -16,7 +25,7 @@ export const useCombinedRefs = (...refs: any) => {
       if (typeof ref === "function") {
         ref(targetRef.current);
       } else {
-        ref.current = targetRef.current;
+        (ref as MutableRefObject<T | null>).current = targetRef.current;
       }
     });
   }, [refs]);
@@ -25,7 +34,7 @@ export const useCombinedRefs = (...refs: any) => {
 };
 
 interface Props {
-  children: any;
+  children: ReactNode;
 }
 
 export const SimpleContent = forwardRef((props: Props, ref) => {

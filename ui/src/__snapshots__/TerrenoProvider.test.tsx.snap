@@ -27,15 +27,7 @@ exports[`TerrenoProvider renders correctly with default props 1`] = `
       },
     ],
     "props": {
-      "collapsable": false,
-      "pointerEvents": "box-none",
-      "style": [
-        {
-          "flex": 1,
-        },
-        undefined,
-      ],
-      "testID": undefined,
+      "testID": "portal-host",
     },
     "type": "View",
   },
@@ -123,15 +115,7 @@ exports[`TerrenoProvider renders with openAPISpecUrl 1`] = `
       },
     ],
     "props": {
-      "collapsable": false,
-      "pointerEvents": "box-none",
-      "style": [
-        {
-          "flex": 1,
-        },
-        undefined,
-      ],
-      "testID": undefined,
+      "testID": "portal-host",
     },
     "type": "View",
   },

@@ -26,6 +26,7 @@ src/
   AdminModelList.tsx     # List of all admin models (entry screen)
   AdminModelTable.tsx    # Table view for a specific model (list with pagination)
   AdminModelForm.tsx     # Create/edit form for a model instance
+  AdminShellLayout.tsx   # Sidebar + main column shell for Expo admin apps
   AdminFieldRenderer.tsx # Renders individual fields in table cells
   AdminRefField.tsx      # Renders reference fields as clickable links
   useAdminConfig.tsx     # Hook to fetch admin config from backend
@@ -39,6 +40,8 @@ import {
   AdminModelList,        // Model list screen (entry point)
   AdminModelTable,       // Table view for a specific model
   AdminModelForm,        // Create/edit form
+  AdminShellLayout,      // Sidebar + flex main column (default for Expo admin root)
+  type AdminShellSidebarVariant, // "colorful" (teal rail, default) | "clinical" (light rail)
   AdminFieldRenderer,    // Field renderer for table cells
   AdminRefField,         // Reference field renderer
   useAdminConfig,        // Hook to fetch admin config
@@ -52,11 +55,26 @@ import {
 ### Setup in Expo Router
 
 ```typescript
-// app/admin/_layout.tsx
+// app/admin/_layout.tsx — wrap the admin Stack once so every route gets the sidebar
+import {AdminShellLayout} from "@terreno/admin-frontend";
 import {Stack} from "expo-router";
+import {api} from "@/store/openApiSdk";
 
 export default function AdminLayout() {
-  return <Stack screenOptions={{headerShown: false}} />;
+  return (
+    <AdminShellLayout
+      api={api}
+      apiBase="/admin"
+      configurationPath="/admin/configuration"
+      routeBase="/admin"
+      versionConfigPath="/version-config"
+    >
+      <Stack screenOptions={{headerShown: false, contentStyle: {flex: 1}}}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="[model]" />
+      </Stack>
+    </AdminShellLayout>
+  );
 }
 
 // app/admin/index.tsx
@@ -92,6 +110,10 @@ export default function AdminFormScreen() {
   />;
 }
 ```
+
+### AdminShellLayout chrome
+
+Matches the Flourish `adminv2.html` shell: **`body`-style canvas** (`neutral-050` via theme primitive on the main column), default **`sidebarVariant="colorful"`** (brand teal `secondaryDark` / `#2B6072`, **280px** rail + light nav labels), optional **`sidebarVariant="clinical"`**, a white **top bar** (28px horizontal padding) when **`breadcrumbs`** or **`headerActions`** are set, and a **`.page-pad`-equivalent** inner column (`padding: 24px 28px 80px`, `max-width: 1280px`). Admin **`Page`** screens use **`color="transparent"`** and **`padding={0}`** so cards sit on that canvas. Pass **`breadcrumbs={[{label: "Admin"}]}`** on the admin home route for a single crumb like the prototype.
 
 ## Components
 

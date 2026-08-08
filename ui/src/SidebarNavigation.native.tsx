@@ -1,24 +1,84 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
-import {type FC, useCallback, useEffect, useRef, useState} from "react";
-import {Animated, Dimensions, Pressable, type StyleProp, View, type ViewStyle} from "react-native";
+// Screen is not exported from expo-router's public API (exports.d.ts only exposes ScreenProps).
+// Stack.Screen and Tabs.Screen use this same internal path. If expo-router upgrades break this,
+// update the import path here — this is the only place in the codebase that references it.
+// eslint-disable-next-line import/no-internal-modules
+import {Screen} from "expo-router/build/views/Screen";
+import {type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {
+  Animated,
+  Dimensions,
+  PanResponder,
+  Pressable,
+  Text as RNText,
+  type StyleProp,
+  View,
+  type ViewStyle,
+} from "react-native";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {Badge} from "./Badge";
 import type {
+  SidebarBadgeStatus,
   SidebarNavigationItem,
   SidebarNavigationPanelProps,
   SidebarNavigationProps,
+  SurfaceTheme,
 } from "./Common";
-import {SIDEBAR_BADGE_STATUS_MAP} from "./Common";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 
-const DRAWER_WIDTH = 280;
-const ITEM_HEIGHT = 48;
-const ICON_SIZE = 20;
+const ITEM_HEIGHT = 44;
 const BACKDROP_OPACITY = 0.5;
-const ANIMATION_DURATION = 250;
+
+const SIDEBAR_BADGE_SURFACE: Record<SidebarBadgeStatus, keyof SurfaceTheme> = {
+  error: "error",
+  info: "secondaryDark",
+  neutral: "neutralDark",
+  success: "success",
+  warning: "warning",
+};
+
+const SidebarBadge: FC<{badge: number | true; status: SidebarBadgeStatus}> = ({badge, status}) => {
+  const {theme} = useTheme();
+  const backgroundColor = theme.surface[SIDEBAR_BADGE_SURFACE[status]];
+  const isDot = badge === true;
+
+  if (isDot) {
+    return <View style={{backgroundColor, borderRadius: 999, height: 18, width: 18}} />;
+  }
+
+  const value = Number(badge) > 9 ? "9+" : String(badge);
+
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        backgroundColor,
+        borderRadius: 999,
+        height: 18,
+        justifyContent: "center",
+        minWidth: 18,
+        paddingHorizontal: 4,
+      }}
+    >
+      <RNText
+        style={{
+          color: "#FFFFFF",
+          fontSize: 11,
+          fontWeight: "700",
+          lineHeight: 12,
+        }}
+      >
+        {value}
+      </RNText>
+    </View>
+  );
+};
+
+const ANIMATION_DURATION = 300;
+const DISMISS_THRESHOLD = 0.3;
 
 const SidebarItem: FC<{
   item: SidebarNavigationItem;
@@ -40,46 +100,49 @@ const SidebarItem: FC<{
       style={[
         {
           alignItems: "center",
-          backgroundColor: isActive ? theme.surface.secondaryLight : "transparent",
+          backgroundColor: isActive ? theme.surface.neutralLight : "transparent",
           borderRadius: theme.radius.default,
           flexDirection: "row",
-          gap: 14,
+          gap: 12,
           height: ITEM_HEIGHT,
-          marginHorizontal: 12,
-          paddingHorizontal: 14,
+          marginHorizontal: 8,
+          paddingHorizontal: 12,
         },
         itemStyle,
       ]}
     >
-      <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
-        <Icon color={isActive ? "primary" : "secondaryDark"} iconName={item.iconName} size="md" />
-        {Boolean(item.badge) && (
-          <View
-            style={{
-              bottom: item.badge === true ? -4 : undefined,
-              position: "absolute",
-              right: -6,
-              top: item.badge === true ? undefined : -4,
-            }}
-          >
-            <Badge
-              maxValue={99}
-              status={SIDEBAR_BADGE_STATUS_MAP[item.badgeStatus ?? "error"]}
-              value={item.badge === true ? undefined : String(item.badge)}
-              variant={item.badge === true ? "iconOnly" : "numberOnly"}
-            />
+      <View style={{alignItems: "center", height: 40, justifyContent: "center", width: 40}}>
+        <Icon color={isActive ? "primary" : "secondaryLight"} iconName={item.iconName} size="xl" />
+        {item.badge !== undefined && item.badge !== false && (
+          <View style={{bottom: 0, position: "absolute", right: 0}}>
+            <SidebarBadge badge={item.badge} status={item.badgeStatus ?? "success"} />
           </View>
         )}
       </View>
-      <Text bold={isActive} color={isActive ? "primary" : "secondaryDark"} size="md">
+      <Text bold={isActive} color={isActive ? "primary" : "secondaryLight"} size="lg">
         {item.label}
       </Text>
     </Pressable>
   );
 };
 
+const SidebarHamburger: FC<{onOpen: () => void}> = ({onOpen}) => (
+  <Pressable
+    accessibilityLabel="Open navigation menu"
+    accessibilityRole="button"
+    onPress={onOpen}
+    style={{alignItems: "center", height: 40, justifyContent: "center", width: 40}}
+  >
+    <Icon color="primary" iconName="bars" size="md" />
+  </Pressable>
+);
+
 /**
- * Renders the hamburger button, drawer overlay, and children. Works without expo-router Navigator context.
+ * Renders the bottom sheet overlay and children. Works without expo-router Navigator context.
+ *
+ * Supports two modes:
+ * - Uncontrolled (default): manages open state internally and shows a floating hamburger button.
+ * - Controlled: caller provides isOpen + onOpenChange and owns the trigger (e.g. a header button).
  */
 export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   topItems,
@@ -89,187 +152,279 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   children,
   panelStyle,
   itemStyle,
+  isOpen: isOpenProp,
+  onOpenChange,
 }) => {
   const {theme} = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const insets = useSafeAreaInsets();
+  const isControlled = isOpenProp !== undefined;
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isOpen = isControlled ? isOpenProp : isOpenInternal;
+
+  const sheetHeight = useMemo(() => Dimensions.get("window").height * 0.65, []);
+  const slideAnim = useRef(new Animated.Value(sheetHeight)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const capturedSlideValue = useRef(0);
 
-  // Animate drawer open/close
+  // Play open animation whenever isOpen becomes true
   useEffect(() => {
-    if (isOpen) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: BACKDROP_OPACITY,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: -DRAWER_WIDTH,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen, slideAnim, backdropAnim]);
+    slideAnim.setValue(sheetHeight);
+    backdropAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: BACKDROP_OPACITY,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isOpen, slideAnim, backdropAnim, sheetHeight]);
 
-  const handleOpen = useCallback(() => setIsOpen(true), []);
-  const handleClose = useCallback(() => setIsOpen(false), []);
+  // Play close animation then update state
+  const handleClose = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: sheetHeight,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      if (isControlled) {
+        onOpenChange?.(false);
+      } else {
+        setIsOpenInternal(false);
+      }
+    });
+  }, [isControlled, onOpenChange, slideAnim, backdropAnim, sheetHeight]);
+
+  const handleOpen = useCallback(() => {
+    if (isControlled) {
+      onOpenChange?.(true);
+    } else {
+      setIsOpenInternal(true);
+    }
+  }, [isControlled, onOpenChange]);
 
   const handleNavigate = useCallback(
     (route: string) => {
-      setIsOpen(false);
+      handleClose();
       onNavigate(route);
     },
-    [onNavigate]
+    [handleClose, onNavigate]
   );
 
-  const screenHeight = Dimensions.get("window").height;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, {dx, dy}) => Math.abs(dy) > Math.abs(dx) && dy > 4,
+        onPanResponderGrant: () => {
+          slideAnim.stopAnimation((value) => {
+            capturedSlideValue.current = value;
+          });
+          backdropAnim.stopAnimation();
+        },
+        onPanResponderMove: (_, {dy}) => {
+          const next = capturedSlideValue.current + dy;
+          if (next < 0) {
+            return;
+          }
+          slideAnim.setValue(next);
+          backdropAnim.setValue(BACKDROP_OPACITY * Math.max(0, 1 - next / sheetHeight));
+        },
+        onPanResponderRelease: (_, {dy, vy}) => {
+          if (dy > sheetHeight * DISMISS_THRESHOLD || vy > 0.5) {
+            handleClose();
+          } else {
+            Animated.parallel([
+              Animated.timing(slideAnim, {
+                duration: 200,
+                toValue: 0,
+                useNativeDriver: true,
+              }),
+              Animated.timing(backdropAnim, {
+                duration: 200,
+                toValue: BACKDROP_OPACITY,
+                useNativeDriver: true,
+              }),
+            ]).start();
+          }
+        },
+      }),
+    [slideAnim, backdropAnim, sheetHeight, handleClose]
+  );
 
   return (
     <View style={{flex: 1}}>
       {children}
 
-      {/* Hamburger button */}
-      <Pressable
-        accessibilityLabel="Open navigation menu"
-        accessibilityRole="button"
-        onPress={handleOpen}
-        style={{
-          alignItems: "center",
-          backgroundColor: theme.surface.primary,
-          borderRadius: theme.radius.full,
-          elevation: 4,
-          height: 44,
-          justifyContent: "center",
-          left: 16,
-          position: "absolute",
-          shadowColor: "#000",
-          shadowOffset: {height: 2, width: 0},
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          top: 16,
-          width: 44,
-          zIndex: 10,
-        }}
-      >
-        <Icon color="inverted" iconName="bars" size="md" />
-      </Pressable>
-
-      {/* Backdrop */}
-      {isOpen && (
+      {/* Floating hamburger — only shown in uncontrolled (standalone) mode */}
+      {!isControlled && (
         <Pressable
-          onPress={handleClose}
+          accessibilityLabel="Open navigation menu"
+          accessibilityRole="button"
+          onPress={handleOpen}
           style={{
-            bottom: 0,
-            left: 0,
+            alignItems: "center",
+            height: 44,
+            justifyContent: "center",
+            left: 16,
             position: "absolute",
-            right: 0,
-            top: 0,
-            zIndex: 100,
+            top: insets.top + 16,
+            width: 44,
+            zIndex: 10,
           }}
         >
-          <Animated.View
-            style={{
-              backgroundColor: "#000",
-              flex: 1,
-              opacity: backdropAnim,
-            }}
-          />
+          <Icon color="primary" iconName="bars" size="md" />
         </Pressable>
       )}
 
-      {/* Drawer */}
-      <Animated.View
-        style={[
-          {
-            backgroundColor: theme.surface.base,
-            borderColor: theme.border.default,
-            borderRightWidth: 1,
-            height: screenHeight,
-            justifyContent: "space-between",
-            left: 0,
-            paddingBottom: 32,
-            paddingTop: 20,
-            position: "absolute",
-            top: 0,
-            transform: [{translateX: slideAnim}],
-            width: DRAWER_WIDTH,
-            zIndex: 200,
-          },
-          panelStyle,
-        ]}
-      >
-        {/* Close button */}
-        <View>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
           <Pressable
-            accessibilityLabel="Close navigation menu"
-            accessibilityRole="button"
+            accessibilityElementsHidden
             onPress={handleClose}
-            style={{
-              alignItems: "center",
-              alignSelf: "flex-end",
-              height: 40,
-              justifyContent: "center",
-              marginRight: 12,
-              width: 40,
-            }}
+            style={{bottom: 0, left: 0, position: "absolute", right: 0, top: 0, zIndex: 100}}
           >
-            <Icon color="secondaryDark" iconName="xmark" size="md" />
+            <Animated.View style={{backgroundColor: "#000", flex: 1, opacity: backdropAnim}} />
           </Pressable>
-          <View style={{gap: 4, marginTop: 8}}>
-            {topItems.map((item) => (
-              <SidebarItem
-                isActive={activeRoute === item.route}
-                item={item}
-                itemStyle={itemStyle}
-                key={item.route}
-                onPress={handleNavigate}
-              />
-            ))}
-          </View>
-        </View>
 
-        <View style={{gap: 4}}>
-          {bottomItems.map((item) => (
-            <SidebarItem
-              isActive={activeRoute === item.route}
-              item={item}
-              key={item.route}
-              onPress={handleNavigate}
-            />
-          ))}
-        </View>
-      </Animated.View>
+          {/* Bottom sheet */}
+          <Animated.View
+            style={[
+              {
+                backgroundColor: theme.surface.base,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                bottom: 0,
+                height: sheetHeight,
+                left: 0,
+                position: "absolute",
+                right: 0,
+                transform: [{translateY: slideAnim}],
+                zIndex: 200,
+              },
+              panelStyle,
+            ]}
+          >
+            {/* Drag bar */}
+            <View
+              {...panResponder.panHandlers}
+              accessibilityHint="Drag down to close"
+              accessibilityLabel="Navigation menu drag handle"
+              accessibilityRole="adjustable"
+              style={{alignItems: "center", paddingBottom: 8, paddingTop: 12}}
+            >
+              <View
+                style={{
+                  backgroundColor: theme.border.default,
+                  borderRadius: 2,
+                  height: 4,
+                  width: 36,
+                }}
+              />
+            </View>
+
+            {/* Nav items */}
+            <View style={{gap: 4, paddingBottom: insets.bottom + 8}}>
+              {[...topItems, ...bottomItems].map((item) => (
+                <SidebarItem
+                  isActive={activeRoute === item.route}
+                  item={item}
+                  itemStyle={itemStyle}
+                  key={item.label}
+                  onPress={handleNavigate}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        </>
+      )}
     </View>
   );
 };
 
-/**
- * Reads active route from Navigator context and renders the drawer + Slot.
- */
+const SidebarHeader: FC<{onOpen: () => void}> = ({onOpen}) => {
+  const {theme} = useTheme();
+  const insets = useSafeAreaInsets();
+  const {state, descriptors} = Navigator.useContext();
+  const activeRoute = state.routes[state.index];
+  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as {
+    headerLeft?: (props: object) => ReactNode;
+    headerRight?: (props: object) => ReactNode;
+    title?: string;
+  };
+
+  return (
+    <View
+      style={{
+        backgroundColor: theme.surface.base,
+        borderBottomColor: theme.border.default,
+        borderBottomWidth: 1,
+        paddingTop: insets.top,
+      }}
+    >
+      <View
+        style={{
+          alignItems: "center",
+          flexDirection: "row",
+          height: 44,
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+        }}
+      >
+        <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
+          <SidebarHamburger onOpen={onOpen} />
+          {headerLeft?.({})}
+        </View>
+        {Boolean(title) && (
+          <View
+            pointerEvents="none"
+            style={{
+              alignItems: "center",
+              bottom: 0,
+              justifyContent: "center",
+              left: 0,
+              position: "absolute",
+              right: 0,
+              top: 0,
+            }}
+          >
+            <Text bold size="lg">
+              {title}
+            </Text>
+          </View>
+        )}
+        {Boolean(headerRight) && <View style={{alignItems: "flex-end"}}>{headerRight?.({})}</View>}
+      </View>
+    </View>
+  );
+};
+
+/** Renders the content panel and bottom sheet for the active screen. */
 const SidebarNavigatorContent: FC<{
   topItems: SidebarNavigationItem[];
   bottomItems: SidebarNavigationItem[];
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
   onNavigate?: (route: string) => void;
   panelStyle?: StyleProp<ViewStyle>;
   itemStyle?: StyleProp<ViewStyle>;
-}> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
+}> = ({topItems, bottomItems, isOpen, onOpenChange, onNavigate, panelStyle, itemStyle}) => {
   const {state, navigation} = Navigator.useContext();
-  const activeRoute = state.routes[state.index]?.name;
+  const activeRoute = state.routes[state.index];
 
   const handleNavigate = useCallback(
     (route: string) => {
@@ -281,10 +436,12 @@ const SidebarNavigatorContent: FC<{
 
   return (
     <SidebarNavigationPanel
-      activeRoute={activeRoute}
+      activeRoute={activeRoute?.name}
       bottomItems={bottomItems}
+      isOpen={isOpen}
       itemStyle={itemStyle}
       onNavigate={handleNavigate}
+      onOpenChange={onOpenChange}
       panelStyle={panelStyle}
       topItems={topItems}
     >
@@ -294,7 +451,7 @@ const SidebarNavigatorContent: FC<{
 };
 
 /**
- * Custom expo-router navigator with a hamburger-triggered slide-in drawer.
+ * Custom expo-router navigator with a header bar and hamburger-triggered bottom sheet.
  * Use in _layout.tsx files:
  *
  * ```tsx
@@ -308,7 +465,7 @@ const SidebarNavigatorContent: FC<{
  * }
  * ```
  */
-export const SidebarNavigation: FC<SidebarNavigationProps> = ({
+const SidebarNavigationBase: FC<SidebarNavigationProps> = ({
   topItems,
   bottomItems,
   onNavigate,
@@ -316,16 +473,27 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
   screenOptions,
   panelStyle,
   itemStyle,
+  children,
 }) => {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   return (
     <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
-      <SidebarNavigatorContent
-        bottomItems={bottomItems}
-        itemStyle={itemStyle}
-        onNavigate={onNavigate}
-        panelStyle={panelStyle}
-        topItems={topItems}
-      />
+      <View style={{flex: 1}}>
+        <SidebarHeader onOpen={() => setIsSheetOpen(true)} />
+        <SidebarNavigatorContent
+          bottomItems={bottomItems}
+          isOpen={isSheetOpen}
+          itemStyle={itemStyle}
+          onNavigate={onNavigate}
+          onOpenChange={setIsSheetOpen}
+          panelStyle={panelStyle}
+          topItems={topItems}
+        />
+      </View>
+      {children}
     </Navigator>
   );
 };
+
+export const SidebarNavigation = Object.assign(SidebarNavigationBase, {Screen});

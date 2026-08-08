@@ -1,0 +1,382 @@
+name: Demo Appium CI
+
+# The Appium suite spins up real EAS builds on emulators/simulators, which is
+# slow and inherently flaky. By default it runs as a NON-BLOCKING signal: the
+# jobs still execute and upload artifacts, but a failure does not fail the
+# workflow (each job sets `continue-on-error`).
+#
+# The exception is a "mobile build feature" change — a push that touches the
+# files that define the native build (eas.json, app config, native deps, or the
+# ios/android projects). Those changes are exactly the ones Appium is meant to
+# guard, so when they are detected the jobs become BLOCKING (continue-on-error
+# is disabled) and a failure fails the workflow. Manual `workflow_dispatch` runs
+# are always treated as deliberate and therefore blocking.
+#
+# The `detect-mobile-build` job computes this distinction and the Appium jobs
+# read its `is_mobile_build` output.
+
+on:
+  push:
+    paths:
+      - "ui/**"
+      - "demo/appium/**"
+      - "demo/package.json"
+      - "demo/app.json"
+      - "demo/app.config.ts"
+      - "demo/eas.json"
+      - ".github/workflows/demo-appium-ci.yml"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which Appium platform to run"
+        default: all
+        required: true
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      run-mode:
+        description: "Smoke mode runs the fast loop spec"
+        default: smoke
+        required: true
+        type: choice
+        options:
+          - smoke
+          - full
+      android-build-profile:
+        description: "Android EAS build profile to download"
+        default: development
+        required: true
+        type: choice
+        options:
+          - development
+      ios-build-profile:
+        description: "iOS EAS build profile to download"
+        default: development:simulator
+        required: true
+        type: choice
+        options:
+          - development:simulator
+
+jobs:
+  detect-mobile-build:
+    name: Detect mobile build change
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      is_mobile_build: ${{ steps.detect.outputs.is_mobile_build }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Detect mobile build changes
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Manual dispatch is always a deliberate run, so treat it as blocking.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Manual dispatch → Appium runs as a blocking check."
+            echo "is_mobile_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base="$PUSH_BEFORE"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            # First push to a branch (or unknown base): diff against master's merge-base.
+            git fetch --quiet origin master || true
+            base="$(git merge-base origin/master HEAD 2>/dev/null || true)"
+          fi
+
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "Could not determine a diff base → defaulting to non-blocking."
+            echo "is_mobile_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "$base" "$HEAD_SHA" || true)"
+          echo "Changed files between $base and $HEAD_SHA:"
+          echo "$changed"
+
+          # Files that define the native/mobile build. Touching these makes the
+          # Appium suite a meaningful gate, so the jobs block on failure.
+          if echo "$changed" | grep -Eq '^demo/(eas\.json|app\.config\.ts|app\.json|package\.json|ios/|android/)'; then
+            echo "Mobile build files changed → Appium is a blocking check."
+            echo "is_mobile_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No mobile build files changed → Appium is a non-blocking check."
+            echo "is_mobile_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  appium-android:
+    name: Demo Appium · Android
+    needs: detect-mobile-build
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android') }}
+    # Non-blocking unless the change is a mobile build feature (see detect-mobile-build).
+    continue-on-error: ${{ needs.detect-mobile-build.outputs.is_mobile_build != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
+      APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'development' }}
+      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ""
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "$EXPO_TOKEN" ]; then missing+=("EXPO_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Generate UI type documentation
+        run: bun run types
+        working-directory: ui
+
+      - name: Download latest Android build from EAS
+        run: bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --fallback-profile "$APPIUM_ANDROID_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
+        working-directory: demo
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Appium Android tests
+        timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 12 || 35 }}
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 4096M
+          cores: 4
+          disable-animations: true
+          disable-spellchecker: true
+          force-avd-creation: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: |
+            bash -lc 'set -eu; cd demo; mkdir -p logs; NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --port 8085 > logs/expo-dev-server.log 2>&1 & for _ in $(seq 1 45); do if curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then break; fi; sleep 2; done; if ! curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then echo "::error::Expo dev server did not start on port 8085"; exit 1; fi; curl --silent --show-error "http://127.0.0.1:8085/demo/index.bundle?platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable" -o logs/prewarm-android.bundle || true; adb reverse tcp:8085 tcp:8085; CI=true APPIUM_CI=true NODE_ENV=production APPIUM_DEV_SERVER_URL="http://10.0.2.2:8085" bun run "appium:test:ci:android:${APPIUM_RUN_MODE}"'
+        env:
+          APPIUM_CI: "true"
+          NODE_ENV: production
+          NODE_OPTIONS: --openssl-legacy-provider
+
+      - name: Upload Appium story snapshots
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: demo-appium-android-screenshots
+          path: demo/appium/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Appium logs
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: demo-appium-android-logs
+          path: demo/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  appium-ios:
+    name: Demo Appium · iOS
+    needs: detect-mobile-build
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios') }}
+    # Non-blocking unless the change is a mobile build feature (see detect-mobile-build).
+    continue-on-error: ${{ needs.detect-mobile-build.outputs.is_mobile_build != 'true' }}
+    # macos-latest resolves to macos-26 with iOS 26.x beta runtimes that break WDA (xcodebuild exit 70).
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
+      APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'development:simulator' }}
+      APPIUM_IOS_EAS_FALLBACK_PROFILE: ""
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "$EXPO_TOKEN" ]; then missing+=("EXPO_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Generate UI type documentation
+        run: bun run types
+        working-directory: ui
+
+      - name: Download latest iOS simulator build from EAS
+        run: bun appium/downloadLatestEasBuild.ts --platform ios --profile "$APPIUM_IOS_EAS_PROFILE" --fallback-profile "$APPIUM_IOS_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
+        working-directory: demo
+
+      - name: Run Appium iOS tests
+        timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 30 || 35 }}
+        run: |
+          set -eu
+          if [ -z "$IOS_APP_PATH" ]; then
+            echo "::error::Could not locate downloaded iOS simulator app"
+            exit 1
+          fi
+          eval "$(bun demo/appium/selectIosSimulator.ts)"
+          echo "Using simulator: $IOS_DEVICE_NAME ($IOS_DEVICE_UDID) on iOS $IOS_PLATFORM_VERSION"
+          echo "Using app bundle: $IOS_APP_PATH"
+          xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
+          if [ "$APPIUM_RUN_MODE" = "full" ]; then
+            xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b
+          fi
+          cd demo
+          mkdir -p logs
+          NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --port 8085 > logs/expo-dev-server.log 2>&1 &
+          EXPO_DEV_SERVER_PID=$!
+          cleanup() {
+            kill "$EXPO_DEV_SERVER_PID" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          expo_server_ready=false
+          for _ in $(seq 1 45); do
+            if curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then
+              expo_server_ready=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$expo_server_ready" != "true" ]; then
+            echo "::error::Expo dev server did not start on port 8085"
+            exit 1
+          fi
+
+          curl --silent --show-error "http://127.0.0.1:8085/demo/index.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable" -o logs/prewarm-ios.bundle || true
+
+          max_attempts=1
+          if [ "$APPIUM_RUN_MODE" = "smoke" ]; then
+            max_attempts=2
+          fi
+
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Starting iOS Appium attempt $attempt/$max_attempts"
+            if CI=true \
+              APPIUM_CI=true \
+              APPIUM_DEV_SERVER_URL="http://localhost:8085" \
+              NODE_ENV=production \
+              IOS_APP_PATH="$IOS_APP_PATH" \
+              IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
+              IOS_DEVICE_UDID="$IOS_DEVICE_UDID" \
+              IOS_PLATFORM_VERSION="$IOS_PLATFORM_VERSION" \
+              bun run "appium:test:ci:ios:$APPIUM_RUN_MODE"; then
+              break
+            fi
+
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::Appium iOS tests failed after $attempt attempt(s)"
+              exit 1
+            fi
+
+            echo "::warning::iOS Appium smoke attempt failed. Rebooting simulator and retrying once."
+            xcrun simctl shutdown "$IOS_DEVICE_UDID" 2>/dev/null || true
+            xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
+            xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b || true
+            attempt=$((attempt + 1))
+          done
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+
+      - name: Collect iOS diagnostics on failure
+        if: failure()
+        timeout-minutes: 2
+        run: |
+          mkdir -p demo/logs
+          echo "APPIUM_RUN_MODE=$APPIUM_RUN_MODE" > demo/logs/diag-env.txt
+          if [ -f /opt/cursor/logs/debug.log ]; then
+            cp /opt/cursor/logs/debug.log demo/logs/debug.log.ndjson
+          fi
+          if [ "$APPIUM_RUN_MODE" = "full" ]; then
+            xcodebuild -version > demo/logs/xcode-version.txt || true
+            xcrun simctl list > demo/logs/simctl-list.txt || true
+            xcrun simctl list devices > demo/logs/simctl-devices.txt || true
+            eval "$(bun demo/appium/selectIosSimulator.ts)" || true
+            if [ -n "${IOS_DEVICE_UDID:-}" ]; then
+              xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b > demo/logs/simctl-bootstatus.txt 2>&1 || true
+              xcrun simctl spawn "$IOS_DEVICE_UDID" log show --style compact --last 20m > demo/logs/simulator-log.txt 2>&1 || true
+            fi
+          else
+            echo "Skipping full iOS diagnostics in smoke mode" >> demo/logs/diag-env.txt
+          fi
+
+      - name: Upload Appium story snapshots
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: demo-appium-ios-screenshots
+          path: demo/appium/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Appium logs
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: demo-appium-ios-logs
+          path: demo/logs/
+          if-no-files-found: ignore
+          retention-days: 7

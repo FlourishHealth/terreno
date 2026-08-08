@@ -1,13 +1,14 @@
+import type express from "express";
 import flatten from "lodash/flatten";
 import merge from "lodash/merge";
 import type {Model} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
-import type {ModelRouterOptions} from "./api";
+import type {ModelRouterOptions, OpenApiMiddleware} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
 
-const noop = (_a, _b, next) => next();
+const noop = (_a: unknown, _b: unknown, next: () => void) => next();
 
 const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
@@ -43,7 +44,7 @@ export const defaultOpenApiErrorResponses = {
 };
 
 // We repeat this constantly, so we make it a component so we only have to define it once.
-function createAPIErrorComponent(openApi: any) {
+const createAPIErrorComponent = (openApi?: OpenApiMiddleware): void => {
   // Create a schema component called APIError
   openApi?.component("schemas", "APIError", {
     properties: {
@@ -110,13 +111,18 @@ function createAPIErrorComponent(openApi: any) {
     },
     type: "object",
   });
-}
+};
 
-export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
+export const getOpenApiMiddleware = <T>(
+  model: Model<T>,
+  options: Partial<ModelRouterOptions<T>>
+): express.RequestHandler => {
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
-    logger.debug("No options.openApi provided, skipping *OpenApiMiddleware");
+    logger.debug(
+      `No options.openApi provided for model "${model.modelName}" in getOpenApiMiddleware, skipping *OpenApiMiddleware`
+    );
     return noop;
   }
 
@@ -152,9 +158,12 @@ export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelR
       options.openApiOverwrite?.get ?? {}
     )
   );
-}
+};
 
-export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
+export const listOpenApiMiddleware = <T>(
+  model: Model<T>,
+  options: Partial<ModelRouterOptions<T>>
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -190,7 +199,7 @@ export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<Model
       // Remove _id from queryFields, we handle that above.
       ?.filter((field) => field !== "_id")
       .map((field) => {
-        const params: {name: string; in: "query"; schema: any}[] = [];
+        const params: {name: string; in: "query"; schema: Record<string, unknown>}[] = [];
 
         // Check for datetime/number to support gt/gte/lt/lte
         if (
@@ -315,12 +324,12 @@ export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<Model
       options.openApiOverwrite?.list ?? {}
     )
   );
-}
+};
 
-export function createOpenApiMiddleware<T>(
+export const createOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -367,12 +376,12 @@ export function createOpenApiMiddleware<T>(
       options.openApiOverwrite?.create ?? {}
     )
   );
-}
+};
 
-export function patchOpenApiMiddleware<T>(
+export const patchOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -419,12 +428,12 @@ export function patchOpenApiMiddleware<T>(
       options.openApiOverwrite?.update ?? {}
     )
   );
-}
+};
 
-export function deleteOpenApiMiddleware<T>(
+export const deleteOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -447,19 +456,21 @@ export function deleteOpenApiMiddleware<T>(
       options.openApiOverwrite?.delete ?? {}
     )
   );
-}
+};
 
 // This is a generic OpenAPI wrapper for a read that returns any object described by `properties`.
 // Useful for endpoints that don't directly map to a model.
-export function readOpenApiMiddleware<T>(
+export const readOpenApiMiddleware = <T>(
   options: Partial<ModelRouterOptions<T>>,
-  properties: any,
+  properties: Record<string, unknown>,
   required: string[],
-  queryParameters: any
-): any {
+  queryParameters: Array<Record<string, unknown>>
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
-    logger.debug("No options.openApi provided, skipping *OpenApiMiddleware");
+    logger.debug(
+      "No options.openApi provided in readOpenApiMiddleware, skipping *OpenApiMiddleware"
+    );
     return noop;
   }
 
@@ -491,4 +502,4 @@ export function readOpenApiMiddleware<T>(
       options.openApiOverwrite?.get ?? {}
     )
   );
-}
+};

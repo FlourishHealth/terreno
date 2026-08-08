@@ -39,7 +39,7 @@ interface ChildrenProps {
   onHoverOut?: () => void;
 }
 
-const getTooltipPosition = ({
+export const getTooltipPosition = ({
   children,
   tooltip,
   measured,
@@ -117,7 +117,7 @@ const getTooltipPosition = ({
   }
 };
 
-const Arrow: FC<{position: TooltipPosition; color: string}> = ({position, color}) => {
+export const Arrow: FC<{position: TooltipPosition; color: string}> = ({position, color}) => {
   const getArrowStyle = (): ViewStyle => {
     const arrowStyles = {
       bottom: {

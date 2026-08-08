@@ -1,3 +1,5 @@
+// noExplicitAny: test mock typing
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
@@ -81,7 +83,8 @@ describe("model array operations", () => {
       .post(`/food/${apple._id}/categories`)
       .send({name: "Good Seller", show: false})
       .expect(400);
-    expect(res.body.title).toBe(
+    expect(res.body.title).toBe("Malformed array operation body");
+    expect(res.body.detail).toBe(
       "Malformed body, array operations should have a single, top level key, got: name,show"
     );
 
@@ -104,7 +107,8 @@ describe("model array operations", () => {
       .patch(`/food/${apple._id}/categories/xyz`)
       .send({categories: {name: "Good Seller", show: false}})
       .expect(404);
-    expect(res.body.title).toBe("Could not find categories/xyz");
+    expect(res.body.title).toBe("Array item not found");
+    expect(res.body.detail).toBe("Could not find categories/xyz");
     res = await agent
       .patch(`/food/${apple._id}/categories/${apple.categories[1]._id}`)
       .send({categories: {name: "Good Seller", show: false}})
@@ -115,7 +119,8 @@ describe("model array operations", () => {
 
   it("delete array sub-schema item", async () => {
     let res = await agent.delete(`/food/${apple._id}/categories/xyz`).expect(404);
-    expect(res.body.title).toBe("Could not find categories/xyz");
+    expect(res.body.title).toBe("Array item not found");
+    expect(res.body.detail).toBe("Could not find categories/xyz");
     res = await agent
       .delete(`/food/${apple._id}/categories/${apple.categories[0]._id}`)
       .expect(200);
@@ -137,7 +142,8 @@ describe("model array operations", () => {
       .patch(`/food/${apple._id}/tags/xyz`)
       .send({tags: "unhealthy"})
       .expect(404);
-    expect(res.body.title).toBe("Could not find tags/xyz");
+    expect(res.body.title).toBe("Array item not found");
+    expect(res.body.detail).toBe("Could not find tags/xyz");
     res = await agent
       .patch(`/food/${apple._id}/tags/healthy`)
       .send({tags: "unhealthy"})
@@ -147,7 +153,8 @@ describe("model array operations", () => {
 
   it("delete array item", async () => {
     let res = await agent.delete(`/food/${apple._id}/tags/xyz`).expect(404);
-    expect(res.body.title).toBe("Could not find tags/xyz");
+    expect(res.body.title).toBe("Array item not found");
+    expect(res.body.detail).toBe("Could not find tags/xyz");
     res = await agent.delete(`/food/${apple._id}/tags/healthy`).expect(200);
     expect(res.body.data.tags).toEqual(["cheap"]);
   });
@@ -514,7 +521,8 @@ describe("array operation errors", () => {
     agent = await authAsUser(app, "notAdmin");
 
     const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(405);
-    expect(res.body.title).toContain("Access to PATCH");
+    expect(res.body.title).toBe("Access denied");
+    expect(res.body.detail).toContain("Access to PATCH");
   });
 
   it("array operation on non-existent document returns 404", async () => {
@@ -536,7 +544,8 @@ describe("array operation errors", () => {
 
     const fakeId = "000000000000000000000000";
     const res = await agent.post(`/food/${fakeId}/tags`).send({tags: "organic"}).expect(404);
-    expect(res.body.title).toContain("Could not find document to PATCH");
+    expect(res.body.title).toBe("Document not found");
+    expect(res.body.detail).toContain("Could not find document to PATCH");
   });
 
   it("array operation denied when user cannot update specific doc", async () => {
@@ -559,7 +568,8 @@ describe("array operation errors", () => {
     agent = await authAsUser(app, "notAdmin");
 
     const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
-    expect(res.body.title).toContain("Patch not allowed");
+    expect(res.body.title).toBe("Update not allowed");
+    expect(res.body.detail).toContain("Patch not allowed");
   });
 
   it("array operation transform error is handled", async () => {

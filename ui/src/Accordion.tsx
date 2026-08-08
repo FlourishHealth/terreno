@@ -19,6 +19,7 @@ export const Accordion: FC<AccordionProps> = ({
   infoModalText,
   infoModalTitle,
   onToggle,
+  testID,
 }) => {
   const {theme} = useTheme();
   const [collapsed, setCollapsed] = useState(false);
@@ -38,6 +39,7 @@ export const Accordion: FC<AccordionProps> = ({
         padding: 16,
         width: "100%",
       }}
+      testID={testID}
     >
       <View style={{alignItems: "center", flexDirection: "row", justifyContent: "space-between"}}>
         <View style={{flexDirection: "column", gap: 4}}>
@@ -64,7 +66,7 @@ export const Accordion: FC<AccordionProps> = ({
                 onToggle(!collapsed);
               }
             }}
-            testID="accordion-toggle"
+            testID={testID ? `${testID}.toggle` : "accordion-toggle"}
           >
             <FontAwesome6
               color={theme.text.link}

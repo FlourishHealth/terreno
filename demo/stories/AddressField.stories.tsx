@@ -2,7 +2,12 @@ import {type AddressInterface, Box, Field, formatAddress, Text} from "@terreno/u
 import {useSegments} from "expo-router";
 import {useEffect, useState} from "react";
 
-export const AddressFieldDemo = ({googleMapsApiKey, includeCounty}: any) => {
+interface AddressFieldDemoProps {
+  googleMapsApiKey: string;
+  includeCounty: boolean;
+}
+
+export const AddressFieldDemo = ({googleMapsApiKey, includeCounty}: AddressFieldDemoProps) => {
   // Check if the component is being viewed in the detailed demo
   const segments = useSegments();
   const inDetailedDemo = segments.includes("[component]");

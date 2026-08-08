@@ -5,7 +5,12 @@ import {View} from "react-native";
 import type {CheckBoxProps} from "./Common";
 import {useTheme} from "./Theme";
 
-export const CheckBox: FC<CheckBoxProps> = ({selected, size = "md", bgColor = "default"}) => {
+export const CheckBox: FC<CheckBoxProps> = ({
+  selected,
+  size = "md",
+  bgColor = "default",
+  testID,
+}) => {
   const {theme} = useTheme();
   const px = {
     lg: {container: 24, icon: 16},
@@ -30,6 +35,7 @@ export const CheckBox: FC<CheckBoxProps> = ({selected, size = "md", bgColor = "d
         justifyContent: "center",
         width: px[size].container,
       }}
+      testID={testID}
     >
       {selected ? (
         <FontAwesome6

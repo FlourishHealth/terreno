@@ -5,7 +5,13 @@
  * login/logout actions, and selectors for auth state.
  */
 
-import {createListenerMiddleware, createSlice, type PayloadAction} from "@reduxjs/toolkit";
+import {
+  createListenerMiddleware,
+  createSlice,
+  type PayloadAction,
+  type UnknownAction,
+} from "@reduxjs/toolkit";
+import {DateTime} from "luxon";
 
 import type {BetterAuthClientInterface, BetterAuthUser} from "./betterAuthTypes";
 
@@ -15,10 +21,13 @@ import type {BetterAuthClientInterface, BetterAuthUser} from "./betterAuthTypes"
 const LOGOUT_ACTION_TYPE = "auth/logout";
 
 /**
- * Root state type - loosely typed to avoid circular dependencies.
+ * Root state type - only the betterAuth slice is known here; other slices are
+ * allowed via the index signature so this works with any Redux store configuration.
  */
-// biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed to work with any Redux store configuration.
-type RootState = any;
+interface RootState {
+  betterAuth?: BetterAuthState;
+  [key: string]: unknown;
+}
 
 /**
  * Better Auth Redux state interface.
@@ -125,7 +134,7 @@ export const generateBetterAuthSlice = (config: GenerateBetterAuthSliceConfig) =
         state.user = null;
         state.isLoading = false;
         state.error = null;
-        state.lastSyncTimestamp = Date.now();
+        state.lastSyncTimestamp = DateTime.now().toMillis();
       },
 
       /**
@@ -162,7 +171,7 @@ export const generateBetterAuthSlice = (config: GenerateBetterAuthSliceConfig) =
         state.user = action.payload.user;
         state.isLoading = false;
         state.error = null;
-        state.lastSyncTimestamp = Date.now();
+        state.lastSyncTimestamp = DateTime.now().toMillis();
       },
     },
   });
@@ -201,8 +210,7 @@ export const generateBetterAuthSlice = (config: GenerateBetterAuthSliceConfig) =
    * Syncs the session state from Better Auth to Redux.
    * Call this on app startup and periodically to keep state in sync.
    */
-  // biome-ignore lint/suspicious/noExplicitAny: Redux dispatch type varies by store configuration
-  const syncSession = async (dispatch: any): Promise<void> => {
+  const syncSession = async (dispatch: (action: UnknownAction) => void): Promise<void> => {
     dispatch(betterAuthSlice.actions.setLoading(true));
 
     try {
@@ -268,40 +276,34 @@ export type BetterAuthSlice = ReturnType<typeof generateBetterAuthSlice>;
  * Selects the entire Better Auth state.
  */
 export const selectBetterAuthState = (state: RootState): BetterAuthState | undefined =>
-  // biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed
-  (state as any).betterAuth;
+  state.betterAuth;
 
 /**
  * Selects whether the user is authenticated.
  */
 export const selectBetterAuthIsAuthenticated = (state: RootState): boolean =>
-  // biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed
-  (state as any).betterAuth?.isAuthenticated ?? false;
+  state.betterAuth?.isAuthenticated ?? false;
 
 /**
  * Selects the current user ID.
  */
 export const selectBetterAuthUserId = (state: RootState): string | null =>
-  // biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed
-  (state as any).betterAuth?.userId ?? null;
+  state.betterAuth?.userId ?? null;
 
 /**
  * Selects the current user data.
  */
 export const selectBetterAuthUser = (state: RootState): BetterAuthUser | null =>
-  // biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed
-  (state as any).betterAuth?.user ?? null;
+  state.betterAuth?.user ?? null;
 
 /**
  * Selects whether the auth state is loading.
  */
 export const selectBetterAuthIsLoading = (state: RootState): boolean =>
-  // biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed
-  (state as any).betterAuth?.isLoading ?? false;
+  state.betterAuth?.isLoading ?? false;
 
 /**
  * Selects the last error message.
  */
 export const selectBetterAuthError = (state: RootState): string | null =>
-  // biome-ignore lint/suspicious/noExplicitAny: RootState is loosely typed
-  (state as any).betterAuth?.error ?? null;
+  state.betterAuth?.error ?? null;

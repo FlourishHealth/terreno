@@ -1,6 +1,5 @@
 import Constants from "expo-constants";
 import type {ExpoPushToken} from "expo-notifications";
-import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
 import {Platform} from "react-native";
 
@@ -11,7 +10,7 @@ interface VersionInfo {
   version: string;
 }
 
-export function versionInfo(): VersionInfo {
+export const versionInfo = (): VersionInfo => {
   return {
     dev: Boolean(__DEV__),
     environment: Constants.expoConfig?.extra?.APP_ENV ?? (__DEV__ ? "dev" : "unknown"),
@@ -28,12 +27,16 @@ export function versionInfo(): VersionInfo {
       Constants.expoConfig?.version ??
       "Unknown",
   };
-}
+};
 
 export const getCurrentExpoToken = async (): Promise<ExpoPushToken> => {
   if (Platform.OS === "web") {
     return {data: "", type: "expo"};
   }
+  // Lazy-load expo-notifications so importing this module on web does not
+  // evaluate expo-notifications' DevicePushTokenAutoRegistration side effect,
+  // which logs "Listening to push token changes is not yet fully supported on web".
+  const Notifications = await import("expo-notifications");
   let tokenRes: ExpoPushToken;
   if (__DEV__) {
     const appConfig = require("../app.json");

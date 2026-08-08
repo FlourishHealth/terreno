@@ -4,6 +4,18 @@ import {View} from "react-native";
 
 import {StorybookContainer} from "./StorybookContainer";
 
+export const HeadingPreview = (): React.ReactElement => {
+  return (
+    <Box direction="column" gap={1} width="100%">
+      {renderHeadingText("Small heading", {size: "sm"})}
+      {renderHeadingText("Medium heading", {size: "md"})}
+      {renderHeadingText("Large heading", {size: "lg"})}
+      {renderHeadingText("Accent", {color: "accent"})}
+      {renderHeadingText("Error", {color: "error"})}
+    </Box>
+  );
+};
+
 export const renderHeadingText = (text: string, props: Partial<HeadingProps>) => {
   return (
     <Box paddingY={1} width="100%">

@@ -25,21 +25,39 @@
 
 import {Picker} from "@react-native-picker/picker";
 import isEqual from "lodash/isEqual";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {
+  type ComponentType,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Keyboard,
   Modal,
+  type ModalProps,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
+  type PressableProps,
   StyleSheet,
   Text,
   TextInput,
+  type TextInputProps,
   TouchableOpacity,
   View,
 } from "react-native";
 
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {
+  scheduleAfterPaint,
+  useWebDropdownAnchor,
+  WebDropdownMenu,
+  type WebDropdownMenuOption,
+} from "./WebDropdownMenu";
 
 export const defaultStyles = StyleSheet.create({
   chevron: {
@@ -60,20 +78,31 @@ export const defaultStyles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     minHeight: 40,
     width: "100%",
   },
 });
 
+/** A single option for the picker select component. */
+export interface PickerSelectItem {
+  label: string;
+  value: string | number | null;
+  key?: string | number;
+  color?: string;
+  inputLabel?: string;
+  /** Shown under the label in the web custom dropdown only. */
+  helperText?: string;
+}
+
 export interface RNPickerSelectProps {
-  onValueChange: (value: any, index: any) => void;
-  items: any[];
-  value?: any;
-  placeholder?: any;
+  onValueChange: (value: string | number | null, index: number) => void;
+  items: PickerSelectItem[];
+  value?: string | number | null;
+  placeholder?: Partial<PickerSelectItem>;
   disabled?: boolean;
   itemKey?: string | number;
-  children?: any;
+  children?: ReactNode;
   onOpen?: () => void;
   useNativeAndroidPickerStyle?: boolean;
   fixAndroidTouchableBug?: boolean;
@@ -86,21 +115,27 @@ export interface RNPickerSelectProps {
   onClose?: () => void;
 
   // Modal props (iOS only)
-  modalProps?: any;
+  modalProps?: Partial<ModalProps>;
 
   // TextInput props
-  textInputProps?: any;
+  textInputProps?: Partial<TextInputProps>;
 
   // Touchable Done props (iOS only)
-  touchableDoneProps?: any;
+  touchableDoneProps?: Partial<PressableProps>;
 
   // Touchable wrapper props
-  touchableWrapperProps?: any;
+  touchableWrapperProps?: Partial<PressableProps>;
 
-  InputAccessoryView?: any;
+  InputAccessoryView?: ComponentType<{testID?: string}>;
+
+  /**
+   * When true, hides the type-to-filter search UI. Search is enabled by default.
+   * @default false
+   */
+  disableSearch?: boolean;
 }
 
-export function RNPickerSelect({
+export const RNPickerSelect = ({
   onValueChange,
   value,
   items,
@@ -122,23 +157,45 @@ export function RNPickerSelect({
   touchableWrapperProps,
 
   InputAccessoryView,
-}: RNPickerSelectProps) {
+  disableSearch = false,
+}: RNPickerSelectProps) => {
+  const searchable = !disableSearch;
   const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [animationType, setAnimationType] = useState(undefined);
+  const [webSearchQuery, setWebSearchQuery] = useState("");
+  const webSearchInputRef = useRef<TextInput>(null);
+  const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
 
+  // Web-only: anchor the custom dropdown menu to the trigger element so that
+  // Safari/Firefox/Chrome all render the same styled menu instead of the
+  // browser's native <select> UI.
+  const {
+    anchor: webAnchor,
+    measure: measureWebAnchor,
+    triggerRef: webTriggerRef,
+  } = useWebDropdownAnchor();
+
   // On web, blur the active element before the picker modal opens to prevent
   // "aria-hidden on a focused element" warnings from React Native Web.
   useEffect(() => {
-    if (showPicker && Platform.OS === "web") {
+    if (showPicker && Platform.OS === "web" && !searchable) {
       const active = document.activeElement;
       if (active instanceof HTMLElement) {
         active.blur();
       }
     }
-  }, [showPicker]);
+  }, [showPicker, searchable]);
+
+  // Keep the trigger input focused after the menu opens so typing works on web.
+  useEffect(() => {
+    if (showPicker && searchable && Platform.OS === "web") {
+      scheduleAfterPaint(() => {
+        webSearchInputRef.current?.focus();
+      });
+    }
+  }, [searchable, showPicker]);
 
   const options = useMemo(() => {
     if (isEqual(placeholder, {})) {
@@ -149,25 +206,25 @@ export function RNPickerSelect({
   }, [items, placeholder]);
 
   const getSelectedItem = useCallback(
-    (key: any, val: any) => {
-      let idx = options.findIndex((item: any) => {
-        if (item.key && key) {
+    (key: string | number | undefined, val: string | number | null | undefined) => {
+      let idx = options.findIndex((item) => {
+        if (item?.key && key) {
           return isEqual(item.key, key);
         }
-        return isEqual(item.value, val);
+        return isEqual(item?.value, val);
       });
       if (idx === -1) {
         idx = 0;
       }
       return {
         idx,
-        selectedItem: options[idx] || {},
+        selectedItem: (options[idx] || {}) as Partial<PickerSelectItem>,
       };
     },
     [options]
   );
 
-  const [selectedItem, setSelectedItem] = useState<any>(() => {
+  const [selectedItem, setSelectedItem] = useState<Partial<PickerSelectItem>>(() => {
     return getSelectedItem(itemKey, value).selectedItem;
   });
 
@@ -185,13 +242,15 @@ export function RNPickerSelect({
     togglePicker(false, onDownArrow);
   };
 
-  const onValueChangeEvent = (val: any, index: any) => {
+  const onValueChangeEvent = (val: string | number | null, index: number) => {
     const item = getSelectedItem(itemKey, val);
     onValueChange(val, index);
     setSelectedItem(item.selectedItem);
   };
 
-  const onOrientationChange = ({nativeEvent}: any) => {
+  const onOrientationChange = ({
+    nativeEvent,
+  }: NativeSyntheticEvent<{orientation: "portrait" | "landscape"}>) => {
     setOrientation(nativeEvent.orientation);
   };
 
@@ -205,7 +264,7 @@ export function RNPickerSelect({
     }
   };
 
-  const togglePicker = (animate = false, postToggleCallback?: any) => {
+  const togglePicker = (animate = false, postToggleCallback?: () => void) => {
     if (disabled) {
       return;
     }
@@ -227,7 +286,8 @@ export function RNPickerSelect({
   };
 
   const renderPickerItems = () => {
-    return options?.map((item: any) => {
+    return options?.map((item) => {
+      if (!item) return null;
       return (
         <Picker.Item
           color={item.color}
@@ -362,21 +422,29 @@ export function RNPickerSelect({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
+    const selectedLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const baseTextInputStyle = {
+      color: disabled ? theme.text.secondaryLight : theme.text.primary,
+      flex: 1,
+    };
     return (
       <View
         style={{
+          alignItems: "center",
           flexDirection: "row",
-          justifyContent: "space-between",
           pointerEvents: "box-only",
           width: "100%",
         }}
       >
         <TextInput
-          readOnly
-          style={{color: disabled ? theme.text.secondaryLight : theme.text.primary}}
-          testID="text_input"
-          value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
+          editable={false}
+          multiline
           {...textInputProps}
+          style={
+            textInputProps?.style ? [baseTextInputStyle, textInputProps.style] : baseTextInputStyle
+          }
+          testID={textInputProps?.testID ?? "text_input"}
+          value={selectedLabel}
         />
         {renderIcon()}
       </View>
@@ -398,7 +466,7 @@ export function RNPickerSelect({
         ]}
       >
         <Pressable
-          activeOpacity={1}
+          disabled={disabled}
           onPress={() => {
             togglePicker(true);
           }}
@@ -407,7 +475,8 @@ export function RNPickerSelect({
             flexDirection: "row",
             justifyContent: "center",
             minHeight: 40,
-            width: "95%",
+            paddingHorizontal: 8,
+            width: "100%",
           }}
           testID="ios_touchable_wrapper"
           {...touchableWrapperProps}
@@ -456,11 +525,21 @@ export function RNPickerSelect({
     );
   };
 
+  // On Android, use Spinner dropdown mode instead of the default dialog. Dialog
+  // mode with many items becomes a near-fullscreen modal where the dimmed scrim
+  // often does not receive outside taps to dismiss without selecting a value.
   const renderAndroidHeadless = () => {
-    const Component: any = fixAndroidTouchableBug ? View : Pressable;
+    // `View` and `Pressable` accept disjoint prop sets; the fork swaps between them to work
+    // around an Android touchable bug, so we cast to a structural component type that accepts
+    // the union of props actually used in JSX below.
+    const Component = (fixAndroidTouchableBug ? View : Pressable) as ComponentType<{
+      onPress?: PressableProps["onPress"];
+      testID?: string;
+      children?: ReactNode;
+    }>;
     return (
       <Component
-        activeOpacity={1}
+        {...(!fixAndroidTouchableBug ? {disabled} : {})}
         onPress={onOpen}
         testID="android_touchable_wrapper"
         {...touchableWrapperProps}
@@ -469,6 +548,7 @@ export function RNPickerSelect({
           {renderTextInputOrChildren()}
           <Picker
             enabled={!disabled}
+            mode="dropdown"
             onValueChange={onValueChangeEvent}
             selectedValue={selectedItem?.value}
             style={[
@@ -509,6 +589,7 @@ export function RNPickerSelect({
         <Picker
           dropdownIconColor={theme.text.primary}
           enabled={!disabled}
+          mode="dropdown"
           onValueChange={onValueChangeEvent}
           selectedValue={selectedItem?.value}
           style={[{color: theme.text.primary, width: "100%"}]}
@@ -520,10 +601,129 @@ export function RNPickerSelect({
     );
   };
 
-  // TODO: Create custom React component for web in order to apply library style rules
-  const renderWeb = () => {
+  // Custom web dropdown. Rendering the native <Picker> on web delegates
+  // styling to each browser (Safari in particular looks very different from
+  // Chrome/Firefox). Instead, we render a styled trigger + popup menu so the
+  // dropdown looks identical across browsers and matches the Terreno design.
+  const openWebMenu = useCallback(
+    (initialSearchQuery = ""): void => {
+      if (disabled) {
+        return;
+      }
+      measureWebAnchor(() => {
+        setWebSearchQuery(initialSearchQuery);
+        setShowPicker(true);
+        if (searchable && Platform.OS === "web") {
+          scheduleAfterPaint(() => {
+            webSearchInputRef.current?.focus();
+          });
+        }
+        if (onOpen) {
+          onOpen();
+        }
+      });
+    },
+    [disabled, measureWebAnchor, onOpen, searchable]
+  );
+
+  const closeWebMenu = (): void => {
+    setShowPicker(false);
+    setWebSearchQuery("");
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  // Build the dropdown option list AND track each option's original index in
+  // `options` so `onValueChange` receives the same index that the native
+  // Picker would have reported (needed when a placeholder is present).
+  const {menuOptions: webMenuOptions, originalIndexes: webMenuOptionIndexes} = useMemo<{
+    menuOptions: WebDropdownMenuOption[];
+    originalIndexes: number[];
+  }>(() => {
+    const menuOptions: WebDropdownMenuOption[] = [];
+    const originalIndexes: number[] = [];
+    for (let i = 0; i < options.length; i++) {
+      const item = options[i];
+      if (!item || typeof item !== "object" || typeof item.label !== "string") {
+        continue;
+      }
+      menuOptions.push({
+        color: item.color,
+        helperText: item.helperText,
+        key: item.key,
+        label: item.label,
+        value: String(item.value ?? ""),
+      });
+      originalIndexes.push(i);
+    }
+    return {menuOptions, originalIndexes};
+  }, [options]);
+
+  const {filteredWebMenuOptions, filteredWebMenuOptionIndexes} = useMemo<{
+    filteredWebMenuOptions: WebDropdownMenuOption[];
+    filteredWebMenuOptionIndexes: number[];
+  }>(() => {
+    const normalizedQuery = webSearchQuery.trim().toLowerCase();
+    if (!searchable || normalizedQuery.length === 0) {
+      return {
+        filteredWebMenuOptionIndexes: webMenuOptionIndexes,
+        filteredWebMenuOptions: webMenuOptions,
+      };
+    }
+
+    const filteredWebMenuOptions: WebDropdownMenuOption[] = [];
+    const filteredWebMenuOptionIndexes: number[] = [];
+    for (let i = 0; i < webMenuOptions.length; i++) {
+      const item = webMenuOptions[i];
+      const matchesLabel = item.label.toLowerCase().includes(normalizedQuery);
+      const matchesHelper = item.helperText?.toLowerCase().includes(normalizedQuery) ?? false;
+      if (matchesLabel || matchesHelper) {
+        filteredWebMenuOptions.push(item);
+        filteredWebMenuOptionIndexes.push(webMenuOptionIndexes[i] ?? i);
+      }
+    }
+    return {filteredWebMenuOptionIndexes, filteredWebMenuOptions};
+  }, [searchable, webMenuOptionIndexes, webMenuOptions, webSearchQuery]);
+
+  const handleWebSearchChange = useCallback(
+    (text: string): void => {
+      if (!showPicker && !disabled) {
+        openWebMenu(text);
+        return;
+      }
+      setWebSearchQuery(text);
+    },
+    [disabled, openWebMenu, showPicker]
+  );
+
+  const handleWebSearchFocus = useCallback((): void => {
+    if (!disabled && !showPicker) {
+      openWebMenu();
+    }
+  }, [disabled, openWebMenu, showPicker]);
+
+  const renderCustomDropdown = () => {
+    const searchInTrigger = searchable && Platform.OS === "web";
+    const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const selectedOriginalIdx = getSelectedItem(itemKey, value).idx;
+    const menuOptions = searchInTrigger ? filteredWebMenuOptions : webMenuOptions;
+    const menuOptionIndexes = searchInTrigger ? filteredWebMenuOptionIndexes : webMenuOptionIndexes;
+    const menuSelectedIndex = menuOptionIndexes.indexOf(selectedOriginalIdx);
+    const triggerTextStyle = {
+      color: disabled ? theme.text.secondaryLight : theme.text.primary,
+      flex: 1,
+      fontFamily: "text" as const,
+      fontSize: 16,
+      paddingLeft: 0,
+      paddingRight: 8,
+      paddingVertical: 0,
+      ...(Platform.OS === "web" ? {outline: "none" as const} : {}),
+    };
+
     return (
       <View
+        ref={webTriggerRef}
         style={[
           defaultStyles.viewContainer,
           {
@@ -535,42 +735,115 @@ export function RNPickerSelect({
           },
         ]}
       >
-        <Picker
-          enabled={!disabled}
-          onValueChange={onValueChangeEvent}
-          selectedValue={selectedItem?.value}
-          style={[
-            {
-              backgroundColor: theme.surface.base,
-              borderColor: "black",
-              borderRadius: 4,
-              borderWidth: 0,
-              height: "100%",
+        {searchInTrigger ? (
+          <View
+            style={{
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              minHeight: 40,
               paddingHorizontal: 8,
-              paddingVertical: 8,
               width: "100%",
-            },
-            disabled && {
-              backgroundColor: theme.surface.neutralLight,
-              color: theme.text.secondaryLight,
-              opacity: 1,
-            },
-          ]}
-          testID="web_picker"
-        >
-          {renderPickerItems()}
-        </Picker>
+            }}
+            testID="web_picker"
+          >
+            <TextInput
+              {...textInputProps}
+              editable={!disabled}
+              onChangeText={handleWebSearchChange}
+              onFocus={handleWebSearchFocus}
+              placeholder={showPicker ? "Search..." : undefined}
+              placeholderTextColor={theme.text.secondaryLight}
+              ref={webSearchInputRef}
+              style={triggerTextStyle}
+              testID="text_input"
+              value={showPicker ? webSearchQuery : displayLabel}
+            />
+            <Pressable
+              aria-role="button"
+              disabled={disabled}
+              onPress={showPicker ? closeWebMenu : () => openWebMenu()}
+              {...touchableWrapperProps}
+            >
+              <Icon
+                color={disabled ? "secondaryLight" : "primary"}
+                iconName={showPicker ? "angle-up" : "angle-down"}
+                size="sm"
+              />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            aria-role="button"
+            disabled={disabled}
+            onPress={() => openWebMenu()}
+            style={{
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              minHeight: 40,
+              paddingHorizontal: 8,
+              width: "100%",
+            }}
+            testID="web_picker"
+            {...touchableWrapperProps}
+          >
+            <Text
+              numberOfLines={disabled ? undefined : 1}
+              style={{
+                color: disabled ? theme.text.secondaryLight : theme.text.primary,
+                flex: 1,
+                fontFamily: "text",
+                fontSize: 16,
+                paddingRight: 8,
+              }}
+              testID="text_input"
+            >
+              {displayLabel}
+            </Text>
+            <Icon
+              color={disabled ? "secondaryLight" : "primary"}
+              iconName={showPicker ? "angle-up" : "angle-down"}
+              size="sm"
+            />
+          </Pressable>
+        )}
+        <WebDropdownMenu
+          anchor={webAnchor}
+          disableSearch={disableSearch || searchInTrigger}
+          keepTriggerFocus={searchInTrigger}
+          onClose={closeWebMenu}
+          onSelect={(_val, idx) => {
+            const originalIndex = menuOptionIndexes[idx] ?? idx;
+            // Pass the original (non-stringified) value through so lodash
+            // `isEqual` matching in `getSelectedItem` works for number /
+            // object values.
+            const originalValue = options[originalIndex]?.value ?? null;
+            onValueChangeEvent(originalValue, originalIndex);
+            closeWebMenu();
+          }}
+          options={menuOptions}
+          presentation={Platform.OS === "android" ? "centered" : "anchored"}
+          selectedIndex={menuSelectedIndex >= 0 ? menuSelectedIndex : undefined}
+          showEmptyStateWhenNoOptions={searchInTrigger && webSearchQuery.trim().length > 0}
+          testIDPrefix="web_dropdown"
+          visible={showPicker}
+        />
       </View>
     );
   };
 
   const render = () => {
+    if (searchable) {
+      return renderCustomDropdown();
+    }
+
     if (Platform.OS === "ios") {
       return renderIOS();
     }
 
     if (Platform.OS === "web") {
-      return renderWeb();
+      return renderCustomDropdown();
     }
 
     if (children || !useNativeAndroidPickerStyle) {
@@ -581,4 +854,4 @@ export function RNPickerSelect({
   };
 
   return render();
-}
+};

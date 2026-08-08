@@ -1,4 +1,7 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, type mock} from "bun:test";
+import {act} from "@testing-library/react-native";
+
+import {IconButton} from "../IconButton";
 import {Text} from "../Text";
 import {renderWithTheme} from "../test-utils";
 import {Table} from "./Table";
@@ -79,5 +82,65 @@ describe("TableRow", () => {
       </Table>
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders initially expanded drawer contents when expanded is true", () => {
+    const {queryByText} = renderWithTheme(
+      <Table columns={[100]}>
+        <TableHeader>
+          <TableHeaderCell index={0} title="Name" />
+        </TableHeader>
+        <TableRow drawerContents={<Text>Always visible</Text>} expanded>
+          <TableText value="Row" />
+        </TableRow>
+      </Table>
+    );
+    expect(queryByText("Always visible")).toBeTruthy();
+  });
+
+  it("renders a placeholder cell when sibling row has drawer contents", () => {
+    const {toJSON} = renderWithTheme(
+      <Table columns={[100]}>
+        <TableHeader>
+          <TableHeaderCell index={0} title="Name" />
+        </TableHeader>
+        <TableRow drawerContents={<Text>Drawer</Text>}>
+          <TableText value="Has drawer" />
+        </TableRow>
+        <TableRow>
+          <TableText value="No drawer" />
+        </TableRow>
+      </Table>
+    );
+    // Snapshot captures the blank placeholder cell for the row without drawer contents
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("toggles drawer contents when the expand button is pressed", () => {
+    const iconButtonMock = IconButton as unknown as ReturnType<typeof mock>;
+    iconButtonMock.mockClear();
+
+    const {queryByText} = renderWithTheme(
+      <Table columns={[100]}>
+        <TableHeader>
+          <TableHeaderCell index={0} title="Name" />
+        </TableHeader>
+        <TableRow drawerContents={<Text>Hidden content</Text>}>
+          <TableText value="Row" />
+        </TableRow>
+      </Table>
+    );
+
+    expect(queryByText("Hidden content")).toBeNull();
+
+    act(() => {
+      iconButtonMock.mock.calls[iconButtonMock.mock.calls.length - 1][0].onClick();
+    });
+    expect(queryByText("Hidden content")).toBeTruthy();
+
+    act(() => {
+      iconButtonMock.mock.calls[iconButtonMock.mock.calls.length - 1][0].onClick();
+    });
+    expect(queryByText("Hidden content")).toBeNull();
   });
 });

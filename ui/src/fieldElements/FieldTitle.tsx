@@ -6,13 +6,15 @@ import {Text} from "react-native";
 
 import {isMobileDevice} from "../MediaQuery";
 import {useTheme} from "../Theme";
+import {toTestProps} from "../testing/resolveTestId";
 import {isNative} from "../Utilities";
 
 interface FieldTitleProps {
   text: string;
+  testID?: string;
 }
 
-export const FieldTitle: FC<FieldTitleProps> = ({text}) => {
+export const FieldTitle: FC<FieldTitleProps> = ({text, testID}) => {
   const {theme} = useTheme();
   const isMobileOrNative = isMobileDevice() || isNative();
 
@@ -24,6 +26,7 @@ export const FieldTitle: FC<FieldTitleProps> = ({text}) => {
         fontWeight: 600,
         lineHeight: 22.4,
       }}
+      {...toTestProps(testID)}
     >
       {text}
     </Text>

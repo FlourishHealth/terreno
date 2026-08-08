@@ -1,5 +1,9 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
+import type {AdminApi, EndpointBuilder} from "./types";
+
+type AdminPayload = Record<string, unknown>;
+type TagArg = unknown;
 
 /**
  * Hook that generates RTK Query CRUD hooks for a specific admin model.
@@ -44,27 +48,28 @@ import {useMemo} from "react";
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
  */
-export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, modelName: string) => {
+export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {
     const listKey = `adminList_${modelName}`;
     const readKey = `adminRead_${modelName}`;
     const createKey = `adminCreate_${modelName}`;
     const updateKey = `adminUpdate_${modelName}`;
     const deleteKey = `adminDelete_${modelName}`;
+    const bulkPatchKey = `adminBulkPatch_${modelName}`;
 
     const tagType = `admin_${modelName}`;
     return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],
-          query: (params: any) => ({
+          query: (params: Record<string, unknown> | undefined) => ({
             method: "GET",
             params: params ?? {},
             url: routePath,
           }),
         }),
         [readKey]: build.query({
-          providesTags: (_result: any, _error: any, id: string) => [
+          providesTags: (_result: TagArg, _error: TagArg, id: string) => [
             {id, type: `admin_${modelName}`},
           ],
           query: (id: string) => ({
@@ -74,18 +79,18 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
         }),
         [createKey]: build.mutation({
           invalidatesTags: [`admin_${modelName}`],
-          query: (body: any) => ({
+          query: (body: AdminPayload) => ({
             body,
             method: "POST",
             url: routePath,
           }),
         }),
         [updateKey]: build.mutation({
-          invalidatesTags: (_result: any, _error: any, {id}: {id: string}) => [
+          invalidatesTags: (_result: TagArg, _error: TagArg, {id}: {id: string}) => [
             {id, type: `admin_${modelName}`},
             `admin_${modelName}`,
           ],
-          query: ({id, body}: {id: string; body: any}) => ({
+          query: ({id, body}: {id: string; body: AdminPayload}) => ({
             body,
             method: "PATCH",
             url: `${routePath}/${id}`,
@@ -96,6 +101,14 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
           query: (id: string) => ({
             method: "DELETE",
             url: `${routePath}/${id}`,
+          }),
+        }),
+        [bulkPatchKey]: build.mutation({
+          invalidatesTags: [`admin_${modelName}`],
+          query: ({ids, patch}: {ids: string[]; patch: Record<string, unknown>}) => ({
+            body: {ids, patch},
+            method: "POST",
+            url: `${routePath}/bulk-patch`,
           }),
         }),
       }),
@@ -110,12 +123,15 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
   const createKey = `adminCreate_${modelName}`;
   const updateKey = `adminUpdate_${modelName}`;
   const deleteKey = `adminDelete_${modelName}`;
+  const bulkPatchKey = `adminBulkPatch_${modelName}`;
 
+  const enhanced = asDynamicHookApi(enhancedApi);
   return {
-    useCreateMutation: (enhancedApi as any)[`use${capitalize(createKey)}Mutation`],
-    useDeleteMutation: (enhancedApi as any)[`use${capitalize(deleteKey)}Mutation`],
-    useListQuery: (enhancedApi as any)[`use${capitalize(listKey)}Query`],
-    useReadQuery: (enhancedApi as any)[`use${capitalize(readKey)}Query`],
-    useUpdateMutation: (enhancedApi as any)[`use${capitalize(updateKey)}Mutation`],
+    useBulkPatchMutation: enhanced[`use${capitalize(bulkPatchKey)}Mutation`],
+    useCreateMutation: enhanced[`use${capitalize(createKey)}Mutation`],
+    useDeleteMutation: enhanced[`use${capitalize(deleteKey)}Mutation`],
+    useListQuery: enhanced[`use${capitalize(listKey)}Query`],
+    useReadQuery: enhanced[`use${capitalize(readKey)}Query`],
+    useUpdateMutation: enhanced[`use${capitalize(updateKey)}Mutation`],
   };
 };

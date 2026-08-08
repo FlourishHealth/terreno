@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {IncludesArrow, ToolTipPositions, TooltipDemo, TooltipOverText} from "@stories";
+import {IncludesArrow, ToolTipPositions, TooltipDemo, TooltipOverText} from "@stories/Tooltip.stories";
 import {Tooltip} from "@terreno/ui";
 
 export const TooltipConfiguration: DemoConfiguration = {

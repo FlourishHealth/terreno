@@ -432,11 +432,28 @@ Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`
 
 ## Error Handling
 
-```typescript
-import {APIError} from "@terreno/api";
+`APIError` uses the standard `Error` fields the way external tools (Sentry, log explorers) expect: `message` is exactly `title` (a stable summary of the problem type), `name` is derived from the subclass, `code`, or `status` (e.g. a 404 becomes `NotFoundError`), and the wrapped original error goes in the standard `cause`.
 
-// Throw with status and title (required)
+```typescript
+import {APIError, ForbiddenError, NotFoundError} from "@terreno/api";
+
+// Throw with status and title (required). name becomes "BadRequestError".
 throw new APIError({status: 400, title: "Validation failed"});
+
+// Status subclasses (BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError,
+// ConflictError, ValidationError, InternalServerError) accept a title string or full options.
+throw new NotFoundError("Todo not found");
+throw new ForbiddenError({title: "Admins only", detail: "You must be an admin to change that"});
+
+// Wrap an underlying error with the standard `cause` — Sentry shows it as a linked exception.
+// A stable `code` drives the error name ("todo-sync-failed" -> TodoSyncFailed) and grouping.
+throw new APIError({
+  cause: error,
+  code: "todo-sync-failed",
+  detail: errorMessage(error),
+  status: 502,
+  title: "Todo sync failed",
+});
 
 // With field-level errors
 throw new APIError({
@@ -450,7 +467,11 @@ throw new APIError({
 throw new APIError({status: 404, title: "Not found", disableExternalErrorTracking: true});
 ```
 
-Error middleware (`apiErrorMiddleware`, `apiUnauthorizedMiddleware`) is automatically added by `setupServer`.
+Rules:
+
+- `title` must be a stable summary of the problem type; put per-occurrence text in `detail` and the wrapped error in `cause` (never concatenate them into `title`).
+- Use `isAPIError(error)` to detect APIErrors — never check `error.name`.
+- Constructing an APIError does not log. `apiErrorMiddleware` (added automatically by `setupServer`) logs `warn` for 4xx / `error` for 5xx, captures to Sentry with a fingerprint on `name + code + status` (falls back to `name` when `code` is absent), and serializes the JSONAPI body (`disableExternalErrorTracking` is included only when `true`, for client-side Sentry suppression).
 
 ## Mongoose Conventions
 
@@ -469,7 +490,10 @@ Error middleware (`apiErrorMiddleware`, `apiUnauthorizedMiddleware`) is automati
 
 ### Critical Rules
 
-- **Never use `Model.findOne`** — use `Model.findExactlyOne` or `Model.findOneOrThrow`
+- **Never use `Model.findOne`** — use one of:
+  - `Model.findExactlyOne` — throws if 0 or >1 match (consumer model with the plugin)
+  - `Model.findOneOrNone` — returns null if 0, throws if >1 (consumer model with the plugin)
+  - `findOneOrNoneFor(Model, query)` from `./plugins` — same semantics as `findOneOrNone` but works from framework code where the consumer's model may or may not have the plugin applied
 - Define methods by direct assignment: `schema.methods = {bar() {}}`
 - Define statics by direct assignment: `schema.statics = {baz() {}}`
 - All model types live in `src/modelInterfaces.ts` or `src/types/models/`
@@ -578,16 +602,28 @@ setupServer({
 
 ## Logging
 
-Use the `logger` object, never `console.log`:
+Use the `logger` object, never `console.log`. For multi-step flows and Log Explorer correlation, use **`createScopedLogger`** (prefix + `terrenoLabels` on Winston metadata). Use **`createFeatureFlaggedLogger`** to gate any logger behind `isEnabled()` (feature flags, env, etc.). See **`02-logging-tracing.mdc`** for tracing headers, Google Cloud Logging, and message conventions.
 
 ```typescript
-import {logger} from "@terreno/api";
+import {createFeatureFlaggedLogger, createScopedLogger, logger} from "@terreno/api";
 
 logger.info("Server started", {port: 4000});
 logger.warn("Slow query", {ms: 500});
 logger.error("Failed to process", {error});
 logger.debug("Request details", {body: req.body});
-logger.catch(error);  // Logs and captures exception
+logger.catch(error); // Logs and captures exception
+
+const log = createScopedLogger({
+  prefix: "[Billing]",
+  labels: {invoiceId: id.toString()},
+});
+log.info("Capture succeeded");
+
+const noisy = createFeatureFlaggedLogger({
+  isEnabled: () => process.env.DEBUG_BILLING === "true",
+  target: log,
+});
+noisy.debug("optional detail");
 ```
 
 ## Testing
@@ -598,3 +634,17 @@ logger.catch(error);  // Logs and captures exception
 - **Never mock @terreno/api or models** — test against real functionality
 - Test helpers: `getBaseServer()`, `authAsUser(app, "admin" | "notAdmin")`, `setupDb()`
 - Field-level error assertions: `expect(res.body.fields.email).toBe("Email required")`
+
+### Test Coverage
+
+- **Every new feature, route, plugin, hook, branch, or fix ships with tests** — no exceptions. Coverage should never go down across a PR.
+- When adding a hook (`schema.post("save", ...)`, `schema.post("updateOne", ...)`, etc.), add at least one test per hook variant — the `this` context differs between query and document middleware, so untested wiring is unverified.
+- When fixing a bug, add a regression test that fails without the fix.
+- Aim for the happy path **and** the edge cases (empty input, missing values, prototype-pollution-style names, partially-valid inputs).
+
+## TypeScript
+
+- **Avoid `any` whenever possible.** Prefer `unknown` (and narrow) or a precise type. Use `as unknown as T` over `as any as T` when a cast is unavoidable.
+- The only acceptable `any` uses are at framework/library boundaries where Mongoose's invariant generics force it (e.g. `Schema<any, any, any, any>` to accept arbitrary consumer schemas). Annotate these with a `biome-ignore` comment explaining why.
+- Never widen a typed value to `any` for convenience.
+- Never use `as any as UserDocument`.
