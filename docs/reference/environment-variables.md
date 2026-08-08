@@ -214,8 +214,8 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 
 ## Example `.env` files
 
-- [`example-backend/.env.example`](../../example-backend/.env.example)
-- [`example-frontend/.env.example`](../../example-frontend/.env.example)
+- [`example-backend/.env.example`](https://github.com/FlourishHealth/terreno/blob/master/example-backend/.env.example)
+- [`example-frontend/.env.example`](https://github.com/FlourishHealth/terreno/blob/master/example-frontend/.env.example)
 
 ## Related documentation
 
