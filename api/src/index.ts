@@ -28,6 +28,29 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export * from "./rbac/access";
+export {
+  type BackfillAdminsOptions,
+  type BackfillAdminsResult,
+  backfillAdmins,
+} from "./rbac/backfillAdmins";
+export * from "./rbac/fieldViews";
+export * from "./rbac/middleware";
+export * from "./rbac/permissionUtils";
+export {
+  createRbacRoleModel,
+  expandRolePermissions,
+  type RbacRoleDocument,
+  RbacRoleModel,
+  READ_ONLY_ROLE_PERMISSIONS,
+  type RoleDefinition,
+  terrenoDefaultRoles,
+} from "./rbac/roleModel";
+export {type RbacRouterOptions, rbacRouter} from "./rbac/routes";
+export * from "./rbac/scopes";
+export * from "./rbac/statements";
+export * from "./rbac/types";
+export * from "./rbac/userPlugin";
 export {
   startChangeStreamWatcher,
   stopChangeStreamWatcher,
@@ -56,6 +79,7 @@ export {
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./realtime/registry";
 export type {
   ChangeStreamConfig,

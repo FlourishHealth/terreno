@@ -23,6 +23,8 @@ import {
   TaskCancelledError,
   type User,
   VersionConfig,
+  type AnyTerrenoAccess,
+  type PermissionMethod,
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
@@ -178,6 +180,8 @@ export interface AdminOptions {
    * Consumers typically persist to an `AdminAuditLog` collection.
    */
   onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
+  /** When set, admin routes gate on `admin:access` instead of `user.admin`. */
+  accessControl?: AnyTerrenoAccess;
 }
 
 interface AdminFieldMeta {
@@ -430,6 +434,13 @@ export class AdminApp {
     this.options = options;
   }
 
+  private adminAccessPermissions(): PermissionMethod<unknown>[] {
+    if (this.options.accessControl) {
+      return [this.options.accessControl.permission({admin: ["access"]})];
+    }
+    return [Permissions.IsAdmin];
+  }
+
   /**
    * Register admin routes with the Express application.
    *
@@ -640,7 +651,7 @@ export class AdminApp {
       ...asMiddlewareList(adminConfigOpenApi),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+          !(await checkPermissions("read", this.adminAccessPermissions(), req.user as User | undefined))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -684,7 +695,7 @@ export class AdminApp {
       ...asMiddlewareList(backgroundTasksOpenApi),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+          !(await checkPermissions("update", this.adminAccessPermissions(), req.user as User | undefined))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -744,7 +755,7 @@ export class AdminApp {
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+          !(await checkPermissions("read", this.adminAccessPermissions(), req.user as User | undefined))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -766,7 +777,7 @@ export class AdminApp {
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+          !(await checkPermissions("update", this.adminAccessPermissions(), req.user as User | undefined))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -892,11 +903,11 @@ export class AdminApp {
       const modelMeta = configModels.find((m) => m.name === config.model.modelName);
       const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
 
-      const adminPermission = (allowed: boolean | undefined): (typeof Permissions.IsAdmin)[] => {
+      const adminPermission = (allowed: boolean | undefined): PermissionMethod<unknown>[] => {
         if (allowed === false) {
           return [];
         }
-        return [Permissions.IsAdmin];
+        return this.adminAccessPermissions();
       };
 
       const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
@@ -993,8 +1004,8 @@ export class AdminApp {
         permissions: {
           create: adminPermission(config.permissions?.create),
           delete: adminPermission(config.permissions?.delete),
-          list: [Permissions.IsAdmin],
-          read: [Permissions.IsAdmin],
+          list: this.adminAccessPermissions(),
+          read: this.adminAccessPermissions(),
           update: adminPermission(config.permissions?.update),
         },
         queryFields: buildAdminModelQueryFields({
@@ -1033,7 +1044,7 @@ export class AdminApp {
         ...asMiddlewareList(bulkPatchOpenApi),
         asyncHandler(async (req, res) => {
           if (
-            !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+            !(await checkPermissions("update", this.adminAccessPermissions(), req.user as User | undefined))
           ) {
             throw new APIError({status: 403, title: "Admin access required"});
           }

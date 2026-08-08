@@ -9,6 +9,8 @@ import {loadDocOr404} from "./docLoader";
 import {APIError, ForbiddenError, ValidationError} from "./errors";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {checkPermissions, type PermissionMethod} from "./permissions";
+import {createIsPermitted} from "./rbac/middleware";
+import type {AnyTerrenoAccess} from "./rbac/types";
 
 // At least two characters: leading letter plus one or more alphanumeric/_/- chars.
 export const ACTION_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]+$/;
@@ -24,7 +26,8 @@ export interface ActionContext<TDoc, TBody, TQuery> {
 
 interface BaseActionConfig<TBody, TQuery, TResponse> {
   method: "GET" | "POST";
-  permissions: PermissionMethod<unknown>[];
+  permissions?: PermissionMethod<unknown>[];
+  access?: {resource: string; action: string};
   body?: ZodSchema<TBody>;
   query?: ZodSchema<TQuery>;
   response?: ZodSchema<TResponse>;
@@ -76,10 +79,21 @@ export const runActionPermissions = async <T>(
   scope: ActionScope,
   model: Model<T>,
   req: Request,
-  doc?: T
+  doc?: T,
+  accessControl?: AnyTerrenoAccess
 ): Promise<void> => {
   const method = mapActionToCrudMethod(scope, action.method);
-  const allowed = await checkPermissions(method, action.permissions, req.user, doc);
+  let permissions = action.permissions;
+  if (action.access && accessControl) {
+    const isPermitted = createIsPermitted({can: accessControl.can});
+    permissions = [
+      isPermitted({[action.access.resource]: [action.access.action]}) as PermissionMethod<unknown>,
+    ];
+  }
+  if (!permissions) {
+    throw new APIError({status: 500, title: "Action missing permissions configuration"});
+  }
+  const allowed = await checkPermissions(method, permissions, req.user, doc);
   if (allowed) {
     return;
   }
@@ -301,11 +315,14 @@ const validateActionConfig = (
       `Invalid action name "${name}". Action names must match ${ACTION_NAME_PATTERN.toString()}`
     );
   }
-  if (config.permissions === undefined) {
+  if (config.permissions === undefined && !config.access) {
     throw new Error(
-      `Action "${name}" (${scope}) is missing required "permissions". ` +
-        "Provide at least one permission function, or [] to disable the action."
+      `Action "${name}" (${scope}) is missing required "permissions" or "access". ` +
+        "Provide at least one permission function, an access descriptor, or [] to disable the action."
     );
+  }
+  if (config.permissions !== undefined && config.permissions.length === 0 && !config.access) {
+    return;
   }
   if (config.method !== "GET" && config.method !== "POST") {
     throw new Error(`Action "${name}" (${scope}) only supports GET and POST methods`);
@@ -353,7 +370,7 @@ const buildActionMiddleware = <T>(
 
   const preDocPermissions = async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      await runActionPermissions(action, scope, model, req);
+      await runActionPermissions(action, scope, model, req, undefined, options.accessControl);
       return next();
     } catch (error) {
       return next(error);
@@ -370,7 +387,7 @@ const buildActionMiddleware = <T>(
               options.populatePaths
             );
             (req as Request & {obj?: T}).obj = doc;
-            await runActionPermissions(action, scope, model, req, doc);
+            await runActionPermissions(action, scope, model, req, doc, options.accessControl);
             return next();
           } catch (error) {
             return next(error);

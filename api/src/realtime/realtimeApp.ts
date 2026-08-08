@@ -8,7 +8,7 @@ import {Server, type Socket} from "socket.io";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
+import {canSubscribeRealtime} from "../rbac/realtimeAccess";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
@@ -68,10 +68,7 @@ const canSubscribe = async (
   entry: RealtimeRegistryEntry,
   method: "list" | "read",
   user?: User
-): Promise<boolean> => {
-  const permissions = entry.options.permissions[method];
-  return checkPermissions(method, permissions, user);
-};
+): Promise<boolean> => canSubscribeRealtime(entry, method, user);
 
 const getAuthorizedQuery = async (
   entry: RealtimeRegistryEntry,

@@ -208,6 +208,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -342,6 +349,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -403,6 +417,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",
@@ -6458,6 +6479,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -6592,6 +6620,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6653,6 +6688,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",
@@ -6947,6 +6989,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -7074,6 +7123,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -7135,6 +7191,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",
@@ -10356,6 +10419,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -10483,6 +10553,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -10544,6 +10621,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "salt": {
                       "type": "string",

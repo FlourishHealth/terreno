@@ -7,6 +7,8 @@ export interface ProfileData {
   email?: string;
   name?: string;
   admin?: boolean;
+  roles?: string[];
+  permissions?: Record<string, readonly string[]>;
 }
 
 export const useReadProfile = (): ProfileData | undefined => {

@@ -131,7 +131,8 @@ export const permissionMiddleware = <T>(
       }
 
       // All methods check for permissions.
-      if (!(await checkPermissions(method, options.permissions[method], req.user))) {
+      const methodPermissions = options.permissions?.[method] ?? [];
+      if (!(await checkPermissions(method, methodPermissions, req.user))) {
         throw new APIError({
           status: 405,
           title:
@@ -146,7 +147,7 @@ export const permissionMiddleware = <T>(
 
       const data = await loadDocOr404<T>(model, req.params.id as string, options.populatePaths);
 
-      if (!(await checkPermissions(method, options.permissions[method], req.user, data))) {
+      if (!(await checkPermissions(method, methodPermissions, req.user, data))) {
         throw new APIError({
           status: 403,
           title: `Access to GET on ${model.modelName}:${req.params.id} denied for ${req.user?.id}`,

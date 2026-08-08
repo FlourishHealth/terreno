@@ -1,0 +1,422 @@
+import {describe, expect, it} from "bun:test";
+import mongoose, {type Model, model, Schema} from "mongoose";
+
+import type {User, UserModel} from "../auth";
+import {setupDb} from "../tests";
+import {createAccess} from "./access";
+import {createRbacRoleModel} from "./roleModel";
+import {terrenoStatements} from "./statements";
+
+const appStatements = {
+  ...terrenoStatements,
+  todo: ["create", "read", "update", "delete", "list"],
+} as const;
+
+interface RbacTestUser extends User {
+  email: string;
+  roles: string[];
+}
+
+const getRbacTestUserModel = (): Model<RbacTestUser> => {
+  const modelName = "RbacRoleManagerTestUser";
+  if (mongoose.models[modelName]) {
+    return mongoose.models[modelName] as Model<RbacTestUser>;
+  }
+
+  const schema = new Schema<RbacTestUser>({
+    admin: {default: false, description: "Admin flag", type: Boolean},
+    email: {description: "Email", required: true, type: String},
+    roles: {default: [], description: "Role names", type: [String]},
+  });
+
+  return model<RbacTestUser>(modelName, schema);
+};
+
+const createTestUser = (overrides: Partial<RbacTestUser> = {}): RbacTestUser => {
+  const id = new mongoose.Types.ObjectId();
+  return {
+    _id: id as unknown as User["_id"],
+    admin: false,
+    email: "actor@example.com",
+    id: id.toString(),
+    roles: [],
+    ...overrides,
+  };
+};
+
+describe("roleManager", () => {
+  it("seeds custom default roles beyond terreno defaults", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Custom Editor",
+          name: "custom-editor",
+          permissions: {todo: ["read", "update"]},
+        },
+      ],
+      statements: appStatements,
+    });
+
+    await access.roles.seedDefaults();
+
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    const customRole = await RbacRole.findExactlyOne({name: "custom-editor"});
+    expect(customRole.permissions.todo).toEqual(expect.arrayContaining(["read", "update"]));
+  });
+
+  it("creates, lists, updates, and removes roles", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    const created = await access.roles.create({
+      actor,
+      role: {
+        displayName: "Todo Reader",
+        name: "todo-reader",
+        permissions: {todo: ["read"]},
+      },
+    });
+    expect(created.name).toBe("todo-reader");
+
+    const roles = await access.roles.list();
+    expect(roles.map((role) => role.name)).toContain("todo-reader");
+
+    const updated = await access.roles.update({
+      actor,
+      changes: {displayName: "Todo Reader Updated"},
+      roleName: "todo-reader",
+    });
+    expect(updated.displayName).toBe("Todo Reader Updated");
+
+    await access.roles.remove({actor, roleName: "todo-reader"});
+    const remaining = await access.roles.list();
+    expect(remaining.map((role) => role.name)).not.toContain("todo-reader");
+  });
+
+  it("assigns and unassigns roles on users", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Editor",
+          name: "editor",
+          permissions: {todo: ["read", "update"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    const target = await UserModel.create({email: "target@example.com", roles: []});
+
+    await access.roles.assign({
+      actor,
+      roleNames: ["editor"],
+      userId: target.id,
+    });
+
+    const assigned = await UserModel.findById(target.id);
+    expect(assigned?.roles).toEqual(["editor"]);
+
+    await access.roles.unassign({
+      actor,
+      roleNames: ["editor"],
+      userId: target.id,
+    });
+
+    const unassigned = await UserModel.findById(target.id);
+    expect(unassigned?.roles).toEqual([]);
+  });
+
+  it("previews assignment and role permission changes", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+        {
+          displayName: "Writer",
+          name: "writer",
+          permissions: {todo: ["update"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const target = await UserModel.create({email: "preview@example.com", roles: ["reader"]});
+    const assignmentPreview = await access.roles.previewAssignment({
+      roleNames: ["reader", "writer"],
+      userId: target.id,
+    });
+    expect(assignmentPreview.gained.todo).toEqual(expect.arrayContaining(["update"]));
+    expect(assignmentPreview.resulting.todo).toEqual(expect.arrayContaining(["read", "update"]));
+
+    const rolePreview = await access.roles.previewRoleChange({
+      permissions: {todo: ["read", "list"]},
+      roleName: "reader",
+    });
+    expect(rolePreview.gained.todo).toEqual(expect.arrayContaining(["list"]));
+    expect(rolePreview.affectedUserCount).toBe(0);
+  });
+
+  it("rejects role management without manageRoles permission", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["member"]});
+    await expect(
+      access.roles.create({
+        actor,
+        role: {
+          displayName: "Blocked",
+          name: "blocked",
+          permissions: {todo: ["read"]},
+        },
+      })
+    ).rejects.toMatchObject({status: 403, title: "Missing rbac:manageRoles permission"});
+  });
+
+  it("rejects assignment without assignRoles permission", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["auditor"]});
+    const target = await UserModel.create({email: "noassign@example.com", roles: []});
+
+    await expect(
+      access.roles.assign({
+        actor,
+        roleNames: ["member"],
+        userId: target.id,
+      })
+    ).rejects.toMatchObject({status: 403, title: "Missing rbac:assignRoles permission"});
+  });
+
+  it("rejects permission escalation when creating roles", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Role Manager",
+          name: "role-manager",
+          permissions: {rbac: ["manageRoles", "assignRoles"], todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["role-manager"]});
+    await expect(
+      access.roles.create({
+        actor,
+        role: {
+          displayName: "Escalated",
+          name: "escalated",
+          permissions: {todo: ["delete"]},
+        },
+      })
+    ).rejects.toMatchObject({status: 403, title: "Cannot grant permissions you do not hold"});
+  });
+
+  it("rejects invalid permission sets", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    await expect(
+      access.roles.create({
+        actor,
+        role: {
+          displayName: "Invalid",
+          name: "invalid",
+          permissions: {unknown: ["read"]},
+        },
+      })
+    ).rejects.toMatchObject({status: 400});
+  });
+
+  it("rejects conflicting role assignments", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Role A",
+          excludesRoles: ["role-b"],
+          name: "role-a",
+          permissions: {todo: ["read"]},
+        },
+        {
+          displayName: "Role B",
+          name: "role-b",
+          permissions: {todo: ["update"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    const target = await UserModel.create({email: "conflict@example.com", roles: []});
+
+    await expect(
+      access.roles.assign({
+        actor,
+        roleNames: ["role-a", "role-b"],
+        userId: target.id,
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      title: "Role role-a conflicts with role-b",
+    });
+  });
+
+  it("rejects locked role deletion and sealed role updates", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    await expect(access.roles.remove({actor, roleName: "admin"})).rejects.toMatchObject({
+      status: 400,
+      title: "Cannot delete a locked role",
+    });
+
+    await expect(
+      access.roles.update({
+        actor,
+        changes: {displayName: "Changed"},
+        roleName: "superadmin",
+      })
+    ).rejects.toMatchObject({status: 400, title: "Cannot modify a sealed role"});
+  });
+
+  it("rejects renaming locked roles", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    await expect(
+      access.roles.update({
+        actor,
+        changes: {name: "renamed-admin"},
+        roleName: "admin",
+      })
+    ).rejects.toMatchObject({status: 400, title: "Cannot rename a locked role"});
+  });
+
+  it("requires a configured user model for assignment operations", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    const userId = new mongoose.Types.ObjectId().toString();
+
+    await expect(access.roles.assign({actor, roleNames: ["member"], userId})).rejects.toMatchObject(
+      {status: 500, title: "User model not configured for role assignment"}
+    );
+
+    await expect(
+      access.roles.previewAssignment({roleNames: ["member"], userId})
+    ).rejects.toMatchObject({status: 500, title: "User model not configured for role assignment"});
+  });
+
+  it("returns 404 when the target user does not exist", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    const missingId = new mongoose.Types.ObjectId().toString();
+
+    await expect(
+      access.roles.assign({actor, roleNames: ["member"], userId: missingId})
+    ).rejects.toMatchObject({status: 404, title: "User not found"});
+  });
+
+  it("rejects assignment when the user model cannot save", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    const targetId = new mongoose.Types.ObjectId();
+    const originalFindById = UserModel.findById.bind(UserModel);
+    UserModel.findById = (async () => ({
+      id: targetId.toString(),
+      roles: [],
+    })) as unknown as typeof UserModel.findById;
+
+    try {
+      await expect(
+        access.roles.assign({
+          actor,
+          roleNames: ["member"],
+          userId: targetId.toString(),
+        })
+      ).rejects.toMatchObject({
+        status: 500,
+        title: "User model does not support saving role assignments",
+      });
+    } finally {
+      UserModel.findById = originalFindById;
+    }
+  });
+});

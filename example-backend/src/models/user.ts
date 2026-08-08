@@ -1,3 +1,4 @@
+import {rbacUserPlugin} from "@terreno/api";
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
 import type {UserDocument, UserModel} from "../types/models/userTypes";
@@ -49,6 +50,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
 userSchema.plugin(passportLocalMongoose, {
   usernameField: "email",
 });
+userSchema.plugin(rbacUserPlugin);
 
 addDefaultPlugins(userSchema);
 
