@@ -14,25 +14,25 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
 
 ## Phase 1: Decide and sanitize
 
-- [ ] **Task 1.1**: Audit the plugin for repo- and org-specific content
+- [x] **Task 1.1**: Audit the plugin for repo- and org-specific content
   - Description: Grep all five skills for Flourish-specific and monorepo-specific content: `rg -n -i "phi|hipaa|flourish|dcb3|example-frontend|admin-spa|bun run|docs/implementationPlans"` across `plugins/`. Produce a table: file, line, category (org-specific / repo-path / hardcoded value / tool assumption), and the proposed replacement. Include the `.cursor-plugin/*.json` files (owner email, marketplace description). Do not change anything yet.
   - Files: none (findings in the PR body)
   - Depends on: none
   - Acceptance: every hit is categorized with a proposed replacement; the table covers all five skills plus both JSON files.
 
-- [ ] **Task 1.2**: Generalize sensitive-data handling
+- [x] **Task 1.2**: Generalize sensitive-data handling
   - Description: Per IP question AP2, replace PHI/HIPAA-specific language with generalized sensitive-data language across `terreno-1-blend`, `terreno-4-pour`, and `terreno-5-dialin`. The rule must survive the rewrite: PR text, review replies, and attached evidence media must not contain sensitive data (PHI, PII, credentials, customer data). Keep it concrete — a vague "be careful with data" is not a usable instruction for an agent.
   - Files: `plugins/terreno-planning/skills/terreno-1-blend/SKILL.md`, `terreno-4-pour/SKILL.md`, `terreno-5-dialin/SKILL.md`
   - Depends on: Task 1.1
   - Acceptance: `rg -n -i "phi|hipaa" plugins/` returns nothing; each rewritten rule names the specific artifacts it applies to (PR body, comments, screenshots, recordings) and the data categories.
 
-- [ ] **Task 1.3**: Fix the hardcoded branch suffix
+- [x] **Task 1.3**: Fix the hardcoded branch suffix
   - Description: `terreno-4-pour` documents the branch convention as `cursor/<descriptive-name>-dcb3`. The suffix is per-agent-run, not a fixed literal, so this will produce wrong branch names. Replace it with a description of the convention (a `cursor/` prefix plus the run-specific suffix the agent was given) and instruct the agent to use the suffix from its own run instructions rather than any literal in the skill.
   - Files: `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`
   - Depends on: Task 1.1
   - Acceptance: no literal run suffix appears anywhere in `plugins/`; the convention is described such that an agent in any run produces a correctly-suffixed branch.
 
-- [ ] **Task 1.4**: Clean up plugin metadata
+- [x] **Task 1.4**: Clean up plugin metadata
   - Description: Update `.cursor-plugin/marketplace.json` and `plugins/terreno-planning/.cursor-plugin/plugin.json`: adjust the marketplace description per the AP1 decision (it currently says "Team marketplace"), review whether a personal email is the right contact for a public plugin versus a role address, and add a field or README note declaring which Terreno versions the plugin targets (IP question AP7). Add `plugins/terreno-planning/LICENSE` matching the root license.
   - Files: `.cursor-plugin/marketplace.json`, `plugins/terreno-planning/.cursor-plugin/plugin.json`, `plugins/terreno-planning/LICENSE` (new)
   - Depends on: Task 1.1
