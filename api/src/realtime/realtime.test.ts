@@ -1884,12 +1884,15 @@ describe("emitToDocumentAndQueryRooms", () => {
         ...modelEntry,
         options: {
           permissions: {
-            ...modelEntry.options.permissions,
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
             read: [
               (_method, user?: {admin?: boolean; id?: string}, obj?: unknown) =>
                 user?.admin === true ||
                 user?.id === (obj as {ownerId?: string} | undefined)?.ownerId,
             ],
+            update: [() => true],
           },
         },
       };
