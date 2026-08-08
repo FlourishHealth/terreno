@@ -122,10 +122,23 @@ describe("generateToolDescription", () => {
     expect(desc).toContain("ownerId (ref: User)");
   });
 
-  it("generates read description with populate-able refs", () => {
-    const desc = generateToolDescription(model, "read", {});
+  it("generates read description with the declared populate-able refs", () => {
+    const desc = generateToolDescription(model, "read", {}, undefined, [{path: "ownerId"}]);
     expect(desc).toContain("Read a single MCPTestItem");
     expect(desc).toContain("ownerId (User)");
+  });
+
+  it("omits populate-able refs from the read description when none are declared", () => {
+    const desc = generateToolDescription(model, "read", {});
+    expect(desc).toContain("Read a single MCPTestItem");
+    expect(desc).not.toContain("Populate-able refs");
+  });
+
+  it("omits an excluded ref from the read description even when declared", () => {
+    const desc = generateToolDescription(model, "read", {excludeFields: ["ownerId"]}, undefined, [
+      {path: "ownerId"},
+    ]);
+    expect(desc).not.toContain("Populate-able refs");
   });
 
   it("generates update description with updatable field names", () => {

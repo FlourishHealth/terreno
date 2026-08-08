@@ -75,7 +75,8 @@ export const generateToolsForEntry = (entry: MCPRegistryEntry): MCPToolDefinitio
         entry.model,
         method,
         entry.config,
-        entry.options.queryFields
+        entry.options.queryFields,
+        entry.options.populatePaths
       ),
       handler: (args: MCPToolArgs, user?: User) => handler(entry, args, user),
       inputSchema: inputSchema as MCPToolInputSchema,

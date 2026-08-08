@@ -260,7 +260,8 @@ export const generateToolDescription = (
   model: Model<any>,
   method: MCPMethod,
   config: MCPConfig,
-  queryFields?: string[]
+  queryFields?: string[],
+  populatePaths?: PopulatePath[]
 ): string => {
   if (config.description) {
     const methodPrefix = `${method.charAt(0).toUpperCase()}${method.slice(1)}`;
@@ -285,9 +286,13 @@ export const generateToolDescription = (
       return parts.join(" ");
     }
     case "read": {
-      const fields = getModelFields(model, excludeFields);
-      const refFields = fields.filter((f) => f.schemaPath.options?.ref);
       const parts = [`Read a single ${modelName} by ID.`];
+      // Only the model router's declared paths can be populated, so advertising every ref
+      // field would point the model at requests that are refused.
+      const fields = getModelFields(model, excludeFields);
+      const refFields = (populatePaths ?? [])
+        .map((populatePath) => fields.find((field) => field.path === populatePath.path))
+        .filter((field): field is ModelField => Boolean(field?.schemaPath.options?.ref));
       if (refFields.length) {
         parts.push(
           `Populate-able refs: ${refFields.map((f) => `${f.path} (${f.schemaPath.options?.ref})`).join(", ")}.`
