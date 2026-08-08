@@ -14,6 +14,7 @@ const RolesRoute: React.FC = () => {
       apiBase={apiBase}
       breadcrumbs={[{href: "/", label: "Admin"}, {label: "Roles"}]}
       configurationPath="/configuration"
+      rolesPath="/roles"
       routeBase=""
     >
       <AdminRolesList api={terrenoApi} apiBase={apiBase} routeBase="" />

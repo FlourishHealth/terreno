@@ -15,7 +15,7 @@ export const setUserAdmin = async (email: string): Promise<void> => {
     await client
       .db()
       .collection("users")
-      .updateOne({email}, {$set: {admin: true}, $addToSet: {roles: "superadmin"}});
+      .updateOne({email}, {$addToSet: {roles: "superadmin"}, $set: {admin: true}});
   } finally {
     await client.close();
   }

@@ -1,4 +1,5 @@
 import {
+  type AnyTerrenoAccess,
   APIError,
   asyncHandler,
   authenticateMiddleware,
@@ -13,6 +14,7 @@ import {
   type ModelRouterOptions,
   modelRouter,
   type OpenApiMiddleware,
+  type PermissionMethod,
   Permissions,
   type PopulatePath,
   type ScriptArgDef,
@@ -23,8 +25,6 @@ import {
   TaskCancelledError,
   type User,
   VersionConfig,
-  type AnyTerrenoAccess,
-  type PermissionMethod,
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
@@ -651,7 +651,11 @@ export class AdminApp {
       ...asMiddlewareList(adminConfigOpenApi),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("read", this.adminAccessPermissions(), req.user as User | undefined))
+          !(await checkPermissions(
+            "read",
+            this.adminAccessPermissions(),
+            req.user as User | undefined
+          ))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -695,7 +699,11 @@ export class AdminApp {
       ...asMiddlewareList(backgroundTasksOpenApi),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("update", this.adminAccessPermissions(), req.user as User | undefined))
+          !(await checkPermissions(
+            "update",
+            this.adminAccessPermissions(),
+            req.user as User | undefined
+          ))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -755,7 +763,11 @@ export class AdminApp {
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("read", this.adminAccessPermissions(), req.user as User | undefined))
+          !(await checkPermissions(
+            "read",
+            this.adminAccessPermissions(),
+            req.user as User | undefined
+          ))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -777,7 +789,11 @@ export class AdminApp {
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("update", this.adminAccessPermissions(), req.user as User | undefined))
+          !(await checkPermissions(
+            "update",
+            this.adminAccessPermissions(),
+            req.user as User | undefined
+          ))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -1044,7 +1060,11 @@ export class AdminApp {
         ...asMiddlewareList(bulkPatchOpenApi),
         asyncHandler(async (req, res) => {
           if (
-            !(await checkPermissions("update", this.adminAccessPermissions(), req.user as User | undefined))
+            !(await checkPermissions(
+              "update",
+              this.adminAccessPermissions(),
+              req.user as User | undefined
+            ))
           ) {
             throw new APIError({status: 403, title: "Admin access required"});
           }

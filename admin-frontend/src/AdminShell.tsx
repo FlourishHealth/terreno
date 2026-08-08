@@ -22,6 +22,11 @@ export interface AdminShellProps {
   configurationPath?: string;
   /** Path to version / build metadata screen. Default matches admin-spa's `/version-config` route. */
   versionConfigPath?: string;
+  /**
+   * Path to the RBAC roles screen. Omit in apps that do not register a roles route so the
+   * sidebar does not link somewhere unroutable.
+   */
+  rolesPath?: string;
   /** Main column content */
   children: React.ReactNode;
   /** Optional footer (e.g. signed-in user) */
@@ -74,6 +79,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   customScreens: propCustomScreens,
   footer,
   headerActions,
+  rolesPath,
   routeBase,
   sidebarVariant = "colorful",
   versionConfigPath = "/version-config",
@@ -165,6 +171,16 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                 }}
                 sidebarVariant={sidebarVariant}
                 testID="admin-shell-nav-scripts"
+              />
+            ) : null}
+            {rolesPath ? (
+              <NavButton
+                label="Roles"
+                onPress={() => {
+                  navigate(rolesPath);
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-roles"
               />
             ) : null}
             <NavButton

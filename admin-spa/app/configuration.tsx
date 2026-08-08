@@ -13,6 +13,7 @@ const ConfigurationRoute: React.FC = () => {
       apiBase={apiBase}
       breadcrumbs={[{href: "/", label: "Admin"}, {label: "Configuration"}]}
       configurationPath="/configuration"
+      rolesPath="/roles"
       routeBase=""
     >
       <ConfigurationScreen api={terrenoApi} title="App Configuration" />
