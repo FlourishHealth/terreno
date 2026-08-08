@@ -62,6 +62,7 @@ const otherUser = makeUser();
  * Tool results are JSON text. Tests assert on deeply nested response shapes, so the
  * parsed value is deliberately loose rather than modelled per assertion.
  */
+// noExplicitAny: parsed tool JSON is asserted at arbitrary depth
 // biome-ignore lint/suspicious/noExplicitAny: parsed tool JSON is asserted at arbitrary depth
 type ParsedToolResult = Record<string, any>;
 

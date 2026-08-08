@@ -564,6 +564,7 @@ const createImageTool = (apiKey?: string): Tool => {
 };
 
 const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
   // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
   const tools: Record<string, Tool> = {...(getMCPTools(req.user as any) as any)};
 

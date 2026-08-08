@@ -9,10 +9,12 @@ import type {MCPToolArgs} from "./types";
  * Returns all registered MCP tools as Vercel AI SDK tool objects.
  * Pass the authenticated user so tool handlers can enforce permissions.
  */
+// noExplicitAny: Tool's input/output generics vary per tool schema
 // biome-ignore lint/suspicious/noExplicitAny: Tool's input/output generics vary per tool schema
 export const getMCPTools = (user?: User): Record<string, Tool<any, any>> => {
   const registry = getMCPRegistry();
   const toolDefs = generateAllTools(registry);
+  // noExplicitAny: Tool's input/output generics vary per tool schema
   // biome-ignore lint/suspicious/noExplicitAny: Tool's input/output generics vary per tool schema
   const result: Record<string, Tool<any, any>> = {};
 
@@ -29,8 +31,10 @@ export const getMCPTools = (user?: User): Record<string, Tool<any, any>> => {
         }
       },
       parameters: toolDef.zodSchema,
+      // noExplicitAny: the installed ai SDK types reject a runtime-built parameters schema
       // biome-ignore lint/suspicious/noExplicitAny: the installed ai SDK types reject a runtime-built parameters schema
     } as any);
+    // noExplicitAny: Tool's input/output generics vary per tool schema
     // biome-ignore lint/suspicious/noExplicitAny: Tool's input/output generics vary per tool schema
     result[toolDef.name] = coreTool as Tool<any, any>;
   }

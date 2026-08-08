@@ -138,6 +138,7 @@ export const buildListQuery = ({
 }: {
   args: MCPToolArgs;
   config: MCPConfig;
+  // noExplicitAny: ModelRouterOptions is generic over the consumer's document type
   // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions is generic over the consumer's document type
   options: ModelRouterOptions<any>;
 }): BuildListQueryResult => {
