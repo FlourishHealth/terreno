@@ -1,0 +1,52 @@
+name: Generate roadmap
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    name: Regenerate ROADMAP.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        env:
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+        run: |
+          missing=()
+          if [ -z "$TERRENO_PROJECT_NUMBER" ]; then missing+=("TERRENO_PROJECT_NUMBER"); fi
+          if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then missing+=("GITHUB_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required variables: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Generate ROADMAP.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+        run: bun run roadmap:generate
+
+      - name: Commit roadmap changes
+        run: |
+          if git diff --quiet ROADMAP.md; then
+            echo "ROADMAP.md unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ROADMAP.md
+          git commit -m "chore: regenerate ROADMAP.md from project board"
+          git push

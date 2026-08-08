@@ -1,0 +1,81 @@
+# Source of truth for GitHub issue labels. Apply via the sync loop in
+# docs/explanation/roadmap-process.md (Maintainer setup → Labels).
+
+- name: area:api
+  color: "1D76DB"
+  description: "@terreno/api, @terreno/test, @terreno/api-health, @terreno/feature-flags"
+- name: area:ui
+  color: "2EA44F"
+  description: "@terreno/ui and universal app UI"
+- name: area:syncdb
+  color: "0E8A16"
+  description: "@terreno/syncdb and local-first client data (post-#869)"
+- name: area:auth
+  color: "5319E7"
+  description: Authentication, sessions, Better Auth, JWT"
+- name: area:admin
+  color: "6F42C1"
+  description: "@terreno/admin-backend, admin-frontend, admin-spa"
+- name: area:ai
+  color: "B60205"
+  description: "@terreno/ai and AI routes"
+- name: area:mcp
+  color: "D93F0B"
+  description: "@terreno/mcp server and agent tooling"
+- name: area:docs
+  color: "0075CA"
+  description: Documentation site and package READMEs"
+- name: area:deploy
+  color: "FBCA04"
+  description: Deployment guides, Docker, Terraform, hosting"
+- name: area:examples
+  color: "C5DEF5"
+  description: example-frontend, example-backend, demo"
+- name: area:dx
+  color: "BFDADC"
+  description: Developer experience, CI, governance, plugins"
+
+- name: type:bug
+  color: "D73A4A"
+  description: Something is broken"
+- name: type:feature
+  color: "A2EEEF"
+  description: New capability or improvement to existing behavior"
+- name: type:docs
+  color: "0075CA"
+  description: Documentation only"
+- name: type:chore
+  color: "EDEDED"
+  description: Tooling, CI, or maintenance"
+- name: type:rfc
+  color: "F9D0C4"
+  description: Request for comments on a substantial design change"
+
+- name: status:needs-triage
+  color: "FEF2C0"
+  description: Awaiting maintainer triage"
+- name: status:needs-info
+  color: "FBCA04"
+  description: Waiting on reporter for more detail"
+- name: status:blocked
+  color: "B60205"
+  description: Blocked on another issue, PR, or external dependency"
+- name: status:wontfix
+  color: "FFFFFF"
+  description: Closed without implementing"
+
+- name: good first issue
+  color: "7057FF"
+  description: Good entry point for new contributors"
+- name: help wanted
+  color: "008672"
+  description: Maintainers welcome outside help"
+- name: breaking
+  color: "B60205"
+  description: Breaking change for consumers"
+- name: tracked
+  color: "1D76DB"
+  description: Mirrored to Linear for sprint execution (GitHub → Linear intake)"
+- name: deprecation
+  color: "E99695"
+  description: Deprecation or migration work (e.g. RTK → syncdb)"

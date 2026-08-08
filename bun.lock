@@ -8,6 +8,7 @@
         "@biomejs/biome": "catalog:",
         "@types/chai": "^5.2.3",
         "chai": "^6.2.2",
+        "luxon": "catalog:",
         "rulesync": "^9.6.3",
         "zod": "catalog:",
       },

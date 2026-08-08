@@ -1,0 +1,74 @@
+import {describe, it} from "bun:test";
+import {assert} from "chai";
+
+import {
+  filterRoadmapItems,
+  parsePackageAreaFromIssueBody,
+  renderRoadmapMarkdown,
+  type RoadmapItem,
+} from "./lib";
+
+const sampleItems: RoadmapItem[] = [
+  {
+    area: "dx",
+    impact: "Improvement",
+    ipSlug: "oss-governance-baseline",
+    status: "Shipped",
+    target: "Next",
+    title: "OSS governance baseline",
+    url: "https://github.com/FlourishHealth/terreno/issues/1",
+  },
+  {
+    area: "docs",
+    impact: "Feature",
+    ipSlug: "docs-tutorials-ai-first",
+    status: "Planned",
+    target: "Future",
+    title: "AI-first tutorials",
+    url: "https://github.com/FlourishHealth/terreno/issues/2",
+  },
+  {
+    area: "deploy",
+    impact: "Improvement",
+    ipSlug: null,
+    status: "Declined",
+    target: "Next",
+    title: "Declined item",
+    url: "https://github.com/FlourishHealth/terreno/issues/3",
+  },
+];
+
+describe("filterRoadmapItems", () => {
+  it("excludes declined items", (): void => {
+    const filtered = filterRoadmapItems(sampleItems);
+    assert.equal(filtered.length, 2);
+    assert.isFalse(filtered.some((item) => item.title === "Declined item"));
+  });
+});
+
+describe("renderRoadmapMarkdown", () => {
+  it("groups by target then area", (): void => {
+    const markdown = renderRoadmapMarkdown({
+      generatedAtIso: "2026-08-08T00:00:00.000Z",
+      items: sampleItems,
+      projectUrl: "https://github.com/orgs/FlourishHealth/projects/1",
+    });
+
+    assert.include(markdown, "## Target: Next");
+    assert.include(markdown, "### dx");
+    assert.include(markdown, "oss-governance-baseline");
+    assert.include(markdown, "## Target: Future");
+    assert.notInclude(markdown, "Declined item");
+  });
+});
+
+describe("parsePackageAreaFromIssueBody", () => {
+  it("maps bug report package values to area labels", (): void => {
+    const body = "### Affected package\n\n@terreno/ui\n\n### Version";
+    assert.equal(parsePackageAreaFromIssueBody(body), "area:ui");
+  });
+
+  it("returns null when package section is missing", (): void => {
+    assert.isNull(parsePackageAreaFromIssueBody("No package here"));
+  });
+});

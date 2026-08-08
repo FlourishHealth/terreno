@@ -144,7 +144,9 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 
 5. If breaking changes were flagged in Step 4, add or update `mcp-server/src/docs/upgrades/$VERSION.md` (rendered on the docs site when the upgrades section exists).
 
-6. After editing this skill or other `.rulesync/` sources, run `bun run rules` and confirm `bun run rules:check` passes.
+6. **Announce breaking changes or deprecations** — post a [Discussions → Announcements](https://github.com/FlourishHealth/terreno/discussions/categories/announcements) thread summarizing what changed, linking the `## Breaking changes` section of the release notes, the matching `CHANGELOG.md` entry, and the upgrade note in `mcp-server/src/docs/upgrades/$VERSION.md` when one exists.
+
+7. After editing this skill or other `.rulesync/` sources, run `bun run rules` and confirm `bun run rules:check` passes.
 
 ## Step 8: If a publish job fails
 
