@@ -12,6 +12,7 @@ import type {MCPRegistryEntry, MCPRequest} from "./types";
 // Test model
 const todoSchema = new Schema({
   completed: {default: false, description: "Whether the todo is completed", type: Boolean},
+  dueDate: {description: "When the todo is due", type: Date},
   metadata: {description: "Arbitrary metadata", type: Schema.Types.Mixed},
   ownerId: {description: "Owner of the todo", ref: "MCPOwner", type: Schema.Types.ObjectId},
   title: {description: "Todo title", required: true, type: String},
@@ -545,6 +546,28 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.title).toBe("Stripped");
       expect(parsed.data.ownerId).toBeUndefined();
+    });
+
+    it("keeps ObjectIds and Dates JSON-serializable while stripping", async () => {
+      const entryWithExcludes: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["ownerId"]},
+      };
+
+      const doc = await TodoModel.create({
+        dueDate: new Date("2026-01-02T03:04:05.000Z"),
+        ownerId: normalUser._id,
+        title: "Serialization",
+      });
+      const result = await handleRead(
+        entryWithExcludes,
+        {id: doc._id.toString()},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data._id).toBe(doc._id.toString());
+      expect(parsed.data.dueDate).toBe("2026-01-02T03:04:05.000Z");
     });
 
     it("strips a bare field name nested inside an object", async () => {

@@ -31,6 +31,15 @@ const toPlain = (value: unknown): unknown => {
 };
 
 /**
+ * Values that serialize themselves — ObjectId, Date, Decimal128, Buffer — must be passed
+ * through untouched. Rebuilding them entry by entry would replace an ObjectId with its
+ * raw `{buffer: ...}` internals and a Date with `{}`.
+ */
+const isSelfSerializing = (value: Record<string, unknown>): boolean => {
+  return typeof value.toJSON === "function";
+};
+
+/**
  * Delete a dot-notation path, descending into arrays element-wise so paths through
  * arrays of subdocuments (e.g. "items.secret") are removed from every element.
  */
@@ -74,7 +83,7 @@ const stripExcludedFields = (data: unknown, excludeFields: string[]): unknown =>
     if (Array.isArray(plain)) {
       return plain.map(strip);
     }
-    if (!isPlainObject(plain)) {
+    if (!isPlainObject(plain) || isSelfSerializing(plain)) {
       return plain;
     }
     const result: Record<string, unknown> = {};
