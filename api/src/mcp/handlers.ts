@@ -103,23 +103,48 @@ const stripExcludedFields = (data: unknown, excludeFields: string[]): unknown =>
   return stripped;
 };
 
-const parsePopulate = (
+/**
+ * Resolve the `populate` tool argument against the model router's declared paths.
+ *
+ * REST never lets a caller choose populate paths — population comes entirely from
+ * `options.populatePaths`, whose `fields` limit which columns of the referenced document
+ * are exposed. An arbitrary path from an MCP client would bypass that limit and return
+ * whole referenced documents, so a requested path must match a declared one. Requesting
+ * paths only narrows the set; anything undeclared is an error rather than a silent widen.
+ */
+const resolvePopulatePaths = (
   populateStr: string | undefined,
-  defaultPaths?: PopulatePath[]
-): PopulatePath[] => {
-  const paths = defaultPaths ? [...defaultPaths] : [];
-  if (populateStr) {
-    const extraPaths = populateStr
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
-    for (const path of extraPaths) {
-      if (!paths.some((p) => p.path === path)) {
-        paths.push({path});
-      }
+  declaredPaths?: PopulatePath[]
+): {paths?: PopulatePath[]; error?: string} => {
+  const declared = declaredPaths ?? [];
+  if (!populateStr) {
+    return {paths: declared};
+  }
+
+  const requested = populateStr
+    .split(",")
+    .map((path) => path.trim())
+    .filter(Boolean);
+  if (!requested.length) {
+    return {paths: declared};
+  }
+
+  const paths: PopulatePath[] = [];
+  for (const path of requested) {
+    const match = declared.find((declaredPath) => declaredPath.path === path);
+    if (!match) {
+      const allowed = declared.map((declaredPath) => declaredPath.path).join(", ");
+      return {
+        error: allowed
+          ? `${path} is not a populate-able path. Allowed: ${allowed}`
+          : `${path} is not a populate-able path. This model has no populate-able paths`,
+      };
+    }
+    if (!paths.includes(match)) {
+      paths.push(match);
     }
   }
-  return paths;
+  return {paths};
 };
 
 const asOptionalString = (value: unknown): string | undefined => {
@@ -226,7 +251,13 @@ export const handleList = async (
   }
 
   // Populate
-  const populatePaths = parsePopulate(asOptionalString(args.populate), options.populatePaths);
+  const {error: populateError, paths: populatePaths} = resolvePopulatePaths(
+    asOptionalString(args.populate),
+    options.populatePaths
+  );
+  if (populateError || !populatePaths) {
+    return errorResult(populateError ?? "Could not resolve populate paths");
+  }
   const populatedQuery = addPopulateToQuery(builtQuery, populatePaths);
 
   const data = await populatedQuery.exec();
@@ -250,7 +281,13 @@ export const handleRead = async (
     return errorResult("Permission denied: cannot read");
   }
 
-  const populatePaths = parsePopulate(asOptionalString(args.populate), options.populatePaths);
+  const {error: populateError, paths: populatePaths} = resolvePopulatePaths(
+    asOptionalString(args.populate),
+    options.populatePaths
+  );
+  if (populateError || !populatePaths) {
+    return errorResult(populateError ?? "Could not resolve populate paths");
+  }
   const populatedQuery = addPopulateToQuery(model.findById(args.id), populatePaths);
   const data = await populatedQuery.exec();
 

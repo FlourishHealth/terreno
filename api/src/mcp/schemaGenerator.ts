@@ -1,6 +1,7 @@
 import type {Model} from "mongoose";
 import {type ZodType, z} from "zod";
 
+import type {PopulatePath} from "../populate";
 import type {MCPConfig, MCPMethod} from "./types";
 
 const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
@@ -125,9 +126,19 @@ export const generateInputSchema = (
   model: Model<any>,
   method: MCPMethod,
   config: MCPConfig,
-  queryFields?: string[]
+  queryFields?: string[],
+  populatePaths?: PopulatePath[]
 ): ZodType => {
   const excludeFields = config.excludeFields ?? [];
+  const populatable = (populatePaths ?? []).map((populatePath) => populatePath.path);
+  // Only the model router's declared paths can be populated, so omit the parameter
+  // entirely when there are none rather than inviting a request that must be refused.
+  const populateParam = populatable.length
+    ? z
+        .string()
+        .optional()
+        .describe(`Comma-separated subset of the populate-able paths: ${populatable.join(", ")}`)
+    : undefined;
 
   switch (method) {
     case "create": {
@@ -158,11 +169,15 @@ export const generateInputSchema = (
       return z.object(shape);
     }
 
-    case "read":
-      return z.object({
+    case "read": {
+      const shape: Record<string, ZodType> = {
         id: z.string().describe("Document ID to read"),
-        populate: z.string().optional().describe("Comma-separated list of fields to populate"),
-      });
+      };
+      if (populateParam) {
+        shape.populate = populateParam;
+      }
+      return z.object(shape);
+    }
 
     case "list": {
       const shape: Record<string, ZodType> = {
@@ -171,9 +186,11 @@ export const generateInputSchema = (
           .optional()
           .describe(`Max items to return (default: ${config.maxLimit ?? 50})`),
         page: z.number().optional().describe("Page number (1-based)"),
-        populate: z.string().optional().describe("Comma-separated list of fields to populate"),
         sort: z.string().optional().describe("Sort field (prefix with - for descending)"),
       };
+      if (populateParam) {
+        shape.populate = populateParam;
+      }
       // Add queryFields as optional filter parameters
       const filterableFields = (queryFields ?? []).filter(
         (field) => !isFieldExcluded(field, excludeFields)

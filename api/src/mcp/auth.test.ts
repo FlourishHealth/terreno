@@ -10,11 +10,13 @@ import {extractUserFromHeaders} from "./auth";
 interface MCPAuthUserFields {
   _id: mongoose.Types.ObjectId;
   betterAuthId?: string;
+  disabled?: boolean;
   email?: string;
 }
 
 const userSchema = new Schema({
   betterAuthId: {description: "Better Auth user id", index: true, type: String},
+  disabled: {default: false, description: "Whether the account is disabled", type: Boolean},
   email: {description: "User email", type: String},
 });
 userSchema.plugin(findOneOrNone);
@@ -158,6 +160,31 @@ describe("extractUserFromHeaders", () => {
     );
 
     expect(String((user as unknown as MCPAuthUserFields)?._id)).toBe(created._id.toString());
+  });
+
+  it("rejects a disabled user authenticating with a valid JWT", async () => {
+    const created = await UserTestModel.create({disabled: true, email: "disabled@example.com"});
+    const token = signToken({id: created._id.toString()});
+
+    const user = await extractUserFromHeaders({authorization: `Bearer ${token}`}, {userModel});
+
+    expect(user).toBeUndefined();
+  });
+
+  it("rejects a disabled user authenticating with a Better Auth session", async () => {
+    await UserTestModel.create({
+      betterAuthId: "ba-disabled",
+      disabled: true,
+      email: "disabled-ba@example.com",
+    });
+    const betterAuth = fakeBetterAuth(async () => ({
+      session: {id: "session-1"},
+      user: {id: "ba-disabled"},
+    }));
+
+    const user = await extractUserFromHeaders({cookie: "session=1"}, {betterAuth, userModel});
+
+    expect(user).toBeUndefined();
   });
 
   it("returns undefined when Better Auth has no session and no JWT is present", async () => {

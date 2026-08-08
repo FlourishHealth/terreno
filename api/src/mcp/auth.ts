@@ -11,6 +11,22 @@ export interface MCPAuthContext {
 }
 
 /**
+ * Reject a disabled account the way the JWT middleware's 401 does. Without this an MCP
+ * client could keep calling tools with a still-valid token or session after the account
+ * was disabled, which REST already refuses.
+ */
+const rejectIfDisabled = (user: User | undefined, source: string): User | undefined => {
+  if (!user) {
+    return undefined;
+  }
+  if ((user as {disabled?: boolean}).disabled) {
+    logger.warn(`[mcp] User ${user.id} is disabled, rejecting ${source} credentials`);
+    return undefined;
+  }
+  return user;
+};
+
+/**
  * Extract user from raw headers using whichever auth provider is configured.
  * Works with both JWT and Better Auth, mirroring authenticateMiddleware behavior.
  */
@@ -33,7 +49,7 @@ export const extractUserFromHeaders = async (
         // working whether or not the consumer's model has the findOneOrNone plugin applied.
         const appUser = await findOneOrNoneFor(userModel, {betterAuthId: session.user.id});
         if (appUser) {
-          return appUser as unknown as User;
+          return rejectIfDisabled(appUser as unknown as User, "Better Auth");
         }
       }
     } catch (error) {
@@ -76,7 +92,7 @@ export const extractUserFromHeaders = async (
     }
 
     const user = await userModel.findById(userId);
-    return user as unknown as User | undefined;
+    return rejectIfDisabled(user as unknown as User | undefined, "JWT");
   } catch (error) {
     logger.debug(`MCP JWT verification failed: ${error}`);
     return undefined;

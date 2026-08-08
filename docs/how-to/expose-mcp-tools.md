@@ -78,6 +78,16 @@ Filters can be combined with top-level `$and` / `$or`, whose branches are valida
 
 `queryFilter` still runs after the filter is built, so an `OwnerQueryFilter` keeps scoping results to the calling user no matter what the LLM sends.
 
+## Populating references
+
+Population comes from the model router's `populatePaths`, exactly as it does over REST. A tool may pass `populate` to request a **subset** of those declared paths — it can never introduce a new one, so the `fields` allowlist on each declared path always applies and a caller cannot pull back a whole referenced document:
+
+```typescript
+populatePaths: [{fields: ["name", "email"], path: "ownerId"}],
+```
+
+`{"populate": "ownerId"}` is accepted; anything undeclared is refused with an error listing the allowed paths. Models with no `populatePaths` don't get a `populate` parameter at all.
+
 ## Hiding fields
 
 `excludeFields` removes fields from both the generated tool schemas and the responses:

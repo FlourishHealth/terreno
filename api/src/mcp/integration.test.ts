@@ -393,6 +393,92 @@ describe("MCP Integration", () => {
     });
   });
 
+  describe("populate", () => {
+    const entryWithPopulate = (): MCPRegistryEntry => ({
+      ...entry,
+      options: {...entry.options, populatePaths: [{fields: ["tier"], path: "ownerId"}]},
+    });
+
+    it("populates a declared path when requested", async () => {
+      const owner = await OwnerModel.create({email: "owner@example.com", tier: "pro"});
+      const doc = await TodoModel.create({ownerId: owner._id, title: "Populated"});
+
+      const parsed = parseResult(
+        await handleRead(
+          entryWithPopulate(),
+          {id: doc._id.toString(), populate: "ownerId"},
+          asUser(adminUser)
+        )
+      );
+
+      expect(parsed.data.ownerId.tier).toBe("pro");
+      // populatePaths declares fields: ["tier"], so email must not come along
+      expect(parsed.data.ownerId.email).toBeUndefined();
+    });
+
+    it("rejects a populate path the model router did not declare", async () => {
+      const owner = await OwnerModel.create({email: "secret@example.com", tier: "pro"});
+      const doc = await TodoModel.create({ownerId: owner._id, title: "Undeclared"});
+
+      const parsed = parseResult(
+        await handleRead(
+          entryWithPopulate(),
+          {id: doc._id.toString(), populate: "metadata"},
+          asUser(adminUser)
+        )
+      );
+
+      expect(parsed.error).toContain("metadata is not a populate-able path");
+      expect(parsed.error).toContain("ownerId");
+    });
+
+    it("rejects any populate path when the model declares none", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "No paths"});
+
+      const parsed = parseResult(
+        await handleRead(entry, {id: doc._id.toString(), populate: "ownerId"}, asUser(normalUser))
+      );
+
+      expect(parsed.error).toContain("no populate-able paths");
+    });
+
+    it("rejects an undeclared populate path on list", async () => {
+      const parsed = parseResult(
+        await handleList(entryWithPopulate(), {populate: "metadata"}, asUser(normalUser))
+      );
+
+      expect(parsed.error).toContain("not a populate-able path");
+    });
+
+    it("falls back to the declared paths when populate is omitted", async () => {
+      const owner = await OwnerModel.create({email: "default@example.com", tier: "basic"});
+      const doc = await TodoModel.create({ownerId: owner._id, title: "Default populate"});
+
+      const parsed = parseResult(
+        await handleRead(entryWithPopulate(), {id: doc._id.toString()}, asUser(adminUser))
+      );
+
+      expect(parsed.data.ownerId.tier).toBe("basic");
+    });
+
+    it("omits the populate parameter from tools when nothing is populate-able", () => {
+      const tools = generateAllTools([entry]);
+      const readTool = tools.find((t) => t.name === "mcptodos_read");
+
+      expect(readTool?.inputSchema.properties?.populate).toBeUndefined();
+    });
+
+    it("advertises the declared populate paths on tools that support them", () => {
+      const tools = generateAllTools([entryWithPopulate()]);
+      const readTool = tools.find((t) => t.name === "mcptodos_read");
+      const populateParam = readTool?.inputSchema.properties?.populate as
+        | {description?: string}
+        | undefined;
+
+      expect(populateParam?.description).toContain("ownerId");
+    });
+  });
+
   describe("lifecycle hook failures", () => {
     it("reports a preCreate hook that returns null", async () => {
       const blocked: MCPRegistryEntry = {

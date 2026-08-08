@@ -61,7 +61,8 @@ export const generateToolsForEntry = (entry: MCPRegistryEntry): MCPToolDefinitio
       entry.model,
       method,
       entry.config,
-      entry.options.queryFields
+      entry.options.queryFields,
+      entry.options.populatePaths
     );
 
     const inputSchema = toJSONSchema(zodSchema);
