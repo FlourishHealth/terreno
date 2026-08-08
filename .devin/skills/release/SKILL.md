@@ -102,6 +102,17 @@ Rules:
 - Merge commits that belong to one feature (e.g. an IP/plan commit plus its implementation) into a single bullet.
 - Describe user-facing impact, not implementation detail. Keep `(#123)` PR references — GitHub autolinks them.
 
+## Step 5b: Update `CHANGELOG.md` (required)
+
+Before creating the tag:
+
+1. Open root [`CHANGELOG.md`](../../CHANGELOG.md).
+2. Move everything under `## [Unreleased]` into a new `## [X.Y.Z] - YYYY-MM-DD` section. Use today's date in ISO format (Luxon: `DateTime.now().toISODate()`).
+3. Confirm the new version section is **non-empty**. If there is nothing user-facing to document, stop — do not cut an empty release (see Step 2).
+4. Leave `## [Unreleased]` empty at the top for the next cycle.
+5. Group entries under `### Added`, `### Changed`, `### Fixed`, `### Deprecated`, and `### Removed` per [Keep a Changelog](https://keepachangelog.com/).
+6. Commit the changelog update on `master` before tagging.
+
 ## Step 6: Create the release
 
 Write the notes to a file, then create the release targeting master (this pushes the tag and starts the publish workflow):
@@ -134,6 +145,8 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 4. For `X.Y.0` releases (minor/major), confirm the `chore: cut docs version $VERSION` commit landed and the docs site deployed (`docs-deploy` workflow). Patch releases rebuild the current docs version in place.
 
 5. If breaking changes were flagged in Step 4, add or update `mcp-server/src/docs/upgrades/$VERSION.md` (rendered on the docs site when the upgrades section exists).
+
+6. After editing this skill or other `.rulesync/` sources, run `bun run rules` and confirm `bun run rules:check` passes.
 
 ## Step 8: If a publish job fails
 

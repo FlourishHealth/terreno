@@ -1,0 +1,82 @@
+name: DCO
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  dco:
+    # External forks only — same-repo PRs are trusted maintainers.
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Check DCO sign-off on external PR commits
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          BOT_AUTHORS="dependabot[bot] cursor[bot]"
+          failed=0
+
+          for sha in $(git rev-list "${BASE_SHA}..${HEAD_SHA}"); do
+            author_name=$(git log -1 --format='%an' "$sha")
+            author_email=$(git log -1 --format='%ae' "$sha")
+
+            # Use GitHub's commit author login for bot exemptions — git author
+            # metadata is attacker-controlled on fork PR commits.
+            api_author=$(gh api "repos/${GH_REPO}/commits/${sha}" --jq '.author.login // ""')
+
+            skip=0
+            for bot in $BOT_AUTHORS; do
+              if [ "$api_author" = "$bot" ]; then
+                skip=1
+                break
+              fi
+            done
+
+            if [ "$skip" -eq 1 ]; then
+              continue
+            fi
+
+            signoff_line=$(git log -1 --format='%B' "$sha" | grep -i '^Signed-off-by:' | head -1 || true)
+
+            if [ -z "$signoff_line" ]; then
+              echo "::error commit=${sha}::Missing Signed-off-by for ${author_name} <${author_email}>"
+              failed=1
+              continue
+            fi
+
+            expected="Signed-off-by: ${author_name} <${author_email}>"
+            normalized_signoff=$(echo "$signoff_line" | sed 's/^[Ss]igned-off-by:/Signed-off-by:/')
+
+            if [ "$normalized_signoff" != "$expected" ]; then
+              echo "::error commit=${sha}::Signed-off-by does not match commit author. Expected: ${expected}"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo ""
+            echo "Add DCO sign-off with: git commit -s"
+            echo "See CONTRIBUTING.md for details."
+            exit 1
+          fi
+
+          echo "DCO check passed."

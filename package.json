@@ -135,6 +135,7 @@
     "tar": "^7.5.3"
   },
   "private": true,
+  "license": "MIT",
   "scripts": {
     "admin-backend:compile": "bun run --filter '@terreno/admin-backend' compile",
     "admin-backend:lint": "bun run --filter '@terreno/admin-backend' lint",
@@ -164,6 +165,7 @@
     "check:explicit-any:baseline": "bun run scripts/check-explicit-any/check.ts --check-baseline",
     "check:explicit-any:json": "bun run scripts/check-explicit-any/check.ts --json",
     "check:explicit-any:remediate": "bun run scripts/check-explicit-any/remediate.ts",
+    "check:licenses": "bun run scripts/check-license-coverage/check.ts",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
     "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",
