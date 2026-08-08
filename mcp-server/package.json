@@ -38,6 +38,7 @@
     "typescript": "catalog:"
   },
   "files": [
+    "LICENSE",
     "dist",
     "src/docs"
   ],

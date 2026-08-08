@@ -30,7 +30,7 @@
     "express",
     "terreno"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "peerDependencies": {
     "mongoose": ">=8.0.0"
   },

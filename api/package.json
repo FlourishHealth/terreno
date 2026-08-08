@@ -79,7 +79,7 @@
     "mongoose",
     "express"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "exports": {
     ".": {

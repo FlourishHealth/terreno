@@ -7,6 +7,7 @@
 [![@terreno/admin-backend](https://img.shields.io/npm/v/@terreno/admin-backend?label=%40terreno%2Fadmin-backend)](https://www.npmjs.com/package/@terreno/admin-backend)
 [![@terreno/admin-frontend](https://img.shields.io/npm/v/@terreno/admin-frontend?label=%40terreno%2Fadmin-frontend)](https://www.npmjs.com/package/@terreno/admin-frontend)
 [![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **The full-stack TypeScript framework for building and launching apps fast.**
 
@@ -416,4 +417,14 @@ bun run rules:check  # Verify generated files are up to date (used in CI)
 3. Commit both the source and generated files
 
 The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules stay in sync with source files.
+
+## License
+
+Terreno is [MIT licensed](LICENSE).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, and pull request expectations.
+Read our [Code of Conduct](CODE_OF_CONDUCT.md) and report security issues via
+[SECURITY.md](SECURITY.md) (do not open public issues for vulnerabilities).
 

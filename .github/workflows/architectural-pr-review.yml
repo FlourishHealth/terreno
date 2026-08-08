@@ -12,7 +12,9 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: architectural-pr-review-${{ github.event.pull_request.number }}
+  # Scope by head SHA so a stale `edited` event for an older commit cannot
+  # cancel the in-flight review for the current PR head (see PR #985).
+  group: architectural-pr-review-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
 jobs:

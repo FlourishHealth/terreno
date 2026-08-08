@@ -46,11 +46,12 @@
     }
   },
   "files": [
+    "LICENSE",
     "dist/**/*",
     "src/**/*",
     ".ai/**/*"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/rtk",
   "peerDependencies": {
