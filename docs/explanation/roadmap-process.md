@@ -5,11 +5,11 @@ Implementation plans in `docs/implementationPlans/` remain the design source of 
 both.
 
 - **GitHub** — discussions, triaged issues, the Terreno Roadmap project board, generated
-  [`ROADMAP.md`](../../ROADMAP.md)
+  [`ROADMAP.md`](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md)
 - **Linear** — estimates, assignees, sprint workflow (internal)
 - **IPs** — approved design docs before substantial cross-package work
 
-See also [CONTRIBUTING.md](../../CONTRIBUTING.md) for the contributor intake flow.
+See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
 
 ## Maintainer setup
 
@@ -145,7 +145,7 @@ when each IP reaches **Approved**.
 
 ### Labels
 
-[`.github/labels.yml`](../../.github/labels.yml) is the source of truth.
+[`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) is the source of truth.
 
 Apply or update labels:
 
@@ -209,8 +209,8 @@ do not claim completion until done.
 
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
-| [`.github/workflows/triage.yml`](../../.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
-| [`.github/workflows/roadmap-generate.yml`](../../.github/workflows/roadmap-generate.yml) | Daily + manual | Regenerate `ROADMAP.md` from the Project board |
+| [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
+| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | Regenerate `ROADMAP.md` from the Project board |
 
 ```bash
 GITHUB_TOKEN=... TERRENO_PROJECT_NUMBER=... bun run roadmap:generate

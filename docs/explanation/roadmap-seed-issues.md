@@ -1,7 +1,7 @@
 # Roadmap seed issues
 
 Ready-to-paste GitHub issue bodies for IPs in the
-[OSS launch program](../implementationPlans/oss-launch-program.md). Open one tracking issue
+[OSS launch program](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/oss-launch-program.md). Open one tracking issue
 per IP when the IP reaches **Approved**, then add it to the **Terreno Roadmap** project with
 the field values below.
 
@@ -20,8 +20,8 @@ changelog, GitHub community health files, and CI checks so every published npm p
 with correct licensing. Without this work, the repository cannot credibly invite outside
 contributors or consumers.
 
-- **Implementation plan:** [oss-governance-baseline.md](../implementationPlans/oss-governance-baseline.md)
-- **Tasks:** [oss-governance-baseline.md](../tasks/oss-governance-baseline.md)
+- **Implementation plan:** [oss-governance-baseline.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/oss-governance-baseline.md)
+- **Tasks:** [oss-governance-baseline.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/oss-governance-baseline.md)
 - **RTK flag:** None
 - **Depends on:** —
 
@@ -40,8 +40,8 @@ taxonomy, automated ROADMAP.md generation, and a one-way GitHub-to-Linear bridge
 issues. Outside contributors can see priorities and propose work without maintainers
 duplicating sprint planning.
 
-- **Implementation plan:** [public-roadmap-github.md](../implementationPlans/public-roadmap-github.md)
-- **Tasks:** [public-roadmap-github.md](../tasks/public-roadmap-github.md)
+- **Implementation plan:** [public-roadmap-github.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/public-roadmap-github.md)
+- **Tasks:** [public-roadmap-github.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/public-roadmap-github.md)
 - **RTK flag:** None
 - **Depends on:** oss-governance-baseline
 
@@ -60,8 +60,8 @@ static web export, a reusable Terraform module, parameterized scripts, and a dep
 agent skill with confirmation gates. The guide covers websocket, replica-set, and
 session-affinity constraints that commonly break production Terreno deployments.
 
-- **Implementation plan:** [deploy-to-gcp.md](../implementationPlans/deploy-to-gcp.md)
-- **Tasks:** [deploy-to-gcp.md](../tasks/deploy-to-gcp.md)
+- **Implementation plan:** [deploy-to-gcp.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/deploy-to-gcp.md)
+- **Tasks:** [deploy-to-gcp.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/deploy-to-gcp.md)
 - **RTK flag:** None
 - **Depends on:** deployment-foundation
 
@@ -80,8 +80,8 @@ planning, test-driven implementation, independent verification, submission with 
 and a review loop until mergeable. Today the tooling exists inside the monorepo but is
 invisible and breaks in consumer apps.
 
-- **Implementation plan:** [agentic-sdlc-plugin.md](../implementationPlans/agentic-sdlc-plugin.md)
-- **Tasks:** [agentic-sdlc-plugin.md](../tasks/agentic-sdlc-plugin.md)
+- **Implementation plan:** [agentic-sdlc-plugin.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/agentic-sdlc-plugin.md)
+- **Tasks:** [agentic-sdlc-plugin.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/agentic-sdlc-plugin.md)
 - **RTK flag:** Partial
 - **Depends on:** positioning-django-rails-universal, oss-governance-baseline
 
@@ -99,8 +99,8 @@ RTK Query consumers a tested migration path. It covers deprecation policy, a ste
 migration guide, syncdb reference docs, auth repositioning, and updates to agent rules, MCP
 bootstrap output, and upgrade notes. Gates most Wave 1 launch documentation.
 
-- **Implementation plan:** [rtk-to-syncdb-migration-docs.md](../implementationPlans/rtk-to-syncdb-migration-docs.md)
-- **Tasks:** [rtk-to-syncdb-migration-docs.md](../tasks/rtk-to-syncdb-migration-docs.md)
+- **Implementation plan:** [rtk-to-syncdb-migration-docs.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rtk-to-syncdb-migration-docs.md)
+- **Tasks:** [rtk-to-syncdb-migration-docs.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/rtk-to-syncdb-migration-docs.md)
 - **RTK flag:** Blocked (PR #869)
 - **Depends on:** PR #869
 
@@ -117,8 +117,8 @@ Aligns Terreno's messaging across README, docs site, agent context files, and np
 metadata under one positioning statement: Django/Rails for TypeScript with universal app
 support, organized around batteries included, universal by default, and AI-native pillars.
 
-- **Implementation plan:** [positioning-django-rails-universal.md](../implementationPlans/positioning-django-rails-universal.md)
-- **Tasks:** [positioning-django-rails-universal.md](../tasks/positioning-django-rails-universal.md)
+- **Implementation plan:** [positioning-django-rails-universal.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/positioning-django-rails-universal.md)
+- **Tasks:** [positioning-django-rails-universal.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/positioning-django-rails-universal.md)
 - **RTK flag:** Partial
 - **Depends on:** rtk-to-syncdb-migration-docs
 
@@ -135,8 +135,8 @@ Gives every published Terreno package a real README and a public docs/reference 
 of stubs. Adds missing reference pages, de-stubs package READMEs, sanitizes internal
 leakage, and extends docs-audit CI to catch drift.
 
-- **Implementation plan:** [docs-reference-coverage.md](../implementationPlans/docs-reference-coverage.md)
-- **Tasks:** [docs-reference-coverage.md](../tasks/docs-reference-coverage.md)
+- **Implementation plan:** [docs-reference-coverage.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/docs-reference-coverage.md)
+- **Tasks:** [docs-reference-coverage.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/docs-reference-coverage.md)
 - **RTK flag:** Blocked
 - **Depends on:** rtk-to-syncdb-migration-docs, positioning-django-rails-universal
 
@@ -153,8 +153,8 @@ Replaces Terreno's thin getting-started page with a full tutorial path where the
 AI-assisted workflow is the default. Six tutorials cover examples, first app, MCP, AI
 features, admin panel, and production deploy — all on syncdb + Better Auth.
 
-- **Implementation plan:** [docs-tutorials-ai-first.md](../implementationPlans/docs-tutorials-ai-first.md)
-- **Tasks:** [docs-tutorials-ai-first.md](../tasks/docs-tutorials-ai-first.md)
+- **Implementation plan:** [docs-tutorials-ai-first.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/docs-tutorials-ai-first.md)
+- **Tasks:** [docs-tutorials-ai-first.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/docs-tutorials-ai-first.md)
 - **RTK flag:** Blocked
 - **Depends on:** docs-reference-coverage, ai-dev-loop-boost, deployment-foundation
 
@@ -171,8 +171,8 @@ Defines the provider-agnostic deployment baseline every Terreno production app n
 requirements, environment-variable reference, Expo web output modes, and a canonical
 example-backend Dockerfile with CI validation.
 
-- **Implementation plan:** [deployment-foundation.md](../implementationPlans/deployment-foundation.md)
-- **Tasks:** [deployment-foundation.md](../tasks/deployment-foundation.md)
+- **Implementation plan:** [deployment-foundation.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/deployment-foundation.md)
+- **Tasks:** [deployment-foundation.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/deployment-foundation.md)
 - **RTK flag:** Partial
 - **Depends on:** —
 
@@ -189,8 +189,8 @@ Documents Expo web export on Vercel, preview-deployment CORS and Better Auth ori
 and a deploy-vercel skill with websocket verification. Requires a spike on backend hosting
 options.
 
-- **Implementation plan:** [deploy-to-vercel.md](../implementationPlans/deploy-to-vercel.md)
-- **Tasks:** [deploy-to-vercel.md](../tasks/deploy-to-vercel.md)
+- **Implementation plan:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/deploy-to-vercel.md)
+- **Tasks:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/deploy-to-vercel.md)
 - **RTK flag:** Partial
 - **Depends on:** deployment-foundation
 
@@ -207,8 +207,8 @@ Makes upgrading Terreno across lockstep-published packages a documented, repeata
 Backfills upgrade notes, adds versioning policy, ships an upgrading-terreno skill, and
 enforces upgrade-note requirements in release CI.
 
-- **Implementation plan:** [upgrade-guides-and-skill.md](../implementationPlans/upgrade-guides-and-skill.md)
-- **Tasks:** [upgrade-guides-and-skill.md](../tasks/upgrade-guides-and-skill.md)
+- **Implementation plan:** [upgrade-guides-and-skill.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/upgrade-guides-and-skill.md)
+- **Tasks:** [upgrade-guides-and-skill.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/upgrade-guides-and-skill.md)
 - **RTK flag:** Blocked
 - **Depends on:** rtk-to-syncdb-migration-docs, oss-governance-baseline
 
@@ -225,8 +225,8 @@ Documents Terreno's AI-native development loop: search docs, generate code, run 
 observe merged logs and client state, then fix and iterate. Builds on MCP Boost parity (PR
 #802).
 
-- **Implementation plan:** [ai-dev-loop-boost.md](../implementationPlans/ai-dev-loop-boost.md)
-- **Tasks:** [ai-dev-loop-boost.md](../tasks/ai-dev-loop-boost.md)
+- **Implementation plan:** [ai-dev-loop-boost.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/ai-dev-loop-boost.md)
+- **Tasks:** [ai-dev-loop-boost.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/ai-dev-loop-boost.md)
 - **RTK flag:** Partial
 - **Depends on:** PR #802
 
@@ -242,8 +242,8 @@ observe merged logs and client state, then fix and iterate. Builds on MCP Boost 
 Executes the OSS launch acceptance test: an agent builds and deploys a real universal app
 using only public docs and skills, then publishes a friction log and blog post.
 
-- **Implementation plan:** [build-terreno-app-validation.md](../implementationPlans/build-terreno-app-validation.md)
-- **Tasks:** [build-terreno-app-validation.md](../tasks/build-terreno-app-validation.md)
+- **Implementation plan:** [build-terreno-app-validation.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/build-terreno-app-validation.md)
+- **Tasks:** [build-terreno-app-validation.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/build-terreno-app-validation.md)
 - **RTK flag:** Blocked
 - **Depends on:** docs-tutorials-ai-first, ai-dev-loop-boost, deploy-to-vercel, docs-reference-coverage
 
@@ -259,8 +259,8 @@ using only public docs and skills, then publishes a friction log and blog post.
 Closes credibility gaps in examples, the UI demo app, and CI coverage gates. Adds missing demo
 stories, extends coverage enforcement, and publishes an example-app feature matrix.
 
-- **Implementation plan:** [examples-demo-coverage.md](../implementationPlans/examples-demo-coverage.md)
-- **Tasks:** [examples-demo-coverage.md](../tasks/examples-demo-coverage.md)
+- **Implementation plan:** [examples-demo-coverage.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/examples-demo-coverage.md)
+- **Tasks:** [examples-demo-coverage.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/examples-demo-coverage.md)
 - **RTK flag:** Partial
 - **Depends on:** docs-reference-coverage
 
@@ -277,7 +277,7 @@ Adds real server-side rendering for Terreno web apps so routes can be indexed an
 meaningful HTML before JavaScript loads. Starts with static output and admin-spa as proving
 ground; SSR is opt-in and depends on Expo SDK 55+.
 
-- **Implementation plan:** [web-ssr-and-admin-spa.md](../implementationPlans/web-ssr-and-admin-spa.md)
-- **Tasks:** [web-ssr-and-admin-spa.md](../tasks/web-ssr-and-admin-spa.md)
+- **Implementation plan:** [web-ssr-and-admin-spa.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/web-ssr-and-admin-spa.md)
+- **Tasks:** [web-ssr-and-admin-spa.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/web-ssr-and-admin-spa.md)
 - **RTK flag:** Partial
 - **Depends on:** Expo SDK ≥ 55 (PR #779), deployment-foundation
