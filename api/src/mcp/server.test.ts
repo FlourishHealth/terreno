@@ -179,7 +179,7 @@ describe("mountMCPServer", () => {
     const res = await supertest(app).get("/mcp");
 
     expect(res.status).toBe(405);
-    expect(res.body.error.message).toContain("Use POST");
+    expect(res.body.error.message).toBe("Method not allowed.");
     expect(res.body.jsonrpc).toBe("2.0");
   });
 
