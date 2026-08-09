@@ -56,7 +56,7 @@ Each cycle:
 - Post concise replies describing resolution status.
 - Resolve review threads only when fixes are fully applied.
 - Leave unresolved anything intentionally skipped/out-of-scope and explain why.
-- Apply PHI minimum-necessary handling in all generated replies/comments.
+- Apply sensitive-data minimum-necessary handling in all generated replies and comments — do not paste credentials, customer data, PII, or other regulated information into PR bodies, review replies, or attached screenshots/recordings.
 
 ## Frontend re-verification
 

@@ -422,6 +422,12 @@ The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules
 
 Terreno is [MIT licensed](LICENSE).
 
+## Roadmap and community
+
+- **[ROADMAP.md](ROADMAP.md)** — public roadmap (generated from the Terreno Roadmap GitHub Project)
+- **[GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions)** — Ideas, Q&A, RFCs, and release announcements
+- **[Roadmap process](docs/explanation/roadmap-process.md)** — how work is triaged and how GitHub relates to Linear
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, and pull request expectations.

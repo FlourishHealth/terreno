@@ -56,7 +56,7 @@ Stop and fix before committing if checks fail.
   - **Summary**, **Related IP or issue** (link IP or `#issue`), **Type of change** (checkboxes), **Testing performed**, **Checklist** (lint, compile, tests, docs, changelog, DCO).
 - Keep PR title/body accurate and concise.
 - **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them under `## Evidence` after **Testing performed** with a one-line caption per item. For frontend changes this section is **required** — include app URL, credentials used, feature exercised, and media from `verify-ui-changes`. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section only when the branch has no frontend paths and no other evidence exists.
-- Apply PHI minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing PHI.
+- Apply sensitive-data minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing credentials, customer data, PII, or other regulated information.
 
 ### 5) Conflict resolution before handoff
 
@@ -80,5 +80,5 @@ Optional: if your Cursor/plugin setup exposes a `/terreno-5-dialin` slash comman
 
 ## Branch/Repo Conventions
 
-- Use repository branch naming rules for cloud branches (`cursor/<descriptive-name>-dcb3`).
+- Use the cloud-agent branch convention from your run instructions: `cursor/<descriptive-name>-<run-suffix>`. Do not hardcode a literal suffix from this skill — use the suffix your agent session was given.
 - Keep commit/PR text free of AI attribution.

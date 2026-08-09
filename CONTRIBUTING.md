@@ -98,6 +98,15 @@ Follow the conventions in [AGENTS.md](AGENTS.md). Highlights:
 - Backend: `bun test` with `expect` (see package `test` scripts).
 - Run the relevant package tests before opening a PR (`bun run api:test`, `bun run ui:test`, etc.).
 
+## How work gets planned
+
+1. **Ideas** — start in [GitHub Discussions → Ideas](https://github.com/FlourishHealth/terreno/discussions/new?category=ideas); do not open a tracking issue yourself.
+2. **Promotion** — a maintainer promotes accepted ideas to a triaged issue on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md) board.
+3. **Design** — substantial work gets an [implementation plan](docs/implementationPlans/README.md) before large coding begins.
+4. **RFC path** — API or package changes that affect consumers start in [RFCs](https://github.com/FlourishHealth/terreno/discussions/new?category=rfcs); accepted RFCs become IPs.
+
+See [roadmap process](docs/explanation/roadmap-process.md) for maintainer setup and the Linear bridge.
+
 ## When to write an implementation plan (IP)
 
 Substantial work should be planned before coding:

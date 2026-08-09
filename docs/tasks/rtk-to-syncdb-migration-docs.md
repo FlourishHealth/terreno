@@ -2,7 +2,9 @@
 
 See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementationPlans/rtk-to-syncdb-migration-docs.md)
 
-**RTK deprecation flag:** **Blocked.** Do not start any task in this file until PR [#869](https://github.com/flourishhealth/terreno/pull/869) is merged into `master`. Verify with `git log --oneline master | rg -i syncdb` before beginning.
+**RTK deprecation flag:** **Blocked.** Do not start any task in this file until a `@terreno/syncdb` package is merged into `master`. PR [#869](https://github.com/flourishhealth/terreno/pull/869) was the delivery vehicle but is **closed, not merged** (checked 2026-08-09) and no `syncdb/` package exists on `master`. Verify with `git log --oneline master | rg -i syncdb` before beginning.
+
+**Migration strategy (decision M6, reaffirmed 2026-08-09):** this IP ships *context for an AI agent to perform the migration*, not a migration script or codemod. The deliverables are the syncdb reference, a guide built from verified before/after pairs, and the `upgrading-terreno` skill that drives an agent through a per-screen `USE_SYNCDB` rollout. See the "Migration strategy: AI-context-first" section in the IP. Do not author a codemod as the primary path.
 
 ## Instructions for the implementing agent
 
