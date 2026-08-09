@@ -13,7 +13,7 @@ See: [`docs/implementationPlans/public-roadmap-github.md`](../implementationPlan
 
 ## Phase 1: Discussions
 
-- [ ] **Task 1.1**: Document Discussion category setup
+- [x] **Task 1.1**: Document Discussion category setup
   - Description: Create `docs/explanation/roadmap-process.md`. Start with a "Maintainer setup" section listing the seven Discussion categories from the IP with their exact names, formats (Announcement / Question-Answer / Open-ended), descriptions, and display order. For each, include the description text to paste into the GitHub UI (one to two sentences, written for outside users). Note that Discussions must first be enabled in Settings → General → Features.
   - Files: `docs/explanation/roadmap-process.md` (new)
   - Depends on: none
