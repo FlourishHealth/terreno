@@ -20,7 +20,7 @@ configured providers and exposes send services to routes and other plugins, **pu
 registration** routes and model, a **delivery log**, and **console adapters** so every
 channel works in development with zero external accounts.
 
-Concrete providers (Twilio, Resend, Expo push) are separate IPs — one per adapter — so
+Concrete providers (Twilio, SendGrid, Expo push) are separate IPs — one per adapter — so
 consumer apps install only the SDKs they use.
 
 ## Non-Goals
@@ -84,7 +84,7 @@ export interface MailMessage {
 }
 
 export interface MailProvider {
-  readonly id: string;      // "console" | "resend" | ...
+  readonly id: string;      // "console" | "sendgrid" | ...
   sendMail(message: MailMessage): Promise<SendResult>;
 }
 
@@ -207,8 +207,7 @@ updates.
 ## Not Included / Future Work
 
 - Adapter IPs: `comms-adapter-expo-push`, `comms-adapter-twilio-sms`,
-  `comms-adapter-twilio-verify`, `comms-adapter-resend` (D2), `comms-adapter-twilio-push`
-  (blocked on Twilio GA).
+  `comms-adapter-twilio-verify`, `comms-adapter-sendgrid`.
 - Notification center, user notification preferences.
 - Queue-backed sending with retries — arrives with `job-queues`; until then sends are
   inline with one retry.

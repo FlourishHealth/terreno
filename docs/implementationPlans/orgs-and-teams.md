@@ -1,6 +1,6 @@
 # Implementation Plan: Organizations, teams, and multi-tenant scoping
 
-**Status:** Draft — decision D6 (data model) pending
+**Status:** Draft
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
@@ -31,7 +31,7 @@ permissions: {...IsOrgMember}})` is all an app needs for tenant-safe endpoints.
 
 | Question | Decision |
 |----------|----------|
-| **D6 (open):** native Mongoose models vs Better Auth `organization` plugin | **Drafted default: native models.** The JWT/passport path (still supported and the example default) cannot use a Better-Auth-only construct; native models serve both auth paths, keep modelRouter/query-filter integration first-class, and can sync to Better Auth's plugin later if wanted |
+| **D6 (resolved 2026-08-09):** native Mongoose models vs Better Auth `organization` plugin | **Native models.** The JWT/passport path (still supported and the example default) cannot use a Better-Auth-only construct; native models serve both auth paths, keep modelRouter/query-filter integration first-class, and can sync to Better Auth's plugin later if wanted |
 | Org context transport | `X-Organization-Id` header, resolved by middleware into `req.organization` + `req.membership`; explicit query/body override rejected |
 | One org or many per user? | Many (Membership join collection); apps wanting single-org enforce via option `maxOrgsPerUser: 1` |
 | Coarse roles now | `Membership.role: "admin" \| "member"` — deliberately minimal; RBAC IP replaces this enum with role references, migration documented there |
