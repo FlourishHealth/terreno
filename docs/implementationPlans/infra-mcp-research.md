@@ -78,6 +78,22 @@ SDK situation:
 | Vercel | Hosted `https://mcp.vercel.com` | OAuth | Deployments, logs, projects |
 | Expo/EAS | Hosted `https://mcp.expo.dev/mcp` (Streamable HTTP) | OAuth (Expo account); paid EAS plan | Docs + project tools; EAS build/update tools evolving |
 
+### Proxying feasibility per vendor (follow-up research)
+
+Mechanics of chaining our MCP to upstream MCP servers are simple with SDK v2 (`@modelcontextprotocol/client` speaks both protocol eras; stateless spec = no per-upstream session to maintain; stdio servers run as child processes). Long-term authentication is the real differentiator:
+
+| Vendor | Headless credential for MCP? | Long-term auth | Verdict for proxying |
+|---|---|---|---|
+| Sentry | Yes — hosted `mcp.sentry.dev` accepts `Authorization: Sentry-Bearer <token>` header; stdio `@sentry/mcp-server` takes `SENTRY_ACCESS_TOKEN` (non-expiring user auth token / internal integration token) | Static token, rotate manually | **Green** |
+| MongoDB | Yes — `mongodb-mcp-server` takes a connection string; native `--readOnly` flag | Static | **Green** |
+| GCP | Yes — remote endpoints and self-hosted `gcloud-mcp`/`observability-mcp` accept ADC/service-account identity; on Cloud Run the *service's own SA* is the credential, google-auth auto-refreshes | Automatic (workload identity) | **Green** |
+| Vercel | **No** — `mcp.vercel.com` is OAuth-only **with a client allowlist** (Claude, Cursor, Codex, etc.); our server would not be an approved client, and there is no API-token fallback | n/a | **Red** — go native (Vercel REST API + static token) |
+| Expo/EAS | Hosted `mcp.expo.dev` is browser OAuth (user-scoped, paid plan); robot tokens (`EXPO_TOKEN`) are for CI/CLI, MCP acceptance unconfirmed | Uncertain | **Amber/Red** — go native (`EXPO_TOKEN` + EAS CLI/GraphQL) |
+
+Implication: a **pure** gateway (Option A) is not achievable for Vercel and likely not Expo — their hosted MCPs are designed for interactive human OAuth from allowlisted AI clients, not server-to-server delegation. The proxied path works cleanly exactly where static/service credentials exist, which is the same place the native path is also easy. This strengthens Option C (hybrid) and weakens A.
+
+If we ever must proxy an interactive-OAuth-only upstream: one-time browser consent by an admin, persist the refresh token in an encrypted vault (Mongo + KMS or Secret Manager), background refresh, and an admin "re-link integration" flow for `invalid_grant`/revocation. Real ops burden — avoid unless the vendor MCP offers something the REST API doesn't.
+
 ### Gateway prior art
 
 Multiple open-source projects already implement "aggregate MCP backends + per-user tool RBAC":
