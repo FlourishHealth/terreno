@@ -55,7 +55,7 @@ Follow [docs/how-to/deploy-web-to-gcs-cdn.md](../../docs/how-to/deploy-web-to-gc
 
 1. `EXPO_PUBLIC_API_URL=$SERVICE_URL bun run export` in the frontend package
 2. Upload `dist/` to `$WEB_BUCKET` with correct cache headers
-3. Run `./scripts/setup-gcs-hosting.sh --project ... --site-name ... --bucket ...` if CDN not provisioned
+3. Run `./scripts/setup-gcs-hosting.sh --project ... --site-name ... --bucket ... --domain ...` if CDN not provisioned
 4. Invalidate CDN cache on the URL map
 
 ## Verification

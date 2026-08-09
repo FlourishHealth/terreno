@@ -2,7 +2,7 @@
 
 Host a static Terreno web export on Google Cloud Storage with Cloud CDN.
 
-Replace placeholders: `$PROJECT_ID`, `$REGION`, `$WEB_BUCKET`, `$SITE_NAME`.
+Replace placeholders: `$PROJECT_ID`, `$REGION`, `$WEB_BUCKET`, `$SITE_NAME`, `$DOMAIN`.
 
 ## Prerequisites
 
@@ -68,9 +68,10 @@ gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
   cp dist/index.html "gs://$WEB_BUCKET/index.html"
 ```
 
-## 7. Create CDN resources
+## 7. Create HTTPS CDN resources
 
-Five resources connect the bucket to a global IP:
+The load balancer serves the bucket over HTTPS only. A Google-managed certificate secures
+the domain:
 
 ```bash
 # Backend bucket (CDN-enabled)
@@ -88,17 +89,24 @@ gcloud compute url-maps create "${SITE_NAME}-url-map" \
 # Static IP
 gcloud compute addresses create "${SITE_NAME}-ip" --global --project="$PROJECT_ID"
 
-# HTTP proxy
-gcloud compute target-http-proxies create "${SITE_NAME}-http-proxy" \
-  --url-map="${SITE_NAME}-url-map" \
+# Managed TLS certificate
+gcloud compute ssl-certificates create "${SITE_NAME}-cert" \
+  --domains="$DOMAIN" \
+  --global \
   --project="$PROJECT_ID"
 
-# Forwarding rule
-gcloud compute forwarding-rules create "${SITE_NAME}-forwarding-rule" \
+# HTTPS proxy
+gcloud compute target-https-proxies create "${SITE_NAME}-https-proxy" \
+  --url-map="${SITE_NAME}-url-map" \
+  --ssl-certificates="${SITE_NAME}-cert" \
+  --project="$PROJECT_ID"
+
+# HTTPS forwarding rule
+gcloud compute forwarding-rules create "${SITE_NAME}-https-forwarding-rule" \
   --address="${SITE_NAME}-ip" \
-  --target-http-proxy="${SITE_NAME}-http-proxy" \
+  --target-https-proxy="${SITE_NAME}-https-proxy" \
   --global \
-  --ports=80 \
+  --ports=443 \
   --project="$PROJECT_ID"
 ```
 
@@ -108,7 +116,8 @@ Or run the parameterized script:
 ./scripts/setup-gcs-hosting.sh \
   --project "$PROJECT_ID" \
   --site-name "$SITE_NAME" \
-  --bucket "$WEB_BUCKET"
+  --bucket "$WEB_BUCKET" \
+  --domain "$DOMAIN"
 ```
 
 ## 8. Point DNS
@@ -118,7 +127,10 @@ gcloud compute addresses describe "${SITE_NAME}-ip" --global \
   --project="$PROJECT_ID" --format='value(address)'
 ```
 
-Create an A record for your domain pointing at that IP. For HTTPS, add a managed SSL certificate and HTTPS proxy (see script output).
+Create an A record for `$DOMAIN` pointing at that IP. The managed certificate remains in
+`PROVISIONING` until DNS propagates, then the site becomes available at `https://$DOMAIN`.
+There is no port 80 forwarding rule, so the deployment cannot serve the application over
+unencrypted HTTP.
 
 ## 9. Invalidate cache after deploy
 

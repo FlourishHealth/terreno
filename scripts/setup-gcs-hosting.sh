@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: setup-gcs-hosting.sh --project PROJECT_ID --site-name SITE_NAME --bucket BUCKET_NAME [options]
+Usage: setup-gcs-hosting.sh --project PROJECT_ID --site-name SITE_NAME --bucket BUCKET_NAME --domain DOMAIN [options]
 
 Provision GCS + Cloud CDN resources for one static Terreno web site.
 
@@ -11,6 +11,7 @@ Required:
   --project PROJECT_ID     GCP project ID
   --site-name SITE_NAME    Prefix for CDN resource names (e.g. my-app)
   --bucket BUCKET_NAME     GCS bucket name for static files
+  --domain DOMAIN          Public hostname for the managed TLS certificate
 
 Options:
   --region REGION          GCS bucket region (default: us-central1)
@@ -23,6 +24,7 @@ Example:
     --project my-gcp-project \
     --site-name terreno-web \
     --bucket my-terreno-web-bucket \
+    --domain app.example.com \
     --dry-run
 EOF
 }
@@ -30,6 +32,7 @@ EOF
 PROJECT_ID=""
 SITE_NAME=""
 BUCKET=""
+DOMAIN=""
 REGION="us-central1"
 SA_EMAIL=""
 DRY_RUN=false
@@ -56,6 +59,10 @@ while [ $# -gt 0 ]; do
       BUCKET="$2"
       shift 2
       ;;
+    --domain)
+      DOMAIN="$2"
+      shift 2
+      ;;
     --region)
       REGION="$2"
       shift 2
@@ -80,8 +87,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ -z "$PROJECT_ID" ] || [ -z "$SITE_NAME" ] || [ -z "$BUCKET" ]; then
-  echo "Error: --project, --site-name, and --bucket are required." >&2
+if [ -z "$PROJECT_ID" ] || [ -z "$SITE_NAME" ] || [ -z "$BUCKET" ] || [ -z "$DOMAIN" ]; then
+  echo "Error: --project, --site-name, --bucket, and --domain are required." >&2
   usage >&2
   exit 1
 fi
@@ -89,17 +96,20 @@ fi
 BACKEND_BUCKET="${SITE_NAME}-backend"
 URL_MAP="${SITE_NAME}-url-map"
 IP_NAME="${SITE_NAME}-ip"
-HTTP_PROXY="${SITE_NAME}-http-proxy"
-FORWARDING_RULE="${SITE_NAME}-forwarding-rule"
+SSL_CERTIFICATE="${SITE_NAME}-cert"
+HTTPS_PROXY="${SITE_NAME}-https-proxy"
+HTTPS_FORWARDING_RULE="${SITE_NAME}-https-forwarding-rule"
 
 echo "=== Terreno GCS + CDN Hosting Setup ==="
 echo "Project:   $PROJECT_ID"
 echo "Site:      $SITE_NAME"
 echo "Bucket:    $BUCKET"
+echo "Domain:    $DOMAIN"
 echo "Region:    $REGION"
 echo ""
 
 run_cmd gcloud config set project "$PROJECT_ID"
+run_cmd gcloud services enable compute.googleapis.com --project="$PROJECT_ID"
 
 resource_exists() {
   local type="$1"
@@ -177,25 +187,37 @@ else
 fi
 
 echo ""
-echo "--- Step 8: HTTP proxy ---"
-if resource_exists target-http-proxies "$HTTP_PROXY" --global; then
-  echo "  HTTP proxy $HTTP_PROXY already exists, skipping"
+echo "--- Step 8: Managed TLS certificate ---"
+if resource_exists ssl-certificates "$SSL_CERTIFICATE" --global; then
+  echo "  TLS certificate $SSL_CERTIFICATE already exists, skipping"
 else
-  run_cmd gcloud compute target-http-proxies create "$HTTP_PROXY" \
-    --url-map="$URL_MAP" \
+  run_cmd gcloud compute ssl-certificates create "$SSL_CERTIFICATE" \
+    --domains="$DOMAIN" \
+    --global \
     --project="$PROJECT_ID"
 fi
 
 echo ""
-echo "--- Step 9: Forwarding rule ---"
-if resource_exists forwarding-rules "$FORWARDING_RULE" --global; then
-  echo "  Forwarding rule $FORWARDING_RULE already exists, skipping"
+echo "--- Step 9: HTTPS proxy ---"
+if resource_exists target-https-proxies "$HTTPS_PROXY" --global; then
+  echo "  HTTPS proxy $HTTPS_PROXY already exists, skipping"
 else
-  run_cmd gcloud compute forwarding-rules create "$FORWARDING_RULE" \
+  run_cmd gcloud compute target-https-proxies create "$HTTPS_PROXY" \
+    --url-map="$URL_MAP" \
+    --ssl-certificates="$SSL_CERTIFICATE" \
+    --project="$PROJECT_ID"
+fi
+
+echo ""
+echo "--- Step 10: HTTPS forwarding rule ---"
+if resource_exists forwarding-rules "$HTTPS_FORWARDING_RULE" --global; then
+  echo "  Forwarding rule $HTTPS_FORWARDING_RULE already exists, skipping"
+else
+  run_cmd gcloud compute forwarding-rules create "$HTTPS_FORWARDING_RULE" \
     --address="$IP_NAME" \
-    --target-http-proxy="$HTTP_PROXY" \
+    --target-https-proxy="$HTTPS_PROXY" \
     --global \
-    --ports=80 \
+    --ports=443 \
     --project="$PROJECT_ID"
 fi
 
@@ -204,11 +226,6 @@ echo "=== Setup Complete ==="
 echo ""
 echo "Bucket:  gs://$BUCKET"
 echo "URL map: $URL_MAP (use for CDN cache invalidation)"
+echo "URL:      https://$DOMAIN"
 echo ""
-echo "To add HTTPS, create a managed SSL certificate and HTTPS proxy:"
-echo "  gcloud compute ssl-certificates create ${SITE_NAME}-cert \\"
-echo "    --domains=app.example.com --global --project=$PROJECT_ID"
-echo "  gcloud compute target-https-proxies create ${SITE_NAME}-https-proxy \\"
-echo "    --ssl-certificates=${SITE_NAME}-cert --url-map=$URL_MAP --project=$PROJECT_ID"
-echo "  gcloud compute forwarding-rules create ${SITE_NAME}-https-forwarding-rule \\"
-echo "    --address=$IP_NAME --target-https-proxy=${SITE_NAME}-https-proxy --global --ports=443 --project=$PROJECT_ID"
+echo "Point $DOMAIN at the static IP above. The managed certificate becomes active after DNS propagates."

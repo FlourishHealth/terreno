@@ -59,10 +59,10 @@ See: [`docs/implementationPlans/deploy-to-gcp.md`](../implementationPlans/deploy
   - Acceptance: `rg -n "terraform/" --glob '!infra/**' --glob '!terraform/**'` shows no stale paths pointing at moved files; the `cd.yml` workflow references the new location; `bun run rules:check` exits 0 after regenerating rules.
 
 - [x] **Task 2.3**: Parameterize the GCS hosting script
-  - Description: Rewrite `scripts/setup-gcs-hosting.sh` to require `--project`, `--site-name`, and `--bucket` arguments (or positional equivalents) with a usage message and a check that all are present. Remove every hardcoded Flourish project, bucket, and service-account value. Keep the resource-creation logic intact. Add a `--dry-run` flag that prints commands without executing them.
+  - Description: Rewrite `scripts/setup-gcs-hosting.sh` to require `--project`, `--site-name`, `--bucket`, and `--domain` arguments (or positional equivalents) with a usage message and a check that all are present. Remove every hardcoded Flourish project, bucket, and service-account value. Keep the resource-creation logic intact, with HTTPS as the only public serving path. Add a `--dry-run` flag that prints commands without executing them.
   - Files: `scripts/setup-gcs-hosting.sh`
   - Depends on: Task 1.3
-  - Acceptance: running with no arguments prints usage and exits non-zero; `--dry-run` produces commands containing the supplied values and no Flourish strings; `rg -i flourish scripts/setup-gcs-hosting.sh` returns nothing.
+  - Acceptance: running with no arguments prints usage and exits non-zero; `--dry-run` produces HTTPS commands containing the supplied values, no port 80 forwarding rule, and no Flourish strings; `rg -i flourish scripts/setup-gcs-hosting.sh` returns nothing.
 
 ## Phase 3: The `deploy-gcp` skill
 
