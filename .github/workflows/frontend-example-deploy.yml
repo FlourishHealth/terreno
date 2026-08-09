@@ -3,7 +3,7 @@ name: Example Frontend Deploy
 on:
   push:
     branches:
-      - "**"
+      - master
     paths:
       - "example-frontend/**"
       - "ui/**"
@@ -13,6 +13,13 @@ on:
       - "bun.lock"
       - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
+    paths:
+      - "example-frontend/**"
+      - "ui/**"
+      - "rtk/**"
+      - "admin-frontend/**"
+      - ".github/workflows/frontend-example-deploy.yml"
+  workflow_dispatch:
 
 jobs:
   check-changes:
@@ -39,7 +46,7 @@ jobs:
   build:
     name: Build Example Frontend
     needs: [check-changes]
-    if: always() && (github.event_name == 'push' || needs.check-changes.outputs.has_changes == 'true')
+    if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || needs.check-changes.outputs.has_changes == 'true')
     # check-changes outputs are consumed by the "Set BASE_URL for deploy" step below
     runs-on: ubuntu-latest
     steps:
@@ -118,13 +125,12 @@ jobs:
           path: example-frontend/dist
           retention-days: 1
 
-  deploy-branch:
-    name: Deploy Branch Preview
+  deploy-manual-branch:
+    name: Deploy Manual Branch Preview
     needs: build
-    # `always()` is required because `build` needs `check-changes`, which is skipped on
-    # push events — that skip otherwise propagates down the dependency chain and
-    # silently skips this job even when `build` itself succeeded.
-    if: always() && needs.build.result == 'success' && github.event_name == 'push' && github.ref != 'refs/heads/master'
+    # Feature branches use PR previews by default. A manual dispatch preserves an
+    # on-demand preview for branches that do not have an open PR.
+    if: always() && needs.build.result == 'success' && github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -181,7 +187,7 @@ jobs:
               transient_environment: true,
               auto_merge: false,
               required_contexts: [],
-              description: 'Example Frontend Branch Preview Deployment'
+              description: 'Example Frontend Manual Branch Preview Deployment'
             });
             core.setOutput('deployment_id', deployment.data.id);
 
@@ -244,7 +250,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     needs: build
-    # See note on deploy-branch above about why `always()` + explicit result check is required.
+    # `always()` lets this evaluate after the PR-only check-changes job is skipped on pushes.
     if: always() && needs.build.result == 'success' && github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:

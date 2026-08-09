@@ -2,6 +2,8 @@ name: Repository policies
 
 on:
   push:
+    branches:
+      - master
     paths:
       - "**/*.ts"
       - "**/*.tsx"
