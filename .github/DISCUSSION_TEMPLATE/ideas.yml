@@ -1,0 +1,35 @@
+title: "[Idea]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share a feature idea or improvement before it is shaped into an issue.
+        Maintainers review Ideas discussions and promote promising ones to
+        tracked issues on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem you are hitting
+      description: What is painful, missing, or confusing today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried
+      description: Workarounds, partial solutions, or related docs you read
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Rough idea for a solution
+      description: How might Terreno address this?
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to help implement this if maintainers agree on direction

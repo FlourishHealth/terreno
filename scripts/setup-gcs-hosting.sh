@@ -1,237 +1,287 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="flourish-terreno"
-REGION="us-east1"
+usage() {
+  cat <<'EOF'
+Usage: setup-gcs-hosting.sh --project PROJECT_ID --site-name SITE_NAME --bucket BUCKET_NAME --domain DOMAIN [options]
 
-# App definitions: name, bucket, backend-bucket, url-map, ip-name, proxy-name, forwarding-rule
-APPS=(
-  "demo"
-  "frontend-example"
-)
+Provision GCS + Cloud CDN resources for one static Terreno web site.
 
-DEMO_BUCKET="flourish-terreno-terreno-demo"
-DEMO_BACKEND_BUCKET="terreno-demo-backend"
-DEMO_URL_MAP="terreno-demo-url-map"
-DEMO_IP="terreno-demo-ip"
-DEMO_HTTP_PROXY="terreno-demo-http-proxy"
-DEMO_FORWARDING_RULE="terreno-demo-forwarding-rule"
+Required:
+  --project PROJECT_ID     GCP project ID
+  --site-name SITE_NAME    Prefix for CDN resource names (e.g. my-app)
+  --bucket BUCKET_NAME     GCS bucket name for static files
+  --domain DOMAIN          Public hostname for the managed TLS certificate
 
-FRONTEND_BUCKET="flourish-terreno-terreno-frontend-example"
-FRONTEND_BACKEND_BUCKET="terreno-frontend-example-backend"
-FRONTEND_URL_MAP="terreno-frontend-example-url-map"
-FRONTEND_IP="terreno-frontend-example-ip"
-FRONTEND_HTTP_PROXY="terreno-frontend-example-http-proxy"
-FRONTEND_FORWARDING_RULE="terreno-frontend-example-forwarding-rule"
+Options:
+  --region REGION          GCS bucket region (default: us-central1)
+  --service-account EMAIL  Grant objectAdmin on the bucket (optional)
+  --dry-run                Print commands without executing
+  -h, --help               Show this help
+
+Example:
+  ./scripts/setup-gcs-hosting.sh \
+    --project my-gcp-project \
+    --site-name terreno-web \
+    --bucket my-terreno-web-bucket \
+    --domain app.example.com \
+    --dry-run
+EOF
+}
+
+PROJECT_ID=""
+SITE_NAME=""
+BUCKET=""
+DOMAIN=""
+REGION="us-central1"
+SA_EMAIL=""
+DRY_RUN=false
+
+run_cmd() {
+  if [ "$DRY_RUN" = true ]; then
+    echo "[dry-run] $*"
+  else
+    "$@"
+  fi
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --project)
+      PROJECT_ID="$2"
+      shift 2
+      ;;
+    --site-name)
+      SITE_NAME="$2"
+      shift 2
+      ;;
+    --bucket)
+      BUCKET="$2"
+      shift 2
+      ;;
+    --domain)
+      DOMAIN="$2"
+      shift 2
+      ;;
+    --region)
+      REGION="$2"
+      shift 2
+      ;;
+    --service-account)
+      SA_EMAIL="$2"
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z "$PROJECT_ID" ] || [ -z "$SITE_NAME" ] || [ -z "$BUCKET" ] || [ -z "$DOMAIN" ]; then
+  echo "Error: --project, --site-name, --bucket, and --domain are required." >&2
+  usage >&2
+  exit 1
+fi
+
+BACKEND_BUCKET="${SITE_NAME}-backend"
+URL_MAP="${SITE_NAME}-url-map"
+IP_NAME="${SITE_NAME}-ip"
+SSL_CERTIFICATE="${SITE_NAME}-cert"
+HTTPS_PROXY="${SITE_NAME}-https-proxy"
+HTTPS_FORWARDING_RULE="${SITE_NAME}-https-forwarding-rule"
+REDIRECT_URL_MAP="${SITE_NAME}-http-redirect-url-map"
+HTTP_PROXY="${SITE_NAME}-http-proxy"
+HTTP_FORWARDING_RULE="${SITE_NAME}-forwarding-rule"
 
 echo "=== Terreno GCS + CDN Hosting Setup ==="
-echo "Project: $PROJECT_ID"
+echo "Project:   $PROJECT_ID"
+echo "Site:      $SITE_NAME"
+echo "Bucket:    $BUCKET"
+echo "Domain:    $DOMAIN"
+echo "Region:    $REGION"
 echo ""
 
-# Ensure we're using the right project
-gcloud config set project "$PROJECT_ID"
+run_cmd gcloud config set project "$PROJECT_ID"
+run_cmd gcloud services enable compute.googleapis.com --project="$PROJECT_ID"
 
-# --- Helper ---
 resource_exists() {
-  local type="$1" name="$2"
+  local type="$1"
+  local name="$2"
   shift 2
+  if [ "$DRY_RUN" = true ]; then
+    return 1
+  fi
   gcloud compute "$type" describe "$name" --project="$PROJECT_ID" "$@" &>/dev/null
 }
 
 bucket_exists() {
+  if [ "$DRY_RUN" = true ]; then
+    return 1
+  fi
   gsutil ls -b "gs://$1" &>/dev/null
 }
 
-# =============================================================================
-# Step 1: Create GCS Buckets
-# =============================================================================
-echo "--- Step 1: Creating GCS buckets ---"
-
-for bucket in "$DEMO_BUCKET" "$FRONTEND_BUCKET"; do
-  if bucket_exists "$bucket"; then
-    echo "  Bucket gs://$bucket already exists, skipping"
-  else
-    echo "  Creating gs://$bucket"
-    gsutil mb -p "$PROJECT_ID" -l "$REGION" "gs://$bucket/"
-  fi
-done
-
-# =============================================================================
-# Step 2: Make buckets publicly readable
-# =============================================================================
-echo ""
-echo "--- Step 2: Setting public read access ---"
-
-for bucket in "$DEMO_BUCKET" "$FRONTEND_BUCKET"; do
-  echo "  Setting allUsers:objectViewer on gs://$bucket"
-  gsutil iam ch allUsers:objectViewer "gs://$bucket"
-done
-
-# =============================================================================
-# Step 3: Configure static website hosting (SPA routing)
-# =============================================================================
-echo ""
-echo "--- Step 3: Configuring static website hosting ---"
-echo "  NotFoundPage: index.html (SPA fallback)"
-echo "  NOTE: MainPageSuffix is NOT set to avoid GCS 301 redirects"
-echo "        that break client-side routing (e.g. /demo/ -> /demo/index.html)"
-
-for bucket in "$DEMO_BUCKET" "$FRONTEND_BUCKET"; do
-  echo "  Configuring gs://$bucket"
-  gsutil web set -e index.html "gs://$bucket"
-done
-
-# =============================================================================
-# Step 4: Grant service account write access
-# =============================================================================
-echo ""
-echo "--- Step 4: Granting service account access ---"
-
-# Try to find the service account email from gcloud
-SA_EMAIL="${GCP_SA_EMAIL:-}"
-if [ -z "$SA_EMAIL" ]; then
-  echo "  No GCP_SA_EMAIL set. Listing service accounts:"
-  gcloud iam service-accounts list --project="$PROJECT_ID" --format="table(email,displayName)"
-  echo ""
-  read -rp "  Enter service account email: " SA_EMAIL
+echo "--- Step 1: Create GCS bucket ---"
+if bucket_exists "$BUCKET"; then
+  echo "  Bucket gs://$BUCKET already exists, skipping"
+else
+  run_cmd gsutil mb -p "$PROJECT_ID" -l "$REGION" "gs://$BUCKET/"
 fi
 
-echo "  Granting objectAdmin to $SA_EMAIL"
-for bucket in "$DEMO_BUCKET" "$FRONTEND_BUCKET"; do
-  gsutil iam ch "serviceAccount:${SA_EMAIL}:objectAdmin" "gs://$bucket"
-done
-
-# =============================================================================
-# Step 5: Create backend buckets (CDN-enabled)
-# =============================================================================
 echo ""
-echo "--- Step 5: Creating CDN backend buckets ---"
+echo "--- Step 2: Public read access ---"
+run_cmd gsutil iam ch allUsers:objectViewer "gs://$BUCKET"
 
-create_backend_bucket() {
-  local name="$1" bucket="$2"
-  if resource_exists backend-buckets "$name" --global; then
-    echo "  Backend bucket $name already exists, skipping"
-  else
-    echo "  Creating backend bucket $name -> gs://$bucket"
-    gcloud compute backend-buckets create "$name" \
-      --gcs-bucket-name="$bucket" \
-      --enable-cdn \
-      --no-negative-caching
+echo ""
+echo "--- Step 3: SPA routing (notFoundPage=index.html) ---"
+run_cmd gsutil web set -e index.html "gs://$BUCKET"
+
+if [ -n "$SA_EMAIL" ]; then
+  echo ""
+  echo "--- Step 4: Service account write access ---"
+  run_cmd gsutil iam ch "serviceAccount:${SA_EMAIL}:objectAdmin" "gs://$BUCKET"
+fi
+
+echo ""
+echo "--- Step 5: CDN backend bucket ---"
+if resource_exists backend-buckets "$BACKEND_BUCKET" --global; then
+  echo "  Backend bucket $BACKEND_BUCKET already exists, skipping"
+else
+  run_cmd gcloud compute backend-buckets create "$BACKEND_BUCKET" \
+    --gcs-bucket-name="$BUCKET" \
+    --enable-cdn \
+    --no-negative-caching \
+    --project="$PROJECT_ID"
+fi
+
+echo ""
+echo "--- Step 6: URL map ---"
+if resource_exists url-maps "$URL_MAP" --global; then
+  echo "  URL map $URL_MAP already exists, skipping"
+else
+  run_cmd gcloud compute url-maps create "$URL_MAP" \
+    --default-backend-bucket="$BACKEND_BUCKET" \
+    --project="$PROJECT_ID"
+fi
+
+echo ""
+echo "--- Step 7: Static IP ---"
+if resource_exists addresses "$IP_NAME" --global; then
+  echo "  IP $IP_NAME already exists"
+else
+  run_cmd gcloud compute addresses create "$IP_NAME" --global --project="$PROJECT_ID"
+fi
+
+if [ "$DRY_RUN" = false ]; then
+  IP_ADDR=$(gcloud compute addresses describe "$IP_NAME" --global --project="$PROJECT_ID" --format="value(address)")
+  echo "  $IP_NAME = $IP_ADDR"
+else
+  echo "[dry-run] gcloud compute addresses describe $IP_NAME --global --format='value(address)'"
+fi
+
+echo ""
+echo "--- Step 8: Managed TLS certificate ---"
+if resource_exists ssl-certificates "$SSL_CERTIFICATE" --global; then
+  echo "  TLS certificate $SSL_CERTIFICATE already exists, skipping"
+else
+  run_cmd gcloud compute ssl-certificates create "$SSL_CERTIFICATE" \
+    --domains="$DOMAIN" \
+    --global \
+    --project="$PROJECT_ID"
+fi
+
+echo ""
+echo "--- Step 9: HTTPS proxy ---"
+if resource_exists target-https-proxies "$HTTPS_PROXY" --global; then
+  echo "  HTTPS proxy $HTTPS_PROXY already exists, skipping"
+else
+  run_cmd gcloud compute target-https-proxies create "$HTTPS_PROXY" \
+    --url-map="$URL_MAP" \
+    --ssl-certificates="$SSL_CERTIFICATE" \
+    --project="$PROJECT_ID"
+fi
+
+echo ""
+echo "--- Step 10: HTTPS forwarding rule ---"
+if resource_exists forwarding-rules "$HTTPS_FORWARDING_RULE" --global; then
+  echo "  Forwarding rule $HTTPS_FORWARDING_RULE already exists, skipping"
+else
+  run_cmd gcloud compute forwarding-rules create "$HTTPS_FORWARDING_RULE" \
+    --address="$IP_NAME" \
+    --target-https-proxy="$HTTPS_PROXY" \
+    --global \
+    --ports=443 \
+    --project="$PROJECT_ID"
+fi
+
+create_redirect_url_map() {
+  # gcloud exposes defaultUrlRedirect only through an imported spec, not
+  # through url-maps create flags.
+  if [ "$DRY_RUN" = true ]; then
+    echo "[dry-run] gcloud compute url-maps import $REDIRECT_URL_MAP --global --project=$PROJECT_ID --source=- <<spec"
+    echo "[dry-run]   name: $REDIRECT_URL_MAP"
+    echo "[dry-run]   defaultUrlRedirect: {httpsRedirect: true, redirectResponseCode: MOVED_PERMANENTLY_DEFAULT}"
+    return
   fi
+  gcloud compute url-maps import "$REDIRECT_URL_MAP" \
+    --global \
+    --project="$PROJECT_ID" \
+    --quiet \
+    --source=/dev/stdin <<SPEC
+name: $REDIRECT_URL_MAP
+defaultUrlRedirect:
+  httpsRedirect: true
+  redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
+SPEC
 }
 
-create_backend_bucket "$DEMO_BACKEND_BUCKET" "$DEMO_BUCKET"
-create_backend_bucket "$FRONTEND_BACKEND_BUCKET" "$FRONTEND_BUCKET"
-
-# =============================================================================
-# Step 6: Create URL maps
-# =============================================================================
 echo ""
-echo "--- Step 6: Creating URL maps ---"
+echo "--- Step 11: Redirect HTTP to HTTPS ---"
+# Without a port 80 listener, http://$DOMAIN fails to connect instead of
+# redirecting. Serve a 301 there rather than the bundle itself.
+if resource_exists url-maps "$REDIRECT_URL_MAP" --global; then
+  echo "  Redirect URL map $REDIRECT_URL_MAP already exists, skipping"
+else
+  create_redirect_url_map
+fi
 
-create_url_map() {
-  local name="$1" backend="$2"
-  if resource_exists url-maps "$name" --global; then
-    echo "  URL map $name already exists, skipping"
-  else
-    echo "  Creating URL map $name -> $backend"
-    gcloud compute url-maps create "$name" \
-      --default-backend-bucket="$backend"
-  fi
-}
+if resource_exists target-http-proxies "$HTTP_PROXY" --global; then
+  echo "  HTTP proxy $HTTP_PROXY already exists, skipping"
+else
+  run_cmd gcloud compute target-http-proxies create "$HTTP_PROXY" \
+    --url-map="$REDIRECT_URL_MAP" \
+    --project="$PROJECT_ID"
+fi
 
-create_url_map "$DEMO_URL_MAP" "$DEMO_BACKEND_BUCKET"
-create_url_map "$FRONTEND_URL_MAP" "$FRONTEND_BACKEND_BUCKET"
+if resource_exists forwarding-rules "$HTTP_FORWARDING_RULE" --global; then
+  echo "  Forwarding rule $HTTP_FORWARDING_RULE already exists, skipping"
+else
+  run_cmd gcloud compute forwarding-rules create "$HTTP_FORWARDING_RULE" \
+    --address="$IP_NAME" \
+    --target-http-proxy="$HTTP_PROXY" \
+    --global \
+    --ports=80 \
+    --project="$PROJECT_ID"
+fi
 
-# =============================================================================
-# Step 7: Reserve static IPs
-# =============================================================================
-echo ""
-echo "--- Step 7: Reserving static IPs ---"
-
-reserve_ip() {
-  local name="$1"
-  if resource_exists addresses "$name" --global; then
-    echo "  IP $name already exists"
-  else
-    echo "  Reserving global IP $name"
-    gcloud compute addresses create "$name" --global
-  fi
-  local ip
-  ip=$(gcloud compute addresses describe "$name" --global --format="value(address)")
-  echo "  $name = $ip"
-}
-
-reserve_ip "$DEMO_IP"
-reserve_ip "$FRONTEND_IP"
-
-# =============================================================================
-# Step 8: Create HTTP proxies
-# =============================================================================
-echo ""
-echo "--- Step 8: Creating HTTP proxies ---"
-
-create_http_proxy() {
-  local name="$1" url_map="$2"
-  if resource_exists target-http-proxies "$name" --global; then
-    echo "  HTTP proxy $name already exists, skipping"
-  else
-    echo "  Creating HTTP proxy $name -> $url_map"
-    gcloud compute target-http-proxies create "$name" \
-      --url-map="$url_map"
-  fi
-}
-
-create_http_proxy "$DEMO_HTTP_PROXY" "$DEMO_URL_MAP"
-create_http_proxy "$FRONTEND_HTTP_PROXY" "$FRONTEND_URL_MAP"
-
-# =============================================================================
-# Step 9: Create forwarding rules
-# =============================================================================
-echo ""
-echo "--- Step 9: Creating forwarding rules ---"
-
-create_forwarding_rule() {
-  local name="$1" ip="$2" proxy="$3"
-  if resource_exists forwarding-rules "$name" --global; then
-    echo "  Forwarding rule $name already exists, skipping"
-  else
-    echo "  Creating forwarding rule $name ($ip:80 -> $proxy)"
-    gcloud compute forwarding-rules create "$name" \
-      --address="$ip" \
-      --target-http-proxy="$proxy" \
-      --global \
-      --ports=80
-  fi
-}
-
-create_forwarding_rule "$DEMO_FORWARDING_RULE" "$DEMO_IP" "$DEMO_HTTP_PROXY"
-create_forwarding_rule "$FRONTEND_FORWARDING_RULE" "$FRONTEND_IP" "$FRONTEND_HTTP_PROXY"
-
-# =============================================================================
-# Summary
-# =============================================================================
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-
-DEMO_CDN_IP=$(gcloud compute addresses describe "$DEMO_IP" --global --format="value(address)")
-FRONTEND_CDN_IP=$(gcloud compute addresses describe "$FRONTEND_IP" --global --format="value(address)")
-
-echo "Demo:"
-echo "  Bucket:  gs://$DEMO_BUCKET"
-echo "  CDN IP:  http://$DEMO_CDN_IP"
+echo "Bucket:  gs://$BUCKET"
+echo "URL map: $URL_MAP (use for CDN cache invalidation)"
+echo "URL:      https://$DOMAIN (HTTP 301-redirects to HTTPS)"
 echo ""
-echo "Frontend Example:"
-echo "  Bucket:  gs://$FRONTEND_BUCKET"
-echo "  CDN IP:  http://$FRONTEND_CDN_IP"
-echo ""
-echo "To add HTTPS, create managed SSL certificates and HTTPS proxies:"
-echo "  gcloud compute ssl-certificates create terreno-demo-cert \\"
-echo "    --domains=demo.terreno.example.com --global"
-echo "  gcloud compute target-https-proxies create terreno-demo-https-proxy \\"
-echo "    --ssl-certificates=terreno-demo-cert --url-map=$DEMO_URL_MAP"
-echo "  gcloud compute forwarding-rules create terreno-demo-https-forwarding-rule \\"
-echo "    --address=$DEMO_IP --target-https-proxy=terreno-demo-https-proxy --global --ports=443"
-echo ""
-echo "Then point your DNS A records to the IPs above."
+echo "Point $DOMAIN at the static IP above. Managed certificates only start provisioning"
+echo "once DNS resolves to the load balancer, and can take up to ~60 minutes. Wait for ACTIVE:"
+echo "  gcloud compute ssl-certificates describe $SSL_CERTIFICATE --global \\"
+echo "    --project=$PROJECT_ID --format='value(managed.status)'"
