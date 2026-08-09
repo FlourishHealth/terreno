@@ -1,6 +1,6 @@
 # Research: Infrastructure MCP server (privileged tools gateway)
 
-**Status:** Research — awaiting answers to blocking questions before IP is written
+**Status:** Complete — decisions made, IP written: [infra-mcp.md](infra-mcp.md)
 **Created:** 2026-08-09
 
 ## Scope statement
