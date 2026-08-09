@@ -2,7 +2,9 @@
 
 See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementationPlans/rtk-to-syncdb-migration-docs.md)
 
-**RTK deprecation flag:** **Blocked.** Do not start any task in this file until PR [#869](https://github.com/flourishhealth/terreno/pull/869) is merged into `master`. Verify with `git log --oneline master | rg -i syncdb` before beginning.
+**RTK deprecation flag:** **Unblocked on `release-56.0.0`.** `@terreno/syncdb` lives on the `release-56.0.0` launch branch (`syncdb/`), not `master` and not PR #869 (closed). This work is authored on and targets `release-56.0.0`. Verify with `git ls-tree origin/release-56.0.0 --name-only | rg -i syncdb`.
+
+**Migration strategy (decision M6, reaffirmed 2026-08-09):** ship *context for an AI agent to perform the migration* (syncdb reference + verified before/after pairs + the `upgrading-terreno` skill), not a codemod. See the "Migration strategy: AI-context-first" section in the IP.
 
 ## Instructions for the implementing agent
 
@@ -14,19 +16,19 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
 
 ## Phase 1: Reconcile with merged #869
 
-- [ ] **Task 1.1**: Inventory the merged syncdb public API
+- [x] **Task 1.1**: Inventory the merged syncdb public API
   - Description: Read the merged `syncdb/src/index.ts` and every module it re-exports. Produce `docs/implementationPlans/syncdb-api-inventory.md` (a temporary working document, deleted in Task 6.6) listing every exported symbol with its signature, a one-line description, and the source file. Separately list: the client config options, every React hook, every client method, the conflict-resolution API, the sync-status API, and the codegen CLI surface. Also record whether local-first is the only mode or an opt-in (IP blocking question M7) and whether `bun run sdk` still works (M5).
   - Files: `docs/implementationPlans/syncdb-api-inventory.md` (new, temporary)
   - Depends on: PR #869 merged
   - Acceptance: every symbol in the inventory is greppable in `syncdb/src/`; M5 and M7 are answered with a file-and-line citation.
 
-- [ ] **Task 1.2**: Correct the IP surface map against reality
+- [x] **Task 1.2**: Correct the IP surface map against reality
   - Description: Compare the inventory from Task 1.1 to the "Documentation surface map" and "Known RTK-shaped surfaces" tables in the IP and in `docs/implementationPlans/oss-launch-program.md`. Update both files where reality differs. Add rows for any surface #869 introduced that neither table anticipated (for example new socket events, new backend routes under `api/src/sync/`, `excludeArchivedPlugin`, tenant/organization permission helpers). Report the deltas in the PR body.
   - Files: `docs/implementationPlans/rtk-to-syncdb-migration-docs.md`, `docs/implementationPlans/oss-launch-program.md`
   - Depends on: Task 1.1
   - Acceptance: both surface maps match the merged code; every added row cites a file path; the PR body lists what changed from the pre-merge hypothesis.
 
-- [ ] **Task 1.3**: Capture the reference migration from #869
+- [x] **Task 1.3**: Capture the reference migration from #869
   - Description: `git log` the #869 merge and extract the diff for `example-frontend` — the actual RTK → syncdb migration of the todos flow. Save the before/after pairs (store setup, one read hook, one write hook, conflict UI, sync status UI) into the working inventory doc. These become the code samples for the migration guide. Note anything the reference migration did *not* cover (auth, feature flags, other screens).
   - Files: `docs/implementationPlans/syncdb-api-inventory.md`
   - Depends on: Task 1.1
@@ -34,7 +36,7 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
 
 ## Phase 2: Reference documentation
 
-- [ ] **Task 2.1**: Write `docs/reference/syncdb.md`
+- [x] **Task 2.1**: Write `docs/reference/syncdb.md`
   - Description: New reference page following the structure of `docs/reference/rtk.md` (read it first for tone and section ordering). Sections: installation and peer dependencies; `createSyncDbClient` config table (every option, type, default, description); provider setup; read hooks; mutation hooks; conflict API; sync-status API; the Redux bridge if it shipped; codegen; environment variables. Every option in the config table must come from the inventory. Include a runnable example per hook.
   - Files: `docs/reference/syncdb.md` (new)
   - Depends on: Task 1.1
@@ -54,25 +56,25 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
 
 ## Phase 3: Migration guide
 
-- [ ] **Task 3.1**: Draft the migration guide skeleton with verified samples
+- [x] **Task 3.1**: Draft the migration guide skeleton with verified samples
   - Description: Create `docs/how-to/migrate-rtk-to-syncdb.md` with the eleven sections from the IP. Populate sections 2–4 (install/configure, reads, writes) using the before/after pairs captured in Task 1.3. For section 4, explicitly list the RTK-era code that should be **deleted** after migrating (manual optimistic updates, `isLoading` spinners on writes, refetch-after-mutate patterns) — this is the part consumers get wrong.
   - Files: `docs/how-to/migrate-rtk-to-syncdb.md` (new)
   - Depends on: Task 1.3, Task 2.1
   - Acceptance: sections 1–4 complete; every code block traceable to a real file; section 4 has a "delete this" list.
 
-- [ ] **Task 3.2**: Document conflicts and sync status
+- [x] **Task 3.2**: Document conflicts and sync status
   - Description: Complete sections 5 and 6. Explain what a conflict is in this system, exactly when one is produced (cite the server-side 409/nack path in `api/src/sync/`), the two v1 resolution strategies, and the minimum UI a consumer must build. For sync status, show how to replace request-level loading UX with sync-state UX. Use the `example-frontend` implementation as the reference; if it has no conflict UI, say so and link a follow-up issue rather than inventing one.
   - Files: `docs/how-to/migrate-rtk-to-syncdb.md`
   - Depends on: Task 3.1
   - Acceptance: the conflict trigger is cited to a source file; both strategies documented; the minimum-UI requirement is concrete (named components or hooks).
 
-- [ ] **Task 3.3**: Document the auth migration
+- [x] **Task 3.3**: Document the auth migration
   - Description: Complete section 7. Cover: `generateAuthSlice` → Better Auth session, token storage differences on native versus web, the socket auth handshake changes from #869 (pluggable socket auth, Better Auth bearer sessions, session revalidation, `sync:auth-expired`), required backend config (`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `trustedOrigins`), and the cross-domain cookie requirements. State clearly that auth can be migrated *before* the data layer (IP question M3) and give the two-step order.
   - Files: `docs/how-to/migrate-rtk-to-syncdb.md`
   - Depends on: Task 3.2
   - Acceptance: every env var named exists in `docs/reference/environment-variables.md` after this IP; the `sync:auth-expired` event is cited to source; the two-step order is stated in the first paragraph of the section.
 
-- [ ] **Task 3.4**: Document codegen, feature flags, rollback, and the checklist
+- [x] **Task 3.4**: Document codegen, feature flags, rollback, and the checklist
   - Description: Complete sections 8–11. Codegen: whether `bun run sdk` is unchanged (answer from Task 1.1), what the generated file looks like now, and the update to `openapi-config.ts`. Feature flags: how the OpenFeature provider is fed post-migration. Rollback: per-screen rollback via `USE_SYNCDB` and what state is left behind (IndexedDB contents, outbox entries) when rolling back. Checklist: a copy-pasteable ordered checklist covering everything in sections 1–10.
   - Files: `docs/how-to/migrate-rtk-to-syncdb.md`, `docs/how-to/README.md`
   - Depends on: Task 3.3
