@@ -18,7 +18,7 @@ facade with delivery logging.
 ## Non-Goals
 
 - OTP verification (that is `comms-adapter-twilio-verify`, on Twilio Verify).
-- Push via Twilio (blocked on Twilio Push API GA — separate item).
+- Push via Twilio (dropped by decision D5 — Expo push is the push adapter).
 - Bulk/campaign messaging, MMS/RCS.
 - Phone-number provisioning automation.
 
