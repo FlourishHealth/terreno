@@ -717,6 +717,9 @@
       },
     },
   },
+  "trustedDependencies": [
+    "@shopify/react-native-skia",
+  ],
   "overrides": {
     "ajv": "8.20.0",
     "linkify-it": "^5.0.2",

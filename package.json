@@ -147,6 +147,9 @@
     "typescript": "6.0.3"
   },
   "private": true,
+  "trustedDependencies": [
+    "@shopify/react-native-skia"
+  ],
   "scripts": {
     "admin-backend:compile": "bun run --filter '@terreno/admin-backend' compile",
     "admin-backend:lint": "bun run --filter '@terreno/admin-backend' lint",
