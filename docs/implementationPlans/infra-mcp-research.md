@@ -141,6 +141,18 @@ Same authenticated core as B, with an integration-adapter interface. Each integr
 - **New workspace package in terreno** (e.g. `infra-mcp/`), reusing `@terreno/api` (Mongo user model, logger, Sentry patterns) and cloning the `mcp_service` terraform module — fits monorepo conventions, and `@terreno/api`'s auth/permission machinery is available.
 - **Standalone generic product package** (e.g. `@terreno/infra-mcp` designed for any org to deploy, config-driven integrations) — bigger ambition, aligns with the OSS launch program, more design constraints up front.
 
+## Audience fit (one-man shop → startup → growing startup)
+
+The target audience for the packaged product is solo founders through growing startups (not identity-team enterprises). That constraint selects the architecture:
+
+- **Credential model 1 (server-held, role-tiered)** is the only model that works at the low end: paste tokens once, nothing expires (static tokens + workload identity), no per-vendor OAuth app registration. Vendor-side audit logs show the service identity, so the product's own Mongo audit log (with user attribution) is the compliance answer at this scale.
+- **Better Auth logins (GitHub/Google/email)** instead of requiring an external IdP — the audience has GitHub accounts, not Okta. Domain-restricted Google login covers the "growing startup" tier.
+- **CTO security story is structural, not procedural:** read tier executes with physically read-only credentials (viewer SA, read-only Mongo user) so misclassified tools cannot mutate; proxied tools deny-by-default until annotated; per-integration grants; full audit log. `admin-backend`/`admin-frontend` provide the user/role admin UI.
+- **Enterprise upgrade path preserved:** credential resolution takes a user context, so a future "write tier requires linking your own vendor identity" mode (model 3) can be added without rearchitecting.
+- **Packaging:** reusable `@terreno/infra-mcp` package with config-driven integration registry, dogfooded via our own Cloud Run deployment — aligns with the OSS launch program.
+
+This resolves blocking questions 1 (Option C), 2 (model 1 with model-3 upgrade path), 3 (Mongo users via Better Auth), 4 (readonly/write tiers + per-integration grants), and 8 (reusable package).
+
 ## Recommendation (pending answers)
 
 Option **C** (hybrid, starting native-first per B) with credential model **1** (server-held role-tiered credentials) as the initial phase, built as a new terreno workspace package on the 2026-07-28 spec via TS SDK v2, deployed to Cloud Run alongside `terreno-mcp`. But this is presented as a recommendation, not a decision — see blocking questions.
