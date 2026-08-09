@@ -9,7 +9,21 @@ Create or update the public tracking issue for a piece of planned work, usually 
 
 **What lands on the public roadmap is a human decision.** Draft it, validate it, then stop for approval.
 
-Process background: [`docs/explanation/roadmap-process.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-process.md).
+Process background, including the full IP ↔ roadmap lifecycle and the promote-vs-item ownership table: [`docs/explanation/roadmap-process.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-process.md).
+
+## Where this sits in the lifecycle
+
+`roadmap-item` is the stage that ties an **approved IP** to its public tracking issue.
+It is the only skill that sets the Project `IP` field and moves an item to `Status=Planned`.
+
+- If the work started as a community discussion, `roadmap-promote` already opened a
+  `Shaping` issue. **Update that issue** (Step 2 finds it) — set the `IP` field and move
+  it `Shaping → Planned`. Never open a second issue for the same work.
+- If the IP is internal-origin with no discussion behind it, **create** the issue here at
+  `Planned`.
+- The planning pipeline's **Blend** stage hands off here once an IP reaches Approved (in
+  repos that run a roadmap). In a repo with no roadmap board, there is nothing to do —
+  the IP and its task list are the source of truth.
 
 ## When to use
 

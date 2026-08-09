@@ -14,7 +14,21 @@ Turn a discussion the maintainers have accepted into a tracked issue on the **Te
 
 **Acceptance is a human decision.** This skill never decides that an idea is accepted — it acts only after a maintainer says so, and it stops for approval again before creating anything.
 
-Process background: [`docs/explanation/roadmap-process.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-process.md).
+Process background, including the full IP ↔ roadmap lifecycle and the promote-vs-item ownership table: [`docs/explanation/roadmap-process.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-process.md).
+
+## Where this sits in the lifecycle
+
+`roadmap-promote` **opens the first tracking issue** for community-originated work and
+sets it to `Status=Shaping` (or `Inbox` if it still needs triage). It is the entry
+point, not the whole lifecycle:
+
+- **promote** creates the issue and links the discussion. It never sets `Status=Planned`
+  and never sets the `IP` field — that work has no approved IP yet.
+- Later, when the idea has an approved IP, **`roadmap-item` updates this same issue**:
+  it sets the `IP` field and moves it `Shaping → Planned`. It does not open a second issue.
+
+So: promote once, then let `roadmap-item` take the existing issue forward. If a tracking
+issue already exists for this discussion, stop and use `roadmap-item` instead.
 
 ## When to use
 
@@ -26,6 +40,7 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 
 - The discussion is still being debated — leave it in Discussions; that is where shaping happens
 - Labeling an issue that already exists — use `roadmap-triage`
+- A tracking issue already exists for this discussion — use `roadmap-item` to set the `IP` field and move it to `Planned`; do not open a duplicate
 - An approved IP with no discussion behind it — use `roadmap-item`
 - Writing the implementation plan — use `ip`
 
