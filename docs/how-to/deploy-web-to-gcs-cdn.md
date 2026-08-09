@@ -23,13 +23,31 @@ The export script is `bun expo export --platform web` (see `example-frontend/pac
 
 Output is in `dist/`.
 
-## 2. Create the GCS bucket
+## 2. Enable the Compute Engine API
+
+Cloud CDN and its global load-balancing resources require the Compute Engine API:
+
+```bash
+gcloud services enable compute.googleapis.com --project="$PROJECT_ID"
+```
+
+## 3. Create the GCS bucket
 
 ```bash
 gsutil mb -p "$PROJECT_ID" -l "$REGION" "gs://$WEB_BUCKET/"
 ```
 
-## 3. Configure SPA routing
+## 4. Allow public object reads
+
+Cloud CDN must be able to serve the bucket's objects to unauthenticated visitors:
+
+```bash
+gsutil iam ch allUsers:objectViewer "gs://$WEB_BUCKET"
+```
+
+Do not grant `allUsers` a write role such as `objectAdmin`.
+
+## 5. Configure SPA routing
 
 Client-side routes require `index.html` for unknown paths:
 
@@ -39,7 +57,7 @@ gsutil web set -e index.html "gs://$WEB_BUCKET"
 
 Do not set `MainPageSuffix` — GCS 301 redirects break client-side routing.
 
-## 4. Upload the build
+## 6. Upload the build
 
 ```bash
 gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
@@ -50,7 +68,7 @@ gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
   cp dist/index.html "gs://$WEB_BUCKET/index.html"
 ```
 
-## 5. Create CDN resources
+## 7. Create CDN resources
 
 Five resources connect the bucket to a global IP:
 
@@ -93,7 +111,7 @@ Or run the parameterized script:
   --bucket "$WEB_BUCKET"
 ```
 
-## 6. Point DNS
+## 8. Point DNS
 
 ```bash
 gcloud compute addresses describe "${SITE_NAME}-ip" --global \
@@ -102,7 +120,7 @@ gcloud compute addresses describe "${SITE_NAME}-ip" --global \
 
 Create an A record for your domain pointing at that IP. For HTTPS, add a managed SSL certificate and HTTPS proxy (see script output).
 
-## 7. Invalidate cache after deploy
+## 9. Invalidate cache after deploy
 
 ```bash
 gcloud compute url-maps invalidate-cdn-cache "${SITE_NAME}-url-map" \
