@@ -19,6 +19,7 @@ Status: Blocked — Phase 1 RBAC wiring depends on the RBAC module PR ([rbac-per
 - [ ] Terraform: `infra_mcp_service` Cloud Run module instance, Artifact Registry, runtime SA with viewer/logging IAM only
 - [ ] Tests: authz matrix (role × tool × tools/list filtering), adapter handlers, audit records, legacy-client fallback
 - [ ] Deploy + end-to-end verification from a real MCP client; docs: `.cursor/rules/infra-mcp/00-infra-mcp.mdc`, AGENTS.md/CLAUDE.md package lists
+- [ ] Roadmap: open the tracking issue from [roadmap-seed-issues.md](../explanation/roadmap-seed-issues.md#infra-mcp) once the IP is Approved, add it to the Terreno Roadmap board, and register `@terreno/infra-mcp` → `area:mcp` in `scripts/issueAreaLabels.ts` + the bug-report package dropdown when the package lands
 
 ## Phase 2 — Write tier + machine callers
 

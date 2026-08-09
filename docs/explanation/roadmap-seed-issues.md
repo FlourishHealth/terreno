@@ -1,9 +1,9 @@
 # Roadmap seed issues
 
-Ready-to-paste GitHub issue bodies for IPs in the
-[OSS launch program](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/oss-launch-program.md). Open one tracking issue
-per IP when the IP reaches **Approved**, then add it to the **Terreno Roadmap** project with
-the field values below.
+Ready-to-paste GitHub issue bodies for IPs on the public roadmap — the
+[OSS launch program](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/oss-launch-program.md) IPs plus other
+roadmap-tracked work. Open one tracking issue per IP when the IP reaches **Approved**, then
+add it to the **Terreno Roadmap** project with the field values below.
 
 ---
 
@@ -284,3 +284,28 @@ ground; SSR is opt-in and depends on Expo SDK 55+.
 - **Tasks:** [web-ssr-and-admin-spa.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/web-ssr-and-admin-spa.md)
 - **RTK flag:** Partial
 - **Depends on:** Expo SDK ≥ 55 (PR #779), deployment-foundation
+
+---
+
+## infra-mcp
+
+*Outside the OSS launch program.*
+
+**Title:** `[Roadmap] Infrastructure MCP server (@terreno/infra-mcp)`
+
+**Labels:** `area:mcp`, `type:feature`, `status:blocked`  
+**Project fields:** Area=`mcp`, Target=`Future`, Impact=`Feature`, IP=`infra-mcp`, Status=`Planned`
+
+> Blocked on the RBAC permissions module. The Project **Status** field has no `Blocked`
+> option, so gating is tracked with the `status:blocked` issue label instead.
+
+Puts privileged infrastructure tooling — GCP, Sentry, MongoDB, and later Expo/EAS and Vercel —
+behind one deployable MCP server with per-user OAuth 2.1 authentication, RBAC-driven read and
+write tiers, per-call confirmation on write tools, and an audit trail. Read-only access covers
+log digging without handing anyone production credentials, and the server runs on its own Cloud
+Run runtime service account so injected service-account keys can be retired.
+
+- **Implementation plan:** [infra-mcp.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/infra-mcp.md)
+- **Tasks:** [infra-mcp.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/infra-mcp.md)
+- **RTK flag:** None
+- **Depends on:** rbac-permissions
