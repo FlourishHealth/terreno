@@ -4,6 +4,8 @@
 
 GitHub Discussions must be enabled before its categories can be configured:
 
+**Path:** Settings → General → Features → Discussions
+
 1. Open the repository's **Settings**.
 2. Under **General → Features**, enable **Discussions**.
 3. Open **Discussions → Categories** and create the categories below in the
