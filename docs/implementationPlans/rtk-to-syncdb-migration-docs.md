@@ -1,13 +1,13 @@
 # Implementation Plan: RTK Deprecation and SyncDB Migration Docs
 
-**Status:** Draft — blocked; the syncdb source does not exist yet
+**Status:** In progress on `release-56.0.0` — reference + migration guide drafted there
 **Priority:** Critical (gates most of Wave 1)
 **Effort:** Big batch
 **Owner:** unassigned
 **Created:** 2026-07-27
 **Program:** [OSS launch](oss-launch-program.md)
-**Depends on:** a merged `@terreno/syncdb` package. PR [#869](https://github.com/flourishhealth/terreno/pull/869) was the delivery vehicle but is **closed, not merged** (checked 2026-08-09); no `syncdb/` package exists on `master`. This IP stays blocked until a syncdb PR lands and `git log --oneline master | rg -i syncdb` shows the merged package.
-**RTK deprecation flag:** **Blocked** — this IP *is* the RTK deprecation. Nothing here can be written until syncdb lands, because the public surface of `@terreno/syncdb` is not final until then.
+**Depends on:** a merged `@terreno/syncdb` package. It was **not** delivered by PR #869 (closed); it lives on the **`release-56.0.0`** launch branch (`syncdb/`), so this IP is authored on and targets `release-56.0.0`, not `master`. On `master` there is no `syncdb/` package yet. Phase 1–3 (inventory, `docs/reference/syncdb.md`, and `docs/how-to/migrate-rtk-to-syncdb.md`) are drafted on `release-56.0.0`; this `master`-side note only records the strategy and where the work lives.
+**RTK deprecation flag:** **Blocked on `master`; unblocked on `release-56.0.0`** — this IP *is* the RTK deprecation. Its public-facing docs are written against the merged `@terreno/syncdb` on `release-56.0.0`.
 
 ## Goal
 
