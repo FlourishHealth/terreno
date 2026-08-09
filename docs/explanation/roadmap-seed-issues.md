@@ -284,3 +284,578 @@ ground; SSR is opt-in and depends on Expo SDK 55+.
 - **Tasks:** [web-ssr-and-admin-spa.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/web-ssr-and-admin-spa.md)
 - **RTK flag:** Partial
 - **Depends on:** Expo SDK ≥ 55 (PR #779), deployment-foundation
+
+---
+
+# B2B platform program
+
+Ready-to-paste GitHub issue bodies for the
+[B2B platform program](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/b2b-platform-program.md).
+Items marked *(IP pending)* are drafted ahead of their IP by maintainer decision; open the
+issue with `Status=Planned` and fill the IP field when the IP lands.
+
+---
+
+## comms-abstraction
+
+**Title:** `[Roadmap] Pluggable communications layer (@terreno/comms)`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-abstraction`, Status=`Planned`
+
+Terreno backends have no way to send email, SMS, or push notifications today. This adds a
+new `@terreno/comms` package with provider interfaces for mail, SMS, push, and OTP
+verification, a `CommsApp` plugin that registers them on a Terreno app, push-token
+registration routes, a delivery log model, and console adapters for local development.
+Concrete providers (Twilio, Resend, Expo push) ship as separate adapters, each with its own
+roadmap item, so apps only install the SDKs they use.
+
+- **Implementation plan:** [comms-abstraction.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/comms-abstraction.md)
+- **Tasks:** [comms-abstraction.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/comms-abstraction.md)
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## comms-adapter-expo-push
+
+**Title:** `[Roadmap] Comms adapter — Expo push notifications`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-expo-push`, Status=`Planned`
+
+Implements the `@terreno/comms` push provider on Expo's push service using
+`expo-server-sdk` (already a dependency of `@terreno/api`, currently unused). Covers token
+chunking, receipt polling, and automatic deactivation of dead device tokens. The client
+half — `getExpoPushTokenAsync` registration — already exists in example-frontend.
+
+- **Implementation plan:** [comms-adapter-expo-push.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/comms-adapter-expo-push.md)
+- **Tasks:** [comms-adapter-expo-push.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/comms-adapter-expo-push.md)
+- **RTK flag:** None
+- **Depends on:** comms-abstraction
+
+---
+
+## comms-adapter-twilio-sms
+
+**Title:** `[Roadmap] Comms adapter — Twilio SMS`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-sms`, Status=`Planned`
+
+Implements the `@terreno/comms` SMS provider on Twilio Programmable Messaging: send via
+messaging service or from-number, delivery status callbacks through the inbound-webhook
+framework, and E.164 validation using the `libphonenumber-js` dependency already in the
+catalog.
+
+- **Implementation plan:** [comms-adapter-twilio-sms.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/comms-adapter-twilio-sms.md)
+- **Tasks:** [comms-adapter-twilio-sms.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/comms-adapter-twilio-sms.md)
+- **RTK flag:** None
+- **Depends on:** comms-abstraction; inbound-webhooks (status callbacks phase only)
+
+---
+
+## comms-adapter-twilio-verify
+
+**Title:** `[Roadmap] Comms adapter — Twilio Verify (OTP)`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-verify`, Status=`Planned`
+
+Implements the `@terreno/comms` verification provider on Twilio Verify for SMS and email
+one-time codes. This is the delivery channel for phone verification and for the future MFA
+step-up work, without Terreno storing or rate-limiting codes itself.
+
+- **Implementation plan:** [comms-adapter-twilio-verify.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/comms-adapter-twilio-verify.md)
+- **Tasks:** [comms-adapter-twilio-verify.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/comms-adapter-twilio-verify.md)
+- **RTK flag:** None
+- **Depends on:** comms-abstraction
+
+---
+
+## comms-adapter-resend
+
+**Title:** `[Roadmap] Comms adapter — transactional email (Resend)`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(pending decision D2)*, Status=`Planned`
+
+Implements the first `@terreno/comms` mail provider so Terreno apps can send transactional
+email (password resets, invitations, verification). Resend is the drafted default
+(decision D2 in the program doc); SendGrid, SES, and SMTP adapters get their own items when
+the demand is real. *(IP pending decision D2.)*
+
+- **Implementation plan:** *(pending decision D2)*
+- **Tasks:** *(pending decision D2)*
+- **RTK flag:** None
+- **Depends on:** comms-abstraction
+
+---
+
+## password-reset-and-email-verification
+
+**Title:** `[Roadmap] Password reset and email verification`
+
+**Labels:** `area:auth`, `type:feature`
+**Project fields:** Area=`auth`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Closes a functional hole: the `@terreno/rtk` client already exposes a `resetPassword`
+endpoint but no backend route implements it, and there is no email verification flow.
+Adds token-issuing reset and verification routes to the JWT auth path, wires Better Auth's
+equivalents, and sends the emails through `@terreno/comms`.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** comms-abstraction, comms-adapter-resend (or first mail adapter)
+
+---
+
+## inbound-webhooks
+
+**Title:** `[Roadmap] Inbound webhook framework`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Terreno has outbound notifiers (Slack, Google Chat, Zoom) but no framework for receiving
+webhooks from external services. Adds a plugin for registering webhook endpoints with
+signature verification, raw-body handling, idempotency/replay protection, and event
+dispatch — required by Stripe billing and by Twilio/Expo delivery status callbacks.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## orgs-and-teams
+
+**Title:** `[Roadmap] Organizations, teams, and multi-tenant scoping`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`orgs-and-teams`, Status=`Planned`
+
+Terreno's data model is per-user: `ownerId`, `OwnerQueryFilter`, and owner permissions.
+B2B apps need organizations. This adds Organization and Membership models, an org-context
+middleware, an `OrgQueryFilter` and org-scoping schema plugin for modelRouter, and
+membership-aware permission classes — the tenant analog of the existing owner stack.
+Invitations and the management UI are separate items.
+
+- **Implementation plan:** [orgs-and-teams.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/orgs-and-teams.md)
+- **Tasks:** [orgs-and-teams.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/orgs-and-teams.md)
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## rbac-permissions
+
+**Title:** `[Roadmap] Role-based access control`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`rbac-permissions`, Status=`Planned`
+
+Replaces the binary `admin` flag + owner checks with a first-class RBAC module: a typed
+permission vocabulary on Better Auth's access-control engine, DB-backed roles editable in
+the admin panel, document-level scopes, field-level views, and one `can()` check enforced
+across REST, websockets, MCP tools, and admin. An API design draft already exists;
+`orgs-and-teams` extends it with org-scoped grants.
+
+- **Implementation plan:** [rbac-permissions.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rbac-permissions.md)
+- **Tasks:** *(TBD — design doc predates task split)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## invitations-and-seats
+
+**Title:** `[Roadmap] Invitations and seat management`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Lets an org admin invite teammates by email: invite tokens with expiry, accept/decline
+flows for existing and new users, role assignment on acceptance, and seat counting that
+billing can later enforce. Emails go through `@terreno/comms`.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** orgs-and-teams, comms-abstraction, comms-adapter-resend
+
+---
+
+## org-management-ui
+
+**Title:** `[Roadmap] Org switcher and member management screens`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+The frontend counterpart of the tenancy track: an organization switcher, members list with
+roles, invite flow, and org settings screens in `@terreno/ui` + example-frontend, working
+on web and native.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** Partial — screens should target the syncdb data layer where available
+- **Depends on:** orgs-and-teams, rbac-permissions, invitations-and-seats
+
+---
+
+## billing-stripe
+
+**Title:** `[Roadmap] Stripe billing and subscriptions`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(pending decision D1)*, Status=`Planned`
+
+Adds a billing plugin on Stripe: customers mapped to organizations, subscription and plan
+models, checkout/portal session routes, webhook-driven entitlement sync, and plan gating
+that plugs into the existing feature-flag layer. Includes basic plan-picker and billing
+settings screens. Mobile in-app purchases are a separate item. *(Vendor strategy is
+decision D1 in the program doc.)*
+
+- **Implementation plan:** *(pending decision D1)*
+- **Tasks:** *(pending decision D1)*
+- **RTK flag:** None
+- **Depends on:** orgs-and-teams, inbound-webhooks
+
+---
+
+## native-module-baseline
+
+**Title:** `[Roadmap] Native module baseline for the next major release`
+
+**Labels:** `area:ui`, `type:chore`, `breaking`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Breaking`, IP=*(not yet written)*, Status=`Planned`
+
+Adding a native module to a Terreno app forces a new dev-client/store binary, so every
+native dependency the B2B program needs lands in one major release: Stripe payment sheet,
+RevenueCat purchases, `expo-device`, `expo-crypto`, `expo-local-authentication`, and
+`expo-system-ui`, plus config plugins and refreshed EAS builds. After this release, the
+rest of the program ships as JS/OTA updates against the same binary. Final manifest is
+decisions D1/D3/D7 in the program doc.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** decisions D1, D3, D7
+
+---
+
+## create-terreno-app
+
+**Title:** `[Roadmap] create-terreno-app scaffolding CLI`
+
+**Labels:** `area:dx`, `type:feature`
+**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Today the MCP bootstrap tool returns markdown instructions and writes no files. This ships
+a real `create-terreno-app` CLI (or template repo) that produces a running, deployable app
+— backend, Expo app, env files, seeded auth — in one command, with the MCP bootstrap
+delegating to it.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** Partial — scaffold output follows the syncdb + Better Auth direction
+- **Depends on:** deployment-foundation
+
+---
+
+## charts-and-dashboards
+
+**Title:** `[Roadmap] Charts and dashboard primitives`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+`@terreno/ui` has a stubbed `Chart` export and no implementation. Adds themed chart
+components (line, bar, area, donut) on `victory-native` — JS-only, since its Skia /
+Reanimated / Gesture Handler peers are already linked — plus a simple dashboard grid
+layout, with demo stories and docs.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## dark-mode-theme
+
+**Title:** `[Roadmap] First-class dark mode`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+The theming system has three layers but no built-in dark theme; the example app fakes one
+by swapping primitives behind a feature flag. Ships a maintained dark palette, a
+`colorScheme` API on `TerrenoProvider` (system/light/dark), and `expo-system-ui` wiring so
+root views and system chrome follow the scheme.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** native-module-baseline (`expo-system-ui`)
+
+---
+
+## data-grid-server-filters
+
+**Title:** `[Roadmap] DataTable server-side filtering and search`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+DataTable sorts and paginates but has no filter UI. Adds per-column filter controls and a
+search box that emit modelRouter-compatible query params (`queryFields`, `$and`/`$or`), so
+list screens get server-side filtering without custom plumbing. Admin tables adopt it.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** Partial — query wiring examples depend on the frontend data layer
+- **Depends on:** —
+
+---
+
+## comms-adapter-twilio-push
+
+**Title:** `[Roadmap] Comms adapter — Twilio push notifications`
+
+**Labels:** `area:api`, `type:feature`, `status:blocked`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(pending)*, Status=`Planned`
+
+> Blocked on Twilio: Notify reached end-of-life 2025-12-31 and its replacement Push
+> Notifications API is in private beta (decision D4). Tracked with `status:blocked`.
+
+Implements the `@terreno/comms` push provider on Twilio's Push Notifications API once it
+reaches general availability, as an alternative to the Expo push adapter for apps already
+on Twilio.
+
+- **Implementation plan:** *(pending Twilio GA)*
+- **Tasks:** *(pending Twilio GA)*
+- **RTK flag:** None
+- **Depends on:** comms-abstraction, Twilio Push API GA
+
+---
+
+## mobile-iap-revenuecat
+
+**Title:** `[Roadmap] Mobile in-app purchases (RevenueCat)`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(pending decision D1)*, Status=`Planned`
+
+Store-compliant mobile subscriptions via RevenueCat (`react-native-purchases`): entitlement
+sync into the billing models through webhooks, paywall UI, and unified entitlements with
+Stripe web billing. The native SDK ships in the native module baseline regardless, so this
+can land as a JS/OTA feature later. *(Vendor strategy is decision D1.)*
+
+- **Implementation plan:** *(pending decision D1)*
+- **Tasks:** *(pending decision D1)*
+- **RTK flag:** None
+- **Depends on:** billing-stripe, native-module-baseline, inbound-webhooks
+
+---
+
+## notification-center
+
+**Title:** `[Roadmap] In-app notification center`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Adds a Notification model with per-user preferences, realtime delivery over the existing
+change-stream socket layer, and a bell/inbox UI in `@terreno/ui` with read/unread state —
+the in-app channel beside `@terreno/comms` mail/SMS/push.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** Partial — inbox screens target the syncdb data layer where available
+- **Depends on:** comms-abstraction
+
+---
+
+## command-palette
+
+**Title:** `[Roadmap] Command palette (⌘K)`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+A themable ⌘K palette component for web (with a native fallback surface): registerable
+actions, navigation targets, and async search sources. Admin panel adopts it first.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## wizard-stepper
+
+**Title:** `[Roadmap] Generic multi-step wizard component`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Extracts the multi-step patterns hand-rolled in signup and consent flows into a generic
+wizard/stepper: step state, validation gates, progress indicator, and per-step persistence
+— the building block for onboarding and setup flows.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## wysiwyg-editor
+
+**Title:** `[Roadmap] Rich text (WYSIWYG) editor`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(pending decision D3)*, Status=`Planned`
+
+Terreno's rich text today is markdown-only (`MarkdownEditor`). This evaluates and adopts a
+true WYSIWYG editor — drafted candidate: TenTap (Tiptap-based, requires a native module and
+therefore a slot in the native module baseline). *(Adopt-or-stay-markdown is decision D3
+and must be made before the next major release is cut.)*
+
+- **Implementation plan:** *(pending decision D3)*
+- **Tasks:** *(pending decision D3)*
+- **RTK flag:** None
+- **Depends on:** decision D3, native-module-baseline
+
+---
+
+## global-search
+
+**Title:** `[Roadmap] Global search across entities`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+A search framework for modelRouter models: per-model searchable-field registration, a
+cross-model search endpoint with permission-aware results, Mongo text/Atlas Search backends,
+and a search UI hook — feeding the command palette and app-level search bars.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## enterprise-sso
+
+**Title:** `[Roadmap] Enterprise SSO (SAML / OIDC)`
+
+**Labels:** `area:auth`, `type:feature`
+**Project fields:** Area=`auth`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Org-level single sign-on: SAML and OIDC via Better Auth's SSO tooling, per-organization
+IdP configuration, JIT user provisioning into org memberships, and domain-based login
+routing. The mobile flow uses `expo-auth-session` + `expo-crypto` (PKCE) from the native
+baseline.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** orgs-and-teams, native-module-baseline
+
+---
+
+## mfa-step-up-auth
+
+**Title:** `[Roadmap] MFA and biometric step-up auth`
+
+**Labels:** `area:auth`, `type:feature`
+**Project fields:** Area=`auth`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Second-factor support: TOTP enrollment, SMS/email OTP via the Twilio Verify adapter, and
+biometric step-up on native (`expo-local-authentication`) for sensitive actions, with
+enforcement hooks in the permission layer.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** comms-adapter-twilio-verify, native-module-baseline
+
+---
+
+## framework-audit-log
+
+**Title:** `[Roadmap] Framework-level audit log`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Generalizes the admin/consent audit patterns into a first-class audit log: an AuditEvent
+model, modelRouter hooks that record who changed what (with before/after diffs), org
+scoping, retention policy, and an admin viewer — a hard requirement for compliance-minded
+B2B customers.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** orgs-and-teams
+
+---
+
+## rate-limiting
+
+**Title:** `[Roadmap] API rate limiting`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Adds HTTP rate limiting to `@terreno/api`: per-user/per-org/per-IP policies, sensible
+defaults for auth and OTP endpoints, memory and Redis stores, and standard rate-limit
+headers. Today only realtime subscriptions are capped.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## job-queues
+
+**Title:** `[Roadmap] Durable background jobs`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+Terreno has an in-process cron helper and admin script runner but no durable queue. Adds a
+job abstraction with retries, scheduling, and dead-lettering — Mongo-backed by default with
+a Redis/BullMQ driver — so email sends, webhook retries, and billing sync survive restarts.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## mongo-migrations
+
+**Title:** `[Roadmap] MongoDB migrations tooling`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+
+A migrations runner for Terreno apps: versioned migration files, up/down with a lock
+collection, CI checks, and integration with the mongoose-schema-safety guidance — replacing
+ad-hoc backfill scripts.
+
+- **Implementation plan:** *(not yet written)*
+- **Tasks:** *(not yet written)*
+- **RTK flag:** None
+- **Depends on:** —
