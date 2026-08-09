@@ -177,6 +177,45 @@ token via `permissions: contents: write`.
 Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
 is the variable the generator reads.
 
+## Maintainer skills
+
+Four agent skills cover the recurring roadmap work. Each one researches, proposes, and then
+**stops for a maintainer to approve** before touching GitHub — roadmap decisions are the most
+human part of the process, so none of them mutate state on their own. All four are
+`disable-model-invocation`, meaning an agent will not start them on its own initiative;
+you invoke them explicitly.
+
+| Skill | Use it when |
+| ----- | ----------- |
+| `roadmap-triage` | An inbound issue or discussion needs `area:*` / `type:*` / `status:*` labels, or a call on whether it belongs on the board |
+| `roadmap-promote` | Maintainers accepted an Ideas or RFC discussion and it needs a tracked issue that links back to the thread |
+| `roadmap-item` | An approved IP needs its public tracking issue, or an existing entry's scope changed |
+| `roadmap-review` | Recurring hygiene: status drift, stale items, untriaged backlog, promotion candidates, then regenerate `ROADMAP.md` |
+
+Sources live in `.rulesync/skills/`; run `bun run rules` after editing to regenerate the
+per-agent mirrors.
+
+### Checking an item before you file it
+
+The skills do not carry a copy of the taxonomy. They call:
+
+```bash
+bun run roadmap:check --labels "area:api,type:feature" --status Planned --target Next --impact Feature --area api
+```
+
+Run it with no arguments to print every valid label and field option. It enforces exactly one
+`area:*` and one `type:*` label, rejects labels absent from
+[`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml),
+rejects Project values absent from
+[`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml),
+and catches an `Area` field that disagrees with the issue's `area:` label.
+
+Those two files are the single source for the taxonomy: labels in `labels.yml`, Status/Target/
+Impact options in `roadmap-fields.yml`, and Area derived from the `area:*` labels rather than
+listed a second time. The Project field options in the table above must match
+`roadmap-fields.yml`; a test asserts the roadmap generator's own ordering stays in sync with
+both files.
+
 ## Linear bridge
 
 | Artifact | System of record |
