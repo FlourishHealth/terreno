@@ -147,27 +147,35 @@ when each IP reaches **Approved**.
 
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) is the source of truth.
 
-Apply or update labels:
+Apply or update labels with `gh` authenticated as a maintainer:
 
 ```bash
-while IFS= read -r line; do
-  name=$(echo "$line" | sed -n 's/^- name: \(.*\)/\1/p' | tr -d '"')
-  color=$(echo "$line" | sed -n 's/^  color: "\(.*\)"/\1/p')
-  desc=$(echo "$line" | sed -n 's/^  description: "\(.*\)"/\1/p' | tr -d '"')
-  if [ -n "$name" ] && [ -n "$color" ]; then
-    gh label create "$name" --color "$color" --description "$desc" --force
-  fi
-done < .github/labels.yml
+bun run labels:sync --repo FlourishHealth/terreno --dry-run   # preview
+bun run labels:sync --repo FlourishHealth/terreno             # apply
 ```
+
+[`scripts/sync-labels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/sync-labels.ts)
+parses the YAML and passes each description to `gh` as a single argument, so descriptions
+containing commas or quotes survive intact. It refuses to run on a malformed color,
+a missing description, or a duplicate name.
 
 Delete unused GitHub defaults after the new taxonomy is applied (`gh label list`).
 
 ### Secrets for roadmap generation
 
-| Name | Purpose |
-| ---- | ------- |
-| `TERRENO_PROJECT_NUMBER` | GitHub Project number for **Terreno Roadmap** |
-| `GITHUB_TOKEN` | Actions token or PAT with `project: read` + `contents: write` |
+| Name | Kind | Purpose |
+| ---- | ---- | ------- |
+| `TERRENO_PROJECT_NUMBER` | Repository variable | GitHub Project number for **Terreno Roadmap** |
+| `ROADMAP_PROJECT_TOKEN` | Repository secret | Classic PAT with `read:project` (plus `repo` for private repos) |
+
+The workflow's built-in `GITHUB_TOKEN` **cannot** be used here: it is repository-scoped and
+returns no `projectV2` data for an organization project. GitHub also reserves the name
+`GITHUB_TOKEN`, so a PAT cannot be supplied under that name — hence the separate
+`ROADMAP_PROJECT_TOKEN` secret. Pushing the regenerated `ROADMAP.md` still uses the default
+token via `permissions: contents: write`.
+
+Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
+is the variable the generator reads.
 
 ## Linear bridge
 
@@ -212,6 +220,15 @@ do not claim completion until done.
 | [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
 | [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | Regenerate `ROADMAP.md` from the Project board |
 
+Triage resolves the `area:*` label with
+[`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),
+which owns the package-to-area table. Add new packages there, not in the workflow.
+
+Run the generator locally against the real board:
+
 ```bash
-GITHUB_TOKEN=... TERRENO_PROJECT_NUMBER=... bun run roadmap:generate
+GITHUB_TOKEN=$(gh auth token) TERRENO_PROJECT_NUMBER=... bun run roadmap:generate
 ```
+
+The generator exits non-zero when the project cannot be read, so a bad project number or a
+token without `read:project` fails loudly instead of writing an empty `ROADMAP.md`.

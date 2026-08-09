@@ -23,18 +23,24 @@ jobs:
       - name: Validate required secrets
         env:
           TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+          # The default GITHUB_TOKEN is repository-scoped and cannot read
+          # ProjectV2, so the roadmap query needs a PAT with `read:project`.
+          ROADMAP_PROJECT_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
           missing=()
           if [ -z "$TERRENO_PROJECT_NUMBER" ]; then missing+=("TERRENO_PROJECT_NUMBER"); fi
-          if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then missing+=("GITHUB_TOKEN"); fi
+          if [ -z "$ROADMAP_PROJECT_TOKEN" ]; then missing+=("ROADMAP_PROJECT_TOKEN"); fi
           if [ ${#missing[@]} -ne 0 ]; then
             echo "::error::Missing required variables: ${missing[*]}"
             exit 1
           fi
 
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Generate ROADMAP.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
         run: bun run roadmap:generate

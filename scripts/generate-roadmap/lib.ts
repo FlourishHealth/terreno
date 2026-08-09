@@ -135,30 +135,3 @@ export const renderRoadmapMarkdown = ({
 
   return `${lines.join("\n").trimEnd()}\n`;
 };
-
-export const parsePackageAreaFromIssueBody = (body: string): string | null => {
-  const packageSection = body.match(/### Affected package\s*\n+([^\n#]+)/i);
-  if (packageSection === null) {
-    return null;
-  }
-
-  const value = packageSection[1]?.trim() ?? "";
-  const mapping: Record<string, string> = {
-    "@terreno/api": "area:api",
-    "@terreno/test": "area:api",
-    "@terreno/ui": "area:ui",
-    "@terreno/rtk": "area:syncdb",
-    "@terreno/admin-backend": "area:admin",
-    "@terreno/admin-frontend": "area:admin",
-    "@terreno/admin-spa": "area:admin",
-    "@terreno/ai": "area:ai",
-    "@terreno/api-health": "area:api",
-    "@terreno/feature-flags": "area:api",
-    "@terreno/mcp": "area:mcp",
-    docs: "area:docs",
-    examples: "area:examples",
-    mcp: "area:mcp",
-  };
-
-  return mapping[value] ?? null;
-};

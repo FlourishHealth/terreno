@@ -91,8 +91,11 @@ invisible and breaks in consumer apps.
 
 **Title:** `[Roadmap] RTK deprecation and syncdb migration docs`
 
-**Labels:** `area:syncdb`, `type:docs`, `deprecation`  
-**Project fields:** Area=`syncdb`, Target=`Next`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Blocked`
+**Labels:** `area:syncdb`, `type:docs`, `deprecation`, `status:blocked`  
+**Project fields:** Area=`syncdb`, Target=`Next`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Planned`
+
+> Blocked on PR #869. The Project **Status** field has no `Blocked` option, so gating is
+> tracked with the `status:blocked` issue label instead.
 
 Makes Better Auth plus `@terreno/syncdb` the documented, supported frontend platform and gives
 RTK Query consumers a tested migration path. It covers deprecation policy, a step-by-step

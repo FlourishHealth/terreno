@@ -114,9 +114,10 @@ const fetchProjectItems = async ({
   owner: string;
   projectNumber: number;
   token: string;
-}): Promise<{items: RoadmapItem[]; projectUrl: string}> => {
+}): Promise<{items: RoadmapItem[]; projectFound: boolean; projectUrl: string}> => {
   const items: RoadmapItem[] = [];
   let cursor: string | null = null;
+  let projectFound = false;
   let projectUrl = `https://github.com/orgs/${owner}/projects/${projectNumber}`;
 
   for (;;) {
@@ -155,6 +156,9 @@ const fetchProjectItems = async ({
     }
 
     const project = payload.data?.organization?.projectV2;
+    if (project !== undefined && project !== null) {
+      projectFound = true;
+    }
     if (project?.url !== undefined) {
       projectUrl = project.url;
     }
@@ -173,7 +177,7 @@ const fetchProjectItems = async ({
     cursor = project.items.pageInfo.endCursor ?? null;
   }
 
-  return {items, projectUrl};
+  return {items, projectFound, projectUrl};
 };
 
 export const main = async (): Promise<void> => {
@@ -200,7 +204,19 @@ export const main = async (): Promise<void> => {
     process.exit(1);
   }
 
-  const {items, projectUrl} = await fetchProjectItems({owner, projectNumber, token});
+  const {items, projectFound, projectUrl} = await fetchProjectItems({owner, projectNumber, token});
+
+  // A missing project resolves to an empty item list, which would otherwise
+  // overwrite a good ROADMAP.md with an empty one and commit the result.
+  if (!projectFound) {
+    console.error(
+      `generate-roadmap: project ${projectNumber} was not found for owner "${owner}". ` +
+        "Check TERRENO_PROJECT_NUMBER and that the token has read:project scope. " +
+        "Refusing to overwrite ROADMAP.md."
+    );
+    process.exit(1);
+  }
+
   const markdown = renderRoadmapMarkdown({
     generatedAtIso: DateTime.utc().toISO() ?? DateTime.utc().toISODate(),
     items,

@@ -1,12 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {
-  filterRoadmapItems,
-  parsePackageAreaFromIssueBody,
-  renderRoadmapMarkdown,
-  type RoadmapItem,
-} from "./lib";
+import {filterRoadmapItems, renderRoadmapMarkdown, type RoadmapItem} from "./lib";
 
 const sampleItems: RoadmapItem[] = [
   {
@@ -59,16 +54,5 @@ describe("renderRoadmapMarkdown", () => {
     assert.include(markdown, "oss-governance-baseline");
     assert.include(markdown, "## Target: Future");
     assert.notInclude(markdown, "Declined item");
-  });
-});
-
-describe("parsePackageAreaFromIssueBody", () => {
-  it("maps bug report package values to area labels", (): void => {
-    const body = "### Affected package\n\n@terreno/ui\n\n### Version";
-    assert.equal(parsePackageAreaFromIssueBody(body), "area:ui");
-  });
-
-  it("returns null when package section is missing", (): void => {
-    assert.isNull(parsePackageAreaFromIssueBody("No package here"));
   });
 });
