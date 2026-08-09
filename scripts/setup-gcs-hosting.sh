@@ -99,6 +99,9 @@ IP_NAME="${SITE_NAME}-ip"
 SSL_CERTIFICATE="${SITE_NAME}-cert"
 HTTPS_PROXY="${SITE_NAME}-https-proxy"
 HTTPS_FORWARDING_RULE="${SITE_NAME}-https-forwarding-rule"
+REDIRECT_URL_MAP="${SITE_NAME}-http-redirect-url-map"
+HTTP_PROXY="${SITE_NAME}-http-proxy"
+HTTP_FORWARDING_RULE="${SITE_NAME}-forwarding-rule"
 
 echo "=== Terreno GCS + CDN Hosting Setup ==="
 echo "Project:   $PROJECT_ID"
@@ -221,11 +224,64 @@ else
     --project="$PROJECT_ID"
 fi
 
+create_redirect_url_map() {
+  # gcloud exposes defaultUrlRedirect only through an imported spec, not
+  # through url-maps create flags.
+  if [ "$DRY_RUN" = true ]; then
+    echo "[dry-run] gcloud compute url-maps import $REDIRECT_URL_MAP --global --project=$PROJECT_ID --source=- <<spec"
+    echo "[dry-run]   name: $REDIRECT_URL_MAP"
+    echo "[dry-run]   defaultUrlRedirect: {httpsRedirect: true, redirectResponseCode: MOVED_PERMANENTLY_DEFAULT}"
+    return
+  fi
+  gcloud compute url-maps import "$REDIRECT_URL_MAP" \
+    --global \
+    --project="$PROJECT_ID" \
+    --quiet \
+    --source=/dev/stdin <<SPEC
+name: $REDIRECT_URL_MAP
+defaultUrlRedirect:
+  httpsRedirect: true
+  redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
+SPEC
+}
+
+echo ""
+echo "--- Step 11: Redirect HTTP to HTTPS ---"
+# Without a port 80 listener, http://$DOMAIN fails to connect instead of
+# redirecting. Serve a 301 there rather than the bundle itself.
+if resource_exists url-maps "$REDIRECT_URL_MAP" --global; then
+  echo "  Redirect URL map $REDIRECT_URL_MAP already exists, skipping"
+else
+  create_redirect_url_map
+fi
+
+if resource_exists target-http-proxies "$HTTP_PROXY" --global; then
+  echo "  HTTP proxy $HTTP_PROXY already exists, skipping"
+else
+  run_cmd gcloud compute target-http-proxies create "$HTTP_PROXY" \
+    --url-map="$REDIRECT_URL_MAP" \
+    --project="$PROJECT_ID"
+fi
+
+if resource_exists forwarding-rules "$HTTP_FORWARDING_RULE" --global; then
+  echo "  Forwarding rule $HTTP_FORWARDING_RULE already exists, skipping"
+else
+  run_cmd gcloud compute forwarding-rules create "$HTTP_FORWARDING_RULE" \
+    --address="$IP_NAME" \
+    --target-http-proxy="$HTTP_PROXY" \
+    --global \
+    --ports=80 \
+    --project="$PROJECT_ID"
+fi
+
 echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "Bucket:  gs://$BUCKET"
 echo "URL map: $URL_MAP (use for CDN cache invalidation)"
-echo "URL:      https://$DOMAIN"
+echo "URL:      https://$DOMAIN (HTTP 301-redirects to HTTPS)"
 echo ""
-echo "Point $DOMAIN at the static IP above. The managed certificate becomes active after DNS propagates."
+echo "Point $DOMAIN at the static IP above. Managed certificates only start provisioning"
+echo "once DNS resolves to the load balancer, and can take up to ~60 minutes. Wait for ACTIVE:"
+echo "  gcloud compute ssl-certificates describe $SSL_CERTIFICATE --global \\"
+echo "    --project=$PROJECT_ID --format='value(managed.status)'"

@@ -110,7 +110,36 @@ gcloud compute forwarding-rules create "${SITE_NAME}-https-forwarding-rule" \
   --project="$PROJECT_ID"
 ```
 
-Or run the parameterized script:
+## 8. Redirect HTTP to HTTPS
+
+Port 80 should redirect rather than serve the bundle. Without a listener there at all, `http://$DOMAIN` fails to connect instead of sending visitors to the secure URL.
+
+`gcloud` exposes redirect behavior only through an imported spec, not through `url-maps create` flags:
+
+```bash
+gcloud compute url-maps import "${SITE_NAME}-http-redirect-url-map" \
+  --global --project="$PROJECT_ID" --source=/dev/stdin <<SPEC
+name: ${SITE_NAME}-http-redirect-url-map
+defaultUrlRedirect:
+  httpsRedirect: true
+  redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
+SPEC
+
+gcloud compute target-http-proxies create "${SITE_NAME}-http-proxy" \
+  --url-map="${SITE_NAME}-http-redirect-url-map" \
+  --project="$PROJECT_ID"
+
+gcloud compute forwarding-rules create "${SITE_NAME}-forwarding-rule" \
+  --address="${SITE_NAME}-ip" \
+  --target-http-proxy="${SITE_NAME}-http-proxy" \
+  --global \
+  --ports=80 \
+  --project="$PROJECT_ID"
+```
+
+Port 80 now only ever returns a 301; the bundle itself is served exclusively over TLS.
+
+Or run the parameterized script, which provisions steps 7 and 8 in one pass:
 
 ```bash
 ./scripts/setup-gcs-hosting.sh \
@@ -120,19 +149,23 @@ Or run the parameterized script:
   --domain "$DOMAIN"
 ```
 
-## 8. Point DNS
+## 9. Point DNS and wait for the certificate
 
 ```bash
 gcloud compute addresses describe "${SITE_NAME}-ip" --global \
   --project="$PROJECT_ID" --format='value(address)'
 ```
 
-Create an A record for `$DOMAIN` pointing at that IP. The managed certificate remains in
-`PROVISIONING` until DNS propagates, then the site becomes available at `https://$DOMAIN`.
-There is no port 80 forwarding rule, so the deployment cannot serve the application over
-unencrypted HTTP.
+Create an A record for `$DOMAIN` pointing at that IP. Managed certificates only begin provisioning once DNS resolves to the load balancer, and can take up to about an hour to become active:
 
-## 9. Invalidate cache after deploy
+```bash
+gcloud compute ssl-certificates describe "${SITE_NAME}-cert" --global \
+  --project="$PROJECT_ID" --format='value(managed.status)'
+```
+
+Wait for `ACTIVE` before sending traffic. Still `PROVISIONING` after an hour usually means the A record does not resolve to the reserved IP.
+
+## 10. Invalidate cache after deploy
 
 ```bash
 gcloud compute url-maps invalidate-cdn-cache "${SITE_NAME}-url-map" \
