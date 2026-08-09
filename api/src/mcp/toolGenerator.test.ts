@@ -1,6 +1,10 @@
-import {describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, type Mock} from "bun:test";
+import {Writable} from "node:stream";
+import * as Sentry from "@sentry/bun";
 import mongoose, {Schema} from "mongoose";
+import winston from "winston";
 
+import {winstonLogger} from "../logger";
 import {Permissions} from "../permissions";
 import {generateAllTools, generateToolsForEntry} from "./toolGenerator";
 import type {MCPRegistryEntry} from "./types";
@@ -36,6 +40,40 @@ const createEntry = (overrides?: Partial<MCPRegistryEntry>): MCPRegistryEntry =>
     },
     ...overrides,
   };
+};
+
+interface CapturedLog {
+  level: string;
+  message: string;
+  terrenoLabels?: Record<string, string>;
+  terrenoLogPrefix?: string;
+}
+
+const captureLogs = async (callback: () => Promise<void>): Promise<CapturedLog[]> => {
+  const logs: CapturedLog[] = [];
+  const transport = new winston.transports.Stream({
+    format: winston.format((info) => {
+      logs.push({
+        level: info.level,
+        message: String(info.message),
+        terrenoLabels: info.terrenoLabels as Record<string, string> | undefined,
+        terrenoLogPrefix: info.terrenoLogPrefix as string | undefined,
+      });
+      return info;
+    })(),
+    stream: new Writable({
+      write(_chunk, _encoding, done) {
+        done();
+      },
+    }),
+  });
+  winstonLogger.add(transport);
+  try {
+    await callback();
+  } finally {
+    winstonLogger.remove(transport);
+  }
+  return logs;
 };
 
 describe("generateToolsForEntry", () => {
@@ -122,6 +160,93 @@ describe("generateAllTools", () => {
 
     const tools = generateAllTools([entry1, entry2]);
     expect(tools.length).toBe(3); // 2 from entry1 + 1 from entry2
+  });
+});
+
+describe("tool-call observability", () => {
+  const captureException = Sentry.captureException as Mock<typeof Sentry.captureException>;
+
+  beforeEach(async () => {
+    captureException.mockClear();
+    await createTestModel().deleteMany({});
+  });
+
+  it("logs successful calls with stable MCP labels", async () => {
+    const entry = createEntry({
+      config: {methods: ["create"]},
+      options: {
+        allowAnonymous: true,
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [],
+          list: [],
+          read: [],
+          update: [],
+        },
+      },
+    });
+    const [tool] = generateToolsForEntry(entry);
+
+    const logs = await captureLogs(async () => {
+      const result = await tool.handler({name: "observable"});
+      expect(result.isError).not.toBe(true);
+    });
+
+    const succeeded = logs.find((line) => line.message.includes("MCP tool call succeeded"));
+    expect(succeeded?.level).toBe("info");
+    expect(succeeded?.terrenoLogPrefix).toBe("[MCPTool]");
+    expect(succeeded?.terrenoLabels).toEqual({
+      mcpMethod: "create",
+      mcpModel: "MCPToolGenTest",
+      mcpTool: "mcptoolgentests_create",
+    });
+  });
+
+  it("warns for expected refusals without capturing an exception", async () => {
+    const [tool] = generateToolsForEntry(createEntry({config: {methods: ["list"]}}));
+
+    const logs = await captureLogs(async () => {
+      const result = await tool.handler({});
+      expect(result.isError).toBe(true);
+    });
+
+    expect(logs.some((line) => line.level === "warn" && line.message.includes("refused"))).toBe(
+      true
+    );
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it("captures internal failures in Sentry without exposing the cause to the client", async () => {
+    process.env.USE_SENTRY_LOGGING = "true";
+    const entry = createEntry({
+      config: {methods: ["create"]},
+      options: {
+        allowAnonymous: true,
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [],
+          list: [],
+          read: [],
+          update: [],
+        },
+      },
+    });
+    const [tool] = generateToolsForEntry(entry);
+
+    const logs = await captureLogs(async () => {
+      const result = await tool.handler({});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Create failed");
+      expect(result.content[0].text).not.toContain("ValidationError:");
+      expect(Object.keys(result)).toEqual(["content", "isError"]);
+    });
+
+    expect(logs.some((line) => line.level === "error" && line.message.includes("Caught:"))).toBe(
+      true
+    );
+    expect(logs.some((line) => line.message.includes("MCP tool call failed"))).toBe(true);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException.mock.calls[0][0]).toBeInstanceOf(Error);
   });
 });
 

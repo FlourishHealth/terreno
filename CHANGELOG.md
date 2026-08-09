@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   operators that can execute code (`$where`, `$expr`, `$function`) are rejected
 - `useMCPTools()` and `useTerrenoChat()` hooks in `@terreno/rtk`
 - How-to guide for exposing MCP tools from a Terreno backend
+- MCP HTTP and stdio servers now use the TypeScript SDK v2 and support the
+  stateless `2026-07-28` protocol revision while retaining stateless legacy
+  compatibility; `useMCPTools()` uses the official v2 client instead of
+  hand-written JSON-RPC/SSE handling
+- Generated model tools emit structured success/refusal/failure logs with
+  request correlation, duration, stable MCP labels, and Sentry exception
+  capture for internal failures
 
 ## [0.30.0] - 2026-08-03
 

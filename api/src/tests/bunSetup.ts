@@ -14,6 +14,7 @@ if (useFixtureCache) {
       useReplSet: true,
     },
     testEnv: {
+      extra: {USE_SENTRY_LOGGING: "false"},
       tokenIssuer: "terreno-api.test",
     },
     useTransactions: true,
@@ -21,6 +22,7 @@ if (useFixtureCache) {
 } else {
   registerSimpleMongoPreload({
     testEnv: {
+      extra: {USE_SENTRY_LOGGING: "false"},
       tokenIssuer: "terreno-api.test",
     },
   });

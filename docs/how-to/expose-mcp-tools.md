@@ -40,6 +40,12 @@ export const todoRouter = modelRouter("/todos", Todo, {
 
 Tools are named `{prefix}_{method}` — `todos_list`, `todos_read`, and so on.
 
+The endpoint speaks the `2026-07-28` MCP revision through the TypeScript SDK v2
+`createMcpHandler`. It is stateless: every request carries its protocol version,
+client identity, and capabilities, so requests can land on any backend instance.
+The SDK's stateless legacy fallback remains enabled, so 2025-era clients continue
+to work while clients migrate.
+
 ### 3. Call the tools
 
 Point any MCP client at `POST /mcp` with the user's `Authorization: Bearer <token>` header. Both JWT and Better Auth sessions are accepted; the resolved user is what the permission checks run against, so an LLM can never see more than that user could see over REST.
@@ -53,6 +59,11 @@ import {getMCPTools} from "@terreno/api";
 
 const tools = getMCPTools(req.user);
 ```
+
+`useMCPTools()` from `@terreno/rtk` uses the official MCP v2 client with automatic
+version negotiation. It no longer constructs JSON-RPC or parses SSE responses by
+hand; the SDK supplies the `2026-07-28` `_meta` envelope and required
+`Mcp-Method` / `Mcp-Name` routing headers.
 
 ## Naming tools
 
@@ -129,3 +140,19 @@ preCreate: (body, req) => {
 ```
 
 A hook that reads `req.headers` or `req.query` gets an empty object instead of a crash, but anything genuinely HTTP-specific (cookies, IP address) is unavailable — branch on `isMCPRequest` when that matters.
+
+## Logging and error reporting
+
+Every generated tool call emits a structured backend audit log with stable
+`mcpTool`, `mcpMethod`, and `mcpModel` labels plus the active Terreno request
+context (`requestId`, `userId`, and trace fields when present):
+
+- successful calls log at `info` with `durationMs`
+- expected refusals (permissions, not found, invalid filters) log at `warn`
+- caught database, transform, and lifecycle-hook failures log at `error`
+
+When `USE_SENTRY_LOGGING=true`, expected failures are mirrored as Sentry logs.
+Unexpected exceptions and caught internal causes are also captured with
+`Sentry.captureException`, preserving their original stack. The client still
+receives the stable MCP error text — internal exceptions and stack traces stay
+server-side. Tool arguments are not logged.

@@ -18,6 +18,14 @@ import type {
 /** Methods whose responses go through a responseHandler (delete returns only a status). */
 type SerializableMCPMethod = Exclude<MCPMethod, "delete">;
 
+// Causes stay server-side: a WeakMap lets the observability wrapper capture the
+// original exception without adding stack traces or internal details to the MCP result.
+const errorCauses = new WeakMap<MCPToolResult, unknown>();
+
+export const getMCPErrorCause = (result: MCPToolResult): unknown => {
+  return errorCauses.get(result);
+};
+
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
@@ -341,7 +349,7 @@ export const handleCreate = async (
   try {
     body = transform(options, args, "create", user) as MCPToolArgs;
   } catch (error) {
-    return errorResult(`Transform failed: ${errorMessage(error)}`);
+    return errorResult(`Transform failed: ${errorMessage(error)}`, error);
   }
 
   if (options.preCreate) {
@@ -351,7 +359,7 @@ export const handleCreate = async (
         return errorResult("Create not allowed");
       }
     } catch (error) {
-      return errorResult(`preCreate hook failed: ${errorMessage(error)}`);
+      return errorResult(`preCreate hook failed: ${errorMessage(error)}`, error);
     }
   }
 
@@ -359,7 +367,7 @@ export const handleCreate = async (
   try {
     data = asDocument(await model.create(body));
   } catch (error) {
-    return errorResult(`Create failed: ${errorMessage(error)}`);
+    return errorResult(`Create failed: ${errorMessage(error)}`, error);
   }
 
   if (options.populatePaths) {
@@ -371,7 +379,7 @@ export const handleCreate = async (
     try {
       await options.postCreate(data, createMCPRequest({args, user}));
     } catch (error) {
-      return errorResult(`postCreate hook failed: ${errorMessage(error)}`);
+      return errorResult(`postCreate hook failed: ${errorMessage(error)}`, error);
     }
   }
 
@@ -410,7 +418,7 @@ export const handleUpdate = async (
   try {
     body = transform(options, updateFields, "update", user) as MCPToolArgs;
   } catch (error) {
-    return errorResult(`Transform failed: ${errorMessage(error)}`);
+    return errorResult(`Transform failed: ${errorMessage(error)}`, error);
   }
 
   if (options.preUpdate) {
@@ -420,7 +428,7 @@ export const handleUpdate = async (
         return errorResult("Update not allowed");
       }
     } catch (error) {
-      return errorResult(`preUpdate hook failed: ${errorMessage(error)}`);
+      return errorResult(`preUpdate hook failed: ${errorMessage(error)}`, error);
     }
   }
 
@@ -430,7 +438,7 @@ export const handleUpdate = async (
     doc.set(body);
     await doc.save();
   } catch (error) {
-    return errorResult(`Update failed: ${errorMessage(error)}`);
+    return errorResult(`Update failed: ${errorMessage(error)}`, error);
   }
 
   if (options.populatePaths) {
@@ -442,7 +450,7 @@ export const handleUpdate = async (
     try {
       await options.postUpdate(doc, body, createMCPRequest({args: updateFields, user}), prevDoc);
     } catch (error) {
-      return errorResult(`postUpdate hook failed: ${errorMessage(error)}`);
+      return errorResult(`postUpdate hook failed: ${errorMessage(error)}`, error);
     }
   }
 
@@ -486,7 +494,7 @@ export const handleDelete = async (
         return errorResult("Delete not allowed");
       }
     } catch (error) {
-      return errorResult(`preDelete hook failed: ${errorMessage(error)}`);
+      return errorResult(`preDelete hook failed: ${errorMessage(error)}`, error);
     }
   }
 
@@ -502,14 +510,14 @@ export const handleDelete = async (
       await doc.deleteOne();
     }
   } catch (error) {
-    return errorResult(`Delete failed: ${errorMessage(error)}`);
+    return errorResult(`Delete failed: ${errorMessage(error)}`, error);
   }
 
   if (options.postDelete) {
     try {
       await options.postDelete(createMCPRequest({args, user}), doc);
     } catch (error) {
-      return errorResult(`postDelete hook failed: ${errorMessage(error)}`);
+      return errorResult(`postDelete hook failed: ${errorMessage(error)}`, error);
     }
   }
 
@@ -524,7 +532,13 @@ const textResult = (text: string): MCPToolResult => ({
   content: [{text, type: "text" as const}],
 });
 
-const errorResult = (message: string): MCPToolResult => ({
-  content: [{text: JSON.stringify({error: message}), type: "text" as const}],
-  isError: true,
-});
+const errorResult = (message: string, cause?: unknown): MCPToolResult => {
+  const result: MCPToolResult = {
+    content: [{text: JSON.stringify({error: message}), type: "text" as const}],
+    isError: true,
+  };
+  if (cause !== undefined) {
+    errorCauses.set(result, cause);
+  }
+  return result;
+};

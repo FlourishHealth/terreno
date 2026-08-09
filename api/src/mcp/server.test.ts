@@ -1,4 +1,7 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import type {Server as HttpServer} from "node:http";
+import type {AddressInfo} from "node:net";
+import {Client, StreamableHTTPClientTransport} from "@modelcontextprotocol/client";
 import express from "express";
 import mongoose, {Schema} from "mongoose";
 import supertest from "supertest";
@@ -54,6 +57,29 @@ const buildApp = (): express.Application => {
   return app;
 };
 
+const listen = async (
+  app: express.Application
+): Promise<{baseURL: string; close: () => Promise<void>}> => {
+  const server = await new Promise<HttpServer>((resolve) => {
+    const listener = app.listen(0, () => resolve(listener));
+  });
+  const address = server.address() as AddressInfo;
+  return {
+    baseURL: `http://127.0.0.1:${address.port}`,
+    close: async (): Promise<void> => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+  };
+};
+
 const initializeBody = {
   id: 1,
   jsonrpc: "2.0",
@@ -102,6 +128,28 @@ describe("mountMCPServer", () => {
 
     expect(res.text).toContain("mcpservernotes_list");
     expect(res.text).toContain("mcpservernotes_read");
+  });
+
+  it("negotiates the 2026-07-28 protocol with the official v2 client", async () => {
+    registerNoteModel();
+    const server = await listen(buildApp());
+    const client = new Client(
+      {name: "terreno-api-test", version: "1.0.0"},
+      {versionNegotiation: {mode: "auto"}}
+    );
+
+    try {
+      await client.connect(new StreamableHTTPClientTransport(new URL(`${server.baseURL}/mcp`)));
+      const {tools} = await client.listTools();
+
+      expect(client.getProtocolEra()).toBe("modern");
+      expect(client.getNegotiatedProtocolVersion()).toBe("2026-07-28");
+      expect(tools.map((tool) => tool.name)).toContain("mcpservernotes_list");
+      expect(tools.map((tool) => tool.name)).toContain("mcpservernotes_read");
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("invokes a tool handler with the user from the request headers", async () => {
