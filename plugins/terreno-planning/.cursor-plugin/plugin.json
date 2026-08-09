@@ -1,12 +1,16 @@
 {
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
-  "description": "Plugins for planning and executing plans for the whole SDLC",
-  "version": "1.0.2",
+  "description": "Five-stage agentic SDLC pipeline: plan, implement, review, submit, and triage PRs for Terreno apps.",
+  "version": "1.1.0",
   "author": {
-    "name": "Flourish Health",
-    "email": "josh@flourish.health"
+    "name": "Terreno",
+    "email": "terreno@flourish.health"
   },
   "keywords": ["terreno", "planning", "sdlc", "implementation", "review", "tdd"],
-  "skills": "skills"
+  "skills": "skills",
+  "compatibility": {
+    "terreno": ">=1.0.0",
+    "expoSdk": "~54"
+  }
 }
