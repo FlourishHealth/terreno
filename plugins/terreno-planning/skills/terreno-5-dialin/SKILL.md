@@ -20,7 +20,7 @@ Dialin exclusively owns all work after that handoff.
 - When CI or reviews have no new actionable signal, wait 2–5 minutes using the harness wait mechanism (or an equivalent sleep), then refresh both. The loop continues across the wait; do not return a pending status as the final result.
 - Re-check promptly after a push, retry, new failure, or new review comment. Longer quiet waits must not delay active triage.
 - Exit only when either:
-  1. every check on the current head is passing or explicitly skipped, no check is pending or failed, and there are no outstanding actionable comments; confirm this state once more after a quiet wait unless the CI provider explicitly reports the complete check suite finished; or
+  1. every check on the current head has a non-failing terminal result (passing, neutral/informational, or explicitly skipped), no check is pending or broken, and there are no outstanding actionable comments; confirm this state once more after a quiet wait unless the CI provider explicitly reports the complete check suite finished; or
   2. the loop is genuinely stuck or needs user direction under **Blocked End States**.
 
 ## Loop Responsibilities
@@ -74,8 +74,8 @@ When a fix cycle changes files under `ui/`, `demo/`, `example-frontend/`, `admin
 
 Dialin succeeds when all are true:
 
-- Every check on the current PR head is passing or explicitly skipped.
-- No check is queued, pending, running, failed, cancelled, or timed out.
+- Every check on the current PR head has a non-failing terminal result: passing, neutral/informational, or explicitly skipped.
+- No check is queued, pending, running, failed, cancelled, timed out, or waiting for action.
 - No outstanding actionable review comments remain.
 - PR is mergeable or only waiting on explicit human approval.
 
