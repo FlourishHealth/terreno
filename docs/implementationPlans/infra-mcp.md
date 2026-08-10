@@ -171,7 +171,7 @@ Indexed on `{userId, created}` and `{integration, created}`. Read surface gated 
 | sentry | `sentry_search_issues`, `sentry_get_issue`, `sentry_list_issue_events`, `sentry_get_event` |
 | mongo | `mongo_list_collections`, `mongo_collection_schema`, `mongo_find`, `mongo_aggregate` (read-only stages; `$out`/`$merge` rejected; executed on the read-only connection) |
 
-GCP tools call the Cloud Logging/Monitoring/Error Reporting/Cloud Run Admin APIs via ADC. Sentry tools call the Sentry REST API. Mongo tools adapt the existing `mcp-server/src/local/tools/databaseQuery.ts`/`databaseSchema.ts` logic against the configured read URI.
+GCP tools call the Cloud Logging/Monitoring/Error Reporting/Cloud Run Admin APIs via ADC. Sentry tools call the Sentry REST API. Mongo tools reuse the read-query/schema logic behind `mcp-server/src/local/tools/databaseQuery.ts`/`databaseSchema.ts` — extracted into a shared module both packages import rather than forked into infra-mcp — run against the configured read URI.
 
 ### Phase 2 tools (write tier, all elicitation-confirmed)
 

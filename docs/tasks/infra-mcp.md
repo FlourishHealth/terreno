@@ -14,7 +14,7 @@ Status: Blocked — Phase 1 RBAC wiring depends on the RBAC module PR ([rbac-per
 - [ ] (unblocked) Integration adapter types + registry (`src/integrations/types.ts`, `registry.ts`)
 - [ ] (unblocked) GCP native adapter (ADC): `gcp_query_logs`, `gcp_list_log_names`, `gcp_query_metrics`, `gcp_list_error_groups`, `gcp_list_cloud_run_services`, `gcp_get_cloud_run_service`
 - [ ] (unblocked) Sentry native adapter (REST + static token): `sentry_search_issues`, `sentry_get_issue`, `sentry_list_issue_events`, `sentry_get_event`
-- [ ] (unblocked) Mongo native adapter (read URI; adapt `mcp-server/src/local/tools/databaseQuery.ts`/`databaseSchema.ts`): `mongo_list_collections`, `mongo_collection_schema`, `mongo_find`, `mongo_aggregate` (reject `$out`/`$merge`)
+- [ ] (unblocked) Mongo native adapter (read URI): `mongo_list_collections`, `mongo_collection_schema`, `mongo_find`, `mongo_aggregate` (reject `$out`/`$merge`). Extract the shared read-query/schema logic from `mcp-server/src/local/tools/databaseQuery.ts` + `databaseSchema.ts` into a reusable module both packages import — do not fork copies into infra-mcp (per architectural review)
 - [ ] Admin panel registration (`@terreno/admin-backend`): Users, InfraAuditLog (read-only)
 - [ ] Terraform: `infra_mcp_service` Cloud Run module instance, Artifact Registry, runtime SA with viewer/logging IAM only
 - [ ] Tests: authz matrix (role × tool × tools/list filtering), adapter handlers, audit records, legacy-client fallback
