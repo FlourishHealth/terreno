@@ -1,6 +1,7 @@
 # Implementation Plan: The AI Development Loop (Boost)
 
 **Status:** Draft — key decisions recorded (2026-07-29)
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1014
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned

@@ -1,6 +1,7 @@
 # Implementation Plan: Comms adapter — transactional email (SendGrid)
 
 **Status:** Draft
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1022
 **Priority:** High
 **Effort:** Small batch
 **Owner:** unassigned
