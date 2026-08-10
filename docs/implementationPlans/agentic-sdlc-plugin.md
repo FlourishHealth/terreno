@@ -1,6 +1,7 @@
 # Implementation Plan: Publish and Document the Agentic SDLC Plugin
 
 **Status:** Draft — key decisions recorded (2026-07-29)
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1006
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
