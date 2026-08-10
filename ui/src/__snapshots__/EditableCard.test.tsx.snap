@@ -1,0 +1,242 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`EditableCard renders correctly with all props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "paddingBottom": 4,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Home Address",
+                      ],
+                      "props": {
+                        "numberOfLines": 1,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexShrink": 1,
+                  "minWidth": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "marginRight": 8,
+                        },
+                        "testID": "icon",
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Verified",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#1A7F36",
+                          "fontFamily": "text",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": [
+                      {
+                        "alignItems": "center",
+                        "backgroundColor": "#DCF2E2",
+                        "borderRadius": 4,
+                        "flexDirection": "row",
+                        "height": 20,
+                        "justifyContent": "center",
+                        "paddingHorizontal": 8,
+                        "paddingVertical": 0,
+                        "width": "auto",
+                      },
+                      false,
+                      {
+                        "borderColor": "#7FD898",
+                        "borderWidth": 1,
+                      },
+                    ],
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "gap": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "123 Main Street",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Last updated 2 days ago",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#686868",
+                  "fontFamily": "text-regular",
+                  "fontSize": 10,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "gap": 4,
+          "minWidth": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": "#FFFFFF",
+      "borderBottomColor": "#CDCDCD",
+      "borderBottomWidth": 1,
+      "borderLeftColor": "#CDCDCD",
+      "borderLeftWidth": 1,
+      "borderRadius": 4,
+      "borderRightColor": "#CDCDCD",
+      "borderRightWidth": 1,
+      "borderTopColor": "#CDCDCD",
+      "borderTopWidth": 1,
+      "display": "flex",
+      "flex": undefined,
+      "flexDirection": "row",
+      "gap": 8,
+      "maxWidth": "100%",
+      "minWidth": 0,
+      "overflow": "hidden",
+      "padding": 12,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
