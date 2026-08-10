@@ -1,6 +1,7 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
+import {assert} from "chai";
 import type express from "express";
 import {type Document, type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
@@ -469,6 +470,19 @@ describe("TypeScript return types", () => {
   });
 });
 describe("DateOnly", () => {
+  it("strips the time portion when getting a Date value", () => {
+    const dateOnly = new DateOnly("date", {});
+    const value = dateOnly.get(new Date("2005-10-10T17:17:17.017Z")) as unknown as Date;
+    assert.instanceOf(value, Date);
+    assert.equal(value.toISOString(), "2005-10-10T00:00:00.000Z");
+  });
+
+  it("returns non-Date values unchanged when getting a value", () => {
+    const dateOnly = new DateOnly("date", {});
+    assert.isNull(dateOnly.get(null));
+    assert.equal(dateOnly.get("2005-10-10") as unknown as string, "2005-10-10");
+  });
+
   it("throws error with invalid date", async () => {
     try {
       await StuffModel.create({
