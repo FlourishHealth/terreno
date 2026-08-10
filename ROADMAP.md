@@ -40,6 +40,10 @@ See [roadmap process](docs/explanation/roadmap-process.md) for triage and the Li
 
 ## Target: Future
 
+### mcp
+
+- [Infrastructure MCP server](docs/implementationPlans/infra-mcp.md) (Feature, Blocked on RBAC) — IP: [infra-mcp](docs/implementationPlans/infra-mcp.md)
+
 ### examples
 
 - [Examples, demo, and test coverage](docs/implementationPlans/examples-demo-coverage.md) (Improvement, Planned) — IP: [examples-demo-coverage](docs/implementationPlans/examples-demo-coverage.md)

@@ -19,6 +19,7 @@ Umbrella plans that coordinate several IPs.
 | [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
 | [SyncDB Local-First Data Layer](syncdb-local-first.md) | In progress ([PR #869](https://github.com/flourishhealth/terreno/pull/869)) | 2026-07-13 | [tasks](../tasks/syncdb-local-first.md) |
 | [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) | 2026-06-21 | TBD |
+| [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) | 2026-08-09 | [tasks](../tasks/infra-mcp.md) |
 
 ## Open source launch IPs
 
