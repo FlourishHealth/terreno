@@ -191,7 +191,12 @@ export const cronjob = (
   try {
     new cron.CronJob(cronSchedule, callback, null, true, "America/Chicago");
   } catch (error) {
-    throw new APIError({status: 500, title: `Failed to create cronjob: ${error}`});
+    throw new APIError({
+      cause: error,
+      detail: `Failed to create cronjob ${name} with schedule ${cronSchedule}: ${error}`,
+      status: 500,
+      title: "Failed to create cronjob",
+    });
   }
 };
 
