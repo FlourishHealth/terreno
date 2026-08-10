@@ -329,7 +329,7 @@ export class DateOnly extends SchemaType {
     const handler = this.$conditionalHandlers[$conditional];
 
     if (!handler) {
-      throw new Error(`Can't use ${$conditional} with DateOnly.`);
+      throw new APIError({status: 400, title: `Can't use ${$conditional} with DateOnly.`});
     }
 
     return handler.call(this, val);

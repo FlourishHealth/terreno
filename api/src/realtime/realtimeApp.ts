@@ -7,6 +7,7 @@ import type express from "express";
 import {Server, type Socket} from "socket.io";
 
 import type {User} from "../auth";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import type {TerrenoPlugin} from "../terrenoPlugin";
@@ -61,7 +62,7 @@ export interface RealtimeSocketLike extends SocketWithDecodedToken {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
-  on: (event: string, handler: (...args: any[]) => any) => void;
+  on: (event: string, handler: (...args: never[]) => void | Promise<void>) => void;
 }
 
 const canSubscribe = async (
@@ -383,10 +384,12 @@ export class RealtimeApp implements TerrenoPlugin {
       // JWT authentication middleware
       const tokenSecret = this.config.tokenSecret ?? process.env.TOKEN_SECRET;
       if (!tokenSecret) {
-        throw new Error(
-          "[realtime] TOKEN_SECRET is required for socket authentication. " +
-            "Set process.env.TOKEN_SECRET or pass tokenSecret in RealtimeAppOptions."
-        );
+        throw new APIError({
+          status: 500,
+          title:
+            "[realtime] TOKEN_SECRET is required for socket authentication. " +
+            "Set process.env.TOKEN_SECRET or pass tokenSecret in RealtimeAppOptions.",
+        });
       }
 
       this.io.use(
