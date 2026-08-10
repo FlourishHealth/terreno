@@ -42,7 +42,7 @@ export const upsertPlugin = <T extends Document>(schema: Schema<T, any, any, any
 
 // This plugin modifies the find query to exclude archived documents by default.
 export const excludeArchivedPlugin = <T>(schema: Schema<T>): void => {
-  schema.pre<Query<unknown, unknown>>("find", function (next) {
+  schema.pre<Query<unknown, unknown>>("find", function () {
     const conditions = this.getFilter();
 
     // Check if the query explicitly requests archived documents
@@ -50,10 +50,6 @@ export const excludeArchivedPlugin = <T>(schema: Schema<T>): void => {
       // If not, modify the query to exclude archived documents by default
       const newConditions = {...conditions, archived: {$ne: true}};
       this.setQuery(newConditions);
-    }
-
-    if (typeof next === "function") {
-      next();
     }
   });
 };

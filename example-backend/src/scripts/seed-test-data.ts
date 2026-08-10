@@ -4,7 +4,7 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {ConsentForm, logger} from "@terreno/api";
+import {ConsentForm, type ConsentFormType, logger} from "@terreno/api";
 import mongoose from "mongoose";
 import {Configuration} from "../models/configuration";
 import {User} from "../models/user";
@@ -15,6 +15,21 @@ interface SeedUser {
   email: string;
   name: string;
   password: string;
+}
+
+interface SeedConsentForm {
+  active: boolean;
+  agreeButtonText?: string;
+  allowDecline?: boolean;
+  captureSignature?: boolean;
+  content: Map<string, string>;
+  order: number;
+  required: boolean;
+  requireScrollToBottom?: boolean;
+  slug: string;
+  title: string;
+  type: ConsentFormType;
+  version: number;
 }
 
 const TEST_USERS: SeedUser[] = [
@@ -31,7 +46,7 @@ const TEST_USERS: SeedUser[] = [
   },
 ];
 
-const CONSENT_FORMS = [
+const CONSENT_FORMS: SeedConsentForm[] = [
   {
     active: true,
     agreeButtonText: "I Accept the Terms",
