@@ -38,7 +38,15 @@ Each cycle:
 6. Commit + push fixes (same commit hygiene rules as Pour — see `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`; no AI attribution; `git commit -s` for DCO).
 7. Record the new head SHA, re-check all CI for that SHA, and continue the loop.
 8. Reply to addressed comments and resolve threads when fully fixed.
-9. When user-facing behavior changed, update `CHANGELOG.md` `## [Unreleased]` and tick the changelog item in the PR **Checklist**.
+9. When user-facing behavior changed, update `CHANGELOG.md` `## [Unreleased]`. Only tick the changelog item in the PR **Checklist** by following the PR Description Preservation rules below.
+
+## PR Description Preservation
+
+- Treat the existing PR description as user-authored source material. Never replace, regenerate, summarize, or delete it.
+- Keep the description focused on what the PR does: its purpose, scope, behavior changes, testing, and evidence. CI progress, review-loop status, and comment-triage summaries belong in review replies or the final Dial In report, not in the PR description.
+- Dial In does not normally edit the PR title or description. Do not update the body merely to report progress or make it match a freshly generated template.
+- If a required checklist or evidence update must change the body, fetch the latest description immediately before editing, preserve all existing text and sections, and make only the smallest targeted checkbox change or append-only evidence addition.
+- Never send a stale, partial, or newly generated body to a PR update operation. If the current description cannot be fetched or preserved exactly, skip the body update and report the blocker.
 
 ## CI Handling
 
@@ -69,7 +77,7 @@ When a fix cycle changes files under `ui/`, `demo/`, `example-frontend/`, `admin
 
 1. Re-run `verify-ui-changes` before pushing: launch the app, log in, and exercise the affected feature.
 2. Save new screenshots/videos to `/opt/cursor/artifacts/` when the visible UI or flow changed.
-3. Update the PR **Testing performed** section and/or `## Evidence` with the new artifacts before resolving related review threads.
+3. Add the new artifacts to the PR **Testing performed** section and/or `## Evidence` before resolving related review threads, following PR Description Preservation: preserve the current body and append evidence without rewriting existing content.
 
 ## Mergeability End State
 
