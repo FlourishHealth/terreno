@@ -22,8 +22,11 @@ Process background, including the full IP ↔ roadmap lifecycle and the promote-
 It is the only skill that sets the Project `IP` field and moves an item to `Status=Planned`.
 
 - If the work started as a community discussion, `roadmap-promote` already opened a
-  `Shaping` issue. **Update that issue** (Step 2 finds it) — set the `IP` field and move
-  it `Shaping → Planned`. Never open a second issue for the same work.
+  `Shaping` issue. **Update that issue** — set the `IP` field and move it
+  `Shaping → Planned`. That issue was created before the IP existed, so it does **not**
+  contain the IP slug; Step 2 locates it via the IP header `Roadmap issue:` link, the
+  `[Roadmap]` title, or the originating discussion, not by a slug search. Never open a
+  second issue for the same work.
 - If the IP is internal-origin with no discussion behind it, **create** the issue here at
   `Planned`.
 - The planning pipeline's **Blend** stage hands off here once an IP reaches Approved (in
@@ -67,13 +70,29 @@ Read the IP and its task list. Extract:
 
 If the IP declares an RTK deprecation flag of **Blocked**, the item still gets `Status=Planned` — the Project Status field has no `Blocked` option. Carry the gating with the `status:blocked` label and say what it is waiting on.
 
-### 2. Check for an existing item
+### 2. Find any existing item — do not open a duplicate
 
-```bash
-gh issue list --search "\"$IP_SLUG\" in:body" --state all --json number,title,url,state
-```
+A promoted issue is created **before** the IP exists, so it will not contain the IP slug.
+A slug search alone will miss it and you will file a duplicate. Look in this order and
+stop at the first real hit:
 
-Update the existing issue rather than opening a duplicate.
+1. **The IP header `Roadmap issue:` line**, if set — the deterministic pointer written when
+   the work was promoted or first tracked.
+2. **The slug in an issue body** — matches items a previous `roadmap-item` run already linked:
+   ```bash
+   gh issue list --search "\"$IP_SLUG\" in:body" --state all --json number,title,url,state
+   ```
+3. **The `[Roadmap]` title or the originating discussion link** — then match by outcome:
+   ```bash
+   gh issue list --search "\"[Roadmap]\" in:title" --state all --json number,title,url
+   ```
+
+If a maintainer promoted this work, ask them for the issue number rather than guessing.
+
+When you update an existing issue, **write the IP slug and a link to the IP into its body**
+so future slug searches (step 2) find it, and record the issue URL on the IP header
+`Roadmap issue:` line. This closes the loop that promote could not — it ran before the IP
+had a slug.
 
 ### 3. Draft
 

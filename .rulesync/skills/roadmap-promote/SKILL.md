@@ -118,6 +118,7 @@ Field values are set with `gh project item-edit`, which needs the project, item,
 - Comment on the discussion linking the new issue, so the thread's participants can follow the work
 - Leave the discussion open unless the maintainer asks to close it — discussions often keep collecting context after promotion
 - Report the issue URL, applied labels, field values, and anything left for a human
+- **Hand the issue URL forward.** This issue has no IP slug yet, so a later slug search cannot find it. When the IP is written, its `Roadmap issue:` header must point at this URL — that pointer is how `roadmap-item` updates this issue instead of opening a duplicate.
 
 ## Notes
 
