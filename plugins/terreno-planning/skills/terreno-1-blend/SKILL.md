@@ -16,6 +16,25 @@ Turn a raw request into an Implementation Plan (IP) using the existing `/ip` str
 - **Question-first:** do not write the IP (or any section that commits product or architecture decisions) until blocking questions are asked and the user has answered. Present options as questions or labeled alternatives (A/B/C), not as a finalized plan.
 - **Post-attack questions:** when the Attack and adjust phase (Step 10) runs, always follow with a dedicated question pass (Step 11) and user answers before treating the plan as implementation-ready.
 
+## Pipeline context
+
+Blend is stage 1 of the Terreno planning pipeline. The full flow is:
+
+1. **Blend** (this skill) — plan: write the IP + task list.
+2. **Roast** (`terreno-2-roast`) — implement via TDD from the approved IP.
+3. **Cupping** (`terreno-3-cupping`) — independently verify against the IP.
+4. **Pour** (`terreno-4-pour`) — commit, push, open the PR.
+5. **Dial In** (`terreno-5-dialin`) — drive CI and the review loop until mergeable.
+
+Blend always produces the same two artifacts, in every repo:
+
+- **IP design doc** → `docs/implementationPlans/<slug>.md`
+- **Execution task list** → `docs/tasks/<slug>.md`
+
+These two files are the source of truth for the plan. External trackers (a GitHub
+roadmap issue, a Linear issue, a discussion thread) are **links from the IP header**,
+never a replacement for it. See [`docs/implementationPlans/README.md`](../../../docs/implementationPlans/README.md).
+
 ## Project Registry
 
 | Alias(es) | GitHub Repo | Local Dir |
@@ -119,6 +138,15 @@ Persist planning artifacts in the standard repo paths:
 - Save the final IP document under `docs/implementationPlans/`.
 - Save the executable task breakdown under `docs/tasks/`.
 
+In the IP header, record links to any external trackers this work already has, and
+leave them out when they do not apply:
+
+- `Discussion:` — the originating GitHub Discussion (Ideas/RFC), when the work came from one.
+- `Roadmap issue:` — the public tracking issue, once `roadmap-promote` or `roadmap-item` has created it.
+- `Linear:` — the internal Linear issue, in repos that use Linear.
+
+These are pointers. The IP body, not the tracker, holds the design.
+
 ### Step 7: Acceptance criteria (optional)
 
 - Parse the IP into testable outcomes.
@@ -156,6 +184,49 @@ Run this step whenever Step 10 (Attack and adjust) was executed. If Step 10 was 
 3. Present options where tradeoffs remain — **do not** bake unresolved attack findings into the IP as silent decisions.
 4. **Pause** for explicit user answers or named-assumption approval.
 5. Only then update `docs/implementationPlans/` and `docs/tasks/` to match; if no file edits are needed, still confirm alignment in the thread before calling the plan final.
+
+## Roadmap handoff (conditional)
+
+Some repos run a public roadmap (GitHub Discussions + a roadmap Project + tracking
+issues); others (for example Flourish and most consumer apps) do not. The **same
+plugin must work in both**, so Blend detects the roadmap system and only hands off
+when it is actually present. Blend never mutates GitHub itself — it hands off to
+`roadmap-item`, which stops for maintainer approval.
+
+### Detect first
+
+Treat the repo as roadmap-enabled when **both** are true:
+
+- `.github/roadmap-fields.yml` exists (the Project field taxonomy), and
+- a `roadmap-item` skill is available in the workspace.
+
+A quick check: `bun run roadmap:check` prints the valid options in a roadmap-enabled
+repo and is absent otherwise.
+
+### Roadmap-enabled repo (e.g. Terreno)
+
+1. Do **not** open the tracking issue from Blend.
+2. When the IP reaches **Approved**, hand off to `roadmap-item`:
+   - If the work came from an accepted discussion, a `Shaping` tracking issue usually
+     already exists (created by `roadmap-promote`). `roadmap-item` **updates** it —
+     it sets the `IP` field to the IP slug and moves it `Shaping → Planned`. It does
+     not open a second issue.
+   - If no issue exists yet (internal-origin IP), `roadmap-item` creates one at
+     `Planned`.
+3. Write the resulting issue URL back into the IP header `Roadmap issue:` line.
+
+### No-roadmap repo (e.g. Flourish, consumer apps)
+
+1. Skip every roadmap step above — there is no board, no Discussions, and no
+   `roadmap-item` skill to call.
+2. The IP + task list plus `docs/implementationPlans/PLAN_INDEX.md` are the source of
+   truth. Track sprint execution in Linear and record it on the IP header `Linear:`
+   line; never copy the design into the tracker.
+3. Do not fabricate roadmap labels, fields, or issues. If a maintainer later adds the
+   roadmap system, re-run this handoff.
+
+If detection is ambiguous, say so and ask rather than guessing — do not create a
+roadmap issue in a repo that has no roadmap.
 
 ## Lifecycle Operations
 

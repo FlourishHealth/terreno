@@ -11,6 +11,63 @@ both.
 
 See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
 
+## How work flows (IP ↔ roadmap)
+
+One idea travels through discussion, a tracking issue, a design doc, implementation, and
+release. Each artifact is authoritative for exactly one thing, so nothing is entered twice.
+
+```
+Discussion (Ideas/RFC)
+    │  maintainer accepts  →  roadmap-promote
+    ▼
+Issue: Status = Shaping ─────────────────────────────┐
+                                                      │  IP approved → roadmap-item
+Blend writes IP + task list  ────────────────────────┤  (sets IP field, Shaping → Planned)
+(docs/implementationPlans/ + docs/tasks/)             ▼
+                                          Issue: Status = Planned
+                                                      │  Roast → Cupping → Pour
+                                                      ▼
+                                          PR: Fixes #NNN
+                                                      │  merge
+                                                      ▼
+                                  Issue closed · board: Shipped
+```
+
+The planning pipeline (the `terreno-planning` plugin) drives the design-and-build half;
+the roadmap skills drive the public-tracking half. They meet at one handoff: **Blend
+writes the IP, and once it is Approved hands off to `roadmap-item`.**
+
+| Transition | Who owns it | Authoritative artifact |
+| ---------- | ----------- | ---------------------- |
+| Idea debated and shaped | Community + maintainers | GitHub Discussion |
+| Discussion → first tracking issue (`Shaping`) | `roadmap-promote` | GitHub Issue + Project |
+| Design, scope, acceptance criteria | `terreno-1-blend` / `ip` | `docs/implementationPlans/<slug>.md` |
+| Task breakdown for implementation | `terreno-1-blend` / `ip` | `docs/tasks/<slug>.md` |
+| Approved IP → issue `Planned` + `IP` field set | `roadmap-item` | GitHub Issue + Project |
+| Implement, verify, submit, review | `terreno-2-roast` … `terreno-5-dialin` | the PR |
+| Sprint estimates, assignees, internal-only work | Linear | Linear |
+| Public rendered list | CI (`roadmap:generate`) | `ROADMAP.md` |
+
+**promote vs item — the one ambiguity worth stating plainly:** `roadmap-promote` opens the
+issue for community-originated work at `Shaping` and never sets the `IP` field or `Planned`.
+`roadmap-item` is the only skill that sets the `IP` field and moves an item to `Planned`,
+and it **updates the promoted issue** rather than opening a second one. Internal-origin work
+with no discussion skips promote and starts at `roadmap-item`.
+
+### Repos without a public roadmap
+
+The `terreno-planning` plugin is meant to run in any Terreno repo, including ones with no
+Discussions and no roadmap board (Flourish, most consumer apps). There, only the design-and-build
+half applies:
+
+- **Blend** still writes the IP + task list — that dual-file model is the source of truth
+  everywhere. It detects the absence of `.github/roadmap-fields.yml` and the `roadmap-item`
+  skill and **skips the roadmap handoff** instead of inventing issues or labels.
+- Sprint execution is tracked in Linear and linked from the IP header; it is never copied
+  into the plan.
+- The `roadmap-*` skills and everything under [Maintainer setup](#maintainer-setup) only
+  apply once a repo adopts the public roadmap.
+
 ## Maintainer setup
 
 > **Human action required.** Cloud agents cannot mutate GitHub org/repo settings. Run these
