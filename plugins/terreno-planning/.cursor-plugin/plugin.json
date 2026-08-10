@@ -2,7 +2,7 @@
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
   "description": "Five-stage agentic SDLC pipeline: plan, implement, review, submit, and triage PRs for Terreno apps.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"
