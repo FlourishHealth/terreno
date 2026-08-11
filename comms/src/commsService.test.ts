@@ -238,6 +238,51 @@ describe("CommsService", () => {
 
     assert.equal(await CommsMessage.countDocuments({status: "failed"}), 5);
     assert.equal(await CommsMessage.countDocuments({to: "[redacted]"}), 5);
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "mail",
+        error: "Provider send failed",
+        provider: "throw-mail",
+        status: "failed",
+      }),
+      1
+    );
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "sms",
+        error: "Provider send failed",
+        provider: "throw-sms",
+        status: "failed",
+      }),
+      1
+    );
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "push",
+        error: "Provider send failed",
+        provider: "throw-push",
+        status: "failed",
+      }),
+      1
+    );
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "verification",
+        error: "Provider send failed",
+        provider: "throw-verification",
+        status: "failed",
+      }),
+      1
+    );
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "verification",
+        error: "Provider check failed",
+        provider: "throw-verification",
+        status: "failed",
+      }),
+      1
+    );
   });
 
   it("logs missing push results as temporary failures without pruning tokens", async (): Promise<void> => {
@@ -276,6 +321,61 @@ describe("CommsService", () => {
       const updated = await PushToken.findExactlyOne({_id: token._id});
       assert.isTrue(updated.active);
     }
+  });
+
+  it("ignores provider push results that do not correspond to a token", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[single]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    const push: PushProvider = {
+      id: "extra-results",
+      sendPush: async (): Promise<SendResult[]> => [
+        {accepted: true, providerMessageId: "expected"},
+        {accepted: false, isPermanentFailure: true, providerMessageId: "extra"},
+      ],
+    };
+
+    const results = await new CommsService({push}).sendPushToUser({
+      body: "Hello",
+      title: "Title",
+      userId,
+    });
+
+    assert.lengthOf(results, 1);
+    assert.equal(results[0]?.providerMessageId, "expected");
+    assert.equal(await CommsMessage.countDocuments(), 1);
+    assert.equal(await CommsMessage.countDocuments({providerMessageId: "extra"}), 0);
+  });
+
+  it("keeps tokens active after explicit non-permanent provider failures", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    const token = await PushToken.upsert(
+      {token: "ExponentPushToken[temporary]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    const push: PushProvider = {
+      id: "temporary-failure",
+      sendPush: async (): Promise<SendResult[]> => [
+        {accepted: false, error: "Rate limited", isPermanentFailure: false},
+      ],
+    };
+
+    await new CommsService({push}).sendPushToUser({body: "Hello", title: "Title", userId});
+
+    const updated = await PushToken.findExactlyOne({_id: token._id});
+    assert.isTrue(updated.active);
   });
 
   it("records an invalid verification check as failed", async (): Promise<void> => {
