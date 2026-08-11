@@ -33,9 +33,8 @@ export class ConsoleMailProvider implements MailProvider {
   }
 
   async sendMail(message: MailMessage): Promise<SendResult> {
-    this.log(
-      `[comms:mail] to=${JSON.stringify(message.to)} subject=${JSON.stringify(message.subject)}`
-    );
+    const recipientCount = Array.isArray(message.to) ? message.to.length : 1;
+    this.log(`[comms:mail] recipients=${recipientCount} subjectLength=${message.subject.length}`);
     return acceptedResult();
   }
 }
@@ -49,7 +48,7 @@ export class ConsoleSmsProvider implements SmsProvider {
   }
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
-    this.log(`[comms:sms] to=${message.to} bodyLength=${message.body.length}`);
+    this.log(`[comms:sms] bodyLength=${message.body.length}`);
     return acceptedResult();
   }
 }
@@ -63,7 +62,7 @@ export class ConsolePushProvider implements PushProvider {
   }
 
   async sendPush(message: PushMessage): Promise<SendResult[]> {
-    this.log(`[comms:push] tokens=${message.tokens.length} title=${JSON.stringify(message.title)}`);
+    this.log(`[comms:push] tokens=${message.tokens.length} titleLength=${message.title.length}`);
     return message.tokens.map(acceptedResult);
   }
 }
@@ -76,13 +75,13 @@ export class ConsoleVerificationProvider implements VerificationProvider {
     this.log = options?.log ?? defaultLog;
   }
 
-  async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
-    this.log(`[comms:verification:check] to=${options.to}`);
+  async checkVerification(_options: CheckVerificationOptions): Promise<VerificationResult> {
+    this.log("[comms:verification:check]");
     return {valid: true};
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
-    this.log(`[comms:verification:start] to=${options.to} channel=${options.channel}`);
+    this.log(`[comms:verification:start] channel=${options.channel}`);
     return acceptedResult();
   }
 }

@@ -47,24 +47,26 @@ describe("console communications providers", () => {
     assert.isTrue(pushResults.every((result) => result.accepted));
     assert.isTrue(startResult.accepted);
     assert.isTrue(checkResult.valid);
-    assert.deepEqual(
-      messages.map((message) => message.match(/^\[comms:[^\]]+\]/)?.[0]),
-      [
-        "[comms:mail]",
-        "[comms:sms]",
-        "[comms:push]",
-        "[comms:verification:start]",
-        "[comms:verification:check]",
-      ]
-    );
+    assert.deepEqual(messages, [
+      "[comms:mail] recipients=1 subjectLength=7",
+      "[comms:sms] bodyLength=5",
+      "[comms:push] tokens=2 titleLength=7",
+      "[comms:verification:start] channel=sms",
+      "[comms:verification:check]",
+    ]);
   });
 
-  it("does not include message bodies or verification codes in logs", async (): Promise<void> => {
+  it("does not include content or recipient identifiers in logs", async (): Promise<void> => {
     const messages: string[] = [];
     const log = (message: string): void => {
       messages.push(message);
     };
 
+    await new ConsoleMailProvider({log}).sendMail({
+      subject: "Private reset token 654321",
+      text: "Private mail body",
+      to: "private@example.com",
+    });
     await new ConsoleSmsProvider({log}).sendSms({
       body: "Your private code is 654321",
       to: "+15555550100",
@@ -75,6 +77,9 @@ describe("console communications providers", () => {
     });
 
     assert.notInclude(messages.join(" "), "Your private code");
+    assert.notInclude(messages.join(" "), "Private reset token");
+    assert.notInclude(messages.join(" "), "private@example.com");
+    assert.notInclude(messages.join(" "), "+15555550100");
     assert.notInclude(messages.join(" "), "654321");
   });
 
@@ -97,7 +102,14 @@ describe("console communications providers", () => {
         to: "+15555550100",
       });
 
-      assert.lengthOf(messages, 4);
+      assert.deepEqual(messages, [
+        "[comms:mail] recipients=1 subjectLength=7",
+        "[comms:sms] bodyLength=5",
+        "[comms:push] tokens=1 titleLength=7",
+        "[comms:verification:start] channel=sms",
+      ]);
+      assert.notInclude(messages.join(" "), "person@example.com");
+      assert.notInclude(messages.join(" "), "+15555550100");
     } finally {
       info.mockRestore();
     }
