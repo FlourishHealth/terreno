@@ -15,7 +15,9 @@ const cliPath = join(
   "bin",
   "cli.mjs"
 );
-const configPath = join(__dirname, "..", "openapi-config.ts");
+const configFile = process.argv[2] ?? "openapi-config.ts";
+const sdkFile = process.argv[3] ?? "store/openApiSdk.ts";
+const configPath = join(__dirname, "..", configFile);
 const tsConfigPath = join(__dirname, "..", "tsconfig.codegen.json");
 
 // Use tsx to run the codegen CLI with the TypeScript config
@@ -33,7 +35,7 @@ exec(command, (error, stdout, stderr) => {
   }
 
   // Post-process: remove empty export line if it exists
-  const sdkPath = join(__dirname, "..", "store", "openApiSdk.ts");
+  const sdkPath = join(__dirname, "..", sdkFile);
 
   if (existsSync(sdkPath)) {
     let content = readFileSync(sdkPath, "utf8");
@@ -43,7 +45,7 @@ exec(command, (error, stdout, stderr) => {
 
   // Run biome formatting
   exec(
-    "bunx biome check --unsafe --write store/openApiSdk.ts",
+    `bunx biome check --unsafe --write ${sdkFile}`,
     {cwd: join(__dirname, "..")},
     (formatError, formatStdout) => {
       if (formatError) {
