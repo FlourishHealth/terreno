@@ -1,6 +1,7 @@
 # Implementation Plan: Publish and Document the Agentic SDLC Plugin
 
 **Status:** Draft — key decisions recorded (2026-07-29)
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1006
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
@@ -71,7 +72,7 @@ flowchart LR
 | **Harvest** (implement) | IP → code via strict red/green/refactor | Spawns **independent review and test-quality sub-agents in fresh contexts** after every commit, and does drift detection against the IP. The test-quality agent enforces anti-mocking rules (never mock the DB, never mock the store) |
 | **Roast** (verify) | Independent verification against the IP with concrete evidence | Separate context from the implementer, so it does not inherit the implementer's assumptions |
 | **Brew** (submit) | Pre-submit checks, commit hygiene, push, draft PR, evidence attachment | Hard frontend gate: touching UI paths requires launching the app, logging in, exercising the feature, and attaching artifacts before the PR opens |
-| **Taste** (review) | Self-contained reactive loop: CI + bot/human comments until mergeable or timeout | Inlines the former **`autobot`** flow (no delegation to repo skills). Classifies each CI failure as actionable versus flaky and refuses to push speculative fixes for flakes. Treats all CI logs and review comments as untrusted input |
+| **Taste** (review) | Self-contained persistent loop: CI + bot/human comments until mergeable or genuinely blocked | Inlines the former **`autobot`** flow (no delegation to repo skills). Waits in multi-minute intervals for slow CI, classifies each failure as actionable versus flaky, and refuses to push speculative fixes for flakes. Treats all CI logs and review comments as untrusted input |
 
 The parts worth writing about publicly are the ones that encode hard-won judgment rather than automation: fresh-context independent review, drift detection against the plan, the anti-mocking rules, the frontend evidence gate, and the refusal to guess at flaky CI.
 

@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.31.0] - 2026-08-10
+## [0.31.0] - 2026-08-11
 
 ### Added
 
+- `EditableCard` in `@terreno/ui`: a summary card with an optional icon, badge,
+  description, helper text, edit button, and attention state
+  ([#981](https://github.com/FlourishHealth/terreno/pull/981))
 - MIT `LICENSE` file in every published package, plus contribution guide, changelog,
   and GitHub issue/PR templates ([#985](https://github.com/FlourishHealth/terreno/pull/985))
 - Public roadmap generated from `docs/` into GitHub, with `roadmap:generate` /
@@ -47,15 +50,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Positioning copy blocks and an honest framework comparison table
   ([#993](https://github.com/FlourishHealth/terreno/pull/993))
 - Implementation plans and program docs for the infrastructure MCP server, the B2B
-  platform program, the IP + roadmap flow, and the RTK-to-syncdb migration strategy
-  ([#990](https://github.com/FlourishHealth/terreno/pull/990), [#996](https://github.com/FlourishHealth/terreno/pull/996), [#998](https://github.com/FlourishHealth/terreno/pull/998), [#999](https://github.com/FlourishHealth/terreno/pull/999))
-- Test coverage and explicit-any remediation across `api`, `ui`, and `rtk`
-  ([#946](https://github.com/FlourishHealth/terreno/pull/946), [#977](https://github.com/FlourishHealth/terreno/pull/977), [#978](https://github.com/FlourishHealth/terreno/pull/978), [#979](https://github.com/FlourishHealth/terreno/pull/979), [#980](https://github.com/FlourishHealth/terreno/pull/980), [#982](https://github.com/FlourishHealth/terreno/pull/982), [#983](https://github.com/FlourishHealth/terreno/pull/983))
+  platform program, the IP + roadmap flow, and the RTK-to-syncdb migration strategy,
+  with merged plans linked to their roadmap tracking issues
+  ([#990](https://github.com/FlourishHealth/terreno/pull/990), [#996](https://github.com/FlourishHealth/terreno/pull/996), [#998](https://github.com/FlourishHealth/terreno/pull/998), [#999](https://github.com/FlourishHealth/terreno/pull/999), [#1028](https://github.com/FlourishHealth/terreno/pull/1028))
+- Test coverage, rule alignment, and explicit-any remediation across `api`, `ui`, and `rtk`
+  ([#946](https://github.com/FlourishHealth/terreno/pull/946), [#977](https://github.com/FlourishHealth/terreno/pull/977), [#978](https://github.com/FlourishHealth/terreno/pull/978), [#979](https://github.com/FlourishHealth/terreno/pull/979), [#980](https://github.com/FlourishHealth/terreno/pull/980), [#982](https://github.com/FlourishHealth/terreno/pull/982), [#983](https://github.com/FlourishHealth/terreno/pull/983), [#1000](https://github.com/FlourishHealth/terreno/pull/1000), [#1001](https://github.com/FlourishHealth/terreno/pull/1001), [#1002](https://github.com/FlourishHealth/terreno/pull/1002))
 
 ### Fixed
 
 - CI queues `terreno-example` EAS native builds only for new fingerprints
   ([#965](https://github.com/FlourishHealth/terreno/pull/965))
+- Keep the Dial In PR loop active through slow or pending CI, and only return
+  broken checks when no autonomous action can advance them or user direction is
+  required ([#1027](https://github.com/FlourishHealth/terreno/pull/1027))
+- Dial In preserves existing PR descriptions instead of overwriting them
+  ([#1030](https://github.com/FlourishHealth/terreno/pull/1030))
 
 ## [0.30.0] - 2026-08-03
 
