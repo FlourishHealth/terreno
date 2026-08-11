@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
 import {execFile} from "node:child_process";
-import {existsSync, readFileSync, writeFileSync} from "node:fs";
-import {extname, join, resolve, sep} from "node:path";
+import {existsSync, readFileSync, realpathSync, writeFileSync} from "node:fs";
+import {basename, dirname, extname, join, resolve, sep} from "node:path";
 
 // Find the CLI binary path directly
 const cliPath = join(
@@ -21,16 +21,24 @@ const projectRoot = resolve(__dirname, "..");
 const configPath = resolve(projectRoot, configFile);
 const sdkPath = resolve(projectRoot, sdkFile);
 const tsConfigPath = join(__dirname, "..", "tsconfig.codegen.json");
+const canonicalProjectRoot = realpathSync(projectRoot);
 
-const isProjectFile = (filePath: string): boolean =>
-  filePath.startsWith(`${projectRoot}${sep}`) && extname(filePath) === ".ts";
+const isProjectFile = (filePath: string): boolean => {
+  if (!filePath.startsWith(`${projectRoot}${sep}`) || extname(filePath) !== ".ts") {
+    return false;
+  }
+  const canonicalPath = existsSync(filePath)
+    ? realpathSync(filePath)
+    : resolve(realpathSync(dirname(filePath)), basename(filePath));
+  return canonicalPath.startsWith(`${canonicalProjectRoot}${sep}`);
+};
 
 if (!isProjectFile(configPath) || !isProjectFile(sdkPath)) {
   console.error("SDK config and output must be TypeScript files inside example-frontend");
   process.exit(1);
 }
 
-// ts-node is required by the RTK codegen CLI to load its TypeScript configuration.
+// The RTK codegen CLI uses ts-node here because this workspace does not install esbuild-runner.
 execFile(
   "tsx",
   [cliPath, configPath],
