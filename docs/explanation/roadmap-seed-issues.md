@@ -417,6 +417,27 @@ SES, SMTP) get their own items when demand appears.
 
 ---
 
+## comms-admin-dashboard
+
+**Title:** `[Roadmap] Comms admin dashboard (errors, retries, log digging)`
+
+**Labels:** `area:admin`, `type:feature`
+**Project fields:** Area=`admin`, Target=`Next`, Impact=`Feature`, IP=`comms-admin-dashboard`, Status=`Planned`
+
+Makes the admin panel the operations surface for the `@terreno/comms` layer: filterable
+delivery logs (channel, provider, status, error code/class, recipient, date range, free
+text), a message detail view with per-attempt history and raw provider metadata for log
+digging, one-click and bulk retry of failed sends, and a stats endpoint for failure-rate
+cards. Builds on the error taxonomy, lifecycle hooks, and payload retention added to the
+comms abstraction.
+
+- **Implementation plan:** [comms-admin-dashboard.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/comms-admin-dashboard.md)
+- **Tasks:** [comms-admin-dashboard.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/comms-admin-dashboard.md)
+- **RTK flag:** Partial — screens use the generated SDK; migrate with syncdb like other admin screens
+- **Depends on:** comms-abstraction
+
+---
+
 ## password-reset-and-email-verification
 
 **Title:** `[Roadmap] Password reset and email verification`
