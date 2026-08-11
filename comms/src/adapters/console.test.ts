@@ -2,7 +2,24 @@ import {describe, it, spyOn} from "bun:test";
 import {logger} from "@terreno/api";
 import {assert} from "chai";
 
-import type {MailProvider, PushProvider, SmsProvider, VerificationProvider} from "../index";
+import type {
+  CheckVerificationOptions,
+  CommsChannel,
+  CommsMessageStatus,
+  CommsOptions,
+  DeliveryEvent,
+  MailMessage,
+  MailProvider,
+  PushMessage,
+  PushProvider,
+  SendPushToUserMessage,
+  SendResult,
+  SmsMessage,
+  SmsProvider,
+  StartVerificationOptions,
+  VerificationProvider,
+  VerificationResult,
+} from "../index";
 import {
   ConsoleMailProvider,
   ConsolePushProvider,
@@ -11,6 +28,64 @@ import {
 } from "./console";
 
 describe("console communications providers", () => {
+  it("exports the complete provider contract surface", (): void => {
+    const mailMessage: MailMessage = {subject: "Subject", to: "person@example.com"};
+    const smsMessage: SmsMessage = {body: "Body", to: "+15555550100"};
+    const pushMessage: PushMessage = {body: "Body", title: "Title", tokens: ["token"]};
+    const pushToUserMessage: SendPushToUserMessage = {
+      body: "Body",
+      title: "Title",
+      userId: "user-id",
+    };
+    const start: StartVerificationOptions = {channel: "sms", to: "+15555550100"};
+    const check: CheckVerificationOptions = {code: "123456", to: "+15555550100"};
+    const result: SendResult = {accepted: true};
+    const verificationResult: VerificationResult = {valid: true};
+    const delivery: DeliveryEvent = {
+      channel: "mail",
+      providerMessageId: "provider-id",
+      status: "delivered",
+    };
+    const channel: CommsChannel = "mail";
+    const status: CommsMessageStatus = "sent";
+    const options: CommsOptions = {defaultFrom: "sender@example.com"};
+
+    assert.deepEqual(
+      {
+        channel,
+        check,
+        delivery,
+        mailMessage,
+        options,
+        pushMessage,
+        pushToUserMessage,
+        result,
+        smsMessage,
+        start,
+        status,
+        verificationResult,
+      },
+      {
+        channel: "mail",
+        check: {code: "123456", to: "+15555550100"},
+        delivery: {
+          channel: "mail",
+          providerMessageId: "provider-id",
+          status: "delivered",
+        },
+        mailMessage: {subject: "Subject", to: "person@example.com"},
+        options: {defaultFrom: "sender@example.com"},
+        pushMessage: {body: "Body", title: "Title", tokens: ["token"]},
+        pushToUserMessage: {body: "Body", title: "Title", userId: "user-id"},
+        result: {accepted: true},
+        smsMessage: {body: "Body", to: "+15555550100"},
+        start: {channel: "sms", to: "+15555550100"},
+        status: "sent",
+        verificationResult: {valid: true},
+      }
+    );
+  });
+
   it("accepts every channel operation and emits channel-specific logs", async (): Promise<void> => {
     const messages: string[] = [];
     const log = (message: string): void => {
@@ -75,11 +150,17 @@ describe("console communications providers", () => {
       code: "654321",
       to: "+15555550100",
     });
+    await new ConsolePushProvider({log}).sendPush({
+      body: "Private push body",
+      title: "Private push title",
+      tokens: ["ExponentPushToken[private-token]"],
+    });
 
     assert.notInclude(messages.join(" "), "Your private code");
     assert.notInclude(messages.join(" "), "Private reset token");
     assert.notInclude(messages.join(" "), "private@example.com");
     assert.notInclude(messages.join(" "), "+15555550100");
+    assert.notInclude(messages.join(" "), "ExponentPushToken[private-token]");
     assert.notInclude(messages.join(" "), "654321");
   });
 
