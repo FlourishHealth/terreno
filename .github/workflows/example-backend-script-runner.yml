@@ -13,10 +13,12 @@ on:
       - "admin-backend/**"
       - "admin-frontend/**"
       - "admin-spa/**"
+      - "comms/**"
       - "feature-flags/**"
       - "rtk/**"
       - "ui/**"
       - "example-backend/**"
+      - "bun.lock"
       - ".github/workflows/example-backend-script-runner.yml"
 
 jobs:
