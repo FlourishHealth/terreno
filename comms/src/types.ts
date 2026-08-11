@@ -3,6 +3,7 @@ import type mongoose from "mongoose";
 export interface SendResult {
   accepted: boolean;
   error?: string;
+  isPermanentFailure?: boolean;
   providerMessageId?: string;
 }
 
@@ -81,6 +82,7 @@ export interface CommsOptions {
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
   push?: PushProvider;
+  redactRecipients?: boolean;
   sms?: SmsProvider;
   verification?: VerificationProvider;
 }

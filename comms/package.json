@@ -4,13 +4,16 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "@terreno/api": "workspace:*"
+    "@terreno/api": "workspace:*",
+    "luxon": "catalog:"
   },
   "description": "Pluggable communications providers for Terreno backends",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",
-    "chai": "^6.2.2",
+    "@types/luxon": "catalog:",
+    "chai": "catalog:",
     "typescript": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",

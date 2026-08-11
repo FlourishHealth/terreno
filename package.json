@@ -38,6 +38,7 @@
     "axios": "^1.13.2",
     "babel-preset-expo": "~54.0.10",
     "better-auth": "^1.2.8",
+    "chai": "^6.2.2",
     "expo": "~54.0.29",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.12",
@@ -105,7 +106,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/chai": "^5.2.3",
-    "chai": "^6.2.2",
+    "chai": "catalog:",
     "luxon": "catalog:",
     "rulesync": "^9.6.3",
     "zod": "catalog:"
