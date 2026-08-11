@@ -179,6 +179,7 @@
     "check:upgrade-docs": "bun run scripts/check-upgrade-docs/check.ts",
     "comms:compile": "bun run --filter '@terreno/comms' compile",
     "comms:lint": "bun run --filter '@terreno/comms' lint",
+    "comms:sdk": "bun example-frontend/scripts/generate-sdk.ts comms-openapi-config.ts store/commsOpenApiSdk.ts",
     "comms:test": "bun run --filter '@terreno/comms' test",
     "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",

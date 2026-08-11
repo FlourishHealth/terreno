@@ -53,7 +53,6 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "sdk": "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
-    "sdk:comms": "bun scripts/generate-sdk.ts comms-openapi-config.ts store/commsOpenApiSdk.ts",
     "start": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --port 8082",
     "test": "bun test ./**/*.test.ts ./**/*.test.tsx",
     "test:e2e": "playwright test",
