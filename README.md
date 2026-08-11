@@ -60,6 +60,7 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
 - **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
+- **comms/** - Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
 - **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
 
 ### Deployed Services

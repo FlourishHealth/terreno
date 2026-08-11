@@ -174,9 +174,10 @@ optional), `userId` (ref User, optional), `status` ("sent" | "failed" | "deliver
 | DELETE | `/comms/pushTokens/:id` | IsOwner | Deactivate on logout/uninstall |
 | GET | `/comms/messages` | IsAdmin | Paginated delivery log explorer; filters: `channel`, `status`, `userId`, date range |
 
-Push token routes via `modelRouter` with `preCreate` owner injection and
-`OwnerQueryFilter`; explorer via `createOpenApiBuilder`, modeled on
-`addAiRequestsExplorerRoutes`.
+Push token registration, owner-scoped list, and deactivation use dedicated handlers because
+`modelRouter` create cannot provide idempotent upsert semantics and `OwnerQueryFilter` targets a
+persisted `ownerId` while `PushToken` persists `userId`. Owner read remains on `modelRouter`.
+The explorer uses `createOpenApiBuilder`, modeled on `addAiRequestsExplorerRoutes`.
 
 ## Notifications
 
@@ -228,13 +229,13 @@ See [docs/tasks/comms-abstraction.md](../tasks/comms-abstraction.md).
 
 ## Acceptance Criteria
 
-- [ ] A Terreno app with only console adapters can call `sendMail`, `sendSms`,
+- [x] A Terreno app with only console adapters can call `sendMail`, `sendSms`,
       `sendPushToUser`, and `startVerification`/`checkVerification` in development, each
       producing a logger line and a `CommsMessage` row.
-- [ ] `POST /comms/pushTokens` registers a device token for the authenticated user;
+- [x] `POST /comms/pushTokens` registers a device token for the authenticated user;
       re-posting the same token updates rather than duplicates; other users cannot list or
       delete it.
-- [ ] `GET /comms/messages` is admin-only, paginated, and filterable by channel and status.
-- [ ] Production apps with an unconfigured channel get a 501 `APIError`, not a silent no-op.
-- [ ] `@terreno/comms` core has zero provider SDKs in `dependencies`.
-- [ ] All routes appear in `/openapi.json` and the generated SDK compiles.
+- [x] `GET /comms/messages` is admin-only, paginated, and filterable by channel and status.
+- [x] Production apps with an unconfigured channel get a 501 `APIError`, not a silent no-op.
+- [x] `@terreno/comms` core has zero provider SDKs in `dependencies`.
+- [x] All routes appear in `/openapi.json` and the generated SDK compiles.

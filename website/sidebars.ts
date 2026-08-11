@@ -24,6 +24,7 @@ const sidebars: SidebarsConfig = {
         "reference/admin-backend",
         "reference/admin-frontend",
         "reference/api-health",
+        "reference/comms",
         "reference/feature-flags",
         "reference/mcp-server",
         "reference/environment-variables",
