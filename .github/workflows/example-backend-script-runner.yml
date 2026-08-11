@@ -57,7 +57,7 @@ jobs:
       # example-backend imports the compiled output of these workspace packages.
       - name: Build dependencies
         run: |
-          for pkg in api ai api-health admin-backend feature-flags ui rtk admin-frontend admin-spa; do
+          for pkg in api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa; do
             echo "::group::compile $pkg"
             (cd "$pkg" && bun run compile)
             echo "::endgroup::"
