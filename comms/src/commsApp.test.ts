@@ -45,6 +45,7 @@ describe("CommsApp", () => {
   it("upserts push tokens and isolates list and delete operations by owner", async (): Promise<void> => {
     const app = buildApp();
     const owner = await authAsUser(app, "notAdmin");
+    const admin = await authAsUser(app, "admin");
     const other = supertest.agent(app);
     const signup = await other
       .post("/auth/signup")
@@ -71,6 +72,7 @@ describe("CommsApp", () => {
     assert.lengthOf(otherList.body.data, 0);
 
     await other.delete(`/comms/pushTokens/${created.body.data._id}`).expect(403);
+    await admin.delete(`/comms/pushTokens/${created.body.data._id}`).expect(403);
     await owner.delete(`/comms/pushTokens/${created.body.data._id}`).expect(204);
 
     const token = await PushToken.findExactlyOne({_id: created.body.data._id});
@@ -86,7 +88,7 @@ describe("CommsApp", () => {
       .expect(401);
   });
 
-  it("transfers a re-registered device token to the current user", async (): Promise<void> => {
+  it("transfers an inactive device token without allowing active-token takeover", async (): Promise<void> => {
     const app = buildApp();
     const first = await authAsUser(app, "notAdmin");
     const second = supertest.agent(app);
@@ -96,10 +98,18 @@ describe("CommsApp", () => {
       .expect(200);
     await second.set("authorization", `Bearer ${signup.body.data.token}`);
 
-    await first
+    const created = await first
       .post("/comms/pushTokens")
       .send({platform: "ios", token: "ExponentPushToken[transfer]"})
       .expect(201);
+    await second
+      .post("/comms/pushTokens")
+      .send({platform: "android", token: "ExponentPushToken[transfer]"})
+      .expect(409);
+    assert.lengthOf((await first.get("/comms/pushTokens").expect(200)).body.data, 1);
+    assert.lengthOf((await second.get("/comms/pushTokens").expect(200)).body.data, 0);
+
+    await first.delete(`/comms/pushTokens/${created.body.data._id}`).expect(204);
     const transferred = await second
       .post("/comms/pushTokens")
       .send({platform: "android", token: "ExponentPushToken[transfer]"})
@@ -125,6 +135,11 @@ describe("CommsApp", () => {
     const owner = await authAsUser(app, "notAdmin");
 
     await owner.post("/comms/pushTokens").send({platform: "ios", token: " "}).expect(400);
+    await owner.post("/comms/pushTokens").send({platform: "ios"}).expect(400);
+    await owner
+      .post("/comms/pushTokens")
+      .send({token: "ExponentPushToken[missing-platform]"})
+      .expect(400);
     await owner
       .post("/comms/pushTokens")
       .send({platform: "desktop", token: "ExponentPushToken[test]"})
@@ -198,6 +213,18 @@ describe("CommsApp", () => {
       (await admin.get("/comms/messages").query({endDate: "not-a-date"}).expect(400)).body.title,
       "Invalid endDate format"
     );
+    assert.equal(
+      (
+        await admin
+          .get("/comms/messages")
+          .query({
+            endDate: DateTime.utc().minus({minutes: 1}).toISO(),
+            startDate: DateTime.utc().plus({minutes: 1}).toISO(),
+          })
+          .expect(400)
+      ).body.title,
+      "startDate must not be after endDate"
+    );
   });
 
   it("clamps explorer pagination and reports additional pages", async (): Promise<void> => {
@@ -218,12 +245,21 @@ describe("CommsApp", () => {
     const first = await admin.get("/comms/messages").query({limit: 1, page: 0}).expect(200);
     const second = await admin.get("/comms/messages").query({limit: 1, page: 2}).expect(200);
     const clamped = await admin.get("/comms/messages").query({limit: 999}).expect(200);
+    const negative = await admin.get("/comms/messages").query({limit: -10, page: -2}).expect(200);
+    const nonNumeric = await admin
+      .get("/comms/messages")
+      .query({limit: "invalid", page: "invalid"})
+      .expect(200);
 
     assert.equal(first.body.page, 1);
     assert.isTrue(first.body.more);
     assert.equal(second.body.page, 2);
     assert.isFalse(second.body.more);
     assert.equal(clamped.body.limit, 100);
+    assert.equal(negative.body.limit, 1);
+    assert.equal(negative.body.page, 1);
+    assert.equal(nonNumeric.body.limit, 20);
+    assert.equal(nonNumeric.body.page, 1);
   });
 
   it("publishes push-token and delivery-explorer routes in OpenAPI", async (): Promise<void> => {
@@ -240,5 +276,6 @@ describe("CommsApp", () => {
     assert.property(response.body.paths["/comms/pushTokens"], "post");
     assert.property(response.body.paths, "/comms/messages");
     assert.property(response.body.paths["/comms/messages"], "get");
+    assert.notProperty(response.body.paths, "/comms/pushTokens/");
   });
 });

@@ -59,6 +59,8 @@ export const addCommsExplorerRoute = (
       const match: Record<string, unknown> & {created?: {$gte?: Date; $lte?: Date}} = {
         deleted: {$ne: true},
       };
+      let startTimestamp: number | undefined;
+      let endTimestamp: number | undefined;
 
       if (req.query.channel) {
         match.channel = req.query.channel;
@@ -77,6 +79,7 @@ export const addCommsExplorerRoute = (
         if (!start.isValid) {
           throw new APIError({status: 400, title: "Invalid startDate format"});
         }
+        startTimestamp = start.toMillis();
         match.created.$gte = start.toJSDate();
       }
       if (req.query.endDate && match.created) {
@@ -84,7 +87,15 @@ export const addCommsExplorerRoute = (
         if (!end.isValid) {
           throw new APIError({status: 400, title: "Invalid endDate format"});
         }
+        endTimestamp = end.toMillis();
         match.created.$lte = end.toJSDate();
+      }
+      if (
+        startTimestamp !== undefined &&
+        endTimestamp !== undefined &&
+        startTimestamp > endTimestamp
+      ) {
+        throw new APIError({status: 400, title: "startDate must not be after endDate"});
       }
 
       const [messages, total] = await Promise.all([

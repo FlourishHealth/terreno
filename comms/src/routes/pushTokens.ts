@@ -80,6 +80,10 @@ export const addPushTokenRoutes = (
       }
 
       const existing = await PushToken.findOneOrNone({token: body.token});
+      const isExistingOwner = existing?.userId.toString() === String(user._id);
+      if (existing?.active && !isExistingOwner) {
+        throw new APIError({status: 409, title: "Push token is registered to another user"});
+      }
       const token = await PushToken.upsert(
         {token: body.token},
         {
@@ -91,6 +95,55 @@ export const addPushTokenRoutes = (
         }
       );
       return res.status(existing ? 200 : 201).json({data: token});
+    })
+  );
+
+  app.get(
+    basePath,
+    [
+      authenticateMiddleware(),
+      createOpenApiBuilder(routeOpenApi)
+        .withTags(["comms"])
+        .withSummary("List the current user's push tokens")
+        .withQueryParameter("page", {type: "number"}, {required: false})
+        .withQueryParameter("limit", {type: "number"}, {required: false})
+        .withQueryParameter("active", {type: "boolean"}, {required: false})
+        .withQueryParameter("platform", {type: "string"}, {required: false})
+        .withResponse(200, {
+          data: {items: {type: "object"}, type: "array"},
+          limit: {type: "number"},
+          more: {type: "boolean"},
+          page: {type: "number"},
+          total: {type: "number"},
+        })
+        .build(),
+    ],
+    asyncHandler(async (req: express.Request, res: express.Response) => {
+      const user = getAuthenticatedUser(req);
+      const page = Math.max(1, Number.parseInt(req.query.page as string, 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, Number.parseInt(req.query.limit as string, 10) || 20)
+      );
+      const skip = (page - 1) * limit;
+      const match: Record<string, unknown> = {userId: user._id};
+      if (req.query.active === "true" || req.query.active === "false") {
+        match.active = req.query.active === "true";
+      }
+      if (req.query.platform) {
+        match.platform = req.query.platform;
+      }
+      const [tokens, total] = await Promise.all([
+        PushToken.find(match).sort("-lastSeenAt").skip(skip).limit(limit),
+        PushToken.countDocuments(match),
+      ]);
+      return res.json({
+        data: tokens,
+        limit,
+        more: skip + limit < total,
+        page,
+        total,
+      });
     })
   );
 
@@ -109,7 +162,7 @@ export const addPushTokenRoutes = (
       const user = getAuthenticatedUser(req);
       const token = await PushToken.findExactlyOne({_id: req.params.id});
       const isOwner = token.userId.toString() === String(user._id);
-      if (!isOwner && !user.admin) {
+      if (!isOwner) {
         throw new APIError({status: 403, title: "Push token belongs to another user"});
       }
 
@@ -124,7 +177,7 @@ export const addPushTokenRoutes = (
     permissions: {
       create: [],
       delete: [],
-      list: [Permissions.IsAuthenticated],
+      list: [],
       read: [Permissions.IsOwner],
       update: [],
     },
