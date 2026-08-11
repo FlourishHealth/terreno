@@ -1,6 +1,6 @@
 # Implementation Plan: Pluggable communications layer (@terreno/comms)
 
-**Status:** Draft
+**Status:** In progress (Phase 1)
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1018
 **Priority:** High
 **Effort:** Big batch
@@ -142,8 +142,9 @@ new TerrenoApp({userModel: User})
 
 `CommsApp.register()` mounts the push-token routes and admin explorer;
 `getCommsService()` (module-level accessor, mirroring how `FeatureFlagsApp` exposes
-evaluation) gives routes and other plugins `sendMail` / `sendSms` / `sendPushToUser` /
-`startVerification` / `checkVerification`. `sendPushToUser(userId, message)` resolves the
+evaluation) gives routes and other plugins `sendMail` / `sendSms` / `sendPush` /
+`sendPushToUser` / `startVerification` / `checkVerification`. Phase 1 exposes provider-level
+`sendPush(message)`. Phase 2 adds `sendPushToUser(userId, message)`, which resolves the
 user's active `PushToken`s and prunes tokens the provider reports dead.
 
 Unconfigured channel behavior: in production, throw `APIError({status: 501, title:

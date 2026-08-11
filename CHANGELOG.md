@@ -3,13 +3,19 @@
 All notable changes to this project are documented in this file.
 
 All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
-`admin-frontend`, `admin-spa`, `ai`, `api-health`, `feature-flags`, `mcp`) are
+`admin-frontend`, `admin-spa`, `ai`, `api-health`, `comms`, `feature-flags`, `mcp`) are
 versioned in lockstep and published at the same version.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- Phase 1 of `@terreno/comms`: provider contracts for mail, SMS, push, and OTP
+  verification; console development adapters; a provider-agnostic send service; template
+  rendering; and durable, failure-safe delivery logging.
 
 ## [0.31.0] - 2026-08-11
 

@@ -4,28 +4,28 @@ IP: [comms-abstraction](../implementationPlans/comms-abstraction.md)
 
 ## Phase 1 — Package + contracts
 
-- [ ] **Task 1.1**: Scaffold `@terreno/comms` workspace package
+- [x] **Task 1.1**: Scaffold `@terreno/comms` workspace package
   - Description: `comms/` package with tsconfig/biome/bun test setup mirroring `feature-flags/`; root workspace entry + `comms:*` scripts
   - Files: `comms/package.json`, `comms/tsconfig.json`, `comms/biome.jsonc`, root `package.json`
   - Depends on: none
   - Acceptance: `bun run comms:compile` and `bun run comms:lint` pass
-- [ ] **Task 1.2**: Provider interfaces and message types
+- [x] **Task 1.2**: Provider interfaces and message types
   - Description: `MailProvider`, `SmsProvider`, `PushProvider`, `VerificationProvider`, `SendResult`, `DeliveryEvent` per IP
   - Files: `comms/src/types.ts`
   - Depends on: 1.1
   - Acceptance: types compile and are exported
-- [ ] **Task 1.3**: Console adapters
+- [x] **Task 1.3**: Console adapters
   - Description: dev adapters for all four channels logging via `logger.info`
   - Files: `comms/src/adapters/console.ts` + tests
   - Depends on: 1.2
   - Acceptance: each adapter returns `accepted: true` and logs
-- [ ] **Task 1.4**: `CommsMessage` model + `logSend`
+- [x] **Task 1.4**: `CommsMessage` model + `logSend`
   - Description: delivery log model with five-type pattern, `description` on every field, plugins, static `logSend` that never throws
   - Files: `comms/src/models/commsMessage.ts` + tests
   - Depends on: 1.1
   - Acceptance: send logging survives a forced model error (logged, not thrown)
-- [ ] **Task 1.5**: `commsService` send facade
-  - Description: `sendMail`/`sendSms`/`sendPushToUser`/`startVerification`/`checkVerification`; template render helper; unconfigured-channel behavior (501 in prod, console fallback in dev)
+- [x] **Task 1.5**: `commsService` send facade
+  - Description: `sendMail`/`sendSms`/`sendPush`/`startVerification`/`checkVerification`; template render helper; unconfigured-channel behavior (501 in prod, console fallback in dev). User-token resolution remains Task 2.5.
   - Files: `comms/src/commsService.ts`, `comms/src/templates.ts` + tests
   - Depends on: 1.2, 1.3, 1.4
   - Acceptance: unit tests cover happy path + unconfigured channel in both env modes
