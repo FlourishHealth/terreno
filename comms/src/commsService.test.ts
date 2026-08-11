@@ -316,6 +316,8 @@ describe("CommsService", () => {
       (): Promise<unknown> => service.sendMail({subject: "Welcome", to: "person@example.com"}),
       (): Promise<unknown> => service.sendSms({body: "Hello", to: "+15555550100"}),
       (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId}),
+      (): Promise<unknown> => service.startVerification({channel: "sms", to: "+15555550100"}),
+      (): Promise<unknown> => service.checkVerification({code: "654321", to: "+15555550100"}),
       (): Promise<unknown> =>
         service.startVerification({channel: "email", to: "person@example.com"}),
       (): Promise<unknown> => service.checkVerification({code: "123456", to: "person@example.com"}),
@@ -326,13 +328,23 @@ describe("CommsService", () => {
       assert.instanceOf(error, Error);
     }
 
-    assert.equal(await CommsMessage.countDocuments({status: "failed"}), 5);
-    assert.equal(await CommsMessage.countDocuments({to: "[redacted]"}), 5);
+    assert.equal(await CommsMessage.countDocuments({status: "failed"}), 7);
+    assert.equal(await CommsMessage.countDocuments({to: "[redacted]"}), 7);
     assert.equal(
       await CommsMessage.countDocuments({
         channel: "mail",
         error: "Provider send failed",
         provider: "throw-mail",
+        status: "failed",
+      }),
+      1
+    );
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "verification",
+        error: "Provider send failed",
+        "metadata.verificationChannel": "sms",
+        provider: "throw-verification",
         status: "failed",
       }),
       1
@@ -372,8 +384,9 @@ describe("CommsService", () => {
         provider: "throw-verification",
         status: "failed",
       }),
-      1
+      2
     );
+    assert.equal(await CommsMessage.countDocuments({to: "+15555550100"}), 0);
     assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
   });
 
@@ -480,13 +493,20 @@ describe("CommsService", () => {
       startVerification: async (): Promise<SendResult> => ({accepted: true}),
     };
 
-    const result = await new CommsService({verification}).checkVerification({
+    const service = new CommsService({verification});
+    const emailResult = await service.checkVerification({
       code: "wrong-code",
       to: "person@example.com",
     });
+    const smsResult = await service.checkVerification({
+      code: "wrong-code",
+      to: "+15555550100",
+    });
 
-    assert.isFalse(result.valid);
-    assert.equal(result.error, "Verification expired");
+    assert.isFalse(emailResult.valid);
+    assert.equal(emailResult.error, "Verification expired");
+    assert.isFalse(smsResult.valid);
+    assert.equal(smsResult.error, "Verification expired");
     assert.equal(
       await CommsMessage.countDocuments({
         channel: "verification",
@@ -494,9 +514,10 @@ describe("CommsService", () => {
         status: "failed",
         to: "[redacted]",
       }),
-      1
+      2
     );
     assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
+    assert.equal(await CommsMessage.countDocuments({to: "+15555550100"}), 0);
   });
 
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {
