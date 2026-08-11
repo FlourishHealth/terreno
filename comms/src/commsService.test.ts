@@ -6,6 +6,7 @@ import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import {CommsService} from "./commsService";
 import type {
+  CheckVerificationOptions,
   MailMessage,
   MailProvider,
   PushMessage,
@@ -142,10 +143,10 @@ describe("CommsService", () => {
 
   it("supports starting and checking both SMS and email verification", async (): Promise<void> => {
     const started: StartVerificationOptions[] = [];
-    const checkedDestinations: string[] = [];
+    const checked: CheckVerificationOptions[] = [];
     const verification: VerificationProvider = {
-      checkVerification: async ({to}): Promise<{valid: boolean}> => {
-        checkedDestinations.push(to);
+      checkVerification: async (options): Promise<{valid: boolean}> => {
+        checked.push(options);
         return {valid: true};
       },
       id: "multi-channel-verification",
@@ -177,11 +178,14 @@ describe("CommsService", () => {
     assert.isTrue(emailStart.accepted);
     assert.isTrue(smsCheck.valid);
     assert.isTrue(emailCheck.valid);
-    assert.deepEqual(
-      started.map(({channel}) => channel),
-      ["sms", "email"]
-    );
-    assert.deepEqual(checkedDestinations, ["+15555550100", "person@example.com"]);
+    assert.deepEqual(started, [
+      {channel: "sms", to: "+15555550100"},
+      {channel: "email", to: "person@example.com"},
+    ]);
+    assert.deepEqual(checked, [
+      {code: "123456", to: "+15555550100"},
+      {code: "654321", to: "person@example.com"},
+    ]);
     assert.equal(
       await CommsMessage.countDocuments({
         channel: "verification",
@@ -191,6 +195,10 @@ describe("CommsService", () => {
       }),
       4
     );
+    assert.equal(await CommsMessage.countDocuments({to: "+15555550100"}), 0);
+    assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
+    assert.equal(await CommsMessage.countDocuments({"metadata.verificationChannel": "sms"}), 1);
+    assert.equal(await CommsMessage.countDocuments({"metadata.verificationChannel": "email"}), 1);
   });
 
   it("uses console providers for every unconfigured channel outside production", async (): Promise<void> => {
@@ -434,18 +442,30 @@ describe("CommsService", () => {
 
   it("records an invalid verification check as failed", async (): Promise<void> => {
     const verification: VerificationProvider = {
-      checkVerification: async (): Promise<{valid: boolean}> => ({valid: false}),
+      checkVerification: async (): Promise<{error: string; valid: boolean}> => ({
+        error: "Verification expired",
+        valid: false,
+      }),
       id: "memory-verification",
       startVerification: async (): Promise<SendResult> => ({accepted: true}),
     };
 
     const result = await new CommsService({verification}).checkVerification({
       code: "wrong-code",
-      to: "+15555550100",
+      to: "person@example.com",
     });
 
     assert.isFalse(result.valid);
-    assert.equal(await CommsMessage.countDocuments({channel: "verification", status: "failed"}), 1);
+    assert.equal(result.error, "Verification expired");
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "verification",
+        error: "Verification expired",
+        status: "failed",
+        to: "[redacted]",
+      }),
+      1
+    );
   });
 
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {

@@ -61,7 +61,9 @@ await getCommsService().sendSms({
 `sendPushToUser()` resolves active device tokens and deactivates tokens only when a provider marks
 a failure as permanent. `startVerification()` and `checkVerification()` delegate to the configured
 verification provider. `startVerification()` accepts `channel: "sms"` or `channel: "email"`;
-`checkVerification()` verifies the code against the same phone number or email destination.
+`checkVerification()` verifies the code against the same phone number or email destination and may
+return an `error` reason when `valid` is false. Start attempts store the verification channel in
+delivery-log metadata while recipient values remain redacted.
 
 ## Provider contracts
 

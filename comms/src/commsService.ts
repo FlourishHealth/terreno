@@ -53,6 +53,7 @@ export class CommsService {
 
   private async logResult({
     channel,
+    metadata,
     provider,
     result,
     subject,
@@ -60,6 +61,7 @@ export class CommsService {
     userId,
   }: {
     channel: "mail" | "push" | "sms" | "verification";
+    metadata?: Record<string, unknown>;
     provider: string;
     result: SendResult;
     subject?: string;
@@ -73,6 +75,7 @@ export class CommsService {
     await CommsMessage.logSend({
       channel,
       error: result.error,
+      metadata,
       provider,
       providerMessageId: result.providerMessageId,
       status: result.accepted ? "sent" : "failed",
@@ -245,6 +248,7 @@ export class CommsService {
       const result = await provider.startVerification(options);
       await this.logResult({
         channel: "verification",
+        metadata: {verificationChannel: options.channel},
         provider: provider.id,
         result,
         to: options.to,
@@ -253,6 +257,7 @@ export class CommsService {
     } catch (error: unknown) {
       await this.logResult({
         channel: "verification",
+        metadata: {verificationChannel: options.channel},
         provider: provider.id,
         result: {accepted: false, error: "Provider send failed"},
         to: options.to,
@@ -270,7 +275,7 @@ export class CommsService {
         provider: provider.id,
         result: {
           accepted: result.valid,
-          ...(result.valid ? {} : {error: "Verification check failed"}),
+          ...(result.valid ? {} : {error: result.error ?? "Verification check failed"}),
         },
         to: options.to,
       });

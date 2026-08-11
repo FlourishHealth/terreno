@@ -131,6 +131,33 @@ describe("console communications providers", () => {
     ]);
   });
 
+  it("supports email verification without logging the email address", async (): Promise<void> => {
+    const messages: string[] = [];
+    const verification = new ConsoleVerificationProvider({
+      log: (message: string): void => {
+        messages.push(message);
+      },
+    });
+
+    const startResult = await verification.startVerification({
+      channel: "email",
+      to: "person@example.com",
+    });
+    const checkResult = await verification.checkVerification({
+      code: "123456",
+      to: "person@example.com",
+    });
+
+    assert.isTrue(startResult.accepted);
+    assert.isTrue(checkResult.valid);
+    assert.deepEqual(messages, [
+      "[comms:verification:start] channel=email",
+      "[comms:verification:check]",
+    ]);
+    assert.notInclude(messages.join(" "), "person@example.com");
+    assert.notInclude(messages.join(" "), "123456");
+  });
+
   it("does not include content or recipient identifiers in logs", async (): Promise<void> => {
     const messages: string[] = [];
     const log = (message: string): void => {

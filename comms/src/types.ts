@@ -57,6 +57,7 @@ export interface CheckVerificationOptions {
 }
 
 export interface VerificationResult {
+  error?: string;
   valid: boolean;
 }
 

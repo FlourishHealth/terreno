@@ -37,6 +37,8 @@ await getCommsService().sendMail({
 - `PushProvider.sendPush()` returns one `SendResult` per token.
 - `VerificationProvider` implements `startVerification()` and `checkVerification()` for both
   `channel: "sms"` and `channel: "email"`.
+- Invalid verification results may include an `error` reason; start attempts log the selected
+  verification channel in metadata without storing the destination.
 - Permanent push failures set `isPermanentFailure: true`; only those failures deactivate tokens.
 
 Concrete providers belong in adapter subpath exports with optional peer dependencies. Never add a
