@@ -25,7 +25,7 @@ import {
   ConsolePushProvider,
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
-} from "./console";
+} from "../index";
 
 describe("console communications providers", () => {
   it("exports the complete provider contract surface", (): void => {
@@ -160,6 +160,8 @@ describe("console communications providers", () => {
     assert.notInclude(messages.join(" "), "Private reset token");
     assert.notInclude(messages.join(" "), "private@example.com");
     assert.notInclude(messages.join(" "), "+15555550100");
+    assert.notInclude(messages.join(" "), "Private push body");
+    assert.notInclude(messages.join(" "), "Private push title");
     assert.notInclude(messages.join(" "), "ExponentPushToken[private-token]");
     assert.notInclude(messages.join(" "), "654321");
   });
