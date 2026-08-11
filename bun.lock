@@ -252,14 +252,18 @@
       "version": "0.30.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
+        "express": "catalog:",
         "luxon": "catalog:",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@terreno/test": "workspace:*",
         "@types/bun": "catalog:",
+        "@types/express": "catalog:",
         "@types/luxon": "catalog:",
+        "@types/supertest": "catalog:",
         "chai": "catalog:",
+        "supertest": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {

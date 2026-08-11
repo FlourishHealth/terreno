@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@terreno/api": "workspace:*",
+    "express": "catalog:",
     "luxon": "catalog:"
   },
   "description": "Pluggable communications providers for Terreno backends",
@@ -12,8 +13,11 @@
     "@biomejs/biome": "catalog:",
     "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",
+    "@types/express": "catalog:",
     "@types/luxon": "catalog:",
+    "@types/supertest": "catalog:",
     "chai": "catalog:",
+    "supertest": "catalog:",
     "typescript": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",

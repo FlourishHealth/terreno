@@ -4,6 +4,8 @@ export {
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
 } from "./adapters/console";
+export type {CommsAppOptions} from "./commsApp";
+export {CommsApp, getCommsService} from "./commsApp";
 export {CommsService} from "./commsService";
 export {CommsMessage} from "./models/commsMessage";
 export {PushToken} from "./models/pushToken";
