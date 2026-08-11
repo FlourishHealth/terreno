@@ -75,3 +75,5 @@ website/build/
 website/node_modules/
 
 .devdata
+
+.claude/worktrees/

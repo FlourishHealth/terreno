@@ -29,6 +29,7 @@
     "@react-native-community/datetimepicker": "catalog:",
     "@react-native-community/slider": "catalog:",
     "@react-native-picker/picker": "catalog:",
+    "@react-navigation/native": "catalog:",
     "@shopify/react-native-skia": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "catalog:",
