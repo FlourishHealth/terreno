@@ -8,7 +8,7 @@ import {
   type OpenApiMiddleware,
   Permissions,
 } from "@terreno/api";
-import express from "express";
+import type express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import {PushToken} from "../models/pushToken";
@@ -45,11 +45,12 @@ export const addPushTokenRoutes = (
   options?: PushTokenRouteOptions
 ): void => {
   const basePath = options?.basePath ?? "/comms/pushTokens";
-  const router = express.Router();
   const routeOpenApi = openApiOptions(options?.openApi);
 
-  router.post(
-    "/",
+  // A dedicated create endpoint is required because modelRouter create cannot provide
+  // the idempotent token upsert contract used by device registration.
+  app.post(
+    basePath,
     [
       authenticateMiddleware(),
       createOpenApiBuilder(routeOpenApi)
@@ -93,8 +94,8 @@ export const addPushTokenRoutes = (
     })
   );
 
-  router.delete(
-    "/:id",
+  app.delete(
+    `${basePath}/:id`,
     [
       authenticateMiddleware(),
       createOpenApiBuilder(routeOpenApi)
@@ -128,6 +129,7 @@ export const addPushTokenRoutes = (
       update: [],
     },
     queryFields: ["active", "platform"],
+    // PushToken persists userId, while OwnerQueryFilter targets a persisted ownerId field.
     queryFilter: (user) => {
       if (!user) {
         return null;
@@ -136,6 +138,5 @@ export const addPushTokenRoutes = (
     },
     sort: "-lastSeenAt",
   };
-  router.use(modelRouter(PushToken as Model<PushTokenDocument>, routerOptions));
-  app.use(basePath, router);
+  app.use(basePath, modelRouter(PushToken as Model<PushTokenDocument>, routerOptions));
 };

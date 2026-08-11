@@ -5,7 +5,6 @@
   },
   "dependencies": {
     "@terreno/api": "workspace:*",
-    "express": "catalog:",
     "luxon": "catalog:"
   },
   "description": "Pluggable communications providers for Terreno backends",
