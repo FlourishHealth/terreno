@@ -563,6 +563,47 @@ describe("openApiValidator", () => {
       expect(req.query.page).toBe(5);
     });
 
+    it("runs only body validation when no query schema is provided", () => {
+      configureOpenApiValidator({coerceTypes: true});
+
+      const middleware = createValidator({
+        body: {count: {type: "number"}, name: {required: true, type: "string"}},
+      });
+
+      const req = {
+        body: {count: "3", name: "ok"},
+        method: "POST",
+        path: "/test",
+        query: {unchecked: "kept"},
+      } as unknown as Request;
+      const res = {} as Response;
+
+      const nextArgs: unknown[] = [];
+      middleware(req, res, ((...args: unknown[]) => {
+        nextArgs.push(...args);
+      }) as NextFunction);
+
+      expect(nextArgs).toEqual([]);
+      expect(req.body.count).toBe(3);
+      // Query params are untouched when no query schema is configured.
+      expect(req.query.unchecked).toBe("kept");
+    });
+
+    it("throws body validation errors when only a body schema is provided", () => {
+      configureOpenApiValidator({});
+
+      const middleware = createValidator({
+        body: {name: {required: true, type: "string"}},
+      });
+
+      const req = {body: {}, method: "POST", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
+
+      expect(() => middleware(req, res, (() => {}) as NextFunction)).toThrow(
+        "Request validation failed"
+      );
+    });
+
     it("propagates body validation error via next", () => {
       let capturedErrors: ErrorObject[] = [];
       configureOpenApiValidator({
