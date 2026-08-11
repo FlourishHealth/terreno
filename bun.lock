@@ -252,7 +252,6 @@
       "version": "0.30.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
-        "express": "catalog:",
         "luxon": "catalog:",
       },
       "devDependencies": {
@@ -383,6 +382,7 @@
         "@terreno/ai": "workspace:*",
         "@terreno/api": "workspace:*",
         "@terreno/api-health": "workspace:*",
+        "@terreno/comms": "workspace:*",
         "@terreno/feature-flags": "workspace:*",
         "@thream/socketio-jwt": "catalog:",
         "ai": "catalog:",
