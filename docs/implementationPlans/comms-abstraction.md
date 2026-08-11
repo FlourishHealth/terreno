@@ -111,7 +111,10 @@ export interface PushProvider {
 export interface VerificationProvider {
   readonly id: string;
   startVerification(options: {to: string; channel: "sms" | "email"}): Promise<SendResult>;
-  checkVerification(options: {to: string; code: string}): Promise<{valid: boolean}>;
+  checkVerification(options: {to: string; code: string}): Promise<{
+    valid: boolean;
+    error?: string;
+  }>;
 }
 
 export interface DeliveryEvent {
@@ -121,6 +124,9 @@ export interface DeliveryEvent {
   raw?: unknown;
 }
 ```
+
+Verification start attempts store `metadata.verificationChannel` while recipient values remain
+redacted. Verification codes are never persisted.
 
 ### CommsApp (TerrenoPlugin)
 

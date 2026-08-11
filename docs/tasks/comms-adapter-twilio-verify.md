@@ -8,7 +8,7 @@ IP: [comms-adapter-twilio-verify](../implementationPlans/comms-adapter-twilio-ve
   - Depends on: comms-abstraction Phase 1
   - Acceptance: mocked-client tests for approved/pending/expired/max-attempts
 - [ ] **Task 2**: Redacted logging
-  - Description: `CommsMessage` rows with channel `verification`, last-4 destination, no codes
+  - Description: `CommsMessage` rows with channel `verification`, fully redacted destination, no codes, and verification channel metadata on start
   - Files: `comms/src/adapters/twilioVerify.ts`
   - Depends on: Task 1
   - Acceptance: log assertion tests prove no code/full destination in any row

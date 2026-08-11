@@ -199,6 +199,12 @@ describe("CommsService", () => {
     assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
     assert.equal(await CommsMessage.countDocuments({"metadata.verificationChannel": "sms"}), 1);
     assert.equal(await CommsMessage.countDocuments({"metadata.verificationChannel": "email"}), 1);
+    const serializedAuditRows = JSON.stringify(
+      await CommsMessage.find({provider: "multi-channel-verification"})
+    );
+    for (const sensitiveValue of ["+15555550100", "person@example.com", "123456", "654321"]) {
+      assert.notInclude(serializedAuditRows, sensitiveValue);
+    }
   });
 
   it("uses console providers for every unconfigured channel outside production", async (): Promise<void> => {
@@ -237,7 +243,25 @@ describe("CommsService", () => {
         })
       ).valid
     );
-    assert.equal(await CommsMessage.countDocuments(), 5);
+    assert.isTrue(
+      (
+        await service.startVerification({
+          channel: "email",
+          to: "person@example.com",
+        })
+      ).accepted
+    );
+    assert.isTrue(
+      (
+        await service.checkVerification({
+          code: "654321",
+          to: "person@example.com",
+        })
+      ).valid
+    );
+    assert.equal(await CommsMessage.countDocuments(), 7);
+    assert.equal(await CommsMessage.countDocuments({provider: "console", to: "[redacted]"}), 7);
+    assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
   });
 
   it("throws a 501 APIError for every unconfigured channel in production", async (): Promise<void> => {
@@ -250,6 +274,9 @@ describe("CommsService", () => {
       (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId}),
       (): Promise<unknown> => service.startVerification({channel: "sms", to: "+15555550100"}),
       (): Promise<unknown> => service.checkVerification({code: "123456", to: "+15555550100"}),
+      (): Promise<unknown> =>
+        service.startVerification({channel: "email", to: "person@example.com"}),
+      (): Promise<unknown> => service.checkVerification({code: "654321", to: "person@example.com"}),
     ];
 
     for (const operation of operations) {
@@ -289,8 +316,9 @@ describe("CommsService", () => {
       (): Promise<unknown> => service.sendMail({subject: "Welcome", to: "person@example.com"}),
       (): Promise<unknown> => service.sendSms({body: "Hello", to: "+15555550100"}),
       (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId}),
-      (): Promise<unknown> => service.startVerification({channel: "sms", to: "+15555550100"}),
-      (): Promise<unknown> => service.checkVerification({code: "123456", to: "+15555550100"}),
+      (): Promise<unknown> =>
+        service.startVerification({channel: "email", to: "person@example.com"}),
+      (): Promise<unknown> => service.checkVerification({code: "123456", to: "person@example.com"}),
     ];
 
     for (const operation of operations) {
@@ -331,6 +359,7 @@ describe("CommsService", () => {
       await CommsMessage.countDocuments({
         channel: "verification",
         error: "Provider send failed",
+        "metadata.verificationChannel": "email",
         provider: "throw-verification",
         status: "failed",
       }),
@@ -345,6 +374,7 @@ describe("CommsService", () => {
       }),
       1
     );
+    assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
   });
 
   it("logs missing push results as temporary failures without pruning tokens", async (): Promise<void> => {
@@ -466,6 +496,7 @@ describe("CommsService", () => {
       }),
       1
     );
+    assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
   });
 
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {
