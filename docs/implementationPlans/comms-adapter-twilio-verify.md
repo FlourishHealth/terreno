@@ -32,6 +32,9 @@ it is immediately usable for phone-number verification.
 | Channels | `sms` and `email` (Verify's email channel requires a configured Verify email integration; documented, not automated) |
 | Abuse control | Rely on Verify's built-in rate limits; add Terreno-side per-user attempt caps only when `rate-limiting` IP lands |
 | Logging | Start/check attempts logged to `CommsMessage` with channel `verification`, never logging the code |
+| Error classification | Verify errors map to the abstraction taxonomy: 20429/429 and 5xx → `transient`; max-attempts, expired, and invalid-destination → `permanent`; missing/invalid service SID → `config` |
+| Admin dashboard support | Verification rows appear in the [comms-admin-dashboard](comms-admin-dashboard.md) with `errorCode`/`errorClass` and a `metadata.consoleUrl` deep link to the Verify service logs — but the `verification` channel is **never retryable** from admin (codes expire; the user restarts the flow) |
+| Hooks | `onError` fires on failed starts/checks like any other channel; `beforeSend` can gate verification starts (e.g. per-user cool-downs) |
 
 ## Architecture
 
@@ -89,5 +92,8 @@ See [docs/tasks/comms-adapter-twilio-verify.md](../tasks/comms-adapter-twilio-ve
       and email channels.
 - [ ] `checkVerification` returns `valid: true` only for `approved`; expired and
       max-attempt states return `valid: false` with a reason.
+- [ ] Failed starts/checks record `errorCode`/`errorClass` per the classification row and
+      fire the consumer `onError` hook; verification rows are marked non-retryable for
+      the admin dashboard.
 - [ ] No OTP code ever appears in logs or `CommsMessage` rows; destinations are redacted.
 - [ ] Missing `TWILIO_VERIFY_SERVICE_SID` fails fast at registration with a clear error.

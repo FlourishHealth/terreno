@@ -9,21 +9,31 @@ IP: [comms-adapter-sendgrid](../implementationPlans/comms-adapter-sendgrid.md)
   - Files: `comms/src/adapters/sendgrid.ts`
   - Depends on: comms-abstraction Phase 1
   - Acceptance: mocked-client tests for text/html/template sends
-- [ ] **Task 1.2**: Error mapping
-  - Description: 4xx → `accepted: false` + message; full response body into `CommsMessage.metadata`; never throws
+- [ ] **Task 1.2**: Error classification
+  - Description: HTTP status → `errorCode`/`errorClass` per the IP table (400 permanent, 401/403 config, 429/5xx transient); full response body into `CommsMessage.metadata`; never throws
   - Files: `comms/src/adapters/sendgrid.ts`
   - Depends on: 1.1
-  - Acceptance: unverified-sender and bad-address fixtures covered
-- [ ] **Task 1.3**: Peer dep + registration + docs
+  - Acceptance: unverified-sender (config), bad-address (permanent), and 429 (transient) fixtures assert `errorClass`; permanent skips the inline retry
+- [ ] **Task 1.3**: Dashboard metadata + hooks coverage
+  - Description: capture `x-message-id`; `metadata.consoleUrl` Email Activity deep link; `onError` fires with the classified `SendResult`
+  - Files: `comms/src/adapters/sendgrid.ts` + tests
+  - Depends on: 1.2
+  - Acceptance: accepted-send test asserts message id + consoleUrl; failed-send test asserts onError invocation
+- [ ] **Task 1.4**: Peer dep + registration + docs
   - Description: optional peer `@sendgrid/mail`; env-gated example-backend registration with fail-fast; reference + env docs incl. sender-verification checklist
   - Files: `comms/package.json`, `example-backend/src/server.ts`, `docs/reference/comms.md`, `docs/reference/environment-variables.md`
   - Depends on: 1.1
   - Acceptance: boot without key skips registration; compile passes without the SDK installed
 
-## Phase 2 — Delivery events (gated on inbound-webhooks)
+## Phase 2 — Delivery events + opt-outs (gated on inbound-webhooks)
 
 - [ ] **Task 2.1**: Event Webhook route
-  - Description: ECDSA signature verification via inbound-webhooks; delivered/bounce/dropped/open → `DeliveryEvent`
+  - Description: ECDSA signature verification via inbound-webhooks; event mapping per the IP table → `DeliveryEvent`; `x-message-id` prefix correlation
   - Files: `comms/src/adapters/sendgrid.ts`, webhook registration
   - Depends on: inbound-webhooks IP
-  - Acceptance: signed fixture updates `CommsMessage.status`; unsigned rejected 401
+  - Acceptance: signed fixtures per event type update `CommsMessage.status` (+ `errorCode` for bounce/dropped); unsigned rejected 401
+- [ ] **Task 2.2**: Opt-out events
+  - Description: `spamreport`/`unsubscribe`/`group_unsubscribe` → `OptOutEvent` → consumer `onOptOut`
+  - Files: `comms/src/adapters/sendgrid.ts` + tests
+  - Depends on: 2.1
+  - Acceptance: spamreport fixture fires `onOptOut`; subsequent `dropped` classified `permanent`

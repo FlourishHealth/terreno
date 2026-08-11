@@ -32,7 +32,10 @@ transactional email. This unblocks `password-reset-and-email-verification` and
 | From address | Constructor `fromEmail`/`fromName` falling back to `CommsApp.defaultFrom`; sender verification is a documented SendGrid prerequisite, not automated |
 | Templates | Terreno-side rendering (`templates.ts` from the abstraction) sent as `text`/`html`; SendGrid dynamic templates supported pass-through via `templateId` + `dynamicTemplateData` but not required |
 | Sandbox | SendGrid `mail_settings.sandbox_mode` toggle for CI/e2e so tests never send |
-| Delivery events | Phase 2: SendGrid Event Webhook (delivered/bounce/dropped/open) with ECDSA signature verification via the inbound-webhooks framework, mapped to `DeliveryEvent`s |
+| Delivery events | Phase 2: SendGrid Event Webhook (delivered/deferred/bounce/dropped/spamreport/unsubscribe/open) with ECDSA signature verification via the inbound-webhooks framework, mapped to `DeliveryEvent`s / `OptOutEvent`s |
+| Error classification | Adapter owns the HTTP-status + event-type → `errorClass` map (table below); 429/5xx are `transient`, other 4xx `permanent`, 401/403 `config` |
+| Suppression / opt-outs | Bounces, spam reports, and unsubscribes emit `OptOutEvent` → consumer `onOptOut`. SendGrid maintains its own suppression lists; a send to a suppressed address comes back as a `dropped` event with the suppression reason, classified `permanent` |
+| Admin dashboard support | Every `CommsMessage` row stores `errorCode`/`errorClass`, the `x-message-id`, and a `metadata.consoleUrl` deep link to SendGrid Email Activity for log digging |
 
 ## Architecture
 
@@ -52,8 +55,42 @@ export class SendGridMailProvider implements MailProvider {
 
 Error mapping: SendGrid 4xx (bad address, unverified sender) → `accepted: false` with the
 response body's first error message in `SendResult.error` and full body in
-`CommsMessage.metadata`; 429/5xx retried once by the core facade. The provider never
-throws through `sendMail`.
+`CommsMessage.metadata`; 429/5xx classified `transient` and retried once by the core
+facade. The provider never throws through `sendMail`.
+
+### Error classification
+
+Send-time failures classify by HTTP status; post-acceptance failures arrive as events
+(Phase 2) and reclassify the `CommsMessage`.
+
+| Signal | Meaning | `errorCode` | `errorClass` |
+|---|---|---|---|
+| 400 (bad address, missing field), 413 | Request is wrong | `sendgrid-<status>` + first body error | `permanent` |
+| 401, 403 (bad key, unverified sender) | App misconfiguration | `sendgrid-<status>` | `config` (also `logger.error` at send time) |
+| 429 | Rate limited | `sendgrid-429` | `transient` |
+| 5xx / network errors | SendGrid-side or transport failure | `sendgrid-<status>` | `transient` |
+| Event: `bounce` (hard) | Mailbox permanently rejects | `bounce` + reason | `permanent` |
+| Event: `bounce` (soft) / `deferred` | Temporary mailbox/receiver issue | `deferred` | `transient` |
+| Event: `dropped` | SendGrid suppressed (prior bounce, spam report, unsubscribe, invalid) | `dropped` + reason | `permanent` |
+| Event: `spamreport`, `unsubscribe`, `group_unsubscribe` | Recipient opted out | event type | `permanent` (also emits `OptOutEvent`) |
+
+Permanent-class failures are never auto-retried and show as non-retryable in the admin
+dashboard with the reason (retrying a suppressed or unsubscribed address damages sender
+reputation); transient-class failures retry once inline and stay manually retryable.
+
+### Event webhook mapping (Phase 2)
+
+| SendGrid event | `DeliveryEvent.status` | `CommsMessage.status` |
+|---|---|---|
+| `processed` | — | `sent` (unchanged) |
+| `delivered` | `delivered` | `delivered` |
+| `deferred` | — (attempt noted in metadata) | `sent` (SendGrid keeps retrying) |
+| `bounce`, `dropped` | `bounced` / `failed` (+ reason as `errorCode`) | `bounced` / `failed` |
+| `open` | `opened` | unchanged (recorded in metadata) |
+| `spamreport`, `unsubscribe`, `group_unsubscribe` | — | unchanged; emits `OptOutEvent` → `onOptOut` |
+
+Events correlate to rows via the `x-message-id` response header captured at send time
+(SendGrid appends per-recipient suffixes; match on the prefix).
 
 ## Models / APIs / Notifications / UI
 
@@ -61,12 +98,13 @@ None new. Phase 2 adds one webhook route via the inbound-webhooks framework.
 
 ## Phases
 
-1. **Send path:** provider, config resolution, sandbox mode, error mapping, mocked-client
-   tests; example-backend env-gated registration; docs (including the sender-verification
+1. **Send path:** provider, config resolution, sandbox mode, error classification,
+   `x-message-id` capture + Email Activity deep link, mocked-client tests;
+   example-backend env-gated registration; docs (including the sender-verification
    prerequisite checklist).
-2. **Delivery events** *(gated on inbound-webhooks IP)*: Event Webhook route with ECDSA
-   signature verification; delivered/bounce/dropped/open → `DeliveryEvent` →
-   `CommsMessage.status`.
+2. **Delivery events + opt-outs** *(gated on inbound-webhooks IP)*: Event Webhook route
+   with ECDSA signature verification; event mapping per the table →
+   `DeliveryEvent`/`OptOutEvent` → `CommsMessage.status` + consumer hooks.
 
 ## Feature Flags & Migrations
 
@@ -78,7 +116,10 @@ All sends logged to `CommsMessage` with provider `sendgrid`.
 
 ## Not Included / Future Work
 
-- Suppression-list management, unsubscribe groups.
+- Suppression-list *management* (viewing/clearing SendGrid suppressions from admin) — the
+  adapter only reports suppression outcomes; a management surface can extend the
+  [comms-admin-dashboard](comms-admin-dashboard.md) later.
+- Unsubscribe-group configuration.
 - Batch sending beyond the multiple-recipient `to` array.
 
 ## Files to Create / Modify
@@ -99,9 +140,18 @@ See [docs/tasks/comms-adapter-sendgrid.md](../tasks/comms-adapter-sendgrid.md).
       given.
 - [ ] Sandbox mode is on by default under test and produces accepted results without real
       sends.
-- [ ] SendGrid 4xx errors surface as `accepted: false` with the SendGrid error message;
-      nothing throws through the facade.
+- [ ] SendGrid errors surface as `accepted: false` with the SendGrid error message and a
+      correct `errorCode`/`errorClass` per the classification table; nothing throws
+      through the facade.
+- [ ] 401/403 classify as `config` and `logger.error` at send time; 429/5xx classify as
+      `transient` and retry once; other 4xx are `permanent` and never retried.
+- [ ] Each accepted send captures the `x-message-id` and stores a `metadata.consoleUrl`
+      Email Activity deep link.
+- [ ] Consumer `onError` fires with the classified `SendResult` on every failed send
+      (mocked-client test).
 - [ ] Missing API key fails fast at `CommsApp` registration with a clear error.
 - [ ] Apps not using the adapter do not install `@sendgrid/mail`.
-- [ ] (Phase 2) Event webhook updates `CommsMessage.status` only for
-      signature-verified payloads.
+- [ ] (Phase 2) Event webhook updates `CommsMessage.status` per the mapping table only
+      for signature-verified payloads; bounce/dropped reasons land as `errorCode`.
+- [ ] (Phase 2) `spamreport`/`unsubscribe` events fire `onOptOut`; later sends to the
+      suppressed address record `dropped` as `permanent`.

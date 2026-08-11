@@ -9,7 +9,7 @@ Umbrella plans that coordinate several IPs.
 | Program | Status | Created | IPs |
 |---------|--------|---------|-----|
 | [Open source launch](oss-launch-program.md) | Draft — decisions recorded; Vercel spike open | 2026-07-27 | 15 |
-| [B2B platform](b2b-platform-program.md) | Draft — decisions D1–D7 resolved | 2026-08-09 | 9 written (+ [rbac-permissions](rbac-permissions.md)); 29 roadmap items seeded |
+| [B2B platform](b2b-platform-program.md) | Draft — decisions D1–D7 resolved | 2026-08-09 | 10 written (+ [rbac-permissions](rbac-permissions.md)); 30 roadmap items seeded |
 
 ## Active
 
@@ -68,6 +68,7 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | [Comms adapter — Twilio SMS](comms-adapter-twilio-sms.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [Comms adapter — Twilio Verify (OTP)](comms-adapter-twilio-verify.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-verify.md) |
 | [Comms adapter — SendGrid email](comms-adapter-sendgrid.md) | Draft | None | [tasks](../tasks/comms-adapter-sendgrid.md) |
+| [Comms admin dashboard (errors, retries, log digging)](comms-admin-dashboard.md) | Draft | Partial | [tasks](../tasks/comms-admin-dashboard.md) |
 | [Password reset and email verification](password-reset-and-email-verification.md) | Draft | None | [tasks](../tasks/password-reset-and-email-verification.md) |
 | [Organizations, teams, and multi-tenant scoping](orgs-and-teams.md) | Draft | None | [tasks](../tasks/orgs-and-teams.md) |
 | [Stripe billing and subscriptions](billing-stripe.md) | Draft | None | [tasks](../tasks/billing-stripe.md) |

@@ -10,7 +10,7 @@ IP: [comms-abstraction](../implementationPlans/comms-abstraction.md)
   - Depends on: none
   - Acceptance: `bun run comms:compile` and `bun run comms:lint` pass
 - [ ] **Task 1.2**: Provider interfaces and message types
-  - Description: `MailProvider`, `SmsProvider`, `PushProvider`, `VerificationProvider`, `SendResult`, `DeliveryEvent` per IP
+  - Description: `MailProvider`, `SmsProvider`, `PushProvider`, `VerificationProvider`, `SendResult` (incl. `errorCode`/`errorClass`), `DeliveryEvent`, `CommsHookContext`, `OptOutEvent` per IP
   - Files: `comms/src/types.ts`
   - Depends on: 1.1
   - Acceptance: types compile and are exported
@@ -20,15 +20,25 @@ IP: [comms-abstraction](../implementationPlans/comms-abstraction.md)
   - Depends on: 1.2
   - Acceptance: each adapter returns `accepted: true` and logs
 - [ ] **Task 1.4**: `CommsMessage` model + `logSend`
-  - Description: delivery log model with five-type pattern, `description` on every field, plugins, static `logSend` that never throws
+  - Description: delivery log model with five-type pattern, `description` on every field, plugins, static `logSend` that never throws; dashboard-ready fields (`errorCode`, `errorClass`, `attempts[]`, `attemptCount`, `lastAttemptAt`, `retriedFromId`/`retriedById`, `templateId`, retained `payload`)
   - Files: `comms/src/models/commsMessage.ts` + tests
   - Depends on: 1.1
-  - Acceptance: send logging survives a forced model error (logged, not thrown)
+  - Acceptance: send logging survives a forced model error (logged, not thrown); attempts append per attempt
 - [ ] **Task 1.5**: `commsService` send facade
-  - Description: `sendMail`/`sendSms`/`sendPushToUser`/`startVerification`/`checkVerification`; template render helper; unconfigured-channel behavior (501 in prod, console fallback in dev)
+  - Description: `sendMail`/`sendSms`/`sendPushToUser`/`startVerification`/`checkVerification`; template render helper; unconfigured-channel behavior (501 in prod, console fallback in dev); inline retry on `errorClass: "transient"` only
   - Files: `comms/src/commsService.ts`, `comms/src/templates.ts` + tests
   - Depends on: 1.2, 1.3, 1.4
-  - Acceptance: unit tests cover happy path + unconfigured channel in both env modes
+  - Acceptance: unit tests cover happy path + unconfigured channel in both env modes; permanent failures do not retry
+- [ ] **Task 1.6**: Lifecycle hooks
+  - Description: `beforeSend` (mutate/cancel), `onSend`, `onError`, `onRetry`, `onOptOut`, `onDeliveryEvent` wiring in the facade; every hook wrapped so a throw is logged and never changes the send outcome
+  - Files: `comms/src/commsService.ts` + tests
+  - Depends on: 1.5
+  - Acceptance: one test per hook (fires with correct context) plus one throwing-hook test per hook
+- [ ] **Task 1.7**: Payload retention + redaction
+  - Description: `retainPayloadDays` (default 30) storage of rendered payload post-`redactPayload`; expiry cleanup clears `payload` without touching the log row
+  - Files: `comms/src/commsService.ts`, `comms/src/models/commsMessage.ts` + tests
+  - Depends on: 1.4, 1.5
+  - Acceptance: payload stored redacted; expired payload cleared; `retainPayloadDays: 0` stores nothing
 
 ## Phase 2 — CommsApp + routes
 

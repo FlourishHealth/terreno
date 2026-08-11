@@ -45,6 +45,9 @@ consumer apps install only the SDKs they use.
 | Templates | Minimal: `{subject, text, html}` render helper with variable interpolation; no template builder |
 | Where do send calls log? | `CommsMessage` Mongoose model, mirroring the `AIRequest.logRequest` pattern — logging failures never break the send |
 | Dev experience | `ConsoleMailProvider` / `ConsoleSmsProvider` / `ConsolePushProvider` / `ConsoleVerificationProvider` print to logger and record to `CommsMessage`; default when no provider configured in non-production |
+| Consumer lifecycle hooks | `CommsApp` options expose `beforeSend` / `onSend` / `onError` / `onRetry` / `onOptOut` / `onDeliveryEvent`. Hooks are awaited but wrapped: a throwing hook is logged (`logger.error`) and never breaks the send. `beforeSend` may mutate or cancel |
+| Error taxonomy | Every `SendResult` failure carries `errorCode` (provider-native code as a string) and `errorClass` (`"permanent"` \| `"transient"` \| `"config"`). Adapters own the mapping; the facade uses `errorClass` to decide its single inline retry (transient only) and the admin dashboard uses it to gate manual retries |
+| Payload retention | `retainPayloadDays` option (default 30) keeps the rendered message on the `CommsMessage` row (post `redactPayload` hook) so the admin dashboard can retry; a TTL-style cleanup clears expired payloads |
 
 ## Architecture
 
@@ -72,6 +75,8 @@ export interface SendResult {
   providerMessageId?: string;
   accepted: boolean;
   error?: string;
+  errorCode?: string;                              // provider-native code, e.g. "21610", "sendgrid-400"
+  errorClass?: "permanent" | "transient" | "config"; // drives retry eligibility
 }
 
 export interface MailMessage {
@@ -118,6 +123,24 @@ export interface DeliveryEvent {
   channel: "mail" | "sms" | "push";
   providerMessageId: string;
   status: "delivered" | "bounced" | "failed" | "opened";
+  errorCode?: string;   // provider failure code from the callback, when present
+  raw?: unknown;
+}
+
+export interface CommsHookContext {
+  channel: "mail" | "sms" | "push" | "verification";
+  provider: string;
+  message: MailMessage | {to: string; body: string} | PushMessage;
+  userId?: string;
+  isRetry: boolean;     // true for facade inline retries and admin-dashboard retries
+  messageId?: string;   // CommsMessage._id once the log row exists
+}
+
+export interface OptOutEvent {
+  channel: "mail" | "sms";
+  to: string;
+  provider: string;
+  reason: string;       // e.g. "sms-stop", "unsubscribe", "spam-report"
   raw?: unknown;
 }
 ```
@@ -132,6 +155,17 @@ export interface CommsOptions {
   verification?: VerificationProvider;
   defaultFrom?: string;                       // mail from fallback
   logMessages?: boolean;                      // default true → CommsMessage
+  retainPayloadDays?: number;                 // default 30; 0 disables retention (and admin retry)
+  redactPayload?: (context: CommsHookContext, payload: unknown) => unknown; // before storage
+
+  // Lifecycle hooks — all optional, all awaited, all wrapped so a throwing
+  // hook is logged and never breaks (or blocks) the send itself.
+  beforeSend?: (context: CommsHookContext) =>
+    Promise<{cancel?: boolean; message?: CommsHookContext["message"]} | void>;
+  onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onRetry?: (context: CommsHookContext, attempt: number) => Promise<void>;
+  onOptOut?: (event: OptOutEvent) => Promise<void>;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
 }
 
@@ -150,6 +184,25 @@ Unconfigured channel behavior: in production, throw `APIError({status: 501, titl
 "Comms channel not configured"})`; in development, fall back to the console adapter with a
 `logger.warn`.
 
+### Hook order and semantics
+
+For every send (including retries) the facade runs:
+
+1. `beforeSend` — may replace the message (`{message}`) or cancel (`{cancel: true}`,
+   logged as a `CommsMessage` with status `cancelled`). The consuming app uses this for
+   quiet hours, per-user notification preferences, and suppression lists.
+2. Provider `send*` → on transient failure (`errorClass: "transient"`), `onRetry` fires
+   and the facade retries once inline.
+3. `onSend` (accepted) or `onError` (final failure) — `onError` receives the full
+   `SendResult` (`errorCode`, `errorClass`) so apps can alert, escalate, or mark domain
+   objects without polling the delivery log.
+4. Asynchronously, adapters feed `onDeliveryEvent` (delivery callbacks) and `onOptOut`
+   (STOP replies, unsubscribes, spam reports) once their webhook phases land.
+
+Hooks are observation and shaping points, not error channels: exceptions thrown inside a
+hook are caught, logged with `logger.error`, and recorded in `CommsMessage.metadata` —
+they never change the send outcome.
+
 ## Models
 
 All fields carry `description`; both models use `createdUpdatedPlugin` + `isDeletedPlugin`
@@ -162,8 +215,18 @@ default true), `lastSeenAt` (date).
 **CommsMessage** — `channel` ("mail" | "sms" | "push" | "verification"), `provider`
 (string), `to` (string, redacted-at-rest for sms/mail per option), `subject` (string,
 optional), `userId` (ref User, optional), `status` ("sent" | "failed" | "delivered" |
-"bounced"), `providerMessageId` (string, indexed), `error` (string, optional), `metadata`
-(Mixed). Static `logSend()` mirrors `AIRequest.logRequest`.
+"bounced" | "cancelled"), `providerMessageId` (string, indexed), `error` (string,
+optional), `errorCode` (string, indexed), `errorClass` ("permanent" | "transient" |
+"config"), `templateId` (string, optional), `attempts` (array of `{at, provider,
+providerMessageId, errorCode, error}` — one entry per facade attempt including the inline
+retry), `attemptCount` (number), `lastAttemptAt` (date), `retriedFromId` / `retriedById`
+(ref CommsMessage — links between an original and its admin-dashboard retries), `payload`
+(Mixed, retained per `retainPayloadDays` after `redactPayload`, cleared on expiry),
+`metadata` (Mixed). Static `logSend()` mirrors `AIRequest.logRequest`.
+
+These fields exist so the [comms-admin-dashboard](comms-admin-dashboard.md) IP can filter
+on error codes/classes, show per-attempt history, and re-send from the retained payload
+without any further schema changes.
 
 ## APIs
 
@@ -176,7 +239,9 @@ optional), `userId` (ref User, optional), `status` ("sent" | "failed" | "deliver
 
 Push token routes via `modelRouter` with `preCreate` owner injection and
 `OwnerQueryFilter`; explorer via `createOpenApiBuilder`, modeled on
-`addAiRequestsExplorerRoutes`.
+`addAiRequestsExplorerRoutes`. The explorer is deliberately minimal here — the
+[comms-admin-dashboard](comms-admin-dashboard.md) IP upgrades it with error-code/class
+filtering, free-text search, a detail route, stats, and retry endpoints.
 
 ## Notifications
 
@@ -209,9 +274,13 @@ updates.
 
 - Adapter IPs: `comms-adapter-expo-push`, `comms-adapter-twilio-sms`,
   `comms-adapter-twilio-verify`, `comms-adapter-sendgrid`.
-- Notification center, user notification preferences.
-- Queue-backed sending with retries — arrives with `job-queues`; until then sends are
-  inline with one retry.
+- Admin operations dashboard (rich filtering, log digging, manual retries) —
+  [comms-admin-dashboard](comms-admin-dashboard.md); this IP only ships the fields and
+  hooks it needs.
+- Notification center, user notification preferences (`beforeSend` is the extension
+  point they will plug into).
+- Queue-backed sending with automatic scheduled retries — arrives with `job-queues`;
+  until then sends are inline with one transient-error retry plus manual admin retries.
 
 ## Files to Create / Modify
 
@@ -231,6 +300,13 @@ See [docs/tasks/comms-abstraction.md](../tasks/comms-abstraction.md).
 - [ ] A Terreno app with only console adapters can call `sendMail`, `sendSms`,
       `sendPushToUser`, and `startVerification`/`checkVerification` in development, each
       producing a logger line and a `CommsMessage` row.
+- [ ] `beforeSend` can cancel and mutate; `onSend`/`onError` fire with the final
+      `SendResult`; `onRetry` fires on the inline transient retry — and a hook that throws
+      is logged without changing the send outcome (test per hook).
+- [ ] Failed sends record `errorCode` and `errorClass` on both the `SendResult` and the
+      `CommsMessage` row; only `transient` failures trigger the inline retry.
+- [ ] `CommsMessage.attempts` holds one entry per attempt with per-attempt error data;
+      `payload` is retained post-redaction and cleared after `retainPayloadDays`.
 - [ ] `POST /comms/pushTokens` registers a device token for the authenticated user;
       re-posting the same token updates rather than duplicates; other users cannot list or
       delete it.

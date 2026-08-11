@@ -1,6 +1,6 @@
 # Program: B2B platform
 
-**Status:** Draft — roadmap items drafted; decisions D1–D7 resolved 2026-08-09; first nine IPs open
+**Status:** Draft — roadmap items drafted; decisions D1–D7 resolved 2026-08-09; first ten IPs open
 **Owner:** unassigned
 **Created:** 2026-08-09
 
@@ -32,7 +32,7 @@ org switcher, dark mode).
 | Track | Theme | IPs / roadmap items |
 |---|---|---|
 | A | Tenancy & access | `orgs-and-teams`, `rbac-permissions` (existing draft), `invitations-and-seats`, `org-management-ui` |
-| C | Communications (pluggable) | `comms-abstraction`, one item **per adapter**: `comms-adapter-expo-push` (first push adapter, per D4), `comms-adapter-twilio-sms`, `comms-adapter-twilio-verify`, `comms-adapter-sendgrid` (first mail adapter, per D2); consumers: `password-reset-and-email-verification`, `notification-center` |
+| C | Communications (pluggable) | `comms-abstraction`, one item **per adapter**: `comms-adapter-expo-push` (first push adapter, per D4), `comms-adapter-twilio-sms`, `comms-adapter-twilio-verify`, `comms-adapter-sendgrid` (first mail adapter, per D2); operations: `comms-admin-dashboard`; consumers: `password-reset-and-email-verification`, `notification-center` |
 | B | Billing | `inbound-webhooks`, `billing-stripe` (web-first, per D1), `mobile-iap-revenuecat` (Future) |
 | D | Zero-to-deployed DX | `create-terreno-app`, `mongo-migrations` (deploy items already exist in the OSS launch program) |
 | E | B2B UI surfaces | `data-grid-server-filters`, `charts-and-dashboards`, `dark-mode-theme`, `command-palette`, `wizard-stepper`, `wysiwyg-editor` (markdown stays for now, per D3), `global-search` |
@@ -97,6 +97,7 @@ All decisions resolved by the maintainer on 2026-08-09:
 | [comms-adapter-twilio-sms](comms-adapter-twilio-sms.md) | Draft | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [comms-adapter-twilio-verify](comms-adapter-twilio-verify.md) | Draft | [tasks](../tasks/comms-adapter-twilio-verify.md) |
 | [comms-adapter-sendgrid](comms-adapter-sendgrid.md) | Draft | [tasks](../tasks/comms-adapter-sendgrid.md) |
+| [comms-admin-dashboard](comms-admin-dashboard.md) | Draft | [tasks](../tasks/comms-admin-dashboard.md) |
 | [password-reset-and-email-verification](password-reset-and-email-verification.md) | Draft | [tasks](../tasks/password-reset-and-email-verification.md) |
 | [orgs-and-teams](orgs-and-teams.md) | Draft | [tasks](../tasks/orgs-and-teams.md) |
 | [billing-stripe](billing-stripe.md) | Draft | [tasks](../tasks/billing-stripe.md) |
