@@ -1,9 +1,9 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterAll, afterEach, beforeAll, describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeAll, describe, expect, it, type Mock, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
-import {createRef} from "react";
-import {Text} from "react-native";
+import {createRef, type RefObject} from "react";
+import {Animated, Dimensions, type KeyboardEvent, Text} from "react-native";
 
 import {
   ActionSheet,
@@ -614,6 +614,44 @@ describe("ActionSheet", () => {
   });
 
   describe("_onKeyboardShow", () => {
+    const timing = (Animated as unknown as {timing: Mock<(...args: never[]) => unknown>}).timing;
+
+    /**
+     * Focuses a field at `pageY` with a 40pt height and measures it synchronously, mirroring
+     * how UIManager.measure calls back on a real device.
+     */
+    const withFocusedField = (pageY: number, run: () => void): void => {
+      const {TextInput: MockTextInput, UIManager: MockUIManager} = require("react-native");
+      const origState = MockTextInput.State;
+      const origMeasure = MockUIManager.measure;
+      MockTextInput.State = {currentlyFocusedField: () => 42};
+      MockUIManager.measure = (
+        _node: number,
+        callback: (
+          originX: number,
+          originY: number,
+          width: number,
+          height: number,
+          pageX: number,
+          pageY: number
+        ) => void
+      ): void => {
+        callback(0, 0, 100, 40, 0, pageY);
+      };
+      try {
+        run();
+      } finally {
+        MockTextInput.State = origState;
+        MockUIManager.measure = origMeasure;
+      }
+    };
+
+    const showKeyboard = (ref: RefObject<ActionSheet | null>, keyboardHeight: number): void => {
+      ref.current?._onKeyboardShow({
+        endCoordinates: {height: keyboardHeight, screenX: 0, screenY: 500, width: 400},
+      } as KeyboardEvent);
+    };
+
     it("sets keyboard state to true and handles no focused field", () => {
       const ref = createRef<ActionSheet>();
       render(
@@ -628,16 +666,16 @@ describe("ActionSheet", () => {
       MockTextInput.State = {
         currentlyFocusedField: () => null,
       };
+      const timingCallsBefore = timing.mock.calls.length;
       act(() => {
-        (ref.current as any)._onKeyboardShow({
-          endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 400},
-        });
+        showKeyboard(ref, 300);
       });
       expect(ref.current!.state.keyboard).toBe(true);
+      expect(timing.mock.calls.length).toBe(timingCallsBefore);
       MockTextInput.State = origState;
     });
 
-    it("handles keyboard show with focused field", () => {
+    it("does not animate when the focused field stays above the keyboard", () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
@@ -646,26 +684,19 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const {TextInput: MockTextInput, UIManager: MockUIManager} = require("react-native");
-      const origState = MockTextInput.State;
-      const origMeasure = MockUIManager.measure;
-      MockTextInput.State = {
-        currentlyFocusedField: () => 42,
-      };
-      MockUIManager.measure = (_node: any, cb: any) => {
-        cb(0, 0, 100, 40, 0, 400);
-      };
-      act(() => {
-        (ref.current as any)._onKeyboardShow({
-          endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 400},
+      const timingCallsBefore = timing.mock.calls.length;
+      withFocusedField(400, () => {
+        act(() => {
+          showKeyboard(ref, 300);
         });
       });
       expect(ref.current!.state.keyboard).toBe(true);
-      MockTextInput.State = origState;
-      MockUIManager.measure = origMeasure;
+      // windowHeight (896) - keyboardHeight (300) - (pageY (400) + fieldHeight (40)) = 156 above
+      // the keyboard, so no animation is needed.
+      expect(timing.mock.calls.length).toBe(timingCallsBefore);
     });
 
-    it("handles keyboard show with enough gap (no animation needed)", () => {
+    it("animates the sheet up by the overlap when the keyboard covers the focused field", () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
@@ -674,23 +705,35 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const {TextInput: MockTextInput, UIManager: MockUIManager} = require("react-native");
-      const origState = MockTextInput.State;
-      const origMeasure = MockUIManager.measure;
-      MockTextInput.State = {
-        currentlyFocusedField: () => 42,
-      };
-      MockUIManager.measure = (_node: any, cb: any) => {
-        cb(0, 0, 100, 40, 0, 100);
-      };
-      act(() => {
-        (ref.current as any)._onKeyboardShow({
-          endCoordinates: {height: 100, screenX: 0, screenY: 500, width: 400},
+      const timingCallsBefore = timing.mock.calls.length;
+      withFocusedField(800, () => {
+        act(() => {
+          showKeyboard(ref, 300);
         });
       });
-      expect(ref.current!.state.keyboard).toBe(true);
-      MockTextInput.State = origState;
-      MockUIManager.measure = origMeasure;
+      const {height: windowHeight} = Dimensions.get("window");
+      const gap = windowHeight - 300 - (800 + 40);
+      expect(timing.mock.calls.length).toBe(timingCallsBefore + 1);
+      expect(timing.mock.calls[timingCallsBefore][1].toValue).toBe(gap - 10);
+    });
+
+    it("shifts by the keyboard height instead of the overlap in position keyboard mode", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet keyboardMode="position" ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const timingCallsBefore = timing.mock.calls.length;
+      withFocusedField(800, () => {
+        act(() => {
+          showKeyboard(ref, 300);
+        });
+      });
+      expect(timing.mock.calls.length).toBe(timingCallsBefore + 1);
+      expect(timing.mock.calls[timingCallsBefore][1].toValue).toBe(-(300 + 15));
     });
   });
 
