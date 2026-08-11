@@ -13,8 +13,10 @@ Cut a new Terreno release end-to-end: gather commits, write organized release no
 ## How releases work in this repo
 
 - Pushing a tag matching `X.Y.Z` (no `v` prefix, e.g. `0.18.0`) triggers `.github/workflows/publish-on-tag.yml`.
-- That workflow publishes **ten packages, all at the same version**: `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/feature-flags`. (`mcp-server`, `demo`, and the example apps are not published.)
-- Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, and `feature-flags` depend on `publish-api`. `api`, `test`, and `ui` publish independently (no upstream `needs`). A `ui` or `api` failure cascades.
+- That workflow publishes **eleven packages, all at the same version**: `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/feature-flags`, `@terreno/mcp`. (`demo` and the example apps are not published.)
+- Every publish job waits on `breaking-change-documentation`, which runs `bun run check:upgrade-docs "<tag>"` against the tagged commit. That job fails the whole release when the tag's `CHANGELOG.md` has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` section for the version but `mcp-server/src/docs/upgrades/<version>.md` is missing — so the changelog and upgrade note must be on master *before* tagging.
+- Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, `feature-flags`, and `mcp` depend on `publish-api` and `publish-test`; `admin-spa` also waits on `publish-rtk` and `publish-admin-frontend`. `api`, `test`, and `ui` publish independently. A `ui`, `api`, or `test` failure cascades.
+- After the master version bump, the workflow dispatches `demo-deploy.yml` against the release tag, and for `X.Y.0` tags also cuts the versioned docs.
 - After successful publishes, the workflow commits `chore: bump package versions to X.Y.Z` back to master and sends a Zoom notification. Prerelease tags (`-beta`, `-alpha`) skip the master bump.
 
 ## Step 1: Preflight
@@ -111,7 +113,8 @@ Before creating the tag:
 3. Confirm the new version section is **non-empty**. If there is nothing user-facing to document, stop — do not cut an empty release (see Step 2).
 4. Leave `## [Unreleased]` empty at the top for the next cycle.
 5. Group entries under `### Added`, `### Changed`, `### Fixed`, `### Deprecated`, and `### Removed` per [Keep a Changelog](https://keepachangelog.com/).
-6. Commit the changelog update on `master` before tagging.
+6. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` in the same commit — the tag-time `breaking-change-documentation` job fails the release without it. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
+7. Commit the changelog and the upgrade note on `master` before tagging. When `master` requires a PR, merge that PR first and only then create the release, so the tagged commit contains both files.
 
 ## Step 6: Create the release
 
@@ -133,22 +136,20 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 2. Verify every package is live on npm (allow a couple of minutes of registry lag):
 
    ```bash
-   for p in api test ui rtk admin-backend admin-frontend admin-spa ai api-health feature-flags; do
+   for p in api test ui rtk admin-backend admin-frontend admin-spa ai api-health feature-flags mcp; do
      echo "@terreno/$p: $(npm view "@terreno/$p" version)"
    done
    ```
 
-   All ten must report `$VERSION`.
+   All eleven must report `$VERSION`.
 
 3. Confirm the `chore: bump package versions to $VERSION` commit landed on master (`git fetch origin master && git log origin/master -1 --oneline`). Skipped for prereleases.
 
 4. For `X.Y.0` releases (minor/major), confirm the `chore: cut docs version $VERSION` commit landed and the docs site deployed (`docs-deploy` workflow). Patch releases rebuild the current docs version in place.
 
-5. If breaking changes were flagged in Step 4, add or update `mcp-server/src/docs/upgrades/$VERSION.md` (rendered on the docs site when the upgrades section exists).
+5. **Announce breaking changes or deprecations** — post a [Discussions → Announcements](https://github.com/FlourishHealth/terreno/discussions/categories/announcements) thread summarizing what changed, linking the `## Breaking changes` section of the release notes, the matching `CHANGELOG.md` entry, and the upgrade note in `mcp-server/src/docs/upgrades/$VERSION.md` when one exists.
 
-6. **Announce breaking changes or deprecations** — post a [Discussions → Announcements](https://github.com/FlourishHealth/terreno/discussions/categories/announcements) thread summarizing what changed, linking the `## Breaking changes` section of the release notes, the matching `CHANGELOG.md` entry, and the upgrade note in `mcp-server/src/docs/upgrades/$VERSION.md` when one exists.
-
-7. After editing this skill or other `.rulesync/` sources, run `bun run rules` and confirm `bun run rules:check` passes.
+6. After editing this skill or other `.rulesync/` sources, run `bun run rules` and confirm `bun run rules:check` passes.
 
 ## Step 8: If a publish job fails
 

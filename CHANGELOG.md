@@ -11,11 +11,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-08-11
+
+### Added
+
+- `EditableCard` in `@terreno/ui`: a summary card with an optional icon, badge,
+  description, helper text, edit button, and attention state
+  ([#981](https://github.com/FlourishHealth/terreno/pull/981))
+- MIT `LICENSE` file in every published package, plus contribution guide, changelog,
+  and GitHub issue/PR templates ([#985](https://github.com/FlourishHealth/terreno/pull/985))
+- Public roadmap generated from `docs/` into GitHub, with `roadmap:generate` /
+  `roadmap:check` scripts and roadmap discussion setup
+  ([#986](https://github.com/FlourishHealth/terreno/pull/986), [#991](https://github.com/FlourishHealth/terreno/pull/991))
+- `check:upgrade-docs` release gate that fails a tagged publish when a release
+  documents breaking, changed, deprecated, or removed behavior without an
+  `mcp-server/src/docs/upgrades/<version>.md` note ([#987](https://github.com/FlourishHealth/terreno/pull/987))
+- Deployment foundation for GCP, deploy guides, and agentic SDLC plugin phase 1
+  ([#988](https://github.com/FlourishHealth/terreno/pull/988))
+- Reference documentation for `@terreno/ai`, `@terreno/admin-spa`, and `@terreno/test`,
+  plus full READMEs for `admin-backend`, `admin-frontend`, `ai`, and `api-health`
+  ([#995](https://github.com/FlourishHealth/terreno/pull/995))
+
+### Changed
+
+- Mongoose 9 support: the workspace runs on Mongoose 9.7.4 and every published
+  package widens its `mongoose` peer dependency to `^8.0.0 || ^9.0.0`, so Mongoose 8
+  consumers keep working ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- All published packages are MIT licensed; they were previously Apache-2.0
+  ([#985](https://github.com/FlourishHealth/terreno/pull/985))
+- `modelRouter` accepts a wider Mongoose model generic, so models carrying custom
+  query helpers, methods, or virtuals no longer need a cast ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- `findOneOrNoneFor` takes `ModelQuery<T>` instead of Mongoose's `FilterQuery<T>`
+  ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- `@terreno/admin-backend` reads array field metadata through Mongoose's public
+  `getEmbeddedSchemaType()` (falling back to the Mongoose 8 `caster`) and only emits
+  `itemEnum` when the embedded enum is an array ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- Local development requires Node >= 20.19.0 ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- Positioning copy blocks and an honest framework comparison table
+  ([#993](https://github.com/FlourishHealth/terreno/pull/993))
+- Implementation plans and program docs for the infrastructure MCP server, the B2B
+  platform program, the IP + roadmap flow, and the RTK-to-syncdb migration strategy,
+  with merged plans linked to their roadmap tracking issues
+  ([#990](https://github.com/FlourishHealth/terreno/pull/990), [#996](https://github.com/FlourishHealth/terreno/pull/996), [#998](https://github.com/FlourishHealth/terreno/pull/998), [#999](https://github.com/FlourishHealth/terreno/pull/999), [#1028](https://github.com/FlourishHealth/terreno/pull/1028))
+- Test coverage, rule alignment, and explicit-any remediation across `api`, `ui`, and `rtk`
+  ([#946](https://github.com/FlourishHealth/terreno/pull/946), [#977](https://github.com/FlourishHealth/terreno/pull/977), [#978](https://github.com/FlourishHealth/terreno/pull/978), [#979](https://github.com/FlourishHealth/terreno/pull/979), [#980](https://github.com/FlourishHealth/terreno/pull/980), [#982](https://github.com/FlourishHealth/terreno/pull/982), [#983](https://github.com/FlourishHealth/terreno/pull/983), [#1000](https://github.com/FlourishHealth/terreno/pull/1000), [#1001](https://github.com/FlourishHealth/terreno/pull/1001), [#1002](https://github.com/FlourishHealth/terreno/pull/1002))
+
 ### Fixed
 
+- CI queues `terreno-example` EAS native builds only for new fingerprints
+  ([#965](https://github.com/FlourishHealth/terreno/pull/965))
 - Keep the Dial In PR loop active through slow or pending CI, and only return
   broken checks when no autonomous action can advance them or user direction is
-  required
+  required ([#1027](https://github.com/FlourishHealth/terreno/pull/1027))
+- Dial In preserves existing PR descriptions instead of overwriting them
+  ([#1030](https://github.com/FlourishHealth/terreno/pull/1030))
 
 ## [0.30.0] - 2026-08-03
 
