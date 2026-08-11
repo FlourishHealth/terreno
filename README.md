@@ -253,7 +253,8 @@ In the consumer’s `package.json`, set each linked dependency back to a version
 
 ## Releasing
 
-Packages are published to npm automatically when you create a release on GitHub. All publishable packages (`@terreno/api`, `@terreno/ui`, `@terreno/rtk`) are kept in lockstep with the same version number.
+Packages are published to npm automatically when a semantic-version tag is pushed. The twelve
+published packages listed above are kept in lockstep at the same version.
 
 ### Publishing a Release
 
@@ -264,19 +265,10 @@ Packages are published to npm automatically when you create a release on GitHub.
 5. Click "Publish release"
 
 The GitHub Action will automatically:
-   - Compare the tag with the previous tag to detect which packages have changes
-   - Only publish packages that have actual changes since the last release
-   - Create a PR to update the `package.json` versions in the repo
-   - Send a Slack notification with the results
-
-### How Change Detection Works
-
-The workflow compares each package directory against the previous tag:
-- If `api/` has changes since the last tag → `@terreno/api` is published
-- If `ui/` has changes since the last tag → `@terreno/ui` is published
-- If `rtk/` has changes since the last tag → `@terreno/rtk` is published
-
-If no previous tag exists (first release), all packages are published.
+   - Validate required upgrade documentation
+   - Publish all twelve packages in dependency order
+   - Commit package version updates directly to `master` for non-prerelease tags
+   - Send a Zoom Chat notification with the results
 
 ### Version Format
 
@@ -287,8 +279,10 @@ If no previous tag exists (first release), all packages are published.
 ### Required Secrets
 
 The following secrets must be configured in your GitHub repository:
-- `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
-- `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
+- `NPM_TOKEN` - npm access token with publish permissions
+- `REPO_ADMIN_TOKEN` - repository token used for the version-bump commit
+- `ZOOM_WEBHOOK_URL` - Zoom Chat incoming webhook URL
+- `ZOOM_WEBHOOK_TOKEN` - Zoom Chat webhook authorization token
 
 ## GCP Static Site Hosting
 

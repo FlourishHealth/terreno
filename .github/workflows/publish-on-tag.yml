@@ -1480,6 +1480,19 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Validate required secrets
+        env:
+          ZOOM_WEBHOOK_TOKEN: ${{ secrets.ZOOM_WEBHOOK_TOKEN }}
+          ZOOM_WEBHOOK_URL: ${{ secrets.ZOOM_WEBHOOK_URL }}
+        run: |
+          missing=()
+          if [ -z "$ZOOM_WEBHOOK_TOKEN" ]; then missing+=("ZOOM_WEBHOOK_TOKEN"); fi
+          if [ -z "$ZOOM_WEBHOOK_URL" ]; then missing+=("ZOOM_WEBHOOK_URL"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - name: Build notification message
         id: message
         run: |
