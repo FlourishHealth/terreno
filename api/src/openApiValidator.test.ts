@@ -578,12 +578,12 @@ describe("openApiValidator", () => {
       } as unknown as Request;
       const res = {} as Response;
 
-      const nextArgs: unknown[] = [];
+      const nextCalls: unknown[][] = [];
       middleware(req, res, ((...args: unknown[]) => {
-        nextArgs.push(...args);
+        nextCalls.push(args);
       }) as NextFunction);
 
-      expect(nextArgs).toEqual([]);
+      expect(nextCalls).toEqual([[]]);
       expect(req.body.count).toBe(3);
       // Query params are untouched when no query schema is configured.
       expect(req.query.unchecked).toBe("kept");

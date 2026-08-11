@@ -194,7 +194,7 @@ describe("useTerrenoFeatureFlags", () => {
 
   it("refetches the flag configuration through the returned refetch", async () => {
     const {api, refetch} = buildApi({data: {alpha: boolDef("on")}});
-    const {result} = renderHook(() =>
+    const {rerender, result} = renderHook(() =>
       useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
     );
     await waitFor(() => {
@@ -203,7 +203,9 @@ describe("useTerrenoFeatureFlags", () => {
     const firstRefetch = result.current.refetch;
     firstRefetch();
     expect(refetch).toHaveBeenCalled();
-    // The callback is stable so consumers can depend on it without re-running effects.
+    rerender(undefined);
+    // The callback is stable across renders so consumers can depend on it without
+    // re-running effects.
     expect(result.current.refetch).toBe(firstRefetch);
   });
 
