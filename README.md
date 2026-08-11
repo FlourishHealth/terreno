@@ -54,14 +54,17 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 ### Published Packages
 
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
+- **test/** - Bun and MongoDB test helpers (published as `@terreno/test`)
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
 - **ai/** - AI service layer with streaming chat, text generation, and Langfuse integration (published as `@terreno/ai`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
+- **admin-spa/** - Standalone admin SPA and Express serve plugin (published as `@terreno/admin-spa`)
 - **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
 - **comms/** - Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
 - **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
+- **mcp-server/** - MCP server and local CLI (published as `@terreno/mcp`)
 
 ### Deployed Services
 

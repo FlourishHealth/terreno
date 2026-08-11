@@ -52,6 +52,7 @@ provider SDK to core `dependencies`.
 
 - `POST /comms/pushTokens`: authenticated, idempotent token registration.
 - `GET /comms/pushTokens`: authenticated, restricted to the current user's tokens.
+- `GET /comms/pushTokens/:id`: owner-only token read.
 - `DELETE /comms/pushTokens/:id`: owner-only token deactivation.
 - `GET /comms/messages`: admin-only, paginated delivery explorer.
 

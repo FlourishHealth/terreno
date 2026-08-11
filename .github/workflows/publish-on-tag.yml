@@ -1505,7 +1505,7 @@ jobs:
             if [ "$result" == "success" ]; then
               MESSAGE="$MESSAGE✅ ${name}@$VERSION published\n"
             elif [ "$result" == "skipped" ]; then
-              MESSAGE="$MESSAGE⏭️ ${name} skipped (no changes)\n"
+              MESSAGE="$MESSAGE⏭️ ${name} skipped\n"
             elif [ "$result" == "failure" ]; then
               MESSAGE="$MESSAGE❌ ${name} failed\n"
             fi
