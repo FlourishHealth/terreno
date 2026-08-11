@@ -33,16 +33,12 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
-    "@rtk-query/codegen-openapi": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "catalog:",
-    "bun-types": "^1.3.14",
     "expo-mcp": "^0.2.4",
     "mongodb": "catalog:",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.23.12",
     "typescript": "catalog:"
   },
   "main": "index.js",

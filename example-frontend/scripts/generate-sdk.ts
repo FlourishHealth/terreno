@@ -8,6 +8,7 @@ import {basename, dirname, extname, join, resolve, sep} from "node:path";
 const cliPath = join(
   __dirname,
   "..",
+  "..",
   "node_modules",
   "@rtk-query",
   "codegen-openapi",
