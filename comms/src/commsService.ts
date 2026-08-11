@@ -193,14 +193,35 @@ export class CommsService {
       title: message.title,
       tokens: tokens.map((token) => token.token),
     };
-    const results = await provider.sendPush(providerMessage);
+    let results: SendResult[];
+    try {
+      results = await provider.sendPush(providerMessage);
+    } catch (error: unknown) {
+      await Promise.all(
+        tokens.map(
+          (token): Promise<void> =>
+            this.logResult({
+              channel: "push",
+              provider: provider.id,
+              result: {accepted: false, error: "Provider send failed"},
+              to: token.token,
+              userId: String(message.userId),
+            })
+        )
+      );
+      throw error;
+    }
 
-    await Promise.all(
-      tokens.map(async (token, index): Promise<void> => {
-        const result = results[index] ?? {
+    const normalizedResults = tokens.map(
+      (_token, index): SendResult =>
+        results[index] ?? {
           accepted: false,
           error: "Provider returned no result for token",
-        };
+        }
+    );
+    await Promise.all(
+      tokens.map(async (token, index): Promise<void> => {
+        const result = normalizedResults[index] as SendResult;
         await this.logResult({
           channel: "push",
           provider: provider.id,
@@ -215,30 +236,53 @@ export class CommsService {
       })
     );
 
-    return results;
+    return normalizedResults;
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
     const provider = this.verificationProvider();
-    const result = await provider.startVerification(options);
-    await this.logResult({
-      channel: "verification",
-      provider: provider.id,
-      result,
-      to: options.to,
-    });
-    return result;
+    try {
+      const result = await provider.startVerification(options);
+      await this.logResult({
+        channel: "verification",
+        provider: provider.id,
+        result,
+        to: options.to,
+      });
+      return result;
+    } catch (error: unknown) {
+      await this.logResult({
+        channel: "verification",
+        provider: provider.id,
+        result: {accepted: false, error: "Provider send failed"},
+        to: options.to,
+      });
+      throw error;
+    }
   }
 
   async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
     const provider = this.verificationProvider();
-    const result = await provider.checkVerification(options);
-    await this.logResult({
-      channel: "verification",
-      provider: provider.id,
-      result: {accepted: true},
-      to: options.to,
-    });
-    return result;
+    try {
+      const result = await provider.checkVerification(options);
+      await this.logResult({
+        channel: "verification",
+        provider: provider.id,
+        result: {
+          accepted: result.valid,
+          ...(result.valid ? {} : {error: "Verification check failed"}),
+        },
+        to: options.to,
+      });
+      return result;
+    } catch (error: unknown) {
+      await this.logResult({
+        channel: "verification",
+        provider: provider.id,
+        result: {accepted: false, error: "Provider check failed"},
+        to: options.to,
+      });
+      throw error;
+    }
   }
 }
