@@ -12,6 +12,7 @@ import type {
   PushProvider,
   SendResult,
   SmsProvider,
+  StartVerificationOptions,
   VerificationProvider,
 } from "./index";
 import {CommsMessage, PushToken} from "./index";
@@ -136,6 +137,59 @@ describe("CommsService", () => {
         status: "sent",
       }),
       2
+    );
+  });
+
+  it("supports starting and checking both SMS and email verification", async (): Promise<void> => {
+    const started: StartVerificationOptions[] = [];
+    const checkedDestinations: string[] = [];
+    const verification: VerificationProvider = {
+      checkVerification: async ({to}): Promise<{valid: boolean}> => {
+        checkedDestinations.push(to);
+        return {valid: true};
+      },
+      id: "multi-channel-verification",
+      startVerification: async (options): Promise<SendResult> => {
+        started.push(options);
+        return {accepted: true};
+      },
+    };
+    const service = new CommsService({verification});
+
+    const smsStart = await service.startVerification({
+      channel: "sms",
+      to: "+15555550100",
+    });
+    const emailStart = await service.startVerification({
+      channel: "email",
+      to: "person@example.com",
+    });
+    const smsCheck = await service.checkVerification({
+      code: "123456",
+      to: "+15555550100",
+    });
+    const emailCheck = await service.checkVerification({
+      code: "654321",
+      to: "person@example.com",
+    });
+
+    assert.isTrue(smsStart.accepted);
+    assert.isTrue(emailStart.accepted);
+    assert.isTrue(smsCheck.valid);
+    assert.isTrue(emailCheck.valid);
+    assert.deepEqual(
+      started.map(({channel}) => channel),
+      ["sms", "email"]
+    );
+    assert.deepEqual(checkedDestinations, ["+15555550100", "person@example.com"]);
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "verification",
+        provider: "multi-channel-verification",
+        status: "sent",
+        to: "[redacted]",
+      }),
+      4
     );
   });
 

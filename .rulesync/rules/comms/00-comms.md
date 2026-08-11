@@ -35,7 +35,8 @@ await getCommsService().sendMail({
 - `MailProvider.sendMail()` returns one `SendResult`.
 - `SmsProvider.sendSms()` returns one `SendResult`.
 - `PushProvider.sendPush()` returns one `SendResult` per token.
-- `VerificationProvider` implements `startVerification()` and `checkVerification()`.
+- `VerificationProvider` implements `startVerification()` and `checkVerification()` for both
+  `channel: "sms"` and `channel: "email"`.
 - Permanent push failures set `isPermanentFailure: true`; only those failures deactivate tokens.
 
 Concrete providers belong in adapter subpath exports with optional peer dependencies. Never add a

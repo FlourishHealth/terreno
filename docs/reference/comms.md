@@ -60,7 +60,8 @@ await getCommsService().sendSms({
 
 `sendPushToUser()` resolves active device tokens and deactivates tokens only when a provider marks
 a failure as permanent. `startVerification()` and `checkVerification()` delegate to the configured
-verification provider.
+verification provider. `startVerification()` accepts `channel: "sms"` or `channel: "email"`;
+`checkVerification()` verifies the code against the same phone number or email destination.
 
 ## Provider contracts
 
