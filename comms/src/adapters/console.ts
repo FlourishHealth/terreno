@@ -49,7 +49,7 @@ export class ConsoleSmsProvider implements SmsProvider {
   }
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
-    this.log(`[comms:sms] to=${message.to} body=${JSON.stringify(message.body)}`);
+    this.log(`[comms:sms] to=${message.to} bodyLength=${message.body.length}`);
     return acceptedResult();
   }
 }
@@ -77,7 +77,7 @@ export class ConsoleVerificationProvider implements VerificationProvider {
   }
 
   async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
-    this.log(`[comms:verification:check] to=${options.to} code=${options.code}`);
+    this.log(`[comms:verification:check] to=${options.to}`);
     return {valid: true};
   }
 
