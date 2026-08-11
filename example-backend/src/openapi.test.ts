@@ -60,6 +60,24 @@ describe("OpenAPI spec generation", () => {
     assert.property(res.body.paths["/comms/pushTokens"], "get");
     assert.property(res.body.paths, "/comms/messages");
     assert.property(res.body.paths["/comms/messages"], "get");
+
+    const tokenCollection = res.body.paths["/comms/pushTokens"];
+    const messages = res.body.paths["/comms/messages"].get;
+    assert.isDefined(tokenCollection.post.requestBody);
+    assert.property(tokenCollection.post.responses, "401");
+    assert.includeMembers(tokenCollection.post.tags, ["comms"]);
+    assert.includeMembers(
+      tokenCollection.get.parameters.map((parameter: {name: string}) => parameter.name),
+      ["active", "limit", "page", "platform"]
+    );
+    assert.property(tokenCollection.get.responses, "401");
+    assert.includeMembers(
+      messages.parameters.map((parameter: {name: string}) => parameter.name),
+      ["channel", "endDate", "limit", "page", "startDate", "status", "userId"]
+    );
+    assert.property(messages.responses, "401");
+    assert.property(messages.responses, "403");
+    assert.includeMembers(messages.tags, ["admin", "comms"]);
   });
 
   it("includes GPT routes", async () => {
