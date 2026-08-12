@@ -284,5 +284,15 @@ describe("CommsApp", () => {
     assert.property(response.body.paths, "/comms/messages");
     assert.property(response.body.paths["/comms/messages"], "get");
     assert.notProperty(response.body.paths, "/comms/pushTokens/");
+
+    // A shared tag keeps generated SDK mutations invalidating the by-id read.
+    for (const operation of [
+      response.body.paths["/comms/pushTokens"].post,
+      response.body.paths["/comms/pushTokens"].get,
+      response.body.paths["/comms/pushTokens/{id}"].get,
+      response.body.paths["/comms/pushTokens/{id}"].delete,
+    ]) {
+      assert.includeMembers(operation.tags, ["comms"]);
+    }
   });
 });

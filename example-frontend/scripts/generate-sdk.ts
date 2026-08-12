@@ -28,10 +28,15 @@ const isProjectFile = (filePath: string): boolean => {
   if (!filePath.startsWith(`${projectRoot}${sep}`) || extname(filePath) !== ".ts") {
     return false;
   }
-  const canonicalPath = existsSync(filePath)
-    ? realpathSync(filePath)
-    : resolve(realpathSync(dirname(filePath)), basename(filePath));
-  return canonicalPath.startsWith(`${canonicalProjectRoot}${sep}`);
+  try {
+    const canonicalPath = existsSync(filePath)
+      ? realpathSync(filePath)
+      : resolve(realpathSync(dirname(filePath)), basename(filePath));
+    return canonicalPath.startsWith(`${canonicalProjectRoot}${sep}`);
+  } catch {
+    // An unresolvable path (for example a missing parent directory) is not a usable target.
+    return false;
+  }
 };
 
 if (!isProjectFile(configPath) || !isProjectFile(sdkPath)) {

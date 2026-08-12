@@ -1,5 +1,5 @@
 import {emptySplitApi as api} from "@terreno/rtk";
-export const addTagTypes = ["comms", "pushtokens", "admin"] as const;
+export const addTagTypes = ["comms", "admin"] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
     addTagTypes,
@@ -44,7 +44,7 @@ const injectedRtkApi = api
         }),
       }),
       getCommsPushTokensById: build.query<GetCommsPushTokensByIdRes, GetCommsPushTokensByIdArgs>({
-        providesTags: ["pushtokens"],
+        providesTags: ["comms"],
         query: (queryArg) => ({url: `/comms/pushTokens/${queryArg}`}),
       }),
       postCommsPushTokens: build.mutation<PostCommsPushTokensRes, PostCommsPushTokensArgs>({

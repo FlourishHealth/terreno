@@ -175,6 +175,8 @@ export const addPushTokenRoutes = (
 
   const routerOptions: ModelRouterOptions<PushTokenDocument> = {
     ...routeOpenApi,
+    // Share the "comms" tag with the custom routes so generated SDK mutations invalidate this read.
+    openApiOverwrite: {get: {tags: ["comms"]}},
     permissions: {
       create: [],
       delete: [],

@@ -8091,7 +8091,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
-          "pushtokens",
+          "comms",
         ],
       },
     },
