@@ -72,7 +72,7 @@ mock.module("../offlineGate", () => ({
 }));
 
 const fetchMock = mock(
-  async () =>
+  async (_input: unknown, _init?: unknown) =>
     new Response(JSON.stringify({data: {ok: true}}), {
       headers: {"content-type": "application/json"},
       status: 200,
@@ -145,5 +145,9 @@ describe("native token storage", () => {
 
     expect(result.data).toEqual({ok: true});
     expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const request = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://localhost:4000/todos");
+    expect(request.headers.get("authorization")).toBe(`Bearer ${secureStore.get("AUTH_TOKEN")}`);
   });
 });
