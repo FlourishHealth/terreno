@@ -215,6 +215,52 @@ describe("CommsApp", () => {
     assert.equal(stored.userId.toString(), accepted[0]?.body.data.userId);
   });
 
+  it("keeps an active token with its owner while a foreign claim races a refresh", async (): Promise<void> => {
+    const app = buildApp();
+    const {agent: owner, userId: ownerId} = await signUpAgent(app, "holder@example.com");
+    const {agent: intruder} = await signUpAgent(app, "intruder@example.com");
+    await owner
+      .post("/comms/pushTokens")
+      .send({platform: "ios", token: "ExponentPushToken[held]"})
+      .expect(201);
+
+    const [refresh, takeover] = await Promise.all([
+      owner.post("/comms/pushTokens").send({platform: "ios", token: "ExponentPushToken[held]"}),
+      intruder
+        .post("/comms/pushTokens")
+        .send({platform: "android", token: "ExponentPushToken[held]"}),
+    ]);
+
+    assert.isBelow(refresh.status, 300);
+    assert.equal(takeover.status, 409);
+    assert.equal(await PushToken.countDocuments({token: "ExponentPushToken[held]"}), 1);
+    const stored = await PushToken.findExactlyOne({token: "ExponentPushToken[held]"});
+    assert.equal(stored.userId.toString(), ownerId);
+    assert.equal(stored.platform, "ios");
+  });
+
+  it("revives a soft-deleted token row on re-registration", async (): Promise<void> => {
+    const app = buildApp();
+    const {agent, userId} = await signUpAgent(app, "revive@example.com");
+    const created = await agent
+      .post("/comms/pushTokens")
+      .send({platform: "ios", token: "ExponentPushToken[revive]"})
+      .expect(201);
+    await PushToken.updateOne({_id: created.body.data._id}, {$set: {active: false, deleted: true}});
+
+    const revived = await agent
+      .post("/comms/pushTokens")
+      .send({platform: "android", token: "ExponentPushToken[revive]"})
+      .expect(200);
+
+    assert.equal(revived.body.data._id, created.body.data._id);
+    assert.equal(await PushToken.countDocuments({token: "ExponentPushToken[revive]"}), 1);
+    const stored = await PushToken.findExactlyOne({token: "ExponentPushToken[revive]"});
+    assert.isTrue(stored.active);
+    assert.isFalse(stored.deleted);
+    assert.equal(stored.userId.toString(), userId);
+  });
+
   it("keeps refreshes idempotent for the owner under concurrent registration", async (): Promise<void> => {
     const app = buildApp();
     const {agent, userId} = await signUpAgent(app, "self-racer@example.com");
