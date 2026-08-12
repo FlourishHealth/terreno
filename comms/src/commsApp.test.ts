@@ -64,7 +64,14 @@ describe("CommsApp", () => {
 
     assert.equal(created.body.data._id, updated.body.data._id);
     assert.equal(updated.body.data.platform, "android");
+    assert.equal(updated.body.data.deviceId, "device-1");
     assert.equal(await PushToken.countDocuments(), 1);
+
+    const refreshed = await owner
+      .post("/comms/pushTokens")
+      .send({platform: "android", token: "ExponentPushToken[test]"})
+      .expect(200);
+    assert.equal(refreshed.body.data.deviceId, "device-1");
 
     const ownerList = await owner.get("/comms/pushTokens").expect(200);
     const otherList = await other.get("/comms/pushTokens").expect(200);

@@ -88,7 +88,8 @@ export const addPushTokenRoutes = (
         {token: body.token},
         {
           active: true,
-          deviceId: body.deviceId,
+          // Omitting deviceId preserves a previously registered identifier on refresh.
+          ...(body.deviceId === undefined ? {} : {deviceId: body.deviceId}),
           lastSeenAt: DateTime.utc().toJSDate(),
           platform: body.platform,
           userId: user._id,

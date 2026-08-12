@@ -1,5 +1,5 @@
 import {beforeEach, describe, it} from "bun:test";
-import {APIError} from "@terreno/api";
+import {type APIError, isAPIError} from "@terreno/api";
 import {setupDb} from "@terreno/api/testing";
 import {assert} from "chai";
 import {DateTime} from "luxon";
@@ -281,7 +281,7 @@ describe("CommsService", () => {
 
     for (const operation of operations) {
       const error = await captureError(operation);
-      assert.instanceOf(error, APIError);
+      assert.isTrue(isAPIError(error));
       assert.equal((error as APIError).status, 501);
       assert.equal((error as APIError).title, "Comms channel not configured");
     }
