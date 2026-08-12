@@ -7,11 +7,11 @@ IP: [comms-adapter-twilio-verify](../implementationPlans/comms-adapter-twilio-ve
   - Files: `comms/src/adapters/twilioVerify.ts`
   - Depends on: comms-abstraction Phase 1
   - Acceptance: mocked-client tests for approved/pending/expired/max-attempts
-- [ ] **Task 2**: Redacted logging
-  - Description: `CommsMessage` rows with channel `verification`, fully redacted destination, no codes, and verification channel metadata on start
+- [ ] **Task 2**: Redacted logging + error classification
+  - Description: `CommsMessage` rows with channel `verification`, fully redacted destination, no codes, and verification channel metadata on start; `errorCode`/`errorClass` mapping (rate-limit transient, expired/max-attempts permanent, bad SID config); rows flagged non-retryable; `onError` fires on failures
   - Files: `comms/src/adapters/twilioVerify.ts`
   - Depends on: Task 1
-  - Acceptance: log assertion tests prove no code/full destination in any row
+  - Acceptance: log assertion tests prove no code/full destination in any row; failure fixtures assert class + onError
 - [ ] **Task 3**: Registration + docs
   - Description: env-gated example-backend registration; fail-fast on missing service SID; reference + env docs
   - Files: `example-backend/src/server.ts`, `docs/reference/comms.md`, `docs/reference/environment-variables.md`

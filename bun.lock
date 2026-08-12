@@ -19,7 +19,7 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@google-cloud/storage": "catalog:",
         "@terreno/api": "workspace:*",
@@ -45,7 +45,7 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
@@ -76,7 +76,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -127,7 +127,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "catalog:",
@@ -162,7 +162,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@sentry/bun": "catalog:",
@@ -237,7 +237,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "catalog:",
@@ -488,7 +488,7 @@
     },
     "mcp-server": {
       "name": "@terreno/mcp",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "bin": {
         "terreno-mcp": "./dist/index.js",
         "terreno-mcp-local": "./dist/local/index.js",
@@ -509,7 +509,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@better-auth/expo": "^1.2.8",
         "@openfeature/core": "catalog:",
@@ -553,7 +553,7 @@
     },
     "test": {
       "name": "@terreno/test",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "express": "catalog:",
         "lodash": "catalog:",
@@ -578,7 +578,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "dependencies": {
         "@expo-google-fonts/caveat": "^0.4.2",
         "@expo-google-fonts/dancing-script": "^0.4.2",

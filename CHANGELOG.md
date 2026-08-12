@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
   explorer, and generated RTK Query hooks.
 
+### Changed
+
+- The `terreno-5-dialin` plugin skill now owns merge conflicts that appear after the
+  Pour handoff: it checks PR mergeability each cycle, resolves conflicts by merging the
+  base branch without rewriting pushed history, re-runs checks and frontend
+  verification, and treats a conflicted PR as broken rather than mergeable
+
 ## [0.31.0] - 2026-08-11
 
 ### Added
