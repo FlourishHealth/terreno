@@ -71,7 +71,28 @@ mock.module("../offlineGate", () => ({
   shouldDeferOfflineMutation: () => false,
 }));
 
-const {getTokenExpirationTimes, refreshAuthToken} = await import("../emptyApi");
+const fetchMock = mock(
+  async () =>
+    new Response(JSON.stringify({data: {ok: true}}), {
+      headers: {"content-type": "application/json"},
+      status: 200,
+    })
+);
+globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+const {getTokenExpirationTimes, refreshAuthToken, staggeredBaseQuery} = await import("../emptyApi");
+
+const createApiArg = () =>
+  ({
+    abort: () => {},
+    dispatch: (action: {type: string}) => action,
+    endpoint: "getTodos",
+    extra: undefined,
+    forced: false,
+    getState: () => ({}),
+    signal: new AbortController().signal,
+    type: "query",
+  }) as unknown as Parameters<typeof staggeredBaseQuery>[1];
 
 const base64Url = (value: object): string =>
   Buffer.from(JSON.stringify(value))
@@ -88,6 +109,7 @@ const makeToken = (secondsFromNow: number): string =>
 beforeEach(() => {
   secureStore.clear();
   axiosPost.mockClear();
+  fetchMock.mockClear();
 });
 
 describe("native token storage", () => {
@@ -109,5 +131,19 @@ describe("native token storage", () => {
 
     expect(secureStore.get("AUTH_TOKEN")).toBe("native-auth");
     expect(secureStore.get("REFRESH_TOKEN")).toBe("native-refresh");
+  });
+
+  it("performs a request with the no-op debug logger when AUTH_DEBUG is off", async () => {
+    secureStore.set("AUTH_TOKEN", makeToken(3600));
+    secureStore.set("REFRESH_TOKEN", makeToken(7200));
+
+    const result = await staggeredBaseQuery(
+      "/todos" as never,
+      createApiArg() as never,
+      {maxRetries: 0} as never
+    );
+
+    expect(result.data).toEqual({ok: true});
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
