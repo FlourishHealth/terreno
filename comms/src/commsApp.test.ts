@@ -12,6 +12,7 @@ import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
 import supertest from "supertest";
+import type TestAgent from "supertest/lib/agent";
 
 import {CommsApp, getCommsService} from "./commsApp";
 import {CommsMessage} from "./models/commsMessage";
@@ -27,9 +28,21 @@ const buildApp = (): express.Application => {
   return app;
 };
 
+const signUpAgent = async (
+  app: express.Application,
+  email: string
+): Promise<{agent: TestAgent; userId: string}> => {
+  const agent = supertest.agent(app);
+  const signup = await agent.post("/auth/signup").send({email, password: "racer-password"});
+  await agent.set("authorization", `Bearer ${signup.body.data.token}`);
+  return {agent, userId: signup.body.data.userId};
+};
+
 describe("CommsApp", () => {
   beforeEach(async (): Promise<void> => {
     await setupDb();
+    // The atomic token claim relies on the unique index, so make sure it is built.
+    await PushToken.init();
     await Promise.all([CommsMessage.deleteMany({}), PushToken.deleteMany({})]);
   });
 
@@ -66,6 +79,18 @@ describe("CommsApp", () => {
     assert.equal(updated.body.data.platform, "android");
     assert.equal(updated.body.data.deviceId, "device-1");
     assert.equal(await PushToken.countDocuments(), 1);
+
+    // The atomic claim bypasses save() middleware, so it maintains timestamps itself.
+    const stored = await PushToken.findExactlyOne({token: "ExponentPushToken[test]"});
+    assert.instanceOf(stored.created, Date);
+    assert.instanceOf(stored.updated, Date);
+    assert.isFalse(stored.deleted);
+    assert.equal(
+      stored.created.toISOString(),
+      new Date(created.body.data.created).toISOString(),
+      "created must not change on refresh"
+    );
+    assert.isAtLeast(stored.updated.getTime(), stored.created.getTime());
 
     const refreshed = await owner
       .post("/comms/pushTokens")
@@ -126,6 +151,85 @@ describe("CommsApp", () => {
     assert.equal(transferred.body.data.userId, signup.body.data.userId);
     assert.lengthOf((await first.get("/comms/pushTokens").expect(200)).body.data, 0);
     assert.lengthOf((await second.get("/comms/pushTokens").expect(200)).body.data, 1);
+  });
+
+  it("claims a new token for exactly one user under concurrent registration", async (): Promise<void> => {
+    const app = buildApp();
+    const [first, second] = await Promise.all([
+      signUpAgent(app, "racer-one@example.com"),
+      signUpAgent(app, "racer-two@example.com"),
+    ]);
+
+    const responses = await Promise.all([
+      first.agent
+        .post("/comms/pushTokens")
+        .send({platform: "ios", token: "ExponentPushToken[race]"}),
+      second.agent
+        .post("/comms/pushTokens")
+        .send({platform: "android", token: "ExponentPushToken[race]"}),
+    ]);
+
+    const accepted = responses.filter((response) => response.status < 300);
+    const conflicted = responses.filter((response) => response.status === 409);
+    assert.lengthOf(accepted, 1);
+    assert.lengthOf(conflicted, 1);
+    assert.equal(await PushToken.countDocuments({token: "ExponentPushToken[race]"}), 1);
+
+    const stored = await PushToken.findExactlyOne({token: "ExponentPushToken[race]"});
+    assert.equal(stored.userId.toString(), accepted[0]?.body.data.userId);
+  });
+
+  it("claims a released token for exactly one user under concurrent registration", async (): Promise<void> => {
+    const app = buildApp();
+    const owner = await authAsUser(app, "notAdmin");
+    const [first, second] = await Promise.all([
+      signUpAgent(app, "claimer-one@example.com"),
+      signUpAgent(app, "claimer-two@example.com"),
+    ]);
+
+    const created = await owner
+      .post("/comms/pushTokens")
+      .send({platform: "ios", token: "ExponentPushToken[released]"})
+      .expect(201);
+    await owner.delete(`/comms/pushTokens/${created.body.data._id}`).expect(204);
+
+    const responses = await Promise.all([
+      first.agent
+        .post("/comms/pushTokens")
+        .send({platform: "ios", token: "ExponentPushToken[released]"}),
+      second.agent
+        .post("/comms/pushTokens")
+        .send({platform: "android", token: "ExponentPushToken[released]"}),
+    ]);
+
+    const accepted = responses.filter((response) => response.status < 300);
+    assert.lengthOf(accepted, 1);
+    assert.lengthOf(
+      responses.filter((response) => response.status === 409),
+      1
+    );
+    assert.equal(await PushToken.countDocuments({token: "ExponentPushToken[released]"}), 1);
+
+    const stored = await PushToken.findExactlyOne({token: "ExponentPushToken[released]"});
+    assert.isTrue(stored.active);
+    assert.equal(stored.userId.toString(), accepted[0]?.body.data.userId);
+  });
+
+  it("keeps refreshes idempotent for the owner under concurrent registration", async (): Promise<void> => {
+    const app = buildApp();
+    const {agent, userId} = await signUpAgent(app, "self-racer@example.com");
+
+    const responses = await Promise.all([
+      agent.post("/comms/pushTokens").send({platform: "ios", token: "ExponentPushToken[self]"}),
+      agent.post("/comms/pushTokens").send({platform: "ios", token: "ExponentPushToken[self]"}),
+    ]);
+
+    for (const response of responses) {
+      assert.isBelow(response.status, 300);
+    }
+    assert.equal(await PushToken.countDocuments({token: "ExponentPushToken[self]"}), 1);
+    const stored = await PushToken.findExactlyOne({token: "ExponentPushToken[self]"});
+    assert.equal(stored.userId.toString(), userId);
   });
 
   it("rejects unauthenticated reads, deletes, and explorer requests", async (): Promise<void> => {

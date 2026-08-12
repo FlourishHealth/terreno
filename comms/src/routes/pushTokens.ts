@@ -10,7 +10,7 @@ import {
 } from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
-import type {Model} from "mongoose";
+import type {Model, QueryFilter, Types} from "mongoose";
 import {PushToken} from "../models/pushToken";
 import type {PushTokenDocument, PushTokenPlatform} from "../modelTypes";
 
@@ -38,6 +38,63 @@ const getAuthenticatedUser = (
     throw new APIError({status: 401, title: "Authentication required"});
   }
   return user as {_id: unknown; admin?: boolean; id?: string};
+};
+
+const isDuplicateKeyError = (error: unknown): boolean =>
+  (error as {code?: number} | undefined)?.code === 11000;
+
+/**
+ * Claims a device token for the caller in a single atomic statement.
+ *
+ * The filter only matches a token that is unclaimed, already the caller's, or released by its
+ * previous owner, so a concurrent request can never transfer an active token between accounts.
+ * A token held by another user fails the filter, and the unique index turns the resulting upsert
+ * insert into a duplicate-key error that surfaces as a conflict.
+ */
+const claimPushToken = async ({
+  deviceId,
+  platform,
+  token,
+  userId,
+}: {
+  deviceId?: string;
+  platform: PushTokenPlatform;
+  token: string;
+  userId: Types.ObjectId;
+}): Promise<{created: boolean; document: PushTokenDocument}> => {
+  const now = DateTime.utc().toJSDate();
+  const claimableFilter: QueryFilter<PushTokenDocument> = {
+    $or: [{userId}, {active: false}],
+    token,
+  };
+  const result = await PushToken.findOneAndUpdate(
+    claimableFilter,
+    {
+      // createdUpdatedPlugin only hooks save(), so timestamps are maintained here.
+      $set: {
+        active: true,
+        deleted: false,
+        // Omitting deviceId preserves a previously registered identifier on refresh.
+        ...(deviceId === undefined ? {} : {deviceId}),
+        lastSeenAt: now,
+        platform,
+        updated: now,
+        userId,
+      },
+      $setOnInsert: {created: now},
+    },
+    {
+      includeResultMetadata: true,
+      returnDocument: "after",
+      runValidators: true,
+      upsert: true,
+    }
+  );
+
+  if (!result.value) {
+    throw new APIError({status: 500, title: "Push token claim returned no document"});
+  }
+  return {created: result.lastErrorObject?.updatedExisting !== true, document: result.value};
 };
 
 export const addPushTokenRoutes = (
@@ -79,23 +136,33 @@ export const addPushTokenRoutes = (
         throw new APIError({status: 400, title: "Valid push platform is required"});
       }
 
-      const existing = await PushToken.findOneOrNone({token: body.token});
-      const isExistingOwner = existing?.userId.toString() === String(user._id);
-      if (existing?.active && !isExistingOwner) {
-        throw new APIError({status: 409, title: "Push token is registered to another user"});
-      }
-      const token = await PushToken.upsert(
-        {token: body.token},
-        {
-          active: true,
-          // Omitting deviceId preserves a previously registered identifier on refresh.
-          ...(body.deviceId === undefined ? {} : {deviceId: body.deviceId}),
-          lastSeenAt: DateTime.utc().toJSDate(),
-          platform: body.platform,
-          userId: user._id,
+      const claim = {
+        deviceId: body.deviceId,
+        platform: body.platform,
+        token: body.token,
+        userId: user._id as Types.ObjectId,
+      };
+
+      let result: {created: boolean; document: PushTokenDocument};
+      try {
+        result = await claimPushToken(claim);
+      } catch (error: unknown) {
+        if (!isDuplicateKeyError(error)) {
+          throw error;
         }
-      );
-      return res.status(existing ? 200 : 201).json({data: token});
+        // A concurrent insert won the race. Retrying resolves the caller's own duplicate
+        // registration and leaves a genuinely foreign token failing the filter again.
+        try {
+          result = await claimPushToken(claim);
+        } catch (retryError: unknown) {
+          if (!isDuplicateKeyError(retryError)) {
+            throw retryError;
+          }
+          throw new APIError({status: 409, title: "Push token is registered to another user"});
+        }
+      }
+
+      return res.status(result.created ? 201 : 200).json({data: result.document});
     })
   );
 
