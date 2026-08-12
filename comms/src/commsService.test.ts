@@ -485,10 +485,13 @@ describe("CommsService", () => {
 
   it("records an invalid verification check as failed", async (): Promise<void> => {
     const verification: VerificationProvider = {
-      checkVerification: async (): Promise<{error: string; valid: boolean}> => ({
-        error: "Verification expired",
-        valid: false,
-      }),
+      checkVerification: async ({code}): Promise<{error?: string; valid: boolean}> =>
+        code === "missing-reason"
+          ? {valid: false}
+          : {
+              error: "Verification expired",
+              valid: false,
+            },
       id: "memory-verification",
       startVerification: async (): Promise<SendResult> => ({accepted: true}),
     };
@@ -502,11 +505,17 @@ describe("CommsService", () => {
       code: "wrong-code",
       to: "+15555550100",
     });
+    const fallbackResult = await service.checkVerification({
+      code: "missing-reason",
+      to: "fallback@example.com",
+    });
 
     assert.isFalse(emailResult.valid);
     assert.equal(emailResult.error, "Verification expired");
     assert.isFalse(smsResult.valid);
     assert.equal(smsResult.error, "Verification expired");
+    assert.isFalse(fallbackResult.valid);
+    assert.isUndefined(fallbackResult.error);
     assert.equal(
       await CommsMessage.countDocuments({
         channel: "verification",
@@ -516,8 +525,23 @@ describe("CommsService", () => {
       }),
       2
     );
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "verification",
+        error: "Verification check failed",
+        status: "failed",
+        to: "[redacted]",
+      }),
+      1
+    );
     assert.equal(await CommsMessage.countDocuments({to: "person@example.com"}), 0);
     assert.equal(await CommsMessage.countDocuments({to: "+15555550100"}), 0);
+    const serializedAuditRows = JSON.stringify(
+      await CommsMessage.find({channel: "verification", status: "failed"})
+    );
+    for (const sensitiveValue of ["wrong-code", "missing-reason", "fallback@example.com"]) {
+      assert.notInclude(serializedAuditRows, sensitiveValue);
+    }
   });
 
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {
