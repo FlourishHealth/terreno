@@ -8,7 +8,7 @@ IP: [comms-adapter-twilio-verify](../implementationPlans/comms-adapter-twilio-ve
   - Depends on: comms-abstraction Phase 1
   - Acceptance: mocked-client tests for approved/pending/expired/max-attempts
 - [ ] **Task 2**: Redacted logging + error classification
-  - Description: `CommsMessage` rows with channel `verification`, last-4 destination, no codes; `errorCode`/`errorClass` mapping (rate-limit transient, expired/max-attempts permanent, bad SID config); rows flagged non-retryable; `onError` fires on failures
+  - Description: `CommsMessage` rows with channel `verification`, fully redacted destination, no codes, and verification channel metadata on start; `errorCode`/`errorClass` mapping (rate-limit transient, expired/max-attempts permanent, bad SID config); rows flagged non-retryable; `onError` fires on failures
   - Files: `comms/src/adapters/twilioVerify.ts`
   - Depends on: Task 1
   - Acceptance: log assertion tests prove no code/full destination in any row; failure fixtures assert class + onError

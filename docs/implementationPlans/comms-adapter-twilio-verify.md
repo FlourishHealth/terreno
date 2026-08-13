@@ -44,7 +44,7 @@ export class TwilioVerifyProvider implements VerificationProvider {
   readonly id = "twilio-verify";
   constructor(options?: {accountSid?: string; authToken?: string; verifyServiceSid?: string});
   startVerification(options: {to: string; channel: "sms" | "email"}): Promise<SendResult>;
-  checkVerification(options: {to: string; code: string}): Promise<{valid: boolean}>;
+  checkVerification(options: {to: string; code: string}): Promise<{valid: boolean; error?: string}>;
 }
 ```
 
@@ -67,8 +67,8 @@ None.
 
 ## Activity Log & User Updates
 
-Verification attempts logged to `CommsMessage` (no codes, destination redacted to
-last-4).
+Verification attempts logged to `CommsMessage` (no codes; destination fully redacted by core,
+with the verification channel stored in metadata).
 
 ## Not Included / Future Work
 

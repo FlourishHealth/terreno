@@ -13,6 +13,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
+- **comms/** - Pluggable transactional communications (`@terreno/comms`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -47,6 +48,8 @@ bun run mcp:build        # Build MCP server
 bun run mcp:start        # Start MCP server
 bun run admin-backend:compile   # Compile admin backend
 bun run admin-frontend:compile  # Compile admin frontend
+bun run comms:compile           # Compile communications package
+bun run comms:test              # Test communications package
 ```
 
 ## How the Packages Work Together

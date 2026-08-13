@@ -23,6 +23,13 @@ import {
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
+import {
+  CommsApp,
+  ConsoleMailProvider,
+  ConsolePushProvider,
+  ConsoleSmsProvider,
+  ConsoleVerificationProvider,
+} from "@terreno/comms";
 import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
@@ -221,6 +228,21 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       );
     } else {
       logger.info("RealtimeApp disabled because BACKEND_SERVICE is not websockets/all");
+    }
+
+    if (process.env.COMMS_ENABLED !== "false") {
+      terraApp.register(
+        new CommsApp(
+          isDeployed
+            ? {}
+            : {
+                mail: new ConsoleMailProvider(),
+                push: new ConsolePushProvider(),
+                sms: new ConsoleSmsProvider(),
+                verification: new ConsoleVerificationProvider(),
+              }
+        )
+      );
     }
 
     terraApp

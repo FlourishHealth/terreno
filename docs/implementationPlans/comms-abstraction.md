@@ -116,7 +116,10 @@ export interface PushProvider {
 export interface VerificationProvider {
   readonly id: string;
   startVerification(options: {to: string; channel: "sms" | "email"}): Promise<SendResult>;
-  checkVerification(options: {to: string; code: string}): Promise<{valid: boolean}>;
+  checkVerification(options: {to: string; code: string}): Promise<{
+    valid: boolean;
+    error?: string;
+  }>;
 }
 
 export interface DeliveryEvent {
@@ -144,6 +147,9 @@ export interface OptOutEvent {
   raw?: unknown;
 }
 ```
+
+Verification start attempts store `metadata.verificationChannel` while recipient values remain
+redacted. Verification codes are never persisted.
 
 ### CommsApp (TerrenoPlugin)
 
@@ -237,11 +243,12 @@ without any further schema changes.
 | DELETE | `/comms/pushTokens/:id` | IsOwner | Deactivate on logout/uninstall |
 | GET | `/comms/messages` | IsAdmin | Paginated delivery log explorer; filters: `channel`, `status`, `userId`, date range |
 
-Push token routes via `modelRouter` with `preCreate` owner injection and
-`OwnerQueryFilter`; explorer via `createOpenApiBuilder`, modeled on
-`addAiRequestsExplorerRoutes`. The explorer is deliberately minimal here — the
-[comms-admin-dashboard](comms-admin-dashboard.md) IP upgrades it with error-code/class
-filtering, free-text search, a detail route, stats, and retry endpoints.
+Push token registration, owner-scoped list, and deactivation use dedicated handlers because
+`modelRouter` create cannot provide idempotent upsert semantics and `OwnerQueryFilter` targets a
+persisted `ownerId` while `PushToken` persists `userId`. Owner read remains on `modelRouter`.
+The explorer uses `createOpenApiBuilder`, modeled on `addAiRequestsExplorerRoutes`, and is
+deliberately minimal here — the [comms-admin-dashboard](comms-admin-dashboard.md) IP upgrades it
+with error-code/class filtering, free-text search, a detail route, stats, and retry endpoints.
 
 ## Notifications
 
@@ -297,7 +304,7 @@ See [docs/tasks/comms-abstraction.md](../tasks/comms-abstraction.md).
 
 ## Acceptance Criteria
 
-- [ ] A Terreno app with only console adapters can call `sendMail`, `sendSms`,
+- [x] A Terreno app with only console adapters can call `sendMail`, `sendSms`,
       `sendPushToUser`, and `startVerification`/`checkVerification` in development, each
       producing a logger line and a `CommsMessage` row.
 - [ ] `beforeSend` can cancel and mutate; `onSend`/`onError` fire with the final
@@ -307,10 +314,10 @@ See [docs/tasks/comms-abstraction.md](../tasks/comms-abstraction.md).
       `CommsMessage` row; only `transient` failures trigger the inline retry.
 - [ ] `CommsMessage.attempts` holds one entry per attempt with per-attempt error data;
       `payload` is retained post-redaction and cleared after `retainPayloadDays`.
-- [ ] `POST /comms/pushTokens` registers a device token for the authenticated user;
+- [x] `POST /comms/pushTokens` registers a device token for the authenticated user;
       re-posting the same token updates rather than duplicates; other users cannot list or
       delete it.
-- [ ] `GET /comms/messages` is admin-only, paginated, and filterable by channel and status.
-- [ ] Production apps with an unconfigured channel get a 501 `APIError`, not a silent no-op.
-- [ ] `@terreno/comms` core has zero provider SDKs in `dependencies`.
-- [ ] All routes appear in `/openapi.json` and the generated SDK compiles.
+- [x] `GET /comms/messages` is admin-only, paginated, and filterable by channel and status.
+- [x] Production apps with an unconfigured channel get a 501 `APIError`, not a silent no-op.
+- [x] `@terreno/comms` core has zero provider SDKs in `dependencies`.
+- [x] All routes appear in `/openapi.json` and the generated SDK compiles.

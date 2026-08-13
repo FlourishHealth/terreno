@@ -12,7 +12,7 @@ Use when a change touches user-facing APIs, components, routes, configuration, o
 
 Run before opening a PR when the diff includes any of:
 
-- New or changed exports in `api/`, `ui/`, `rtk/`, `ai/`, `feature-flags/`, or `admin-*`
+- New or changed exports in `api/`, `ui/`, `rtk/`, `ai/`, `comms/`, `feature-flags/`, or `admin-*`
 - New UI components or changed prop types in `@terreno/ui`
 - New `modelRouter` / `TerrenoApp` options, permissions, or custom routes
 - New environment variables or setup steps
