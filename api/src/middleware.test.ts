@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it, type Mock, mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
+import {assert} from "chai";
 import express, {type NextFunction, type Request, type Response} from "express";
 import supertest from "supertest";
 
@@ -129,6 +130,21 @@ describe("jsonResponseRequestIdMiddleware", () => {
     const res = await supertest(app).get("/openapi/validate").expect(200);
     expect(res.body).toEqual({document: {openapi: "3.0.0"}, valid: true});
     expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("leaves bodies untouched when no request context or requestId exists", async () => {
+    // Without requestContextMiddleware there is no requestId to correlate on, so
+    // the middleware must pass payloads through unchanged.
+    const app = express();
+    app.use(jsonResponseRequestIdMiddleware);
+    app.get("/object", (_req, res) => {
+      return res.json({hello: "world"});
+    });
+
+    const res = await supertest(app).get("/object").expect(200);
+
+    assert.deepEqual(res.body, {hello: "world"});
+    assert.isUndefined(res.headers["x-request-id"]);
   });
 
   it("uses incoming X-Request-ID on wrapped object responses", async () => {
