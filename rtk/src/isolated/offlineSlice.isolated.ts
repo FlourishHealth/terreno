@@ -27,6 +27,8 @@ afterAll(() => {
   });
 });
 
+// Runs in isolation because the navigator stub must be in place before the
+// slice module is evaluated, which would leak into the rest of the suite.
 describe("offlineSlice initial online status on web", () => {
   it("starts offline when navigator reports the browser is offline", () => {
     const state = offlineSlice.reducer(undefined, {type: "@@INIT"});
