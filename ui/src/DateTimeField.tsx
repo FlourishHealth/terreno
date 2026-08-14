@@ -3,6 +3,7 @@ import {DateTime} from "luxon";
 import React, {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Pressable, TextInput, View} from "react-native";
 
+import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import type {DateTimeFieldProps} from "./Common";
 import {DateTimeActionSheet} from "./DateTimeActionSheet";
@@ -424,9 +425,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 }): React.ReactElement => {
   const {theme} = useTheme();
   const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
-  // noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  const dateActionSheetRef: React.RefObject<any> = React.createRef();
+  const dateActionSheetRef: React.RefObject<ActionSheet | null> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");
   const [showDate, setShowDate] = useState(false);
   const [month, setMonth] = useState("");
