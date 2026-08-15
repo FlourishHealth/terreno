@@ -11,6 +11,7 @@ import express from "express";
 import supertest from "supertest";
 import {Todo} from "../models/todo";
 import {User as UserModel} from "../models/user";
+import type {UserDocument} from "../types/models/userTypes";
 import {addLoadTestRoutes} from "./loadtest";
 
 /**
@@ -65,15 +66,18 @@ describe("loadtest routes", () => {
       .build();
   };
 
-  const createUser = async (email: string, admin: boolean) => {
-    return UserModel.register(
-      {admin, email, name: email} as any,
-      "password12345"
-    ) as unknown as Promise<{_id: unknown; admin: boolean}>;
+  const createUser = async (
+    email: string,
+    admin: boolean
+  ): Promise<{_id: UserDocument["_id"]; admin: boolean}> => {
+    return UserModel.register({admin, email, name: email} as any, "password12345") as unknown as Promise<{
+      _id: UserDocument["_id"];
+      admin: boolean;
+    }>;
   };
 
-  const tokenFor = async (user: {_id: unknown; admin: boolean}): Promise<string> => {
-    const {token} = await generateTokens(user);
+  const tokenFor = async (user: {_id: UserDocument["_id"]; admin: boolean}): Promise<string> => {
+    const {token} = await generateTokens(user as any);
     if (!token) {
       throw new Error("Failed to generate a token for test user");
     }

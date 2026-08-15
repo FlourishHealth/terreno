@@ -79,7 +79,7 @@ const buildTodoSeed = (ownerId: unknown): Record<string, unknown> => ({
   title: randomTitle(),
 });
 
-const requireOwnerId = (req: express.Request): unknown => {
+const requireOwnerId = (req: express.Request): UserDocument["_id"] => {
   const ownerId = (req.user as unknown as UserDocument)?._id;
   if (!ownerId) {
     throw new APIError({status: 401, title: "Authentication required"});

@@ -22,7 +22,6 @@ import {
   BadRequestError,
   errorDetail,
   ForbiddenError,
-  isAPIError,
   NotFoundError,
   passthroughOrWrap,
   passthroughOrWrapWrite,

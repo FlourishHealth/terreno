@@ -70,7 +70,7 @@ export const registerSync = ({
 }): void => {
   const name = model.modelName;
   const deletedPath = model.schema.path("deleted");
-  if (!deletedPath || deletedPath.instance !== "Boolean") {
+  if (deletedPath?.instance !== "Boolean") {
     throw new Error(
       `Model ${name} has a sync config but no soft delete support. ` +
         "Apply isDeletedPlugin to the schema — sync catch-up requires delete tombstones."

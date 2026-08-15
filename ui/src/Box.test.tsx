@@ -1,7 +1,7 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
-import type {ScrollView} from "react-native";
+import {ScrollView} from "react-native";
 
 import {Box} from "./Box";
 import {Text} from "./Text";
@@ -512,14 +512,14 @@ describe("Box", () => {
     // values: a ref object in style is cyclical (host instance points back at the
     // node) and gets dev-frozen, so React throws when detaching it on unmount.
     it("should keep behavior props out of the ScrollView style", () => {
-      const scrollRef = React.createRef<any>();
+      const scrollRef = React.createRef<ScrollView>();
       const {root} = renderWithTheme(
         <Box onScroll={mock(() => {})} scroll scrollRef={scrollRef}>
           <Text>Scrollable</Text>
         </Box>
       );
 
-      const scrollView = root.findByType("ScrollView" as any);
+      const scrollView = root.findByType(ScrollView);
       expect(scrollView.props.style).not.toHaveProperty("scrollRef");
       expect(scrollView.props.style).not.toHaveProperty("scroll");
       expect(scrollView.props.style).not.toHaveProperty("onScroll");

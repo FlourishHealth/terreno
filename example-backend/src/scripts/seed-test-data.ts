@@ -4,7 +4,7 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {ConsentForm, logger} from "@terreno/api";
+import {ConsentForm, type ConsentFormType, logger} from "@terreno/api";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
 // real _syncSeq stamped instead of arriving to clients as legacy seq-0 documents.
@@ -25,6 +25,21 @@ interface SeedUser {
   name: string;
   organizationIds: string[];
   password: string;
+}
+
+interface SeedConsentForm {
+  active: boolean;
+  agreeButtonText?: string;
+  allowDecline?: boolean;
+  captureSignature?: boolean;
+  content: Map<string, string>;
+  order: number;
+  required: boolean;
+  requireScrollToBottom?: boolean;
+  slug: string;
+  title: string;
+  type: ConsentFormType;
+  version: number;
 }
 
 // Shared organization so both seeded users demonstrate tenant-scoped project sync.
@@ -53,7 +68,7 @@ const SEED_PROJECTS = [
 
 const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
 
-const CONSENT_FORMS = [
+const CONSENT_FORMS: SeedConsentForm[] = [
   {
     active: true,
     agreeButtonText: "I Accept the Terms",
