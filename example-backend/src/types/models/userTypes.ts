@@ -1,5 +1,8 @@
-/// <reference types="passport-local-mongoose" />
 import type mongoose from "mongoose";
+import type {
+  PassportLocalMongooseDocument,
+  PassportLocalMongooseModel,
+} from "passport-local-mongoose";
 import type {DefaultDoc, DefaultModel, DefaultStatics} from "../modelPlugins";
 
 export type UserMethods = {
@@ -12,13 +15,13 @@ export type UserStatics = DefaultStatics<UserDocument> & {
 
 export type UserModel = DefaultModel<UserDocument> &
   UserStatics &
-  mongoose.PassportLocalModel<UserDocument>;
+  PassportLocalMongooseModel<UserDocument>;
 
 export type UserSchema = mongoose.Schema<UserDocument, UserModel, UserMethods>;
 
 export type UserDocument = DefaultDoc &
   UserMethods &
-  mongoose.PassportLocalDocument & {
+  PassportLocalMongooseDocument & {
     admin: boolean;
     betterAuthId?: string;
     email: string;

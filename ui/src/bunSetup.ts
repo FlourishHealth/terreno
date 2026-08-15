@@ -320,9 +320,12 @@ mock.module("react-native", () => {
   };
   const UIManager = {
     getViewManagerConfig: mock(() => ({})),
+    measure: mock(() => {}),
     setLayoutAnimationEnabledExperimental: mock(() => {}),
   };
-  const findNodeHandle = mock(() => null);
+  // Node handles are opaque numbers in React Native; pass them through so code that
+  // measures the currently focused field can be exercised in tests.
+  const findNodeHandle = mock((node: unknown) => (typeof node === "number" ? node : null));
   const requireNativeComponent = mock((name: string) => name);
   const TurboModuleRegistry = {
     get: mock(() => null),
@@ -1136,12 +1139,13 @@ mock.module("react-native/Libraries/LayoutAnimation/LayoutAnimation", () => ({
 mock.module("react-native/Libraries/ReactNative/UIManager", () => ({
   default: {
     getViewManagerConfig: mock(() => ({})),
+    measure: mock(() => {}),
     setLayoutAnimationEnabledExperimental: mock(() => {}),
   },
 }));
 
 mock.module("react-native/Libraries/Renderer/shims/ReactNative", () => ({
-  findNodeHandle: mock(() => null),
+  findNodeHandle: mock((node: unknown) => (typeof node === "number" ? node : null)),
 }));
 
 mock.module("react-native/Libraries/Components/StatusBar/StatusBar", () => ({

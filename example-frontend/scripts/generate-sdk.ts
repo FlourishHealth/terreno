@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
 
-import {exec} from "node:child_process";
-import {existsSync, readFileSync, writeFileSync} from "node:fs";
-import {join} from "node:path";
+import {execFile} from "node:child_process";
+import {existsSync, readFileSync, realpathSync, writeFileSync} from "node:fs";
+import {basename, dirname, extname, join, resolve, sep} from "node:path";
 
 // Find the CLI binary path directly
 const cliPath = join(
   __dirname,
+  "..",
   "..",
   "node_modules",
   "@rtk-query",
@@ -15,48 +16,75 @@ const cliPath = join(
   "bin",
   "cli.mjs"
 );
-const configPath = join(__dirname, "..", "openapi-config.ts");
+const configFile = process.argv[2] ?? "openapi-config.ts";
+const sdkFile = process.argv[3] ?? "store/openApiSdk.ts";
+const projectRoot = resolve(__dirname, "..");
+const configPath = resolve(projectRoot, configFile);
+const sdkPath = resolve(projectRoot, sdkFile);
 const tsConfigPath = join(__dirname, "..", "tsconfig.codegen.json");
+const canonicalProjectRoot = realpathSync(projectRoot);
 
-// Use tsx to run the codegen CLI with the TypeScript config
-const command = `TS_NODE_PROJECT=${tsConfigPath} tsx ${cliPath} ${configPath}`;
-
-exec(command, (error, stdout, stderr) => {
-  if (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+const isProjectFile = (filePath: string): boolean => {
+  if (!filePath.startsWith(`${projectRoot}${sep}`) || extname(filePath) !== ".ts") {
+    return false;
   }
-  if (stderr) {
-    console.error(`stderr: ${stderr}`);
+  try {
+    const canonicalPath = existsSync(filePath)
+      ? realpathSync(filePath)
+      : resolve(realpathSync(dirname(filePath)), basename(filePath));
+    return canonicalPath.startsWith(`${canonicalProjectRoot}${sep}`);
+  } catch {
+    // An unresolvable path (for example a missing parent directory) is not a usable target.
+    return false;
   }
-  if (stdout) {
-  }
+};
 
-  // Post-process: remove empty export line if it exists
-  const sdkPath = join(__dirname, "..", "store", "openApiSdk.ts");
+if (!isProjectFile(configPath) || !isProjectFile(sdkPath)) {
+  console.error("SDK config and output must be TypeScript files inside example-frontend");
+  process.exit(1);
+}
 
-  if (existsSync(sdkPath)) {
-    let content = readFileSync(sdkPath, "utf8");
-    content = content.replace(/^export const \{\} = injectedRtkApi;\n?/m, "");
-    if (!content.startsWith("// biome-ignore-all lint/suspicious/noExplicitAny")) {
-      content =
-        "// biome-ignore-all lint/suspicious/noExplicitAny: types are generated from backend OpenAPI schemas\n" +
-        content;
+// The RTK codegen CLI uses ts-node here because this workspace does not install esbuild-runner.
+execFile(
+  "tsx",
+  [cliPath, configPath],
+  {env: {...process.env, TS_NODE_PROJECT: tsConfigPath}},
+  (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error: ${error.message}`);
+      process.exit(1);
     }
-    writeFileSync(sdkPath, content, "utf8");
-  }
-
-  // Run biome formatting
-  exec(
-    "bunx biome check --unsafe --write store/openApiSdk.ts",
-    {cwd: join(__dirname, "..")},
-    (formatError, formatStdout) => {
-      if (formatError) {
-        console.error(`Formatting error: ${formatError.message}`);
-        process.exit(1);
-      }
-      if (formatStdout) {
-      }
+    if (stderr) {
+      console.error(`stderr: ${stderr}`);
     }
-  );
-});
+    if (stdout) {
+    }
+
+    // Post-process: remove empty export line if it exists
+    if (existsSync(sdkPath)) {
+      let content = readFileSync(sdkPath, "utf8");
+      content = content.replace(/^export const \{\} = injectedRtkApi;\n?/m, "");
+      if (!content.startsWith("// biome-ignore-all lint/suspicious/noExplicitAny")) {
+        content =
+          "// biome-ignore-all lint/suspicious/noExplicitAny: types are generated from backend OpenAPI schemas\n" +
+          content;
+      }
+      writeFileSync(sdkPath, content, "utf8");
+    }
+
+    // Run biome formatting
+    execFile(
+      "bunx",
+      ["biome", "check", "--unsafe", "--write", sdkPath],
+      {cwd: join(__dirname, "..")},
+      (formatError, formatStdout) => {
+        if (formatError) {
+          console.error(`Formatting error: ${formatError.message}`);
+          process.exit(1);
+        }
+        if (formatStdout) {
+        }
+      }
+    );
+  }
+);

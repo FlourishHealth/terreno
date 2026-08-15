@@ -55,7 +55,6 @@
     "@types/express": "catalog:",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash": "catalog:",
-    "@types/mongodb": "^4.0.7",
     "@types/node": "catalog:",
     "@types/on-finished": "^2.3.4",
     "@types/passport": "^1.0.17",
@@ -79,7 +78,7 @@
     "mongoose",
     "express"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "exports": {
     ".": {
@@ -124,5 +123,5 @@
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",
-  "version": "0.30.0"
+  "version": "0.31.0"
 }

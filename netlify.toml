@@ -5,6 +5,8 @@
   # which trips ignoreDeprecations "6.0" (TS5103) during ui compile / typedoc. A clean install
   # guarantees only the lockfile-pinned TypeScript 6.0.3 is present.
   command = "cd .. && rm -rf node_modules && bun install --frozen-lockfile && bun run --filter '@terreno/ui' compile && cd ui && bun run types && cd .. && bun run website:build"
+  # GitHub Actions owns docs builds and deployments.
+  ignore = "true"
   publish = "build"
 
 [build.environment]

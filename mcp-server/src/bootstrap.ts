@@ -262,7 +262,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@terreno/admin-backend": "latest",
         "@terreno/api": "latest",
         luxon: "^3.7.2",
-        mongoose: "^8.18.1",
+        mongoose: "^9.7.4",
         "passport-local-mongoose": "^9.0.1",
       },
       devDependencies: {
@@ -270,7 +270,6 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@types/bun": "^1.2.4",
         "@types/express": "^4.17.21",
         "@types/luxon": "^3.7.1",
-        "@types/passport-local-mongoose": "^6.1.5",
         typescript: "~5.9.2",
       },
       name: `@${appName}/backend`,
@@ -656,19 +655,20 @@ const generateBackendTypesModels = (): string => {
 };
 
 const generateBackendUserTypes = (): string => {
-  return `/// <reference types="passport-local-mongoose" />
-import type {APIErrorConstructor} from "@terreno/api";
+  return `import type {APIErrorConstructor} from "@terreno/api";
 import type mongoose from "mongoose";
-import type {Document, FilterQuery, Model} from "mongoose";
+import type {Document, Model} from "mongoose";
+
+type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
 
 export interface DefaultStatics<T> {
   findOneOrNone(
-    query: FilterQuery<T>,
+    query: ModelQuery<T>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & T) | null>;
 
   findExactlyOne(
-    query: FilterQuery<T>,
+    query: ModelQuery<T>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & T>;
 }

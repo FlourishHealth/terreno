@@ -219,6 +219,7 @@ export interface TextThemeConfig {
 export interface SurfaceThemeConfig {
   base: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
+  secondaryExtraLight: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
   secondaryDark: keyof ThemePrimitiveColors;
   secondaryExtraDark: keyof ThemePrimitiveColors;
@@ -287,6 +288,7 @@ export interface TextTheme {
 export interface SurfaceTheme {
   base: string;
   primary: string;
+  secondaryExtraLight: string;
   secondaryLight: string;
   secondaryDark: string;
   secondaryExtraDark: string;
@@ -690,6 +692,51 @@ export type CardProps = BoxProps & {
    * @default 160
    */
   imageHeight?: number;
+};
+
+export type EditableCardProps = BoxProps & {
+  /**
+   * The name of an icon shown before the title.
+   */
+  iconName?: IconName;
+
+  /**
+   * The title of the summarized information.
+   */
+  title?: string;
+
+  /**
+   * Props for a badge rendered next to the title.
+   */
+  badge?: BadgeProps;
+
+  /**
+   * The summarized information itself, displayed below the title.
+   */
+  description?: string;
+
+  /**
+   * Secondary text displayed below the description, in a muted style.
+   */
+  helperText?: string;
+
+  /**
+   * Callback invoked when the edit button is pressed. The edit button is only rendered when this
+   * is provided.
+   */
+  onEdit?: () => void | Promise<void>;
+
+  /**
+   * Accessibility label for the edit button.
+   * @default "Edit"
+   */
+  editAccessibilityLabel?: string;
+
+  /**
+   * If true, the card is highlighted to draw attention to it, e.g. for content that needs review.
+   * @default false
+   */
+  attention?: boolean;
 };
 
 export interface ErrorBoundaryProps {

@@ -1,4 +1,4 @@
-import mongoose, {type Model, model, Schema} from "mongoose";
+import mongoose, {type Model, model, Schema, type StringSchemaDefinition} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
 import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "../plugins";
@@ -41,11 +41,11 @@ export interface Food {
     dateAdded?: string;
   };
   tags: string[];
-  eatenBy: [Schema.Types.ObjectId | User];
+  eatenBy: Array<mongoose.Types.ObjectId | User>;
   lastEatenWith: {[name: string]: Date};
   categories: FoodCategory[];
   expiration: string;
-  likesIds: {userId: string; likes: boolean}[];
+  likesIds: {userId: mongoose.Types.ObjectId | string; likes: boolean}[];
 }
 
 export interface RequiredField {
@@ -126,9 +126,11 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
-    // noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
-    // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
-    expiration: {description: "Expiration date of the food", type: DateOnly as any},
+    expiration: {
+      description: "Expiration date of the food",
+      // DateOnly is a custom SchemaType registered on Schema.Types; it stores an ISO date string.
+      type: DateOnly as unknown as StringSchemaDefinition,
+    },
     hidden: {
       default: false,
       description: "Whether this food is hidden from listings",

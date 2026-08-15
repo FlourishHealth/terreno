@@ -59,6 +59,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "LICENSE",
     "src/dist/**",
     "dist/**"
   ],
@@ -71,7 +72,7 @@
     "spa",
     "terreno"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "expo-router/entry",
   "name": "@terreno/admin-spa",
   "peerDependencies": {
@@ -100,5 +101,5 @@
     "web": "expo start --web --port 8083"
   },
   "types": "./src/dist/index.d.ts",
-  "version": "0.30.0"
+  "version": "0.31.0"
 }

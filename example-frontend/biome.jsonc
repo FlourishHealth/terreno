@@ -31,6 +31,21 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["store/openApiSdk.ts", "store/commsOpenApiSdk.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ],
   "plugins": ["../biome/plugins/no-barrel-imports.grit"],
   "root": true
 }

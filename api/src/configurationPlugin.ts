@@ -344,7 +344,7 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
     const updated = await this.findOneAndUpdate(
       singletonFilter,
       {$set: setFields},
-      {new: true, runValidators: true}
+      {returnDocument: "after", runValidators: true}
     );
     if (updated) {
       return updated;
@@ -356,7 +356,7 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
     return this.findOneAndUpdate(
       singletonFilter,
       {$set: setFields},
-      {new: true, runValidators: true}
+      {returnDocument: "after", runValidators: true}
     ).orFail();
   };
 

@@ -1,12 +1,15 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {
+  type User as AuthUser,
+  type UserModel as AuthUserModel,
+  addAuthRoutes,
+  setupAuth,
+} from "./auth";
 import {
   getUserOrganizationIds,
   OrganizationQueryFilter,
@@ -32,8 +35,8 @@ describe("permissions", () => {
 
     await setupTestData();
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(
       "/food",
       modelRouter(FoodModel, {
@@ -210,10 +213,17 @@ describe("permissions", () => {
   });
 });
 
+const testUser = (overrides: Partial<AuthUser> = {}): AuthUser => ({
+  _id: "user-123",
+  admin: false,
+  id: "user-123",
+  ...overrides,
+});
+
 describe("permissions module", () => {
   describe("OwnerQueryFilter", () => {
     it("returns ownerId filter when user is provided", () => {
-      const user = {id: "user-123"} as any;
+      const user = testUser();
       const filter = OwnerQueryFilter(user);
       expect(filter).toEqual({ownerId: "user-123"});
     });

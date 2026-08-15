@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, renderHook} from "@testing-library/react-native";
+import {assert} from "chai";
 import type {ComponentProps} from "react";
 import {Dimensions} from "react-native";
 
@@ -714,6 +715,19 @@ describe("scheduleAfterPaint", () => {
 });
 
 describe("WebDropdownMenu layout callbacks", () => {
+  // scheduleAfterPaint defers to requestAnimationFrame; run callbacks synchronously so
+  // scrolling happens inside the act() block that fires the layout events.
+  const runAnimationFramesSynchronously = (): (() => void) => {
+    const globals = globalThis as {requestAnimationFrame?: typeof requestAnimationFrame};
+    const originalRaf = globals.requestAnimationFrame;
+    globals.requestAnimationFrame = ((callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    }) as unknown as typeof requestAnimationFrame;
+    return () => {
+      globals.requestAnimationFrame = originalRaf;
+    };
+  };
   const anchor = {height: 40, width: 200, x: 16, y: 32};
   const options = [
     {label: "Option A", value: "a"},
@@ -765,6 +779,120 @@ describe("WebDropdownMenu layout callbacks", () => {
       });
     });
     expect(getByTestId("web_dropdown_option_b")).toBeTruthy();
+  });
+
+  it("centers the selected option once its layout and the viewport height are known", () => {
+    const restoreRaf = runAnimationFramesSynchronously();
+
+    try {
+      const {getByTestId, root} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          selectedIndex={2}
+          visible
+        />
+      );
+
+      const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+      const scrollCalls: Array<{animated?: boolean; y?: number}> = [];
+      const scrollRef = scrollView.props.ref as {current: unknown};
+      scrollRef.current = {
+        scrollTo: (options: {animated?: boolean; y?: number}) => {
+          scrollCalls.push(options);
+        },
+      };
+
+      act(() => {
+        fireEvent(getByTestId("web_dropdown_option_c"), "layout", {
+          nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 80}},
+        });
+        fireEvent(scrollView, "layout", {nativeEvent: {layout: {height: 60, width: 200}}});
+      });
+
+      // offset 80 - viewport 60 / 2 + height 40 / 2 = 70
+      assert.deepEqual(scrollCalls, [{animated: false, y: 70}]);
+    } finally {
+      restoreRaf();
+    }
+  });
+
+  it("clamps the centered scroll offset at the top of the list", () => {
+    const restoreRaf = runAnimationFramesSynchronously();
+
+    try {
+      const {getByTestId, root} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          selectedIndex={0}
+          visible
+        />
+      );
+
+      const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+      const scrollCalls: Array<{animated?: boolean; y?: number}> = [];
+      const scrollRef = scrollView.props.ref as {current: unknown};
+      scrollRef.current = {
+        scrollTo: (options: {animated?: boolean; y?: number}) => {
+          scrollCalls.push(options);
+        },
+      };
+
+      act(() => {
+        fireEvent(scrollView, "layout", {nativeEvent: {layout: {height: 200, width: 200}}});
+        fireEvent(getByTestId("web_dropdown_option_a"), "layout", {
+          nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 0}},
+        });
+      });
+
+      assert.deepEqual(scrollCalls, [{animated: false, y: 0}]);
+    } finally {
+      restoreRaf();
+    }
+  });
+
+  it("does not scroll when the list viewport height has not been measured yet", () => {
+    const restoreRaf = runAnimationFramesSynchronously();
+
+    try {
+      const {getByTestId, root} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          selectedIndex={1}
+          visible
+        />
+      );
+
+      const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+      const scrollCalls: Array<{animated?: boolean; y?: number}> = [];
+      const scrollRef = scrollView.props.ref as {current: unknown};
+      scrollRef.current = {
+        scrollTo: (options: {animated?: boolean; y?: number}) => {
+          scrollCalls.push(options);
+        },
+      };
+
+      act(() => {
+        fireEvent(getByTestId("web_dropdown_option_b"), "layout", {
+          nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 40}},
+        });
+      });
+
+      assert.lengthOf(scrollCalls, 0);
+    } finally {
+      restoreRaf();
+    }
   });
 
   it("does not schedule a scroll for option layout when nothing is selected", () => {

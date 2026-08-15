@@ -1,0 +1,62 @@
+title: "[RFC]: "
+labels:
+  - type:rfc
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for proposals that change public API surface, add a
+        published package, or alter cross-package architecture. Accepted RFCs
+        graduate into implementation plans under `docs/implementationPlans/`.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One paragraph — what are you proposing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this solve? Who benefits?
+    validations:
+      required: true
+
+  - type: textarea
+    id: design
+    attributes:
+      label: Detailed design
+      description: How should this work? Include API sketches if relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you evaluate and why is this approach better?
+    validations:
+      required: true
+
+  - type: textarea
+    id: drawbacks
+    attributes:
+      label: Drawbacks
+      description: What are the trade-offs, risks, or migration costs?
+
+  - type: textarea
+    id: questions
+    attributes:
+      label: Unresolved questions
+      description: What still needs maintainer or community input?
+
+  - type: checkboxes
+    id: ip_ack
+    attributes:
+      label: Graduation path
+      options:
+        - label: I understand that accepted RFCs become implementation plans (IPs) in docs/implementationPlans/ before substantial code lands
+          required: true

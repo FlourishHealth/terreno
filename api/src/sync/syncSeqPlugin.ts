@@ -1,7 +1,6 @@
 // noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
 // biome-ignore-all lint/suspicious/noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
 import type {
-  CallbackWithoutResultAndOptionalError,
   ClientSession,
   Model,
   Query,
@@ -469,45 +468,35 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
     }
   );
 
-  schema.pre(
-    "insertMany",
-    async function (
-      next: CallbackWithoutResultAndOptionalError,
-      docs: Record<string, unknown>[],
-      options?: {session?: ClientSession | null}
-    ) {
-      try {
-        const model = this as unknown as Model<any>;
-        const entry = findSyncEntryByModelName(model.modelName);
-        if (!entry || !Array.isArray(docs) || docs.length === 0) {
-          return next();
-        }
-        const session = options?.session ?? null;
-        const byStream = new Map<string, Record<string, unknown>[]>();
-        for (const doc of docs) {
-          const stream = writableStreamForObject(entry, doc);
-          const group = byStream.get(stream) ?? [];
-          group.push(doc);
-          byStream.set(stream, group);
-        }
-        for (const [stream, group] of byStream) {
-          // The claim joins the caller's session so a transactional insertMany gets true
-          // counter+write atomicity (and registers no pending entry to confirm).
-          const claim = await claimSyncSeqs({count: group.length, session, stream});
-          group.forEach((doc, index) => {
-            doc._syncPrevStream = null;
-            doc._syncSeq = claim.seqs[index];
-          });
-        }
-        // C1: the confirm belongs in post('insertMany') — confirming here would let the
-        // stable frontier (and therefore a snapshot cursor) advance past seqs whose
-        // documents have not committed yet, stranding them below every catch-up cursor.
-        return next();
-      } catch (error: unknown) {
-        return next(error as Error);
-      }
+  // Mongoose 9 insertMany pre hooks are async (no `next` callback) and receive docs + options.
+  schema.pre("insertMany", async function (docs: any | Array<any>, options?: {session?: ClientSession | null}) {
+    const docsArray = Array.isArray(docs) ? (docs as Record<string, unknown>[]) : [docs as Record<string, unknown>];
+    const model = this as unknown as Model<any>;
+    const entry = findSyncEntryByModelName(model.modelName);
+    if (!entry || docsArray.length === 0) {
+      return;
     }
-  );
+    const session = options?.session ?? null;
+    const byStream = new Map<string, Record<string, unknown>[]>();
+    for (const doc of docsArray) {
+      const stream = writableStreamForObject(entry, doc);
+      const group = byStream.get(stream) ?? [];
+      group.push(doc);
+      byStream.set(stream, group);
+    }
+    for (const [stream, group] of byStream) {
+      // The claim joins the caller's session so a transactional insertMany gets true
+      // counter+write atomicity (and registers no pending entry to confirm).
+      const claim = await claimSyncSeqs({count: group.length, session, stream});
+      group.forEach((doc, index) => {
+        doc._syncPrevStream = null;
+        doc._syncSeq = claim.seqs[index];
+      });
+    }
+    // C1: the confirm belongs in post('insertMany') — confirming here would let the
+    // stable frontier (and therefore a snapshot cursor) advance past seqs whose
+    // documents have not committed yet, stranding them below every catch-up cursor.
+  });
 
   // C1: the batch has committed — confirm the claimed seqs so the frontier advances past
   // them. Post insertMany middleware receives the inserted (hydrated) documents, which

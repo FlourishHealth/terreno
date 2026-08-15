@@ -14,19 +14,19 @@ See: [`docs/implementationPlans/docs-reference-coverage.md`](../implementationPl
 
 ## Phase 1: Missing reference pages
 
-- [ ] **Task 1.1**: Write `docs/reference/ai.md`
+- [x] **Task 1.1**: Write `docs/reference/ai.md`
   - Description: Convert `.cursor/rules/ai/00-ai.mdc` into a public reference page. Sections, following `docs/reference/api.md`'s shape: Install; Commands; Architecture (file structure); `AIService` setup and full method table; structured-output helpers (`generateJsonValue`, `generateJsonObject`, `generateJsonArray`) including the JSON-normalization behavior and error logging; temperature presets; the `AIRequest` and `GptHistory` models with field tables; route registrars (`addGptRoutes`, `addGptHistoryRoutes`, `addAiRequestsExplorerRoutes`) with endpoints, methods, and permissions; Langfuse integration; integration example with `setupServer`/`TerrenoApp`; environment variables; conventions; testing (including the mock-model pattern). Verify every symbol against `ai/src/index.ts`. Remove the internal-only conventions that make no sense to a consumer (for example instructions about not mocking `@terreno/api` belong in agent rules, not reference docs — use judgment).
   - Files: `docs/reference/ai.md` (new)
   - Depends on: none
   - Acceptance: every documented symbol appears in `ai/src/index.ts`; the method table lists all `AIService` methods; all three route registrars documented with their permissions; no `.claude/` or `.cursor/` path referenced.
 
-- [ ] **Task 1.2**: Write `docs/reference/admin-spa.md`
+- [x] **Task 1.2**: Write `docs/reference/admin-spa.md`
   - Description: New reference page for `@terreno/admin-spa`, sourced from `admin-spa/README.md` and `admin-spa/src/`. Cover: what the package is (standalone Expo Router web admin SPA plus an Express plugin that serves it), install, the `AdminSpaServeApp` plugin registration with its options, building the SPA, configuring `apiBase`/`routeBase`, how it relates to the embedded `@terreno/admin-frontend` approach and when to choose each, and environment variables. Verify the plugin options against the source and against how `example-backend/src/server.ts` registers it.
   - Files: `docs/reference/admin-spa.md` (new)
   - Depends on: none
   - Acceptance: every option documented exists in the source; includes a "standalone SPA vs embedded screens" decision paragraph; the registration example matches `example-backend/src/server.ts`.
 
-- [ ] **Task 1.3**: Write `docs/reference/test.md`
+- [x] **Task 1.3**: Write `docs/reference/test.md`
   - Description: New reference page for `@terreno/test`. Cover: what it provides (in-memory MongoDB management for bun test suites), install as a dev dependency, the `bunfig.toml` preload pattern, `setupEnvironment()`, the `TERRENO_TEST_USE_MEMORY_MONGO` / `TERRENO_TEST_MONGODB_URI` / `BUN_TEST_DISABLE_DB` environment variables, and the test-helper exports. Source the preload contract from `admin-backend/AGENTS.md`, `api/src/tests/bunSetup.ts`, and the `backend-test-env` skill. Keep it short — one page.
   - Files: `docs/reference/test.md` (new)
   - Depends on: none
@@ -40,7 +40,7 @@ See: [`docs/implementationPlans/docs-reference-coverage.md`](../implementationPl
 
 ## Phase 2: Package READMEs
 
-- [ ] **Task 2.1**: Define and apply the README template to the four stubs
+- [x] **Task 2.1**: Define and apply the README template to the four stubs
   - Description: Write the six-section template from the IP (Title/description, Install, Quick start, What's included, Documentation, License/Contributing) and apply it to the four stub READMEs: `ai/README.md` (source: the new `docs/reference/ai.md`), `admin-backend/README.md` (source: `.cursor/rules/admin-backend/00-admin-backend.mdc` + `docs/reference/admin-backend.md`), `admin-frontend/README.md` (same pattern), `api-health/README.md` (source: `api-health/src/`). Each Quick start must be a complete, runnable snippet — not a fragment. Every link absolute.
   - Files: `ai/README.md`, `admin-backend/README.md`, `admin-frontend/README.md`, `api-health/README.md`
   - Depends on: Task 1.1

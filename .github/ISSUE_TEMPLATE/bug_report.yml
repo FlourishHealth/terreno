@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a bug in Terreno or its examples
+title: "[Bug]: "
+labels:
+  - status:needs-triage
+  - type:bug
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      description: Which package or area is broken?
+      options:
+        - "@terreno/api"
+        - "@terreno/test"
+        - "@terreno/ui"
+        - "@terreno/rtk"
+        - "@terreno/admin-backend"
+        - "@terreno/admin-frontend"
+        - "@terreno/admin-spa"
+        - "@terreno/ai"
+        - "@terreno/api-health"
+        - "@terreno/comms"
+        - "@terreno/feature-flags"
+        - "@terreno/mcp"
+        - docs
+        - examples
+        - mcp
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Terreno version
+      description: npm version or git tag (e.g. 0.30.0)
+      placeholder: 0.30.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - iOS
+        - Android
+        - Web
+        - Backend
+        - N/A
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug
+      placeholder: |
+        1. Start example-backend with …
+        2. Open example-frontend …
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Search
+      options:
+        - label: I searched existing issues and discussions before filing this report
+          required: true

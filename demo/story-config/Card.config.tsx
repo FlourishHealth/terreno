@@ -1,13 +1,21 @@
 import {DemoConfiguration} from "@config";
-import {CardDemo, CardVariants, DisplayCardDemo, DisplaySizes, LightAndDark, Plain, WithImage} from "@stories/Card.stories";
+import {
+  CardDemo,
+  CardVariants,
+  DisplayCardDemo,
+  DisplaySizes,
+  LightAndDark,
+  Plain,
+  WithImage,
+} from "@stories/Card.stories";
 import {Card} from "@terreno/ui";
 
 export const CardConfiguration: DemoConfiguration = {
   name: "Card",
   component: Card,
-  related: ["Box"],
+  related: ["Box", "EditableCard"],
   description:
-    "A card serves as a surface for information. It helps organize and highlight information while providing visual hierarchy. This design system has two kinds of cards: Display and Container.",
+    "A card serves as a surface for information. It helps organize and highlight information while providing visual hierarchy. Card renders the container and display surfaces; see EditableCard for a card that summarizes saved information the user can edit.",
   shortDescription:
     "A card serves as a surface for information. It helps organize and highlight information while providing visual hierarchy.",
   a11yNotes: [
@@ -30,6 +38,7 @@ export const CardConfiguration: DemoConfiguration = {
     do: [
       "Use a display card to highlight a new feature or flow.",
       "Use a container card to pull longform information into a tidy column, especially on larger screens.",
+      "Use EditableCard, which wraps Card, to show a short summary of saved information the user can edit.",
     ],
     doNot: ["Do not put information for a task or flow on a card. Consider using a modal instead."],
   },
@@ -44,7 +53,7 @@ export const CardConfiguration: DemoConfiguration = {
       render: DisplayCardDemo,
     },
     Variants: {
-      description: "Both card variants side by side.",
+      description: "All card variants side by side.",
       render: CardVariants,
     },
     LightAndDark: {

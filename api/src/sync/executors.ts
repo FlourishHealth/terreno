@@ -25,7 +25,9 @@ import {loadDocOr404} from "../docLoader";
 import {
   APIError,
   type APIErrorConstructor,
+  BadRequestError,
   errorMessage,
+  ForbiddenError,
   isAPIError,
   passthroughOrWrap,
   passthroughOrWrapWrite,
@@ -227,24 +229,24 @@ export const executeCreate = async <T>({
       });
     }
     if (cleanedBody === undefined) {
-      throw new APIError({
+      throw new ForbiddenError({
+        code: "create-not-allowed",
         detail: "A body must be returned from preCreate",
-        status: 403,
         title: "Create not allowed",
       });
     }
     if (cleanedBody === null) {
-      throw new APIError({
+      throw new ForbiddenError({
+        code: "create-not-allowed",
         detail: "preCreate hook returned null",
-        status: 403,
         title: "Create not allowed",
       });
     }
   }
   if (cleanedBody === undefined) {
-    throw new APIError({
+    throw new BadRequestError({
+      code: "invalid-request-body",
       detail: "Body is undefined",
-      status: 400,
       title: "Invalid request body",
     });
   }
@@ -396,16 +398,16 @@ export const executeUpdate = async <T>({
       });
     }
     if (cleanedBody === undefined) {
-      throw new APIError({
+      throw new ForbiddenError({
+        code: "update-not-allowed",
         detail: "A body must be returned from preUpdate",
-        status: 403,
         title: "Update not allowed",
       });
     }
     if (cleanedBody === null) {
-      throw new APIError({
+      throw new ForbiddenError({
+        code: "update-not-allowed",
         detail: `preUpdate hook on ${id} returned null`,
-        status: 403,
         title: "Update not allowed",
       });
     }
@@ -637,16 +639,16 @@ export const executeDelete = async <T>({
       });
     }
     if (body === undefined) {
-      throw new APIError({
+      throw new ForbiddenError({
+        code: "delete-not-allowed",
         detail: "A body must be returned from preDelete",
-        status: 403,
         title: "Delete not allowed",
       });
     }
     if (body === null) {
-      throw new APIError({
+      throw new ForbiddenError({
+        code: "delete-not-allowed",
         detail: `preDelete hook for ${id} returned null`,
-        status: 403,
         title: "Delete not allowed",
       });
     }

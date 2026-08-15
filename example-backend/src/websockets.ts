@@ -6,10 +6,11 @@ import {APIError, logger} from "@terreno/api";
 import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
 import Redis from "ioredis";
-import type {ChangeStream, ChangeStreamDocument, ChangeStreamOptions} from "mongodb";
 import mongoose from "mongoose";
 import {Server, type Socket} from "socket.io";
 import {isProduction, isPullRequest, isStaging, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
+
+type SocketIoAdapterConstructor = Parameters<Server["adapter"]>[0];
 
 // Use different port for websockets when running standalone vs when part of 'all' services
 const port = process.env.WEBSOCKET_PORT || process.env.PORT || "9000";
@@ -45,7 +46,7 @@ interface FormInstancePresenceData {
   presence: "focus" | "blur";
 }
 
-let changeWatcher: ChangeStream | null = null;
+let changeWatcher: mongoose.mongo.ChangeStream | null = null;
 
 const logWebsocketInfo = (message: string): void => {
   if (WEBSOCKETS_DEBUG) {
@@ -97,7 +98,7 @@ const watchModels = (): void => {
 
     // Prefer secondary for change streams to take read pressure off primary
     const nativeDb = mongoose.connection.db;
-    const options: ChangeStreamOptions = {
+    const options: mongoose.mongo.ChangeStreamOptions = {
       batchSize: 50, // Smaller batches to reduce memory pressure
       fullDocument: "updateLookup", // Only include full document for updates
       fullDocumentBeforeChange: "off", // Don't include before change docs
@@ -118,7 +119,7 @@ const watchModels = (): void => {
       throw new APIError({status: 500, title: "Failed to create change stream watcher"});
     }
 
-    changeWatcher.on("change", async (change: ChangeStreamDocument) => {
+    changeWatcher.on("change", async (change: mongoose.mongo.ChangeStreamDocument) => {
       try {
         await emitter(change);
       } catch (error) {
@@ -227,7 +228,9 @@ export const connectToWebsockets = async (app: express.Application): Promise<voi
         await pubClient.ping();
         logWebsocketInfo("[websocket] Redis connection established successfully");
 
-        io.adapter(createRedisAdapter(pubClient, subClient));
+        io.adapter(
+          createRedisAdapter(pubClient, subClient) as unknown as SocketIoAdapterConstructor
+        );
         logWebsocketInfo("[websocket] Redis adapter configured successfully");
       } catch (error) {
         logger.error(`[websocket] Failed to connect to Redis: ${error}`);
@@ -262,7 +265,7 @@ export const connectToWebsockets = async (app: express.Application): Promise<voi
         io.adapter(
           createAdapter(mongoCollection as unknown as Parameters<typeof createAdapter>[0], {
             addCreatedAtField: true,
-          })
+          }) as unknown as SocketIoAdapterConstructor
         );
         logWebsocketInfo("[websocket] MongoDB adapter configured successfully");
       } catch (error) {
@@ -416,7 +419,7 @@ export const emitToUser = (eventName: string, userId: string, data: unknown): vo
   }
 };
 
-const emitter = async (change: ChangeStreamDocument): Promise<void> => {
+const emitter = async (change: mongoose.mongo.ChangeStreamDocument): Promise<void> => {
   const modelChange = change as ModelChangeEvent;
   // Early memory cleanup - remove large objects we don't need
   if ("fullDocument" in change && change.operationType !== "insert") {

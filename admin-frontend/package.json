@@ -21,11 +21,12 @@
     "typescript": "catalog:"
   },
   "files": [
+    "LICENSE",
     "dist/**/*",
     "src/**/*",
     ".ai/**/*"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/admin-frontend",
   "peerDependencies": {
@@ -54,5 +55,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.30.0"
+  "version": "0.31.0"
 }
