@@ -1,7 +1,7 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
-import {ScrollView} from "react-native";
+import type {ScrollView} from "react-native";
 
 import {Box} from "./Box";
 import {Text} from "./Text";
@@ -519,7 +519,9 @@ describe("Box", () => {
         </Box>
       );
 
-      const scrollView = root.findByType(ScrollView);
+      // RN Testing Library resolves host ScrollView by display name, not the JS class.
+      // biome-ignore lint/suspicious/noExplicitAny: string type name needed for findByType
+      const scrollView = root.findByType("ScrollView" as any);
       expect(scrollView.props.style).not.toHaveProperty("scrollRef");
       expect(scrollView.props.style).not.toHaveProperty("scroll");
       expect(scrollView.props.style).not.toHaveProperty("onScroll");

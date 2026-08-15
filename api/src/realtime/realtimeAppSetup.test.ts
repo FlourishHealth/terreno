@@ -44,9 +44,11 @@ class FakeServer {
 }
 
 mock.module("socket.io", () => ({Server: FakeServer}));
-mock.module("@thream/socketio-jwt", () => ({
-  authorize: (_opts: unknown) => (_socket: unknown, next: () => void) => next(),
-}));
+// Do not mock @thream/socketio-jwt here — bun's mock.module is process-wide and
+// would break socketAuth.test.ts (loaded later in the same suite) by turning
+// authorize() into a no-op. RealtimeApp only builds the middleware during
+// onServerCreated; these tests never invoke it, so the real authorize() factory
+// is safe.
 mock.module("./changeStreamWatcher", () => ({
   startChangeStreamWatcher: () => {
     watcherStarts += 1;

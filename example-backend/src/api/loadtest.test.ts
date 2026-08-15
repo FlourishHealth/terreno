@@ -70,7 +70,10 @@ describe("loadtest routes", () => {
     email: string,
     admin: boolean
   ): Promise<{_id: UserDocument["_id"]; admin: boolean}> => {
-    return UserModel.register({admin, email, name: email} as any, "password12345") as unknown as Promise<{
+    return UserModel.register(
+      {admin, email, name: email} as any,
+      "password12345"
+    ) as unknown as Promise<{
       _id: UserDocument["_id"];
       admin: boolean;
     }>;

@@ -161,6 +161,7 @@ export const claimSyncSeqs = async ({
     // its pending claims (which would let `computeStableFrontier` transiently report a
     // frontier above an about-to-be-pending seq). `$range(oldSeq+1, newSeq+1)` materializes
     // the claimed range from the just-incremented value; `$map` turns it into pending docs.
+    // Mongoose 9 disallows update pipelines unless `updatePipeline: true` is set.
     const doc = await SyncCounter.findOneAndUpdate(
       {stream},
       [
@@ -184,7 +185,7 @@ export const claimSyncSeqs = async ({
         },
         {$unset: "_syncOldSeq"},
       ],
-      {new: true, upsert: true}
+      {new: true, updatePipeline: true, upsert: true}
     );
     return {lastSeq: doc.seq, registered: true, seqs: materialize(doc.seq)};
   };

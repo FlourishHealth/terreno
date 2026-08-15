@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   could hang `bun install --frozen-lockfile`); removed unused payment/native deps from
   `example-frontend`
 
+### Fixed
+
+- Sync seq claims under Mongoose 9: `claimSyncSeqs` passes `updatePipeline: true` for
+  its aggregation-pipeline `findOneAndUpdate` (required after the master mongoose 9 merge)
+- Remove process-wide `@thream/socketio-jwt` mock from `realtimeAppSetup` tests so
+  `socketAuth` suite still exercises real JWT validation in the full API test run
+- Drop orphaned `ui` consent-history PDF test left after the move to `admin-frontend`
 ## [0.31.0] - 2026-08-11
 
 ### Added
