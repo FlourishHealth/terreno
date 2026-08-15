@@ -520,8 +520,7 @@ describe("Box", () => {
       );
 
       // RN Testing Library resolves host ScrollView by display name, not the JS class.
-      // biome-ignore lint/suspicious/noExplicitAny: string type name needed for findByType
-      const scrollView = root.findByType("ScrollView" as any);
+      const scrollView = root.findByType("ScrollView");
       expect(scrollView.props.style).not.toHaveProperty("scrollRef");
       expect(scrollView.props.style).not.toHaveProperty("scroll");
       expect(scrollView.props.style).not.toHaveProperty("onScroll");
