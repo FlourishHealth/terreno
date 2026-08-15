@@ -1,6 +1,8 @@
 import type express from "express";
+import type {Server as SocketIoServer} from "socket.io";
 import type {UserModel} from "../auth";
 import type {SyncAppOptions} from "../sync/routes";
+import type {startChangeStreamWatcher} from "./changeStreamWatcher";
 import type {BetterAuthSocketOptions} from "./socketAuth";
 
 /**
@@ -122,6 +124,18 @@ export interface RealtimeAppOptions {
   sessionRevalidationIntervalMs?: number;
   /** Enable debug logging */
   debug?: boolean;
+  /**
+   * Test seam: Socket.IO server constructor. Defaults to `socket.io`'s `Server`.
+   * Prefer this over `mock.module("socket.io")` — bun's module mocks are process-wide
+   * and break later files that need a real Socket.IO server (sync integration, etc.).
+   */
+  SocketServer?: typeof SocketIoServer;
+  /**
+   * Test seam: change-stream watcher starter. Defaults to the real
+   * `startChangeStreamWatcher`. Same rationale as {@link SocketServer} — avoid
+   * process-wide `mock.module` of `./changeStreamWatcher`.
+   */
+  startChangeStreamWatcher?: typeof startChangeStreamWatcher;
 }
 
 /**

@@ -185,7 +185,7 @@ export const claimSyncSeqs = async ({
         },
         {$unset: "_syncOldSeq"},
       ],
-      {new: true, updatePipeline: true, upsert: true}
+      {returnDocument: "after", updatePipeline: true, upsert: true}
     );
     return {lastSeq: doc.seq, registered: true, seqs: materialize(doc.seq)};
   };

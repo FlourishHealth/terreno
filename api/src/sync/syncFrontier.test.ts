@@ -52,11 +52,11 @@ let insertManyProbe: (() => Promise<void>) | null = null;
 
 // Registered AFTER syncPlugin so it runs once the batch's seqs are claimed but before
 // the documents commit — the exact window a snapshot must not page across (C1).
-frontierSchema.pre("insertMany", async (next: any) => {
+// Mongoose 9: pre hooks no longer receive `next` — use async/await only.
+frontierSchema.pre("insertMany", async () => {
   if (insertManyProbe) {
     await insertManyProbe();
   }
-  next();
 });
 
 // Registered AFTER syncPlugin so a save can fail once the seq (and, before the fix, the

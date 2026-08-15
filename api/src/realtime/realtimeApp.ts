@@ -387,7 +387,10 @@ export class RealtimeApp implements TerrenoPlugin {
     try {
       logInfo("[realtime] Setting up Socket.io server...");
 
-      this.io = new Server(server, {
+      // Prefer an injected Server constructor in tests so callers never need
+      // process-wide `mock.module("socket.io")` (which poisons later files).
+      const SocketServerCtor = this.config.SocketServer ?? Server;
+      this.io = new SocketServerCtor(server, {
         cors: this.config.cors ?? {
           methods: ["GET", "POST"],
           origin: "*",
@@ -469,8 +472,9 @@ export class RealtimeApp implements TerrenoPlugin {
         Sentry.captureException(error);
       });
 
-      // Start the change stream watcher
-      startChangeStreamWatcher(this.io, this.config.changeStream, debug);
+      // Start the change stream watcher (injectable for unit tests — see SocketServer).
+      const startWatcher = this.config.startChangeStreamWatcher ?? startChangeStreamWatcher;
+      startWatcher(this.io, this.config.changeStream, debug);
 
       // D1: periodic session re-validation sweep — disconnects sockets whose JWT has
       // expired, whose Better Auth session is no longer valid, or whose user has
