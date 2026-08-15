@@ -38,8 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sync seq claims under Mongoose 9: `claimSyncSeqs` passes `updatePipeline: true` for
   its aggregation-pipeline `findOneAndUpdate` (required after the master mongoose 9 merge)
-- Remove process-wide `@thream/socketio-jwt` mock from `realtimeAppSetup` tests so
-  `socketAuth` suite still exercises real JWT validation in the full API test run
+- `RealtimeApp` accepts injectable `SocketServer` / `startChangeStreamWatcher` so setup
+  tests no longer use process-wide `mock.module` (which broke socketAuth + sync integration)
+- Mongoose 9 `insertMany` probe in `syncFrontier.test.ts` no longer calls removed `next()`
+- Sync save error middleware: `throw` instead of `next(error)` under Mongoose 9/Kareem 3,
+  and release pending seq claims on any failed claimed save (not only VersionError)
 - Drop orphaned `ui` consent-history PDF test left after the move to `admin-frontend`
 ## [0.31.0] - 2026-08-11
 

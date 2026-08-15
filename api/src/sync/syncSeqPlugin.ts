@@ -2,7 +2,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
 import type {ClientSession, Model, Query, Schema} from "mongoose";
 import {logger} from "../logger";
-import {isVersionError} from "./executors";
 import {claimSyncSeqs, confirmSyncSeqs, releaseSyncSeqs, SyncScopeMove} from "./models";
 import {findSyncEntryByModelName, type SyncRegistryEntry} from "./registry";
 import {
@@ -436,30 +435,34 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
     this.$locals[INITIAL_STREAM_KEY] = pending.currentStream;
   });
 
-  // Task 9.13: an optimistic-concurrency loss (`VersionError`) matched no document, so the
-  // seq claimed in pre('save') will never be stamped on anything. Cancel it instead of
-  // letting it hold the stable frontier down for the full pending-claim lease — a lost
-  // update race is now an EXPECTED outcome, not a crash, and must not stall catch-up for
-  // every other client on the stream.
+  // Any save that claimed a seq in pre('save') but then failed (VersionError, E11000,
+  // simulated/hook failure, etc.) never stamped that seq. Release it so the stable
+  // frontier is not held for the full pending-claim lease.
+  //
+  // Mongoose 9 / Kareem 3: async error middleware must `throw error` (or return a
+  // rejected promise). Calling `next(error)` after an async hook returns a Promise
+  // leaves an orphaned rejection that Bun reports as an unhandled error between tests,
+  // even when the caller correctly awaited `save().catch(...)`.
+  // Keep arity ≥ 3 so Kareem still classifies this as error middleware.
   schema.post(
     "save",
-    async function (error: any, doc: any, next: (err?: Error) => void): Promise<void> {
+    async function (error: any, doc: any, _next: (err?: Error) => void): Promise<void> {
       const locals = (this?.$locals ?? doc?.$locals) as Record<string, unknown> | undefined;
       const pending = locals?.[PENDING_COMMIT_KEY] as PendingSaveCommit | undefined;
       if (locals) {
         locals[PENDING_COMMIT_KEY] = undefined;
       }
-      if (pending?.claim.registered && isVersionError(error)) {
+      if (pending?.claim.registered) {
         await releaseSyncSeqs({seqs: pending.claim.seqs, stream: pending.currentStream}).catch(
           (releaseError: unknown) => {
-            logger.error("[sync] Failed to release the seq claim of a version-conflicted save", {
+            logger.error("[sync] Failed to release seq claim after failed save", {
               error: String(releaseError),
               stream: pending.currentStream,
             });
           }
         );
       }
-      next(error);
+      throw error;
     }
   );
 
