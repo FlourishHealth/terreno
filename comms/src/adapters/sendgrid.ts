@@ -1,5 +1,5 @@
-import {logger} from "@terreno/api";
 import {createRequire} from "node:module";
+import {logger} from "@terreno/api";
 
 import type {CommsErrorClass, MailMessage, MailProvider, SendResult} from "../types";
 
