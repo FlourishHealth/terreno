@@ -104,6 +104,30 @@ mock.module("socket.io-client", () => ({
   },
 }));
 
+const realEmptyApi = await import("./emptyApi");
+const tokenHelperState: {
+  authRemainingSecs?: number;
+  refreshError?: Error;
+  refreshRemainingSecs?: number;
+} = {};
+
+mock.module("./emptyApi", () => ({
+  ...realEmptyApi,
+  getFriendlyExpirationInfo: async (): Promise<string> => "Auth token expires soon",
+  getTokenExpirationTimes: async (): Promise<{
+    authRemainingSecs?: number;
+    refreshRemainingSecs?: number;
+  }> => ({
+    authRemainingSecs: tokenHelperState.authRemainingSecs,
+    refreshRemainingSecs: tokenHelperState.refreshRemainingSecs,
+  }),
+  refreshAuthToken: async (): Promise<void> => {
+    if (tokenHelperState.refreshError) {
+      throw tokenHelperState.refreshError;
+    }
+  },
+}));
+
 const {useSocketConnection} = await import("./socket");
 
 interface AuthTestState {
@@ -141,14 +165,6 @@ const withWindow = async (run: () => Promise<void>): Promise<void> => {
   } finally {
     Reflect.deleteProperty(global, "window");
   }
-};
-
-/** A JWT-shaped token whose payload only needs an `exp` for getTokenExpirationTimes. */
-const makeToken = (expiresInSecs: number): string => {
-  const payload = Buffer.from(
-    JSON.stringify({exp: Math.floor(Date.now() / 1000) + expiresInSecs})
-  ).toString("base64url");
-  return `header.${payload}.signature`;
 };
 
 const renderSocket = (
@@ -190,6 +206,9 @@ describe("useSocketConnection", () => {
     toastState.hidden = [];
     toastState.shown = [];
     toastState.nextId = 0;
+    tokenHelperState.authRemainingSecs = undefined;
+    tokenHelperState.refreshError = undefined;
+    tokenHelperState.refreshRemainingSecs = undefined;
   });
 
   afterEach(() => {
@@ -346,9 +365,9 @@ describe("useSocketConnection", () => {
   });
 
   it("shows a token error toast when refreshing the token fails", async () => {
-    // A nearly expired auth token triggers a refresh, which fails without a server to call.
-    storage.set("AUTH_TOKEN", makeToken(10));
-    storage.set("REFRESH_TOKEN", makeToken(3600));
+    tokenHelperState.authRemainingSecs = 10;
+    tokenHelperState.refreshError = new Error("Refresh request failed");
+    tokenHelperState.refreshRemainingSecs = 3600;
     const captureEvent = mock((_event: string, _data: Record<string, unknown>) => {});
 
     await withWindow(async () => {
@@ -374,10 +393,9 @@ describe("useSocketConnection", () => {
   });
 
   it("captures the refresh failure when the refresh token is still valid", async () => {
-    // Valid JWTs with an expiring auth token trigger the refresh path, and the refresh call
-    // fails because there is no server to talk to.
-    storage.set("AUTH_TOKEN", makeToken(10));
-    storage.set("REFRESH_TOKEN", makeToken(3600));
+    tokenHelperState.authRemainingSecs = 10;
+    tokenHelperState.refreshError = new Error("Refresh request failed");
+    tokenHelperState.refreshRemainingSecs = 3600;
     const captureEvent = mock((_event: string, _data: Record<string, unknown>) => {});
 
     await withWindow(async () => {
@@ -394,8 +412,9 @@ describe("useSocketConnection", () => {
   });
 
   it("reconnects and dismisses the error toast when a token refresh is dispatched", async () => {
-    storage.set("AUTH_TOKEN", makeToken(10));
-    storage.set("REFRESH_TOKEN", makeToken(3600));
+    tokenHelperState.authRemainingSecs = 10;
+    tokenHelperState.refreshError = new Error("Refresh request failed");
+    tokenHelperState.refreshRemainingSecs = 3600;
     const store = createStore();
 
     await withWindow(async () => {
