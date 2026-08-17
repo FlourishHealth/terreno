@@ -114,7 +114,7 @@ jobs:
         run: echo '/*    /index.html   200' > example-frontend/dist/_redirects
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-example-dist
           path: example-frontend/dist
