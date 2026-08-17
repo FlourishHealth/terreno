@@ -1368,4 +1368,50 @@ describe("DateTimeField", () => {
       expect(hourInput).toBeTruthy();
     });
   });
+
+  describe("value assembled purely from segments", () => {
+    it("emits an ISO built from the entered fields when no value prop is set", async () => {
+      setDesktop();
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+
+      await user.type(getByPlaceholderText("hh"), "09");
+      await user.type(getByPlaceholderText("mm"), "45");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      const emitted = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]?.[0] as string;
+      const parsed = DateTime.fromISO(emitted).setZone("America/New_York");
+      assert.isTrue(parsed.isValid);
+      assert.equal(parsed.hour, 9);
+      assert.equal(parsed.minute, 45);
+    });
+
+    it("shows the timezone abbreviation for fields entered without a value prop", async () => {
+      setMobile();
+      const user = userEvent.setup();
+      const {getByAccessibilityHint, getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value=""
+        />
+      );
+
+      // On mobile datetime the date segments stay editable, so the assembled ISO (and the
+      // timezone abbreviation derived from it) comes from the segments rather than the value prop.
+      await user.type(getByPlaceholderText("MM"), "05");
+      await user.type(getByPlaceholderText("DD"), "15");
+      await user.type(getByPlaceholderText("YYYY"), "2023");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      assert.isTrue(Boolean(getByAccessibilityHint("Opens date and time picker")));
+    });
+  });
 });
