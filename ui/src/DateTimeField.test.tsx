@@ -11,7 +11,9 @@ import {
   mock,
 } from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import {DateTime} from "luxon";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {DateTimeField} from "./DateTimeField";
 import {renderWithTheme, setupComponentTest, teardownComponentTest} from "./test-utils";
@@ -1307,6 +1309,40 @@ describe("DateTimeField", () => {
         tzPickers[0].props.onTimezoneChange("America/Chicago");
       });
       expect(mockOnChange).toHaveBeenCalled();
+    });
+  });
+
+  describe("TimezonePicker onChange", () => {
+    it("forwards the picked timezone to onTimezoneChange and emits a new value", async () => {
+      setDesktop();
+      const mockTzChange = mock(() => {});
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          onTimezoneChange={mockTzChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      // Select the rendered TimezonePicker itself rather than any ancestor that happens to
+      // have an onTimezoneChange prop, so the component's own handler runs.
+      const pickers = UNSAFE_root.findAll((node: ReactTestInstance) =>
+        Boolean((node.props as {shortTimezone?: boolean}).shortTimezone)
+      );
+      assert.isAbove(pickers.length, 0);
+      await act(async () => {
+        pickers[0].props.onChange("America/Chicago");
+      });
+
+      assert.isTrue(mockTzChange.mock.calls.some((call) => call[0] === "America/Chicago"));
+      // The picked timezone is applied to the current segments and emitted.
+      assert.isAbove(mockOnChange.mock.calls.length, 0);
+      assert.equal(
+        mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0],
+        "2023-05-15T16:30:00.000Z"
+      );
     });
   });
 

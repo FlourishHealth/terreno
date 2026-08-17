@@ -351,6 +351,28 @@ describe("ConsentFormScreen", () => {
     expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
   });
 
+  it("toggles scrolling with the signature touch handlers on iOS", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      captureSignature: true,
+    };
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const signature = getByTestId("consent-form-signature");
+    const scroll = getByTestId("consent-form-scroll-view");
+
+    act(() => {
+      fireEvent(signature, "touchStart");
+    });
+    expect(scroll.props.scrollEnabled).toBe(false);
+
+    act(() => {
+      fireEvent(signature, "touchEnd");
+    });
+    expect(scroll.props.scrollEnabled).toBe(true);
+  });
+
   it("exercises SignatureField onChange, onStart, and onEnd callbacks", () => {
     const form: ConsentFormPublic = {
       ...baseForm,

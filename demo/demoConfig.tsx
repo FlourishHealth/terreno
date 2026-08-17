@@ -13,6 +13,7 @@ import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.co
 import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
 import {DataTableConfiguration} from "@story-config/DataTable.config";
 import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
+import {EditableCardConfiguration} from "@story-config/EditableCard.config";
 import {EmailFieldConfiguration} from "@story-config/EmailField.config";
 import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
 import {FieldConfiguration} from "@story-config/Field.config";
@@ -206,6 +207,7 @@ const Config: DemoConfigurationBase[] = [
   CustomSelectFieldConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
+  EditableCardConfiguration,
   EmailFieldConfiguration,
   EmojiSelectorConfiguration,
   FieldConfiguration,

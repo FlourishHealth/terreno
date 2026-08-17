@@ -9,6 +9,7 @@ on:
       - "admin-spa/**"
       - "example-backend/**"
       - "api-health/**"
+      - "comms/**"
       - "feature-flags/**"
       - "bun.lock"
       - "rtk/**"
@@ -62,6 +63,10 @@ jobs:
       - name: Build API Health dependency
         run: bun run compile
         working-directory: api-health
+
+      - name: Build Comms dependency
+        run: bun run compile
+        working-directory: comms
 
       - name: Build Admin Backend dependency
         run: bun run compile

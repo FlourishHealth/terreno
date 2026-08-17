@@ -1,0 +1,30 @@
+# Source of truth for the "Terreno Roadmap" GitHub Project field options.
+#
+# Area options are NOT listed here — they are derived from the `area:*` labels
+# in .github/labels.yml so the two cannot drift. Everything else lives here and
+# is read by scripts/roadmap/checkRoadmapItem.ts and quoted by
+# docs/explanation/roadmap-process.md.
+#
+# Changing an option here means changing it in the Project UI too; the GitHub
+# API cannot create single-select options for you.
+
+status:
+  - Inbox
+  - Shaping
+  - Planned
+  - In progress
+  - In review
+  - Shipped
+  - Declined
+
+target:
+  - "0.28"
+  - "0.29"
+  - Next
+  - Future
+
+impact:
+  - Breaking
+  - Feature
+  - Improvement
+  - Fix

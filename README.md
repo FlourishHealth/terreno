@@ -54,13 +54,17 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 ### Published Packages
 
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
+- **test/** - Bun and MongoDB test helpers (published as `@terreno/test`)
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
 - **ai/** - AI service layer with streaming chat, text generation, and Langfuse integration (published as `@terreno/ai`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
+- **admin-spa/** - Standalone admin SPA and Express serve plugin (published as `@terreno/admin-spa`)
 - **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
+- **comms/** - Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
 - **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
+- **mcp-server/** - MCP server and local CLI (published as `@terreno/mcp`)
 
 ### Deployed Services
 
@@ -252,7 +256,8 @@ In the consumer’s `package.json`, set each linked dependency back to a version
 
 ## Releasing
 
-Packages are published to npm automatically when you create a release on GitHub. All publishable packages (`@terreno/api`, `@terreno/ui`, `@terreno/rtk`) are kept in lockstep with the same version number.
+Packages are published to npm automatically when a semantic-version tag is pushed. The twelve
+published packages listed above are kept in lockstep at the same version.
 
 ### Publishing a Release
 
@@ -263,19 +268,10 @@ Packages are published to npm automatically when you create a release on GitHub.
 5. Click "Publish release"
 
 The GitHub Action will automatically:
-   - Compare the tag with the previous tag to detect which packages have changes
-   - Only publish packages that have actual changes since the last release
-   - Create a PR to update the `package.json` versions in the repo
-   - Send a Slack notification with the results
-
-### How Change Detection Works
-
-The workflow compares each package directory against the previous tag:
-- If `api/` has changes since the last tag → `@terreno/api` is published
-- If `ui/` has changes since the last tag → `@terreno/ui` is published
-- If `rtk/` has changes since the last tag → `@terreno/rtk` is published
-
-If no previous tag exists (first release), all packages are published.
+   - Validate required upgrade documentation
+   - Publish all twelve packages in dependency order
+   - Commit package version updates directly to `master` for non-prerelease tags
+   - Send a Zoom Chat notification with the results
 
 ### Version Format
 
@@ -286,8 +282,10 @@ If no previous tag exists (first release), all packages are published.
 ### Required Secrets
 
 The following secrets must be configured in your GitHub repository:
-- `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
-- `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
+- `NPM_TOKEN` - npm access token with publish permissions
+- `REPO_ADMIN_TOKEN` - repository token used for the version-bump commit
+- `ZOOM_WEBHOOK_URL` - Zoom Chat incoming webhook URL
+- `ZOOM_WEBHOOK_TOKEN` - Zoom Chat webhook authorization token
 
 ## GCP Static Site Hosting
 
@@ -421,6 +419,12 @@ The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules
 ## License
 
 Terreno is [MIT licensed](LICENSE).
+
+## Roadmap and community
+
+- **[ROADMAP.md](ROADMAP.md)** — public roadmap (generated from the Terreno Roadmap GitHub Project)
+- **[GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions)** — Ideas, Q&A, RFCs, and release announcements
+- **[Roadmap process](docs/explanation/roadmap-process.md)** — how work is triaged and how GitHub relates to Linear
 
 ## Contributing
 

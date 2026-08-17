@@ -128,6 +128,15 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 |----------|---------|----------|---------|--------|-------|
 | `FEATURE_FLAGS_DEBUG` | `@terreno/feature-flags` | ❌ | — | No | server |
 
+## Communications
+
+| Variable | Read by | Required | Default | Secret | Scope |
+|----------|---------|----------|---------|--------|-------|
+| `COMMS_ENABLED` | example-backend | ❌ | `true` | No | server |
+
+Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
+Provider credentials are documented by their separate adapter packages.
+
 ## Observability
 
 | Variable | Read by | Required | Default | Secret | Scope |

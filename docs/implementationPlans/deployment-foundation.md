@@ -1,6 +1,7 @@
 # Implementation Plan: Deployment Foundation
 
 **Status:** Draft — blocking questions open
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1011
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned

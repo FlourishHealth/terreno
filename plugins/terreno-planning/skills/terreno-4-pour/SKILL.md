@@ -15,7 +15,7 @@ Pour owns only pre-review-open and review-open actions:
 1. Final pre-submit checks.
 2. Commit and push.
 3. Create/update draft PR.
-4. Resolve merge conflicts required to get PR updated.
+4. Resolve merge conflicts required to get PR updated; conflicts that appear after the handoff belong to Dial In.
 5. Ensure CI is triggered on the first push.
 6. Immediately hand off to Dial In using the path in Handoff (do not rely on skill-name-only invocation).
 
