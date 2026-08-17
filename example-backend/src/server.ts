@@ -238,7 +238,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             apiKey: sendGridApiKey,
             fromEmail: process.env.COMMS_DEFAULT_FROM,
             fromName: process.env.COMMS_DEFAULT_FROM_NAME,
-            sandboxMode: process.env.SENDGRID_SANDBOX_MODE === "true",
+            ...(process.env.SENDGRID_SANDBOX_MODE === "true" ? {sandboxMode: true} : {}),
           })
         : isDeployed
           ? undefined

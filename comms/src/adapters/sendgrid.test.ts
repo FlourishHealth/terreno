@@ -156,6 +156,29 @@ describe("SendGridMailProvider", () => {
     assert.isTrue(result.isPermanentFailure);
   });
 
+  it("classifies network transport failures as transient", async (): Promise<void> => {
+    const client = createMockClient(async () => {
+      const error = new Error("socket hang up") as Error & {code: string};
+      error.code = "ECONNRESET";
+      throw error;
+    });
+    const provider = new SendGridMailProvider({
+      apiKey: "sg-test-key",
+      client,
+      fromEmail: "noreply@example.com",
+    });
+
+    const result = await provider.sendMail({
+      subject: "Welcome",
+      text: "Hello",
+      to: "person@example.com",
+    });
+
+    assert.isFalse(result.accepted);
+    assert.equal(result.errorClass, "transient");
+    assert.equal(result.errorCode, "sendgrid-500");
+  });
+
   it("classifies 401/403 as config and logs an error", async (): Promise<void> => {
     const errorSpy = spyOn(logger, "error").mockImplementation(() => undefined);
     try {

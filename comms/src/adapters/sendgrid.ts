@@ -1,6 +1,9 @@
 import {logger} from "@terreno/api";
+import {createRequire} from "node:module";
 
 import type {CommsErrorClass, MailMessage, MailProvider, SendResult} from "../types";
+
+const nodeRequire = createRequire(__filename);
 
 interface SendGridResponse {
   body?: unknown;
@@ -41,8 +44,7 @@ const resolveApiKey = (options?: SendGridMailProviderOptions): string => {
 const loadSendGridMail = (): SendGridMailModule => {
   try {
     // Optional peer — keep `@sendgrid/mail` out of core dependencies.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("@sendgrid/mail") as SendGridMailModule;
+    return nodeRequire("@sendgrid/mail") as SendGridMailModule;
   } catch {
     throw new Error(
       "SendGridMailProvider requires optional peer dependency @sendgrid/mail. " +
@@ -129,8 +131,15 @@ const statusFromError = (error: unknown): number | undefined => {
   if (!error || typeof error !== "object") {
     return undefined;
   }
-  const withCode = error as {code?: number; response?: {statusCode?: number}};
-  return withCode.code ?? withCode.response?.statusCode;
+  const withCode = error as {code?: unknown; response?: {statusCode?: unknown}};
+  const responseStatus = withCode.response?.statusCode;
+  if (typeof responseStatus === "number") {
+    return responseStatus;
+  }
+  if (typeof withCode.code === "number") {
+    return withCode.code;
+  }
+  return undefined;
 };
 
 const bodyFromError = (error: unknown): unknown => {

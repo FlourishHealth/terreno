@@ -43,6 +43,19 @@ await getCommsService().sendMail({
 Concrete providers belong in adapter subpath exports with optional peer dependencies. Never add a
 provider SDK to core `dependencies`.
 
+### SendGrid (`@terreno/comms/adapters/sendgrid`)
+
+```typescript
+import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+
+new CommsApp({
+  mail: new SendGridMailProvider({fromEmail: "noreply@example.com"}),
+});
+```
+
+Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
+fast when the key is missing. Errors return classified `SendResult` values and never throw.
+
 ## Runtime behavior
 
 - Unconfigured channels use privacy-safe console providers outside production.
