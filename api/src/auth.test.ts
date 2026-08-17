@@ -1,6 +1,7 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
+import {assert} from "chai";
 import express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
@@ -810,6 +811,38 @@ describe("generateTokens edge cases", () => {
     expect(result.token).toBeDefined();
     expect(result.refreshToken).toBeUndefined();
   });
+
+  it("falls back to the default expiration when TOKEN_EXPIRES_IN is invalid", async () => {
+    process.env.TOKEN_EXPIRES_IN = "not-a-duration";
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+    try {
+      const result = await generateTokens({_id: "user-123"});
+      const decoded = decodeTokenPayload<{exp: number}>(result.token as string);
+      // Falls back to the 15 minute default rather than failing token generation.
+      const expectedExp = Math.floor(Date.now() / 1000) + 15 * 60;
+      assert.isAbove(decoded.exp, expectedExp - 10);
+      assert.isBelow(decoded.exp, expectedExp + 10);
+      assert.include(String(errorSpy.mock.calls[0]?.[0]), "TOKEN_EXPIRES_IN");
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("falls back to the default expiration when REFRESH_TOKEN_EXPIRES_IN is invalid", async () => {
+    process.env.REFRESH_TOKEN_EXPIRES_IN = "not-a-duration";
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+    try {
+      const result = await generateTokens({_id: "user-123"});
+      const decoded = decodeTokenPayload<{exp: number}>(result.refreshToken as string);
+      // Falls back to the 30 day default rather than failing token generation.
+      const expectedExp = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+      assert.isAbove(decoded.exp, expectedExp - 10);
+      assert.isBelow(decoded.exp, expectedExp + 10);
+      assert.include(String(errorSpy.mock.calls[0]?.[0]), "REFRESH_TOKEN_EXPIRES_IN");
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 });
 
 describe("addAuthRoutes /refresh_token error paths", () => {
@@ -1551,6 +1584,18 @@ describe("auth logging outside of the test environment", () => {
       debugSpy.mockRestore();
       infoSpy.mockRestore();
     }
+  });
+});
+
+describe("setupAuth validation", () => {
+  it("throws when the user model has no createStrategy", () => {
+    const app = getBaseServer();
+    const modelWithoutStrategy = {} as unknown as AuthUserModel;
+
+    assert.throws(
+      () => setupAuth(app, modelWithoutStrategy),
+      "setupAuth userModel must have .createStrategy()"
+    );
   });
 });
 

@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 
 // Keep this mock a superset of the preload's react-native mock so that other
 // test files (e.g. useUpgradeCheck.test.ts) can still find AppState and Linking
@@ -176,5 +177,21 @@ describe("native listener middleware side effects", () => {
     await flushAsyncListeners();
     // Nothing should have been written to SecureStore since the outer token check filters.
     expect(secureCalls.set).toEqual([]);
+  });
+
+  it("stores an empty refresh token when the native login response omits one", async () => {
+    const {store} = createTestStore();
+    store.dispatch({
+      meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "native-login-3"},
+      payload: {token: "native-auth-only"},
+      type: "terreno-rtk/executeMutation/fulfilled",
+    });
+    await flushAsyncListeners();
+    assert.deepEqual(secureCalls.set, [
+      ["AUTH_TOKEN", "native-auth-only"],
+      ["REFRESH_TOKEN", ""],
+    ]);
+    // A missing userId falls back to an empty string rather than leaving it undefined.
+    assert.equal(store.getState().auth.userId, "");
   });
 });
