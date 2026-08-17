@@ -11,12 +11,26 @@ import {isAPIError, printAPIError} from "./Utilities";
 
 const TOAST_DURATION_MS = 3 * 1000;
 
+/**
+ * Base testID of the action button. Suffixed with the toast id when the caller
+ * supplied one, so stacked action toasts stay individually addressable.
+ */
+const ACTION_BUTTON_TEST_ID = "toast-action-button";
+
 interface UseToastVariantOptions {
+  /**
+   * Stable toast id. Showing the same id again replaces the toast on screen
+   * instead of stacking a duplicate — use it for a recurring notification that
+   * should only ever have one instance (e.g. one per data collection).
+   */
+  id?: string;
   persistent?: ToastProps["persistent"];
   secondary?: ToastProps["secondary"];
   size?: ToastProps["size"];
   onDismiss?: ToastProps["onDismiss"];
   subtitle?: ToastProps["subtitle"];
+  buttonText?: ToastProps["buttonText"];
+  buttonOnClick?: ToastProps["buttonOnClick"];
 }
 
 interface UseToastOptions extends UseToastVariantOptions {
@@ -46,6 +60,7 @@ export const useToast = (): {
     return toast.show(title, {
       data: toastData,
       duration: options?.persistent ? 0 : TOAST_DURATION_MS,
+      ...(options?.id ? {id: options.id} : {}),
     });
   };
   return {
@@ -87,6 +102,7 @@ export const useToast = (): {
 // TODO: Support dismissible version of Toast. Currently only persistent are dismissible.
 export const Toast = ({
   title,
+  id,
   variant = "info",
   secondary,
   size = "sm",
@@ -94,6 +110,8 @@ export const Toast = ({
   persistent,
   // TODO enforce these should only show if size is "lg" with type discrinimation
   subtitle,
+  buttonText,
+  buttonOnClick,
 }: ToastProps): React.ReactElement => {
   const {theme} = useTheme();
   let color: SurfaceColor;
@@ -125,6 +143,8 @@ export const Toast = ({
     textColor = "inverted";
     iconName = "circle-info";
   }
+
+  const hasActionButton = Boolean(buttonText && buttonOnClick);
 
   return (
     <View
@@ -217,9 +237,34 @@ export const Toast = ({
             )}
           </View>
         </View>
+        {hasActionButton ? (
+          <Pressable
+            accessibilityHint={`Press to ${buttonText}`}
+            accessibilityLabel={buttonText}
+            accessibilityRole="button"
+            onPress={buttonOnClick}
+            style={{
+              alignItems: "center",
+              alignSelf: "center",
+              backgroundColor: theme.surface.base,
+              borderRadius: theme.radius.rounded,
+              display: "flex",
+              justifyContent: "center",
+              marginLeft: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: theme.spacing.xs,
+            }}
+            testID={id ? `${ACTION_BUTTON_TEST_ID}-${id}` : ACTION_BUTTON_TEST_ID}
+          >
+            <Text bold color="primary" size="sm">
+              {buttonText}
+            </Text>
+          </Pressable>
+        ) : null}
         {Boolean(persistent && onDismiss) && (
           <Pressable
-            aria-role="button"
+            accessibilityLabel="Dismiss notification"
+            accessibilityRole="button"
             onPress={onDismiss}
             style={{
               alignItems: "center",

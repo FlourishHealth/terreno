@@ -27,14 +27,18 @@ const secureCalls = {
   set: [] as Array<[string, string]>,
 };
 
+// Keep sync getItem/setItem alongside *Async — last-writer-wins mock.module
+// pollution must remain a superset of test-preload / betterAuthClient mocks.
 mock.module("expo-secure-store", () => ({
   deleteItemAsync: async (key: string): Promise<void> => {
     secureCalls.delete.push(key);
   },
+  getItem: (_key: string): string | null => null,
   getItemAsync: async (key: string): Promise<string | null> => {
     secureCalls.get.push(key);
     return null;
   },
+  setItem: (_key: string, _value: string): void => {},
   setItemAsync: async (key: string, value: string): Promise<void> => {
     secureCalls.set.push([key, value]);
   },
@@ -132,7 +136,9 @@ describe("native listener middleware side effects", () => {
       deleteItemAsync: async (key: string): Promise<void> => {
         secureCalls.delete.push(key);
       },
+      getItem: (_key: string): string | null => null,
       getItemAsync: async (): Promise<string | null> => null,
+      setItem: (_key: string, _value: string): void => {},
       setItemAsync: async (): Promise<void> => {
         throw new Error("secure-store-fail");
       },
@@ -148,12 +154,14 @@ describe("native listener middleware side effects", () => {
       args.some((v) => typeof v === "string" && v.includes("Error setting auth token"))
     );
     expect(found).toBeDefined();
-    // Reset setItemAsync back so other tests aren't affected.
+    // Reset SecureStore mock so other suites keep sync + async APIs.
     mock.module("expo-secure-store", () => ({
       deleteItemAsync: async (key: string): Promise<void> => {
         secureCalls.delete.push(key);
       },
+      getItem: (_key: string): string | null => null,
       getItemAsync: async (): Promise<string | null> => null,
+      setItem: (_key: string, _value: string): void => {},
       setItemAsync: async (key: string, value: string): Promise<void> => {
         secureCalls.set.push([key, value]);
       },

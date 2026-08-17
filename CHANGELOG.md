@@ -29,7 +29,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Pour handoff: it checks PR mergeability each cycle, resolves conflicts by merging the
   base branch without rewriting pushed history, re-runs checks and frontend
   verification, and treats a conflicted PR as broken rather than mergeable
+- `excludeArchivedPlugin` now filters `findOne` the same way as `find`, matching
+  `isDeletedPlugin`
+- Sync/REST CRUD executors preserve kebab-case error `code` values
+  (`create-not-allowed`, `update-not-allowed`, `delete-not-allowed`,
+  `invalid-request-body`) and status-specific error names on hook-rejection paths
+- Publish workflow pins `@terreno/ui` to the release version for prerelease
+  `admin-frontend` / `admin-spa` publishes (same as `ui` / `rtk`)
+- Catalog `@shopify/react-native-skia` bumped to `2.6.5` (drops the postinstall that
+  could hang `bun install --frozen-lockfile`); removed unused payment/native deps from
+  `example-frontend`
 
+### Fixed
+
+- Sync seq claims under Mongoose 9: `claimSyncSeqs` passes `updatePipeline: true` for
+  its aggregation-pipeline `findOneAndUpdate` (required after the master mongoose 9 merge)
+- `RealtimeApp` accepts injectable `SocketServer` / `startChangeStreamWatcher` so setup
+  tests no longer use process-wide `mock.module` (which broke socketAuth + sync integration)
+- Mongoose 9 `insertMany` probe in `syncFrontier.test.ts` no longer calls removed `next()`
+- Sync save error middleware: `throw` instead of `next(error)` under Mongoose 9/Kareem 3,
+  and release pending seq claims on any failed claimed save (not only VersionError)
+- Drop orphaned `ui` consent-history PDF test left after the move to `admin-frontend`
 ## [0.31.0] - 2026-08-11
 
 ### Added

@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "@terreno/api - Express/Mongoose REST API framework"
 globs: ["**/*"]
 ---

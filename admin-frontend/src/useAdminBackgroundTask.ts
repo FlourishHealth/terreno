@@ -17,6 +17,7 @@ export const useAdminBackgroundTaskMutation = (
   api: AdminApi,
   adminApiRoot: string
 ): ReturnType<// noExplicitAny: RTK mutation type from dynamic injectEndpoints
+// noExplicitAny: dynamic hook lookup on RTK Query enhanced API
 // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
 any> => {
   const enhancedApi = useMemo(() => {

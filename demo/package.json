@@ -14,7 +14,7 @@
     "expo": "catalog:",
     "expo-clipboard": "catalog:",
     "expo-constants": "catalog:",
-    "expo-crypto": "~15.0.8",
+    "expo-crypto": "catalog:",
     "expo-dev-client": "catalog:",
     "expo-font": "catalog:",
     "expo-haptics": "catalog:",
@@ -24,6 +24,7 @@
     "expo-linking": "catalog:",
     "expo-localization": "catalog:",
     "expo-router": "catalog:",
+    "expo-splash-screen": "catalog:",
     "expo-status-bar": "catalog:",
     "expo-updates": "catalog:",
     "libphonenumber-js": "catalog:",
@@ -59,10 +60,8 @@
     "@babel/core": "^7.29.0",
     "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@biomejs/biome": "catalog:",
-    "@expo/config-plugins": "catalog:",
-    "@expo/metro-runtime": "~6.1.2",
-    "@expo/webpack-config": "^19.0.1",
-    "@shopify/flash-list": "2.2.2",
+    "@expo/metro-runtime": "catalog:",
+    "@shopify/flash-list": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/node": "^22.19.19",
@@ -98,9 +97,6 @@
     "useTabs": false
   },
   "private": true,
-  "resolutions": {
-    "@expo/cli": "0.17.0"
-  },
   "scripts": {
     "android": "NODE_OPTIONS=--openssl-legacy-provider expo start --android --port 8085",
     "appium:compile": "tsc --noEmit -p appium/tsconfig.json",
@@ -120,7 +116,7 @@
     "compile": "tsc",
     "compile:watch": "tsc -w",
     "doctor": "bunx expo-doctor",
-    "eas-build-post-install": "cd .. && bun run compile",
+    "eas-build-post-install": "cd .. && bun run compile && bun run --filter '@terreno/ui' types",
     "eas:android": "eas build --profile development --platform android",
     "eas:ios": "eas build --profile development --platform ios",
     "eas:ios-sim": "eas build --profile development:simulator --platform ios",
