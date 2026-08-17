@@ -270,8 +270,12 @@
         "typescript": "catalog:",
       },
       "peerDependencies": {
+        "@sendgrid/mail": "^8.0.0",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
+      "optionalPeers": [
+        "@sendgrid/mail",
+      ],
     },
     "demo": {
       "name": "terreno-demo",

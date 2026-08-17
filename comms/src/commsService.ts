@@ -75,7 +75,9 @@ export class CommsService {
     await CommsMessage.logSend({
       channel,
       error: result.error,
-      metadata,
+      errorClass: result.errorClass,
+      errorCode: result.errorCode,
+      metadata: {...result.metadata, ...metadata},
       provider,
       providerMessageId: result.providerMessageId,
       status: result.accepted ? "sent" : "failed",
@@ -83,6 +85,30 @@ export class CommsService {
       to: this.recipientForLog(to),
       userId,
     });
+  }
+
+  private async invokeHook(hook: (() => Promise<void>) | undefined, label: string): Promise<void> {
+    if (!hook) {
+      return;
+    }
+    try {
+      await hook();
+    } catch (error: unknown) {
+      logger.error(`[comms] ${label} hook failed: ${String(error)}`);
+    }
+  }
+
+  private async sendMailOnce(provider: MailProvider, message: MailMessage): Promise<SendResult> {
+    try {
+      return await provider.sendMail(message);
+    } catch (error: unknown) {
+      return {
+        accepted: false,
+        error: error instanceof Error ? error.message : "Provider send failed",
+        errorClass: "transient",
+        errorCode: "provider-throw",
+      };
+    }
   }
 
   private mailProvider(): MailProvider {
@@ -135,27 +161,41 @@ export class CommsService {
       ...message,
       from: message.from ?? this.options.defaultFrom,
     };
+    const context = {channel: "mail" as const, provider: provider.id};
 
-    try {
-      const result = await provider.sendMail(resolvedMessage);
-      await this.logResult({
-        channel: "mail",
-        provider: provider.id,
-        result,
-        subject: message.subject,
-        to: message.to,
-      });
-      return result;
-    } catch (error: unknown) {
-      await this.logResult({
-        channel: "mail",
-        provider: provider.id,
-        result: {accepted: false, error: "Provider send failed"},
-        subject: message.subject,
-        to: message.to,
-      });
-      throw error;
+    let result = await this.sendMailOnce(provider, resolvedMessage);
+    if (!result.accepted && result.errorClass === "transient") {
+      const onRetry = this.options.onRetry;
+      await this.invokeHook(
+        onRetry ? (): Promise<void> => onRetry(context, result) : undefined,
+        "onRetry"
+      );
+      result = await this.sendMailOnce(provider, resolvedMessage);
     }
+
+    await this.logResult({
+      channel: "mail",
+      provider: provider.id,
+      result,
+      subject: message.subject,
+      to: message.to,
+    });
+
+    if (result.accepted) {
+      const onSend = this.options.onSend;
+      await this.invokeHook(
+        onSend ? (): Promise<void> => onSend(context, result) : undefined,
+        "onSend"
+      );
+    } else {
+      const onError = this.options.onError;
+      await this.invokeHook(
+        onError ? (): Promise<void> => onError(context, result) : undefined,
+        "onError"
+      );
+    }
+
+    return result;
   }
 
   async sendSms(message: SmsMessage): Promise<SendResult> {

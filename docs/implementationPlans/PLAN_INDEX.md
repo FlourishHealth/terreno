@@ -67,7 +67,7 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | [Comms adapter — Expo push](comms-adapter-expo-push.md) | Draft | None | [tasks](../tasks/comms-adapter-expo-push.md) |
 | [Comms adapter — Twilio SMS](comms-adapter-twilio-sms.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [Comms adapter — Twilio Verify (OTP)](comms-adapter-twilio-verify.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-verify.md) |
-| [Comms adapter — SendGrid email](comms-adapter-sendgrid.md) | Draft | None | [tasks](../tasks/comms-adapter-sendgrid.md) |
+| [Comms adapter — SendGrid email](comms-adapter-sendgrid.md) | In progress (Phase 1) | None | [tasks](../tasks/comms-adapter-sendgrid.md) |
 | [Comms admin dashboard (errors, retries, log digging)](comms-admin-dashboard.md) | Draft | Partial | [tasks](../tasks/comms-admin-dashboard.md) |
 | [Password reset and email verification](password-reset-and-email-verification.md) | Draft | None | [tasks](../tasks/password-reset-and-email-verification.md) |
 | [Organizations, teams, and multi-tenant scoping](orgs-and-teams.md) | Draft | None | [tasks](../tasks/orgs-and-teams.md) |

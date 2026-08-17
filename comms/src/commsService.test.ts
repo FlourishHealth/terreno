@@ -312,8 +312,12 @@ describe("CommsService", () => {
         startVerification: throwProviderError,
       },
     });
+    const mailResult = await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    assert.isFalse(mailResult.accepted);
+    assert.equal(mailResult.error, "Provider unavailable");
+    assert.equal(mailResult.errorClass, "transient");
+
     const operations = [
-      (): Promise<unknown> => service.sendMail({subject: "Welcome", to: "person@example.com"}),
       (): Promise<unknown> => service.sendSms({body: "Hello", to: "+15555550100"}),
       (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId}),
       (): Promise<unknown> => service.startVerification({channel: "sms", to: "+15555550100"}),
@@ -333,7 +337,8 @@ describe("CommsService", () => {
     assert.equal(
       await CommsMessage.countDocuments({
         channel: "mail",
-        error: "Provider send failed",
+        error: "Provider unavailable",
+        errorClass: "transient",
         provider: "throw-mail",
         status: "failed",
       }),

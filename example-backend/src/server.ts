@@ -30,6 +30,7 @@ import {
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
 } from "@terreno/comms";
+import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
@@ -231,12 +232,28 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     }
 
     if (process.env.COMMS_ENABLED !== "false") {
+      const sendGridApiKey = process.env.SENDGRID_API_KEY;
+      const mailProvider = sendGridApiKey
+        ? new SendGridMailProvider({
+            apiKey: sendGridApiKey,
+            fromEmail: process.env.COMMS_DEFAULT_FROM,
+            fromName: process.env.COMMS_DEFAULT_FROM_NAME,
+            sandboxMode: process.env.SENDGRID_SANDBOX_MODE === "true",
+          })
+        : isDeployed
+          ? undefined
+          : new ConsoleMailProvider();
+
       terraApp.register(
         new CommsApp(
           isDeployed
-            ? {}
+            ? {
+                ...(mailProvider ? {mail: mailProvider} : {}),
+                defaultFrom: process.env.COMMS_DEFAULT_FROM,
+              }
             : {
-                mail: new ConsoleMailProvider(),
+                defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                mail: mailProvider ?? new ConsoleMailProvider(),
                 push: new ConsolePushProvider(),
                 sms: new ConsoleSmsProvider(),
                 verification: new ConsoleVerificationProvider(),

@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@terreno/comms` with pluggable mail, SMS, push, and verification contracts, console
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
   explorer, and generated RTK Query hooks.
+- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
+  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
+  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
+  `onSend`).
 
 ### Fixed
 
