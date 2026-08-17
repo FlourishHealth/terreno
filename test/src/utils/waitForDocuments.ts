@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 
 type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
@@ -18,8 +19,8 @@ export const waitForDocuments = async <T>(
   count = 1,
   {timeoutMs = 5000, intervalMs = 100, sort}: WaitForDocumentsOptions = {}
 ): Promise<T[]> => {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
+  const start = DateTime.now().toMillis();
+  while (DateTime.now().toMillis() - start < timeoutMs) {
     let q = model.find(query as never);
     if (sort) {
       q = q.sort(sort);
