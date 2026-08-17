@@ -3,32 +3,44 @@
 All notable changes to this project are documented in this file.
 
 All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
-`admin-frontend`, `admin-spa`, `ai`, `api-health`, `comms`, `feature-flags`, `mcp`) are
-versioned in lockstep and published at the same version.
+`admin-frontend`, `admin-spa`, `ai`, `api-health`, `comms`, `feature-flags`, `mcp`,
+`syncdb`) are versioned in lockstep and published at the same version.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [56.0.0-beta.2] - 2026-08-17
+
+Second beta of the Expo SDK 56 line, cut from `master` after merging
+[`#976`](https://github.com/FlourishHealth/terreno/pull/976). Publishes under the npm
+`beta` dist-tag; `npm install @terreno/ui` still resolves to the stable `0.x` line.
+
 ### Added
 
+- Expo SDK 56 target for frontend packages: `expo ~56.0.12`, `react-native 0.85.3`,
+  `react 19.2.3`, TypeScript 6
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- `@terreno/syncdb` local-first data layer (TinyBase MergeableStore, durable outbox,
+  websocket delta sync, encrypted web persistence) plus `SyncApp` / sync protocol support
+  in `@terreno/api`
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- `SyncStatusBanner` and `ConflictSheet` in `@terreno/ui` for sync UX
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
 - `@terreno/comms` with pluggable mail, SMS, push, and verification contracts, console
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
-  explorer, and generated RTK Query hooks.
-
-### Fixed
-
-- `generateTokens` in `@terreno/api` now logs and falls back to its default expiration when
-  `TOKEN_EXPIRES_IN` or `REFRESH_TOKEN_EXPIRES_IN` is not a valid duration, instead of throwing
-  from `jwt.sign`.
+  explorer, and generated RTK Query hooks
+  ([#1037](https://github.com/FlourishHealth/terreno/pull/1037))
 
 ### Changed
 
-- The `terreno-5-dialin` plugin skill now owns merge conflicts that appear after the
-  Pour handoff: it checks PR mergeability each cycle, resolves conflicts by merging the
-  base branch without rewriting pushed history, re-runs checks and frontend
-  verification, and treats a conflicted PR as broken rather than mergeable
+- Terreno's version major now tracks the Expo SDK major it targets (`56.x.y` for Expo 56).
+  The stable `0.x` packages are unaffected; this beta does not move `latest`
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- Frontend peer/catalog stack moves to Expo 56 / React Native 0.85 / React 19.2 /
+  TypeScript 6 — consuming apps must upgrade Expo before installing this beta
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
 - `excludeArchivedPlugin` now filters `findOne` the same way as `find`, matching
   `isDeletedPlugin`
 - Sync/REST CRUD executors preserve kebab-case error `code` values
@@ -39,9 +51,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Catalog `@shopify/react-native-skia` bumped to `2.6.5` (drops the postinstall that
   could hang `bun install --frozen-lockfile`); removed unused payment/native deps from
   `example-frontend`
+- The `terreno-5-dialin` plugin skill now owns merge conflicts that appear after the
+  Pour handoff: it checks PR mergeability each cycle, resolves conflicts by merging the
+  base branch without rewriting pushed history, re-runs checks and frontend
+  verification, and treats a conflicted PR as broken rather than mergeable
+  ([#1039](https://github.com/FlourishHealth/terreno/pull/1039))
 
 ### Fixed
 
+- `generateTokens` in `@terreno/api` now logs and falls back to its default expiration when
+  `TOKEN_EXPIRES_IN` or `REFRESH_TOKEN_EXPIRES_IN` is not a valid duration, instead of throwing
+  from `jwt.sign`
 - Sync seq claims under Mongoose 9: `claimSyncSeqs` passes `updatePipeline: true` for
   its aggregation-pipeline `findOneAndUpdate` (required after the master mongoose 9 merge)
 - `RealtimeApp` accepts injectable `SocketServer` / `startChangeStreamWatcher` so setup
@@ -50,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync save error middleware: `throw` instead of `next(error)` under Mongoose 9/Kareem 3,
   and release pending seq claims on any failed claimed save (not only VersionError)
 - Drop orphaned `ui` consent-history PDF test left after the move to `admin-frontend`
+
 ## [0.31.0] - 2026-08-11
 
 ### Added
