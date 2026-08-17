@@ -1,5 +1,8 @@
 import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
+// Force IsWeb=true regardless of load order with native test files (authSliceNative).
+mock.module("./platform", () => ({IsWeb: true}));
+
 type ExpoOptions = {
   scheme?: string;
   storagePrefix?: string;
