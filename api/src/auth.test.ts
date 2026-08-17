@@ -1,13 +1,15 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
-import type express from "express";
+import {assert} from "chai";
+import express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
 import {
+  type UserModel as AuthUserModel,
   addAuthRoutes,
   addMeRoutes,
   generateTokens,
@@ -15,6 +17,7 @@ import {
   MAX_PASSWORD_LENGTH,
   setPasswordForUser,
   setupAuth,
+  signupUser,
 } from "./auth";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
@@ -811,6 +814,38 @@ describe("generateTokens edge cases", () => {
     expect(result.token).toBeDefined();
     expect(result.refreshToken).toBeUndefined();
   });
+
+  it("falls back to the default expiration when TOKEN_EXPIRES_IN is invalid", async () => {
+    process.env.TOKEN_EXPIRES_IN = "not-a-duration";
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+    try {
+      const result = await generateTokens({_id: "user-123"});
+      const decoded = decodeTokenPayload<{exp: number}>(result.token as string);
+      // Falls back to the 15 minute default rather than failing token generation.
+      const expectedExp = Math.floor(Date.now() / 1000) + 15 * 60;
+      assert.isAbove(decoded.exp, expectedExp - 10);
+      assert.isBelow(decoded.exp, expectedExp + 10);
+      assert.include(String(errorSpy.mock.calls[0]?.[0]), "TOKEN_EXPIRES_IN");
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("falls back to the default expiration when REFRESH_TOKEN_EXPIRES_IN is invalid", async () => {
+    process.env.REFRESH_TOKEN_EXPIRES_IN = "not-a-duration";
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+    try {
+      const result = await generateTokens({_id: "user-123"});
+      const decoded = decodeTokenPayload<{exp: number}>(result.refreshToken as string);
+      // Falls back to the 30 day default rather than failing token generation.
+      const expectedExp = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+      assert.isAbove(decoded.exp, expectedExp - 10);
+      assert.isBelow(decoded.exp, expectedExp + 10);
+      assert.include(String(errorSpy.mock.calls[0]?.[0]), "REFRESH_TOKEN_EXPIRES_IN");
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 });
 
 describe("addAuthRoutes /refresh_token error paths", () => {
@@ -1552,5 +1587,220 @@ describe("setPasswordForUser", () => {
 
     expect(infoSpy).not.toHaveBeenCalled();
     infoSpy.mockRestore();
+  });
+});
+
+describe("signupUser postCreate failures", () => {
+  it("wraps and rethrows errors thrown by user.postCreate", async () => {
+    let saveCalled = false;
+    const failingUser = {
+      postCreate: async () => {
+        throw new Error("postCreate failed");
+      },
+      save: async () => {
+        saveCalled = true;
+      },
+    };
+    const fakeModel = {
+      register: async () => failingUser,
+    } as unknown as Parameters<typeof signupUser>[0];
+
+    await expect(signupUser(fakeModel, "new@example.com", "password123")).rejects.toThrow(
+      "postCreate failed"
+    );
+    expect(saveCalled).toBe(false);
+  });
+});
+
+describe("auth error paths when the user lookup fails", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  let admin: {_id: {toString: () => string}};
+
+  beforeEach(async () => {
+    setSystemTime();
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("responds with an error when userModel.findById throws during authentication", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: admin._id.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const findSpy = spyOn(UserModel, "findById").mockImplementation(() => {
+      throw new Error("database unavailable");
+    });
+    try {
+      const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
+
+  it("calls next(err) when the local login strategy errors", async () => {
+    type Authenticator = (
+      username: string,
+      password: string,
+      done: (err: Error | null) => void
+    ) => void;
+    const authSpy = spyOn(
+      UserModel as unknown as {authenticate: () => Authenticator},
+      "authenticate"
+    ).mockReturnValue((_username, _password, done) => {
+      done(new Error("strategy failure"));
+    });
+    try {
+      const errApp = new TerrenoApp({
+        configureApp: () => {},
+        skipListen: true,
+        userModel: UserModel as any,
+      }).build();
+      const errAgent = supertest.agent(errApp);
+      const res = await errAgent
+        .post("/auth/login")
+        .send({email: "notAdmin@example.com", password: "password"});
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    } finally {
+      authSpy.mockRestore();
+    }
+  });
+});
+
+describe("cookie based JWT extraction", () => {
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("authenticates /auth/me from a jwt cookie", async () => {
+    setSystemTime();
+    const {users} = await setupTestData();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign({id: String(users.admin._id)}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const app = getBaseServer();
+    // Stand in for cookie-parser: the extractor prefers req.cookies.jwt over the auth header.
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      req.cookies = {jwt: token};
+      next();
+    });
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addMeRoutes(app, UserModel as unknown as AuthUserModel);
+
+    const res = await supertest.agent(app).get("/auth/me").expect(200);
+    expect(res.body.data.email).toBe("admin@example.com");
+  });
+});
+
+describe("auth logging outside of the test environment", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    setSystemTime();
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it("logs JWT setup and successful logins when NODE_ENV is not test", async () => {
+    setSystemTime();
+    await setupTestData();
+    process.env.NODE_ENV = "development";
+    const debugSpy = spyOn(logger, "debug");
+    const infoSpy = spyOn(logger, "info");
+    try {
+      const app = getBaseServer();
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
+
+      const res = await supertest
+        .agent(app)
+        .post("/auth/login")
+        .send({email: "notAdmin@example.com", password: "password"})
+        .expect(200);
+      expect(res.body.data.token).toBeDefined();
+      expect(
+        debugSpy.mock.calls.some(([message]) =>
+          String(message).includes("Setting up JWT Authentication")
+        )
+      ).toBe(true);
+      expect(
+        infoSpy.mock.calls.some(([message]) => String(message).includes("User logged in"))
+      ).toBe(true);
+    } finally {
+      debugSpy.mockRestore();
+      infoSpy.mockRestore();
+    }
+  });
+});
+
+describe("setupAuth validation", () => {
+  it("throws when the user model has no createStrategy", () => {
+    const app = getBaseServer();
+    const modelWithoutStrategy = {} as unknown as AuthUserModel;
+
+    assert.throws(
+      () => setupAuth(app, modelWithoutStrategy),
+      "setupAuth userModel must have .createStrategy()"
+    );
+  });
+});
+
+describe("/me routes with an already populated req.user", () => {
+  const buildApp = (
+    user: {_id?: string; id?: string} | undefined,
+    foundUser: unknown
+  ): express.Application => {
+    const app = express();
+    app.use(express.json());
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      req.user = user as unknown as express.Request["user"];
+      next();
+    });
+    const stubUserModel = {
+      findById: async () => foundUser,
+    } as unknown as AuthUserModel;
+    addMeRoutes(app, stubUserModel);
+    return app;
+  };
+
+  it("returns 401 from GET /auth/me when the request user has no id", async () => {
+    await supertest
+      .agent(buildApp({_id: "abc"}, null))
+      .get("/auth/me")
+      .expect(401);
+  });
+
+  it("returns 401 from PATCH /auth/me when the request user has no id", async () => {
+    await supertest
+      .agent(buildApp({_id: "abc"}, null))
+      .patch("/auth/me")
+      .send({name: "Updated"})
+      .expect(401);
+  });
+
+  it("returns 404 from GET /auth/me when the user record no longer exists", async () => {
+    await supertest
+      .agent(buildApp({id: "abc"}, null))
+      .get("/auth/me")
+      .expect(404);
+  });
+
+  it("returns 404 from PATCH /auth/me when the user record no longer exists", async () => {
+    await supertest
+      .agent(buildApp({id: "abc"}, null))
+      .patch("/auth/me")
+      .send({name: "Updated"})
+      .expect(404);
   });
 });

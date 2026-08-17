@@ -2,6 +2,7 @@ import {router} from "expo-router";
 import React from "react";
 import {SafeAreaView} from "react-native-safe-area-context";
 
+import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import {Button} from "./Button";
 import type {PageProps} from "./Common";
@@ -12,9 +13,7 @@ import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 
 export class Page extends React.Component<PageProps, {}> {
-  // noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  actionSheetRef: React.RefObject<any> = React.createRef();
+  actionSheetRef: React.RefObject<ActionSheet | null> = React.createRef();
 
   renderHeader() {
     if (!this.props.title && !this.props.backButton) {

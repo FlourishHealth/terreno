@@ -228,6 +228,18 @@ export const setPasswordForUser = async (
 };
 
 /**
+ * Returns the duration when `ms` can parse it, otherwise logs and returns undefined so the caller
+ * keeps its default. Signing a token with an unparseable duration throws instead.
+ */
+const validateDuration = (envName: string, value: string): StringValue | undefined => {
+  if (ms(value as StringValue) === undefined) {
+    logger.error(`${envName} is not a valid duration: "${value}". Using the default instead.`);
+    return undefined;
+  }
+  return value as StringValue;
+};
+
+/**
  * Generates both an access token (JWT) and a refresh token for a given user.
  *
  * This function:
@@ -269,14 +281,9 @@ export const generateTokens = async (
   if (authOptions?.generateTokenExpiration) {
     tokenOptions.expiresIn = authOptions.generateTokenExpiration(user);
   } else if (process.env.TOKEN_EXPIRES_IN) {
-    try {
-      // this call to ms is purely for validation of the env variable. If it is invalid,
-      // we want to be able to log the error and use the default.
-      ms(process.env.TOKEN_EXPIRES_IN as StringValue);
-      tokenOptions.expiresIn = process.env.TOKEN_EXPIRES_IN as StringValue;
-    } catch (error) {
-      // This error will result in using the default value above of 15m.
-      logger.error(error as string);
+    const expiresIn = validateDuration("TOKEN_EXPIRES_IN", process.env.TOKEN_EXPIRES_IN);
+    if (expiresIn) {
+      tokenOptions.expiresIn = expiresIn;
     }
   }
   if (process.env.TOKEN_ISSUER) {
@@ -293,14 +300,12 @@ export const generateTokens = async (
     if (authOptions?.generateRefreshTokenExpiration) {
       refreshTokenOptions.expiresIn = authOptions.generateRefreshTokenExpiration(user);
     } else if (process.env.REFRESH_TOKEN_EXPIRES_IN) {
-      try {
-        // this call to ms is purely for validation of the env variable. If it is invalid,
-        // we want to be able to log the error and use the default.
-        ms(process.env.REFRESH_TOKEN_EXPIRES_IN as StringValue);
-        refreshTokenOptions.expiresIn = process.env.REFRESH_TOKEN_EXPIRES_IN as StringValue;
-      } catch (error) {
-        // This error will result in using the default value above of 30d.
-        logger.error(error as string);
+      const expiresIn = validateDuration(
+        "REFRESH_TOKEN_EXPIRES_IN",
+        process.env.REFRESH_TOKEN_EXPIRES_IN
+      );
+      if (expiresIn) {
+        refreshTokenOptions.expiresIn = expiresIn;
       }
     }
     refreshToken = jwt.sign(payload, refreshTokenSecretOrKey, refreshTokenOptions);
@@ -311,6 +316,10 @@ export const generateTokens = async (
 };
 
 export const setupAuth = (app: express.Application, userModel: UserModel): void => {
+  if (!userModel.createStrategy) {
+    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
+  }
+
   passport.use(new AnonymousStrategy());
   passport.use(userModel.createStrategy());
   passport.use(
@@ -331,10 +340,6 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     ) as passport.Strategy
   );
 
-  if (!userModel.createStrategy) {
-    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
-  }
-
   const customTokenExtractor: JwtFromRequestFunction = (req) => {
     let token: string | null = null;
     if (req?.cookies?.jwt) {
@@ -351,9 +356,6 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     }
 
     const secretOrKey = process.env.TOKEN_SECRET;
-    if (!secretOrKey) {
-      throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
-    }
     const jwtOpts: StrategyOptions = {
       issuer: process.env.TOKEN_ISSUER,
       jwtFromRequest: customTokenExtractor,

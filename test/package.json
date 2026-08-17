@@ -6,6 +6,7 @@
   "dependencies": {
     "express": "catalog:",
     "lodash": "catalog:",
+    "luxon": "catalog:",
     "qs": "catalog:",
     "winston": "catalog:"
   },
@@ -14,6 +15,7 @@
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",
     "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
     "@types/supertest": "catalog:",
     "mongodb-memory-server": "catalog:",
     "mongodb-memory-server-core": "^11.0.1",

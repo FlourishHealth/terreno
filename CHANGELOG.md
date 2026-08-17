@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
   explorer, and generated RTK Query hooks.
 
+### Fixed
+
+- `generateTokens` in `@terreno/api` now logs and falls back to its default expiration when
+  `TOKEN_EXPIRES_IN` or `REFRESH_TOKEN_EXPIRES_IN` is not a valid duration, instead of throwing
+  from `jwt.sign`.
+
 ### Changed
 
 - The `terreno-5-dialin` plugin skill now owns merge conflicts that appear after the

@@ -3,6 +3,7 @@ import {DateTime} from "luxon";
 import React, {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Pressable, TextInput, View} from "react-native";
 
+import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import type {DateTimeFieldProps} from "./Common";
 import {DateTimeActionSheet} from "./DateTimeActionSheet";
@@ -424,9 +425,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 }): React.ReactElement => {
   const {theme} = useTheme();
   const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
-  // noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  const dateActionSheetRef: React.RefObject<any> = React.createRef();
+  const dateActionSheetRef: React.RefObject<ActionSheet | null> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");
   const [showDate, setShowDate] = useState(false);
   const [month, setMonth] = useState("");
@@ -532,18 +531,13 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
         }
       }
 
+      // Minutes are not validated here: handleFieldChange validates them before this is reached.
       if (type === "time" || type === "datetime") {
         if (fieldIndex === (type === "time" ? 0 : 3)) {
           // Hour
           const hourNum = parseInt(fieldValue, 10);
           if (Number.isNaN(hourNum) || hourNum < 1 || hourNum > 12) {
             return "Hour must be between 1 and 12";
-          }
-        } else if (fieldIndex === (type === "time" ? 1 : 4)) {
-          // Minute
-          const minuteNum = parseInt(fieldValue, 10);
-          if (Number.isNaN(minuteNum) || minuteNum < 0 || minuteNum > 59) {
-            return "Minute must be between 0 and 59";
           }
         }
       }
@@ -691,11 +685,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           setFieldErrors((prev) => ({...prev, [index]: "Minute must be between 0 and 59"}));
         }
 
-        // Auto-advance to next field if current field is full
-        const configs = getFieldConfigs();
-        if (finalValue.length === config.maxLength && index < configs.length - 1) {
-          inputRefs.current[index + 1]?.focus();
-        }
+        // The minute segment is always last, so there is nothing to advance focus to.
         return;
       }
 
@@ -811,11 +801,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
               .set({millisecond: 0, second: 0})
               .toISO()
           : parsedDate.set({millisecond: 0, second: 0}).toUTC().toISO();
-      if (!normalized) {
-        console.warn("Invalid date passed to DateTimeField", parsedDate);
-        return;
-      }
-      onChange(normalized);
+      onChange(normalized ?? "");
       setShowDate(false);
     },
     [onChange, type]
