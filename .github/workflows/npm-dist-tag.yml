@@ -43,13 +43,26 @@ jobs:
           fi
 
       - name: Set dist-tag
-        run: |
-          PKG="@terreno/${{ inputs.package }}"
-          VERSION="${{ inputs.version }}"
-          TAG="${{ inputs.tag }}"
-          echo "Setting ${PKG}@${VERSION} -> ${TAG}"
-          npm dist-tag add "${PKG}@${VERSION}" "${TAG}"
-          echo "Current dist-tags:"
-          npm view "${PKG}" dist-tags --json
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE_NAME: ${{ inputs.package }}
+          PACKAGE_VERSION: ${{ inputs.version }}
+          DIST_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$PACKAGE_NAME" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "::error::Invalid package name: $PACKAGE_NAME"
+            exit 1
+          fi
+          if [[ ! "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid version: $PACKAGE_VERSION"
+            exit 1
+          fi
+          if [[ ! "$DIST_TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::Invalid dist-tag: $DIST_TAG"
+            exit 1
+          fi
+          PKG="@terreno/${PACKAGE_NAME}"
+          echo "Setting ${PKG}@${PACKAGE_VERSION} -> ${DIST_TAG}"
+          npm dist-tag add "${PKG}@${PACKAGE_VERSION}" "${DIST_TAG}"
+          echo "Current dist-tags:"
+          npm view "${PKG}" dist-tags --json
