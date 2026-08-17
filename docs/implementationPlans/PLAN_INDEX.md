@@ -15,6 +15,7 @@ Umbrella plans that coordinate several IPs.
 
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — decisions recorded | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
 | [SyncDB Local-First Data Layer](syncdb-local-first.md) | In progress ([PR #869](https://github.com/flourishhealth/terreno/pull/869)) | 2026-07-13 | [tasks](../tasks/syncdb-local-first.md) |
