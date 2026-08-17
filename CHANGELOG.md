@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
+  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
+
 - `@terreno/comms` with pluggable mail, SMS, push, and verification contracts, console
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
   explorer, and generated RTK Query hooks.

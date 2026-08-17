@@ -1,0 +1,899 @@
+# Continuation config — package CI, policy, and Playwright e2e (Phases 1–3).
+# Deploys (Netlify/GCP/EAS/npm publish) intentionally omitted for now.
+version: 2.1
+
+orbs:
+  node: circleci/node@7.2.1
+
+parameters:
+  run-circleci-config:
+    type: boolean
+    default: false
+  run-api:
+    type: boolean
+    default: false
+  run-ai:
+    type: boolean
+    default: false
+  run-rtk:
+    type: boolean
+    default: false
+  run-ui:
+    type: boolean
+    default: false
+  run-ui-demo:
+    type: boolean
+    default: false
+  run-comms:
+    type: boolean
+    default: false
+  run-mcp-server:
+    type: boolean
+    default: false
+  run-example-frontend:
+    type: boolean
+    default: false
+  run-example-backend:
+    type: boolean
+    default: false
+  run-example-backend-script:
+    type: boolean
+    default: false
+  run-example-backend-docker:
+    type: boolean
+    default: false
+  run-admin-spa:
+    type: boolean
+    default: false
+  run-admin-spa-integration:
+    type: boolean
+    default: false
+  run-repo-policies:
+    type: boolean
+    default: false
+  run-e2e:
+    type: boolean
+    default: false
+
+executors:
+  node22:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: medium
+  node22_mongo:
+    docker:
+      - image: cimg/node:22.11
+      - image: mongo:6.0
+    resource_class: medium
+  node22_mongo_rs:
+    docker:
+      - image: cimg/node:22.11
+      - image: mongo:6.0
+        command: ["--replSet", "rs0", "--bind_ip_all"]
+    resource_class: large
+  node22_browsers:
+    docker:
+      - image: cimg/node:22.11-browsers
+    resource_class: medium
+  node22_browsers_mongo_rs:
+    docker:
+      - image: cimg/node:22.11-browsers
+      - image: mongo:6.0
+        command: ["--replSet", "rs0", "--bind_ip_all"]
+    resource_class: large
+
+commands:
+  install_bun_and_deps:
+    description: Install Bun (latest) and workspace deps with frozen lockfile + cache
+    parameters:
+      include-branch-in-cache-key:
+        type: boolean
+        default: true
+    steps:
+      - node/install-bun
+      - node/install-packages:
+          pkg-manager: bun
+          include-branch-in-cache-key: << parameters.include-branch-in-cache-key >>
+          cache-version: v1
+
+  wait_for_mongo:
+    description: Wait until MongoDB accepts TCP connections on localhost:27017
+    steps:
+      - run:
+          name: Wait for MongoDB
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 60); do
+              if node -e "const n=require('net');const s=n.connect(27017,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))"; then
+                echo "MongoDB is up"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "MongoDB did not become ready"
+            exit 1
+
+  init_mongo_replica:
+    description: Initiate single-node replica set rs0 (requires mongodb npm package)
+    steps:
+      - wait_for_mongo
+      - run:
+          name: Initiate MongoDB replica set rs0
+          command: |
+            set -euo pipefail
+            # Use node (not bun) — mongodb driver's bson hits bun snapshot errors.
+            node -e '
+              const {MongoClient} = require("mongodb");
+              (async () => {
+                const client = new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true");
+                await client.connect();
+                try {
+                  await client.db("admin").command({
+                    replSetInitiate: {_id: "rs0", members: [{_id: 0, host: "127.0.0.1:27017"}]},
+                  });
+                  console.log("replica set initiated");
+                } catch (error) {
+                  const message = String(error && error.message ? error.message : error);
+                  if (!message.includes("already initialized")) {
+                    throw error;
+                  }
+                  console.log("replica set already initialized");
+                }
+                for (let i = 0; i < 60; i += 1) {
+                  const status = await client.db("admin").command({replSetGetStatus: 1});
+                  if (status.members && status.members.some((m) => m.stateStr === "PRIMARY")) {
+                    await client.close();
+                    console.log("PRIMARY ready");
+                    return;
+                  }
+                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                }
+                await client.close();
+                throw new Error("replica set did not become PRIMARY");
+              })().catch((error) => {
+                console.error(error);
+                process.exit(1);
+              });
+            '
+
+  resolve_e2e_secrets:
+    description: Map E2E_* context secrets to auth env with local fallbacks (matches GHA)
+    steps:
+      - run:
+          name: Resolve E2E auth secrets
+          command: |
+            set -euo pipefail
+            {
+              echo "export TOKEN_SECRET=\"${E2E_TOKEN_SECRET:-ci-e2e-token-secret}\""
+              echo "export REFRESH_TOKEN_SECRET=\"${E2E_REFRESH_TOKEN_SECRET:-ci-e2e-refresh-secret}\""
+              echo "export SESSION_SECRET=\"${E2E_SESSION_SECRET:-ci-e2e-session-secret}\""
+            } >> "$BASH_ENV"
+
+  skip_if_not_pull_request:
+    steps:
+      - run:
+          name: Require pull request build
+          command: |
+            if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
+              echo "Not a pull request build; skipping"
+              circleci step halt
+            fi
+
+  skip_if_not_fork_pull_request:
+    steps:
+      - run:
+          name: Require fork pull request
+          command: |
+            set -euo pipefail
+            if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
+              echo "Not a pull request build; skipping"
+              circleci step halt
+            fi
+            if [ -z "${CIRCLE_PR_REPONAME:-}" ] && [ -z "${CIRCLE_PR_USERNAME:-}" ]; then
+              # CIRCLE_PR_* is set for fork PRs on GitHub.
+              echo "Not a fork PR (same-repo); skipping DCO"
+              circleci step halt
+            fi
+
+jobs:
+  config-ok:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Config continuation ok
+          command: |
+            echo "CircleCI continue-config loaded"
+            echo "run-api=<< pipeline.parameters.run-api >>"
+            echo "run-ui=<< pipeline.parameters.run-ui >>"
+            echo "run-e2e=<< pipeline.parameters.run-e2e >>"
+            echo "run-repo-policies=<< pipeline.parameters.run-repo-policies >>"
+
+  api-ci:
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Lint / compile / test api
+          working_directory: ~/project/api
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  ai-ci:
+    executor: node22_mongo
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Compile api dependency
+          working_directory: ~/project/api
+          command: bun run compile
+      - run:
+          name: Lint / compile / test ai
+          working_directory: ~/project/ai
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test
+
+  rtk-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile ui dependency
+          working_directory: ~/project/ui
+          command: bun run compile
+      - run:
+          name: Lint / compile / test rtk
+          working_directory: ~/project/rtk
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  ui-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Lint / compile / types / test ui
+          working_directory: ~/project/ui
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run types
+            bun run test:ci
+
+  ui-demo-typecheck:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile ui then lint/compile demo
+          command: |
+            set -euo pipefail
+            (cd ui && bun run compile)
+            (cd demo && bun run lint)
+            (cd demo && bun run compile)
+
+  ui-demo-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Demo lint and typecheck (UI unchanged)
+          command: |
+            set -euo pipefail
+            (cd ui && bun run compile)
+            (cd demo && bun run lint)
+            (cd demo && bun run compile)
+
+  comms-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile api dependency
+          working_directory: ~/project/api
+          command: bun run compile
+      - run:
+          name: Lint / compile / test comms
+          working_directory: ~/project/comms
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test
+
+  mcp-server-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile workspace
+          command: bun run compile
+      - run:
+          name: Install mcp-server deps
+          working_directory: ~/project/mcp-server
+          command: bun install --frozen-lockfile
+      - run:
+          name: Lint / compile / test mcp-server
+          working_directory: ~/project/mcp-server
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  mcp-server-docker:
+    executor: node22
+    steps:
+      - run:
+          name: Skip Docker build on pull requests
+          command: |
+            if [ -n "${CIRCLE_PULL_REQUEST:-}" ]; then
+              echo "mcp-server Docker job is push-only (matches GHA)"
+              circleci step halt
+            fi
+      - checkout
+      - install_bun_and_deps
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Compile api + mcp-server
+          command: |
+            set -euo pipefail
+            (cd api && bun run compile)
+            (cd mcp-server && bun run compile)
+      - run:
+          name: Production install for image context
+          command: |
+            set -euo pipefail
+            rm -rf node_modules
+            bun install --production --frozen-lockfile
+      - run:
+          name: Build mcp-server Docker image
+          command: |
+            set -euo pipefail
+            docker build \
+              --file mcp-server/Dockerfile \
+              --tag terreno-mcp-server:test \
+              .
+
+  example-frontend-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile frontend dependencies
+          command: |
+            set -euo pipefail
+            (cd ui && bun run compile)
+            (cd rtk && bun run compile)
+            (cd admin-frontend && bun run compile)
+      - run:
+          name: Lint / test example-frontend
+          working_directory: ~/project/example-frontend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run test
+
+  example-backend-ci:
+    executor: node22_mongo
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Compile backend dependencies
+          command: |
+            set -euo pipefail
+            for pkg in api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa; do
+              echo "=== compile $pkg ==="
+              (cd "$pkg" && bun run compile)
+            done
+      - run:
+          name: Lint / compile / test example-backend
+          working_directory: ~/project/example-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test
+
+  example-backend-script-runner:
+    executor: node22_mongo
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Compile script-runner dependencies
+          command: |
+            set -euo pipefail
+            for pkg in api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa; do
+              echo "=== compile $pkg ==="
+              (cd "$pkg" && bun run compile)
+            done
+            (cd example-backend && bun run compile)
+      - run:
+          name: List admin scripts
+          working_directory: ~/project/example-backend
+          command: |
+            set -euo pipefail
+            output="$(bun run script --list)"
+            echo "$output"
+            echo "$output" | grep -q "countRecords"
+            echo "$output" | grep -q "seedFeatureFlags"
+      - run:
+          name: Dry-run countRecords
+          working_directory: ~/project/example-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            output="$(bun run script countRecords --json --model todos)"
+            echo "$output"
+            echo "$output" | grep -q '"success":true'
+            echo "$output" | grep -q '"wetRun":false'
+      - run:
+          name: Wet-run seedFeatureFlags
+          working_directory: ~/project/example-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            output="$(bun run script seedFeatureFlags --wet --json)"
+            echo "$output"
+            echo "$output" | grep -q '"success":true'
+            echo "$output" | grep -q '"wetRun":true'
+      - run:
+          name: Unknown script must fail
+          working_directory: ~/project/example-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            if bun run script does-not-exist; then
+              echo "Expected the CLI to fail for an unknown script"
+              exit 1
+            fi
+
+  example-backend-docker:
+    executor: node22
+    steps:
+      - skip_if_not_pull_request
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build example-backend Docker image
+          command: |
+            set -euo pipefail
+            pr_number="$(basename "${CIRCLE_PULL_REQUEST}")"
+            docker build \
+              --file example-backend/Dockerfile \
+              --tag "terreno-example-backend:pr-${pr_number}" \
+              .
+
+  admin-spa-ci:
+    executor: node22_browsers
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile admin-spa dependencies
+          command: |
+            bun run --filter '@terreno/ui' --filter '@terreno/rtk' --filter '@terreno/admin-frontend' --filter '@terreno/api' compile
+      - run:
+          name: Lint / compile / types / unit / build / smoke
+          working_directory: ~/project/admin-spa
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bunx tsc --noEmit -p tsconfig.json
+            bun run test:ci
+            bun run build:web
+            bun run smoke
+      - run:
+          name: Install Playwright Chromium
+          working_directory: ~/project/admin-spa
+          command: bunx playwright install --with-deps chromium
+      - run:
+          name: Admin SPA e2e
+          working_directory: ~/project/admin-spa
+          environment:
+            CI: "true"
+          command: bun run test:e2e
+
+  no-barrel-imports:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - node/install-bun
+      - run:
+          name: Check no barrel imports
+          command: bun run check:no-barrel-imports
+
+  explicit-any:
+    executor: node22
+    steps:
+      - checkout
+      - node/install-bun
+      - run:
+          name: Install deps (baseline script)
+          command: bun install
+      - run:
+          name: Explicit any baseline
+          command: bun run check:explicit-any:baseline
+      - run:
+          name: Write explicit-any inventory
+          when: always
+          command: bun run check:explicit-any:json > explicit-any-inventory.json
+      - store_artifacts:
+          path: explicit-any-inventory.json
+          destination: explicit-any-inventory
+
+  license-coverage:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - node/install-bun
+      - run:
+          name: Check license coverage
+          command: bun run check:licenses
+
+  rulesync-check:
+    executor: node22
+    steps:
+      - skip_if_not_pull_request
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Run rulesync and require clean tree
+          command: |
+            set -euo pipefail
+            bun run rules
+            if [[ -n $(git status -s) ]]; then
+              echo "Error: Running bun run rules produced changes. Please run bun run rules locally and commit the changes."
+              git status
+              git diff
+              exit 1
+            fi
+
+  dco:
+    executor: node22
+    resource_class: small
+    steps:
+      - skip_if_not_fork_pull_request
+      - checkout
+      - run:
+          name: Fetch full history for DCO range
+          command: |
+            set -euo pipefail
+            git fetch --unshallow 2>/dev/null || true
+            git fetch origin master 2>/dev/null || true
+      - run:
+          name: Verify DCO sign-off on fork commits
+          command: |
+            set -euo pipefail
+            if [ -z "${GITHUB_TOKEN:-}" ]; then
+              echo "GITHUB_TOKEN missing (add terreno-github-api context or project env). Skipping DCO during dual-run scaffold."
+              circleci step halt
+            fi
+            # Resolve PR base/head via GitHub API when available.
+            pr_url="${CIRCLE_PULL_REQUEST}"
+            pr_api="$(echo "$pr_url" | sed -E 's|https://github.com/([^/]+)/([^/]+)/pull/([0-9]+)|https://api.github.com/repos/\1/\2/pulls/\3|')"
+            pr_json="$(curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "$pr_api")"
+            base_sha="$(echo "$pr_json" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).base.sha))")"
+            head_sha="$(echo "$pr_json" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).head.sha))")"
+            repo_full="$(echo "$pr_json" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).base.repo.full_name))")"
+            echo "Checking DCO from ${base_sha}..${head_sha}"
+            failed=0
+            while IFS= read -r commit; do
+              [ -z "$commit" ] && continue
+              author_name="$(git -C ~/project show -s --format='%an' "$commit")"
+              author_email="$(git -C ~/project show -s --format='%ae' "$commit")"
+              author_login="$(curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${repo_full}/commits/${commit}" \
+                | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log((j.author&&j.author.login)||'')})")"
+              if [ "$author_login" = "dependabot[bot]" ] || [ "$author_login" = "cursor[bot]" ]; then
+                echo "Skipping bot commit $commit ($author_login)"
+                continue
+              fi
+              expected="Signed-off-by: ${author_name} <${author_email}>"
+              body="$(git -C ~/project show -s --format='%B' "$commit")"
+              if ! echo "$body" | grep -Fqx "$expected"; then
+                echo "Missing DCO on $commit — expected: $expected"
+                failed=1
+              else
+                echo "OK $commit"
+              fi
+            done < <(git -C ~/project rev-list --no-merges "${base_sha}..${head_sha}")
+            if [ "$failed" -ne 0 ]; then
+              exit 1
+            fi
+
+  e2e:
+    executor: node22_browsers_mongo_rs
+    parameters:
+      spec:
+        type: string
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - init_mongo_replica
+      - run:
+          name: Compile workspace
+          command: bun run compile
+      - resolve_e2e_secrets
+      - run:
+          name: Start example-backend
+          working_directory: ~/project/example-backend
+          background: true
+          command: |
+            set -euo pipefail
+            export PORT=4000
+            export MONGO_URI="mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
+            export TOKEN_ISSUER=terreno-e2e
+            bun run src/index.ts
+      - run:
+          name: Wait for backend health
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:4000/health | grep -q '"healthy":true'; then
+                echo "backend healthy"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "backend failed to become healthy"
+            exit 1
+      - run:
+          name: Install Playwright Chromium
+          working_directory: ~/project/example-frontend
+          command: bunx playwright install --with-deps chromium
+      - run:
+          name: Playwright << parameters.spec >>
+          working_directory: ~/project/example-frontend
+          environment:
+            CI: "true"
+            PORT: "4000"
+            MONGO_URI: "mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
+            TOKEN_ISSUER: terreno-e2e
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            bunx playwright test "<< parameters.spec >>.spec.ts"
+      - store_artifacts:
+          path: example-frontend/playwright-report
+          destination: playwright-report-<< parameters.spec >>
+      - store_artifacts:
+          path: example-frontend/test-results
+          destination: playwright-test-results-<< parameters.spec >>
+
+  admin-spa-integration:
+    executor: node22_browsers_mongo_rs
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - init_mongo_replica
+      - run:
+          name: Compile workspace
+          command: bun run compile
+      - run:
+          name: Build admin-spa web
+          working_directory: ~/project/admin-spa
+          environment:
+            CI: "true"
+          command: bun run build:web
+      - resolve_e2e_secrets
+      - run:
+          name: Start example-backend (admin spa + better-auth)
+          working_directory: ~/project/example-backend
+          background: true
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            export PORT=4000
+            export MONGO_URI="mongodb://127.0.0.1/terreno-admin-spa-e2e?replicaSet=rs0"
+            export ADMIN_SPA_ENABLED=true
+            export AUTH_PROVIDER=better-auth
+            export BETTER_AUTH_URL=http://localhost:4000
+            export BETTER_AUTH_SECRET="${SESSION_SECRET}"
+            export TOKEN_ISSUER=terreno-admin-spa-e2e
+            bun run src/index.ts
+      - run:
+          name: Wait for backend health
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:4000/health | grep -q '"healthy":true'; then
+                echo "backend healthy"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "backend failed to become healthy"
+            exit 1
+      - run:
+          name: Seed admin-spa admin user
+          working_directory: ~/project/example-backend
+          command: |
+            set -euo pipefail
+            export MONGO_URI="mongodb://127.0.0.1/terreno-admin-spa-e2e?replicaSet=rs0"
+            bun run src/scripts/seed-admin-spa-admin.ts
+      - run:
+          name: Smoke console routes
+          command: |
+            set -euo pipefail
+            curl -sf http://localhost:4000/console/app-config.json
+            curl -sf http://localhost:4000/console/ | grep -q "__ADMIN_SPA_BASE__"
+      - run:
+          name: Install Playwright Chromium
+          working_directory: ~/project/admin-spa
+          command: bunx playwright install --with-deps chromium
+      - run:
+          name: Admin SPA integration e2e
+          working_directory: ~/project/admin-spa
+          environment:
+            CI: "true"
+          command: bun run test:integration
+      - store_artifacts:
+          path: admin-spa/playwright-report
+          destination: admin-spa-integration-playwright-report
+      - store_artifacts:
+          path: admin-spa/test-results
+          destination: admin-spa-integration-test-results
+
+workflows:
+  # Contexts (terreno-e2e, terreno-github-api, …) are optional during dual-run.
+  # Attach them in the CircleCI project once Phase 0 contexts exist; jobs fall
+  # back to local secrets / skip when env is missing. Do not hard-require
+  # contexts here until they are created — missing contexts fail the pipeline.
+  always:
+    jobs:
+      - config-ok
+      - rulesync-check
+      - dco
+
+  api:
+    when: << pipeline.parameters.run-api >>
+    jobs:
+      - api-ci
+
+  ai:
+    when: << pipeline.parameters.run-ai >>
+    jobs:
+      - ai-ci
+
+  rtk:
+    when: << pipeline.parameters.run-rtk >>
+    jobs:
+      - rtk-ci
+
+  ui:
+    when: << pipeline.parameters.run-ui >>
+    jobs:
+      - ui-ci
+      - ui-demo-typecheck
+
+  # Mirror GHA ui-demo-ci: only when demo changed and ui did not.
+  ui-demo:
+    when:
+      and:
+        - equal: [true, << pipeline.parameters.run-ui-demo >>]
+        - equal: [false, << pipeline.parameters.run-ui >>]
+    jobs:
+      - ui-demo-ci
+
+  comms:
+    when: << pipeline.parameters.run-comms >>
+    jobs:
+      - comms-ci
+
+  mcp-server:
+    when: << pipeline.parameters.run-mcp-server >>
+    jobs:
+      - mcp-server-ci
+      - mcp-server-docker:
+          requires:
+            - mcp-server-ci
+
+  example-frontend:
+    when: << pipeline.parameters.run-example-frontend >>
+    jobs:
+      - example-frontend-ci
+
+  example-backend:
+    when: << pipeline.parameters.run-example-backend >>
+    jobs:
+      - example-backend-ci
+
+  example-backend-script:
+    when: << pipeline.parameters.run-example-backend-script >>
+    jobs:
+      - example-backend-script-runner
+
+  example-backend-docker:
+    when: << pipeline.parameters.run-example-backend-docker >>
+    jobs:
+      - example-backend-docker
+
+  admin-spa:
+    when: << pipeline.parameters.run-admin-spa >>
+    jobs:
+      - admin-spa-ci
+
+  repo-policies:
+    when: << pipeline.parameters.run-repo-policies >>
+    jobs:
+      - no-barrel-imports
+      - explicit-any
+      - license-coverage
+
+  e2e:
+    when: << pipeline.parameters.run-e2e >>
+    jobs:
+      - e2e:
+          matrix:
+            parameters:
+              spec:
+                - login
+                - signup
+                - todos
+                - profile
+                - admin
+                - consents
+                - ai-chat
+                - realtime
+
+  admin-spa-integration:
+    when: << pipeline.parameters.run-admin-spa-integration >>
+    jobs:
+      - admin-spa-integration

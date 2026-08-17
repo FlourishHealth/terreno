@@ -1,6 +1,6 @@
 # Implementation Plan: Migrate CI/CD to CircleCI
 
-**Status:** Draft — decisions recorded; awaiting Approval  
+**Status:** In progress — Phase 1–3 CI config landed (deploys deferred per request)  
 **Discussion:** _(none)_  
 **Roadmap issue:** _(pending — hand off via `roadmap-item` when Approved)_  
 **Linear:** _(none)_  
