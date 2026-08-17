@@ -1,0 +1,55 @@
+name: Set npm dist-tag
+
+# Manually point an npm dist-tag at an already-published @terreno/* version.
+# Used to repair tags after a publish (e.g. first release of a new package, or a
+# missing --tag on a prerelease publish).
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package directory / name without @terreno/ (e.g. comms)"
+        required: true
+        type: string
+      version:
+        description: "Published version to tag (e.g. 56.0.0-beta.2)"
+        required: true
+        type: string
+      tag:
+        description: "Dist-tag to set (e.g. beta)"
+        required: true
+        type: string
+        default: beta
+
+jobs:
+  set-dist-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Set dist-tag
+        run: |
+          PKG="@terreno/${{ inputs.package }}"
+          VERSION="${{ inputs.version }}"
+          TAG="${{ inputs.tag }}"
+          echo "Setting ${PKG}@${VERSION} -> ${TAG}"
+          npm dist-tag add "${PKG}@${VERSION}" "${TAG}"
+          echo "Current dist-tags:"
+          npm view "${PKG}" dist-tags --json
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

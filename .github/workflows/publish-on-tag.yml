@@ -1160,7 +1160,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --tag "${{ needs.check-changes.outputs.npmTag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
