@@ -1,6 +1,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
 import {testLogger} from "../logging/testLogger";
@@ -89,7 +90,7 @@ const cacheFilesExist = (cacheDir: string): boolean => {
   }
 
   if (!process.env.CI) {
-    const cacheAge = Date.now() - fs.statSync(dataFilePath).mtimeMs;
+    const cacheAge = DateTime.now().toMillis() - fs.statSync(dataFilePath).mtimeMs;
     if (cacheAge > MAX_CACHE_AGE_MS) {
       return false;
     }
@@ -104,7 +105,7 @@ const convertValue = (value: unknown): unknown => {
   }
   if (typeof value === "string") {
     if (value.match(/^\d{4}-\d{2}-\d{2}T/)) {
-      return new Date(value);
+      return DateTime.fromISO(value).toJSDate();
     }
     if (value.match(/^[0-9a-fA-F]{24}$/)) {
       return new mongoose.Types.ObjectId(value);
