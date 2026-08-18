@@ -107,7 +107,7 @@ describe("Popover", () => {
       />
     );
     const scrollView = getByTestId("popover-content");
-    expect(scrollView.props.style).toEqual(expect.objectContaining({flexGrow: 1, flexShrink: 1}));
+    expect(scrollView.props.style).toEqual(expect.objectContaining({flex: 1, minHeight: 0}));
     const content = scrollView.findByType("View");
     expect(content.props.style?.height).toBeUndefined();
   });

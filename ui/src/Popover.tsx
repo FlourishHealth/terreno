@@ -115,7 +115,7 @@ export const Popover: FC<PopoverProps> = ({
       <ScrollView
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
-        style={{flexGrow: 1, flexShrink: 1, width: "100%"}}
+        style={{flex: 1, minHeight: 0, width: "100%"}}
         testID={childTestID("content")}
       >
         <Box paddingX={4} paddingY={3} width="100%">
