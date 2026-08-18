@@ -93,13 +93,16 @@ export const Popover: FC<PopoverProps> = ({
             {errorText}
           </Text>
           {Boolean(onRetry) && (
-            <Button
-              onClick={onRetry!}
-              size="sm"
-              testID={childTestID("retry")}
-              text={retryText}
-              variant="primary"
-            />
+            // Button pins itself to flex-start, so center it on the row's main axis instead.
+            <Box direction="row" justifyContent="center" width="100%">
+              <Button
+                onClick={onRetry!}
+                size="sm"
+                testID={childTestID("retry")}
+                text={retryText}
+                variant="primary"
+              />
+            </Box>
           )}
         </Box>
       </>
@@ -115,7 +118,7 @@ export const Popover: FC<PopoverProps> = ({
       <ScrollView
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
-        style={{flexGrow: 1, flexShrink: 1, width: "100%"}}
+        style={{flexBasis: 0, flexGrow: 1, flexShrink: 1, minHeight: 0, width: "100%"}}
         testID={childTestID("content")}
       >
         <Box paddingX={4} paddingY={3} width="100%">
