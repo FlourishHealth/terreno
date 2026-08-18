@@ -1,17 +1,24 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {type Document, type HydratedDocument, Schema} from "mongoose";
 
 import {fixMixedFields, getOpenApiSpecForModel, unpopulate} from "./populate";
-import {FoodModel, setupTestData, type User, UserModel} from "./tests";
+import {type Food, FoodModel, setupTestData, type User, UserModel} from "./tests";
+
+/**
+ * A Food document whose ObjectId references have been replaced by populated user
+ * documents. `unpopulate` swaps them back to ObjectIds in place, so both shapes
+ * are optional on the reference fields.
+ */
+type PopulatedFood = Omit<HydratedDocument<Food>, "eatenBy" | "likesIds" | "ownerId"> & {
+  ownerId: Partial<User> & {toString(): string};
+  eatenBy: (Partial<User> & {id?: string})[] & {toString(): string};
+  likesIds: {likes: boolean; userId: Partial<User> & {id?: string; toString(): string}}[];
+};
 
 describe("populate functions", () => {
   let admin: HydratedDocument<User>;
   let notAdmin: HydratedDocument<User>;
-
-  // noExplicitAny: typing as HydratedDocument<Food> causes cascading errors on populated field access patterns (e.g. populated.ownerId.name)
-  let spinach: any;
+  let spinach: HydratedDocument<Food>;
 
   beforeEach(async () => {
     const testData = await setupTestData();
@@ -21,9 +28,10 @@ describe("populate functions", () => {
   });
 
   it("unpopulate", async () => {
-    let populated = await spinach.populate("ownerId");
-    populated = await populated.populate("eatenBy");
-    populated = await populated.populate("likesIds.userId");
+    await spinach.populate("ownerId");
+    await spinach.populate("eatenBy");
+    await spinach.populate("likesIds.userId");
+    const populated = spinach as unknown as PopulatedFood;
     expect(populated.ownerId.name).toBe("Not Admin");
     expect(populated.eatenBy[0].id).toBe(admin.id);
     expect(populated.eatenBy[0].name).toBe("Admin");
@@ -32,9 +40,11 @@ describe("populate functions", () => {
     expect(populated.likesIds[1].userId.id).toBe(notAdmin.id);
     expect(populated.likesIds[1].userId.name).toBe("Not Admin");
 
-    // noExplicitAny: unpopulate returns Document<T> which doesn't expose model properties; would require refactoring the return type
-    let unpopulated: any = unpopulate(populated, "ownerId");
-    expect(spinach.ownerId.name).toBeUndefined();
+    const unpopulated = unpopulate(
+      populated as unknown as Document<unknown>,
+      "ownerId"
+    ) as unknown as PopulatedFood;
+    expect(populated.ownerId.name).toBeUndefined();
     expect(unpopulated.ownerId.toString()).toBe(notAdmin.id);
     // Ensure nothing else was touched.
     expect(populated.likesIds[0].userId.id).toBe(admin.id);
@@ -42,11 +52,11 @@ describe("populate functions", () => {
     expect(populated.likesIds[1].userId.id).toBe(notAdmin.id);
     expect(populated.likesIds[1].userId.name).toBe("Not Admin");
 
-    unpopulated = unpopulate(populated, "eatenBy");
+    unpopulate(populated as unknown as Document<unknown>, "eatenBy");
     expect(populated.eatenBy.toString()).toBe(admin.id);
     expect(populated.eatenBy[0]?.name).toBeUndefined();
 
-    unpopulated = unpopulate(populated, "likesIds.userId");
+    unpopulate(populated as unknown as Document<unknown>, "likesIds.userId");
     expect(populated.likesIds[0].userId.toString()).toBe(admin.id);
     expect(populated.likesIds[0].userId?.name).toBeUndefined();
     expect(populated.likesIds[1].userId.toString()).toBe(notAdmin.id);
@@ -326,8 +336,7 @@ describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
       populatePaths: [{fields: ["__proto__.polluted"], path: "ownerId"}],
     });
     expect(result.properties).toBeDefined();
-    // noExplicitAny: testing that prototype pollution did not add a 'polluted' property to Object.prototype
-    expect((Object.prototype as any).polluted).toBeUndefined();
+    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
     const ownerProps = (result.properties.ownerId as Record<string, unknown>).properties as Record<
       string,
       unknown

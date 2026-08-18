@@ -221,6 +221,7 @@ export interface SurfaceThemeConfig {
   baseAlternate: keyof ThemePrimitiveColors;
   baseHover: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
+  secondaryExtraLight: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
   secondaryDark: keyof ThemePrimitiveColors;
   secondaryExtraDark: keyof ThemePrimitiveColors;
@@ -291,6 +292,7 @@ export interface SurfaceTheme {
   baseAlternate: string;
   baseHover: string;
   primary: string;
+  secondaryExtraLight: string;
   secondaryLight: string;
   secondaryDark: string;
   secondaryExtraDark: string;
@@ -613,6 +615,13 @@ export interface LayerProps {
 export interface AccessibilityProps {
   accessibilityLabel: string;
   accessibilityHint: string;
+  /**
+   * RN/RNW accessibility role (e.g. "button") for a clickable Box. Optional —
+   * most onClick Boxes get an implicit button role already (see Box.tsx); set
+   * this explicitly when a screen-reader-facing role needs to be guaranteed
+   * (e.g. a badge that opens a sheet).
+   */
+  accessibilityRole?: string;
 }
 
 export interface BoxPropsBase extends WithTestID {
@@ -780,6 +789,51 @@ export type CardProps = BoxProps & {
    * @default 160
    */
   imageHeight?: number;
+};
+
+export type EditableCardProps = BoxProps & {
+  /**
+   * The name of an icon shown before the title.
+   */
+  iconName?: IconName;
+
+  /**
+   * The title of the summarized information.
+   */
+  title?: string;
+
+  /**
+   * Props for a badge rendered next to the title.
+   */
+  badge?: BadgeProps;
+
+  /**
+   * The summarized information itself, displayed below the title.
+   */
+  description?: string;
+
+  /**
+   * Secondary text displayed below the description, in a muted style.
+   */
+  helperText?: string;
+
+  /**
+   * Callback invoked when the edit button is pressed. The edit button is only rendered when this
+   * is provided.
+   */
+  onEdit?: () => void | Promise<void>;
+
+  /**
+   * Accessibility label for the edit button.
+   * @default "Edit"
+   */
+  editAccessibilityLabel?: string;
+
+  /**
+   * If true, the card is highlighted to draw attention to it, e.g. for content that needs review.
+   * @default false
+   */
+  attention?: boolean;
 };
 
 export interface ErrorBoundaryProps {
@@ -2658,6 +2712,12 @@ export interface TextFieldPickerActionSheetProps {
 
 export interface ToastProps {
   title: string;
+  /**
+   * Stable toast id, forwarded by `useToast` from the caller's options. Used to
+   * disambiguate the action button's testID so two stacked action toasts do not
+   * both answer to `toast-action-button`.
+   */
+  id?: string;
   variant?: "error" | "info" | "success" | "warning";
   secondary?: boolean;
   size?: "sm" | "lg";
@@ -2665,9 +2725,14 @@ export interface ToastProps {
   persistent?: boolean;
   // TODO enforce these should only show if size is "lg" with type discrinimation
   subtitle?: string;
-  // TODO Add buttons for Toast
-  // buttonText?: string;
-  // buttonOnClick?: () => void | Promise<void>;
+  /**
+   * Optional action button label. Renders only when `buttonOnClick` is also provided.
+   */
+  buttonText?: string;
+  /**
+   * Optional action button handler. Renders only when `buttonText` is also provided.
+   */
+  buttonOnClick?: () => void | Promise<void>;
 }
 
 export interface TooltipProps {

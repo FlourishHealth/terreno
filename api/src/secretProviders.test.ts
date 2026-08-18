@@ -215,7 +215,13 @@ describe("GcpSecretProvider", () => {
   });
 
   it("throws APIError when @google-cloud/secret-manager is not installed", async () => {
-    const provider = new GcpSecretProvider({projectId: "my-project"});
+    // Whether the optional peer resolves from this package depends on the install layout
+    // (bun's hoisted linker exposes example-backend's copy), so inject a failing loader
+    // instead of relying on it being absent.
+    const provider = new GcpSecretProvider({
+      loadModule: () => Promise.reject(new Error("Cannot find module")),
+      projectId: "my-project",
+    });
     try {
       await provider.getSecret("some-secret");
       expect.unreachable("should have thrown");

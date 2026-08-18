@@ -17,11 +17,12 @@ import {
   UserModel,
 } from "@terreno/api/testing";
 import type express from "express";
+import mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import type {AdminAuditEvent, AdminModelConfig, AdminOptions} from "./adminApp";
-import {AdminApp} from "./adminApp";
+import {AdminApp, getArrayEmbeddedSchemaType} from "./adminApp";
 
 const buildApp = (
   models: AdminModelConfig[] = [],
@@ -50,6 +51,24 @@ const foodModelConfig: AdminModelConfig = {
   model: FoodModel,
   routePath: "/foods",
 };
+
+const enumArraySchema = new mongoose.Schema({
+  values: {
+    description: "Allowed enum values",
+    type: [{enum: ["alpha", "beta"], type: String}],
+  },
+});
+const EnumArrayModel =
+  mongoose.models.AdminEnumArray ?? mongoose.model("AdminEnumArray", enumArraySchema);
+
+describe("getArrayEmbeddedSchemaType", () => {
+  it("supports the legacy Mongoose 8 caster property", () => {
+    const embeddedSchemaType = new mongoose.Schema({value: String}).path("value");
+    const legacyArrayPath = {caster: embeddedSchemaType} as unknown as mongoose.SchemaType;
+
+    expect(getArrayEmbeddedSchemaType(legacyArrayPath)).toBe(embeddedSchemaType);
+  });
+});
 
 describe("AdminApp /admin/config", () => {
   let app: express.Application;
@@ -148,6 +167,20 @@ describe("AdminApp /admin/config", () => {
     expect(foodMeta.fields.tags.type).toBe("array");
     expect(foodMeta.fields.tags.itemType).toBe("string");
     expect(foodMeta.fields.tags.items).toBeUndefined();
+  });
+
+  it("extracts itemEnum for enum arrays", async () => {
+    const enumApp = buildApp([
+      {
+        displayName: "Enum arrays",
+        listFields: ["values"],
+        model: EnumArrayModel,
+        routePath: "/enum-arrays",
+      },
+    ]);
+    const enumAgent = await authAsUser(enumApp, "admin");
+    const res = await enumAgent.get("/admin/config").expect(200);
+    expect(res.body.models[0].fields.values.itemEnum).toEqual(["alpha", "beta"]);
   });
 
   it("extracts itemType and itemRef for arrays of ObjectId references", async () => {

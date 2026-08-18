@@ -1,15 +1,13 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import mongoose from "mongoose";
+import mongoose, {type HydratedDocument} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {Permissions} from "./permissions";
-import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {type Food, FoodModel, getBaseServer, setupDb, type User, UserModel} from "./tests";
 
 // A model without the isDeleted plugin so deletes call doc.deleteOne(). The
 // document delete hook throws to exercise the hard-delete error branch.
@@ -24,7 +22,7 @@ const ExplosiveModel = mongoose.model<{name: string}>("ExplosiveCoverage", explo
 describe("modelRouter error path coverage", () => {
   let server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: HydratedDocument<User>;
   let apple: Food;
 
   beforeEach(async () => {
@@ -44,8 +42,8 @@ describe("modelRouter error path coverage", () => {
     });
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
   });
 
   it("returns 400 when an array operation transformer throws a non-APIError", async () => {
@@ -104,7 +102,7 @@ describe("modelRouter error path coverage", () => {
     const doc = await ExplosiveModel.create({name: "boom"});
     app.use(
       "/explosive",
-      modelRouter(ExplosiveModel as any, {
+      modelRouter(ExplosiveModel, {
         allowAnonymous: true,
         permissions: {
           create: [Permissions.IsAny],

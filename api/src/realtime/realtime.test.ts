@@ -46,8 +46,10 @@ import {
   findRegistryEntryByCollection,
   findRegistryEntryByRoutePath,
   getRealtimeRegistry,
+  type RealtimeRegistryEntry,
   registerRealtime,
 } from "./registry";
+import type {RealtimeEvent} from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // queryMatcher tests
@@ -1768,6 +1770,123 @@ describe("emitToDocumentAndQueryRooms", () => {
 
     expect(emissions).toEqual([]);
   });
+
+  describe("query room fanout with a registry entry", () => {
+    const modelEntry: RealtimeRegistryEntry = {
+      collectionName: "todos",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    };
+
+    const makeEvent = (method: RealtimeEvent["method"]): RealtimeEvent => ({
+      collection: "todos",
+      id: "doc-1",
+      method,
+      model: "Todo",
+      timestamp: 1,
+    });
+
+    it("emits creates through the permission-filtered path", async () => {
+      const queryId = computeQueryId("todos", {priority: 1});
+      addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+      const {addSocketToRoom, emissions, io} = makeIo();
+      addSocketToRoom(`query:${queryId}`, {id: "user-1"});
+
+      await emitToDocumentAndQueryRooms(
+        io,
+        "todos",
+        makeEvent("create"),
+        {priority: 1},
+        () => {},
+        modelEntry
+      );
+
+      const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
+      expect(queryEmissions).toHaveLength(1);
+      expect(queryEmissions[0].payload).toMatchObject({data: {priority: 1}, method: "create"});
+    });
+
+    it("emits updates through the permission-filtered path when the doc still matches", async () => {
+      const queryId = computeQueryId("todos", {priority: 1});
+      addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+      const {addSocketToRoom, emissions, io} = makeIo();
+      addSocketToRoom(`query:${queryId}`, {id: "user-1"});
+
+      await emitToDocumentAndQueryRooms(
+        io,
+        "todos",
+        makeEvent("update"),
+        {priority: 1},
+        () => {},
+        modelEntry
+      );
+
+      const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
+      expect(queryEmissions).toHaveLength(1);
+      expect(queryEmissions[0].payload).toMatchObject({method: "update"});
+    });
+
+    it("converts non-matching updates into deletes through the permission-filtered path", async () => {
+      const queryId = computeQueryId("todos", {priority: 1});
+      addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+      const {addSocketToRoom, emissions, io} = makeIo();
+      addSocketToRoom(`query:${queryId}`, {id: "user-1"});
+
+      await emitToDocumentAndQueryRooms(
+        io,
+        "todos",
+        makeEvent("update"),
+        {priority: 9},
+        () => {},
+        modelEntry
+      );
+
+      const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
+      expect(queryEmissions).toHaveLength(1);
+      expect(queryEmissions[0].payload).toMatchObject({method: "delete"});
+    });
+
+    it("skips query rooms whose subscribers cannot read the document", async () => {
+      const queryId = computeQueryId("todos", {priority: 1});
+      addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+      const {addSocketToRoom, emissions, io} = makeIo();
+      addSocketToRoom(`query:${queryId}`, {id: "other-user"});
+      const ownerEntry: RealtimeRegistryEntry = {
+        ...modelEntry,
+        options: {
+          permissions: {
+            ...modelEntry.options.permissions,
+            read: [
+              (_method, user?: {admin?: boolean; id?: string}, obj?: unknown) =>
+                user?.admin === true ||
+                user?.id === (obj as {ownerId?: string} | undefined)?.ownerId,
+            ],
+          },
+        },
+      };
+
+      await emitToDocumentAndQueryRooms(
+        io,
+        "todos",
+        makeEvent("create"),
+        {ownerId: "user-1", priority: 1},
+        () => {},
+        ownerEntry
+      );
+
+      expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
+    });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2059,6 +2178,126 @@ describe("startChangeStreamWatcher", () => {
     });
   });
 
+  // Records every emission so hard-delete room routing can be asserted.
+  const createRecordingIo = (
+    room: string,
+    decodedToken: {admin?: boolean; id?: string} = {admin: true, id: "admin"}
+  ): {
+    emissions: Array<{event: string; payload: unknown}>;
+    io: import("socket.io").Server;
+  } => {
+    const emissions: Array<{event: string; payload: unknown}> = [];
+    const rooms = new Map<string, Set<string>>([[room, new Set(["socket-1"])]]);
+    const sockets = new Map<string, unknown>([
+      [
+        "socket-1",
+        {
+          decodedToken,
+          emit: (event: string, payload: unknown): void => {
+            emissions.push({event, payload});
+          },
+          id: "socket-1",
+        },
+      ],
+    ]);
+    return {
+      emissions,
+      io: {
+        sockets: {adapter: {rooms}, sockets},
+        to: (_room: string) => ({emit: (_event: string, _data: unknown) => {}}),
+      } as unknown as import("socket.io").Server,
+    };
+  };
+
+  it("routes hard deletes for model-strategy models to the model room", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as unknown as {db: unknown}).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const {emissions, io} = createRecordingIo("model:todos");
+
+    startChangeStreamWatcher(io, {}, true);
+
+    await invokeRegisteredChangeHandler(mockStream, {
+      documentKey: {_id: "doc-1"},
+      ns: {coll: "todos"},
+      operationType: "delete",
+    });
+
+    expect(emissions).toHaveLength(1);
+    expect(emissions[0].payload).toMatchObject({id: "doc-1", method: "delete", model: "Todo"});
+  });
+
+  it("swallows errors thrown while processing a change event", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as unknown as {db: unknown}).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const roomLookup = mock(() => {
+      throw new Error("adapter unavailable");
+    });
+    const io = {
+      sockets: {adapter: {rooms: {get: roomLookup}}, sockets: new Map()},
+      to: (_room: string) => ({emit: (_event: string, _data: unknown) => {}}),
+    } as unknown as import("socket.io").Server;
+
+    startChangeStreamWatcher(io, {}, true);
+
+    // The handler must not reject — a failed emission cannot take down the change stream.
+    await invokeRegisteredChangeHandler(mockStream, {
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1", name: "Test Todo"},
+      ns: {coll: "todos"},
+      operationType: "insert",
+    });
+
+    expect(roomLookup).toHaveBeenCalled();
+  });
+
   it("includes updatedFields in event for update operations", async () => {
     const mockStream = createMockChangeStream();
     const mockDb = {
@@ -2219,6 +2458,163 @@ describe("startChangeStreamWatcher", () => {
     mockStream.trigger("error", new Error("test error"));
     mockStream.trigger("close");
     mockStream.trigger("end");
+  });
+
+  // Task 9.16: a transient stream failure used to be logged and then permanently starve
+  // every realtime event and sync delta until the process restarted.
+  describe("restart with resume token (Task 9.16)", () => {
+    const waitFor = async (
+      predicate: () => boolean,
+      label: string,
+      timeoutMs = 3000
+    ): Promise<void> => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        if (predicate()) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}`);
+    };
+
+    const registerTodos = (): void => {
+      registerRealtime({
+        collectionName: "todos",
+        config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+        modelName: "Todo",
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+        },
+        routePath: "/todos",
+      });
+    };
+
+    /** An io whose room socket records deliveries, plus a recorded server-wide `emit`. */
+    const createRecordingIo = (): {
+      io: import("socket.io").Server;
+      deliveries: {event: string; payload: unknown}[];
+      serverEmissions: {event: string; payload: unknown}[];
+    } => {
+      const deliveries: {event: string; payload: unknown}[] = [];
+      const serverEmissions: {event: string; payload: unknown}[] = [];
+      const rooms = new Map<string, Set<string>>();
+      rooms.set("model:todos", new Set(["sock-1"]));
+      const sockets = new Map<string, any>();
+      sockets.set("sock-1", {
+        decodedToken: {id: "user-1"},
+        emit: (event: string, payload: unknown) => {
+          deliveries.push({event, payload});
+        },
+        id: "sock-1",
+      });
+      return {
+        deliveries,
+        io: {
+          emit: (event: string, payload: unknown) => {
+            serverEmissions.push({event, payload});
+          },
+          sockets: {adapter: {rooms}, sockets},
+          to: () => ({emit: () => {}}),
+        } as unknown as import("socket.io").Server,
+        serverEmissions,
+      };
+    };
+
+    it("reopens with resumeAfter after a stream error and keeps delivering changes", async () => {
+      const firstStream = createMockChangeStream();
+      const secondStream = createMockChangeStream();
+      const streams = [firstStream, secondStream];
+      const mockDb = {watch: mock(() => streams.shift() ?? secondStream)};
+      (mongoose.connection as any).db = mockDb;
+      registerTodos();
+
+      const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+      const {deliveries, io} = createRecordingIo();
+      startChangeStreamWatcher(io, {}, true);
+
+      // A change on the first stream establishes the resume position.
+      await invokeRegisteredChangeHandler(firstStream, {
+        _id: {_data: "token-1"},
+        documentKey: {_id: "doc-1"},
+        fullDocument: {_id: "doc-1", name: "before the failure"},
+        ns: {coll: "todos"},
+        operationType: "insert",
+      });
+      expect(deliveries).toHaveLength(1);
+
+      firstStream.trigger("error", new Error("replica set election"));
+      await waitFor(() => mockDb.watch.mock.calls.length >= 2, "the stream to reopen");
+
+      const reopenOptions = (mockDb.watch.mock.calls[1] as any[])[1];
+      expect(reopenOptions.resumeAfter).toEqual({_data: "token-1"});
+
+      // The reopened stream is fully wired: later writes still fan out.
+      await invokeRegisteredChangeHandler(secondStream, {
+        _id: {_data: "token-2"},
+        documentKey: {_id: "doc-2"},
+        fullDocument: {_id: "doc-2", name: "after the restart"},
+        ns: {coll: "todos"},
+        operationType: "insert",
+      });
+      expect(deliveries).toHaveLength(2);
+    });
+
+    it("drops the resume token and asks clients to resync when the oplog history is lost", async () => {
+      const firstStream = createMockChangeStream();
+      const secondStream = createMockChangeStream();
+      const streams = [firstStream, secondStream];
+      const mockDb = {watch: mock(() => streams.shift() ?? secondStream)};
+      (mongoose.connection as any).db = mockDb;
+
+      const {SYNC_RESYNC_EVENT, startChangeStreamWatcher} = await import("./changeStreamWatcher");
+      const {io, serverEmissions} = createRecordingIo();
+      startChangeStreamWatcher(io, {}, true);
+
+      await invokeRegisteredChangeHandler(firstStream, {
+        _id: {_data: "token-1"},
+        documentKey: {_id: "doc-1"},
+        ns: {coll: "unregistered"},
+        operationType: "insert",
+      });
+
+      const historyLost = Object.assign(new Error("resume of change stream was not possible"), {
+        code: 286,
+        codeName: "ChangeStreamHistoryLost",
+      });
+      firstStream.trigger("error", historyLost);
+
+      expect(serverEmissions).toEqual([
+        {event: SYNC_RESYNC_EVENT, payload: {reason: "history_lost"}},
+      ]);
+
+      await waitFor(() => mockDb.watch.mock.calls.length >= 2, "the stream to reopen");
+      // An unusable token must not be replayed — the reopen starts from now.
+      expect((mockDb.watch.mock.calls[1] as any[])[1].resumeAfter).toBeUndefined();
+    });
+
+    it("does not reopen after the watcher is stopped", async () => {
+      const mockStream = createMockChangeStream();
+      const mockDb = {watch: mock(() => mockStream)};
+      (mongoose.connection as any).db = mockDb;
+
+      const {startChangeStreamWatcher, stopChangeStreamWatcher: stop} = await import(
+        "./changeStreamWatcher"
+      );
+      const {io} = createRecordingIo();
+      startChangeStreamWatcher(io, {}, true);
+
+      mockStream.trigger("error", new Error("shutting down"));
+      await stop();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      expect(mockDb.watch).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("uses custom batchSize and fullDocument config", async () => {

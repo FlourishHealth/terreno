@@ -15,7 +15,7 @@ Pour owns only pre-review-open and review-open actions:
 1. Final pre-submit checks.
 2. Commit and push.
 3. Create/update draft PR.
-4. Resolve merge conflicts required to get PR updated.
+4. Resolve merge conflicts required to get PR updated; conflicts that appear after the handoff belong to Dial In.
 5. Ensure CI is triggered on the first push.
 6. Immediately hand off to Dial In using the path in Handoff (do not rely on skill-name-only invocation).
 
@@ -41,6 +41,8 @@ Stop and fix before committing if checks fail.
 - Stage only relevant files.
 - Commit with clear message.
 - No AI attribution/co-author text.
+- **DCO:** use `git commit -s` on every commit (see [CONTRIBUTING.md](../../CONTRIBUTING.md); enforced on external forks via `.github/workflows/dco.yml`).
+- **Changelog:** add user-facing bullets to `CHANGELOG.md` `## [Unreleased]` before opening the PR when the change is user-visible.
 
 ### 3) Push branch
 
@@ -50,11 +52,11 @@ Stop and fix before committing if checks fail.
 ### 4) PR setup
 
 - Reuse existing PR if present; otherwise create draft PR.
-- Read and apply PR template if present.
+- Read and apply [`.github/PULL_REQUEST_TEMPLATE.md`](../../../.github/PULL_REQUEST_TEMPLATE.md) — GitHub pre-fills it on web PRs; match the same sections when using `gh pr create` or the PR management tool:
+  - **Summary**, **Related IP or issue** (link IP or `#issue`), **Type of change** (checkboxes), **Testing performed**, **Checklist** (lint, compile, tests, docs, changelog, DCO).
 - Keep PR title/body accurate and concise.
-- Include human testing steps and automated checks sections.
-- **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them to the PR body under an `## Evidence` section with a one-line caption per item. For frontend changes this section is **required** — include app URL, credentials used, feature exercised, and media from `verify-ui-changes`. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section only when the branch has no frontend paths and no other evidence exists.
-- Apply PHI minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing PHI.
+- **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them under `## Evidence` after **Testing performed** with a one-line caption per item. For frontend changes this section is **required** — include app URL, credentials used, feature exercised, and media from `verify-ui-changes`. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section only when the branch has no frontend paths and no other evidence exists.
+- Apply sensitive-data minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing credentials, customer data, PII, or other regulated information.
 
 ### 5) Conflict resolution before handoff
 
@@ -78,5 +80,5 @@ Optional: if your Cursor/plugin setup exposes a `/terreno-5-dialin` slash comman
 
 ## Branch/Repo Conventions
 
-- Use repository branch naming rules for cloud branches (`cursor/<descriptive-name>-dcb3`).
+- Use the cloud-agent branch convention from your run instructions: `cursor/<descriptive-name>-<run-suffix>`. Do not hardcode a literal suffix from this skill — use the suffix your agent session was given.
 - Keep commit/PR text free of AI attribution.

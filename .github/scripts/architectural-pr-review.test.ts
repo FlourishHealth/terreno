@@ -10,6 +10,7 @@ import {
   filterNewFindings,
   getFirstDiffPosition,
   isBotUser,
+  isStalePullRequestHead,
   parseEvidenceLineRange,
   mergeIncrementalSummaryReview,
   parseFindingTitleFromComment,
@@ -21,6 +22,26 @@ import {
   selectImplementationPlanPaths,
   summarizeChangedAreas,
 } from "./architectural-pr-review";
+
+describe("isStalePullRequestHead", () => {
+  it("returns true when the live PR head differs from the reviewed SHA", (): void => {
+    assert.isTrue(
+      isStalePullRequestHead({
+        expectedHeadSha: "abc123",
+        liveHeadSha: "def456",
+      })
+    );
+  });
+
+  it("returns false when the live PR head matches the reviewed SHA", (): void => {
+    assert.isFalse(
+      isStalePullRequestHead({
+        expectedHeadSha: "abc123",
+        liveHeadSha: "abc123",
+      })
+    );
+  });
+});
 
 describe("extractLastReviewedSha", () => {
   it("extracts the last reviewed head SHA marker from a sticky comment", (): void => {

@@ -27,13 +27,14 @@ test.describe("Signup", () => {
   });
 
   test("shows error for duplicate email", async ({page, consoleGuard}) => {
-    // The signup fetch is expected to return 500 (duplicate user), which the
+    // Better Auth's sign-up-with-email endpoint returns 422 (duplicate user), which the
     // browser logs and store/errors.ts forwards to Sentry.
     // Unauthenticated signup still mounts feature-flag queries; RTK rejects
     // terrenoFlagConfiguration without a token and errors.ts logs (see offlineHelpers).
     consoleGuard.allow("terrenoFlagConfiguration rejected query: No token found");
     consoleGuard.allow("Sentry not initialized, captured exception Error:");
-    consoleGuard.allow("Failed to load resource: the server responded with a status of 500");
+    consoleGuard.allow("Failed to load resource: the server responded with a status of 422");
+    consoleGuard.allow("USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL");
     consoleGuard.allow("A user with the given username is already registered");
     consoleGuard.allow(/^Object$/);
     // Feature-flags query rejects before auth; Sentry logs in dev without full SDK init.

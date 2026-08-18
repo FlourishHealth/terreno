@@ -13,19 +13,19 @@ See: [`docs/implementationPlans/positioning-django-rails-universal.md`](../imple
 
 ## Phase 1: Canonical copy
 
-- [ ] **Task 1.1**: Write `docs/explanation/positioning.md`
+- [x] **Task 1.1**: Write `docs/explanation/positioning.md`
   - Description: New explainer containing five clearly-labeled copy blocks in fenced code blocks (so they can be copied verbatim without markdown rendering surprises): `tagline` (one line), `elevator` (2–3 sentences), `pillars` (three bullets, in the order batteries-included / universal-by-default / AI-native), `aiPillar` (2–3 sentences naming both AI layers per IP question PO7 — the MCP tool layer and the `/terreno-*` SDLC pipeline process layer), and `pitch` (~150 words). Then a "Why the Django/Rails analogy" section, then the honest comparison table from the IP. Then a "Language rules" section restating the four rules from the program doc (lead with the analogy, say "universal app", never claim unshipped features, keep superlatives off reference pages) plus a fifth: never describe one AI layer without the other.
   - Files: `docs/explanation/positioning.md` (new)
   - Depends on: none
   - Acceptance: five fenced copy blocks present and labeled; the `aiPillar` block names both the MCP tools and the `/terreno-*` pipeline; comparison table has at least eight rows including at least three honest gaps with IP links; language rules section has all five rules.
 
-- [ ] **Task 1.2**: Verify every claim in the comparison table
+- [x] **Task 1.2**: Verify every claim in the comparison table
   - Description: For each row of the comparison table, confirm the Terreno side exists by finding it in source: `modelRouter` in `api/src/api.ts`, admin packages, `Permissions` in `api/src/permissions.ts`, Better Auth in `api/src/betterAuth*.ts`, MCP tools in `mcp-server/src/tools.ts`, and the SDLC pipeline in `plugins/terreno-planning/skills/`. For each "not shipped" row (background jobs, SSR, RBAC), confirm it is genuinely absent and link the IP or roadmap item tracking it. Correct any row that turns out to be wrong.
   - Files: `docs/explanation/positioning.md`
   - Depends on: Task 1.1
   - Acceptance: every "shipped" row cites a source path; the generator row cites both `mcp-server/src/tools.ts` and `plugins/terreno-planning/`; every "not shipped" row links an IP file that exists in `docs/implementationPlans/`.
 
-- [ ] **Task 1.3**: Gate the pipeline claim on its portability work
+- [x] **Task 1.3**: Gate the pipeline claim on its portability work
   - Description: The `/terreno-*` pipeline currently only runs inside this monorepo (see [`agentic-sdlc-plugin`](../implementationPlans/agentic-sdlc-plugin.md), "It only works here"). Do not publish positioning copy that implies consumers can use it until that IP's Phase 2 is complete. Check the state of `agentic-sdlc-plugin` Task 2.5 before writing the `aiPillar` block; if portability is not done, write the block describing the tool layer only and add a `TODO` in the IP to revisit, rather than making a claim that fails on first use.
   - Files: `docs/explanation/positioning.md`
   - Depends on: Task 1.1
@@ -87,7 +87,7 @@ See: [`docs/implementationPlans/positioning-django-rails-universal.md`](../imple
   - Depends on: Task 1.1
   - Acceptance: every published package has a `description` matching the pattern, plus `repository`, `homepage`, and `bugs` fields; `bun install` still resolves cleanly.
 
-- [ ] **Task 5.2**: Document the GitHub repository metadata
+- [x] **Task 5.2**: Document the GitHub repository metadata
   - Description: The repo description and topics cannot be set from a commit. Add a "Repository metadata" subsection to `docs/explanation/positioning.md` giving the exact description string (the short tagline variant from PO1 option C) and the exact topic list to set: `typescript`, `react-native`, `expo`, `express`, `mongoose`, `framework`, `mcp`, `ai`, `universal-apps`, `full-stack`. Mark it as a maintainer action.
   - Files: `docs/explanation/positioning.md`
   - Depends on: Task 1.1

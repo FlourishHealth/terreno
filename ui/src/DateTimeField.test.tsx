@@ -11,7 +11,9 @@ import {
   mock,
 } from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import {DateTime} from "luxon";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {DateTimeField} from "./DateTimeField";
 import {renderWithTheme, setupComponentTest, teardownComponentTest} from "./test-utils";
@@ -1310,6 +1312,40 @@ describe("DateTimeField", () => {
     });
   });
 
+  describe("TimezonePicker onChange", () => {
+    it("forwards the picked timezone to onTimezoneChange and emits a new value", async () => {
+      setDesktop();
+      const mockTzChange = mock(() => {});
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          onTimezoneChange={mockTzChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      // Select the rendered TimezonePicker itself rather than any ancestor that happens to
+      // have an onTimezoneChange prop, so the component's own handler runs.
+      const pickers = UNSAFE_root.findAll((node: ReactTestInstance) =>
+        Boolean((node.props as {shortTimezone?: boolean}).shortTimezone)
+      );
+      assert.isAbove(pickers.length, 0);
+      await act(async () => {
+        pickers[0].props.onChange("America/Chicago");
+      });
+
+      assert.isTrue(mockTzChange.mock.calls.some((call) => call[0] === "America/Chicago"));
+      // The picked timezone is applied to the current segments and emitted.
+      assert.isAbove(mockOnChange.mock.calls.length, 0);
+      assert.equal(
+        mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0],
+        "2023-05-15T16:30:00.000Z"
+      );
+    });
+  });
+
   describe("minute validation in validateField", () => {
     it("should validate minute field for datetime type via hour change triggering revalidation", async () => {
       setDesktop();
@@ -1330,6 +1366,20 @@ describe("DateTimeField", () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       });
       expect(hourInput).toBeTruthy();
+    });
+  });
+
+  describe("timezone abbreviation", () => {
+    it("falls back to the current time when there is no value and no complete segments", () => {
+      setMobile();
+      const {getByText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+
+      const expectedAbbr = DateTime.now().setZone("America/New_York").offsetNameShort ?? "";
+      assert.isNotEmpty(expectedAbbr);
+      // With no value the placeholder is built from the current time in the given timezone.
+      assert.isTrue(Boolean(getByText(`12:00 PM ${expectedAbbr}`)));
     });
   });
 });

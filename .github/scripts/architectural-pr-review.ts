@@ -1473,6 +1473,40 @@ const upsertIssueSummaryComment = async ({
 };
 
 /**
+ * Returns whether a review started for `expectedHeadSha` should skip posting
+ * because the pull request head has moved to a newer commit.
+ */
+export const isStalePullRequestHead = ({
+  expectedHeadSha,
+  liveHeadSha,
+}: {
+  expectedHeadSha: string;
+  liveHeadSha: string;
+}): boolean => expectedHeadSha !== liveHeadSha;
+
+/**
+ * Fetches the current pull request head commit SHA from the GitHub API.
+ */
+const fetchPullRequestHeadSha = async ({
+  owner,
+  pullRequestNumber,
+  repo,
+  token,
+}: {
+  owner: string;
+  pullRequestNumber: number;
+  repo: string;
+  token: string;
+}): Promise<string> => {
+  const pullRequest = await githubRequestJson<{head: {sha: string}}>({
+    path: `/repos/${owner}/${repo}/pulls/${pullRequestNumber}`,
+    token,
+  });
+
+  return pullRequest.head.sha;
+};
+
+/**
  * Posts new architectural review findings while preserving prior inline comments.
  *
  * @param options - Review data, changed files, and GitHub API context.
@@ -1501,6 +1535,19 @@ export const postArchitecturalReview = async ({
   review: ArchitecturalReview;
   token: string;
 }): Promise<void> => {
+  const liveHeadSha = await fetchPullRequestHeadSha({
+    owner,
+    pullRequestNumber,
+    repo,
+    token,
+  });
+  if (isStalePullRequestHead({expectedHeadSha: headSha, liveHeadSha})) {
+    console.warn(
+      `Skipping architectural review post because PR head moved from ${headSha.slice(0, 7)} to ${liveHeadSha.slice(0, 7)}.`
+    );
+    return;
+  }
+
   const existingFingerprints = collectExistingFindingFingerprints(existingFindingComments);
   const linkContext: LinkContext = {headSha, owner, repo};
 

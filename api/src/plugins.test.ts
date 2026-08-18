@@ -1,6 +1,7 @@
 // noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
+import {assert} from "chai";
 import type express from "express";
 import {type Document, type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
@@ -13,10 +14,12 @@ import {
   baseUserPlugin,
   createdUpdatedPlugin,
   DateOnly,
+  excludeArchivedPlugin,
   findExactlyOne,
   findOneOrNone,
   findOneOrNoneFor,
   firebaseJWTPlugin,
+  type IsArchived,
   type IsDeleted,
   isDeletedPlugin,
   upsertPlugin,
@@ -425,6 +428,68 @@ describe("upsertPlugin", () => {
   });
 });
 
+interface ArchivableStuff extends IsArchived {
+  _id: string;
+  name: string;
+}
+
+const archivableSchema = new Schema<ArchivableStuff>({
+  name: {description: "The name of the item", type: String},
+});
+archivableSchema.plugin(excludeArchivedPlugin);
+const ArchivableModel = model<ArchivableStuff>("ArchivableStuff", archivableSchema);
+
+describe("excludeArchivedPlugin", () => {
+  beforeEach(async () => {
+    await ArchivableModel.deleteMany({});
+    await setupDb();
+  });
+
+  it("adds an archived field defaulting to false", () => {
+    const archivedPath = archivableSchema.path("archived");
+    expect(archivedPath).toBeDefined();
+    expect((archivedPath as unknown as {options: {default: boolean}}).options.default).toBe(false);
+    expect((archivedPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+
+  it("excludes archived documents from find() by default", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const results = await ArchivableModel.find({});
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Active");
+  });
+
+  it("excludes archived documents from findOne() by default", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const active = await ArchivableModel.findOne({name: "Active"});
+    expect(active?.name).toBe("Active");
+    const archived = await ArchivableModel.findOne({name: "Archived"});
+    expect(archived).toBeNull();
+  });
+
+  it("includes archived documents when explicitly requested", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const results = await ArchivableModel.find({archived: true});
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Archived");
+  });
+
+  it("does not override an explicit archived filter of false", async () => {
+    await ArchivableModel.create({archived: false, name: "Active"});
+    await ArchivableModel.create({archived: true, name: "Archived"});
+
+    const results = await ArchivableModel.find({archived: false});
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Active");
+  });
+});
+
 describe("TypeScript return types", () => {
   let _things: any;
 
@@ -469,6 +534,19 @@ describe("TypeScript return types", () => {
   });
 });
 describe("DateOnly", () => {
+  it("strips the time portion when getting a Date value", () => {
+    const dateOnly = new DateOnly("date", {});
+    const value = dateOnly.get(new Date("2005-10-10T17:17:17.017Z")) as unknown as Date;
+    assert.instanceOf(value, Date);
+    assert.equal(value.toISOString(), "2005-10-10T00:00:00.000Z");
+  });
+
+  it("returns non-Date values unchanged when getting a value", () => {
+    const dateOnly = new DateOnly("date", {});
+    assert.isNull(dateOnly.get(null));
+    assert.equal(dateOnly.get("2005-10-10") as unknown as string, "2005-10-10");
+  });
+
   it("throws error with invalid date", async () => {
     try {
       await StuffModel.create({

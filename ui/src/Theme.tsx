@@ -139,6 +139,7 @@ const defaultTheme: TerrenoThemeConfig = {
     primary: "primary400",
     secondaryDark: "secondary500",
     secondaryExtraDark: "secondary800",
+    secondaryExtraLight: "secondary000",
     secondaryLight: "secondary100",
     success: "success200",
     successLight: "success000",

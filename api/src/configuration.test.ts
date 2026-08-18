@@ -1,15 +1,18 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import mongoose, {Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {addAuthRoutes, setupAuth} from "./auth";
-import {ConfigurationApp} from "./configurationApp";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
+import {
+  ConfigurationApp,
+  type ConfigurationAppOptions,
+  type ConfigurationMetaResponse,
+} from "./configurationApp";
 import {type ConfigurationModel, configurationPlugin} from "./configurationPlugin";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
+import type {PermissionMethod} from "./permissions";
 import {createdUpdatedPlugin} from "./plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "./tests";
 
@@ -92,13 +95,31 @@ const ScalarConfig = (mongoose.models.ScalarConfig ||
 
 // -- Helpers --
 
+/** APIError exposes `title`; plain errors only `message`. */
+const errorText = (error: unknown): string => {
+  if (error && typeof error === "object" && "title" in error && typeof error.title === "string") {
+    return error.title;
+  }
+  return error instanceof Error ? error.message : String(error);
+};
+
+const findSection = (
+  body: ConfigurationMetaResponse,
+  name: string
+): ConfigurationMetaResponse["sections"][number] | undefined =>
+  body.sections.find((s) => s.name === name);
+
+/** Hook payloads are untyped bags of section values. */
+const section = (payload: Record<string, unknown>, name: string): Record<string, unknown> =>
+  payload[name] as Record<string, unknown>;
+
 const buildApp = (
-  configModel: mongoose.Model<any>,
-  options?: Partial<Omit<ConstructorParameters<typeof ConfigurationApp>[0], "model">>
+  configModel: ConfigurationAppOptions["model"],
+  options?: Partial<Omit<ConfigurationAppOptions, "model">>
 ): express.Application => {
   const app = getBaseServer();
-  setupAuth(app, UserModel as any);
-  addAuthRoutes(app, UserModel as any);
+  setupAuth(app, UserModel as unknown as AuthUserModel);
+  addAuthRoutes(app, UserModel as unknown as AuthUserModel);
 
   const configApp = new ConfigurationApp({
     model: configModel,
@@ -201,8 +222,8 @@ describe("configurationPlugin", () => {
       try {
         await TestConfig.create({});
         throw new Error("Should have thrown");
-      } catch (error: any) {
-        expect(error.title || error.message).toInclude("Only one configuration document");
+      } catch (error) {
+        expect(errorText(error)).toInclude("Only one configuration document");
       }
     });
   });
@@ -213,8 +234,8 @@ describe("configurationPlugin", () => {
       try {
         await TestConfig.deleteOne({});
         throw new Error("Should have thrown");
-      } catch (error: any) {
-        expect(error.title || error.message).toInclude("Cannot hard-delete");
+      } catch (error) {
+        expect(errorText(error)).toInclude("Cannot hard-delete");
       }
     });
 
@@ -223,8 +244,8 @@ describe("configurationPlugin", () => {
       try {
         await TestConfig.deleteMany({});
         throw new Error("Should have thrown");
-      } catch (error: any) {
-        expect(error.title || error.message).toInclude("Cannot hard-delete");
+      } catch (error) {
+        expect(errorText(error)).toInclude("Cannot hard-delete");
       }
     });
 
@@ -233,8 +254,8 @@ describe("configurationPlugin", () => {
       try {
         await TestConfig.findOneAndDelete({});
         throw new Error("Should have thrown");
-      } catch (error: any) {
-        expect(error.title || error.message).toInclude("Cannot hard-delete");
+      } catch (error) {
+        expect(errorText(error)).toInclude("Cannot hard-delete");
       }
     });
   });
@@ -295,17 +316,17 @@ describe("ConfigurationApp routes", () => {
       expect(res.body.sections).toBeDefined();
       expect(res.body.sections.length).toBeGreaterThan(0);
 
-      const generalSection = res.body.sections.find((s: any) => s.name === "general");
+      const generalSection = findSection(res.body, "general");
       expect(generalSection).toBeDefined();
-      expect(generalSection.fields.appName).toBeDefined();
-      expect(generalSection.fields.appName.type).toBe("string");
+      expect(generalSection?.fields.appName).toBeDefined();
+      expect(generalSection?.fields.appName.type).toBe("string");
     });
 
     it("marks secret fields in metadata", async () => {
       const res = await adminAgent.get("/configuration/meta").expect(200);
-      const intSection = res.body.sections.find((s: any) => s.name === "integrations");
-      expect(intSection.fields.apiKey.secret).toBe(true);
-      expect(intSection.fields.webhookUrl.secret).toBeFalsy();
+      const intSection = findSection(res.body, "integrations");
+      expect(intSection?.fields.apiKey.secret).toBe(true);
+      expect(intSection?.fields.webhookUrl.secret).toBeFalsy();
     });
 
     it("returns 403 for non-admin", async () => {
@@ -326,7 +347,7 @@ describe("ConfigurationApp routes", () => {
 
     it("redacts secret fields", async () => {
       // Set a secret value first
-      await (TestConfig as any).updateConfig({integrations: {apiKey: "super-secret-key"}});
+      await TestConfig.updateConfig({integrations: {apiKey: "super-secret-key"}});
       const res = await adminAgent.get("/configuration").expect(200);
       expect(res.body.data.integrations.apiKey).toBe("********");
       expect(res.body.data.integrations.webhookUrl).toBe("https://example.com/hook");
@@ -362,7 +383,7 @@ describe("ConfigurationApp routes", () => {
       expect(res.body.data.integrations.webhookUrl).toBe("https://changed.example.com");
 
       // Confirm the raw stored document holds no secret value.
-      const stored = await (TestConfig as any).getConfig();
+      const stored = await TestConfig.getConfig();
       expect(stored.integrations.apiKey).toBe("");
     });
 
@@ -387,9 +408,9 @@ describe("ConfigurationApp routes", () => {
     });
 
     it("does not mutate the stored config document's secret fields", async () => {
-      await (TestConfig as any).getConfig();
+      await TestConfig.getConfig();
       await adminAgent.post("/configuration/list-secrets").expect(200);
-      const stored = await (TestConfig as any).getConfig();
+      const stored = await TestConfig.getConfig();
       // list-secrets must never write resolved values into the document.
       expect(stored.integrations.apiKey).toBe("");
     });
@@ -419,11 +440,11 @@ describe("ConfigurationApp with scalar fields", () => {
 
   it("puts scalar fields into __root__ section", async () => {
     const res = await adminAgent.get("/configuration/meta").expect(200);
-    const rootSection = res.body.sections.find((s: any) => s.name === "__root__");
+    const rootSection = findSection(res.body, "__root__");
     expect(rootSection).toBeDefined();
-    expect(rootSection.displayName).toBe("General");
-    expect(rootSection.fields.siteName).toBeDefined();
-    expect(rootSection.fields.debugMode).toBeDefined();
+    expect(rootSection?.displayName).toBe("General");
+    expect(rootSection?.fields.siteName).toBeDefined();
+    expect(rootSection?.fields.debugMode).toBeDefined();
   });
 });
 
@@ -442,8 +463,8 @@ describe("ConfigurationApp with field overrides", () => {
 
   it("applies widget overrides to metadata", async () => {
     const res = await adminAgent.get("/configuration/meta").expect(200);
-    const intSection = res.body.sections.find((s: any) => s.name === "integrations");
-    expect(intSection.fields.webhookUrl.widget).toBe("url");
+    const intSection = findSection(res.body, "integrations");
+    expect(intSection?.fields.webhookUrl.widget).toBe("url");
   });
 });
 
@@ -453,7 +474,7 @@ describe("ConfigurationApp with custom permissions", () => {
   let notAdminAgent: TestAgent;
 
   // Terreno-style permission: any authenticated user (not just admins).
-  const isAuthenticated = (_method: any, user?: any): boolean => Boolean(user?.id);
+  const isAuthenticated: PermissionMethod<unknown> = (_method, user) => Boolean(user?.id);
 
   beforeEach(async () => {
     await setupDb();
@@ -541,13 +562,13 @@ describe("ConfigurationApp with update hooks", () => {
     expect(res.body.data.general.appName).toBe("Safe");
     expect(res.body.data.integrations.apiKey).toBe("");
 
-    const stored = await (TestConfig as any).getConfig();
+    const stored = await TestConfig.getConfig();
     expect(stored.integrations.apiKey).toBe("");
   });
 
   it("runs postUpdate with redacted config and previous value", async () => {
     // Seed a secret so we can confirm it is redacted in hook payloads.
-    await (TestConfig as any).updateConfig({integrations: {apiKey: "should-not-leak"}});
+    await TestConfig.updateConfig({integrations: {apiKey: "should-not-leak"}});
     await adminAgent
       .patch("/configuration")
       .send({general: {appName: "Audited"}})
@@ -555,10 +576,10 @@ describe("ConfigurationApp with update hooks", () => {
 
     expect(postUpdateCalls).toHaveLength(1);
     const {config, prev} = postUpdateCalls[0];
-    expect((config.general as any).appName).toBe("Audited");
+    expect(section(config, "general").appName).toBe("Audited");
     // Secret values must be redacted in both payloads.
-    expect((config.integrations as any).apiKey).toBe("********");
-    expect((prev.integrations as any).apiKey).toBe("********");
+    expect(section(config, "integrations").apiKey).toBe("********");
+    expect(section(prev, "integrations").apiKey).toBe("********");
     expect(JSON.stringify(postUpdateCalls)).not.toContain("should-not-leak");
   });
 });

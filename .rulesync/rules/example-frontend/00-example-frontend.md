@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "example-frontend - Expo app demonstrating full-stack Terreno usage"
 globs: ["**/*"]
 ---

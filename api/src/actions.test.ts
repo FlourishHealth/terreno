@@ -1,22 +1,29 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import {type Model, model, Schema} from "mongoose";
+import {type HydratedDocument, type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {
   ACTION_NAME_PATTERN,
+  type CollectionActionConfig,
   createActionOpenApiMiddleware,
   defineCollectionAction,
   defineInstanceAction,
 } from "./actions";
 import {modelRouter, type OpenApiMiddleware} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiUnauthorizedMiddleware} from "./errors";
 import {Permissions} from "./permissions";
 import {type IsDeleted, isDeletedPlugin} from "./plugins";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {
+  authAsUser,
+  type Food,
+  FoodModel,
+  getBaseServer,
+  setupDb,
+  type User,
+  UserModel,
+} from "./tests";
 import {z} from "./zodOpenApi";
 
 interface Stuff extends IsDeleted {
@@ -49,7 +56,7 @@ describe("modelRouter actions", () => {
             broken: {
               handler: async () => ({ok: true}),
               method: "POST",
-            } as any,
+            } as unknown as CollectionActionConfig<unknown, unknown, unknown>,
           },
           permissions: allPermissions,
         })
@@ -142,8 +149,8 @@ describe("modelRouter actions", () => {
   describe("integration", () => {
     let app: express.Application;
     let server: TestAgent;
-    let admin: any;
-    let notAdmin: any;
+    let admin: HydratedDocument<User>;
+    let notAdmin: HydratedDocument<User>;
     let spinach: Food;
 
     const mountFoodRouter = (options: Parameters<typeof modelRouter<Food>>[1]): void => {
@@ -174,8 +181,8 @@ describe("modelRouter actions", () => {
         }),
       ]);
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as UserMongooseModel);
+      addAuthRoutes(app, UserModel as unknown as UserMongooseModel);
       server = supertest(app);
     });
 
@@ -284,8 +291,8 @@ describe("modelRouter actions", () => {
         await StuffModel.deleteMany({});
         const doc = await StuffModel.create({deleted: true, name: "hidden", ownerId: "1"});
         app = getBaseServer();
-        setupAuth(app, UserModel as any);
-        addAuthRoutes(app, UserModel as any);
+        setupAuth(app, UserModel as unknown as UserMongooseModel);
+        addAuthRoutes(app, UserModel as unknown as UserMongooseModel);
         app.use(
           "/stuff",
           modelRouter(StuffModel as Model<Stuff>, {

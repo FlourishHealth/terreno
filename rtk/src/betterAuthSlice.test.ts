@@ -1,7 +1,5 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {configureStore} from "@reduxjs/toolkit";
+import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
 import {
   type BetterAuthState,
   generateBetterAuthSlice,
@@ -13,6 +11,14 @@ import {
   selectBetterAuthUserId,
 } from "./betterAuthSlice";
 import type {BetterAuthClientConfig, BetterAuthUser} from "./betterAuthTypes";
+
+/**
+ * Minimal shape of the store state consumed by the Better Auth selectors.
+ */
+interface MockRootState {
+  betterAuth?: BetterAuthState;
+  [key: string]: unknown;
+}
 
 // Mock Better Auth client
 const createMockAuthClient = () => ({
@@ -81,7 +87,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("creates a slice with initial state", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     const initialState = betterAuthSlice.reducer(undefined, {type: "@@INIT"});
 
@@ -93,7 +99,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("setSession action updates state correctly", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     const user: BetterAuthUser = {
       createdAt: new Date(),
@@ -118,7 +124,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("clearSession action resets state", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     // First set a session
     let state = betterAuthSlice.reducer(
@@ -146,7 +152,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("setLoading action updates loading state", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     let state = betterAuthSlice.reducer(undefined, betterAuthSlice.actions.setLoading(true));
     expect(state.isLoading).toBe(true);
@@ -156,7 +162,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("setError action updates error state", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     const state = betterAuthSlice.reducer(
       undefined,
@@ -168,7 +174,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("logout action clears session state", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     // First set a session
     let state = betterAuthSlice.reducer(
@@ -196,23 +202,23 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("returns middleware array", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
     expect(Array.isArray(betterAuthSlice.middleware)).toBe(true);
     expect(betterAuthSlice.middleware.length).toBeGreaterThan(0);
   });
 
   it("returns authClient reference", () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
-    expect(betterAuthSlice.authClient).toBe(mockAuthClient as any);
+    expect(betterAuthSlice.authClient).toBe(mockAuthClient);
   });
 
   it("syncSession function updates state from auth client", async () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
-    const dispatchedActions: any[] = [];
-    const mockDispatch = (action: any) => {
+    const dispatchedActions: UnknownAction[] = [];
+    const mockDispatch = (action: UnknownAction) => {
       dispatchedActions.push(action);
     };
 
@@ -232,10 +238,10 @@ describe("generateBetterAuthSlice", () => {
         },
       })
     ) as unknown as typeof mockAuthClient.getSession;
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
-    const dispatchedActions: any[] = [];
-    const mockDispatch = (action: any) => {
+    const dispatchedActions: UnknownAction[] = [];
+    const mockDispatch = (action: UnknownAction) => {
       dispatchedActions.push(action);
     };
 
@@ -253,10 +259,10 @@ describe("generateBetterAuthSlice", () => {
     ) as unknown as typeof mockAuthClient.getSession;
     const originalConsoleError = console.error;
     console.error = mock(() => {});
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
 
-    const dispatchedActions: any[] = [];
-    const mockDispatch = (action: any) => {
+    const dispatchedActions: UnknownAction[] = [];
+    const mockDispatch = (action: UnknownAction) => {
       dispatchedActions.push(action);
     };
 
@@ -271,7 +277,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("logout middleware calls signOut for slice logout action", async () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
     const store = configureStore({
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(...betterAuthSlice.middleware),
@@ -295,7 +301,7 @@ describe("generateBetterAuthSlice", () => {
     console.error = (...args: unknown[]): void => {
       errorCalls.push(args);
     };
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
     const store = configureStore({
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(...betterAuthSlice.middleware),
@@ -324,7 +330,7 @@ describe("generateBetterAuthSlice", () => {
     console.error = (...args: unknown[]): void => {
       errorCalls.push(args);
     };
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
     const store = configureStore({
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(...betterAuthSlice.middleware),
@@ -345,7 +351,7 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("global auth/logout action signs out and clears session", async () => {
-    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient});
     const store = configureStore({
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(...betterAuthSlice.middleware),
@@ -380,7 +386,7 @@ describe("generateBetterAuthSlice", () => {
 });
 
 describe("Better Auth selectors", () => {
-  const createMockState = (betterAuth: Partial<BetterAuthState> = {}): any => ({
+  const createMockState = (betterAuth: Partial<BetterAuthState> = {}): MockRootState => ({
     betterAuth: {
       error: null,
       isAuthenticated: false,
@@ -428,7 +434,7 @@ describe("Better Auth selectors", () => {
   });
 
   it("selectors handle missing betterAuth state gracefully", () => {
-    const emptyState = {} as any;
+    const emptyState: MockRootState = {};
 
     expect(selectBetterAuthIsAuthenticated(emptyState)).toBe(false);
     expect(selectBetterAuthUserId(emptyState)).toBeNull();
@@ -439,7 +445,7 @@ describe("Better Auth selectors", () => {
 
   it("selectBetterAuthState returns the raw betterAuth slice of state", () => {
     expect(selectBetterAuthState(createMockState({userId: "user-zzz"}))?.userId).toBe("user-zzz");
-    expect(selectBetterAuthState({} as any)).toBeUndefined();
+    expect(selectBetterAuthState({})).toBeUndefined();
   });
 });
 
