@@ -1,4 +1,5 @@
 import type {FC} from "react";
+import type {DimensionValue} from "react-native";
 import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
@@ -102,7 +103,10 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
     }
 
     return (
-      <ScrollView style={{height: contentHeight, width: "100%"}} testID={childTestID("content")}>
+      <ScrollView
+        style={{height: contentHeight as DimensionValue, width: "100%"}}
+        testID={childTestID("content")}
+      >
         <Box paddingX={4} paddingY={3} width="100%">
           {children ?? (Boolean(text) && <Text size="sm">{text}</Text>)}
         </Box>
