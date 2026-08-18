@@ -1603,20 +1603,14 @@ export interface ThumbsUpDownFeedbackProps extends WithTestID {
   value?: ThumbsUpDownFeedbackValue;
 }
 
-export type DocumentPopoverStatus = "loading" | "loaded" | "error";
+export type PopoverStatus = "loading" | "loaded" | "error";
 
-export interface DocumentPopoverProps extends WithTestID {
+export interface PopoverProps extends WithTestID {
   /**
    * The body of the document, rendered under the header when status is "loaded". Use this for
    * rich content; prefer `text` for a plain summary.
    */
   children?: React.ReactNode;
-  /**
-   * Height of the content area below the header. The document body scrolls when it overflows,
-   * and the loading spinner and error message are centered within it.
-   * @default 240
-   */
-  contentHeight?: NumberOrPercentage;
   /**
    * Supporting copy shown under the error title.
    * @default "Something went wrong while loading this document. Check your connection and try again."
@@ -1631,6 +1625,12 @@ export interface DocumentPopoverProps extends WithTestID {
    * The currently selected feedback on the document. Only shown when `onFeedbackChange` is set.
    */
   feedback?: ThumbsUpDownFeedbackValue;
+  /**
+   * Height of the popover. The popover is the same height in every status: the body scrolls when
+   * it overflows, and the spinner and error message are centered in the remaining space.
+   * @default 320
+   */
+  height?: NumberOrPercentage;
   /**
    * Header text shown while the document is loading.
    * @default "Loading document..."
@@ -1668,7 +1668,7 @@ export interface DocumentPopoverProps extends WithTestID {
    * The state of the document being previewed.
    * @default "loaded"
    */
-  status?: DocumentPopoverStatus;
+  status?: PopoverStatus;
   /**
    * Secondary header line, usually the document's date.
    */

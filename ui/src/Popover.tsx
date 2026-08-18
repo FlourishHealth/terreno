@@ -1,33 +1,34 @@
-import type {FC} from "react";
-import type {DimensionValue} from "react-native";
+import type {FC, ReactNode} from "react";
 import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
-import type {DocumentPopoverProps} from "./Common";
+import type {PopoverProps} from "./Common";
 import {DismissButton} from "./DismissButton";
 import {Icon} from "./Icon";
 import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 import {ThumbsUpDownFeedback} from "./ThumbsUpDownFeedback";
 
-const DEFAULT_CONTENT_HEIGHT = 240;
+const DEFAULT_HEIGHT = 320;
 const DEFAULT_WIDTH = 320;
+const ERROR_ICON_SIZE = 48;
 
 /**
  * A popover that previews a single document: a header with the document's title and date, the
  * document body, and a footer with an "Open" action and optional thumbs up/down feedback.
  *
  * Rendering is driven by `status`: "loading" shows a centered spinner under a loading header,
- * "error" shows a retryable error message, and "loaded" shows the document itself. The popover
- * is a plain card, so the consumer is responsible for positioning it next to its anchor.
+ * "error" shows a retryable error message centered in the card, and "loaded" shows the document
+ * itself. The popover keeps the same size in every state, and is a plain card, so the consumer is
+ * responsible for positioning it next to its anchor.
  */
-export const DocumentPopover: FC<DocumentPopoverProps> = ({
+export const Popover: FC<PopoverProps> = ({
   children,
-  contentHeight = DEFAULT_CONTENT_HEIGHT,
   errorText = "Something went wrong while loading this document. Check your connection and try again.",
   errorTitle = "Couldn't load this document",
   feedback,
+  height = DEFAULT_HEIGHT,
   loadingText = "Loading document...",
   onClose,
   onFeedbackChange,
@@ -44,7 +45,7 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
 }) => {
   const childTestID = (suffix: string) => (testID ? `${testID}-${suffix}` : undefined);
 
-  const renderCloseButton = () => (
+  const closeButton = (
     <DismissButton
       accessibilityHint="Closes the document preview"
       accessibilityLabel="Close document"
@@ -54,32 +55,34 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
     />
   );
 
-  const renderContent = () => {
-    if (status === "loading") {
-      return (
-        <Box alignItems="center" height={contentHeight} justifyContent="center" width="100%">
-          <Spinner color="secondary" testID={childTestID("spinner")} />
-        </Box>
-      );
-    }
+  const card = (content: ReactNode) => (
+    <Box color="base" height={height} rounding="md" shadow testID={testID} width={width}>
+      {content}
+    </Box>
+  );
 
-    if (status === "error") {
-      return (
+  // The error state has no header or footer: the close button floats over a centered message.
+  if (status === "error") {
+    return card(
+      <>
+        <Box paddingX={4} paddingY={3} position="absolute" right top zIndex={1}>
+          {closeButton}
+        </Box>
         <Box
           alignItems="center"
+          flex="grow"
           gap={3}
-          height={contentHeight}
           justifyContent="center"
-          paddingX={4}
+          paddingX={6}
           width="100%"
         >
           <Box
             alignItems="center"
             color="errorLight"
-            height={48}
+            height={ERROR_ICON_SIZE}
             justifyContent="center"
             rounding="circle"
-            width={48}
+            width={ERROR_ICON_SIZE}
           >
             <Icon color="error" iconName="triangle-exclamation" size="lg" type="solid" />
           </Box>
@@ -99,14 +102,20 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
             />
           )}
         </Box>
-      );
-    }
+      </>
+    );
+  }
 
-    return (
+  const body =
+    status === "loading" ? (
+      <Box alignItems="center" flex="grow" justifyContent="center" width="100%">
+        <Spinner color="secondary" testID={childTestID("spinner")} />
+      </Box>
+    ) : (
       <ScrollView
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
-        style={{height: contentHeight as DimensionValue, width: "100%"}}
+        style={{flexGrow: 1, flexShrink: 1, width: "100%"}}
         testID={childTestID("content")}
       >
         <Box paddingX={4} paddingY={3} width="100%">
@@ -114,12 +123,11 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
         </Box>
       </ScrollView>
     );
-  };
 
   const showFooter = status === "loaded" && (Boolean(onOpen) || Boolean(onFeedbackChange));
 
-  return (
-    <Box color="base" rounding="md" shadow testID={testID} width={width}>
+  return card(
+    <>
       <Box
         alignItems="center"
         borderBottom="default"
@@ -142,16 +150,16 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
                 </Text>
               )}
             </>
-          ) : status === "loading" ? (
+          ) : (
             <Text color="secondaryLight" testID={childTestID("loading-text")}>
               {loadingText}
             </Text>
-          ) : null}
+          )}
         </Box>
-        {renderCloseButton()}
+        {closeButton}
       </Box>
 
-      {renderContent()}
+      {body}
 
       {showFooter && (
         <Box
@@ -188,6 +196,6 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
           )}
         </Box>
       )}
-    </Box>
+    </>
   );
 };

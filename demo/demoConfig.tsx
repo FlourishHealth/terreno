@@ -13,7 +13,6 @@ import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.co
 import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
 import {DataTableConfiguration} from "@story-config/DataTable.config";
 import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
-import {DocumentPopoverConfiguration} from "@story-config/DocumentPopover.config";
 import {EditableCardConfiguration} from "@story-config/EditableCard.config";
 import {EmailFieldConfiguration} from "@story-config/EmailField.config";
 import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
@@ -32,6 +31,7 @@ import {PageConfiguration} from "@story-config/Page.config";
 import {PaginationConfiguration} from "@story-config/Pagination.config";
 import {PasswordFieldConfiguration} from "@story-config/PasswordField.config";
 import {PhoneNumberConfiguration} from "@story-config/PhoneNumberField.config";
+import {PopoverConfiguration} from "@story-config/Popover.config";
 import {RadioFieldConfiguration} from "@story-config/RadioField.config";
 import {SectionDividerConfiguration} from "@story-config/SectionDivider.config";
 import {SegmentedControlConfiguration} from "@story-config/SegmentedControl.config";
@@ -208,7 +208,6 @@ const Config: DemoConfigurationBase[] = [
   CustomSelectFieldConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
-  DocumentPopoverConfiguration,
   EditableCardConfiguration,
   EmailFieldConfiguration,
   EmojiSelectorConfiguration,
@@ -228,6 +227,7 @@ const Config: DemoConfigurationBase[] = [
   PageConfiguration,
   PaginationConfiguration,
   PasswordFieldConfiguration,
+  PopoverConfiguration,
   PhoneNumberConfiguration,
   RadioFieldConfiguration,
   SectionDividerConfiguration,

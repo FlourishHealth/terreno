@@ -1,14 +1,14 @@
 import {describe, expect, it, jest} from "bun:test";
 import {fireEvent, waitFor} from "@testing-library/react-native";
 
-import {DocumentPopover} from "./DocumentPopover";
+import {Popover} from "./Popover";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
 
-describe("DocumentPopover", () => {
+describe("Popover", () => {
   it("renders the title, date and body when loaded", () => {
     const {getByTestId, getByText} = renderWithTheme(
-      <DocumentPopover
+      <Popover
         onClose={jest.fn()}
         subtitle="11/20/2026"
         testID="popover"
@@ -23,9 +23,9 @@ describe("DocumentPopover", () => {
 
   it("prefers children over text for the body", () => {
     const {getByText, queryByText} = renderWithTheme(
-      <DocumentPopover onClose={jest.fn()} text="Plain summary">
+      <Popover onClose={jest.fn()} text="Plain summary">
         <Text>Rich body</Text>
-      </DocumentPopover>
+      </Popover>
     );
     expect(getByText("Rich body")).toBeTruthy();
     expect(queryByText("Plain summary")).toBeNull();
@@ -33,7 +33,7 @@ describe("DocumentPopover", () => {
 
   it("calls onClose when the close button is pressed", () => {
     const onClose = jest.fn();
-    const {getByLabelText} = renderWithTheme(<DocumentPopover onClose={onClose} title="Doc" />);
+    const {getByLabelText} = renderWithTheme(<Popover onClose={onClose} title="Doc" />);
     fireEvent.press(getByLabelText("Close document"));
     expect(onClose).toHaveBeenCalled();
   });
@@ -41,7 +41,7 @@ describe("DocumentPopover", () => {
   it("calls onOpen from the footer action", () => {
     const onOpen = jest.fn();
     const {getByTestId} = renderWithTheme(
-      <DocumentPopover onClose={jest.fn()} onOpen={onOpen} testID="popover" title="Doc" />
+      <Popover onClose={jest.fn()} onOpen={onOpen} testID="popover" title="Doc" />
     );
     fireEvent.press(getByTestId("popover-open"));
     expect(onOpen).toHaveBeenCalled();
@@ -50,7 +50,7 @@ describe("DocumentPopover", () => {
   it("passes feedback selections through", () => {
     const onFeedbackChange = jest.fn();
     const {getByTestId} = renderWithTheme(
-      <DocumentPopover
+      <Popover
         onClose={jest.fn()}
         onFeedbackChange={onFeedbackChange}
         testID="popover"
@@ -63,7 +63,7 @@ describe("DocumentPopover", () => {
 
   it("hides the footer when there are no footer actions", () => {
     const {queryByTestId} = renderWithTheme(
-      <DocumentPopover onClose={jest.fn()} testID="popover" title="Doc" />
+      <Popover onClose={jest.fn()} testID="popover" title="Doc" />
     );
     expect(queryByTestId("popover-open")).toBeNull();
     expect(queryByTestId("popover-feedback")).toBeNull();
@@ -71,7 +71,7 @@ describe("DocumentPopover", () => {
 
   it("shows the loading header instead of the document while loading", () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
-      <DocumentPopover onClose={jest.fn()} status="loading" testID="popover" title="Doc" />
+      <Popover onClose={jest.fn()} status="loading" testID="popover" title="Doc" />
     );
     expect(getByTestId("popover-loading-text")).toBeTruthy();
     expect(queryByTestId("popover-title")).toBeNull();
@@ -80,13 +80,7 @@ describe("DocumentPopover", () => {
   it("shows a retryable error message when loading fails", async () => {
     const onRetry = jest.fn();
     const {getByTestId} = renderWithTheme(
-      <DocumentPopover
-        onClose={jest.fn()}
-        onRetry={onRetry}
-        status="error"
-        testID="popover"
-        title="Doc"
-      />
+      <Popover onClose={jest.fn()} onRetry={onRetry} status="error" testID="popover" title="Doc" />
     );
     expect(getByTestId("popover-error-title")).toBeTruthy();
     fireEvent.press(getByTestId("popover-retry"));
@@ -97,15 +91,15 @@ describe("DocumentPopover", () => {
 
   it("hides the retry button when there is no retry handler", () => {
     const {queryByTestId} = renderWithTheme(
-      <DocumentPopover onClose={jest.fn()} status="error" testID="popover" />
+      <Popover onClose={jest.fn()} status="error" testID="popover" />
     );
     expect(queryByTestId("popover-retry")).toBeNull();
   });
 
-  it("bounds the body height on the scroll view, not on its content", () => {
+  it("lets the body fill the card instead of pinning its content height", () => {
     const {getByTestId} = renderWithTheme(
-      <DocumentPopover
-        contentHeight={240}
+      <Popover
+        height={240}
         onClose={jest.fn()}
         testID="popover"
         text={"Summary of patient history. ".repeat(40)}
@@ -113,8 +107,34 @@ describe("DocumentPopover", () => {
       />
     );
     const scrollView = getByTestId("popover-content");
-    expect(scrollView.props.style).toEqual(expect.objectContaining({height: 240}));
+    expect(scrollView.props.style).toEqual(expect.objectContaining({flexGrow: 1, flexShrink: 1}));
     const content = scrollView.findByType("View");
     expect(content.props.style?.height).toBeUndefined();
+  });
+
+  it("keeps the same height in every status", () => {
+    const heights = (["loaded", "loading", "error"] as const).map((status) => {
+      const {getByTestId} = renderWithTheme(
+        <Popover height={280} onClose={jest.fn()} status={status} testID={status} title="Doc" />
+      );
+      return getByTestId(status).props.style.height;
+    });
+    expect(heights).toEqual([280, 280, 280]);
+  });
+
+  it("drops the header and footer in the error status", () => {
+    const {queryByTestId} = renderWithTheme(
+      <Popover
+        onClose={jest.fn()}
+        onOpen={jest.fn()}
+        status="error"
+        subtitle="11/20/2026"
+        testID="popover"
+        title="Doc"
+      />
+    );
+    expect(queryByTestId("popover-title")).toBeNull();
+    expect(queryByTestId("popover-subtitle")).toBeNull();
+    expect(queryByTestId("popover-open")).toBeNull();
   });
 });

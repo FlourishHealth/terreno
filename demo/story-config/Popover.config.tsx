@@ -1,19 +1,19 @@
 import {DemoConfiguration} from "@config";
 import {
-  DocumentPopoverDemo,
-  DocumentPopoverStories,
-  DocumentPopoverWithoutFooter,
-} from "@stories/DocumentPopover.stories";
-import {DocumentPopover} from "@terreno/ui";
+  PopoverDemo,
+  PopoverStories,
+  PopoverWithoutFooter,
+} from "@stories/Popover.stories";
+import {Popover} from "@terreno/ui";
 import React from "react";
 
-export const DocumentPopoverConfiguration: DemoConfiguration = {
-  name: "DocumentPopover",
+export const PopoverConfiguration: DemoConfiguration = {
+  name: "Popover",
   related: ["Card", "Modal", "ThumbsUpDownFeedback"],
   description:
-    "DocumentPopover previews a single document next to the thing that references it: a header with the document title and date, the document body, and a footer with an Open action and optional thumbs up / thumbs down feedback. It renders a loading spinner or a retryable error message based on status. Positioning is left to the consumer.",
+    "Popover previews a single document next to the thing that references it: a header with the document title and date, the document body, and a footer with an Open action and optional thumbs up / thumbs down feedback. It renders a loading spinner or a retryable error message based on status. Positioning is left to the consumer.",
   category: "Component",
-  component: DocumentPopover,
+  component: Popover,
   status: {
     documentation: "planned",
     figma: "ready",
@@ -40,9 +40,9 @@ export const DocumentPopoverConfiguration: DemoConfiguration = {
     "The Open action is exposed as a button with the openText as its label",
     "Feedback options come from ThumbsUpDownFeedback, so selection is announced as checked",
   ],
-  interfaceName: "DocumentPopoverProps",
+  interfaceName: "PopoverProps",
   props: {},
-  demo: DocumentPopoverDemo,
+  demo: PopoverDemo,
   demoOptions: {
     size: "md",
     controls: {
@@ -60,11 +60,11 @@ export const DocumentPopoverConfiguration: DemoConfiguration = {
   stories: {
     "Document States": {
       description: "Loaded, loading, and error states.",
-      render: () => <DocumentPopoverStories />,
+      render: () => <PopoverStories />,
     },
     "Without Footer Actions": {
       description: "Omitting onOpen and onFeedbackChange hides the footer entirely.",
-      render: () => <DocumentPopoverWithoutFooter />,
+      render: () => <PopoverWithoutFooter />,
     },
   },
 };

@@ -1,8 +1,8 @@
 import {
   Box,
-  DocumentPopover,
-  type DocumentPopoverProps,
-  type DocumentPopoverStatus,
+  Popover,
+  type PopoverProps,
+  type PopoverStatus,
   Text,
   type ThumbsUpDownFeedbackValue,
 } from "@terreno/ui";
@@ -13,7 +13,7 @@ import {StorybookContainer} from "./StorybookContainer";
 const SUMMARY =
   "Summary of Patient History:\n[Patient Name] is a [Age] y/o [ethnicity] [gender (pronouns: [stated pronoun])], referred to Flourish for [following] [referral context] and began Flourish treatment on [date]. [Pronoun] has undefined diagnoses and is currently on no documented medications. [Pronoun] currently [state living conditions] and [state school/work status]. [Pronoun]'s social support system includes [brief overview]. [Pronoun] enjoys [hobby # 1, interest # 2, any other fun fact that can be used for rapport building].\n\nEngagement Details:\n- Psychiatry: Intake scheduled for Friday, November 7th, from 4:30-5:50 PM ET.\n- Therapy: Therapy sessions are weekly, with the schedule to be determined by the patient guide.\n- Patient Guiding: Scheduled for chat support on Tuesdays and Thursdays.";
 
-export const DocumentPopoverDemo = (props: Partial<DocumentPopoverProps>) => {
+export const PopoverDemo = (props: Partial<PopoverProps>) => {
   const [visible, setVisible] = useState(true);
   const [feedback, setFeedback] = useState<ThumbsUpDownFeedbackValue | undefined>(undefined);
 
@@ -27,7 +27,7 @@ export const DocumentPopoverDemo = (props: Partial<DocumentPopoverProps>) => {
 
   return (
     <Box alignItems="center" justifyContent="center">
-      <DocumentPopover
+      <Popover
         feedback={feedback}
         onClose={() => setVisible(false)}
         onFeedbackChange={setFeedback}
@@ -42,7 +42,7 @@ export const DocumentPopoverDemo = (props: Partial<DocumentPopoverProps>) => {
   );
 };
 
-const StatefulPopover = ({label, status}: {label: string; status: DocumentPopoverStatus}) => {
+const StatefulPopover = ({label, status}: {label: string; status: PopoverStatus}) => {
   const [feedback, setFeedback] = useState<ThumbsUpDownFeedbackValue | undefined>(undefined);
 
   return (
@@ -50,7 +50,7 @@ const StatefulPopover = ({label, status}: {label: string; status: DocumentPopove
       <Text bold size="sm">
         {label}
       </Text>
-      <DocumentPopover
+      <Popover
         feedback={feedback}
         onClose={() => console.info("Close document")}
         onFeedbackChange={setFeedback}
@@ -65,7 +65,7 @@ const StatefulPopover = ({label, status}: {label: string; status: DocumentPopove
   );
 };
 
-export const DocumentPopoverStories = () => {
+export const PopoverStories = () => {
   return (
     <StorybookContainer>
       <Box direction="column" gap={6}>
@@ -77,10 +77,10 @@ export const DocumentPopoverStories = () => {
   );
 };
 
-export const DocumentPopoverWithoutFooter = () => {
+export const PopoverWithoutFooter = () => {
   return (
     <StorybookContainer>
-      <DocumentPopover
+      <Popover
         onClose={() => console.info("Close document")}
         subtitle="11/20/2026"
         text={SUMMARY}
