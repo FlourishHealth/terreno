@@ -104,6 +104,8 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
 
     return (
       <ScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         style={{height: contentHeight as DimensionValue, width: "100%"}}
         testID={childTestID("content")}
       >
