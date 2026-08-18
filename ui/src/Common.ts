@@ -3106,6 +3106,16 @@ export interface SelectFieldPropsBase extends WithTestID {
   disableSearch?: boolean;
 
   /**
+   * Web only. When true, the dropdown menu renders in a fixed portal on
+   * `document.body` (zIndex 9999) instead of a React Native `Modal`. Use this
+   * when the select lives inside another portaled/high-zIndex overlay (e.g. the
+   * `Filter` panel) where a `Modal` would stack behind the overlay and be
+   * invisible and unclickable.
+   * @default false
+   */
+  renderMenuInBodyPortal?: boolean;
+
+  /**
    * The title of the select field.
    */
   title?: string;

@@ -54,9 +54,18 @@ export const FilterSelectMenu: FC<FilterSelectMenuProps> = ({
       >
         <SelectField
           disabled={disabled}
+          // The compact filter select is fixed at SELECT_WIDTH. Search mode renders
+          // the trigger as an <input> whose intrinsic min-width exceeds that width,
+          // overflowing the row and pushing the chevron outside the control's border.
+          // Filter option lists are short, so a plain (non-search) dropdown is correct.
+          disableSearch
           onChange={onChange}
           options={options}
           placeholder={placeholder}
+          // The Filter panel is a fixed portal on document.body (zIndex 9999).
+          // Render the menu in a matching body portal so it floats above the
+          // panel instead of a React Native Modal that would stack behind it.
+          renderMenuInBodyPortal
           testID={testID ? resolveTestID(testID, "select") : undefined}
           value={value}
         />
