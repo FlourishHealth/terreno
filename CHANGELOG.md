@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `DocumentPopover` in `@terreno/ui` for previewing a document with loading, loaded, and
+  error states, an open action, and optional thumbs up/down feedback
+
 ## [56.0.0-beta.2] - 2026-08-17
 
 Second beta of the Expo SDK 56 line, cut from `master` after merging

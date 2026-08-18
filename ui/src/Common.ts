@@ -1603,6 +1603,91 @@ export interface ThumbsUpDownFeedbackProps extends WithTestID {
   value?: ThumbsUpDownFeedbackValue;
 }
 
+export type DocumentPopoverStatus = "loading" | "loaded" | "error";
+
+export interface DocumentPopoverProps extends WithTestID {
+  /**
+   * The body of the document, rendered under the header when status is "loaded". Use this for
+   * rich content; prefer `text` for a plain summary.
+   */
+  children?: React.ReactNode;
+  /**
+   * Height of the content area below the header. The document body scrolls when it overflows,
+   * and the loading spinner and error message are centered within it.
+   * @default 240
+   */
+  contentHeight?: NumberOrPercentage;
+  /**
+   * Supporting copy shown under the error title.
+   * @default "Something went wrong while loading this document. Check your connection and try again."
+   */
+  errorText?: string;
+  /**
+   * Title shown in the error state.
+   * @default "Couldn't load this document"
+   */
+  errorTitle?: string;
+  /**
+   * The currently selected feedback on the document. Only shown when `onFeedbackChange` is set.
+   */
+  feedback?: ThumbsUpDownFeedbackValue;
+  /**
+   * Header text shown while the document is loading.
+   * @default "Loading document..."
+   */
+  loadingText?: string;
+  /**
+   * Called when the close button is pressed.
+   */
+  onClose: () => void | Promise<void>;
+  /**
+   * Called with the newly selected feedback, or undefined when the current value is deselected.
+   * When omitted, the thumbs up/down controls are hidden.
+   */
+  onFeedbackChange?: (value?: ThumbsUpDownFeedbackValue) => void | Promise<void>;
+  /**
+   * Called when the "Open" action is pressed. When omitted, the action is hidden.
+   */
+  onOpen?: () => void | Promise<void>;
+  /**
+   * Called when the "Try again" button is pressed in the error state. When omitted, the button
+   * is hidden.
+   */
+  onRetry?: () => void | Promise<void>;
+  /**
+   * Text of the action that opens the full document.
+   * @default "Open"
+   */
+  openText?: string;
+  /**
+   * Text of the button that retries loading in the error state.
+   * @default "Try again"
+   */
+  retryText?: string;
+  /**
+   * The state of the document being previewed.
+   * @default "loaded"
+   */
+  status?: DocumentPopoverStatus;
+  /**
+   * Secondary header line, usually the document's date.
+   */
+  subtitle?: string;
+  /**
+   * A plain text summary of the document, rendered when no `children` are provided.
+   */
+  text?: string;
+  /**
+   * The document's title, shown in the header when status is "loaded".
+   */
+  title?: string;
+  /**
+   * Width of the popover.
+   * @default 320
+   */
+  width?: NumberOrPercentage;
+}
+
 export interface SelectBadgeProps {
   /**
    * When status is "custom", determines the badge's background color.
