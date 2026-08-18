@@ -1,5 +1,5 @@
 import type {FC} from "react";
-import {Pressable} from "react-native";
+import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -102,9 +102,11 @@ export const DocumentPopover: FC<DocumentPopoverProps> = ({
     }
 
     return (
-      <Box height={contentHeight} paddingX={4} paddingY={3} scroll width="100%">
-        {children ?? (Boolean(text) && <Text size="sm">{text}</Text>)}
-      </Box>
+      <ScrollView style={{height: contentHeight, width: "100%"}} testID={childTestID("content")}>
+        <Box paddingX={4} paddingY={3} width="100%">
+          {children ?? (Boolean(text) && <Text size="sm">{text}</Text>)}
+        </Box>
+      </ScrollView>
     );
   };
 
