@@ -101,4 +101,21 @@ describe("DocumentPopover", () => {
     );
     expect(queryByTestId("popover-retry")).toBeNull();
   });
+
+  it("bounds the body viewport without pinning the scroll content height", () => {
+    const {getByText, root} = renderWithTheme(
+      <DocumentPopover
+        contentHeight={240}
+        onClose={jest.fn()}
+        text={"Summary of Patient History. ".repeat(40)}
+        title="Doc"
+      />
+    );
+
+    expect(getByText(/Summary of Patient History/)).toBeTruthy();
+    const scrollView = root.findByType("ScrollView");
+    expect(scrollView.props.style).toEqual(expect.objectContaining({height: 240}));
+    const contentView = scrollView.findByType("View");
+    expect(contentView.props.style).not.toEqual(expect.objectContaining({height: 240}));
+  });
 });
