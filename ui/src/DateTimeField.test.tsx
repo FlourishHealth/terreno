@@ -1414,4 +1414,18 @@ describe("DateTimeField", () => {
       assert.isTrue(Boolean(getByAccessibilityHint("Opens date and time picker")));
     });
   });
+
+  describe("timezone abbreviation", () => {
+    it("falls back to the current time when there is no value and no complete segments", () => {
+      setMobile();
+      const {getByText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+
+      const expectedAbbr = DateTime.now().setZone("America/New_York").offsetNameShort ?? "";
+      assert.isNotEmpty(expectedAbbr);
+      // With no value the placeholder is built from the current time in the given timezone.
+      assert.isTrue(Boolean(getByText(`12:00 PM ${expectedAbbr}`)));
+    });
+  });
 });

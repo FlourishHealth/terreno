@@ -285,6 +285,62 @@ export interface HasUpsert<T> {
   upsert(conditions: Record<string, unknown>, update: Record<string, unknown>): Promise<T>;
 }
 
+/** For models with the excludeArchivedPlugin, extend this interface to add the archived field. */
+export interface IsArchived {
+  // Archived objects are excluded from find() queries unless {archived: true} is passed.
+  archived: boolean;
+}
+
+/**
+ * Adds an `archived` boolean field and excludes archived documents from `find()` / `findOne()`
+ * queries by default. Pass `{archived: true}` explicitly to include them. This is a soft-archive
+ * analog to {@link isDeletedPlugin}: use it when documents should be hidden from normal listings
+ * but kept (and still directly queryable) rather than treated as deleted.
+ * @param schema Mongoose Schema
+ * @param defaultValue Default value for the `archived` field (defaults to `false`)
+ */
+export const excludeArchivedPlugin = (
+  // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+  // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+  schema: Schema<any, any, any, any>,
+  defaultValue = false
+): void => {
+  schema.add({
+    archived: {
+      default: defaultValue,
+      description:
+        "Archived objects are not returned in any find() by default. " +
+        "Add {archived: true} to find them.",
+      index: true,
+      type: Boolean,
+    },
+  });
+
+  // Mirror isDeletedPlugin: filter both find and findOne so findExactlyOne / findOneOrNone
+  // also exclude archived documents unless the query sets `archived` explicitly.
+  // noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  // biome-ignore lint/suspicious/noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  const applyArchiveFilter = (query: Query<any, any>): void => {
+    const conditions = query.getFilter();
+    // Only apply the default filter when the query does not mention `archived` at all, so an
+    // explicit `{archived: true}` (or `false`) is always respected.
+    if (conditions.archived === undefined) {
+      query.setQuery({...conditions, archived: {$ne: true}});
+    }
+  };
+
+  // noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  // biome-ignore lint/suspicious/noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  schema.pre<Query<any, any>>("find", function () {
+    applyArchiveFilter(this);
+  });
+  // noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  // biome-ignore lint/suspicious/noExplicitAny: Query<any, any> must be loose to accept arbitrary consumer queries
+  schema.pre<Query<any, any>>("findOne", function () {
+    applyArchiveFilter(this);
+  });
+};
+
 export interface FindOneOrNonePlugin<T> {
   findOneOrNone(
     query: Record<string, unknown>,
