@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Popover` in `@terreno/ui` for previewing a document with loading, loaded, and error states,
   an open action, and optional thumbs up/down feedback
+- `Filter` and its composable select, boolean, accordion, and change-badge controls in
+  `@terreno/ui` for desktop web filtering flows ([#972](https://github.com/FlourishHealth/terreno/pull/972))
 
 ## [56.0.0-beta.2] - 2026-08-17
 

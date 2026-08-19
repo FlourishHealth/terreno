@@ -1,9 +1,11 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import type {ReactTestInstance} from "react-test-renderer";
 
 import {RNPickerSelect} from "./PickerSelect";
 import {renderWithTheme} from "./test-utils";
+import {WebDropdownMenu} from "./WebDropdownMenu";
 
 /** Minimal element stub used to fake `document.activeElement` on web. */
 interface MockElement {
@@ -226,6 +228,24 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="2" />);
         expect(getByTestId("text_input")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("requests body-portal rendering independently of trigger focus", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {root} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} renderMenuInBodyPortal value="2" />
+        );
+        const menu = root.findByType(WebDropdownMenu);
+
+        assert.isTrue(menu.props.renderInBodyPortal);
+        assert.isFalse(menu.props.keepTriggerFocus);
       } finally {
         PlatformModule.OS = savedOS;
         restoreDocument();
