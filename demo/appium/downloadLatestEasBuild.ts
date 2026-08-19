@@ -23,6 +23,7 @@ interface EasFingerprint {
 }
 
 const EAS_CLI_PACKAGE = "eas-cli@latest";
+const EAS_FINGERPRINT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 const NO_FINISHED_BUILDS_ERROR = "EAS did not return any finished builds for the selected profile.";
 const DEFAULT_BUILD_PROFILES: Record<Platform, string> = {
   android: "development",
@@ -147,6 +148,7 @@ const getFingerprint = ({
     ],
     {
       encoding: "utf8",
+      maxBuffer: EAS_FINGERPRINT_MAX_BUFFER_BYTES,
       stdio: ["ignore", "pipe", "inherit"],
     }
   );
