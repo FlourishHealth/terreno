@@ -16,6 +16,12 @@ interface NavigationDiagnosticsOptions {
   stage: "deep-link-navigation" | "dev-launcher-bootstrap" | "fallback-navigation" | "preflight";
 }
 
+interface PeriodicRetryOptions {
+  issueAction: () => Promise<void>;
+  now?: () => number;
+  retryIntervalMs: number;
+}
+
 const DEV_LAUNCHER_MARKERS = [
   "development servers",
   "dev launcher",
@@ -48,6 +54,24 @@ const homeItemTimeoutMs = isQuickLoop ? 15000 : 30000;
 const itemInitialTimeoutMs = isQuickLoop ? 6000 : 10000;
 const itemPostScrollTimeoutMs = isQuickLoop ? 15000 : 30000;
 const overlayDismissTimeoutMs = isQuickLoop ? 15000 : 30000;
+const deepLinkRetryIntervalMs = 4000;
+
+export const createPeriodicRetry = ({
+  issueAction,
+  now = (): number => DateTime.now().toMillis(),
+  retryIntervalMs,
+}: PeriodicRetryOptions): (() => Promise<void>) => {
+  let lastActionAt = now();
+
+  return async (): Promise<void> => {
+    if (now() - lastActionAt < retryIntervalMs) {
+      return;
+    }
+
+    await issueAction();
+    lastActionAt = now();
+  };
+};
 
 const toDemoHomeTestId = (componentName: string): string =>
   `demo-home-${componentName.toLowerCase().replace(/\s+/g, "-")}`;
@@ -390,9 +414,18 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
     if (driver.isAndroid || !didSelectServer) {
       await openDevClientComponentUrl();
     }
+    const retryDevClientUrl = createPeriodicRetry({
+      issueAction: openDevClientComponentUrl,
+      retryIntervalMs: deepLinkRetryIntervalMs,
+    });
     await driver.waitUntil(
       async () => {
-        return !(await isDevLauncherVisible());
+        if (!(await isDevLauncherVisible())) {
+          return true;
+        }
+
+        await retryDevClientUrl();
+        return false;
       },
       {
         interval: 1000,
@@ -460,17 +493,18 @@ const waitForDeepLinkTarget = async (
   selector: string,
   options: {timeout: number; timeoutMsg: string}
 ): Promise<void> => {
-  let lastDeepLinkAt = 0;
+  await issueDeepLink();
+  const retryDeepLink = createPeriodicRetry({
+    issueAction: issueDeepLink,
+    retryIntervalMs: deepLinkRetryIntervalMs,
+  });
   await driver.waitUntil(
     async () => {
       await dismissDevMenuOverlay();
       // Re-issue the deep link periodically: the first dev-client launch races the
       // Metro bundle load, so an early deep link is dropped before expo-router mounts.
       // Resending is idempotent once the app is interactive.
-      if (Date.now() - lastDeepLinkAt > 4000) {
-        await issueDeepLink();
-        lastDeepLinkAt = Date.now();
-      }
+      await retryDeepLink();
 
       const element = await $(selector);
       return element
