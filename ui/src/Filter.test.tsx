@@ -64,16 +64,16 @@ describe("Filter", () => {
     expect(queryByTestId("f.panel")).toBeNull();
   });
 
-  it("calls onClear and closes when Clear is pressed", () => {
+  it("calls onClear and keeps the panel open when Clear is pressed", () => {
     const onClear = mock();
-    const {getByTestId, queryByTestId} = renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <Filter defaultOpen onClear={onClear} testID="f">
         <Text>Body</Text>
       </Filter>
     );
     fireEvent.press(getByTestId("f.clear"));
     expect(onClear).toHaveBeenCalled();
-    expect(queryByTestId("f.panel")).toBeNull();
+    expect(getByTestId("f.panel")).toBeTruthy();
   });
 
   it("calls onApply and closes when Apply is pressed", async () => {

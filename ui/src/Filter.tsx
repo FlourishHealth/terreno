@@ -90,9 +90,9 @@ export const Filter: FC<FilterProps> = ({
   };
 
   const handleClear = (): void => {
+    // Clearing resets the filter values but keeps the panel open so the user can
+    // immediately pick new filters without reopening it.
     onClear?.();
-    setOpen(false);
-    restoreTriggerFocus();
   };
 
   const handleCancel = (): void => {
