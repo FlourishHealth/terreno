@@ -37,6 +37,24 @@ describe("iOS dev-client load-timeout recovery", () => {
     assert.isFalse(await recover(timeoutPageSource));
     assert.equal(reloadCount, 1);
   });
+
+  it("retries when clicking Reload fails", async () => {
+    let reloadCount = 0;
+    const recover = createIosLoadTimeoutRecovery({
+      isIos: true,
+      reload: async (): Promise<void> => {
+        reloadCount += 1;
+        if (reloadCount === 1) {
+          throw new Error("Reload was not clickable");
+        }
+      },
+    });
+
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.isTrue(await recover(timeoutPageSource));
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.equal(reloadCount, 2);
+  });
 });
 
 describe("isAndroidDevMenuPageSource", () => {
