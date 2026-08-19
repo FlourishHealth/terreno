@@ -1,5 +1,3 @@
-// noExplicitAny: Socket.io handler signatures require dynamic args
-// biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type {Server} from "socket.io";
 
 import type {User} from "../auth";
@@ -61,7 +59,7 @@ export interface SyncSocketLike extends SocketWithDecodedToken {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
-  on: (event: string, handler: (...args: any[]) => any) => void;
+  on: (event: string, handler: (...args: never[]) => void | Promise<void>) => void;
 }
 
 /**
