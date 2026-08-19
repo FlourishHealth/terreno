@@ -188,7 +188,7 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
 export const Hyperlink = (props: HyperlinkProps) => {
   const handleLink = (url: string) => {
     const urlObject = mdurl.parse(url);
-    urlObject.protocol = urlObject.protocol.toLowerCase();
+    urlObject.protocol = urlObject.protocol?.toLowerCase() ?? "";
     const normalizedURL = mdurl.format(urlObject);
 
     void Linking.canOpenURL(normalizedURL).then(

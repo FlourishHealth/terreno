@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "@terreno/rtk - Redux Toolkit Query utilities for Terreno frontends"
 globs: ["**/*"]
 ---

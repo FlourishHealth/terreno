@@ -1,12 +1,14 @@
 /**
  * Tests for RealtimeApp.onServerCreated — the Socket.io server wiring that a
- * live server would exercise. socket.io, the JWT authorize middleware, and the
- * change-stream watcher are mocked so the connection / connect_error handlers
- * can be captured and invoked without standing up a real server.
+ * live server would exercise. Socket.IO Server and the change-stream watcher are
+ * injected via RealtimeAppOptions so we never `mock.module` (bun's module mocks
+ * are process-wide and would break later files that need the real implementations).
  */
-import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 
 import type http from "node:http";
+
+import {RealtimeApp} from "./realtimeApp";
 
 type Handler = (...args: unknown[]) => void;
 
@@ -43,23 +45,6 @@ class FakeServer {
   }
 }
 
-mock.module("socket.io", () => ({Server: FakeServer}));
-mock.module("@thream/socketio-jwt", () => ({
-  authorize: (_opts: unknown) => (_socket: unknown, next: () => void) => next(),
-}));
-mock.module("./changeStreamWatcher", () => ({
-  startChangeStreamWatcher: () => {
-    watcherStarts += 1;
-  },
-  stopChangeStreamWatcher: () => {},
-}));
-
-let RealtimeApp: typeof import("./realtimeApp").RealtimeApp;
-
-beforeAll(async () => {
-  ({RealtimeApp} = await import("./realtimeApp"));
-});
-
 const lastIo = (): FakeIo => {
   const io = ios[ios.length - 1];
   if (!io) {
@@ -95,6 +80,19 @@ const createConnectionSocket = (throwOnOn = false): Record<string, unknown> => {
   };
 };
 
+/** Shared RealtimeAppOptions that inject FakeServer + a start-watcher counter. */
+const testRealtimeOptions = (
+  overrides: ConstructorParameters<typeof RealtimeApp>[0] = {}
+): ConstructorParameters<typeof RealtimeApp>[0] => ({
+  SocketServer: FakeServer as unknown as NonNullable<
+    ConstructorParameters<typeof RealtimeApp>[0]
+  >["SocketServer"],
+  startChangeStreamWatcher: () => {
+    watcherStarts += 1;
+  },
+  ...overrides,
+});
+
 describe("RealtimeApp.onServerCreated", () => {
   beforeEach(() => {
     ios = [];
@@ -106,7 +104,7 @@ describe("RealtimeApp.onServerCreated", () => {
   });
 
   it("wires up auth middleware, connection handlers, and the change-stream watcher", () => {
-    const app = new RealtimeApp({debug: true, tokenSecret: "test-secret"});
+    const app = new RealtimeApp(testRealtimeOptions({debug: true, tokenSecret: "test-secret"}));
     app.onServerCreated(fakeServer);
 
     const io = lastIo();
@@ -118,7 +116,7 @@ describe("RealtimeApp.onServerCreated", () => {
   });
 
   it("installs socket handlers for each new connection", () => {
-    const app = new RealtimeApp({tokenSecret: "test-secret"});
+    const app = new RealtimeApp(testRealtimeOptions({tokenSecret: "test-secret"}));
     app.onServerCreated(fakeServer);
 
     const connectionHandler = getHandler("connection");
@@ -128,7 +126,7 @@ describe("RealtimeApp.onServerCreated", () => {
   });
 
   it("captures errors thrown while handling a connection", () => {
-    const app = new RealtimeApp({tokenSecret: "test-secret"});
+    const app = new RealtimeApp(testRealtimeOptions({tokenSecret: "test-secret"}));
     app.onServerCreated(fakeServer);
 
     const connectionHandler = getHandler("connection");
@@ -138,7 +136,7 @@ describe("RealtimeApp.onServerCreated", () => {
   });
 
   it("logs connect_error events without throwing", () => {
-    const app = new RealtimeApp({tokenSecret: "test-secret"});
+    const app = new RealtimeApp(testRealtimeOptions({tokenSecret: "test-secret"}));
     app.onServerCreated(fakeServer);
 
     const errorHandler = getHandler("connect_error");
@@ -147,7 +145,7 @@ describe("RealtimeApp.onServerCreated", () => {
 
   it("reads the token secret from the environment when not provided in config", () => {
     process.env.TOKEN_SECRET = "env-secret";
-    const app = new RealtimeApp();
+    const app = new RealtimeApp(testRealtimeOptions());
     app.onServerCreated(fakeServer);
 
     expect(lastIo().handlers.has("connection")).toBe(true);
@@ -155,7 +153,7 @@ describe("RealtimeApp.onServerCreated", () => {
 
   it("throws when no token secret is available", () => {
     delete process.env.TOKEN_SECRET;
-    const app = new RealtimeApp();
+    const app = new RealtimeApp(testRealtimeOptions());
     expect(() => app.onServerCreated(fakeServer)).toThrow(/TOKEN_SECRET is required/);
   });
 });

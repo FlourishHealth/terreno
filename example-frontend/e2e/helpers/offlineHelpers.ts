@@ -1,6 +1,7 @@
-import {type Page, request} from "@playwright/test";
+import type {Page} from "@playwright/test";
 import type {ConsoleGuard} from "../fixtures/test";
 import {TEST_USER} from "../fixtures/testUsers";
+import {createTodoAs, patchTodoAs, type TodoApiUser, type TodoRecord} from "./todosApi";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
@@ -61,55 +62,23 @@ export const goOnline = async (page: Page): Promise<void> => {
 };
 
 /**
- * Get an auth token for direct API calls.
- */
-const getApiToken = async (): Promise<string> => {
-  const apiContext = await request.newContext({baseURL: API_URL});
-  const loginRes = await apiContext.post("/auth/login", {
-    data: {email: TEST_USER.email, password: TEST_USER.password},
-  });
-  if (!loginRes.ok()) {
-    await apiContext.dispose();
-    throw new Error(`getApiToken: login failed with status ${loginRes.status()}`);
-  }
-  const loginData = await loginRes.json();
-  const token = (loginData.data?.token ?? loginData.token) as string;
-  await apiContext.dispose();
-  return token;
-};
-
-/**
- * Create a todo directly via the API (bypassing the browser).
+ * Create a todo directly via the API (bypassing the browser), as the given user.
  * Returns the created todo including its _id and updated timestamp.
  */
 export const createTodoViaApi = async (
-  title: string
-): Promise<{_id: string; id: string; title: string; updated: string}> => {
-  const token = await getApiToken();
-  const apiContext = await request.newContext({baseURL: API_URL});
-  const res = await apiContext.post("/todos", {
-    data: {title},
-    headers: {authorization: `Bearer ${token}`},
-  });
-  const data = await res.json();
-  await apiContext.dispose();
-  return data.data;
+  title: string,
+  user: TodoApiUser = TEST_USER
+): Promise<TodoRecord> => {
+  return createTodoAs(user, title);
 };
 
 /**
- * Update a todo directly via the API (simulating another client).
+ * Update a todo directly via the API (simulating another client), as the given user.
  */
 export const updateTodoViaApi = async (
   todoId: string,
-  body: Record<string, unknown>
-): Promise<{_id: string; title: string; updated: string}> => {
-  const token = await getApiToken();
-  const apiContext = await request.newContext({baseURL: API_URL});
-  const res = await apiContext.patch(`/todos/${todoId}`, {
-    data: body,
-    headers: {authorization: `Bearer ${token}`},
-  });
-  const data = await res.json();
-  await apiContext.dispose();
-  return data.data;
+  body: Record<string, unknown>,
+  user: TodoApiUser = TEST_USER
+): Promise<TodoRecord> => {
+  return patchTodoAs(user, todoId, body);
 };

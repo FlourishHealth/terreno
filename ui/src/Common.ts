@@ -518,6 +518,13 @@ export interface LayerProps {
 export interface AccessibilityProps {
   accessibilityLabel: string;
   accessibilityHint: string;
+  /**
+   * RN/RNW accessibility role (e.g. "button") for a clickable Box. Optional —
+   * most onClick Boxes get an implicit button role already (see Box.tsx); set
+   * this explicitly when a screen-reader-facing role needs to be guaranteed
+   * (e.g. a badge that opens a sheet).
+   */
+  accessibilityRole?: string;
 }
 
 export interface BoxPropsBase extends WithTestID {
@@ -2600,6 +2607,12 @@ export interface TextFieldPickerActionSheetProps {
 
 export interface ToastProps {
   title: string;
+  /**
+   * Stable toast id, forwarded by `useToast` from the caller's options. Used to
+   * disambiguate the action button's testID so two stacked action toasts do not
+   * both answer to `toast-action-button`.
+   */
+  id?: string;
   variant?: "error" | "info" | "success" | "warning";
   secondary?: boolean;
   size?: "sm" | "lg";
@@ -2607,9 +2620,14 @@ export interface ToastProps {
   persistent?: boolean;
   // TODO enforce these should only show if size is "lg" with type discrinimation
   subtitle?: string;
-  // TODO Add buttons for Toast
-  // buttonText?: string;
-  // buttonOnClick?: () => void | Promise<void>;
+  /**
+   * Optional action button label. Renders only when `buttonOnClick` is also provided.
+   */
+  buttonText?: string;
+  /**
+   * Optional action button handler. Renders only when `buttonText` is also provided.
+   */
+  buttonOnClick?: () => void | Promise<void>;
 }
 
 export interface TooltipProps {
