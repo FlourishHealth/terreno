@@ -59,7 +59,7 @@ export interface SyncSocketLike extends SocketWithDecodedToken {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
-  on(event: string, handler: (...args: never[]) => unknown): void;
+  on: (event: string, handler: (...args: never[]) => void | Promise<void>) => void;
 }
 
 /**

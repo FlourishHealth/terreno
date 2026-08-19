@@ -1,6 +1,3 @@
-// noExplicitAny: change stream and socket handlers use dynamic document shapes
-// biome-ignore-all lint/suspicious/noExplicitAny: change stream and socket handlers use dynamic document shapes
-
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import {DateTime} from "luxon";
@@ -195,7 +192,7 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
  */
 export interface AuthorizedEmitEntry {
   modelName: string;
-  options: {permissions: {read: PermissionMethod<any>[]}};
+  options: {permissions: {read: PermissionMethod<unknown>[]}};
 }
 
 const canReadDocument = async (

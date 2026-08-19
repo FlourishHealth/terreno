@@ -55,16 +55,16 @@ export const trackSyncIndexCreation = (promise: Promise<void>): void => {
  * - `syncPlugin` is required so every write stamps a per-stream `_syncSeq`;
  * - owner/tenant scope fields must exist on the schema.
  */
-export const registerSync = ({
+export const registerSync = <T>({
   model,
   routePath,
   config,
   options,
 }: {
-  model: Model<unknown>;
+  model: Model<T>;
   routePath: string;
   config: SyncConfig;
-  options: ModelRouterOptions<unknown>;
+  options: ModelRouterOptions<T>;
 }): void => {
   const name = model.modelName;
   const deletedPath = model.schema.path("deleted");
@@ -110,7 +110,7 @@ export const registerSync = ({
     collectionTag,
     config,
     modelName: name,
-    options,
+    options: options as unknown as ModelRouterOptions<unknown>,
     routePath,
   });
 
