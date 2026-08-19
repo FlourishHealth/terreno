@@ -123,6 +123,7 @@ jobs:
     timeout-minutes: 45
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPIUM_HOME: ${{ runner.temp }}/appium
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
       APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'development' }}
       APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ""
@@ -154,6 +155,10 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install Appium Android driver
+        run: bunx appium driver install --source=npm appium-uiautomator2-driver@7.5.2
+        working-directory: demo
 
       - name: Build UI dependency
         run: bun run compile
@@ -223,6 +228,7 @@ jobs:
     timeout-minutes: 60
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPIUM_HOME: ${{ runner.temp }}/appium
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
       APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'development:simulator' }}
       APPIUM_IOS_EAS_FALLBACK_PROFILE: ""
@@ -254,6 +260,10 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install Appium iOS driver
+        run: bunx appium driver install --source=npm appium-xcuitest-driver@11.7.6
+        working-directory: demo
 
       - name: Build UI dependency
         run: bun run compile
