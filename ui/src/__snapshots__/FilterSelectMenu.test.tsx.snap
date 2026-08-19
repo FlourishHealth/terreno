@@ -334,8 +334,10 @@ exports[`FilterSelectMenu renders correctly with default props 1`] = `
         "onHoverIn": [Function],
         "onHoverOut": [Function],
         "style": {
+          "overflow": "hidden",
           "width": 138,
         },
+        "testID": undefined,
       },
       "type": "Pressable",
     },

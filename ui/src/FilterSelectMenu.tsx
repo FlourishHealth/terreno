@@ -50,7 +50,8 @@ export const FilterSelectMenu: FC<FilterSelectMenuProps> = ({
       <Pressable
         onHoverIn={() => setIsHovered(true)}
         onHoverOut={() => setIsHovered(false)}
-        style={{width: SELECT_WIDTH}}
+        style={{overflow: "hidden", width: SELECT_WIDTH}}
+        testID={testID ? resolveTestID(testID, "selectContainer") : undefined}
       >
         <SelectField
           disabled={disabled}

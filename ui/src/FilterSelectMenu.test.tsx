@@ -1,4 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
+import {StyleSheet} from "react-native";
 
 import {FilterSelectMenu} from "./FilterSelectMenu";
 import {renderWithTheme} from "./test-utils";
@@ -40,5 +42,15 @@ describe("FilterSelectMenu", () => {
       <FilterSelectMenu {...defaultProps} onChange={mock()} testID="filter" value="all" />
     );
     expect(getByTestId("filter")).toBeTruthy();
+  });
+
+  it("clips the compact select control to its fixed width", () => {
+    const {getByTestId} = renderWithTheme(
+      <FilterSelectMenu {...defaultProps} testID="filter" value="all" />
+    );
+    const style = StyleSheet.flatten(getByTestId("filter.selectContainer").props.style);
+
+    assert.equal(style.width, 138);
+    assert.equal(style.overflow, "hidden");
   });
 });

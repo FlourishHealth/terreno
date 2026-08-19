@@ -47,7 +47,7 @@ export const Filter: FC<FilterProps> = ({
   const {theme} = useTheme();
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const [anchorReady, setAnchorReady] = useState(false);
-  const {anchor, measure, triggerRef} = useWebDropdownAnchor();
+  const {anchor, cancelPendingMeasurement, measure, triggerRef} = useWebDropdownAnchor();
 
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
@@ -57,11 +57,14 @@ export const Filter: FC<FilterProps> = ({
   // default (0, 0) position before jumping into place.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only re-measure on open transitions; `measure` is recreated each render.
   useEffect(() => {
-    if (open) {
-      measure(() => setAnchorReady(true));
-    } else {
-      setAnchorReady(false);
+    setAnchorReady(false);
+    if (!open) {
+      cancelPendingMeasurement();
+      return;
     }
+
+    measure((): void => setAnchorReady(true));
+    return cancelPendingMeasurement;
   }, [open]);
 
   // Return focus to the trigger after any in-panel dismissal so keyboard users

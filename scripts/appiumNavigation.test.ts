@@ -1,7 +1,61 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {isAndroidDevMenuPageSource} from "../demo/appium/helpers/navigation";
+import {
+  createIosLoadTimeoutRecovery,
+  isAndroidDevMenuPageSource,
+  isIosDevClientLoadTimeoutPageSource,
+} from "../demo/appium/helpers/navigation";
+
+describe("iOS dev-client load-timeout recovery", () => {
+  const timeoutPageSource = `
+    <XCUIElementTypeStaticText value="There was a problem loading the project." />
+    <XCUIElementTypeStaticText value="Failed to load app from http://localhost:8085 with error: The request timed out." />
+    <XCUIElementTypeButton name="Reload" label="Reload" />
+  `;
+
+  it("detects the Expo iOS load-timeout overlay", () => {
+    assert.isTrue(isIosDevClientLoadTimeoutPageSource(timeoutPageSource));
+    assert.isFalse(
+      isIosDevClientLoadTimeoutPageSource(`
+        <XCUIElementTypeStaticText value="Terreno Demo" />
+        <XCUIElementTypeButton name="Reload" label="Reload" />
+      `)
+    );
+  });
+
+  it("reloads the timed-out iOS project once", async () => {
+    let reloadCount = 0;
+    const recover = createIosLoadTimeoutRecovery({
+      isIos: true,
+      reload: async (): Promise<void> => {
+        reloadCount += 1;
+      },
+    });
+
+    assert.isTrue(await recover(timeoutPageSource));
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.equal(reloadCount, 1);
+  });
+
+  it("retries when clicking Reload fails", async () => {
+    let reloadCount = 0;
+    const recover = createIosLoadTimeoutRecovery({
+      isIos: true,
+      reload: async (): Promise<void> => {
+        reloadCount += 1;
+        if (reloadCount === 1) {
+          throw new Error("Reload was not clickable");
+        }
+      },
+    });
+
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.isTrue(await recover(timeoutPageSource));
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.equal(reloadCount, 2);
+  });
+});
 
 describe("isAndroidDevMenuPageSource", () => {
   it("detects the Expo SDK 56 development menu", () => {
