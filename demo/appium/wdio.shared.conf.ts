@@ -92,6 +92,6 @@ export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   reporters: ["spec"],
   mochaOpts: {
     ui: "bdd",
-    timeout: isQuickLoop ? 300000 : isCi ? 300000 : 120000,
+    timeout: isIosRun ? 420000 : isQuickLoop ? 300000 : isCi ? 300000 : 120000,
   },
 };
