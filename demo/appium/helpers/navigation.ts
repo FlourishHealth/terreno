@@ -23,6 +23,18 @@ const DEV_LAUNCHER_MARKERS = [
   "open from clipboard",
 ];
 
+export const isAndroidDevMenuPageSource = (pageSource: string): boolean => {
+  const normalizedPageSource = pageSource.toLowerCase();
+  const hasLegacyMenuMarkers =
+    normalizedPageSource.includes("connected to:") &&
+    normalizedPageSource.includes("toggle dev menu");
+  const hasSdk56MenuMarkers =
+    normalizedPageSource.includes("reload") &&
+    normalizedPageSource.includes("go home") &&
+    normalizedPageSource.includes("open react native dev menu");
+  return hasLegacyMenuMarkers || hasSdk56MenuMarkers;
+};
+
 const isQuickLoop = process.env.APPIUM_QUICK_LOOP === "true";
 const isCi = process.env.CI === "true";
 const appiumDevServerUrl = process.env.APPIUM_DEV_SERVER_URL?.trim();
@@ -480,8 +492,7 @@ const isAndroidDevMenuPanelVisible = async (): Promise<boolean> => {
   }
 
   try {
-    const pageSource = (await driver.getPageSource()).toLowerCase();
-    return pageSource.includes("connected to:") && pageSource.includes("toggle dev menu");
+    return isAndroidDevMenuPageSource(await driver.getPageSource());
   } catch {
     return false;
   }
