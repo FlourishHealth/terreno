@@ -14,9 +14,11 @@ let workDirectory: string;
 
 const runDownloader = ({
   fallbackProfile,
+  isLargeFingerprint = false,
   isPrimaryBuildMissing = false,
 }: {
   fallbackProfile?: string;
+  isLargeFingerprint?: boolean;
   isPrimaryBuildMissing?: boolean;
 } = {}): ReturnType<typeof Bun.spawnSync> => {
   const appPath = join(workDirectory, "matching-build.apk");
@@ -50,7 +52,11 @@ case "$command" in
     if [ "$profile" = "fallback" ]; then
       echo '{"hash":"${FALLBACK_FINGERPRINT_HASH}"}'
     elif [ "$profile" = "development" ]; then
-      echo '{"hash":"${FINGERPRINT_HASH}"}'
+      if [ "$FAKE_LARGE_FINGERPRINT" = "true" ]; then
+        "$FAKE_REAL_BUN" -e 'process.stdout.write(JSON.stringify({hash: process.env.FAKE_FINGERPRINT_HASH, sources: "x".repeat(2 * 1024 * 1024)}))'
+      else
+        echo '{"hash":"${FINGERPRINT_HASH}"}'
+      fi
     else
       echo "fingerprint was not computed for the selected build profile" >&2
       exit 43
@@ -111,8 +117,11 @@ esac
     env: {
       ...process.env,
       FAKE_APP_PATH: appPath,
+      FAKE_FINGERPRINT_HASH: FINGERPRINT_HASH,
       FAKE_INVOCATION_LOG: invocationLog,
+      FAKE_LARGE_FINGERPRINT: String(isLargeFingerprint),
       FAKE_PRIMARY_BUILD_MISSING: String(isPrimaryBuildMissing),
+      FAKE_REAL_BUN: process.execPath,
       PATH: `${workDirectory}:${process.env.PATH ?? ""}`,
     },
   });
@@ -163,6 +172,16 @@ describe("downloadLatestEasBuild", () => {
     assert.include(
       invocations,
       `build:list --platform android --status finished --build-profile fallback --fingerprint-hash ${FALLBACK_FINGERPRINT_HASH}`
+    );
+  });
+
+  it("accepts the full fingerprint payload emitted by EAS", () => {
+    const result = runDownloader({isLargeFingerprint: true});
+
+    assert.equal(
+      result.exitCode,
+      0,
+      `${result.stderr.toString()}\n${result.stdout.toString()}`
     );
   });
 });
