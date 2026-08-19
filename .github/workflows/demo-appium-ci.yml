@@ -172,7 +172,22 @@ jobs:
         working-directory: ui
 
       - name: Download latest Android build from EAS
-        run: bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --fallback-profile "$APPIUM_ANDROID_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
+        run: |
+          set -euo pipefail
+          max_attempts=8
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            if bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --fallback-profile "$APPIUM_ANDROID_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"; then
+              break
+            fi
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::No finished Android EAS build became available after $attempt attempts"
+              exit 1
+            fi
+            echo "::warning::No finished Android EAS build yet; retrying in 120 seconds (attempt $attempt/$max_attempts)"
+            sleep 120
+            attempt=$((attempt + 1))
+          done
         working-directory: demo
 
       - name: Enable KVM
@@ -281,7 +296,22 @@ jobs:
         working-directory: ui
 
       - name: Download latest iOS simulator build from EAS
-        run: bun appium/downloadLatestEasBuild.ts --platform ios --profile "$APPIUM_IOS_EAS_PROFILE" --fallback-profile "$APPIUM_IOS_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
+        run: |
+          set -euo pipefail
+          max_attempts=8
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            if bun appium/downloadLatestEasBuild.ts --platform ios --profile "$APPIUM_IOS_EAS_PROFILE" --fallback-profile "$APPIUM_IOS_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"; then
+              break
+            fi
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::No finished iOS simulator EAS build became available after $attempt attempts"
+              exit 1
+            fi
+            echo "::warning::No finished iOS simulator EAS build yet; retrying in 120 seconds (attempt $attempt/$max_attempts)"
+            sleep 120
+            attempt=$((attempt + 1))
+          done
         working-directory: demo
 
       - name: Run Appium iOS tests

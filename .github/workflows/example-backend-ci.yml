@@ -46,7 +46,7 @@ jobs:
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
-          mongodb-image: mirror.gcr.io/library/mongo
+          mongodb-image: mongo
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
