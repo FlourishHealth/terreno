@@ -18,7 +18,12 @@ interface EasBuild {
   id: string;
 }
 
+interface EasFingerprint {
+  hash: string;
+}
+
 const EAS_CLI_PACKAGE = "eas-cli@latest";
+const EAS_FINGERPRINT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 const NO_FINISHED_BUILDS_ERROR = "EAS did not return any finished builds for the selected profile.";
 const DEFAULT_BUILD_PROFILES: Record<Platform, string> = {
   android: "development",
@@ -98,6 +103,16 @@ const parseLatestBuild = (rawOutput: string): EasBuild => {
   return {id: latestBuild.id};
 };
 
+const parseFingerprint = (rawOutput: string): EasFingerprint => {
+  const parsed = JSON.parse(rawOutput) as unknown;
+
+  if (!isRecord(parsed) || typeof parsed.hash !== "string" || parsed.hash.length === 0) {
+    throw new Error("EAS fingerprint output did not include a hash.");
+  }
+
+  return {hash: parsed.hash};
+};
+
 const parseEasDownloadResult = (rawOutput: string): EasDownloadResult => {
   const parsed = JSON.parse(rawOutput) as unknown;
 
@@ -112,10 +127,41 @@ const parseEasDownloadResult = (rawOutput: string): EasDownloadResult => {
   return {path: parsed.path};
 };
 
-const getLatestBuild = ({
+const getFingerprint = ({
   platform,
   profile,
 }: {
+  platform: Platform;
+  profile: string;
+}): EasFingerprint => {
+  const rawOutput = execFileSync(
+    "bunx",
+    [
+      EAS_CLI_PACKAGE,
+      "fingerprint:generate",
+      "--platform",
+      platform,
+      "--build-profile",
+      profile,
+      "--non-interactive",
+      "--json",
+    ],
+    {
+      encoding: "utf8",
+      maxBuffer: EAS_FINGERPRINT_MAX_BUFFER_BYTES,
+      stdio: ["ignore", "pipe", "inherit"],
+    }
+  );
+
+  return parseFingerprint(rawOutput);
+};
+
+const getLatestBuild = ({
+  fingerprintHash,
+  platform,
+  profile,
+}: {
+  fingerprintHash: string;
   platform: Platform;
   profile: string;
 }): EasBuild => {
@@ -134,6 +180,8 @@ const getLatestBuild = ({
       "finished",
       "--build-profile",
       profile,
+      "--fingerprint-hash",
+      fingerprintHash,
       "--limit",
       "1",
       "--json",
@@ -233,7 +281,12 @@ const getLatestBuildWithFallback = ({
   for (let index = 0; index < profiles.length; index += 1) {
     const profile = profiles[index];
     try {
-      const resolvedBuild = getLatestBuild({platform, profile});
+      const fingerprint = getFingerprint({platform, profile});
+      const resolvedBuild = getLatestBuild({
+        fingerprintHash: fingerprint.hash,
+        platform,
+        profile,
+      });
       try {
         // #region agent log
         appendFileSync(
