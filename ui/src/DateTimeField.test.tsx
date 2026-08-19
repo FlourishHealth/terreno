@@ -1390,10 +1390,10 @@ describe("DateTimeField", () => {
       assert.equal(parsed.minute, 45);
     });
 
-    it("shows the timezone abbreviation for fields entered without a value prop", async () => {
-      setMobile();
+    it("emits an ISO assembled from every datetime segment", async () => {
+      setDesktop();
       const user = userEvent.setup();
-      const {getByAccessibilityHint, getByPlaceholderText} = renderWithTheme(
+      const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
           timezone="America/New_York"
@@ -1402,16 +1402,24 @@ describe("DateTimeField", () => {
         />
       );
 
-      // On mobile datetime the date segments stay editable, so the assembled ISO (and the
-      // timezone abbreviation derived from it) comes from the segments rather than the value prop.
       await user.type(getByPlaceholderText("MM"), "05");
       await user.type(getByPlaceholderText("DD"), "15");
       await user.type(getByPlaceholderText("YYYY"), "2023");
+      await user.type(getByPlaceholderText("hh"), "09");
+      await user.type(getByPlaceholderText("mm"), "45");
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       });
 
-      assert.isTrue(Boolean(getByAccessibilityHint("Opens date and time picker")));
+      const emitted = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]?.[0] as string;
+      const parsed = DateTime.fromISO(emitted).setZone("America/New_York");
+      assert.isTrue(parsed.isValid);
+      assert.equal(parsed.year, 2023);
+      assert.equal(parsed.month, 5);
+      assert.equal(parsed.day, 15);
+      assert.equal(parsed.hour, 9);
+      assert.equal(parsed.minute, 45);
+      assert.equal(parsed.offsetNameShort, "EDT");
     });
   });
 
