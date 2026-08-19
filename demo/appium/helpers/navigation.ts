@@ -62,9 +62,13 @@ export const createIosLoadTimeoutRecovery = ({
       return false;
     }
 
-    didReload = true;
-    await reload();
-    return true;
+    try {
+      await reload();
+      didReload = true;
+      return true;
+    } catch {
+      return false;
+    }
   };
 };
 
@@ -438,8 +442,9 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
       async () => {
         if (driver.isIOS) {
           const pageSource = await driver.getPageSource().catch(() => "");
+          const isLoadTimeoutVisible = isIosDevClientLoadTimeoutPageSource(pageSource);
           const didReloadAfterTimeout = await recoverIosLoadTimeout(pageSource);
-          if (didReloadAfterTimeout) {
+          if (didReloadAfterTimeout || isLoadTimeoutVisible) {
             return false;
           }
         }
