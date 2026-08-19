@@ -659,10 +659,14 @@ mock.module("@expo-google-fonts/caveat", () => ({
   useFonts: mock(() => [true, null]),
 }));
 
-// Mock DateTimeActionSheet
-mock.module("./DateTimeActionSheet", () => ({
-  DateTimeActionSheet: mock(() => null),
-}));
+// Mock DateTimeActionSheet so field tests render a lightweight placeholder. Isolated passes
+// (src/isolated/*) exercise the real component, so the stub is skipped for those runs.
+const isIsolatedRun = process.argv.some((arg) => arg.includes("src/isolated/"));
+if (!isIsolatedRun) {
+  mock.module("./DateTimeActionSheet", () => ({
+    DateTimeActionSheet: mock(() => null),
+  }));
+}
 
 // Mock react-native-actions-sheet so the native Modal branch is testable. The real component
 // defers rendering until opened via native animation (which react-test-renderer never triggers),

@@ -145,8 +145,9 @@
     "lint:unsafefix": "biome check --write --unsafe .",
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
-    "test:ci": "TZ=America/New_York bun test",
+    "test:ci": "TZ=America/New_York bun test && bun run test:isolated",
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
+    "test:isolated": "for f in src/isolated/*.isolated.tsx; do TZ=America/New_York bun test \"./$f\" || exit 1; done",
     "types": "bun typedoc"
   },
   "version": "0.31.0"

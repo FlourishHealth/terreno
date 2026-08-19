@@ -21,12 +21,19 @@ mock.module("../constants", () => ({
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
 const {createOfflineMiddleware} = await import("../offlineMiddleware");
-const {selectConflicts, selectIsOnline, selectIsSyncing, selectOfflineQueue, setOnlineStatus} =
-  await import("../offlineSlice");
+const {
+  selectConflicts,
+  selectIsOnline,
+  selectIsSyncing,
+  selectOfflineQueue,
+  setOnlineStatus,
+  setSyncing,
+} = await import("../offlineSlice");
 
 interface TodoRecord {
   _id?: string;
   id?: string;
+  updated?: string | Date;
   title: string;
   completed?: boolean;
 }
@@ -97,7 +104,10 @@ const createTestStore = (endpoints = ["postTodos", "patchTodosById", "deleteTodo
     middleware: (getDefault) =>
       getDefault({serializableCheck: false}).concat(api.middleware, offline.middleware),
     reducer: {
-      auth: (state = {userId: currentUserId}) => state,
+      auth: (
+        state: {userId: string | undefined} = {userId: currentUserId},
+        action: {payload?: string; type: string}
+      ) => (action.type === "test/setUserId" ? {userId: action.payload} : state),
       [api.reducerPath]: api.reducer,
       offline: offline.offlineReducer,
     },
@@ -160,10 +170,14 @@ const seedTodosCache = async (
   await waitForEffects();
 };
 
+const setCurrentUser = (store: TestStore, userId: string | undefined): void => {
+  store.dispatch({payload: userId, type: "test/setUserId"});
+};
+
 const seedTodoByIdCache = async (
   store: TestStore,
   id: string,
-  todo: TodoRecord & {updated: string}
+  todo: TodoRecord & {updated: string | Date}
 ): Promise<void> => {
   store.dispatch(api.util.upsertQueryData("getTodosById", {id}, {data: todo}));
   await waitForEffects();
@@ -687,6 +701,250 @@ describe("createOfflineMiddleware", () => {
       await syncQueuedMutations(store);
 
       expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+      expect(selectIsSyncing(store.getState())).toBe(false);
+    });
+  });
+
+  describe("conflict header timestamps", () => {
+    it("prefers the patch body's _updatedAt over any cached timestamp", async () => {
+      await seedTodoByIdCache(store, "123", {
+        _id: "123",
+        title: "Original",
+        updated: "2020-01-01T00:00:00.000Z",
+      });
+      goOfflineAndQueue(store, {
+        originalArgs: {body: {_updatedAt: "2025-06-15T12:00:00.000Z", title: "Updated"}, id: "123"},
+      });
+
+      await syncQueuedMutations(store);
+
+      const headers = getFetchCall()[1].headers as Record<string, string>;
+      expect(headers["X-Unmodified-Since-ISO"]).toBe("2025-06-15T12:00:00.000Z");
+    });
+
+    it("ignores cached get-by-id entries for other documents", async () => {
+      await seedTodoByIdCache(store, "999", {
+        _id: "999",
+        title: "Other document",
+        updated: "2025-06-15T12:00:00.000Z",
+      });
+      goOfflineAndQueue(store, {
+        originalArgs: {body: {title: "Updated"}, id: "123"},
+      });
+
+      await syncQueuedMutations(store);
+
+      const headers = getFetchCall()[1].headers as Record<string, string>;
+      expect(headers["If-Unmodified-Since"]).toBeUndefined();
+      expect(headers["X-Unmodified-Since-ISO"]).toBeUndefined();
+    });
+
+    it("omits conflict headers when the cached document has no string timestamp", async () => {
+      await seedTodoByIdCache(store, "123", {
+        _id: "123",
+        title: "Original",
+        updated: new Date("2025-06-15T12:00:00.000Z"),
+      });
+      goOfflineAndQueue(store, {
+        originalArgs: {body: {title: "Updated"}, id: "123"},
+      });
+
+      await syncQueuedMutations(store);
+
+      const headers = getFetchCall()[1].headers as Record<string, string>;
+      expect(headers["If-Unmodified-Since"]).toBeUndefined();
+    });
+
+    it("omits conflict headers for updates queued without an id", async () => {
+      goOfflineAndQueue(store, {originalArgs: {body: {title: "No id"}}});
+
+      await syncQueuedMutations(store);
+
+      const headers = getFetchCall()[1].headers as Record<string, string>;
+      expect(headers["If-Unmodified-Since"]).toBeUndefined();
+    });
+
+    it("converts a Date `updated` value from the list cache into an ISO timestamp", async () => {
+      await seedTodosCache(store, {}, [
+        {id: "123", title: "Existing", updated: new Date("2025-06-15T12:00:00.000Z")},
+      ]);
+      goOfflineAndQueue(store, {
+        originalArgs: {body: {title: "Updated"}, id: "123"},
+      });
+
+      await syncQueuedMutations(store);
+
+      const headers = getFetchCall()[1].headers as Record<string, string>;
+      expect(new Date(headers["X-Unmodified-Since-ISO"]).toISOString()).toBe(
+        "2025-06-15T12:00:00.000Z"
+      );
+    });
+  });
+
+  describe("optimistic temp item cleanup", () => {
+    const queueOfflineCreate = async (): Promise<void> => {
+      await seedTodosCache(store, {}, [{id: "1", title: "Existing"}]);
+      goOfflineAndQueue(store, {
+        endpointName: "postTodos",
+        originalArgs: {body: {title: "Created offline"}},
+      });
+      expect(getCachedTodos(store, {})).toHaveLength(2);
+    };
+
+    it("removes the temp item after a create replays successfully", async () => {
+      await queueOfflineCreate();
+
+      await syncQueuedMutations(store);
+
+      expect(getCachedTodos(store, {})).toEqual([{id: "1", title: "Existing"}]);
+    });
+
+    it("removes the temp item after a create conflicts", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(createResponse({data: {data: {_id: "server-id"}}, status: 409}))
+      );
+      await queueOfflineCreate();
+
+      await syncQueuedMutations(store);
+
+      expect(selectConflicts(store.getState())).toHaveLength(1);
+      expect(getCachedTodos(store, {})).toEqual([{id: "1", title: "Existing"}]);
+    });
+
+    it("removes the temp item after a create fails permanently", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(createResponse({data: {message: "Forbidden"}, status: 403}))
+      );
+      await queueOfflineCreate();
+
+      await syncQueuedMutations(store);
+
+      expect(getCachedTodos(store, {})).toEqual([{id: "1", title: "Existing"}]);
+    });
+
+    it("keeps the temp item queued when the create replay fails transiently", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(createResponse({data: {message: "Server error"}, status: 500}))
+      );
+      await queueOfflineCreate();
+
+      await syncQueuedMutations(store);
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+      expect(getCachedTodos(store, {})).toHaveLength(2);
+    });
+  });
+
+  describe("account switching", () => {
+    it("drops queued mutations that belong to a different signed-in user", async () => {
+      goOfflineAndQueue(store);
+      setCurrentUser(store, "other-user");
+
+      await syncQueuedMutations(store);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+
+    it("drops queued mutations when no user is signed in", async () => {
+      goOfflineAndQueue(store);
+      setCurrentUser(store, undefined);
+
+      await syncQueuedMutations(store);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+
+    it("drops legacy queued mutations recorded without a user id", async () => {
+      setCurrentUser(store, undefined);
+      goOfflineAndQueue(store);
+      setCurrentUser(store, "test-user");
+
+      await syncQueuedMutations(store);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+  });
+
+  describe("network error shapes", () => {
+    it("recognizes string error payloads on rejected mutations", () => {
+      store.dispatch(setOnlineStatus(false));
+      store.dispatch({
+        error: "Load failed",
+        meta: {arg: {endpointName: "postTodos", originalArgs: {body: {title: "New"}}}},
+        status: "FETCH_ERROR",
+        type: "terreno-rtk/executeMutation/rejected",
+      });
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+    });
+  });
+
+  describe("logout", () => {
+    it("clears queued mutations and conflicts", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(createResponse({data: {data: {_id: "123"}}, status: 409}))
+      );
+      goOfflineAndQueue(store);
+      await syncQueuedMutations(store);
+      expect(selectConflicts(store.getState())).toHaveLength(1);
+
+      goOfflineAndQueue(store);
+      store.dispatch({type: "auth/logout"});
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(selectConflicts(store.getState())).toHaveLength(0);
+    });
+  });
+
+  describe("startup replay", () => {
+    it("replays a rehydrated queue once while already online", async () => {
+      mockFetch.mockImplementationOnce(() => Promise.reject(new Error("network down")));
+      goOfflineAndQueue(store);
+      await syncQueuedMutations(store);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+      expect(selectIsOnline(store.getState())).toBe(true);
+
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects(120);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects(50);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not replay a rehydrated queue while offline", async () => {
+      goOfflineAndQueue(store);
+
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects(50);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+    });
+
+    it("resets a syncing flag left stuck by a crash during a prior sync", async () => {
+      store.dispatch(setSyncing(true));
+
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects();
+
+      expect(selectIsSyncing(store.getState())).toBe(false);
+    });
+
+    it("resets a stuck syncing flag when coming online with an empty queue", async () => {
+      store.dispatch(setOnlineStatus(false));
+      store.dispatch(setSyncing(true));
+
+      await syncQueuedMutations(store, 50);
+
+      expect(mockFetch).not.toHaveBeenCalled();
       expect(selectIsSyncing(store.getState())).toBe(false);
     });
   });
