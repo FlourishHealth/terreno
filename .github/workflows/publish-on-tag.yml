@@ -88,7 +88,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -182,7 +182,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -261,7 +261,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -425,7 +425,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -592,7 +592,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -683,7 +683,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -796,7 +796,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -911,7 +911,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -1011,7 +1011,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -1105,7 +1105,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -1199,7 +1199,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -1299,7 +1299,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -1393,7 +1393,7 @@ jobs:
           fi
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
