@@ -10,8 +10,8 @@ import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 import {ThumbsUpDownFeedback} from "./ThumbsUpDownFeedback";
 
-const DEFAULT_HEIGHT = 320;
-const DEFAULT_WIDTH = 320;
+const DEFAULT_HEIGHT = 480;
+const DEFAULT_WIDTH = 480;
 const ERROR_ICON_SIZE = 48;
 
 /**

@@ -1628,7 +1628,7 @@ export interface PopoverProps extends WithTestID {
   /**
    * Height of the popover. The popover is the same height in every status: the body scrolls when
    * it overflows, and the spinner and error message are centered in the remaining space.
-   * @default 320
+   * @default 480
    */
   height?: NumberOrPercentage;
   /**
@@ -1683,7 +1683,7 @@ export interface PopoverProps extends WithTestID {
   title?: string;
   /**
    * Width of the popover.
-   * @default 320
+   * @default 480
    */
   width?: NumberOrPercentage;
 }

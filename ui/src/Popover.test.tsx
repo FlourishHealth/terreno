@@ -114,6 +114,15 @@ describe("Popover", () => {
     expect(content.props.style?.height).toBeUndefined();
   });
 
+  it("defaults to the 480x480 design size", () => {
+    const {getByTestId} = renderWithTheme(
+      <Popover onClose={jest.fn()} testID="popover" title="Doc" />
+    );
+    expect(getByTestId("popover").props.style).toEqual(
+      expect.objectContaining({height: 480, width: 480})
+    );
+  });
+
   it("keeps the same height in every status", () => {
     const heights = (["loaded", "loading", "error"] as const).map((status) => {
       const {getByTestId} = renderWithTheme(
