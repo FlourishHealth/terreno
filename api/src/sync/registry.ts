@@ -1,5 +1,3 @@
-// noExplicitAny: model router options are generic across all models
-// biome-ignore-all lint/suspicious/noExplicitAny: model router options are generic across all models
 import type {Model} from "mongoose";
 import type {ModelRouterOptions} from "../api";
 import {logger} from "../logger";
@@ -21,7 +19,7 @@ export interface SyncRegistryEntry {
   /** Sync configuration from modelRouter options */
   config: SyncConfig;
   /** Full modelRouter options (for responseHandler, permissions, etc.) */
-  options: ModelRouterOptions<any>;
+  options: ModelRouterOptions<unknown>;
 }
 
 const syncRegistry: SyncRegistryEntry[] = [];
@@ -63,10 +61,10 @@ export const registerSync = ({
   config,
   options,
 }: {
-  model: Model<any>;
+  model: Model<unknown>;
   routePath: string;
   config: SyncConfig;
-  options: ModelRouterOptions<any>;
+  options: ModelRouterOptions<unknown>;
 }): void => {
   const name = model.modelName;
   const deletedPath = model.schema.path("deleted");

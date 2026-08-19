@@ -631,7 +631,12 @@ export function modelRouter<T>(
     }
     // Register for local-first sync if configured (validates the schema contract)
     if (options.sync) {
-      registerSync({config: options.sync, model, options, routePath: path});
+      registerSync({
+        config: options.sync,
+        model: model as unknown as Model<unknown>,
+        options: options as unknown as ModelRouterOptions<unknown>,
+        routePath: path,
+      });
     }
     return {
       __type: "modelRouter",
