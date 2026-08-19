@@ -820,7 +820,7 @@ export const RNPickerSelect = ({
         <WebDropdownMenu
           anchor={webAnchor}
           disableSearch={disableSearch || searchInTrigger}
-          keepTriggerFocus={searchInTrigger || renderMenuInBodyPortal}
+          keepTriggerFocus={searchInTrigger}
           onClose={closeWebMenu}
           onSelect={(_val, idx) => {
             const originalIndex = menuOptionIndexes[idx] ?? idx;
@@ -833,6 +833,7 @@ export const RNPickerSelect = ({
           }}
           options={menuOptions}
           presentation={Platform.OS === "android" ? "centered" : "anchored"}
+          renderInBodyPortal={renderMenuInBodyPortal}
           selectedIndex={menuSelectedIndex >= 0 ? menuSelectedIndex : undefined}
           showEmptyStateWhenNoOptions={searchInTrigger && webSearchQuery.trim().length > 0}
           testIDPrefix="web_dropdown"

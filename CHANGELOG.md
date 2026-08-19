@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Filter` and its composable select, boolean, accordion, and change-badge controls in
+  `@terreno/ui` for desktop web filtering flows ([#972](https://github.com/FlourishHealth/terreno/pull/972))
+
 ## [56.0.0-beta.2] - 2026-08-17
 
 Second beta of the Expo SDK 56 line, cut from `master` after merging
