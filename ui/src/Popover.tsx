@@ -5,6 +5,7 @@ import {Box} from "./Box";
 import {Button} from "./Button";
 import type {PopoverProps} from "./Common";
 import {DismissButton} from "./DismissButton";
+import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {Spinner} from "./Spinner";
 import {Text} from "./Text";
@@ -12,7 +13,7 @@ import {ThumbsUpDownFeedback} from "./ThumbsUpDownFeedback";
 
 const DEFAULT_HEIGHT = 480;
 const DEFAULT_WIDTH = 480;
-const ERROR_ICON_SIZE = 48;
+const ERROR_ICON_SIZE = 64;
 
 /**
  * A popover that previews a single document: a header with the document's title and date, the
@@ -49,6 +50,7 @@ export const Popover: FC<PopoverProps> = ({
     <DismissButton
       accessibilityHint="Closes the document preview"
       accessibilityLabel="Close document"
+      color="link"
       onClick={() => {
         void onClose();
       }}
@@ -65,13 +67,13 @@ export const Popover: FC<PopoverProps> = ({
   if (status === "error") {
     return card(
       <>
-        <Box paddingX={4} paddingY={3} position="absolute" right top zIndex={1}>
+        <Box paddingX={4} paddingY={4} position="absolute" right top zIndex={1}>
           {closeButton}
         </Box>
         <Box
           alignItems="center"
           flex="grow"
-          gap={3}
+          gap={4}
           justifyContent="center"
           paddingX={6}
           width="100%"
@@ -84,20 +86,17 @@ export const Popover: FC<PopoverProps> = ({
             rounding="circle"
             width={ERROR_ICON_SIZE}
           >
-            <Icon color="error" iconName="triangle-exclamation" size="lg" type="solid" />
+            <Icon color="error" iconName="triangle-exclamation" size="xl" type="solid" />
           </Box>
-          <Text align="center" bold testID={childTestID("error-title")}>
+          <Heading align="center" size="md" testID={childTestID("error-title")}>
             {errorTitle}
-          </Text>
-          <Text align="center" color="secondaryLight" size="sm">
-            {errorText}
-          </Text>
+          </Heading>
+          <Text align="center">{errorText}</Text>
           {Boolean(onRetry) && (
             // Button pins itself to flex-start, so center it on the row's main axis instead.
             <Box direction="row" justifyContent="center" width="100%">
               <Button
                 onClick={onRetry!}
-                size="sm"
                 testID={childTestID("retry")}
                 text={retryText}
                 variant="primary"
@@ -122,7 +121,7 @@ export const Popover: FC<PopoverProps> = ({
         testID={childTestID("content")}
       >
         <Box paddingX={4} paddingY={3} width="100%">
-          {children ?? (Boolean(text) && <Text size="sm">{text}</Text>)}
+          {children ?? (Boolean(text) && <Text>{text}</Text>)}
         </Box>
       </ScrollView>
     );
@@ -137,18 +136,18 @@ export const Popover: FC<PopoverProps> = ({
         direction="row"
         gap={2}
         paddingX={4}
-        paddingY={3}
+        paddingY={4}
       >
         <Box flex="grow">
           {status === "loaded" ? (
             <>
               {Boolean(title) && (
-                <Text bold testID={childTestID("title")}>
+                <Heading size="sm" testID={childTestID("title")}>
                   {title}
-                </Text>
+                </Heading>
               )}
               {Boolean(subtitle) && (
-                <Text color="secondaryLight" size="sm" testID={childTestID("subtitle")}>
+                <Text size="sm" testID={childTestID("subtitle")}>
                   {subtitle}
                 </Text>
               )}
@@ -181,10 +180,10 @@ export const Popover: FC<PopoverProps> = ({
               testID={childTestID("open")}
             >
               <Box alignItems="center" direction="row" gap={2}>
-                <Text bold color="link" size="sm">
+                <Text bold color="link">
                   {openText}
                 </Text>
-                <Icon color="link" iconName="arrow-up-right-from-square" size="sm" type="regular" />
+                <Icon color="link" iconName="arrow-up-right-from-square" size="md" type="regular" />
               </Box>
             </Pressable>
           ) : (
