@@ -1,7 +1,39 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {isAndroidDevMenuPageSource} from "../demo/appium/helpers/navigation";
+import {
+  createPeriodicRetry,
+  isAndroidDevMenuPageSource,
+} from "../demo/appium/helpers/navigation";
+
+describe("createPeriodicRetry", () => {
+  it("reissues an action only after the retry interval elapses", async () => {
+    let currentTime = 1000;
+    let actionCount = 0;
+    const retry = createPeriodicRetry({
+      issueAction: async (): Promise<void> => {
+        actionCount += 1;
+      },
+      now: (): number => currentTime,
+      retryIntervalMs: 4000,
+    });
+
+    await retry();
+    assert.equal(actionCount, 0);
+
+    currentTime = 4999;
+    await retry();
+    assert.equal(actionCount, 0);
+
+    currentTime = 5000;
+    await retry();
+    assert.equal(actionCount, 1);
+
+    currentTime = 9000;
+    await retry();
+    assert.equal(actionCount, 2);
+  });
+});
 
 describe("isAndroidDevMenuPageSource", () => {
   it("detects the Expo SDK 56 development menu", () => {
