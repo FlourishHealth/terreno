@@ -19,7 +19,6 @@ interface NavigationDiagnosticsOptions {
 interface IosLoadTimeoutRecoveryOptions {
   isIos: boolean;
   reload: () => Promise<void>;
-  reopen: () => Promise<void>;
 }
 
 const DEV_LAUNCHER_MARKERS = [
@@ -34,14 +33,6 @@ const IOS_LOAD_TIMEOUT_MARKERS = [
   "failed to load app from",
   "request timed out",
 ];
-
-const IOS_DEV_LAUNCHER_HOME_MARKERS = [
-  "development build",
-  "development servers",
-  "no development servers found",
-];
-const IOS_DEV_LAUNCHER_HOME_VISIBLE_MARKER =
-  /<[^>]*(?=[^>]*(?:value|name|label)="no development servers found")(?=[^>]*visible="true")[^>]*>/i;
 
 export const isAndroidDevMenuPageSource = (pageSource: string): boolean => {
   const normalizedPageSource = pageSource.toLowerCase();
@@ -60,40 +51,20 @@ export const isIosDevClientLoadTimeoutPageSource = (pageSource: string): boolean
   return IOS_LOAD_TIMEOUT_MARKERS.every((marker) => normalizedPageSource.includes(marker));
 };
 
-export const isIosDevLauncherHomePageSource = (pageSource: string): boolean => {
-  const normalizedPageSource = pageSource.toLowerCase();
-  return (
-    IOS_DEV_LAUNCHER_HOME_MARKERS.every((marker) => normalizedPageSource.includes(marker)) &&
-    IOS_DEV_LAUNCHER_HOME_VISIBLE_MARKER.test(pageSource)
-  );
-};
-
 export const createIosLoadTimeoutRecovery = ({
   isIos,
   reload,
-  reopen,
 }: IosLoadTimeoutRecoveryOptions): ((pageSource: string) => Promise<boolean>) => {
   let didReload = false;
-  let didReopen = false;
 
   return async (pageSource: string): Promise<boolean> => {
-    if (!isIos) {
+    if (!isIos || didReload || !isIosDevClientLoadTimeoutPageSource(pageSource)) {
       return false;
     }
 
-    if (!didReload && isIosDevClientLoadTimeoutPageSource(pageSource)) {
-      didReload = true;
-      await reload();
-      return true;
-    }
-
-    if (didReload && !didReopen && isIosDevLauncherHomePageSource(pageSource)) {
-      didReopen = true;
-      await reopen();
-      return true;
-    }
-
-    return false;
+    didReload = true;
+    await reload();
+    return true;
   };
 };
 
@@ -110,7 +81,7 @@ const homeItemTimeoutMs = isQuickLoop ? 15000 : 30000;
 const itemInitialTimeoutMs = isQuickLoop ? 6000 : 10000;
 const itemPostScrollTimeoutMs = isQuickLoop ? 15000 : 30000;
 const overlayDismissTimeoutMs = isQuickLoop ? 15000 : 30000;
-const iosDevClientBootstrapTimeoutMs = 180000;
+const iosDevClientBootstrapTimeoutMs = 120000;
 
 const toDemoHomeTestId = (componentName: string): string =>
   `demo-home-${componentName.toLowerCase().replace(/\s+/g, "-")}`;
@@ -461,10 +432,6 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
         console.info("Reloading iOS dev client once after project load timeout");
         const reloadButton = await $("~Reload");
         await reloadButton.click();
-      },
-      reopen: async (): Promise<void> => {
-        console.info("Reopening iOS dev-client URL once after Reload returned to launcher Home");
-        await openDevClientComponentUrl();
       },
     });
     await driver.waitUntil(
