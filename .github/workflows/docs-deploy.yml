@@ -88,7 +88,7 @@ jobs:
           DEMO_URL: https://terreno-demo.netlify.app
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: docs-dist
           path: website/build

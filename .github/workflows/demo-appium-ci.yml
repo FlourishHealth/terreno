@@ -196,7 +196,7 @@ jobs:
 
       - name: Upload Appium story snapshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: demo-appium-android-screenshots
           path: demo/appium/screenshots/
@@ -205,7 +205,7 @@ jobs:
 
       - name: Upload Appium logs
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: demo-appium-android-logs
           path: demo/logs/
@@ -365,7 +365,7 @@ jobs:
 
       - name: Upload Appium story snapshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: demo-appium-ios-screenshots
           path: demo/appium/screenshots/
@@ -374,7 +374,7 @@ jobs:
 
       - name: Upload Appium logs
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: demo-appium-ios-logs
           path: demo/logs/
