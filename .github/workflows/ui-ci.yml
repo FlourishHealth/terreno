@@ -29,7 +29,7 @@ jobs:
 
       - name: Cache Bun dependencies
         id: cache
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -81,7 +81,7 @@ jobs:
 
       - name: Cache Bun dependencies
         id: cache2
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache

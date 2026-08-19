@@ -501,6 +501,40 @@ describe("useSocketConnection", () => {
     expect(lastSocket().connectCount).toBe(0);
   });
 
+  it("reconnects the socket after a successful token refresh on disconnect", async () => {
+    tokenHelperState.authRemainingSecs = 10;
+    tokenHelperState.refreshRemainingSecs = 3600;
+
+    await withWindow(async () => {
+      renderSocket();
+      await waitFor(() => {
+        expect(sockets).toHaveLength(1);
+      });
+      lastSocket().disconnect();
+      const connectCountBefore = lastSocket().connectCount;
+
+      await act(async () => {
+        await lastSocket().trigger("disconnect", "transport error");
+      });
+
+      expect(lastSocket().connectCount).toBeGreaterThan(connectCountBefore);
+    });
+    expect(toastState.shown.some((t) => t.title.startsWith("Error refreshing"))).toBe(false);
+  });
+
+  it("skips the forced reconnect when the socket was torn down before the timer fired", async () => {
+    const {unmount} = renderSocket();
+
+    await act(async () => {
+      await lastSocket().trigger("reconnect_failed");
+    });
+    const connectCountAfterEvent = lastSocket().connectCount;
+    unmount();
+
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+    expect(lastSocket().connectCount).toBe(connectCountAfterEvent);
+  });
+
   it("does not force a reconnect after reconnect_failed when the socket reconnected", async () => {
     renderSocket();
 
