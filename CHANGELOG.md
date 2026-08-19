@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Frontend peer/catalog stack moves to Expo SDK 57 / React Native 0.86.2
+  (`expo ~57.0.14`, matching React Native DevTools and Hermes V1 fixes from
+  `expo@57.0.9+`). React stays at 19.2.3. Consuming apps should run
+  `npx expo install expo@latest --fix` then rebuild native binaries.
+- `@terreno/syncdb` bumps `tinybase` to `^9.5.1` for Expo SDK 57 /
+  `expo-sqlite` type compatibility.
+
 ## [56.0.0-beta.2] - 2026-08-17
 
 Second beta of the Expo SDK 56 line, cut from `master` after merging

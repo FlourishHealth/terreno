@@ -63,6 +63,11 @@ const setup = async (): Promise<Harness> => {
     transport,
   });
   await client.start();
+  // TinyBase 9 + React 19 `act()` will wait on in-flight start work
+  // (`void reconcile()` / `void replayOutbox()`). Drain those before tests
+  // wrap `stop()` in `act`, or `act` never settles.
+  await client.reconcile();
+  await client.replayOutbox();
   const wrapper: React.FC<{children: React.ReactNode}> = ({children}) => (
     <SyncDbProvider client={client}>{children}</SyncDbProvider>
   );
