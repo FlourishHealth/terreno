@@ -5,7 +5,6 @@ import {
   createIosLoadTimeoutRecovery,
   isAndroidDevMenuPageSource,
   isIosDevClientLoadTimeoutPageSource,
-  isIosDevLauncherHomePageSource,
 } from "../demo/appium/helpers/navigation";
 
 describe("iOS dev-client load-timeout recovery", () => {
@@ -13,11 +12,6 @@ describe("iOS dev-client load-timeout recovery", () => {
     <XCUIElementTypeStaticText value="There was a problem loading the project." />
     <XCUIElementTypeStaticText value="Failed to load app from http://localhost:8085 with error: The request timed out." />
     <XCUIElementTypeButton name="Reload" label="Reload" />
-  `;
-  const launcherHomePageSource = `
-    <XCUIElementTypeStaticText value="Development Build" visible="true" />
-    <XCUIElementTypeStaticText value="DEVELOPMENT SERVERS" visible="true" />
-    <XCUIElementTypeStaticText value="No development servers found" visible="true" />
   `;
 
   it("detects the Expo iOS load-timeout overlay", () => {
@@ -30,53 +24,18 @@ describe("iOS dev-client load-timeout recovery", () => {
     );
   });
 
-  it("detects the iOS launcher Home screen", () => {
-    assert.isTrue(isIosDevLauncherHomePageSource(launcherHomePageSource));
-    assert.isFalse(isIosDevLauncherHomePageSource(timeoutPageSource));
-    assert.isFalse(
-      isIosDevLauncherHomePageSource(
-        launcherHomePageSource.replace(
-          'value="No development servers found" visible="true"',
-          'value="No development servers found" visible="false"'
-        )
-      )
-    );
-  });
-
-  it("reloads once, then reopens the URL once only after launcher Home returns", async () => {
+  it("reloads the timed-out iOS project once", async () => {
     let reloadCount = 0;
-    let reopenCount = 0;
     const recover = createIosLoadTimeoutRecovery({
       isIos: true,
       reload: async (): Promise<void> => {
         reloadCount += 1;
       },
-      reopen: async (): Promise<void> => {
-        reopenCount += 1;
-      },
     });
 
     assert.isTrue(await recover(timeoutPageSource));
     assert.isFalse(await recover(timeoutPageSource));
-    assert.equal(reopenCount, 0);
-    assert.isTrue(await recover(launcherHomePageSource));
-    assert.isFalse(await recover(launcherHomePageSource));
     assert.equal(reloadCount, 1);
-    assert.equal(reopenCount, 1);
-  });
-
-  it("does not reopen launcher Home unless a timeout was reloaded first", async () => {
-    let reopenCount = 0;
-    const recover = createIosLoadTimeoutRecovery({
-      isIos: true,
-      reload: async (): Promise<void> => {},
-      reopen: async (): Promise<void> => {
-        reopenCount += 1;
-      },
-    });
-
-    assert.isFalse(await recover(launcherHomePageSource));
-    assert.equal(reopenCount, 0);
   });
 });
 

@@ -1,11 +1,47 @@
-import {existsSync} from "node:fs";
+import {appendFileSync, existsSync} from "node:fs";
 
 import {isCi, sharedConfig} from "./wdio.shared.conf";
 
 const iosAppPath = process.env.IOS_APP_PATH;
 const iosAppPathExists = iosAppPath ? existsSync(iosAppPath) : false;
 
+try {
+  // #region agent log
+  appendFileSync(
+    "/opt/cursor/logs/debug.log",
+    `${JSON.stringify({
+      hypothesisId: "H3",
+      location: "demo/appium/wdio.ios.conf.ts:8",
+      message: "Resolved IOS_APP_PATH state",
+      data: {
+        iosAppPath,
+        iosAppPathExists,
+      },
+      timestamp: Date.now(),
+    })}\n`
+  );
+  // #endregion
+} catch {}
+
 if (!iosAppPath || !iosAppPathExists) {
+  try {
+    // #region agent log
+    appendFileSync(
+      "/opt/cursor/logs/debug.log",
+      `${JSON.stringify({
+        hypothesisId: "H3",
+        location: "demo/appium/wdio.ios.conf.ts:25",
+        message: "Failing due to missing IOS_APP_PATH bundle",
+        data: {
+          iosAppPath,
+          iosAppPathExists,
+        },
+        timestamp: Date.now(),
+      })}\n`
+    );
+    // #endregion
+  } catch {}
+
   throw new Error(
     "Set IOS_APP_PATH to a built iOS simulator .app bundle. Build with xcodebuild for iphonesimulator first."
   );
@@ -35,6 +71,28 @@ const iosCapabilities: Record<string, unknown> = {
       }
     : {}),
 };
+
+try {
+  // #region agent log
+  appendFileSync(
+    "/opt/cursor/logs/debug.log",
+    `${JSON.stringify({
+      hypothesisId: "H2",
+      location: "demo/appium/wdio.ios.conf.ts:67",
+      message: "Resolved iOS Appium capabilities",
+      data: {
+        deviceName: iosCapabilities["appium:deviceName"],
+        platformVersion: iosCapabilities["appium:platformVersion"] ?? null,
+        simulatorStartupTimeout: iosCapabilities["appium:simulatorStartupTimeout"] ?? null,
+        udid: iosCapabilities["appium:udid"] ?? null,
+        wdaConnectionTimeout: iosCapabilities["appium:wdaConnectionTimeout"] ?? null,
+        wdaLaunchTimeout: iosCapabilities["appium:wdaLaunchTimeout"] ?? null,
+      },
+      timestamp: Date.now(),
+    })}\n`
+  );
+  // #endregion
+} catch {}
 
 export const config: WebdriverIO.Config = {
   ...sharedConfig,
