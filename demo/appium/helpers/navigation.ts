@@ -62,8 +62,14 @@ export const createIosLoadTimeoutRecovery = ({
       return false;
     }
 
+    try {
+      await reload();
+    } catch (error) {
+      console.warn("iOS load-timeout Reload click failed; will retry", error);
+      return false;
+    }
+
     didReload = true;
-    await reload();
     return true;
   };
 };
@@ -439,16 +445,14 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
         if (driver.isIOS) {
           const pageSource = await driver.getPageSource().catch(() => "");
           const didReloadAfterTimeout = await recoverIosLoadTimeout(pageSource);
-          if (didReloadAfterTimeout) {
+          // The timeout overlay is not the Dev Launcher: it has no launcher
+          // markers, so disappearing-launcher is not enough to call the app loaded.
+          if (didReloadAfterTimeout || isIosDevClientLoadTimeoutPageSource(pageSource)) {
             return false;
           }
         }
 
-        if (!(await isDevLauncherVisible())) {
-          return true;
-        }
-
-        return false;
+        return !(await isDevLauncherVisible());
       },
       {
         interval: 1000,

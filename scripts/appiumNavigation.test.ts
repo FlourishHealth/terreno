@@ -37,6 +37,30 @@ describe("iOS dev-client load-timeout recovery", () => {
     assert.isFalse(await recover(timeoutPageSource));
     assert.equal(reloadCount, 1);
   });
+
+  it("retries reload if the first click fails", async () => {
+    let reloadCount = 0;
+    const recover = createIosLoadTimeoutRecovery({
+      isIos: true,
+      reload: async (): Promise<void> => {
+        reloadCount += 1;
+        if (reloadCount === 1) {
+          throw new Error("click failed");
+        }
+      },
+    });
+
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.isTrue(await recover(timeoutPageSource));
+    assert.isFalse(await recover(timeoutPageSource));
+    assert.equal(reloadCount, 2);
+  });
+
+  it("does not treat the load-timeout overlay as a loaded app", () => {
+    assert.isTrue(isIosDevClientLoadTimeoutPageSource(timeoutPageSource));
+    assert.notInclude(timeoutPageSource.toLowerCase(), "development servers");
+    assert.notInclude(timeoutPageSource.toLowerCase(), "dev launcher");
+  });
 });
 
 describe("isAndroidDevMenuPageSource", () => {
