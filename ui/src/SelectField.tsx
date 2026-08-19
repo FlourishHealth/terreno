@@ -16,6 +16,7 @@ export const SelectField: FC<SelectFieldProps> = ({
   requireValue = false,
   placeholder = "Please select an option.",
   disableSearch = false,
+  renderMenuInBodyPortal = false,
   title,
   value,
   onChange,
@@ -42,6 +43,7 @@ export const SelectField: FC<SelectFieldProps> = ({
             }
           }}
           placeholder={!requireValue ? clearOption : {}}
+          renderMenuInBodyPortal={renderMenuInBodyPortal}
           textInputProps={{testID: fieldTestIDs.input}}
           value={value ?? ""}
         />

@@ -133,6 +133,14 @@ export interface RNPickerSelectProps {
    * @default false
    */
   disableSearch?: boolean;
+
+  /**
+   * Web only. When true, the dropdown menu renders in a fixed portal on
+   * `document.body` instead of a React Native `Modal`, so it floats above
+   * ancestor portals / high-zIndex overlays (e.g. the `Filter` panel).
+   * @default false
+   */
+  renderMenuInBodyPortal?: boolean;
 }
 
 export const RNPickerSelect = ({
@@ -158,6 +166,7 @@ export const RNPickerSelect = ({
 
   InputAccessoryView,
   disableSearch = false,
+  renderMenuInBodyPortal = false,
 }: RNPickerSelectProps) => {
   const searchable = !disableSearch;
   const [showPicker, setShowPicker] = useState<boolean>(false);
@@ -824,6 +833,7 @@ export const RNPickerSelect = ({
           }}
           options={menuOptions}
           presentation={Platform.OS === "android" ? "centered" : "anchored"}
+          renderInBodyPortal={renderMenuInBodyPortal}
           selectedIndex={menuSelectedIndex >= 0 ? menuSelectedIndex : undefined}
           showEmptyStateWhenNoOptions={searchInTrigger && webSearchQuery.trim().length > 0}
           testIDPrefix="web_dropdown"
