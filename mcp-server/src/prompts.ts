@@ -503,22 +503,20 @@ ${features.map((f) => `- ${f}`).join("\n")}
 ## Backend Setup (@terreno/api)
 
 1. **User Model** (\`models/user.ts\`):
-   - Use passport-local-mongoose plugin
+   - Add \`betterAuthId\` for Better Auth account linkage
    - Add baseUserPlugin for standard fields
    - Include email, name, and admin fields
-   - Add custom methods (getDisplayName)
 
-2. **Auth Configuration** (\`config/auth.ts\`):
-   - Configure Passport strategies (local, JWT)
-   - Set up session management
-   - Configure token secrets from environment
+2. **Better Auth Configuration** (\`utils/betterAuthConfig.ts\`):
+   - Export \`createBetterAuth\` with email/password enabled
+   - Set \`trustedOrigins\` from \`getWebOrigins()\`
+   - Read \`BETTER_AUTH_SECRET\` and \`BETTER_AUTH_URL\` from environment
 
-3. **Auth Routes** (\`routes/auth.ts\`):
-   - POST /auth/signup - Create new user
-   - POST /auth/login - Email/password login
-   - POST /auth/refresh - Refresh token
-   - POST /auth/logout - Logout
-   ${features.includes("passwordReset") ? "- POST /auth/forgot-password\n   - POST /auth/reset-password" : ""}
+3. **Server wiring** (\`server.ts\`):
+   - Register \`BetterAuthApp\` with \`createBetterAuth\`
+   - Set \`AUTH_PROVIDER=better-auth\` in \`.env\`
+   - Use a MongoDB replica set (\`MONGO_URI\` with \`replicaSet=rs0\`) for change streams
+   ${features.includes("passwordReset") ? "- Enable Better Auth password reset in the auth config" : ""}
 
 ## Frontend Setup (@terreno/syncdb, @terreno/rtk for Better Auth + SDK, @terreno/ui)
 
@@ -527,39 +525,41 @@ ${features.map((f) => `- ${f}`).join("\n")}
    - Keep \`terrenoApi\` reducer for non-synced OpenAPI routes only
    - Add \`store/syncdb.ts\` with \`createSyncDb\` + \`betterAuthAdapter\`
 
-5. **Login Screen** (\`screens/LoginScreen.tsx\`):
-   - Email and password fields
-   - Login button with loading state
-   - Error display
-   - Link to signup
+5. **Login Screen** (\`app/login.tsx\`):
+   - Email and password fields only (no name field on login)
+   - \`betterAuthClient.signIn.email\` on submit
+   - \`onSignUpPress\` navigates to a separate signup screen
 
-6. **Signup Screen** (\`screens/SignupScreen.tsx\`):
-   - Name, email, password fields
-   - Validation (email format, password strength)
-   - Signup mutation
-   - Error handling
+6. **Signup Screen** (\`app/signup.tsx\`):
+   - Name, email, password fields via \`SignUpScreen\`
+   - \`betterAuthClient.signUp.email\` on submit
+   - \`onLoginPress\` navigates back to login
 
 ${
   features.includes("passwordReset")
     ? `7. **Password Reset**:
    - Forgot password screen with email input
-   - Reset password screen with token validation`
+   - Reset password screen with token validation via Better Auth`
     : ""
 }
 
 ## Auth State Management
 
 \`\`\`typescript
+import {selectBetterAuthUserId, syncBetterAuthSession} from "@/store/index";
+import {betterAuthClient} from "@/lib/betterAuth";
+
 // Check authentication
-const userId = useAppSelector((state) => state.auth.userId);
-const isAuthenticated = !!userId;
+const userId = useAppSelector(selectBetterAuthUserId);
+const isAuthenticated = Boolean(userId);
 
-// Login
-const [emailLogin] = useEmailLoginMutation();
-await emailLogin({ email, password }).unwrap();
+// Sign in
+const result = await betterAuthClient.signIn.email({ email, password });
+await syncBetterAuthSession(dispatch);
 
-// Logout
-dispatch({ type: LOGOUT_ACTION_TYPE });
+// Sign out
+await betterAuthClient.signOut();
+await syncBetterAuthSession(dispatch);
 \`\`\`
 
 ## Protected Routes

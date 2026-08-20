@@ -100,6 +100,7 @@ describe("bootstrap", () => {
       expect(text).toContain("frontend/scripts/generate-sdk.ts");
       expect(text).toContain("frontend/app/_layout.tsx");
       expect(text).toContain("frontend/app/login.tsx");
+      expect(text).toContain("frontend/app/signup.tsx");
       expect(text).toContain("frontend/app/+not-found.tsx");
       expect(text).toContain("frontend/app/(tabs)/_layout.tsx");
       expect(text).toContain("frontend/app/(tabs)/index.tsx");

@@ -24,7 +24,7 @@ const config: Config = {
       {
         redirects: [
           {
-            from: "/reference/rtk",
+            from: "/next/reference/rtk",
             to: "/next/how-to/migrate-rtk-to-syncdb",
           },
         ],

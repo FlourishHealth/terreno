@@ -1199,7 +1199,10 @@ function RootLayoutNav(): React.ReactElement {
       <ThemeProvider value={DefaultTheme}>
         <Stack>
           {!userId ? (
-            <Stack.Screen name="login" options={{headerShown: false}} />
+            <>
+              <Stack.Screen name="login" options={{headerShown: false}} />
+              <Stack.Screen name="signup" options={{headerShown: false}} />
+            </>
           ) : (
             <Stack.Screen name="(tabs)" options={{headerShown: false}} />
           )}
@@ -1228,23 +1231,20 @@ const Login: React.FC = () => {
 
   const handleSubmit = useCallback(
     async (values: Record<string, string>): Promise<void> => {
-      const {email, password, name} = values;
+      const {email, password} = values;
       setErrorMessage(undefined);
       setIsSubmitting(true);
       try {
-        const isSignUp = Boolean(name);
-        const result = isSignUp
-          ? await betterAuthClient.signUp.email({email, name, password})
-          : await betterAuthClient.signIn.email({email, password});
+        const result = await betterAuthClient.signIn.email({email, password});
         if (result.error) {
-          setErrorMessage(result.error.message ?? "Authentication failed.");
+          setErrorMessage(result.error.message ?? "Sign in failed.");
           return;
         }
         await syncBetterAuthSession(dispatch);
         router.replace("/(tabs)");
       } catch (error: unknown) {
-        console.error("[login] Authentication threw", {baseUrl, error});
-        setErrorMessage("Authentication failed. Please try again.");
+        console.error("[login] Sign in threw", {baseUrl, error});
+        setErrorMessage("Sign in failed. Please try again.");
       } finally {
         setIsSubmitting(false);
       }
@@ -1256,11 +1256,11 @@ const Login: React.FC = () => {
     <LoginScreen
       error={errorMessage}
       fields={[
-        {label: "Name (sign up only)", name: "name", type: "text"},
         {autoComplete: "off", label: "Email", name: "email", required: true, type: "email"},
         {label: "Password", name: "password", required: true, type: "password"},
       ]}
       loading={isSubmitting}
+      onSignUpPress={() => router.push("/signup")}
       onSubmit={handleSubmit}
       title="Welcome"
     />
@@ -1268,6 +1268,62 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+`;
+};
+
+const generateFrontendSignup = (): string => {
+  return `import {SignUpScreen, simplePasswordRequirements} from "@terreno/ui";
+import {useRouter} from "expo-router";
+import type React from "react";
+import {useCallback, useState} from "react";
+import {betterAuthClient} from "@/lib/betterAuth";
+import {syncBetterAuthSession, useAppDispatch} from "@/store/index";
+
+const SignUp: React.FC = () => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(
+    async (values: Record<string, string>): Promise<void> => {
+      const {email, password, name} = values;
+      setErrorMessage(undefined);
+      setIsSubmitting(true);
+      try {
+        const result = await betterAuthClient.signUp.email({email, name, password});
+        if (result.error) {
+          setErrorMessage(result.error.message ?? "Sign up failed.");
+          return;
+        }
+        await syncBetterAuthSession(dispatch);
+        router.replace("/(tabs)");
+      } catch {
+        setErrorMessage("Sign up failed. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [dispatch, router]
+  );
+
+  return (
+    <SignUpScreen
+      error={errorMessage}
+      fields={[
+        {label: "Name", name: "name", required: true, type: "text"},
+        {autoComplete: "off", label: "Email", name: "email", required: true, type: "email"},
+        {label: "Password", name: "password", required: true, type: "password"},
+      ]}
+      loading={isSubmitting}
+      onLoginPress={() => router.back()}
+      onSubmit={handleSubmit}
+      passwordRequirements={simplePasswordRequirements}
+    />
+  );
+};
+
+export default SignUp;
 `;
 };
 
@@ -2601,6 +2657,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendGenerateSdk(), path: `${frontendDir}/scripts/generate-sdk.ts`},
     {content: generateFrontendRootLayout(args), path: `${frontendDir}/app/_layout.tsx`},
     {content: generateFrontendLogin(), path: `${frontendDir}/app/login.tsx`},
+    {content: generateFrontendSignup(), path: `${frontendDir}/app/signup.tsx`},
     {content: generateFrontendNotFound(), path: `${frontendDir}/app/+not-found.tsx`},
     {content: generateFrontendTabsLayout(), path: `${frontendDir}/app/(tabs)/_layout.tsx`},
     {content: generateFrontendTabsIndex(args), path: `${frontendDir}/app/(tabs)/index.tsx`},
