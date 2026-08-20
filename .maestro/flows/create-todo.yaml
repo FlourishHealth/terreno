@@ -9,9 +9,9 @@ url: http://localhost:8082/
       id: "todos-screen"
     timeout: 30000
 
-# RN Web maps TextField nativeID to the placeholder node; tap the label like login taps "Email"
+# RN Web: placeholder must match title so Maestro tap targets the TextInput (LoginScreen pattern)
 - tapOn:
-    id: "todos-title-input.label"
+    id: "todos-title-input"
 - inputText: "Buy groceries"
 
 - tapOn:
