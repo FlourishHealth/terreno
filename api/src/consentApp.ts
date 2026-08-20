@@ -160,6 +160,7 @@ export class ConsentApp implements TerrenoPlugin {
             sortableFields: ["agreed", "locale", "agreedAt", "created"],
           },
           model: ConsentResponse as unknown as import("mongoose").Model<unknown>,
+          populatePaths: consentResponsePopulatePaths,
           routePath: "/consent-responses",
         },
       ],

@@ -13,7 +13,7 @@ const FilesScreen: React.FC = () => {
   return (
     <DocumentStorageBrowser
       api={terrenoApi}
-      basePath="/admin/documents"
+      basePath="/documents"
       onSettingsPress={handleSettingsPress}
       title="Files"
     />

@@ -75,6 +75,25 @@ describe("aggregateAdminContributions", () => {
     expect(aggregated.widgetIds).toEqual(["feature-flags-overrides"]);
   });
 
+  it("forwards populatePaths from plugin model contributions", () => {
+    const aggregated = aggregateAdminContributions({
+      pluginContributions: [
+        {
+          models: [
+            {
+              admin: {displayName: "Foods", listFields: ["name"]},
+              model: FoodModel,
+              populatePaths: [{fields: ["email"], path: "ownerId"}],
+              routePath: "/foods",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(aggregated.models[0]?.populatePaths).toEqual([{fields: ["email"], path: "ownerId"}]);
+  });
+
   it("throws when two registered routers share a routePath", () => {
     const registered = collectRegisteredAdminModels({
       getPlugins: () => [],

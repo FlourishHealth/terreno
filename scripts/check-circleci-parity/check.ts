@@ -20,7 +20,7 @@ const main = (): void => {
       console.error(`  ${gap.workflow}.yml: "${gap.path}" never sets ${gap.parameter}`);
     }
     console.error(
-      "\nAdd the path to the mapping in .circleci/config.yml so the CircleCI twin runs. See docs/how-to/circleci.md"
+      "\nAdd the path to the mapping in .circleci/config.setup.yml (or config.yml) so the CircleCI twin runs. See docs/how-to/circleci.md"
     );
     process.exit(1);
   }
