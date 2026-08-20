@@ -1,0 +1,4 @@
+# Include top-level example-frontend flows and nested demo smokes.
+flows:
+  - "*"
+  - "demo/*"
