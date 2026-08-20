@@ -88,6 +88,7 @@ export interface AdminModelConfig {
   excludeFields?: string[];
   /** Admin UI v2 — declarative bulk actions */
   actions?: {
+    allowed?: boolean;
     background?: boolean;
     confirm?: string;
     id: string;
@@ -312,6 +313,9 @@ export interface RefFieldRendererProps {
   helperText?: string;
   /** When true, the picker is display-only and does not submit changes. */
   readOnly?: boolean;
+  /** When true, query the referenced model search endpoint as the user types. */
+  autocomplete?: boolean;
+  testID?: string;
 }
 
 /**

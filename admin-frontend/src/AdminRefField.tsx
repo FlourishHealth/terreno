@@ -18,16 +18,20 @@ export const AdminRefField: React.FC<RefFieldRendererProps> = ({
   errorText,
   helperText,
   readOnly,
+  autocomplete = false,
+  testID,
 }) => {
   return (
     <AdminObjectPicker
       api={api}
+      autocomplete={autocomplete}
       errorText={errorText}
       helperText={helperText}
       onChange={onChange}
       readOnly={readOnly}
       refModelName={refModelName}
       routePath={routePath}
+      testID={testID}
       title={title}
       value={value}
     />

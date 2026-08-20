@@ -79,6 +79,8 @@ export interface AdminFieldRendererCoreProps extends AdminScreenProps {
   refRenderers?: RefRendererMap;
   /** When true, inputs are disabled and ref fields do not open the picker. */
   readOnly?: boolean;
+  /** Field keys that should use async autocomplete for ref pickers. */
+  autocompleteFields?: string[];
 }
 
 /**
@@ -100,6 +102,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   parentFormState,
   refRenderers,
   readOnly,
+  autocompleteFields,
 }) => {
   const label = startCase(fieldKey);
   const helperText = fieldConfig.description;
@@ -240,10 +243,12 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       );
     }
     if (refModel) {
+      const useAutocomplete = Boolean(autocompleteFields?.includes(fieldKey));
       return (
         <AdminRefField
           api={api}
           apiBase={apiBase}
+          autocomplete={useAutocomplete}
           baseUrl={baseUrl}
           errorText={errorText}
           helperText={helperText}

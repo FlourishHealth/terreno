@@ -420,4 +420,72 @@ describe("AdminModelTable", () => {
     const rows = (tables[0] as ReactTestInstance).props.data as {value: {href?: string}}[][];
     expect(rows[0][0].value.href).toBe("/admin/User/u1");
   });
+
+  it("hides create button when permissions.create is false", async () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          permissions: {create: false},
+        },
+      ],
+      scripts: [],
+    };
+    let headerRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        headerRight = opts.headerRight();
+      }
+    });
+    renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    expect(headerRight).not.toBeNull();
+    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
+    expect(header.queryByTestId("admin-create-button")).toBeNull();
+  });
+
+  it("marks only sortableFields as sortable columns", () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          listFields: ["email", "active"],
+          sortableFields: ["email"],
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {data: [{_id: "u1", active: true, email: "a@b.com"}], total: 1};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
+    const cols = (tables[0] as ReactTestInstance).props.columns as {sortable?: boolean; title: string}[];
+    const emailCol = cols.find((c) => c.title === "Email");
+    const activeCol = cols.find((c) => c.title === "Active");
+    expect(emailCol?.sortable).toBe(true);
+    expect(activeCol?.sortable).toBe(false);
+  });
+
+  it("uses pageSize from model config for pagination", () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          pageSize: 50,
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 100};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => typeof n.props?.totalPages === "number");
+    expect((tables[0] as ReactTestInstance).props.totalPages).toBe(2);
+  });
 });

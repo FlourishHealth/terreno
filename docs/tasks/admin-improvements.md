@@ -155,28 +155,28 @@
 
 ## Phase 4 — Admin frontend feature lift
 
-- [ ] **Task 4.1**: `AdminFilterDrawer` — replace inline filters in `AdminModelTable`  
+- [x] **Task 4.1**: `AdminFilterDrawer` — replace inline filters in `AdminModelTable`  
   - Mobile sheet; testIDs per original spec  
   - Files: `AdminFilterDrawer.tsx`, `AdminModelTable.tsx`, tests  
   - Depends on: 3.2
 
-- [ ] **Task 4.2**: Extract `AdminActionMenu` — still uses `bulk-patch` / `background-tasks`  
+- [x] **Task 4.2**: Extract `AdminActionMenu` — still uses `bulk-patch` / `background-tasks`  
   - Files: `AdminActionMenu.tsx`, `AdminModelTable.tsx`, tests  
   - Depends on: none (v2 logic move)
 
-- [ ] **Task 4.3**: Bulk selection polish — clear on filter/search/sort change (verify v2)  
+- [x] **Task 4.3**: Bulk selection polish — clear on filter/search/sort change (verify v2)  
   - Files: `AdminModelTable.tsx`, tests  
   - Depends on: 4.1
 
-- [ ] **Task 4.4**: `sortableFields` + `pageSize` UI enforcement (verify/complete v2)  
+- [x] **Task 4.4**: `sortableFields` + `pageSize` UI enforcement (verify/complete v2)  
   - Files: `AdminModelTable.tsx`, tests  
   - Depends on: 2.7
 
-- [ ] **Task 4.5**: `autocompleteFields` async ref picker  
+- [x] **Task 4.5**: `autocompleteFields` async ref picker  
   - Files: `AdminRefField.tsx`, `AdminModelForm.tsx`, tests  
   - Depends on: 3.2
 
-- [ ] **Task 4.6**: Static permission UI — hide create/delete/actions when flags false  
+- [x] **Task 4.6**: Static permission UI — hide create/delete/actions when flags false  
   - Files: `AdminModelTable.tsx`, `AdminModelForm.tsx`, `AdminActionMenu.tsx`  
   - Depends on: 2.5, 4.2
 
