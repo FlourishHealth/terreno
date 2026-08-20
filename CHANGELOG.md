@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
 
+### Fixed
+
+- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
+  row so `retries: false` stays fail-fast after keepMine.
+
 ### Deprecated
 
 - **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
