@@ -738,6 +738,28 @@ describe("CommsService", () => {
     assert.equal((row.payload as {subject?: string}).subject, "Quiet hours rewrite");
   });
 
+  it("reapplies defaultFrom after beforeSend replaces the mail message", async (): Promise<void> => {
+    let delivered: MailMessage | undefined;
+    const service = new CommsService({
+      beforeSend: async (): Promise<{message: MailMessage}> => ({
+        message: {subject: "Quiet hours rewrite", text: "rewritten", to: "person@example.com"},
+      }),
+      defaultFrom: "sender@example.com",
+      mail: {
+        id: "default-from-mail",
+        sendMail: async (message: MailMessage): Promise<SendResult> => {
+          delivered = message;
+          return {accepted: true};
+        },
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"});
+
+    assert.equal(delivered?.from, "sender@example.com");
+    assert.equal(delivered?.subject, "Quiet hours rewrite");
+  });
+
   it("retries only transient failures and records per-attempt error data", async (): Promise<void> => {
     const calls: string[] = [];
     const retryAttempts: number[] = [];

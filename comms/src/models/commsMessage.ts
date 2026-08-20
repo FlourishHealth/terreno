@@ -163,8 +163,9 @@ commsMessageSchema.statics = {
       status: CommsMessageDocument["status"];
     }
   ): Promise<CommsMessageDocument | null> {
+    let document: CommsMessageDocument | null;
     try {
-      const document = await this.findOneOrNone({_id: params.id});
+      document = await this.findOneOrNone({_id: params.id});
       if (!document) {
         return null;
       }
@@ -185,41 +186,47 @@ commsMessageSchema.statics = {
         document.payloadExpiresAt = params.payloadExpiresAt;
       }
       await document.save();
-      await this.clearExpiredPayloads();
-      return document;
     } catch {
       logger.warn("[comms] Failed to append communication attempt");
       return null;
     }
+    await this.clearExpiredPayloads();
+    return document;
   },
   async clearExpiredPayloads(this: CommsMessageModel): Promise<number> {
-    const expired = await this.find({
-      payload: {$exists: true},
-      payloadExpiresAt: {$lte: DateTime.utc().toJSDate()},
-    })
-      .select("_id")
-      .limit(50);
-    if (expired.length === 0) {
+    try {
+      const expired = await this.find({
+        payload: {$exists: true},
+        payloadExpiresAt: {$lte: DateTime.utc().toJSDate()},
+      })
+        .select("_id")
+        .limit(50);
+      if (expired.length === 0) {
+        return 0;
+      }
+      const result = await this.updateMany(
+        {_id: {$in: expired.map((row) => row._id)}},
+        {$unset: {payload: 1, payloadExpiresAt: 1}}
+      );
+      return result.modifiedCount;
+    } catch (error: unknown) {
+      logger.warn(`[comms] Failed to clear expired payloads: ${String(error)}`);
       return 0;
     }
-    const result = await this.updateMany(
-      {_id: {$in: expired.map((row) => row._id)}},
-      {$unset: {payload: 1, payloadExpiresAt: 1}}
-    );
-    return result.modifiedCount;
   },
   async logSend(
     this: CommsMessageModel,
     params: LogSendParams
   ): Promise<CommsMessageDocument | null> {
+    let created: CommsMessageDocument;
     try {
-      const created = await this.create(params);
-      await this.clearExpiredPayloads();
-      return created;
+      created = await this.create(params);
     } catch {
       logger.warn("[comms] Failed to record communication send");
       return null;
     }
+    await this.clearExpiredPayloads();
+    return created;
   },
 };
 

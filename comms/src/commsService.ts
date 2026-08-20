@@ -554,22 +554,25 @@ export class CommsService {
     return this.consoleVerification;
   }
 
-  async sendMail(message: MailMessage): Promise<SendResult> {
-    const provider = this.mailProvider();
-    const resolvedMessage: MailMessage = {
+  private applyMailDefaults(message: MailMessage): MailMessage {
+    return {
       ...message,
       from: message.from ?? this.options.defaultFrom,
     };
+  }
+
+  async sendMail(message: MailMessage): Promise<SendResult> {
+    const provider = this.mailProvider();
     const hookErrors: Record<string, string[]> = {};
     const context: CommsHookContext = {
       attempt: 1,
       channel: "mail",
       isRetry: false,
-      message: resolvedMessage,
+      message: this.applyMailDefaults(message),
       provider: provider.id,
     };
     const before = await this.applyBeforeSend(context, hookErrors);
-    const activeMessage = before.message as MailMessage;
+    const activeMessage = this.applyMailDefaults(before.message as MailMessage);
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
