@@ -76,9 +76,20 @@ test.describe("Admin Panel", () => {
     });
   });
 
-  test("admin panel shows configuration card", async ({page}) => {
-    await page.getByTestId("admin-configuration-card").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-configuration-card")).toBeVisible();
+  test("admin panel shows configuration in the shell nav", async ({page}) => {
+    const configurationEntry = page
+      .getByTestId("admin-shell-nav-configuration-clickable")
+      .or(page.getByTestId("admin-shell-nav-configuration"))
+      .or(page.getByTestId("admin-configuration-card-clickable"))
+      .or(page.getByTestId("admin-configuration-card"));
+    const menuButton = page
+      .getByTestId("admin-shell-menu-button-clickable")
+      .or(page.getByTestId("admin-shell-menu-button"));
+    if (await menuButton.first().isVisible()) {
+      await menuButton.first().click();
+    }
+    await configurationEntry.first().waitFor({state: "visible"});
+    await expect(configurationEntry.first()).toBeVisible();
   });
 });
 
