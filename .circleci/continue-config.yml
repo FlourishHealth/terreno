@@ -257,7 +257,7 @@ commands:
             set -euo pipefail
             # shellcheck disable=SC1090
             source "$BASH_ENV"
-            bunx playwright test "<< parameters.spec >>.spec.ts"
+            bunx playwright test "auth.setup.ts" "<< parameters.spec >>.spec.ts"
       - store_artifacts:
           path: example-frontend/playwright-report
           destination: playwright-report-<< parameters.spec >>
@@ -486,6 +486,7 @@ jobs:
 
   example-backend-ci:
     executor: node22_mongo
+    resource_class: large
     steps:
       - checkout
       - install_bun_and_deps
@@ -495,6 +496,7 @@ jobs:
       - run:
           name: Lint / compile / test example-backend
           working_directory: ~/project/example-backend
+          no_output_timeout: 15m
           environment:
             CI: "true"
           command: |
