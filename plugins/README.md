@@ -32,8 +32,8 @@ others (Flourish, most consumer apps) do not. The same plugin serves both:
   `Roadmap issue:` links. The `roadmap-*` maintainer skills own the public board; see
   [`docs/explanation/roadmap-process.md`](../docs/explanation/roadmap-process.md).
 - **No-roadmap repo:** Blend detects the roadmap system is absent and **skips the handoff**.
-  The IP + task list plus `PLAN_INDEX.md` are the source of truth, and execution is tracked
-  in Linear via the IP header `Linear:` link.
+  The IP + task list are the source of truth (status on each IP's `**Status:**` header),
+  and execution is tracked in Linear via the IP header `Linear:` link.
 
 Blend never mutates GitHub itself — it hands off to `roadmap-item`, which stops for
 maintainer approval.

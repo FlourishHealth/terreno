@@ -93,7 +93,7 @@ All decisions resolved by the maintainer on 2026-08-09:
 
 | IP | Status | Tasks |
 |---|---|---|
-| [comms-abstraction](comms-abstraction.md) | Draft | [tasks](../tasks/comms-abstraction.md) |
+| [comms-abstraction](comms-abstraction.md) | Approved — Phase 1 gap-fill implemented | [tasks](../tasks/comms-abstraction.md) |
 | [comms-adapter-expo-push](comms-adapter-expo-push.md) | Draft | [tasks](../tasks/comms-adapter-expo-push.md) |
 | [comms-adapter-twilio-sms](comms-adapter-twilio-sms.md) | Draft | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [comms-adapter-twilio-verify](comms-adapter-twilio-verify.md) | Draft | [tasks](../tasks/comms-adapter-twilio-verify.md) |
