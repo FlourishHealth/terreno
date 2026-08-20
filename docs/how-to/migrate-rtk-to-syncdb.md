@@ -318,6 +318,18 @@ Required for Better Auth socket sessions. Legacy JWT sockets continue to work wi
 
 ## 8. Codegen
 
+Synced collections use `bun run sync-sdk`, which runs `terreno-syncdb-codegen` from
+`@terreno/syncdb`. It reads `/openapi.json`, finds list operations tagged
+`x-terreno-sync`, and writes `store/syncDbSdk.ts` (`SYNC_COLLECTIONS` plus friendly
+hooks such as `useTodos` / `useTodo` / `useCreateTodo`). Do not edit that file.
+Custom collections call `createCollectionHooks` in a sibling file. Names are chosen
+so they do not collide with RTK `openApiSdk.ts` during dual-stack migration.
+
+```bash
+# Backend running on port 4000
+cd example-frontend && bun run sync-sdk
+```
+
 ### Does `bun run sdk` still work?
 
 **Yes.** `example-frontend/package.json` still defines:
@@ -332,7 +344,7 @@ It runs `@rtk-query/codegen-openapi` against `openapi-config.ts` and writes `sto
 
 | Still generated | Stop using for migrated collections |
 |-----------------|-------------------------------------|
-| Auth routes, `GET /auth/me`, admin, AI explorer, version config, feature flags | `useGetTodosQuery`, `usePostTodosMutation`, etc. |
+| Auth routes, `GET /auth/me`, admin, AI explorer, version config, feature flags | Collection CRUD — import from `store/syncDbSdk.ts` instead |
 | Custom REST / RPC endpoints | Todo `realtimeList` / `realtimeDocument` wiring in `store/sdk.ts` |
 
 Keep running `bun run sdk` after backend route changes — non-synced screens still import from `store/sdk.ts`.
@@ -342,6 +354,7 @@ Workflow:
 ```bash
 # Backend running on port 4000
 cd example-frontend && bun run sdk
+cd example-frontend && bun run sync-sdk
 ```
 
 ## 9. Feature flags

@@ -48,6 +48,7 @@ const rowToMutation = (mutationId: string, row: Partial<OutboxRow>): OutboxMutat
   operation: (row.operation ?? "update") as SyncMutationOperation,
   status: (row.status ?? "queued") as OutboxStatus,
   userId: row.userId ?? "",
+  ...(typeof row.maxAttempts === "number" ? {maxAttempts: row.maxAttempts} : {}),
 });
 
 export interface EnqueueArgs {
@@ -58,6 +59,11 @@ export interface EnqueueArgs {
   args: Record<string, unknown>;
   /** The seq the client last saw for the entity (LWW conflict detection). */
   baseVersion?: number;
+  /**
+   * Optional error-nack retry budget. Missing cell keeps the engine default
+   * (`MAX_ERROR_NACK_ATTEMPTS`). `1` fails after a single error nack.
+   */
+  maxAttempts?: number;
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   /** Optional explicit id (defaults to a generated UUID; useful in tests). */
@@ -245,6 +251,9 @@ export const createOutbox = ({
     };
     if (args.baseVersion !== undefined) {
       row.baseVersion = args.baseVersion;
+    }
+    if (args.maxAttempts !== undefined) {
+      row.maxAttempts = args.maxAttempts;
     }
     store.raw.setRow(OUTBOX_TABLE, mutationId, row as unknown as Row);
     return rowToMutation(mutationId, row);

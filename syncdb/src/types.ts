@@ -180,6 +180,11 @@ export interface OutboxMutation {
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   createdAt: string;
+  /**
+   * Optional per-mutation error-nack budget. Missing means the engine default
+   * (`MAX_ERROR_NACK_ATTEMPTS`).
+   */
+  maxAttempts?: number;
 }
 
 /** An unresolved conflict between a local mutation and the canonical server state. */

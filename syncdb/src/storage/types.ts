@@ -96,6 +96,11 @@ export interface OutboxRow {
   operation: SyncMutationOperation;
   status: OutboxStatus;
   userId: string;
+  /**
+   * Optional per-mutation error-nack retry budget. Missing cell means the
+   * engine default (`MAX_ERROR_NACK_ATTEMPTS`).
+   */
+  maxAttempts?: number;
 }
 
 /** Primitive row shape for the `_cursors` table; rowId = stream key. */

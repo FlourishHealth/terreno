@@ -76,6 +76,27 @@ describe("enqueue / getMutation", () => {
     expect(outbox.getMutation({mutationId: "m1"})?.baseVersion).toBeUndefined();
   });
 
+  it("persists optional maxAttempts on the outbox row", () => {
+    const outbox = makeOutbox();
+    const mutation = outbox.enqueue({
+      args: {title: "Buy milk"},
+      collection: "todos",
+      entityId: "t1",
+      maxAttempts: 1,
+      mutationId: "m-max",
+      operation: "update",
+      userId: "user-1",
+    });
+    expect(mutation.maxAttempts).toBe(1);
+    expect(outbox.getMutation({mutationId: "m-max"})?.maxAttempts).toBe(1);
+  });
+
+  it("omits maxAttempts when not provided", () => {
+    const outbox = makeOutbox();
+    const mutation = enqueueDefault(outbox, {mutationId: "m1"});
+    expect(mutation.maxAttempts).toBeUndefined();
+  });
+
   it("returns undefined for a missing mutation", () => {
     const outbox = makeOutbox();
     expect(outbox.getMutation({mutationId: "nope"})).toBeUndefined();

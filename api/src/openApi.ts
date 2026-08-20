@@ -162,7 +162,8 @@ export const getOpenApiMiddleware = <T>(
 
 export const listOpenApiMiddleware = <T>(
   model: Model<T>,
-  options: Partial<ModelRouterOptions<T>>
+  options: Partial<ModelRouterOptions<T>>,
+  routePath?: string
 ): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
@@ -320,6 +321,15 @@ export const listOpenApiMiddleware = <T>(
           ...defaultOpenApiErrorResponses,
         },
         tags: [model.collection.collectionName],
+        ...(options.sync
+          ? {
+              "x-terreno-sync": {
+                collection: (routePath ?? `/${model.collection.collectionName}`).replace(/^\//, ""),
+                scope:
+                  typeof options.sync.scope === "function" ? "custom" : options.sync.scope.type,
+              },
+            }
+          : {}),
       },
       options.openApiOverwrite?.list ?? {}
     )
