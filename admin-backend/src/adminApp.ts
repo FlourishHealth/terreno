@@ -31,7 +31,11 @@ import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
-
+import {
+  ADMIN_LIST_SEARCH_PARAM,
+  andMongoFilters,
+  buildAdminPartialSearchFilter,
+} from "./adminTextSearch";
 import {
   ADMIN_SCHEMA_VERSION,
   type AdminActionInput,
@@ -289,6 +293,17 @@ const buildAdminListQueryFilter = (
       delete clientQuery[key];
     }
 
+    const rawSearch = clientQuery[ADMIN_LIST_SEARCH_PARAM];
+    delete clientQuery[ADMIN_LIST_SEARCH_PARAM];
+    const searchClause =
+      typeof rawSearch === "string"
+        ? buildAdminPartialSearchFilter({
+            model: config.model,
+            q: rawSearch,
+            searchFields: config.searchFields ?? [],
+          })
+        : undefined;
+
     let merged: Record<string, unknown> = {...clientQuery, ...filter};
     if (base) {
       const baseResult = await base(user, merged);
@@ -297,7 +312,8 @@ const buildAdminListQueryFilter = (
       }
       merged = {...merged, ...baseResult};
     }
-    return merged;
+    const result = andMongoFilters(merged, searchClause);
+    return {...result, [ADMIN_LIST_SEARCH_PARAM]: undefined};
   };
 };
 
@@ -971,24 +987,19 @@ export class AdminApp {
             return res.json({data: []});
           }
 
-          const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const regex = new RegExp(escapedQ, "i");
-
           const fields =
             typeof req.query.fields === "string"
               ? req.query.fields.split(",").filter((f: string) => searchableFields.includes(f))
               : searchableFields;
 
-          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+          const searchClause = buildAdminPartialSearchFilter({
+            extraObjectIdFields: objectIdFields,
+            model: config.model,
+            q,
+            searchFields: fields,
+          });
 
-          // If the query is a valid ObjectId, also match against ObjectId fields
-          if (mongoose.isValidObjectId(q)) {
-            for (const field of objectIdFields) {
-              orConditions.push({[field]: new mongoose.Types.ObjectId(q)});
-            }
-          }
-
-          if (orConditions.length === 0) {
+          if (!searchClause) {
             return res.json({data: []});
           }
           logger.debug("Admin search query", {
@@ -1005,7 +1016,7 @@ export class AdminApp {
               return res.json({data: []});
             }
             const results = await config.model
-              .find({$and: [scoped, {$or: orConditions}]})
+              .find({$and: [scoped, searchClause]})
               .limit(20)
               .lean();
             logger.debug("Admin search results", {

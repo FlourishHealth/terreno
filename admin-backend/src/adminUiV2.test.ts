@@ -15,6 +15,7 @@ describe("buildAdminModelQueryFields", () => {
       searchFields: ["tags"],
     });
     expect(fields).toContain("_id");
+    expect(fields).toContain("q");
     expect(fields).toContain("title");
     expect(fields).toContain("ownerId");
     expect(fields).toContain("created");

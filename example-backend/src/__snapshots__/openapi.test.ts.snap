@@ -92,6 +92,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "verb",
             "schema": {
               "oneOf": [
@@ -885,6 +903,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -2275,6 +2311,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "userId",
             "schema": {
               "oneOf": [
@@ -2904,6 +2958,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -4327,6 +4399,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "title",
             "schema": {
               "oneOf": [
@@ -5328,6 +5418,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {

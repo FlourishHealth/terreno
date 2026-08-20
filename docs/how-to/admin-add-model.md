@@ -27,7 +27,8 @@ Register that router with `TerrenoApp`, then register `AdminApp`. The model appe
 Common fields:
 
 - `listFields`: columns and fields exposed to admin CRUD.
-- `searchFields`: fields searched by the list search box.
+- `searchFields`: string fields matched by the list search box (`q`) as a
+  case-insensitive partial (`$regex`) query.
 - `sortableFields`: the only columns with sorting enabled.
 - `filters`: typed filter drawer controls.
 - `fieldsets`: grouped form sections.

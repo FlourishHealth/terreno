@@ -9,3 +9,5 @@ category: Fixed
 - Document Storage clients use the contributed `/documents` API path.
 - Admin search applies the same `queryFilter`/`adminFilter` as list CRUD.
 - AI Request Explorer multi-type filters use `$in` instead of dropping the filter.
+- Admin list search (`q`) is a case-insensitive partial match across `searchFields`.
+- The filter drawer can clear all filters and disables Apply when the draft is unchanged.

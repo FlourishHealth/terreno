@@ -35,10 +35,55 @@ describe("AdminFilterDrawer", () => {
     expect(getByTestId("admin-filter-drawer")).toBeDefined();
     expect(getByTestId("admin-filter-active")).toBeDefined();
     expect(getByTestId("admin-filter-apply")).toBeDefined();
+    expect(getByTestId("admin-filter-clear-all")).toBeDefined();
+    expect(getByTestId("admin-filter-apply").props.accessibilityState.disabled).toBe(true);
+    expect(getByTestId("admin-filter-clear-all").props.accessibilityState.disabled).toBe(true);
 
     await act(async () => {
       fireEvent.press(getByTestId("admin-filter-apply"));
     });
-    expect(onApply).toHaveBeenCalled();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it("enables apply after a draft change and clear-all applies empty filters", async () => {
+    const onApply = mock(() => {});
+    const {getByTestId, rerender} = renderWithTheme(
+      <AdminFilterDrawer
+        api={{} as never}
+        appliedFilterState={{}}
+        fields={{active: {required: false, type: "boolean"}}}
+        filters={[{field: "active", kind: "boolean", label: "Active"}]}
+        onApply={onApply}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter-active.switch"));
+    });
+    expect(getByTestId("admin-filter-apply").props.accessibilityState.disabled).toBe(false);
+    expect(getByTestId("admin-filter-clear-all").props.accessibilityState.disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter-apply"));
+    });
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onApply.mock.calls[0]?.[0]).toEqual({active: true});
+
+    rerender(
+      <AdminFilterDrawer
+        api={{} as never}
+        appliedFilterState={{active: true}}
+        fields={{active: {required: false, type: "boolean"}}}
+        filters={[{field: "active", kind: "boolean", label: "Active"}]}
+        onApply={onApply}
+      />
+    );
+    expect(getByTestId("admin-filter-apply").props.accessibilityState.disabled).toBe(true);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter-clear-all"));
+    });
+    expect(onApply).toHaveBeenCalledTimes(2);
+    expect(onApply.mock.calls[1]?.[0]).toEqual({});
   });
 });

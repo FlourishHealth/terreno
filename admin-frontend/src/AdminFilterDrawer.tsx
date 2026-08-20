@@ -15,7 +15,11 @@ import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {useWindowDimensions} from "react-native";
 import {AdminRefField} from "./AdminRefField";
-import type {AdminListFilterState} from "./adminModelListQueryParams";
+import {
+  type AdminListFilterState,
+  adminFilterStateHasValues,
+  areAdminFilterStatesEqual,
+} from "./adminModelListQueryParams";
 import {ADMIN_FILTER_MOBILE_BREAKPOINT} from "./Constants";
 import type {AdminApi, AdminFieldConfig, AdminModelConfig} from "./types";
 
@@ -201,11 +205,26 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
   }, [appliedFilterState]);
 
   const handleApply = useCallback(() => {
+    if (areAdminFilterStatesEqual(draftState, appliedFilterState)) {
+      return;
+    }
     onApply(draftState);
     if (isMobileLayout) {
       setIsSheetOpen(false);
     }
-  }, [draftState, isMobileLayout, onApply]);
+  }, [appliedFilterState, draftState, isMobileLayout, onApply]);
+
+  const handleClearAll = useCallback(() => {
+    const emptyState: AdminListFilterState = {};
+    if (!adminFilterStateHasValues(draftState) && !adminFilterStateHasValues(appliedFilterState)) {
+      return;
+    }
+    setDraftState(emptyState);
+    onApply(emptyState);
+    if (isMobileLayout) {
+      setIsSheetOpen(false);
+    }
+  }, [appliedFilterState, draftState, isMobileLayout, onApply]);
 
   const handleOpenSheet = useCallback(() => {
     setDraftState(appliedFilterState);
@@ -231,13 +250,27 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
     [api, draftState, fields, filters, modelConfigs]
   );
 
-  const applyButton = (
-    <Button
-      onClick={handleApply}
-      testID="admin-filter-apply"
-      text="Apply filters"
-      variant="primary"
-    />
+  const hasDraftChanges = !areAdminFilterStatesEqual(draftState, appliedFilterState);
+  const canClearFilters =
+    adminFilterStateHasValues(draftState) || adminFilterStateHasValues(appliedFilterState);
+
+  const filterActions = (
+    <Box direction="row" gap={2} wrap>
+      <Button
+        disabled={!hasDraftChanges}
+        onClick={handleApply}
+        testID="admin-filter-apply"
+        text="Apply filters"
+        variant="primary"
+      />
+      <Button
+        disabled={!canClearFilters}
+        onClick={handleClearAll}
+        testID="admin-filter-clear-all"
+        text="Clear all"
+        variant="outline"
+      />
+    </Box>
   );
 
   if (isMobileLayout) {
@@ -251,6 +284,7 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
         />
         <Modal
           onDismiss={handleDismissSheet}
+          primaryButtonDisabled={!hasDraftChanges}
           primaryButtonOnClick={handleApply}
           primaryButtonText="Apply filters"
           secondaryButtonOnClick={handleDismissSheet}
@@ -260,12 +294,7 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
         >
           <Box direction="column" gap={3} testID="admin-filter-sheet">
             {filterContent}
-            <Button
-              onClick={handleApply}
-              testID="admin-filter-apply"
-              text="Apply filters"
-              variant="primary"
-            />
+            {filterActions}
           </Box>
         </Modal>
       </Box>
@@ -289,7 +318,7 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
         {isExpanded ? (
           <Box direction="column" gap={3} marginTop={2} width="100%">
             {filterContent}
-            {applyButton}
+            {filterActions}
           </Box>
         ) : (
           <Box marginTop={2}>

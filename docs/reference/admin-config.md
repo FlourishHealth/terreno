@@ -8,7 +8,7 @@
 | `listFields` | `list_display` | Required allowlist of list/form fields. |
 | `listDisplay` | `list_display` | Optional visible list columns. |
 | `listDisplayLinks` | `list_display_links` | Columns linking to the edit screen. |
-| `searchFields` | `search_fields` | Fields searched by the debounced search box. |
+| `searchFields` | `search_fields` | String fields matched by the list search box as a case-insensitive partial query. |
 | `sortableFields` | `sortable_by` | Columns allowed to sort. |
 | `defaultSort` | `ordering` | Initial sort field(s), using `-field` for descending. |
 | `pageSize` | `list_per_page` | Rows per page. |
