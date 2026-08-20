@@ -13,7 +13,8 @@ A monorepo containing shared packages for building full-stack applications with 
 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
-- **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
+- **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`, legacy for data sync)
+- **syncdb/** - Local-first data layer (`@terreno/syncdb`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **demo/** - Demo app for showcasing and testing UI components
@@ -65,35 +66,35 @@ The three core packages form a complete full-stack framework:
 ```
                            BACKEND
   @terreno/api
-  - Mongoose models with modelRouter -> CRUD endpoints
-  - Built-in auth (JWT + Passport)
+  - Mongoose models with modelRouter -> CRUD + sync endpoints
+  - Better Auth (default) + legacy JWT/Passport
   - Automatic OpenAPI spec generation
                               |
-                     /openapi.json
-                              |
-                    RTK Query SDK Codegen
-                              |
+              +---------------+---------------+
+              |                               |
+     /openapi.json                    sync protocol
+              |                               |
+     RTK Query SDK Codegen            @terreno/syncdb
+     (non-synced routes)              (collection CRUD)
+              |                               |
                            FRONTEND
-  @terreno/rtk
-  - Generated hooks from OpenAPI spec
-  - Auth slice with JWT token management
-  - Automatic token refresh
+  @terreno/rtk                         @terreno/syncdb
+  - Generated hooks (auth, admin, AI)  - useQuery / useMutate (local-first)
+  - Better Auth session Redux          - Offline outbox + conflict UI
                               +
   @terreno/ui
-  - React Native components (Box, Button, TextField, etc.)
-  - TerrenoProvider for theming
+  - React Native components
 ```
 
 ### Integration Flow
 
-1. **Backend (api)**: Define Mongoose models, use `modelRouter` to create CRUD endpoints with permissions
-2. **OpenAPI Generation**: `setupServer` automatically generates `/openapi.json`
-3. **SDK Codegen**: Frontend runs `bun run sdk` to generate RTK Query hooks from OpenAPI spec
-4. **Frontend (rtk + ui)**: Use generated hooks with UI components for type-safe API calls
+1. **Backend (api)**: `syncPlugin` + `isDeletedPlugin`, `modelRouter` with `sync` config, `SyncApp` + `RealtimeApp`
+2. **OpenAPI**: `/openapi.json` for non-synced routes; `bun run sdk` for auth/admin/AI hooks
+3. **Frontend**: `useQuery` / `useMutate` for synced collections; Better Auth via `@terreno/rtk`
 
 ## Example Apps (Keep These Updated!)
 
-The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
+The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, syncdb, or rtk:
 
 1. **Add examples** demonstrating new features
 2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`

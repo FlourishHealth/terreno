@@ -20,8 +20,10 @@ const sidebars: SidebarsConfig = {
       items: [
         "reference/api",
         "reference/ui",
-        "reference/rtk",
+        "reference/syncdb",
+        "reference/ai",
         "reference/admin-backend",
+        "reference/admin-spa",
         "reference/admin-frontend",
         "reference/api-health",
         "reference/comms",
