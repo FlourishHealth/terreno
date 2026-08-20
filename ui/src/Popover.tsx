@@ -58,7 +58,15 @@ export const Popover: FC<PopoverProps> = ({
   );
 
   const card = (content: ReactNode) => (
-    <Box color="base" height={height} rounding="md" shadow testID={testID} width={width}>
+    <Box
+      color="base"
+      height={height}
+      overflow="hidden"
+      rounding="md"
+      shadow
+      testID={testID}
+      width={width}
+    >
       {content}
     </Box>
   );
