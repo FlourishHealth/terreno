@@ -42,7 +42,7 @@ export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api}) 
     endDate: endDate || undefined,
     limit: EXPLORER_LIMIT,
     page,
-    requestType: requestTypeFilter.length === 1 ? requestTypeFilter[0] : undefined,
+    requestType: requestTypeFilter.length > 0 ? requestTypeFilter.join(",") : undefined,
     startDate: startDate || undefined,
   }) as {data?: AIRequestsResponse; isLoading: boolean};
 
