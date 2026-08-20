@@ -9,73 +9,13 @@ All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/) as one
+file per feature. `bun run changelog:assemble <version>` folds those files into a
+dated section below when cutting a release.
+
 ## [Unreleased]
 
-### Changed
-
-- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
-  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
-  `docs/how-to/circleci.md`.
-
-### Added
-
-- Example app profiles list every assigned role and link superadmins to role editing. The admin
-  script runner includes a guarded `resetDatabase` action, and seed data includes
-  `superuser@example.com`. Admin script execution requires `admin:runScripts` when RBAC is
-  configured, and live production resets require `ALLOW_ADMIN_DB_RESET=true`.
-- `@terreno/syncdb-codegen` CLI (`terreno-syncdb-codegen`) that emits typed
-  collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
-- `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
-  `maxAttempts` on syncdb writes.
-- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
-  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
-- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
-  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
-  (`docs/explanation/local-first-data.md`)
-- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
-  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
-- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
-  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
-  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
-  `onSend`).
-- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `recordDeliveryEvent` /
-  `recordOptOut`, attempt history on `CommsMessage`, payload retention
-  (`retainPayloadDays`, `redactPayload`), and channel-wide transient retry (SMS,
-  verification start, per-token push). `onRetry` stays `(context, result)` with
-  `context.attempt`. Push prune honors `errorClass: "permanent"` as well as
-  `isPermanentFailure`.
-
-### Fixed
-
-- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
-  row so `retries: false` stays fail-fast after keepMine.
-- Example todos Sync Lab panel starts collapsed so the first list row stays
-  above the tab bar on short web viewports.
-- `@terreno/syncdb-codegen` rejects non-identifier collection/type names and
-  JSON-escapes generated strings so a remote OpenAPI document cannot inject
-  TypeScript.
-
-### Security
-
-- RBAC `createView: "deny"` and unknown field-view names fail closed instead of granting a
-  full mask. Nested field omits clone documents; write masks honor dotted paths. Bulk create
-  and array mutations apply the same write mask as single-document writes.
-- AdminApp model CRUD requires resource actions in addition to `admin:access`. User
-  `admin`/`roles` cannot be written through admin CRUD. The seeded `auditor` role no longer
-  receives `admin:access` via read-only expansion. Mutating admin CRUD for a resource missing
-  from statements fails closed.
-- `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing
-  them. Create/list responses always apply the **read** field mask. Per-router `access.scope`
-  extra PermissionSets are evaluated on HTTP and realtime reads. Role assignment previews
-  invalidate cache after dry-run. Invalid permission sets use a stable `APIError.title`.
-
-### Deprecated
-
-- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
-  through the current major line; will not ship in the next major. Migrate collection CRUD to
-  [`@terreno/syncdb`](docs/reference/syncdb.md) using
-  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
-  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
 ## [57.0.0] - 2026-08-20
 

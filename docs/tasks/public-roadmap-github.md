@@ -80,7 +80,7 @@ See: [`docs/implementationPlans/public-roadmap-github.md`](../implementationPlan
   - Acceptance: workflow parses as valid YAML; the secret-validation step lists every required variable; the commit step is conditional on a real diff.
 
 - [x] **Task 4.3**: Seed `ROADMAP.md` and link it
-  - Description: Commit an initial hand-written `ROADMAP.md` (the generator will overwrite it later) built from the IPs in `docs/implementationPlans/oss-launch-program.md` plus the active plans in `PLAN_INDEX.md`. Add a note at the top that it is generated from the Project board. Link it from `README.md` and add it to the docs site sidebar in `website/docusaurus.config.ts` (or the sidebars file if navigation is defined there — check both).
+  - Description: Commit an initial hand-written `ROADMAP.md` (the generator will overwrite it later) built from the IPs in `docs/implementationPlans/oss-launch-program.md` plus active IPs (those whose `**Status:**` header is not Complete/Deferred/Closed). Add a note at the top that it is generated from the Project board. Link it from `README.md` and add it to the docs site sidebar in `website/docusaurus.config.ts` (or the sidebars file if navigation is defined there — check both).
   - Files: `ROADMAP.md` (new), `README.md`, `website/docusaurus.config.ts` or `website/sidebars.ts`
   - Depends on: Task 4.1
   - Acceptance: `ROADMAP.md` lists every IP in the program with a `Target`; the docs site builds (`bun run website:build`) with the new nav entry; the README links it.

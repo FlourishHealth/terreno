@@ -76,6 +76,8 @@ Run these from the repository root:
 | `bun run ui:test` | Run `@terreno/ui` tests |
 | `bun run test` | Run all package test suites |
 | `bun run check:no-barrel-imports` | Enforce no internal barrel imports |
+| `bun run check:changelog` | Validate `changelog/unreleased/` fragment files |
+| `bun run changelog:preview` | Preview assembled unreleased notes |
 | `bun run check:licenses` | Verify published packages ship a LICENSE |
 | `bun run backend:dev` | Start example backend |
 | `bun run frontend:web` | Start example frontend (web) |
@@ -138,13 +140,35 @@ git commit -s -m "fix(api): handle empty query filter"
 
 This appends a line like `Signed-off-by: Your Name <you@example.com>` to the commit message. CI enforces DCO on external PRs (see `.github/workflows/dco.yml`).
 
+## Changelog
+
+Do not edit `CHANGELOG.md` `## [Unreleased]`. That shared section caused
+constant merge conflicts.
+
+For user-facing work, add **one file per feature** under
+[`changelog/unreleased/`](changelog/unreleased/) using this header:
+
+```markdown
+---
+category: Added
+---
+
+User-facing description of the change.
+```
+
+`category` must be `Breaking`, `Added`, `Changed`, `Deprecated`, `Removed`, or
+`Fixed`. Name the file in kebab-case (`sendgrid-mail-provider.md`). Preview with
+`bun run changelog:preview`. Maintainers fold the files into `CHANGELOG.md` at
+release time with `bun run changelog:assemble <version>`.
+
 ## Pull requests
 
 1. **Branch** — create a feature branch from `master`
 2. **Draft PR** — open as a draft until CI is green and you are ready for review
 3. **CI** — `bun run lint`, relevant tests, and repo policy checks must pass
 4. **UI changes** — if you touch frontend packages (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`), include screenshots or a screen recording in the PR body showing the change
-5. **Description** — explain what changed and why; link related issues or IPs
+5. **Changelog** — add `changelog/unreleased/<feature>.md` for user-facing changes (do not edit `CHANGELOG.md`)
+6. **Description** — explain what changed and why; link related issues or IPs
 
 ## Security
 
