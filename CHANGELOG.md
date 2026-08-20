@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin create/update/bulk-patch strip `excludeFields`, and list/read responses always
   run field scrubbing (including populated refs).
 
+### Changed
+
+- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
+  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
+  `docs/how-to/circleci.md`.
+
 ### Added
 
 - CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;

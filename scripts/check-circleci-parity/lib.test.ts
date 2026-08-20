@@ -120,6 +120,32 @@ describe("readMappings", () => {
       {parameter: "run-ui", regex: "ui/.*"},
     ]);
   });
+
+  it("prefers config.setup.yml over a disabled config.yml", () => {
+    const root = createFixtureRepo({
+      mapping: "api/.* run-api true",
+      workflowPaths: ["api/**"],
+    });
+    writeFileSync(
+      join(root, ".circleci", "config.setup.yml"),
+      [
+        "version: 2.1",
+        "setup: true",
+        "workflows:",
+        "  setup:",
+        "    jobs:",
+        "      - path-filtering/filter:",
+        "          mapping: |",
+        "            ui/.* run-ui true",
+        "",
+      ].join("\n")
+    );
+    writeFileSync(
+      join(root, ".circleci", "config.yml"),
+      ["version: 2.1", "workflows:", "  disabled:", "    when: false", ""].join("\n")
+    );
+    assert.deepEqual(readMappings({repoRoot: root}), [{parameter: "run-ui", regex: "ui/.*"}]);
+  });
 });
 
 describe("readWorkflowPaths", () => {
