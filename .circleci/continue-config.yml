@@ -892,6 +892,11 @@ workflows:
                 - consents
                 - ai-chat
                 - realtime
+                - syncdb-load-delta
+                - syncdb-offline
+                - syncdb-conflicts
+                - syncdb-storage
+                - syncdb-chaos
 
   admin-spa-integration:
     when: << pipeline.parameters.run-admin-spa-integration >>

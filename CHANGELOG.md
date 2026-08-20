@@ -87,7 +87,6 @@ Second beta of the Expo SDK 56 line, cut from `master` after merging
   ([#976](https://github.com/FlourishHealth/terreno/pull/976))
 - `SyncStatusBanner` and `ConflictSheet` in `@terreno/ui` for sync UX
   ([#976](https://github.com/FlourishHealth/terreno/pull/976))
->>>>>>> origin/master
 - `@terreno/comms` with pluggable mail, SMS, push, and verification contracts, console
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
   explorer, and generated RTK Query hooks
