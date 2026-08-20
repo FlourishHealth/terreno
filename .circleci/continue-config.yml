@@ -257,7 +257,7 @@ commands:
             set -euo pipefail
             # shellcheck disable=SC1090
             source "$BASH_ENV"
-            bunx playwright test --reporter=list "auth.setup.ts" "<< parameters.spec >>.spec.ts"
+            bunx playwright test --reporter=list --reporter=html "auth.setup.ts" "<< parameters.spec >>.spec.ts"
       - store_artifacts:
           path: example-frontend/playwright-report
           destination: playwright-report-<< parameters.spec >>
