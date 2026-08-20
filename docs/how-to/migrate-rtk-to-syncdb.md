@@ -21,6 +21,8 @@ This guide is **AI-context-first**: it is written for an agent (or human) perfor
 
 The example app completed both steps; todos are syncdb-only while profile/admin still use generated RTK hooks.
 
+**Validation (Task 3.5):** The profile screen (`example-frontend/app/(tabs)/profile.tsx`) was reviewed against this guide. `useGetMeQuery` / `usePatchMeMutation` are **non-synced** custom SDK routes — the guide §8 explicitly says to keep them on RTK. No profile migration is required; the guide is sufficient for that case.
+
 Reference: [`docs/reference/syncdb.md`](../reference/syncdb.md), and the package [`syncdb/README.md`](https://github.com/flourishhealth/terreno/blob/release-56.0.0/syncdb/README.md).
 
 ## 2. Install and configure

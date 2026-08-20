@@ -1,7 +1,7 @@
 # Implementation Plan: Comms admin dashboard (errors, retries, log digging)
 
 **Status:** Draft
-**Roadmap issue:** *(not yet seeded — see [roadmap-seed-issues.md](../explanation/roadmap-seed-issues.md))*
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1091
 **Priority:** High
 **Effort:** Medium batch
 **Owner:** unassigned

@@ -4,22 +4,22 @@ IP: [comms-adapter-sendgrid](../implementationPlans/comms-adapter-sendgrid.md)
 
 ## Phase 1 — Send path
 
-- [ ] **Task 1.1**: `SendGridMailProvider` with config + sandbox mode
+- [x] **Task 1.1**: `SendGridMailProvider` with config + sandbox mode
   - Description: constructor/env config, from-address fallback chain, sandbox default under test
   - Files: `comms/src/adapters/sendgrid.ts`
   - Depends on: comms-abstraction Phase 1
   - Acceptance: mocked-client tests for text/html/template sends
-- [ ] **Task 1.2**: Error classification
+- [x] **Task 1.2**: Error classification
   - Description: HTTP status → `errorCode`/`errorClass` per the IP table (400 permanent, 401/403 config, 429/5xx transient); full response body into `CommsMessage.metadata`; never throws
   - Files: `comms/src/adapters/sendgrid.ts`
   - Depends on: 1.1
   - Acceptance: unverified-sender (config), bad-address (permanent), and 429 (transient) fixtures assert `errorClass`; permanent skips the inline retry
-- [ ] **Task 1.3**: Dashboard metadata + hooks coverage
+- [x] **Task 1.3**: Dashboard metadata + hooks coverage
   - Description: capture `x-message-id`; `metadata.consoleUrl` Email Activity deep link; `onError` fires with the classified `SendResult`
   - Files: `comms/src/adapters/sendgrid.ts` + tests
   - Depends on: 1.2
   - Acceptance: accepted-send test asserts message id + consoleUrl; failed-send test asserts onError invocation
-- [ ] **Task 1.4**: Peer dep + registration + docs
+- [x] **Task 1.4**: Peer dep + registration + docs
   - Description: optional peer `@sendgrid/mail`; env-gated example-backend registration with fail-fast; reference + env docs incl. sender-verification checklist
   - Files: `comms/package.json`, `example-backend/src/server.ts`, `docs/reference/comms.md`, `docs/reference/environment-variables.md`
   - Depends on: 1.1

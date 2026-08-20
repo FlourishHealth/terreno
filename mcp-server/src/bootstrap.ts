@@ -100,7 +100,7 @@ A full-stack application built with the Terreno framework.
 
 ## Project Structure
 
-- **frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
+- **frontend/** - Expo/React Native frontend using @terreno/ui, @terreno/syncdb, and @terreno/rtk (SDK + Better Auth)
 - **backend/** - Express/Mongoose backend using @terreno/api
 
 ## Development
@@ -147,7 +147,8 @@ cd frontend && bun run sdk   # Regenerate SDK after backend changes
 - Use \`Model.findExactlyOne\` or \`Model.findOneOrNone\` (not \`Model.findOne\`)
 
 ### Frontend Conventions
-- Use generated SDK hooks from \`@/store/openApiSdk\`
+- Use \`@terreno/syncdb/react\` hooks (\`useQuery\`, \`useMutate\`) for synced collection CRUD
+- Use generated SDK hooks from \`@/store/openApiSdk\` for non-synced routes only
 - Use @terreno/ui components (Box, Page, Button, TextField, etc.)
 - Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
 
@@ -399,11 +400,22 @@ const generateBackendIndex = (): string => {
 const generateBackendServer = (args: BootstrapArgs): string => {
   const {appDisplayName} = args;
   return `import {AdminApp} from "@terreno/admin-backend";
-import {checkModelsStrict, logger, TerrenoApp} from "@terreno/api";
+import {
+  BetterAuthApp,
+  checkModelsStrict,
+  createBetterAuth,
+  getMongoClientFromMongoose,
+  logger,
+  RealtimeApp,
+  SyncApp,
+  TerrenoApp,
+  type UserModel as TerrenoAuthUserModel,
+} from "@terreno/api";
 import type express from "express";
 import {userRouter} from "./api/users";
 import {AppConfiguration} from "./models/appConfiguration";
 import {User} from "./models/user";
+import {buildBetterAuthConfig, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 
 const isDeployed = process.env.NODE_ENV === "production";
@@ -417,18 +429,40 @@ export async function start(skipListen = false): Promise<express.Application> {
     checkModelsStrict();
   }
 
+  const betterAuthConfig = buildBetterAuthConfig();
+  const betterAuthInstance = betterAuthConfig
+    ? createBetterAuth({
+        config: betterAuthConfig,
+        mongoClient: getMongoClientFromMongoose(),
+        // noExplicitAny: User model type mismatch
+        // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+        userModel: User as any,
+      })
+    : undefined;
+
   const app = new TerrenoApp({
+    corsOrigin: getWebOrigins(),
     loggingOptions: {
       disableConsoleColors: isDeployed,
       level: "debug",
       logRequests: !isDeployed,
     },
     skipListen,
-// noExplicitAny: Typing User model
-    // biome-ignore lint/suspicious/noExplicitAny: Typing User model
+    // noExplicitAny: User model type mismatch
+    // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
     userModel: User as any,
-  })
-    .configure(AppConfiguration)
+  }).configure(AppConfiguration);
+
+  if (betterAuthConfig) {
+    app.register(
+      new BetterAuthApp({
+        config: betterAuthConfig,
+        userModel: User as unknown as TerrenoAuthUserModel,
+      })
+    );
+  }
+
+  app
     .register(userRouter)
     .register(
       new AdminApp({
@@ -436,12 +470,28 @@ export async function start(skipListen = false): Promise<express.Application> {
           {
             displayName: "Users",
             listFields: ["email", "name", "admin", "created"],
-// noExplicitAny: User model type mismatch
+            // noExplicitAny: User model type mismatch
             // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
             model: User as any,
             routePath: "/users",
           },
         ],
+      })
+    )
+    .register(new SyncApp())
+    .register(
+      new RealtimeApp({
+        betterAuth: betterAuthInstance
+          ? {
+              auth: betterAuthInstance,
+              // noExplicitAny: User model type mismatch
+              // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+              userModel: User as any,
+            }
+          : undefined,
+        // noExplicitAny: User model type mismatch
+        // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+        userModel: User as any,
       })
     )
     .start();
@@ -467,7 +517,8 @@ export const connectToMongoDB = async (): Promise<void> => {
     return;
   }
 
-  const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/${dbName}";
+  const mongoURI =
+    process.env.MONGO_URI || "mongodb://127.0.0.1:27017/${dbName}?replicaSet=rs0";
 
   try {
     await mongoose.connect(mongoURI);
@@ -484,6 +535,47 @@ export const connectToMongoDB = async (): Promise<void> => {
   mongoose.connection.on("disconnected", () => {
     logger.warn("MongoDB disconnected");
   });
+};
+`;
+};
+
+const generateBackendBetterAuthConfig = (args: BootstrapArgs): string => {
+  const {appName} = args;
+  return `import type {AuthProvider, BetterAuthConfig} from "@terreno/api";
+
+const DEFAULT_BETTER_AUTH_SECRET = "${appName}-better-auth-secret-dev-only-32chars";
+const DEFAULT_BETTER_AUTH_URL = "http://localhost:4000";
+const DEFAULT_WEB_ORIGINS = ["http://localhost:8082", "http://127.0.0.1:8082"];
+const APP_SCHEMES = ["${appName}://", "exp://"];
+
+export const getAuthProvider = (): AuthProvider => {
+  const provider = process.env.AUTH_PROVIDER as AuthProvider | undefined;
+  return provider ?? "better-auth";
+};
+
+export const getWebOrigins = (): string[] => {
+  const origins = new Set<string>(DEFAULT_WEB_ORIGINS);
+  const fromEnv = process.env.CORS_ORIGINS?.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  for (const origin of fromEnv ?? []) {
+    origins.add(origin);
+  }
+  return [...origins];
+};
+
+export const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
+  if (getAuthProvider() !== "better-auth") {
+    return undefined;
+  }
+
+  return {
+    baseURL: process.env.BETTER_AUTH_URL ?? DEFAULT_BETTER_AUTH_URL,
+    crossDomainCookies: process.env.CROSS_DOMAIN_AUTH_COOKIES === "true",
+    enabled: true,
+    secret: process.env.BETTER_AUTH_SECRET ?? DEFAULT_BETTER_AUTH_SECRET,
+    trustedOrigins: [...APP_SCHEMES, ...getWebOrigins()],
+  };
 };
 `;
 };
@@ -519,6 +611,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
     admin: {
       default: false,
       type: Boolean,
+    },
+    betterAuthId: {
+      index: true,
+      sparse: true,
+      type: String,
     },
     email: {
       lowercase: true,
@@ -700,6 +797,7 @@ export type UserDocument = DefaultDoc &
   UserMethods &
   mongoose.PassportLocalDocument & {
     admin: boolean;
+    betterAuthId?: string;
     email: string;
     name: string;
   };
@@ -715,9 +813,12 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "@sentry/react": "^10.29.0",
         "@terreno/admin-frontend": "latest",
         "@terreno/rtk": "latest",
+        "@terreno/syncdb": "latest",
         "@terreno/ui": "latest",
         expo: "~57.0.14",
+        "expo-constants": "~18.0.13",
         "expo-router": "~57.0.14",
+        "expo-sqlite": "~16.0.10",
         react: "19.2.3",
         "react-dom": "19.2.3",
         "react-native": "0.86.2",
@@ -1009,11 +1110,13 @@ import {Stack} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, useSelectCurrentUserId} from "@terreno/rtk";
-import {TerrenoProvider} from "@terreno/ui";
-import {Provider} from "react-redux";
+import {baseUrl, selectBetterAuthIsLoading, selectBetterAuthUserId} from "@terreno/rtk";
+import {SyncDbProvider} from "@terreno/syncdb/react";
+import {Spinner, TerrenoProvider} from "@terreno/ui";
+import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import store, {persistor} from "@/store/index";
+import store, {persistor, syncBetterAuthSession} from "@/store/index";
+import {setSyncDbReady, syncDb} from "@/store/syncdb";
 
 export {ErrorBoundary} from "expo-router";
 
@@ -1059,140 +1162,173 @@ export default function RootLayout(): React.ReactElement | null {
 }
 
 function RootLayoutNav(): React.ReactElement {
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId) ?? undefined;
+  const isAuthLoading = useSelector(selectBetterAuthIsLoading);
+
+  // Hydrate Better Auth session into Redux on startup.
+  useEffect(() => {
+    void syncBetterAuthSession(store.dispatch);
+  }, []);
+
+  // Start syncdb after login; stop on logout.
+  useEffect(() => {
+    if (!userId) {
+      setSyncDbReady(false);
+      return;
+    }
+    let stopped = false;
+    void syncDb
+      .start()
+      .then(() => {
+        if (!stopped) {
+          setSyncDbReady(true);
+        }
+      })
+      .catch((startError: unknown) => {
+        console.error("[syncdb] start failed", startError);
+        setSyncDbReady(false);
+      });
+    return () => {
+      stopped = true;
+      setSyncDbReady(false);
+      void syncDb.stop();
+    };
+  }, [userId]);
+
+  if (isAuthLoading) {
+    return <Spinner />;
+  }
 
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <Stack>
-        {!userId ? (
-          <Stack.Screen name="login" options={{headerShown: false}} />
-        ) : (
-          <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-        )}
-      </Stack>
-    </ThemeProvider>
+    <SyncDbProvider client={syncDb}>
+      <ThemeProvider value={DefaultTheme}>
+        <Stack>
+          {!userId ? (
+            <>
+              <Stack.Screen name="login" options={{headerShown: false}} />
+              <Stack.Screen name="signup" options={{headerShown: false}} />
+            </>
+          ) : (
+            <Stack.Screen name="(tabs)" options={{headerShown: false}} />
+          )}
+        </Stack>
+      </ThemeProvider>
+    </SyncDbProvider>
   );
 }
 `;
 };
 
 const generateFrontendLogin = (): string => {
-  return `import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
+  return `import {baseUrl} from "@terreno/rtk";
+import {LoginScreen} from "@terreno/ui";
+import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store/sdk";
+import {betterAuthClient} from "@/lib/betterAuth";
+import {syncBetterAuthSession, useAppDispatch} from "@/store/index";
 
-const LoginScreen: React.FC = () => {
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [isSignUp, setIsSignUp] = useState<boolean>(false);
-  const toast = useToast();
+const Login: React.FC = () => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
-  const [emailSignUp, {isLoading: isSignUpLoading, error: signUpError}] = useEmailSignUpMutation();
-
-  const handleSubmit = useCallback(async (): Promise<void> => {
-    if (!email || !password) {
-      toast.warn("Email and password are required");
-      return;
-    }
-
-    if (isSignUp && !name) {
-      toast.warn("Signup requires name");
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        await emailSignUp({email, name, password}).unwrap();
-      } else {
-        await emailLogin({email, password}).unwrap();
+  const handleSubmit = useCallback(
+    async (values: Record<string, string>): Promise<void> => {
+      const {email, password} = values;
+      setErrorMessage(undefined);
+      setIsSubmitting(true);
+      try {
+        const result = await betterAuthClient.signIn.email({email, password});
+        if (result.error) {
+          setErrorMessage(result.error.message ?? "Sign in failed.");
+          return;
+        }
+        await syncBetterAuthSession(dispatch);
+        router.replace("/(tabs)");
+      } catch (error: unknown) {
+        console.error("[login] Sign in threw", {baseUrl, error});
+        setErrorMessage("Sign in failed. Please try again.");
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (err) {
-      console.error("Authentication error:", err);
-    }
-  }, [email, password, name, isSignUp, emailLogin, emailSignUp, toast]);
-
-  const toggleMode = useCallback((): void => {
-    setIsSignUp(!isSignUp);
-  }, [isSignUp]);
-
-  const isLoading = isLoginLoading || isSignUpLoading;
-  const error = loginError || signUpError;
-  const isSubmitDisabled = !email || !password || (isSignUp && !name) || isLoading;
+    },
+    [dispatch, router]
+  );
 
   return (
-    <Page navigation={undefined}>
-      <Box
-        alignItems="center"
-        alignSelf="center"
-        flex="grow"
-        justifyContent="center"
-        maxWidth={400}
-        padding={4}
-        width="100%"
-      >
-        <Box marginBottom={8}>
-          <Heading>{isSignUp ? "Create Account" : "Welcome Back"}</Heading>
-        </Box>
-        <Box gap={4} width="100%">
-          {isSignUp && (
-            <TextField
-              disabled={isLoading}
-              onChange={setName}
-              placeholder="Name"
-              title="Name"
-              value={name}
-            />
-          )}
-          <TextField
-            autoComplete="off"
-            disabled={isLoading}
-            onChange={setEmail}
-            placeholder="Email"
-            title="Email"
-            type="email"
-            value={email}
-          />
-          <TextField
-            disabled={isLoading}
-            onChange={setPassword}
-            placeholder="Password"
-            title="Password"
-            type="password"
-            value={password}
-          />
-          {Boolean(error) && (
-            <Text color="error">
-              {(error as {data?: {message?: string}})?.data?.message || "An error occurred"}
-            </Text>
-          )}
-          <Box marginTop={4}>
-            <Button
-              disabled={isSubmitDisabled}
-              fullWidth
-              loading={isLoading}
-              onClick={handleSubmit}
-              text={isSignUp ? "Sign Up" : "Login"}
-            />
-          </Box>
-          <Box marginTop={2}>
-            <Button
-              disabled={isLoading}
-              fullWidth
-              onClick={toggleMode}
-              text={isSignUp ? "Already have an account? Login" : "Need an account? Sign Up"}
-              variant="outline"
-            />
-          </Box>
-        </Box>
-      </Box>
-    </Page>
+    <LoginScreen
+      error={errorMessage}
+      fields={[
+        {autoComplete: "off", label: "Email", name: "email", required: true, type: "email"},
+        {label: "Password", name: "password", required: true, type: "password"},
+      ]}
+      loading={isSubmitting}
+      onSignUpPress={() => router.push("/signup")}
+      onSubmit={handleSubmit}
+      title="Welcome"
+    />
   );
 };
 
-export default LoginScreen;
+export default Login;
+`;
+};
+
+const generateFrontendSignup = (): string => {
+  return `import {SignUpScreen, simplePasswordRequirements} from "@terreno/ui";
+import {useRouter} from "expo-router";
+import type React from "react";
+import {useCallback, useState} from "react";
+import {betterAuthClient} from "@/lib/betterAuth";
+import {syncBetterAuthSession, useAppDispatch} from "@/store/index";
+
+const SignUp: React.FC = () => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(
+    async (values: Record<string, string>): Promise<void> => {
+      const {email, password, name} = values;
+      setErrorMessage(undefined);
+      setIsSubmitting(true);
+      try {
+        const result = await betterAuthClient.signUp.email({email, name, password});
+        if (result.error) {
+          setErrorMessage(result.error.message ?? "Sign up failed.");
+          return;
+        }
+        await syncBetterAuthSession(dispatch);
+        router.replace("/(tabs)");
+      } catch {
+        setErrorMessage("Sign up failed. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [dispatch, router]
+  );
+
+  return (
+    <SignUpScreen
+      error={errorMessage}
+      fields={[
+        {label: "Name", name: "name", required: true, type: "text"},
+        {autoComplete: "off", label: "Email", name: "email", required: true, type: "email"},
+        {label: "Password", name: "password", required: true, type: "password"},
+      ]}
+      loading={isSubmitting}
+      onLoginPress={() => router.back()}
+      onSubmit={handleSubmit}
+      passwordRequirements={simplePasswordRequirements}
+    />
+  );
+};
+
+export default SignUp;
 `;
 };
 
@@ -1274,16 +1410,18 @@ const generateFrontendTabsProfile = (): string => {
   return `import {Box, Button, Heading, Page, Text} from "@terreno/ui";
 import type React from "react";
 import {useCallback} from "react";
+import {signOut} from "@/lib/betterAuth";
+import {logout, syncBetterAuthSession, useAppDispatch} from "@/store/index";
 import {useGetMeQuery} from "@/store/sdk";
-import {logout} from "@/store/index";
-import {useAppDispatch} from "@/store/index";
 
 const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const {data: profile, isLoading} = useGetMeQuery();
 
-  const handleLogout = useCallback((): void => {
+  const handleLogout = useCallback(async (): Promise<void> => {
+    await signOut();
     dispatch(logout());
+    await syncBetterAuthSession(dispatch);
   }, [dispatch]);
 
   if (isLoading) {
@@ -1392,19 +1530,21 @@ export default NotFoundScreen;
 const generateFrontendStoreIndex = (): string => {
   return `import AsyncStorage from "@react-native-async-storage/async-storage";
 import {combineReducers, configureStore} from "@reduxjs/toolkit";
-import {generateAuthSlice, registerTerrenoDevStore} from "@terreno/rtk";
+import {generateBetterAuthSlice, registerTerrenoDevStore} from "@terreno/rtk";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage} from "redux-persist";
 import {persistReducer, persistStore} from "redux-persist";
+import {betterAuthClient} from "@/lib/betterAuth";
 
 import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
 import {terrenoApi} from "./sdk";
 
-const authSlice = generateAuthSlice(terrenoApi);
+const betterAuth = generateBetterAuthSlice({authClient: betterAuthClient});
 
-export const {logout} = authSlice;
+export const logout = betterAuth.actions.logout;
+export const syncBetterAuthSession = betterAuth.syncSession;
 
 const createSafeStorage = (): Storage => {
   return {
@@ -1428,7 +1568,7 @@ const createSafeStorage = (): Storage => {
 };
 
 const persistConfig = {
-  blacklist: ["terreno-rtk"],
+  blacklist: ["terreno-rtk", "betterAuth"],
   key: "root",
   storage: createSafeStorage(),
   timeout: 0,
@@ -1437,7 +1577,7 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   appState,
-  auth: authSlice.authReducer,
+  betterAuth: betterAuth.reducer,
   "terreno-rtk": terrenoApi.reducer,
 });
 
@@ -1458,7 +1598,7 @@ const store = configureStore({
       serializableCheck: false,
       thunk: true,
     }).concat([
-      ...authSlice.middleware,
+      ...betterAuth.middleware,
 // noExplicitAny: RTK Query middleware typing
       // biome-ignore lint/suspicious/noExplicitAny: RTK Query middleware typing
       terrenoApi.middleware as any,
@@ -1637,8 +1777,6 @@ export const terrenoApi = openapi
   });
 
 export const {
-  useEmailLoginMutation,
-  useEmailSignUpMutation,
   useGetMeQuery,
   usePatchMeMutation,
 } = terrenoApi;
@@ -1681,45 +1819,10 @@ const injectedRtkApi = api
     addTagTypes,
   })
   .injectEndpoints({
-    endpoints: (build) => ({
-      emailLogin: build.mutation<EmailLoginRes, EmailLoginArgs>({
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: \`/auth/login\`,
-        }),
-      }),
-      emailSignUp: build.mutation<EmailSignUpRes, EmailSignUpArgs>({
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: \`/auth/signup\`,
-        }),
-      }),
-    }),
+    endpoints: () => ({}),
     overrideExisting: false,
   });
 export {injectedRtkApi as openapi};
-export type EmailLoginArgs = {
-  email: string;
-  password: string;
-};
-export type EmailLoginRes = {
-  token: string;
-  refreshToken: string;
-  userId: string;
-};
-export type EmailSignUpArgs = {
-  email: string;
-  password: string;
-  name: string;
-};
-export type EmailSignUpRes = {
-  token: string;
-  refreshToken: string;
-  userId: string;
-};
-export const {useEmailLoginMutation, useEmailSignUpMutation} = injectedRtkApi;
 `;
 };
 
@@ -1844,6 +1947,88 @@ export default colors;
 
 const generateFrontendEnv = (): string => {
   return `EXPO_PUBLIC_API_URL=http://localhost:4000
+`;
+};
+
+const generateBackendEnv = (args: BootstrapArgs): string => {
+  const {appName} = args;
+  const dbName = appName.replace(/-/g, "_");
+  return `MONGO_URI=mongodb://127.0.0.1:27017/${dbName}?replicaSet=rs0
+AUTH_PROVIDER=better-auth
+BETTER_AUTH_SECRET=${appName}-better-auth-secret-dev-only-32chars
+BETTER_AUTH_URL=http://localhost:4000
+TOKEN_SECRET=dev-token-secret
+TOKEN_ISSUER=${appName}-dev
+REFRESH_TOKEN_SECRET=dev-refresh-secret
+SESSION_SECRET=dev-session-secret
+PORT=4000
+`;
+};
+
+const generateFrontendBetterAuthLib = (args: BootstrapArgs): string => {
+  const {appName} = args;
+  return `import {baseUrl, createBetterAuthClient} from "@terreno/rtk";
+import Constants from "expo-constants";
+
+const getAppScheme = (): string => {
+  const expoExtra = Constants.expoConfig?.extra;
+  return expoExtra?.scheme ?? "${appName}";
+};
+
+export const betterAuthClient = createBetterAuthClient({
+  baseURL: baseUrl,
+  scheme: getAppScheme(),
+  storagePrefix: "${appName}",
+});
+
+export const signOut = async (): Promise<void> => {
+  await betterAuthClient.signOut();
+};
+`;
+};
+
+const generateFrontendSyncDb = (args: BootstrapArgs): string => {
+  const {appName} = args;
+  const dbName = appName.replace(/-/g, "-");
+  return `import {baseUrl} from "@terreno/rtk";
+import {betterAuthAdapter, createSyncDb, type SyncDb} from "@terreno/syncdb";
+import {betterAuthClient} from "@/lib/betterAuth";
+
+export const SYNC_DB_NAME = "${dbName}";
+
+/** Add synced collection names here as you register modelRouter sync scopes on the backend. */
+export const SYNC_COLLECTIONS: string[] = [];
+
+const authProvider = betterAuthAdapter(betterAuthClient, {pollIntervalMs: 60_000});
+
+export const syncDb: SyncDb = createSyncDb({
+  authProvider,
+  baseUrl,
+  collections: SYNC_COLLECTIONS,
+  name: SYNC_DB_NAME,
+});
+
+let syncDbReady = false;
+const syncDbReadyListeners = new Set<() => void>();
+
+export const setSyncDbReady = (ready: boolean): void => {
+  if (syncDbReady === ready) {
+    return;
+  }
+  syncDbReady = ready;
+  for (const listener of syncDbReadyListeners) {
+    listener();
+  }
+};
+
+export const subscribeSyncDbReady = (listener: () => void): (() => void) => {
+  syncDbReadyListeners.add(listener);
+  return () => {
+    syncDbReadyListeners.delete(listener);
+  };
+};
+
+export const getSyncDbReadySnapshot = (): boolean => syncDbReady;
 `;
 };
 
@@ -1973,7 +2158,7 @@ ${appDescription}
 
 ## Project Structure
 
-- **frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
+- **frontend/** - Expo/React Native frontend using @terreno/ui, @terreno/syncdb, and @terreno/rtk (SDK + Better Auth)
 - **backend/** - Express/Mongoose backend using @terreno/api
 
 ## Development
@@ -2180,7 +2365,7 @@ globs: ["**/*"]
 
 # ${appDisplayName} Frontend
 
-Expo/React Native frontend using @terreno/ui and @terreno/rtk.
+Expo/React Native frontend using @terreno/ui, @terreno/syncdb, and @terreno/rtk.
 
 ## Development
 
@@ -2192,11 +2377,12 @@ bun run lint     # Lint code
 
 ## Frontend Conventions
 
-- Use generated SDK hooks from \`@/store/openApiSdk\`
+- Use \`@terreno/syncdb/react\` hooks (\`useQuery\`, \`useMutate\`) for synced collection CRUD
+- Use generated SDK hooks from \`@/store/openApiSdk\` for non-synced routes only
 - Use @terreno/ui components (Box, Page, Button, TextField, etc.)
 - Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
 - Use Luxon for date operations
-- Use Redux Toolkit for state management
+- Better Auth session: \`generateBetterAuthSlice\` + \`lib/betterAuth.ts\`
 ${admin}## Expo SDK upgrades
 
 - For Expo/React Native dependency upgrades, install and use the official \`upgrading-expo\` skill from \`expo/skills\` (\`bunx skills add expo/skills\` when using the Skills CLI). It covers \`expo install\`, doctor, caches, and SDK breaking changes.
@@ -2214,7 +2400,7 @@ ${admin}## Expo SDK upgrades
 1. Regenerate SDK if backend changed: \`bun run sdk\`
 2. Create screen in \`app/\` directory
 3. Use @terreno/ui components for layout
-4. Use SDK hooks for data fetching
+4. Use SDK hooks for non-synced routes; use syncdb hooks for synced collections
 `;
 };
 
@@ -2229,7 +2415,7 @@ globs: ["**/*"]
 
 # ${appDisplayName} Frontend
 
-Expo/React Native frontend using @terreno/ui and @terreno/rtk.
+Expo/React Native frontend using @terreno/ui, @terreno/syncdb, and @terreno/rtk.
 
 ## Development
 
@@ -2241,18 +2427,19 @@ bun run lint     # Lint code
 
 ## Frontend Conventions
 
-- Use generated SDK hooks from \`@/store/openApiSdk\`
+- Use \`@terreno/syncdb/react\` hooks for synced collection CRUD
+- Use generated SDK hooks from \`@/store/openApiSdk\` for non-synced routes only
 - Use @terreno/ui components (Box, Page, Button, TextField, etc.)
 - Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
 - Use Luxon for date operations
-- Use Redux Toolkit for state management
+- Better Auth session: \`generateBetterAuthSlice\` + \`lib/betterAuth.ts\`
 
 ## Adding a New Screen
 
 1. Regenerate SDK if backend changed: \`bun run sdk\`
 2. Create screen in \`app/\` directory
 3. Use @terreno/ui components for layout
-4. Use SDK hooks for data fetching
+4. Use SDK hooks for non-synced routes; use syncdb hooks for synced collections
 `;
 };
 
@@ -2448,6 +2635,11 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendIndex(), path: `${backendDir}/src/index.ts`},
     {content: generateBackendServer(args), path: `${backendDir}/src/server.ts`},
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
+    {
+      content: generateBackendBetterAuthConfig(args),
+      path: `${backendDir}/src/utils/betterAuthConfig.ts`,
+    },
+    {content: generateBackendEnv(args), path: `${backendDir}/.env`},
     {content: generateBackendModelPlugins(), path: `${backendDir}/src/models/modelPlugins.ts`},
     {content: generateBackendUserModel(), path: `${backendDir}/src/models/user.ts`},
     {
@@ -2470,6 +2662,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendGenerateSdk(), path: `${frontendDir}/scripts/generate-sdk.ts`},
     {content: generateFrontendRootLayout(args), path: `${frontendDir}/app/_layout.tsx`},
     {content: generateFrontendLogin(), path: `${frontendDir}/app/login.tsx`},
+    {content: generateFrontendSignup(), path: `${frontendDir}/app/signup.tsx`},
     {content: generateFrontendNotFound(), path: `${frontendDir}/app/+not-found.tsx`},
     {content: generateFrontendTabsLayout(), path: `${frontendDir}/app/(tabs)/_layout.tsx`},
     {content: generateFrontendTabsIndex(args), path: `${frontendDir}/app/(tabs)/index.tsx`},
@@ -2485,6 +2678,8 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendStoreErrors(), path: `${frontendDir}/store/errors.ts`},
     {content: generateFrontendStoreSdk(), path: `${frontendDir}/store/sdk.ts`},
     {content: generateFrontendStoreOpenApiSdk(), path: `${frontendDir}/store/openApiSdk.ts`},
+    {content: generateFrontendBetterAuthLib(args), path: `${frontendDir}/lib/betterAuth.ts`},
+    {content: generateFrontendSyncDb(args), path: `${frontendDir}/store/syncdb.ts`},
     {content: generateFrontendTheme(), path: `${frontendDir}/constants/theme.ts`},
     {content: generateFrontendUtilsIndex(), path: `${frontendDir}/utils/index.ts`},
     {content: generateFrontendEnv(), path: `${frontendDir}/.env`},
@@ -2570,12 +2765,11 @@ ${fileList}
    cd ../frontend && bun install
    \`\`\`
 
-5. **Start MongoDB** (required for backend):
+5. **Start MongoDB as a replica set** (required for realtime/sync):
    \`\`\`bash
-   # Using Docker:
-   docker run -d -p 27017:27017 mongo:latest
-
-   # Or install MongoDB locally
+   # Using Docker (single-node replica set):
+   docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0
+   docker exec mongo mongosh --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
    \`\`\`
 
 6. **Start the backend:**
@@ -2693,10 +2887,11 @@ After generating the files:
 7. Start the frontend with \`bun run web\`
 
 The application should include:
-- Full authentication flow (login/signup)
+- Better Auth login (email/password via \`@terreno/ui\` LoginScreen)
 - Tab-based navigation with Home and Profile screens
-- Redux state management with persistence
-- RTK Query SDK generation from OpenAPI spec
+- \`@terreno/syncdb\` client wired in the root layout (empty \`SYNC_COLLECTIONS\` until you add synced models)
+- Redux with Better Auth session + RTK Query SDK for non-synced routes
+- OpenAPI SDK generation from backend spec
 - Cursor rules for AI assistance
 - MCP integration for development assistance
 

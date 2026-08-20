@@ -235,7 +235,7 @@ describe("prompts", () => {
 
       expect(content).toContain("email");
       expect(content).toContain("User Model");
-      expect(content).toContain("Auth Routes");
+      expect(content).toContain("Better Auth Configuration");
       expect(content).toContain("Login Screen");
       expect(content).toContain("Signup Screen");
     });
@@ -248,8 +248,8 @@ describe("prompts", () => {
       const content = result.messages[0].content.text;
 
       expect(content).toContain("passwordReset");
-      expect(content).toContain("forgot-password");
-      expect(content).toContain("reset-password");
+      expect(content).toContain("Password Reset");
+      expect(content).toContain("Better Auth password reset");
     });
 
     test("should include auth state management", () => {
@@ -257,8 +257,9 @@ describe("prompts", () => {
 
       const content = result.messages[0].content.text;
 
-      expect(content).toContain("authSlice");
-      expect(content).toContain("LOGOUT_ACTION_TYPE");
+      expect(content).toContain("generateBetterAuthSlice");
+      expect(content).toContain("selectBetterAuthUserId");
+      expect(content).toContain("syncBetterAuthSession");
       expect(content).toContain("isAuthenticated");
     });
   });

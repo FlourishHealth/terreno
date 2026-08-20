@@ -1,5 +1,6 @@
 # @terreno/langfuse
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1093
 A TerrenoApp plugin that integrates [Langfuse](https://langfuse.com) into Terreno backends and frontends. Provides prompt management with MongoDB caching, OpenTelemetry tracing, Vercel AI SDK helpers, React hooks, and an admin UI — all wired up via `.install()`.
 
 > **Prerequisite:** This package relies on the new TerrenoApp plugin system (see [PR #149](https://github.com/FlourishHealth/terreno/pull/149)). TerrenoApp must support `.install()` before this package can be used.

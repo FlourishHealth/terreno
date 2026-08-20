@@ -1,0 +1,14 @@
+url: http://localhost:8085/demo/Button
+---
+# Demo web smoke: Button story renders (replaces Appium demo-smoke.spec.ts)
+# Prerequisites: demo static export served on port 8085 (without SPA rewrite)
+
+- launchApp
+
+- extendedWaitUntil:
+    visible: "Variant"
+    timeout: 30000
+
+- extendedWaitUntil:
+    visible: "Primary"
+    timeout: 15000
