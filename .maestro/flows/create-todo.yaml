@@ -19,7 +19,7 @@ url: http://localhost:8082/login
 - inputText: "testpassword123"
 
 - tapOn:
-    id: "login-screen-submit-button"
+    id: "Log In"
 
 - extendedWaitUntil:
     visible:
@@ -31,7 +31,7 @@ url: http://localhost:8082/login
 - inputText: "Buy groceries"
 
 - tapOn:
-    id: "todos-create-button"
+    id: "Add Todo"
 
 - extendedWaitUntil:
     visible: "Buy groceries"
