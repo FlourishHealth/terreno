@@ -8,7 +8,7 @@ import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
 import {buildListQuery} from "./query";
-import {restWriteExcludeFields} from "./schemaGenerator";
+import {restWriteExcludeFields, writeExcludeFields} from "./schemaGenerator";
 import type {
   MCPDocument,
   MCPMethod,
@@ -393,7 +393,7 @@ export const handleCreate = async (
 
   let body: MCPToolArgs | null = omitDeniedWriteFields(
     args,
-    restWriteExcludeFields("create", options.validation)
+    writeExcludeFields(entry.config, restWriteExcludeFields("create", options.validation))
   );
   try {
     body = transform(options, body, "create", user) as MCPToolArgs;
@@ -471,7 +471,7 @@ export const handleUpdate = async (
 
   let body: MCPToolArgs | null = omitDeniedWriteFields(
     updateFields,
-    restWriteExcludeFields("update", options.validation)
+    writeExcludeFields(entry.config, restWriteExcludeFields("update", options.validation))
   );
   try {
     body = transform(options, body, "update", user) as MCPToolArgs;

@@ -112,7 +112,8 @@ export const restWriteExcludeFields = (method: MCPMethod, validation: unknown): 
   return [];
 };
 
-const writeExcludeFields = (config: MCPConfig, restExcludeFields: string[]): string[] => {
+/** MCP `excludeFields` plus REST write denylist — used for tool schemas and persist. */
+export const writeExcludeFields = (config: MCPConfig, restExcludeFields: string[]): string[] => {
   return [...(config.excludeFields ?? []), ...restExcludeFields];
 };
 

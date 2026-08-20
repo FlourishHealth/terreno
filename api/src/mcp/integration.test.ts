@@ -170,6 +170,25 @@ describe("MCP Integration", () => {
       expect(parsed.data.title).toBe("Hook spread");
       expect(parsed.data.ownerId).toBeUndefined();
     });
+
+    it("strips MCP excludeFields from the create persist payload", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["ownerId"]},
+        options: {...entry.options, preCreate: undefined},
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {ownerId: otherUser._id.toString(), title: "No hidden write"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("No hidden write");
+      expect(parsed.data.ownerId).toBeUndefined();
+      const stored = await TodoModel.findOne({title: "No hidden write"}).lean();
+      expect(stored?.ownerId).toBeUndefined();
+    });
   });
 
   describe("handleList", () => {
@@ -462,6 +481,25 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.title).toBe("Still mine");
       expect(String(parsed.data.ownerId)).toBe(normalUser.id);
+    });
+
+    it("strips MCP excludeFields from the update persist payload", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Keep owner"});
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["ownerId"]},
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {id: doc._id.toString(), ownerId: otherUser._id.toString(), title: "Still mine"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Still mine");
+      expect(parsed.data.ownerId).toBeUndefined();
+      const stored = await TodoModel.findById(doc._id).lean();
+      expect(String(stored?.ownerId)).toBe(normalUser.id);
     });
   });
 

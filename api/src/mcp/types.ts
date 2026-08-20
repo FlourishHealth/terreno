@@ -67,7 +67,7 @@ export interface MCPConfig {
    */
   toolPrefix?: string;
   /**
-   * Fields to hide from MCP tool schemas and responses.
+   * Fields to hide from MCP tool schemas, responses, and create/update persist bodies.
    *
    * A bare field name (`"hash"`) is removed at every depth of the response, including
    * inside arrays and populated refs, so a redacted name cannot leak through a nested
