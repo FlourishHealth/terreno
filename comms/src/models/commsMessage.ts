@@ -29,6 +29,16 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
       description: "Provider error returned for a failed send attempt",
       type: String,
     },
+    errorClass: {
+      description: "Classified failure category used for retry eligibility",
+      enum: ["config", "permanent", "transient"],
+      type: String,
+    },
+    errorCode: {
+      description: "Provider-native error code for a failed send attempt",
+      index: true,
+      type: String,
+    },
     metadata: {
       description: "Additional metadata associated with the send attempt",
       type: mongoose.Schema.Types.Mixed,

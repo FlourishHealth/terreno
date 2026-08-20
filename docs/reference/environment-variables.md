@@ -133,9 +133,17 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | Variable | Read by | Required | Default | Secret | Scope |
 |----------|---------|----------|---------|--------|-------|
 | `COMMS_ENABLED` | example-backend | ❌ | `true` | No | server |
+| `COMMS_DEFAULT_FROM` | example-backend / `@terreno/comms` | ❌ | — | No | server |
+| `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
+| `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
+| `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
-Provider credentials are documented by their separate adapter packages.
+When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvider`
+(optional peer `@sendgrid/mail`). Without a key, non-production environments keep the
+console mail provider; production leaves mail unconfigured until a provider is wired.
+`SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
+Sender identity must be verified in SendGrid before real delivery works.
 
 ## Observability
 

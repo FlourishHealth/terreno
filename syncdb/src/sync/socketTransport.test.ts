@@ -74,6 +74,16 @@ const startServer = async (): Promise<TestServer> => {
   return server;
 };
 
+const waitUntil = async (predicate: () => boolean, timeoutMs = 500): Promise<void> => {
+  const startedAt = Date.now();
+  while (!predicate()) {
+    if (Date.now() - startedAt > timeoutMs) {
+      throw new Error("waitUntil timed out");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+};
+
 describe("createSocketTransport", () => {
   let server: TestServer;
   let transport: SyncTransport | undefined;
@@ -134,12 +144,12 @@ describe("createSocketTransport", () => {
     // Subscribed before connect: sent once the connection opens.
     subscriber.subscribe(["todos"]);
     await subscriber.connect();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitUntil(() => server.subscribes.length === 1);
     expect(server.subscribes).toEqual([{collections: ["todos"]}]);
 
     // Subscribed while connected: sent immediately.
     subscriber.subscribe(["notes"]);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitUntil(() => server.subscribes.length === 2);
     expect(server.subscribes).toEqual([{collections: ["todos"]}, {collections: ["notes"]}]);
   });
 
