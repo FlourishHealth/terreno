@@ -115,8 +115,9 @@ its CircleCI parameter — otherwise the twin silently never runs. It runs as th
 edits set `run-circleci-config`, which runs a representative slice (`api-ci`, `ui-ci`,
 `example-backend-ci`, `no-barrel-imports`, `e2e` spec `login`) so config changes are
 actually exercised instead of only hitting the always-on smoke jobs. CircleCI e2e
-pre-starts Expo web and reuses it (60s test timeout, `xlarge` executor) because the
-GHA `ubuntu-latest` Metro + Chromium mix OOMs/crashes on the Docker browser image.
+pre-starts Expo web and reuses it (60s test timeout, `large` Docker executor) because
+Metro + Chromium on `cimg/node` browsers otherwise times out and then drops port 8082.
+(`xlarge` is not on this project's CircleCI plan.)
 
 ## Nightly load test
 

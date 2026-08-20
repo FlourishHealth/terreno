@@ -768,7 +768,6 @@ jobs:
 
   e2e:
     executor: node22_browsers_mongo_rs
-    resource_class: xlarge
     parameters:
       spec:
         type: string
@@ -782,7 +781,6 @@ jobs:
   # (mirrors GHA e2e-load-nightly).
   e2e-load:
     executor: node22_browsers_mongo_rs
-    resource_class: xlarge
     steps:
       - checkout
       - install_bun_and_deps
