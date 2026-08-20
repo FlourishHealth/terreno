@@ -38,6 +38,7 @@ import mongoose from "mongoose";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addAgentDebugLogRoutes} from "./api/agentDebugLog";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
@@ -185,6 +186,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
+      .register(createOpenApiAwareRouteRegistration(addAgentDebugLogRoutes))
       .register(todoRouter)
       .register(projectRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))

@@ -1139,6 +1139,32 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
 
   const handleDelta = (delta: SyncDelta): void => {
     const {seqJump, applied} = applyDelta({delta, store});
+    // #region agent log
+    if (delta.collection === "todos") {
+      void fetch("http://localhost:4000/__agent_debug_log", {
+        body: JSON.stringify({
+          data: {
+            applied,
+            deleted: delta.deleted === true,
+            id: delta.id,
+            method: delta.method,
+            seq: delta.seq,
+            seqJump,
+            title:
+              delta.data && typeof delta.data === "object" && "title" in delta.data
+                ? String((delta.data as {title?: unknown}).title ?? "")
+                : undefined,
+          },
+          hypothesisId: "H1",
+          location: "syncdb/client.ts:handleDelta",
+          message: "todo delta received",
+          timestamp: Date.now(),
+        }),
+        headers: {"Content-Type": "application/json"},
+        method: "POST",
+      }).catch(() => {});
+    }
+    // #endregion
     debugLog?.record({
       collection: delta.collection,
       detail: {applied, data: delta.data, deleted: delta.deleted === true, seqJump},
