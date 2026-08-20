@@ -10,10 +10,11 @@ import {
 
 export const UNRELEASED_DIR_NAME = "changelog/unreleased";
 
-export const listUnreleasedFragmentFileNames = (repoRoot: string): string[] => {
+export const listUnreleasedDirectoryFileNames = (repoRoot: string): string[] => {
   const directoryPath = join(repoRoot, UNRELEASED_DIR_NAME);
-  return readdirSync(directoryPath)
-    .filter((fileName) => isFragmentFileName(fileName))
+  return readdirSync(directoryPath, {withFileTypes: true})
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
     .sort();
 };
 
@@ -27,7 +28,20 @@ export const loadUnreleasedFragments = (
   const fragments: ChangelogFragment[] = [];
   const failures: ChangelogValidationFailure[] = [];
 
-  for (const fileName of listUnreleasedFragmentFileNames(repoRoot)) {
+  for (const fileName of listUnreleasedDirectoryFileNames(repoRoot)) {
+    if (!isFragmentFileName(fileName)) {
+      if (fileName.toLowerCase() === "readme.md") {
+        continue;
+      }
+
+      failures.push({
+        fileName,
+        message:
+          "file name must be kebab-case.md (for example sendgrid-mail-provider.md); README.md is reserved",
+      });
+      continue;
+    }
+
     const content = readFileSync(join(directoryPath, fileName), "utf8");
     const parsed = parseChangelogFragment({content, fileName});
 

@@ -57,6 +57,20 @@ Body
     assert.match((result as {message: string}).message, /reserved/);
   });
 
+  it("rejects PascalCase and underscored file names", (): void => {
+    const pascal = parseChangelogFragment({
+      content: "---\ncategory: Added\n---\n\nBody\n",
+      fileName: "SendGrid.md",
+    });
+    const underscored = parseChangelogFragment({
+      content: "---\ncategory: Added\n---\n\nBody\n",
+      fileName: "foo_bar.md",
+    });
+
+    assert.match((pascal as {message: string}).message, /kebab-case/);
+    assert.match((underscored as {message: string}).message, /kebab-case/);
+  });
+
   it("rejects a missing YAML header", (): void => {
     const result = parseChangelogFragment({
       content: "### Added\n\n- Forgot the header\n",
