@@ -143,24 +143,34 @@ jobs:
           REFRESH_TOKEN_EXPIRES_IN: 30d
 
       - name: Start example frontend dev server
-        run: bun expo start --web --port 8082 &
+        run: |
+          bun expo start --web --port 8082 &
+          EXPO_PID=$!
+          echo "Expo PID: $EXPO_PID"
+          for i in $(seq 1 90); do
+            if ! kill -0 $EXPO_PID 2>/dev/null; then
+              echo "::error::Expo process exited unexpectedly"
+              exit 1
+            fi
+            if curl -sf http://localhost:8082 > /dev/null; then
+              curl -sf "http://localhost:8082/login" > /tmp/login.html 2>/dev/null || true
+              SIZE=$(wc -c < /tmp/login.html)
+              echo "Metro warm-up ${i}×3s — login HTML ${SIZE} bytes"
+              if [ "$SIZE" -gt 10000 ]; then
+                echo "Example frontend bundle ready after ${i}×3s"
+                exit 0
+              fi
+            fi
+            sleep 3
+          done
+          echo "::error::Example frontend bundle did not become ready within 270s"
+          exit 1
         working-directory: example-frontend
         env:
           EXPO_PUBLIC_API_URL: http://localhost:4000
 
       - name: Serve demo static build
         run: bunx serve demo/dist -l 8085 &
-
-      - name: Wait for example frontend
-        run: |
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8082/login > /dev/null; then
-              echo "Example frontend ready after ${i}×2s"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Example frontend failed to start" && exit 1
 
       - name: Wait for demo
         run: |
