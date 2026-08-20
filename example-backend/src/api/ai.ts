@@ -16,7 +16,7 @@ import {
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
-import type {ModelRouterOptions} from "@terreno/api";
+import type {ModelRouterOptions, User} from "@terreno/api";
 import {
   APIError,
   asyncHandler,
@@ -564,9 +564,7 @@ const createImageTool = (apiKey?: string): Tool => {
 };
 
 const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
-  // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-  // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-  const tools: Record<string, Tool> = {...(getMCPTools(req.user as any) as any)};
+  const tools: Record<string, Tool> = {...getMCPTools(req.user as User | undefined)};
 
   const apiKey = req.headers["x-ai-api-key"] as string | undefined;
   if (apiKey) {
