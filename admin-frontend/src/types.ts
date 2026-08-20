@@ -82,6 +82,10 @@ export interface AdminModelConfig {
    * picks a scalar label from common keys (`name`, `title`, …) then the first list column.
    */
   recordTitleField?: string;
+  /** Fields that use async autocomplete against the model list endpoint (Phase 3+). */
+  autocompleteFields?: string[];
+  /** Server-side excluded fields (scrubbed from responses; informational for forms). */
+  excludeFields?: string[];
   /** Admin UI v2 — declarative bulk actions */
   actions?: {
     background?: boolean;
@@ -134,12 +138,69 @@ export interface AdminHome {
   title: string;
 }
 
+export interface AdminCapabilities {
+  actions: boolean;
+  fieldsets: boolean;
+  filters: boolean;
+  realtime: boolean;
+}
+
 export interface AdminConfigResponse {
+  capabilities?: AdminCapabilities;
   customScreens?: AdminCustomScreen[];
   home?: AdminHome;
   models: AdminModelConfig[];
   schemaVersion?: number;
   scripts: AdminScriptConfig[];
+  /** Plugin home widget ids merged from admin contributions (informational). */
+  widgetIds?: string[];
+}
+
+/** Props passed to home dashboard widgets resolved from `home.slots`. */
+export interface AdminHomeWidgetProps {
+  api: AdminApi;
+  apiBase: string;
+  routeBase: string;
+  config: AdminConfigResponse;
+  models: AdminModelConfig[];
+  auditModel?: AdminModelConfig;
+  featureFlagModel?: AdminModelConfig;
+}
+
+/** Props passed to custom admin screen widgets registered in `widgets.screens`. */
+export interface AdminScreenWidgetProps extends AdminScreenProps {
+  config: AdminConfigResponse;
+  screenName: string;
+}
+
+/** Props passed to per-field form widgets registered in `widgets.fields`. */
+export interface AdminFieldWidgetProps extends AdminScreenProps {
+  errorText?: string;
+  fieldConfig: AdminFieldConfig;
+  fieldKey: string;
+  modelConfigs?: Array<{name: string; routePath: string}>;
+  onChange: (value: AdminFieldValue) => void;
+  parentFormState?: Record<string, AdminFieldValue>;
+  readOnly?: boolean;
+  refRenderers?: RefRendererMap;
+  value: AdminFieldValue;
+}
+
+export type HomeWidgetComponent = React.FC<AdminHomeWidgetProps>;
+export type ScreenWidgetComponent = React.FC<AdminScreenWidgetProps>;
+export type FieldWidgetComponent = React.FC<AdminFieldWidgetProps>;
+
+export interface AdminWidgetRegistry {
+  fields: Record<string, FieldWidgetComponent>;
+  home: Record<string, HomeWidgetComponent>;
+  screens: Record<string, ScreenWidgetComponent>;
+}
+
+export interface AdminProviderValue {
+  api: AdminApi;
+  apiBase: string;
+  routeBase: string;
+  widgets: AdminWidgetRegistry;
 }
 
 export interface BackgroundTaskProgress {

@@ -1,16 +1,9 @@
-import {
-  BooleanField,
-  DateTimeField,
-  MarkdownEditorField,
-  SelectField,
-  TextField,
-} from "@terreno/ui";
+import {BooleanField, DateTimeField, SelectField, TextField} from "@terreno/ui";
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
+import {useFieldWidget} from "./AdminProvider";
 import {AdminRefField} from "./AdminRefField";
-import {CheckboxListEditor} from "./CheckboxListEditor";
-import {LocaleContentEditor} from "./LocaleContentEditor";
 import type {AdminFieldConfig, AdminFieldValue, AdminScreenProps, RefRendererMap} from "./types";
 
 const USER_REF_MODEL_NAME = "User";
@@ -112,6 +105,27 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   const helperText = fieldConfig.description;
   const refModel = getRefModel(modelConfigs, USER_REF_MODEL_NAME);
   const isReadOnly = Boolean(readOnly);
+  const FieldWidget = useFieldWidget(fieldConfig.widget);
+
+  if (FieldWidget && fieldConfig.widget) {
+    return (
+      <FieldWidget
+        api={api}
+        apiBase={apiBase}
+        baseUrl={baseUrl}
+        errorText={errorText}
+        fieldConfig={fieldConfig}
+        fieldKey={fieldKey}
+        modelConfigs={modelConfigs}
+        onChange={onChange}
+        parentFormState={parentFormState}
+        readOnly={readOnly}
+        refRenderers={refRenderers}
+        routeBase={routeBase}
+        value={value}
+      />
+    );
+  }
 
   if (isUserTargetingValueField(fieldKey, parentFormState)) {
     const operator = parentFormState?.operator;
@@ -313,67 +327,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  if (isReadOnly && fieldConfig.widget === "locale-content") {
-    const localeReadonly =
-      value && typeof value === "object" && !Array.isArray(value)
-        ? (value as Record<string, string>)
-        : {};
-    return (
-      <TextField
-        disabled
-        grow
-        helperText={helperText ?? "Read-only"}
-        multiline
-        onChange={() => {}}
-        rows={8}
-        testID={`admin-field-${fieldKey}`}
-        title={label}
-        value={serializeJsonValue(localeReadonly)}
-      />
-    );
-  }
-
-  if (fieldConfig.widget === "locale-content") {
-    const localeValue =
-      value && typeof value === "object" && !Array.isArray(value)
-        ? (value as Record<string, string>)
-        : {};
-    return (
-      <LocaleContentEditor
-        errorText={errorText}
-        helperText={helperText}
-        onChange={onChange}
-        title={label}
-        value={localeValue}
-      />
-    );
-  }
-
-  if (fieldConfig.widget === "locale-default") {
-    const contentMap = parentFormState?.content;
-    const localeKeys =
-      contentMap && typeof contentMap === "object" && !Array.isArray(contentMap)
-        ? Object.keys(contentMap)
-        : [];
-    const hasLocales = localeKeys.length > 0;
-    const options = localeKeys.map((k) => ({label: k.toUpperCase(), value: k}));
-    return (
-      <SelectField
-        disabled={!hasLocales || isReadOnly}
-        errorText={errorText}
-        helperText={
-          hasLocales
-            ? helperText
-            : "Add at least one locale with content before setting a default locale."
-        }
-        onChange={onChange}
-        options={options}
-        title={label}
-        value={typeof value === "string" ? value : ""}
-      />
-    );
-  }
-
   if (fieldConfig.type === "object" || fieldConfig.type === "mixed") {
     const displayValue = serializeJsonValue(value);
     return (
@@ -434,69 +387,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={jsonValue}
-      />
-    );
-  }
-
-  if (fieldConfig.widget === "markdown") {
-    return (
-      <MarkdownEditorField
-        disabled={isReadOnly}
-        errorText={errorText}
-        helperText={helperText}
-        onChange={onChange}
-        testID={`admin-field-${fieldKey}`}
-        title={label}
-        value={typeof value === "string" ? value : ""}
-      />
-    );
-  }
-
-  if (isReadOnly && fieldConfig.widget === "checkbox-list") {
-    return (
-      <TextField
-        disabled
-        grow
-        helperText={helperText ?? "Read-only"}
-        multiline
-        onChange={() => {}}
-        rows={6}
-        testID={`admin-field-${fieldKey}`}
-        title={label}
-        value={serializeJsonValue(value)}
-      />
-    );
-  }
-
-  if (fieldConfig.widget === "checkbox-list") {
-    return (
-      <CheckboxListEditor
-        errorText={errorText}
-        helperText={helperText}
-        onChange={onChange}
-        title={label}
-        value={
-          Array.isArray(value)
-            ? (value as React.ComponentProps<typeof CheckboxListEditor>["value"])
-            : []
-        }
-      />
-    );
-  }
-
-  if (fieldConfig.widget === "textarea") {
-    return (
-      <TextField
-        disabled={isReadOnly}
-        errorText={errorText}
-        grow
-        helperText={helperText}
-        multiline
-        onChange={onChange}
-        rows={6}
-        testID={`admin-field-${fieldKey}`}
-        title={label}
-        value={typeof value === "string" ? value : ""}
       />
     );
   }

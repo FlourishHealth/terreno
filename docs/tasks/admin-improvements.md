@@ -117,37 +117,37 @@
 
 ## Phase 3 — Admin frontend foundations
 
-- [ ] **Task 3.1**: `AdminProvider` + three-bucket widget registry + hooks  
+- [x] **Task 3.1**: `AdminProvider` + three-bucket widget registry + hooks  
   - Files: `admin-frontend/src/AdminProvider.tsx`, `types.ts`, tests  
   - Depends on: none
 
-- [ ] **Task 3.2**: Extend frontend types for `widgetIds`, `capabilities`, `autocompleteFields`, `excludeFields`  
+- [x] **Task 3.2**: Extend frontend types for `widgetIds`, `capabilities`, `autocompleteFields`, `excludeFields`  
   - Files: `admin-frontend/src/types.ts`  
   - Depends on: 2.4
 
-- [ ] **Task 3.3**: `AdminScreenRouter`  
+- [x] **Task 3.3**: `AdminScreenRouter`  
   - Files: `admin-frontend/src/AdminScreenRouter.tsx`, tests  
   - Depends on: 3.1, 3.2, 2.3
 
-- [ ] **Task 3.4**: Refactor `AdminHome` — slots + registry (built-ins + plugin ids)  
+- [x] **Task 3.4**: Refactor `AdminHome` — slots + registry (built-ins + plugin ids)  
   - Extract widget renderers to `widgets/`; keep slot layout from v2  
   - Files: `admin-frontend/src/AdminHome.tsx`, `widgets/*`, tests  
   - Depends on: 3.1, 3.2
 
-- [ ] **Task 3.5**: Extract built-in widgets to `widgets/`  
+- [x] **Task 3.5**: Extract built-in widgets to `widgets/`  
   - `ModelsGridWidget`, `ModelStatsWidget`, `RecentActivityWidget`, `ScriptRunnerWidget`, `CustomScreensListWidget`, `VersionConfigWidget`  
   - Files: `admin-frontend/src/widgets/*.tsx`, tests  
   - Depends on: 3.4
 
-- [ ] **Task 3.6**: `AdminFieldRenderer` + form widget lookup from context  
+- [x] **Task 3.6**: `AdminFieldRenderer` + form widget lookup from context  
   - Files: `AdminFieldRenderer.tsx`, `AdminModelForm.tsx`, tests  
   - Depends on: 3.1
 
-- [ ] **Task 3.7**: `AdminModelList` thin wrapper → `AdminHome` + deprecation for `customScreens` prop  
+- [x] **Task 3.7**: `AdminModelList` thin wrapper → `AdminHome` + deprecation for `customScreens` prop  
   - Files: `AdminModelList.tsx`  
   - Depends on: 3.4
 
-- [ ] **Task 3.8**: Package exports (`AdminProvider`, `AdminScreenRouter`, `BUILT_IN_*_WIDGETS`)  
+- [x] **Task 3.8**: Package exports (`AdminProvider`, `AdminScreenRouter`, `BUILT_IN_*_WIDGETS`)  
   - Files: `admin-frontend/src/index.tsx`  
   - Depends on: 3.1–3.7
 
