@@ -58,9 +58,7 @@ exports[`Body renders correctly with default props 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "avoidKeyboard": true,
                   "height": "100%",
-                  "scroll": undefined,
                 },
                 "testID": undefined,
               },
@@ -155,9 +153,7 @@ exports[`Body renders with scroll enabled 1`] = `
                     "onPointerEnter": [Function: AsyncFunction],
                     "onPointerLeave": [Function: AsyncFunction],
                     "style": {
-                      "avoidKeyboard": true,
                       "height": "100%",
-                      "scroll": true,
                     },
                     "testID": undefined,
                   },
@@ -179,9 +175,7 @@ exports[`Body renders with scroll enabled 1`] = `
                 },
                 "scrollEventThrottle": 50,
                 "style": {
-                  "avoidKeyboard": true,
                   "height": "100%",
-                  "scroll": true,
                 },
               },
               "type": "ScrollView",
@@ -281,9 +275,7 @@ exports[`Body renders with loading state 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "avoidKeyboard": true,
                   "height": "100%",
-                  "scroll": undefined,
                 },
                 "testID": undefined,
               },
@@ -375,9 +367,7 @@ exports[`Body renders with custom padding 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "avoidKeyboard": true,
                   "height": "100%",
-                  "scroll": undefined,
                 },
                 "testID": undefined,
               },
@@ -469,9 +459,7 @@ exports[`Body renders with custom height 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "avoidKeyboard": true,
                   "height": "100%",
-                  "scroll": undefined,
                 },
                 "testID": undefined,
               },
@@ -560,9 +548,7 @@ exports[`Body renders without keyboard avoiding when avoidKeyboard is false 1`] 
             "onPointerEnter": [Function: AsyncFunction],
             "onPointerLeave": [Function: AsyncFunction],
             "style": {
-              "avoidKeyboard": true,
               "height": "100%",
-              "scroll": undefined,
             },
             "testID": undefined,
           },
@@ -648,9 +634,7 @@ exports[`Body renders with keyboard avoiding by default 1`] = `
                 "onPointerEnter": [Function: AsyncFunction],
                 "onPointerLeave": [Function: AsyncFunction],
                 "style": {
-                  "avoidKeyboard": true,
                   "height": "100%",
-                  "scroll": undefined,
                 },
                 "testID": undefined,
               },

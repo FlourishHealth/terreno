@@ -33,7 +33,7 @@
     "@shopify/react-native-skia": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "catalog:",
-    "expo-document-picker": "~14.0.8",
+    "expo-document-picker": "catalog:",
     "expo-font": "catalog:",
     "expo-haptics": "catalog:",
     "expo-image-manipulator": "catalog:",
@@ -42,11 +42,11 @@
     "expo-linking": "catalog:",
     "expo-localization": "catalog:",
     "expo-notifications": "catalog:",
+    "expo-print": "catalog:",
     "expo-router": "catalog:",
-    "expo-splash-screen": "catalog:",
+    "expo-sharing": "catalog:",
     "expo-updates": "catalog:",
     "expo-web-browser": "catalog:",
-    "jspdf": "catalog:",
     "libphonenumber-js": "catalog:",
     "linkify-it": "catalog:",
     "lodash": "catalog:",
@@ -92,7 +92,7 @@
     "@types/react-datetime-picker": "^5.0.0",
     "@types/react-time-picker": "^6.0.0",
     "babel-preset-react-app": "^10.0.1",
-    "expo-modules-core": "~3.0.29",
+    "expo-modules-core": "catalog:",
     "mdurl": "catalog:",
     "prettier": "catalog:",
     "react": "catalog:",
@@ -114,8 +114,15 @@
   "name": "@terreno/ui",
   "peerDependencies": {
     "react": "catalog:",
+    "react-dom": "^19.2.0",
+    "react-native": "~0.86.0",
     "react-router": "catalog:",
     "react-router-dom": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
   },
   "prettier": {
     "arrowParens": "always",
@@ -142,5 +149,5 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "0.31.0"
+  "version": "57.0.0"
 }

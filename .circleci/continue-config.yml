@@ -54,6 +54,11 @@ parameters:
   run-e2e:
     type: boolean
     default: false
+  # Not set by path filtering — flip via scheduled/manual pipeline trigger to
+  # mirror GHA e2e-load-nightly (cron + dispatch + `load-test` label).
+  run-e2e-load:
+    type: boolean
+    default: false
 
 executors:
   node22:
@@ -95,6 +100,33 @@ commands:
           pkg-manager: bun
           include-branch-in-cache-key: << parameters.include-branch-in-cache-key >>
           cache-version: v1
+
+  compile_packages:
+    description: Compile workspace packages in dependency order
+    parameters:
+      packages:
+        type: string
+    steps:
+      - run:
+          name: Compile dependencies (<< parameters.packages >>)
+          command: |
+            set -euo pipefail
+            for pkg in << parameters.packages >>; do
+              echo "=== compile $pkg ==="
+              (cd "$pkg" && bun run compile)
+            done
+
+  demo_lint_and_typecheck:
+    description: Compile ui, then lint and typecheck demo
+    steps:
+      - compile_packages:
+          packages: ui
+      - run:
+          name: Lint and typecheck demo
+          command: |
+            set -euo pipefail
+            (cd demo && bun run lint)
+            (cd demo && bun run compile)
 
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
@@ -167,7 +199,71 @@ commands:
               echo "export TOKEN_SECRET=\"${E2E_TOKEN_SECRET:-ci-e2e-token-secret}\""
               echo "export REFRESH_TOKEN_SECRET=\"${E2E_REFRESH_TOKEN_SECRET:-ci-e2e-refresh-secret}\""
               echo "export SESSION_SECRET=\"${E2E_SESSION_SECRET:-ci-e2e-session-secret}\""
+              echo "export BETTER_AUTH_SECRET=\"${E2E_SESSION_SECRET:-ci-e2e-session-secret}\""
             } >> "$BASH_ENV"
+
+  run_example_frontend_e2e:
+    description: Boot example-backend (better-auth) and run one Playwright spec
+    parameters:
+      spec:
+        type: string
+    steps:
+      - init_mongo_replica
+      - run:
+          name: Compile workspace
+          command: bun run compile
+      - resolve_e2e_secrets
+      - run:
+          name: Start example-backend
+          working_directory: ~/project/example-backend
+          background: true
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            export AUTH_PROVIDER=better-auth
+            export BETTER_AUTH_URL=http://localhost:4000
+            export PORT=4000
+            export MONGO_URI="mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
+            export TOKEN_ISSUER=terreno-e2e
+            bun run src/index.ts
+      - run:
+          name: Wait for backend health
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:4000/health | grep -q '"healthy":true'; then
+                echo "backend healthy"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "backend failed to become healthy"
+            exit 1
+      - run:
+          name: Install Playwright Chromium
+          working_directory: ~/project/example-frontend
+          command: bunx playwright install --with-deps chromium
+      - run:
+          name: Playwright << parameters.spec >>
+          working_directory: ~/project/example-frontend
+          environment:
+            AUTH_PROVIDER: better-auth
+            BETTER_AUTH_URL: http://localhost:4000
+            CI: "true"
+            MONGO_URI: "mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
+            TOKEN_ISSUER: terreno-e2e
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            bunx playwright test "<< parameters.spec >>.spec.ts"
+      - store_artifacts:
+          path: example-frontend/playwright-report
+          destination: playwright-report-<< parameters.spec >>
+      - store_artifacts:
+          path: example-frontend/test-results
+          destination: playwright-test-results-<< parameters.spec >>
 
   skip_if_not_pull_request:
     steps:
@@ -205,6 +301,7 @@ jobs:
           name: Config continuation ok
           command: |
             echo "CircleCI continue-config loaded"
+            echo "run-circleci-config=<< pipeline.parameters.run-circleci-config >>"
             echo "run-api=<< pipeline.parameters.run-api >>"
             echo "run-ui=<< pipeline.parameters.run-ui >>"
             echo "run-e2e=<< pipeline.parameters.run-e2e >>"
@@ -234,10 +331,8 @@ jobs:
       - checkout
       - install_bun_and_deps
       - wait_for_mongo
-      - run:
-          name: Compile api dependency
-          working_directory: ~/project/api
-          command: bun run compile
+      - compile_packages:
+          packages: api
       - run:
           name: Lint / compile / test ai
           working_directory: ~/project/ai
@@ -254,10 +349,8 @@ jobs:
     steps:
       - checkout
       - install_bun_and_deps
-      - run:
-          name: Compile ui dependency
-          working_directory: ~/project/ui
-          command: bun run compile
+      - compile_packages:
+          packages: ui
       - run:
           name: Lint / compile / test rtk
           working_directory: ~/project/rtk
@@ -286,41 +379,29 @@ jobs:
             bun run types
             bun run test:ci
 
+  # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
   ui-demo-typecheck:
     executor: node22
     steps:
       - checkout
       - install_bun_and_deps
-      - run:
-          name: Compile ui then lint/compile demo
-          command: |
-            set -euo pipefail
-            (cd ui && bun run compile)
-            (cd demo && bun run lint)
-            (cd demo && bun run compile)
+      - demo_lint_and_typecheck
 
+  # Runs when only demo changed (GHA: "Demo Lint and TypeScript Check").
   ui-demo-ci:
     executor: node22
     steps:
       - checkout
       - install_bun_and_deps
-      - run:
-          name: Demo lint and typecheck (UI unchanged)
-          command: |
-            set -euo pipefail
-            (cd ui && bun run compile)
-            (cd demo && bun run lint)
-            (cd demo && bun run compile)
+      - demo_lint_and_typecheck
 
   comms-ci:
     executor: node22
     steps:
       - checkout
       - install_bun_and_deps
-      - run:
-          name: Compile api dependency
-          working_directory: ~/project/api
-          command: bun run compile
+      - compile_packages:
+          packages: api
       - run:
           name: Lint / compile / test comms
           working_directory: ~/project/comms
@@ -369,12 +450,8 @@ jobs:
       - install_bun_and_deps
       - setup_remote_docker:
           docker_layer_caching: true
-      - run:
-          name: Compile api + mcp-server
-          command: |
-            set -euo pipefail
-            (cd api && bun run compile)
-            (cd mcp-server && bun run compile)
+      - compile_packages:
+          packages: api mcp-server
       - run:
           name: Production install for image context
           command: |
@@ -395,13 +472,8 @@ jobs:
     steps:
       - checkout
       - install_bun_and_deps
-      - run:
-          name: Compile frontend dependencies
-          command: |
-            set -euo pipefail
-            (cd ui && bun run compile)
-            (cd rtk && bun run compile)
-            (cd admin-frontend && bun run compile)
+      - compile_packages:
+          packages: ui rtk admin-frontend
       - run:
           name: Lint / test example-frontend
           working_directory: ~/project/example-frontend
@@ -418,14 +490,8 @@ jobs:
       - checkout
       - install_bun_and_deps
       - wait_for_mongo
-      - run:
-          name: Compile backend dependencies
-          command: |
-            set -euo pipefail
-            for pkg in api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa; do
-              echo "=== compile $pkg ==="
-              (cd "$pkg" && bun run compile)
-            done
+      - compile_packages:
+          packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa
       - run:
           name: Lint / compile / test example-backend
           working_directory: ~/project/example-backend
@@ -443,15 +509,8 @@ jobs:
       - checkout
       - install_bun_and_deps
       - wait_for_mongo
-      - run:
-          name: Compile script-runner dependencies
-          command: |
-            set -euo pipefail
-            for pkg in api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa; do
-              echo "=== compile $pkg ==="
-              (cd "$pkg" && bun run compile)
-            done
-            (cd example-backend && bun run compile)
+      - compile_packages:
+          packages: api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa example-backend
       - run:
           name: List admin scripts
           working_directory: ~/project/example-backend
@@ -585,6 +644,16 @@ jobs:
           name: Check license coverage
           command: bun run check:licenses
 
+  circleci-parity:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - node/install-bun
+      - run:
+          name: Check CircleCI path filters match GHA twins
+          command: bun run check:circleci-parity
+
   rulesync-check:
     executor: node22
     steps:
@@ -664,57 +733,18 @@ jobs:
     steps:
       - checkout
       - install_bun_and_deps
-      - init_mongo_replica
-      - run:
-          name: Compile workspace
-          command: bun run compile
-      - resolve_e2e_secrets
-      - run:
-          name: Start example-backend
-          working_directory: ~/project/example-backend
-          background: true
-          command: |
-            set -euo pipefail
-            export PORT=4000
-            export MONGO_URI="mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
-            export TOKEN_ISSUER=terreno-e2e
-            bun run src/index.ts
-      - run:
-          name: Wait for backend health
-          command: |
-            set -euo pipefail
-            for i in $(seq 1 60); do
-              if curl -sf http://localhost:4000/health | grep -q '"healthy":true'; then
-                echo "backend healthy"
-                exit 0
-              fi
-              sleep 1
-            done
-            echo "backend failed to become healthy"
-            exit 1
-      - run:
-          name: Install Playwright Chromium
-          working_directory: ~/project/example-frontend
-          command: bunx playwright install --with-deps chromium
-      - run:
-          name: Playwright << parameters.spec >>
-          working_directory: ~/project/example-frontend
-          environment:
-            CI: "true"
-            PORT: "4000"
-            MONGO_URI: "mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
-            TOKEN_ISSUER: terreno-e2e
-          command: |
-            set -euo pipefail
-            # shellcheck disable=SC1090
-            source "$BASH_ENV"
-            bunx playwright test "<< parameters.spec >>.spec.ts"
-      - store_artifacts:
-          path: example-frontend/playwright-report
-          destination: playwright-report-<< parameters.spec >>
-      - store_artifacts:
-          path: example-frontend/test-results
-          destination: playwright-test-results-<< parameters.spec >>
+      - run_example_frontend_e2e:
+          spec: << parameters.spec >>
+
+  # Heavier syncdb-loadlab spec — nightly/manual only, never PR-blocking
+  # (mirrors GHA e2e-load-nightly).
+  e2e-load:
+    executor: node22_browsers_mongo_rs
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run_example_frontend_e2e:
+          spec: syncdb-loadlab
 
   admin-spa-integration:
     executor: node22_browsers_mongo_rs
@@ -876,10 +906,13 @@ workflows:
       - no-barrel-imports
       - explicit-any
       - license-coverage
+      - circleci-parity
 
   e2e:
     when: << pipeline.parameters.run-e2e >>
     jobs:
+      # One shard per spec file. Keep this list in sync with example-frontend/e2e/
+      # (and .github/workflows/e2e-ci.yml while dual-running).
       - e2e:
           matrix:
             parameters:
@@ -892,8 +925,34 @@ workflows:
                 - consents
                 - ai-chat
                 - realtime
+                - syncdb-load-delta
+                - syncdb-offline
+                - syncdb-conflicts
+                - syncdb-storage
+                - syncdb-chaos
+
+  # Trigger with {"run-e2e-load": true} from a CircleCI scheduled/manual trigger.
+  e2e-load:
+    when: << pipeline.parameters.run-e2e-load >>
+    jobs:
+      - e2e-load
 
   admin-spa-integration:
     when: << pipeline.parameters.run-admin-spa-integration >>
     jobs:
       - admin-spa-integration
+
+  # `.circleci/**` edits cannot be validated by package path params, so config
+  # changes dual-run a representative slice of package CI, policy, and e2e.
+  circleci-config:
+    when: << pipeline.parameters.run-circleci-config >>
+    jobs:
+      - api-ci
+      - ui-ci
+      - example-backend-ci
+      - no-barrel-imports
+      - e2e:
+          matrix:
+            parameters:
+              spec:
+                - todos

@@ -1,14 +1,13 @@
 # Implementation Plan: RTK Deprecation and SyncDB Migration Docs
 
-**Status:** Draft — blocked; the syncdb source does not exist yet
-**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1007
+**Status:** In progress — syncdb available on `release-56.0.0`; reference + migration guide drafted
 **Priority:** Critical (gates most of Wave 1)
 **Effort:** Big batch
 **Owner:** unassigned
 **Created:** 2026-07-27
 **Program:** [OSS launch](oss-launch-program.md)
-**Depends on:** a merged `@terreno/syncdb` package. PR [#869](https://github.com/flourishhealth/terreno/pull/869) was the delivery vehicle but is **closed, not merged** (checked 2026-08-09); no `syncdb/` package exists on `master`. This IP stays blocked until a syncdb PR lands and `git log --oneline master | rg -i syncdb` shows the merged package.
-**RTK deprecation flag:** **Blocked** — this IP *is* the RTK deprecation. Nothing here can be written until syncdb lands, because the public surface of `@terreno/syncdb` is not final until then.
+**Depends on:** a merged `@terreno/syncdb` package. It was **not** delivered by PR #869 (closed); it lives on the **`release-56.0.0`** launch branch (`syncdb/`), so this IP is authored on and targets `release-56.0.0`, not `master`.
+**RTK deprecation flag:** **Unblocked on `release-56.0.0`** — this IP *is* the RTK deprecation. The `@terreno/syncdb` public surface is now final on `release-56.0.0` (`syncdb/src/index.ts`, `syncdb/src/react/index.ts`, `syncdb/src/testing/index.ts`); docs are written against that source.
 
 ## Goal
 
@@ -34,8 +33,8 @@ Scope is documentation, deprecation signalling, and migration tooling — not sy
 | M3 | Auth vs data migration | **C** — Better Auth first, then syncdb |
 | M4 | `docs/reference/rtk.md` (→ P7 **A**) | **Remove from the public reference index** — no legacy reference page. Existing RTK consumers use **`docs/how-to/migrate-rtk-to-syncdb.md`** only; do not maintain a parallel RTK reference path in launch docs |
 | M5 | SDK codegen command | **A** — `bun run sdk` keeps working |
-| M6 | Codemod | **B (reaffirmed 2026-08-09)** — no migration script or codemod. The migration is agent-assisted: ship the *context* an AI coding agent needs to perform the migration in a specific app (the syncdb reference, verified before/after pairs, and the `upgrading-terreno` skill), not a mechanical transform. See "Migration strategy" below |
-| M7 | Local-first default | **A** if #869 ships local-first only (verify against merged code) |
+| M6 | Codemod | **B (reaffirmed 2026-08-09)** — no migration script/codemod. Ship the *context* an AI agent needs (the syncdb reference, verified before/after pairs, and the `upgrading-terreno` skill), not a mechanical transform. See "Migration strategy" below |
+| M7 | Local-first default | **A — confirmed local-first only.** `@terreno/syncdb` has no server-first mode and no opt-in flag: the local store is the UI source of truth (`syncdb/src/index.ts:4-7`, `syncdb/README.md:3`) and `SyncDbConfig` (`syncdb/src/client.ts`) exposes no server-first option |
 
 ## Architecture
 
@@ -58,49 +57,55 @@ Every document below currently describes an RTK-shaped world and must be reconci
 | `README.md` architecture diagram | `@terreno/rtk` box | `@terreno/syncdb` box |
 | `mcp-server` resources + bootstrap templates | RTK store wiring | syncdb client wiring |
 
+### Surface map reconciliation (Task 1.2, checked against `release-56.0.0`)
+
+The pre-merge surface map above was a hypothesis. Reconciled against the merged
+`syncdb/` on `release-56.0.0`:
+
+- **Three entry points, not one:** `@terreno/syncdb` (client, protocol/status/conflict
+  types, `betterAuthAdapter`, key providers/codecs, persister factories, transports,
+  `wipeLocalData`, `generateMutationId`, `listConflicts`, `OUTBOX_TABLE`),
+  `@terreno/syncdb/react` (`SyncDbProvider`, `useSyncDbClient`, `useEntity`, `useQuery`,
+  `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`), and
+  `@terreno/syncdb/testing` (`createFakeTransport`).
+- **Backend surface #869's hypothesis under-specified:** `SyncApp` (`GET /sync/snapshot`,
+  `POST /sync/mutate`, `POST /sync/mutate/batch`, `GET /sync/key`, `POST /sync/entities`),
+  `RealtimeApp` (Socket.io `sync:subscribe`/`sync:mutate`/`sync:delta`/`sync:ack`/`sync:nack`/
+  `sync:mutateBatch`), the required `syncPlugin` + `isDeletedPlugin`, the `sync` modelRouter
+  config (owner/tenant/broadcast/custom scoping + `getUserScopes`/`snapshotFilter`), and
+  `ensureSyncIndexes()` plus the `SyncCounter`/`SyncMutation`/`SyncScopeMove`/`SyncKey`
+  bookkeeping models. All are documented in `docs/reference/syncdb.md`.
+- **Encryption at rest (web) is a real public surface:** AES-GCM codec, `createServerKeyProvider`
+  (default) / `createLocalKeyProvider`, `onDecryptFailure`. Documented.
+- **M5 confirmed:** `bun run sdk` still generates `store/openApiSdk.ts` for non-synced routes
+  (auth, profile, admin, AI, feature flags); synced collections use syncdb hooks instead.
+- **M7 confirmed:** local-first only (see the blocking-questions table).
+
 ### Migration strategy: AI-context-first (not codemods)
 
-The migration is delivered as **context for an AI coding agent to perform the
-migration in a specific app**, not as a script that mechanically transforms code.
-A one-size codemod is the wrong tool here: the RTK → syncdb move is not a
-find-and-replace. Writes change semantics (local-first, optimistic code gets
-*deleted*), conflicts and sync status are net-new concepts with app-specific UI,
-and auth migrates on its own schedule. Those are judgment calls an agent makes
-per screen with the right context — not transforms a codemod can apply blindly.
+The migration is delivered as **context for an AI coding agent (and humans) to perform
+the migration in a specific app**, not as a script that mechanically transforms code.
+The RTK → syncdb move is not find-and-replace: writes change semantics (local-first;
+optimistic code gets *deleted*), conflicts and sync status are net-new concepts with
+app-specific UI, and auth migrates on its own schedule. Those are per-screen judgment
+calls, not blind transforms.
 
-Concretely, this IP ships three context artifacts and no migration script:
+This IP therefore ships three context artifacts and no migration script:
 
-1. **The syncdb reference** (`docs/reference/syncdb.md`) — the ground-truth API
-   surface the agent maps RTK calls onto.
-2. **The migration guide** (`docs/how-to/migrate-rtk-to-syncdb.md`) — organized by
-   *what the developer changes*, with **verified before/after pairs** taken from
-   the real `example-frontend` migration. These pairs are the highest-value
-   context: an agent generalizes from a correct concrete example far better than
-   from prose rules.
-3. **The `upgrading-terreno` skill** (owned by
-   [`upgrade-guides-and-skill`](upgrade-guides-and-skill.md)) — the procedure that
-   points an agent at the reference and guide, tells it to migrate one screen at
-   a time behind `USE_SYNCDB`, verify, and repeat. The skill encodes *how to
-   drive the migration*; it does not encode the edits themselves.
+1. **The syncdb reference** (`docs/reference/syncdb.md`) — the ground-truth API the agent
+   maps RTK calls onto.
+2. **The migration guide** (`docs/how-to/migrate-rtk-to-syncdb.md`) — organized by *what the
+   developer changes*, with **verified before/after pairs** from the real `example-frontend`
+   migration (RTK todos on `master` → `SyncTodosScreen` on `release-56.0.0`). An agent
+   generalizes far better from a correct concrete example than from prose.
+3. **The `upgrading-terreno` skill** (owned by [`upgrade-guides-and-skill`](upgrade-guides-and-skill.md))
+   — drives an agent to migrate one screen at a time behind a flag, verify, and repeat.
 
-Design rules that follow from this strategy:
-
-- **Every code sample must be real and compile against the merged syncdb** — an
-  agent will copy them, so an invented sample produces broken migrations at scale.
-- **Name what to delete, not just what to add.** The parts consumers get wrong
-  are the RTK patterns that become dead code (manual optimistic updates, write
-  spinners, refetch-after-mutate); the guide must call these out explicitly so an
-  agent removes them.
-- **Prefer decision tables and per-step checklists** (agent-followable) over long
-  narrative. The copy-pasteable checklist in step 11 doubles as an agent to-do
-  list.
-- **Keep the rollout unit small** — per screen via `USE_SYNCDB` — so an agent can
-  migrate, verify, and stop at any point.
-
-If a mechanical helper turns out to be genuinely safe for a narrow sub-step (for
-example a pure import rename during the support window), it may be added later as
-an *optional* convenience, but it is never the primary path and never a
-precondition for migrating.
+Design rules that follow: every code sample is real and compiles against the merged
+syncdb; the guide names what to **delete** (manual optimistic updates, write spinners,
+refetch-after-mutate), not just what to add; prefer decision tables and per-step
+checklists over narrative; keep the rollout unit small (per screen). A mechanical helper
+may be added later for a narrow safe sub-step, but it is never the primary path.
 
 ### The migration guide's shape
 

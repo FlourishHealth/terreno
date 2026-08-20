@@ -75,8 +75,53 @@ checks appear as CircleCI job names in the GitHub Checks UI.
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
 | E2E · `<spec>` | `e2e` (matrix `spec`) |
+| E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |
+| _(new)_ CircleCI path-filter parity | `circleci-parity` |
 | _(smoke)_ | `config-ok` |
+
+Deferred phases keep their GHA checks for now; these are the planned CircleCI job
+names so branch protection can be remapped in one pass later:
+
+| GHA job `name:` / workflow (not yet ported) | Planned CircleCI job |
+|---------------------------------------------|----------------------|
+| Fingerprint gate (`fingerprint-gate.yml`) | `fingerprint-gate` (Phase 5) |
+| EAS PR update/build (`eas-pr.yml`) | `eas-pr` (Phase 5) |
+| EAS dev build (`eas-dev-build.yml`) | `eas-dev-build`, manual pipeline (Phase 5) |
+| CD terraform preview/apply (`cd.yml`) | `cd-terraform`, `cd-deploy` (Phase 6) |
+| Preview cleanup (`preview-cleanup.yml`) | `preview-cleanup` (Phase 6) |
+| Netlify demo / frontend / docs deploys | `deploy-demo`, `deploy-example-frontend`, `deploy-docs` (Phase 4) |
+| Publish on tag (`publish-on-tag.yml`) | `publish-npm` (Phase 7, single-writer cutover) |
+| Appium / Maestro | `appium-android`, `appium-ios`, `maestro` (Phase 8) |
+
+## Path-filter parity guard
+
+`bun run check:circleci-parity` fails when a GHA `paths:` entry has no mapping to
+its CircleCI parameter — otherwise the twin silently never runs. It runs as the
+`circleci-parity` job (CircleCI) and the **CircleCI path-filter parity** job
+(GitHub Actions `repo-policies`). Add new packages/paths to the mapping in
+`.circleci/config.yml` and to `WORKFLOW_PARAMETERS` in
+`scripts/check-circleci-parity/check.ts`.
+
+## Config-only changes
+
+`.circleci/config.yml` / `continue-config.yml` edits set `run-circleci-config`,
+which runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
+`no-barrel-imports`, `e2e` spec `todos`) so config changes are actually exercised
+instead of only hitting the always-on smoke jobs.
+
+## Nightly load test
+
+`e2e-load` (syncdb-loadlab) is never PR-blocking. It is gated on the
+`run-e2e-load` pipeline parameter, which path filtering never sets. Run it from a
+CircleCI **scheduled pipeline** or a manual trigger with:
+
+```json
+{"run-e2e-load": true}
+```
+
+This replaces the GHA cron / `workflow_dispatch` / `load-test` label triggers in
+`e2e-load-nightly.yml`.
 
 ## Local validation
 
@@ -84,6 +129,14 @@ checks appear as CircleCI job names in the GitHub Checks UI.
 circleci config validate .circleci/config.yml
 circleci config validate .circleci/continue-config.yml
 ```
+
+## Dual-run drift
+
+While both systems run, keep these in sync when editing a GHA workflow:
+
+1. `paths:` → mapping in `.circleci/config.yml` (enforced by `check:circleci-parity`)
+2. e2e `spec:` matrix → `e2e` workflow matrix in `continue-config.yml`
+3. New package CI workflow → new param + job + `WORKFLOW_PARAMETERS` entry
 
 ## Not in this phase
 

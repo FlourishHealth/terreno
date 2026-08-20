@@ -1,5 +1,5 @@
 ---
-description: '@terreno/mcp - MCP server for AI assistant integration'
+description: '@terreno/mcp-server - MCP server for AI assistant integration'
 applyTo: '**/*'
 ---
 # @terreno/mcp

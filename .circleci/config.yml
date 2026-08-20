@@ -18,7 +18,10 @@ workflows:
           # <path regex> <pipeline parameter> <value>
           # Regexes are anchored (^…$) by the orb.
           mapping: |
-            \.circleci/.* run-circleci-config true
+            \.circleci/config\.yml run-circleci-config true
+            \.circleci/continue-config\.yml run-circleci-config true
+            \.circleci/.* run-repo-policies true
+            scripts/check-circleci-parity/.* run-repo-policies true
             api/.* run-api true
             ai/.* run-ai true
             rtk/.* run-rtk true
@@ -26,6 +29,8 @@ workflows:
             demo/.* run-ui true
             demo/.* run-ui-demo true
             comms/.* run-comms true
+            comms/.* run-example-backend true
+            comms/.* run-example-backend-script true
             api/.* run-comms true
             test/.* run-comms true
             mcp-server/.* run-mcp-server true

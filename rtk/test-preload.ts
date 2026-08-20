@@ -10,9 +10,14 @@ mock.module("react-native", () => ({
   StyleSheet: {create: (s: unknown) => s},
 }));
 
+// Mirrors the real module surface: expo-secure-store exposes synchronous
+// getItem/setItem alongside the *Async variants, and createStorageAdapter's native
+// branch depends on the sync pair.
 mock.module("expo-secure-store", () => ({
   deleteItemAsync: async () => {},
+  getItem: () => null,
   getItemAsync: async () => null,
+  setItem: () => {},
   setItemAsync: async () => {},
 }));
 

@@ -12,6 +12,8 @@ export interface CommsMessageDocument
   created: Date;
   deleted: boolean;
   error?: string;
+  errorClass?: "config" | "permanent" | "transient";
+  errorCode?: string;
   metadata?: Record<string, unknown>;
   provider: string;
   providerMessageId?: string;
@@ -25,6 +27,8 @@ export interface CommsMessageDocument
 export interface LogSendParams {
   channel: CommsChannel;
   error?: string;
+  errorClass?: "config" | "permanent" | "transient";
+  errorCode?: string;
   metadata?: Record<string, unknown>;
   provider: string;
   providerMessageId?: string;

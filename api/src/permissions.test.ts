@@ -10,7 +10,12 @@ import {
   addAuthRoutes,
   setupAuth,
 } from "./auth";
-import {OwnerQueryFilter, Permissions} from "./permissions";
+import {
+  getUserOrganizationIds,
+  OrganizationQueryFilter,
+  OwnerQueryFilter,
+  Permissions,
+} from "./permissions";
 import {
   authAsUser,
   type Food,
@@ -208,7 +213,9 @@ describe("permissions", () => {
   });
 });
 
-const testUser = (overrides: Partial<AuthUser> = {}): AuthUser => ({
+const testUser = (
+  overrides: Partial<AuthUser & {organizationIds?: string[]; isAnonymous?: boolean}> = {}
+): AuthUser & {organizationIds?: string[]; isAnonymous?: boolean} => ({
   _id: "user-123",
   admin: false,
   id: "user-123",
@@ -226,6 +233,75 @@ describe("permissions module", () => {
     it("returns null when user is undefined", () => {
       const filter = OwnerQueryFilter(undefined);
       expect(filter).toBeNull();
+    });
+  });
+
+  describe("getUserOrganizationIds", () => {
+    it("returns the user's organizationIds", () => {
+      const user = testUser({id: "u1", organizationIds: ["org-1", "org-2"]});
+      expect(getUserOrganizationIds(user)).toEqual(["org-1", "org-2"]);
+    });
+
+    it("returns an empty array when missing or undefined", () => {
+      expect(getUserOrganizationIds(testUser({id: "u1"}))).toEqual([]);
+      expect(getUserOrganizationIds(undefined)).toEqual([]);
+    });
+  });
+
+  describe("OrganizationQueryFilter", () => {
+    it("returns an $in filter over the user's organizationIds", () => {
+      const user = testUser({id: "u1", organizationIds: ["org-1", "org-2"]});
+      expect(OrganizationQueryFilter(user)).toEqual({
+        organizationId: {$in: ["org-1", "org-2"]},
+      });
+    });
+
+    it("returns an empty $in filter when the user has no organizations", () => {
+      const user = testUser({id: "u1"});
+      expect(OrganizationQueryFilter(user)).toEqual({organizationId: {$in: []}});
+    });
+
+    it("returns null when user is undefined", () => {
+      expect(OrganizationQueryFilter(undefined)).toBeNull();
+    });
+  });
+
+  describe("Permissions.IsOrganizationMember", () => {
+    it("returns true when no object is provided", () => {
+      const user = testUser({id: "u1", organizationIds: ["org-1"]});
+      expect(Permissions.IsOrganizationMember("list", user, undefined)).toBe(true);
+    });
+
+    it("returns false when there is no user", () => {
+      expect(Permissions.IsOrganizationMember("read", undefined, {organizationId: "org-1"})).toBe(
+        false
+      );
+    });
+
+    it("returns true for admins regardless of membership", () => {
+      const user = testUser({admin: true, id: "admin-1", organizationIds: []});
+      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-9"})).toBe(
+        true
+      );
+    });
+
+    it("returns true when the user belongs to the document's organization", () => {
+      const user = testUser({id: "u1", organizationIds: ["org-1", "org-2"]});
+      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-2"})).toBe(
+        true
+      );
+    });
+
+    it("returns false when the user does not belong to the document's organization", () => {
+      const user = testUser({id: "u1", organizationIds: ["org-1"]});
+      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-9"})).toBe(
+        false
+      );
+    });
+
+    it("returns false when the document has no organizationId", () => {
+      const user = testUser({id: "u1", organizationIds: ["org-1"]});
+      expect(Permissions.IsOrganizationMember("read", user, {})).toBe(false);
     });
   });
 
@@ -255,7 +331,7 @@ describe("permissions module", () => {
     });
 
     it("returns true for admin users", () => {
-      const user = testUser({_id: "admin-123", admin: true, id: "admin-123"});
+      const user = testUser({admin: true, id: "admin-123"});
       const obj = {ownerId: "other-user"};
       expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(true);
     });

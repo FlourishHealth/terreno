@@ -37,3 +37,7 @@ npm-debug.*
 # generated native folders
 /ios
 /android
+
+# playwright artifacts
+/test-results
+/playwright-report

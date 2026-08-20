@@ -26,9 +26,7 @@ const _IGNORE_ERRORS = [
   /^.*Zn is not a function*$/,
 ];
 
-// noExplicitAny: Sentry types vary across versions
-// biome-ignore lint/suspicious/noExplicitAny: Sentry types vary across versions
-export const reactNavigationIntegration: any | undefined = undefined;
+export const reactNavigationIntegration: unknown | undefined = undefined;
 
 export const setupUnhandledRejectionHandler = (): void => {
   if (IsWeb && typeof window !== "undefined") {

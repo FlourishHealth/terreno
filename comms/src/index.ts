@@ -28,6 +28,8 @@ export {renderTemplate} from "./templates";
 export type {
   CheckVerificationOptions,
   CommsChannel,
+  CommsErrorClass,
+  CommsHookContext,
   CommsMessageStatus,
   CommsOptions,
   DeliveryEvent,

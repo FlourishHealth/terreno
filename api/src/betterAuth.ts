@@ -44,6 +44,12 @@ export interface BetterAuthConfig {
   trustedOrigins?: string[];
 
   /**
+   * Allow credential cookies when the frontend and API are hosted on different sites.
+   * Enables `SameSite=None; Secure` cookie attributes. Keep disabled for local HTTP.
+   */
+  crossDomainCookies?: boolean;
+
+  /**
    * Base path for Better Auth routes.
    * @default "/api/auth"
    */

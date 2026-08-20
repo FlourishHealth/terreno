@@ -133,6 +133,15 @@ const getReconnectUri = (publishedUriEnvVar: string, baseDatabaseName: string): 
   return buildDatabaseUri({databaseName: mongoose.connection.name || baseDatabaseName, uri});
 };
 
+/** Throws when the driver has no database handle, so callers treat it like a failed ping. */
+const requireDb = (): mongoose.mongo.Db => {
+  const {db} = mongoose.connection;
+  if (!db) {
+    throw new Error("[mongoTestCache] mongoose connection has no database handle");
+  }
+  return db;
+};
+
 const ensureConnectionReady = async (
   publishedUriEnvVar: string,
   baseDatabaseName: string
@@ -144,7 +153,7 @@ const ensureConnectionReady = async (
     const state = mongoose.connection.readyState;
     if (state === 1) {
       try {
-        await mongoose.connection.db!.admin().command({ping: 1});
+        await requireDb().admin().command({ping: 1});
         return;
       } catch {
         // stale connection
@@ -161,7 +170,7 @@ const ensureConnectionReady = async (
           serverSelectionTimeoutMS: 2000,
           socketTimeoutMS: 2000,
         });
-        await mongoose.connection.db!.admin().command({ping: 1});
+        await requireDb().admin().command({ping: 1});
         await resetTestSessionAfterReconnect();
         return;
       } catch {
@@ -181,7 +190,7 @@ const ensureConnectionReady = async (
 const loadTestDataIntoDb = async (cachedCollections: Record<string, unknown[]>): Promise<void> => {
   const clearPromises: Array<Promise<unknown>> = [];
   for (const collectionName of Object.keys(cachedCollections)) {
-    clearPromises.push(mongoose.connection.db!.collection(collectionName).deleteMany({}));
+    clearPromises.push(requireDb().collection(collectionName).deleteMany({}));
   }
   await Promise.all(clearPromises);
 
@@ -288,7 +297,8 @@ export const createMongoTestCache = (options: MongoTestCacheOptions): MongoTestC
           inflightSetupTestCache = null;
         });
       }
-      await inflightSetupTestCache;
+      // Wrapped because the `finally` above clears the shared slot once it settles.
+      await Promise.resolve(inflightSetupTestCache);
     }
 
     if (!cachedCollectionsInMemory) {
