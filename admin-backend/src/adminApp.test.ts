@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {
-  addAuthRoutes,
   type AnyTerrenoAccess,
+  addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
@@ -60,8 +60,8 @@ const buildApp = (
   addAuthRoutes(app, UserModel as unknown as UserModelType);
 
   const admin = new AdminApp({
-    basePath: "/admin",
     accessControl,
+    basePath: "/admin",
     models: [],
     scripts,
   });

@@ -11,9 +11,7 @@ import {seedDefaultData} from "./scripts/seed-test-data";
 
 describe("resetDatabase admin script", () => {
   it("requires an explicit override for live production resets", () => {
-    assert.isFalse(
-      isDatabaseResetAllowed({isExplicitlyAllowed: false, isProduction: true})
-    );
+    assert.isFalse(isDatabaseResetAllowed({isExplicitlyAllowed: false, isProduction: true}));
     assert.isTrue(isDatabaseResetAllowed({isExplicitlyAllowed: true, isProduction: true}));
     assert.isTrue(isDatabaseResetAllowed({isExplicitlyAllowed: false, isProduction: false}));
   });
