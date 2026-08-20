@@ -1,12 +1,25 @@
 name: Maestro E2E Tests
 
+# Maestro runs against exported web builds in Chrome (xvfb). Replaces the former
+# demo-appium-ci workflow for demo smoke coverage; example-frontend flows remain.
+
 on:
+  push:
+    paths:
+      - "ui/**"
+      - "demo/**"
+      - "example-frontend/**"
+      - "example-backend/**"
+      - "rtk/**"
+      - ".maestro/**"
+      - ".github/workflows/maestro-e2e.yml"
   workflow_dispatch:
 
 jobs:
   e2e:
     name: Maestro E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6.0.3
 
@@ -22,13 +35,12 @@ jobs:
           java-version: 17
 
       - name: Cache Bun dependencies
-        id: cache
         uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
             node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -49,15 +61,23 @@ jobs:
         run: bun run compile
         working-directory: ui
 
+      - name: Generate UI type documentation
+        run: bun run types
+        working-directory: ui
+
       - name: Build RTK dependency
         run: bun run compile
         working-directory: rtk
 
-      - name: Export frontend for web
+      - name: Export example frontend for web
         run: bun run export
         working-directory: example-frontend
         env:
           EXPO_PUBLIC_API_URL: http://localhost:4000
+
+      - name: Export demo for web
+        run: bun run export
+        working-directory: demo
 
       - name: Seed test data
         run: bun run seed
@@ -80,8 +100,11 @@ jobs:
           TOKEN_EXPIRES_IN: 15m
           REFRESH_TOKEN_EXPIRES_IN: 30d
 
-      - name: Serve frontend static build
+      - name: Serve example frontend static build
         run: bunx serve -s example-frontend/dist -l 8082 &
+
+      - name: Serve demo static build
+        run: bunx serve demo/dist -l 8085 &
 
       - name: Wait for backend
         run: |
@@ -91,13 +114,21 @@ jobs:
           done
           echo "Backend failed to start" && exit 1
 
-      - name: Wait for frontend
+      - name: Wait for example frontend
         run: |
           for i in $(seq 1 30); do
             curl -s http://localhost:8082 > /dev/null && exit 0
             sleep 2
           done
-          echo "Frontend failed to start" && exit 1
+          echo "Example frontend failed to start" && exit 1
+
+      - name: Wait for demo
+        run: |
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8085/demo > /dev/null && exit 0
+            sleep 2
+          done
+          echo "Demo failed to start" && exit 1
 
       - name: Install Maestro
         run: curl -fsSL "https://get.maestro.mobile.dev" | bash
