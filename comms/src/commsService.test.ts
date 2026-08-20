@@ -5,6 +5,8 @@ import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import {CommsService} from "./commsService";
+import {CommsMessage} from "./models/commsMessage";
+import {PushToken} from "./models/pushToken";
 import type {
   CheckVerificationOptions,
   CommsHookContext,
@@ -16,8 +18,7 @@ import type {
   SmsProvider,
   StartVerificationOptions,
   VerificationProvider,
-} from "./index";
-import {CommsMessage, PushToken} from "./index";
+} from "./types";
 
 const captureError = async (operation: () => Promise<unknown>): Promise<unknown> => {
   try {
