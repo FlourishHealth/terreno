@@ -18,6 +18,19 @@ const config: Config = {
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   organizationName: "flourishhealth",
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            from: "/reference/rtk",
+            to: "/next/how-to/migrate-rtk-to-syncdb",
+          },
+        ],
+      },
+    ],
+  ],
   presets: [
     [
       "classic",
@@ -34,19 +47,6 @@ const config: Config = {
           customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
-    ],
-  ],
-  plugins: [
-    [
-      "@docusaurus/plugin-client-redirects",
-      {
-        redirects: [
-          {
-            from: "/reference/rtk",
-            to: "/next/how-to/migrate-rtk-to-syncdb",
-          },
-        ],
-      },
     ],
   ],
   projectName: "terreno",
