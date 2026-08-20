@@ -1,5 +1,7 @@
 # Feature Flags — Task List
 
+**Status:** Closed (2026-08-20) — IP deferred; superseded by [feature-flags-openfeature.md](./feature-flags-openfeature.md). Open tasks below will not be executed.
+
 ## Phase 1: Backend + Evaluation Engine
 
 - [ ] **Task 1.1**: Create `feature-flags/` package with FeatureFlag model (including archived field)

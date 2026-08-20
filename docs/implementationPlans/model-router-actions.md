@@ -1,5 +1,9 @@
 # Implementation Plan: modelRouter Actions
 
+**Status:** Deferred
+**Closed:** 2026-08-20 — Not pursued; custom `endpoints` callbacks remain the supported pattern for non-CRUD routes.
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1097
+
 ## Goal
 
 Add first-class support for **actions** in `modelRouter` — URLs that perform a named operation rather than CRUD. Actions live either at `/resource/action` (collection scope) or `/resource/:id/action` (instance scope). They inherit modelRouter's permissions system, are wrapped in `asyncHandler` + the standard error envelope automatically, and appear in the generated OpenAPI spec without extra wiring.
