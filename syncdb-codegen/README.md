@@ -29,6 +29,8 @@ Per synced collection the CLI emits:
 
 Custom hooks: import `createCollectionHooks` from `@terreno/syncdb/react` in a hand-written sibling file (never edit the generated file).
 
+The package `main` is the CLI module (`parseCliArgs`, `runCodegen`). Generated hooks still come from `@terreno/syncdb/react`, not this package.
+
 ## Binary build
 
 ```bash

@@ -14,7 +14,7 @@
     "src/**/*"
   ],
   "license": "Apache-2.0",
-  "main": "dist/index.js",
+  "main": "dist/cli.js",
   "name": "@terreno/syncdb-codegen",
   "publishConfig": {
     "access": "public"
@@ -29,6 +29,6 @@
     "test:ci": "bun test src/"
   },
   "type": "module",
-  "types": "dist/index.d.ts",
+  "types": "dist/cli.d.ts",
   "version": "0.1.0"
 }
