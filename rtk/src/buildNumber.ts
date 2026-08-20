@@ -1,4 +1,5 @@
-import {execSync} from "node:child_process";
+/// <reference types="node" />
+import {execSync} from "child_process";
 
 /**
  * Coerce a value to a valid build number (finite positive integer), or undefined.

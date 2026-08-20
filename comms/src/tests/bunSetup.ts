@@ -11,4 +11,5 @@ registerSimpleMongoPreload({
 
 beforeEach((): void => {
   process.env.NODE_ENV = "test";
+  Reflect.deleteProperty(process.env, "SENDGRID_API_KEY");
 });

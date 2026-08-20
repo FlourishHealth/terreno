@@ -15,12 +15,20 @@ Umbrella plans that coordinate several IPs.
 
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
+| [Admin improvements (post–v2 architecture)](admin-improvements.md) | Approved — decisions 2026-08-20 | 2026-06-01 | [tasks](../tasks/admin-improvements.md) |
 | [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | In progress — Phase 1–3 CI (deploys deferred) | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
-| [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
-| [SyncDB Local-First Data Layer](syncdb-local-first.md) | In progress ([PR #869](https://github.com/flourishhealth/terreno/pull/869)) | 2026-07-13 | [tasks](../tasks/syncdb-local-first.md) |
-| [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) | 2026-06-21 | TBD |
-| [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) | 2026-08-09 | [tasks](../tasks/infra-mcp.md) |
+| [@terreno/syncdb-codegen](syncdb-codegen.md) | Approved | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
+| [SyncDB local-first data layer (v2)](syncdb-local-first.md) | In progress — Phases 1–8 landed, Phase 9 follow-ups open | 2026-06-23 | [tasks](../tasks/syncdb-local-first.md) |
+| [SyncDB hardening (syncdb-2)](terreno-syncdb-2.md) | Implemented — Phases A–F landed; deviations carried into Phase 9 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8/9) |
+| [SyncDB Phase C design](syncdb-phase-c-design.md) | Implemented — design authority for C1–C8 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8) |
+
+## Completed
+
+| Plan | Status | Created | Tasks |
+|------|--------|---------|-------|
+| [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Complete — phased tasks verified in-repo | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
+| [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
 
 ## Open source launch IPs
 
@@ -68,7 +76,7 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | [Comms adapter — Expo push](comms-adapter-expo-push.md) | Draft | None | [tasks](../tasks/comms-adapter-expo-push.md) |
 | [Comms adapter — Twilio SMS](comms-adapter-twilio-sms.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [Comms adapter — Twilio Verify (OTP)](comms-adapter-twilio-verify.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-verify.md) |
-| [Comms adapter — SendGrid email](comms-adapter-sendgrid.md) | Draft | None | [tasks](../tasks/comms-adapter-sendgrid.md) |
+| [Comms adapter — SendGrid email](comms-adapter-sendgrid.md) | In progress (Phase 1) | None | [tasks](../tasks/comms-adapter-sendgrid.md) |
 | [Comms admin dashboard (errors, retries, log digging)](comms-admin-dashboard.md) | Draft | Partial | [tasks](../tasks/comms-admin-dashboard.md) |
 | [Password reset and email verification](password-reset-and-email-verification.md) | Draft | None | [tasks](../tasks/password-reset-and-email-verification.md) |
 | [Organizations, teams, and multi-tenant scoping](orgs-and-teams.md) | Draft | None | [tasks](../tasks/orgs-and-teams.md) |
@@ -80,10 +88,18 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
+| [Admin-only — serve admin SPA from backend](admin-only.md) | Complete | 2026-05-11 | [tasks](../tasks/admin-only.md) (closed) |
+| [Admin-only research](admin-only-research.md) | Complete | — | n/a |
+| [Consent forms system](consent-forms.md) | Complete | — | [tasks](../tasks/consent-forms.md) (closed) |
+| [Upgrade banner](upgrade-banner.md) | Complete | — | [tasks](../tasks/upgrade-banner.md) (closed) |
 
 ## Deferred / Closed
 
-*(Plans parked or superseded.)*
+| Plan | Status | Closed | Notes |
+|------|--------|--------|-------|
+| [Offline mode](offline-mode.md) | Deferred | 2026-08-20 | Superseded by [syncdb](syncdb-local-first.md) |
+| [modelRouter actions](model-router-actions.md) | Deferred | 2026-08-20 | Custom `endpoints` remain supported |
+| [Feature flags (pre-OpenFeature)](feature-flags.md) | Deferred | 2026-08-20 | Superseded by [feature-flags-openfeature](feature-flags-openfeature.md) |
 
 ## Backlog
 
@@ -93,5 +109,11 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 |------|-------|
 | [Langfuse integration](terreno-langfuse-integration.md) | AI observability plugin |
 | [modelRouter MCP tools](model-router-mcp.md) | MCP surface for consumer app APIs |
-| [Offline mode](offline-mode.md) | Superseded in large part by [syncdb](syncdb-local-first.md) — confirm and close |
-| [modelRouter actions](model-router-actions.md) | — |
+| [RBAC Permissions](rbac-permissions.md) | Draft (API design) |
+| [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) |
+| [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) |
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — awaiting Approval |
+| [Docs site and versioning](docs-site-and-versioning.md) | Docusaurus + versioned docs |
+| [SyncDB codegen](syncdb-codegen.md) | OpenAPI → syncdb descriptors |
+| [Modular API (`TerrenoApp`)](ModularAPI.md) | Landed; IP retained as history |
+| [Admin improvements (v1)](admin-improvements.md) | Superseded by admin UI v2 |

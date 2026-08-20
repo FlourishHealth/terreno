@@ -1,6 +1,7 @@
 # Research: Migrate CI/CD to CircleCI
 
 **Status:** Research complete — decisions recorded in IP `migrate-cicd-to-circleci.md`  
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Date:** 2026-08-17  
 **Repo:** FlourishHealth/terreno (`master` @ `1e3e79a6`)  
 **Branch:** `cursor/migrate-cicd-circleci-2b6d`

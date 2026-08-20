@@ -670,6 +670,88 @@ describe("ToastNotifications", () => {
     });
   });
 
+  describe("Toast identity and deferred inserts", () => {
+    const renderHarness = (): {
+      queryAllByText: ReturnType<typeof render>["queryAllByText"];
+      getRef: () => ToastType | null;
+    } => {
+      let toastRef: ToastType | null = null;
+      const TestComponent = () => {
+        toastRef = useToastNotifications();
+        return <Text>Test</Text>;
+      };
+      const {queryAllByText} = render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+      return {getRef: () => toastRef, queryAllByText};
+    };
+
+    /** Drain the mocked requestAnimationFrame (a setTimeout) and the re-renders it causes. */
+    const flushFrames = async (): Promise<void> => {
+      for (let i = 0; i < 5; i++) {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+      }
+    };
+
+    it("does not resurrect a toast hidden before its deferred insert ran", async () => {
+      const {getRef, queryAllByText} = renderHarness();
+      await waitFor(() => {
+        expect(getRef()?.show).toBeDefined();
+      });
+
+      // `show` defers the insert by a frame, so this hide lands while the toast
+      // exists nowhere in state — the insert must be dropped, not replayed.
+      await act(async () => {
+        getRef()?.show("stale sync warning", {id: "sync-stale"});
+        getRef()?.hide("sync-stale");
+        getRef()?.show("current sync warning", {id: "sync-current"});
+      });
+      await flushFrames();
+
+      expect(queryAllByText("stale sync warning")).toHaveLength(0);
+      expect(queryAllByText("current sync warning")).toHaveLength(1);
+    });
+
+    it("replaces rather than stacks a toast reusing the same id", async () => {
+      const {getRef, queryAllByText} = renderHarness();
+      await waitFor(() => {
+        expect(getRef()?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        getRef()?.show("Todos: 1 conflict", {id: "sync-health:todos"});
+      });
+      await flushFrames();
+      await act(async () => {
+        getRef()?.show("Todos: 2 conflicts", {id: "sync-health:todos"});
+      });
+      await flushFrames();
+
+      expect(queryAllByText("Todos: 1 conflict")).toHaveLength(0);
+      expect(queryAllByText("Todos: 2 conflicts")).toHaveLength(1);
+    });
+
+    it("keeps toasts with distinct ids side by side", async () => {
+      const {getRef, queryAllByText} = renderHarness();
+      await waitFor(() => {
+        expect(getRef()?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        getRef()?.show("Todos: 1 conflict", {id: "sync-health:todos"});
+        getRef()?.show("Notes: 1 conflict", {id: "sync-health:notes"});
+      });
+      await flushFrames();
+
+      expect(queryAllByText("Todos: 1 conflict")).toHaveLength(1);
+      expect(queryAllByText("Notes: 1 conflict")).toHaveLength(1);
+    });
+  });
+
   describe("Toast placement rendering", () => {
     it("should render toast with top placement", async () => {
       let toastRef: ToastType | null = null;

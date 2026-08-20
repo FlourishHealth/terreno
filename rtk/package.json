@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@better-auth/expo": "^1.2.8",
+    "@better-auth/expo": "^1.6.25",
     "@openfeature/core": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
     "@reduxjs/toolkit": "catalog:",
@@ -10,7 +10,7 @@
     "axios-retry": "^4.5.0",
     "better-auth": "catalog:",
     "expo-constants": "catalog:",
-    "expo-network": "~8.0.8",
+    "expo-network": "catalog:",
     "expo-secure-store": "catalog:",
     "jwt-decode": "^4.0.0",
     "luxon": "catalog:",
@@ -18,7 +18,7 @@
     "react-native": "catalog:",
     "react-redux": "catalog:",
     "redux-persist": "catalog:",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "catalog:"
   },
   "description": "Redux Toolkit Query utilities for @terreno/api backends",
   "devDependencies": {
@@ -74,5 +74,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.31.0"
+  "version": "57.0.0"
 }

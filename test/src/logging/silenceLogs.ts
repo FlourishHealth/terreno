@@ -82,10 +82,13 @@ export const createLogSilencer = (options: SilenceLogsOptions = {}): SilenceLogs
     winston.clear();
     winston.add(silentTransport);
 
-    const extraLoggers = [
-      ...(options.additionalWinstonLoggers ?? []),
-      getApiWinstonLogger(),
-    ].filter(Boolean) as winston.Logger[];
+    // Only reach for @terreno/api when the caller has not supplied its logger. Requiring the
+    // package from inside api's own test run would load its built dist alongside the sources
+    // under test, registering every Mongoose model twice.
+    const provided = options.additionalWinstonLoggers ?? [];
+    const extraLoggers = (provided.length > 0 ? provided : [getApiWinstonLogger()]).filter(
+      Boolean
+    ) as winston.Logger[];
 
     for (const extraLogger of extraLoggers) {
       extraLogger.clear();

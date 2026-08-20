@@ -73,6 +73,14 @@ Configuration.register("WEBSOCKETS_DEBUG", {
   type: "boolean",
 });
 
+Configuration.register("SYNC_DEBUG", {
+  defaultValue: false,
+  description:
+    "Enable verbose SyncDB mutation debug logging (e.g. per-mutation applied traces in @terreno/api)",
+  envVar: "SYNC_DEBUG",
+  type: "boolean",
+});
+
 Configuration.register("ADMIN_SPA_ENABLED", {
   defaultValue: false,
   description: "Enable serving the standalone admin SPA at /console",
@@ -170,6 +178,7 @@ if (isPullRequest) {
 export {API_URL, TASKS_URL};
 
 export const WEBSOCKETS_DEBUG = Configuration.get<boolean>("WEBSOCKETS_DEBUG");
+export const SYNC_DEBUG = Configuration.get<boolean>("SYNC_DEBUG");
 export const ADMIN_SPA_ENABLED = Configuration.get<boolean>("ADMIN_SPA_ENABLED");
 export const ADMIN_SPA_DEV_PROXY = Configuration.get<string>("ADMIN_SPA_DEV_PROXY");
 export const ADMIN_SPA_DIST_DIR = Configuration.get<string>("ADMIN_SPA_DIST_DIR");

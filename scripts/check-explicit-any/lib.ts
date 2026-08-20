@@ -22,6 +22,7 @@ export const SCAN_ROOTS = [
   "mcp-server/src",
   "rtk/src",
   "scripts",
+  "syncdb/src",
   "test/src",
   "ui/src",
 ] as const;
