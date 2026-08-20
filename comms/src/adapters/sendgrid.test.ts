@@ -228,12 +228,14 @@ describe("SendGridMailProvider", () => {
     });
     const onErrorCalls: SendResult[] = [];
     const onRetryCalls: SendResult[] = [];
+    const retryAttempts: number[] = [];
     const service = new CommsService({
       mail: provider,
       onError: async (_context, result): Promise<void> => {
         onErrorCalls.push(result);
       },
-      onRetry: async (_context, result): Promise<void> => {
+      onRetry: async (context, result): Promise<void> => {
+        retryAttempts.push(context.attempt);
         onRetryCalls.push(result);
       },
     });
@@ -246,7 +248,7 @@ describe("SendGridMailProvider", () => {
 
     assert.isTrue(result.accepted);
     assert.equal(attempts, 2);
-    assert.equal(onRetryCalls.length, 1);
+    assert.deepEqual(retryAttempts, [2]);
     assert.equal(onRetryCalls[0]?.errorClass, "transient");
     assert.equal(onErrorCalls.length, 0);
   });

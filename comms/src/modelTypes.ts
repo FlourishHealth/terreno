@@ -1,15 +1,24 @@
 import type {FindExactlyOnePlugin, FindOneOrNonePlugin, HasUpsert} from "@terreno/api";
 import type mongoose from "mongoose";
 
-import type {CommsAttempt, CommsChannel, CommsErrorClass, CommsMessageStatus} from "./types";
+import type {CommsChannel, CommsErrorClass, CommsMessageStatus} from "./types";
 
 export type CommsMessageMethods = Record<never, never>;
+
+export interface CommsMessageAttempt {
+  at: Date;
+  error?: string;
+  errorClass?: CommsErrorClass;
+  errorCode?: string;
+  provider: string;
+  providerMessageId?: string;
+}
 
 export interface CommsMessageDocument
   extends mongoose.Document<mongoose.Types.ObjectId>,
     CommsMessageMethods {
   attemptCount: number;
-  attempts: CommsAttempt[];
+  attempts: CommsMessageAttempt[];
   channel: CommsChannel;
   created: Date;
   deleted: boolean;
@@ -34,7 +43,7 @@ export interface CommsMessageDocument
 
 export interface LogSendParams {
   attemptCount?: number;
-  attempts?: CommsAttempt[];
+  attempts?: CommsMessageAttempt[];
   channel: CommsChannel;
   error?: string;
   errorClass?: CommsErrorClass;
@@ -54,20 +63,21 @@ export interface LogSendParams {
   userId?: mongoose.Types.ObjectId | string;
 }
 
-export interface AppendAttemptParams {
-  attempt: CommsAttempt;
-  error?: string;
-  errorClass?: CommsErrorClass;
-  errorCode?: string;
-  messageId?: mongoose.Types.ObjectId | string;
-  providerMessageId?: string;
-  status: CommsMessageStatus;
-}
-
 export interface CommsMessageStatics
   extends FindExactlyOnePlugin<CommsMessageDocument>,
     FindOneOrNonePlugin<CommsMessageDocument> {
-  appendAttempt(params: AppendAttemptParams): Promise<CommsMessageDocument | null>;
+  appendAttempt(params: {
+    error?: string;
+    errorClass?: CommsErrorClass;
+    errorCode?: string;
+    id: mongoose.Types.ObjectId | string;
+    metadata?: Record<string, unknown>;
+    payload?: unknown;
+    payloadExpiresAt?: Date;
+    providerMessageId?: string;
+    status: CommsMessageStatus;
+    attempt: CommsMessageAttempt;
+  }): Promise<CommsMessageDocument | null>;
   clearExpiredPayloads(): Promise<number>;
   logSend(params: LogSendParams): Promise<CommsMessageDocument | null>;
 }

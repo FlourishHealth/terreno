@@ -41,16 +41,26 @@ export interface PushMessage {
   tokens: string[];
 }
 
+export interface StartVerificationOptions {
+  channel: "email" | "sms";
+  to: string;
+}
+
 export type CommsHookMessage = MailMessage | PushMessage | SmsMessage | StartVerificationOptions;
 
 export interface CommsHookContext {
   attempt: number;
   channel: CommsChannel;
   isRetry: boolean;
-  message?: CommsHookMessage;
+  message: CommsHookMessage;
   messageId?: string;
   provider: string;
   userId?: string;
+}
+
+export interface BeforeSendResult {
+  cancel?: boolean;
+  message?: CommsHookMessage;
 }
 
 export interface MailProvider {
@@ -66,11 +76,6 @@ export interface SmsProvider {
 export interface PushProvider {
   readonly id: string;
   sendPush(message: PushMessage): Promise<SendResult[]>;
-}
-
-export interface StartVerificationOptions {
-  channel: "email" | "sms";
-  to: string;
 }
 
 export interface CheckVerificationOptions {
@@ -106,19 +111,8 @@ export interface OptOutEvent {
   to: string;
 }
 
-export interface CommsAttempt {
-  at: Date;
-  error?: string;
-  errorClass?: CommsErrorClass;
-  errorCode?: string;
-  provider: string;
-  providerMessageId?: string;
-}
-
 export interface CommsOptions {
-  beforeSend?: (
-    context: CommsHookContext
-  ) => Promise<{cancel?: boolean; message?: CommsHookMessage} | undefined>;
+  beforeSend?: (context: CommsHookContext) => Promise<BeforeSendResult | undefined>;
   defaultFrom?: string;
   logMessages?: boolean;
   mail?: MailProvider;
