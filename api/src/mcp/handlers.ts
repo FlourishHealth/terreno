@@ -244,6 +244,13 @@ const requiresAuthentication = (entry: MCPRegistryEntry, user?: User): boolean =
   return !user && entry.options.allowAnonymous !== true;
 };
 
+const hookFailureResult = (label: string, error: unknown): MCPToolResult => {
+  if (isAPIError(error)) {
+    return errorResult(error.title, error);
+  }
+  return errorResult(`${label}: ${errorMessage(error)}`, error);
+};
+
 const serializeResponse = async (
   data: unknown,
   method: SerializableMCPMethod,
@@ -427,7 +434,7 @@ export const handleCreate = async (
         return errorResult("Create not allowed");
       }
     } catch (error) {
-      return errorResult(`preCreate hook failed: ${errorMessage(error)}`, error);
+      return hookFailureResult("preCreate hook failed", error);
     }
   }
 
@@ -447,7 +454,7 @@ export const handleCreate = async (
     try {
       await options.postCreate(data, createMCPRequest({args: body, user}));
     } catch (error) {
-      return errorResult(`postCreate hook failed: ${errorMessage(error)}`, error);
+      return hookFailureResult("postCreate hook failed", error);
     }
   }
 
@@ -508,7 +515,7 @@ export const handleUpdate = async (
         return errorResult("Update not allowed");
       }
     } catch (error) {
-      return errorResult(`preUpdate hook failed: ${errorMessage(error)}`, error);
+      return hookFailureResult("preUpdate hook failed", error);
     }
   }
 
@@ -530,7 +537,7 @@ export const handleUpdate = async (
     try {
       await options.postUpdate(doc, body, createMCPRequest({args: body, user}), prevDoc);
     } catch (error) {
-      return errorResult(`postUpdate hook failed: ${errorMessage(error)}`, error);
+      return hookFailureResult("postUpdate hook failed", error);
     }
   }
 
@@ -583,7 +590,7 @@ export const handleDelete = async (
         return errorResult("Delete not allowed");
       }
     } catch (error) {
-      return errorResult(`preDelete hook failed: ${errorMessage(error)}`, error);
+      return hookFailureResult("preDelete hook failed", error);
     }
   }
 
@@ -606,7 +613,7 @@ export const handleDelete = async (
     try {
       await options.postDelete(createMCPRequest({args, user}), doc);
     } catch (error) {
-      return errorResult(`postDelete hook failed: ${errorMessage(error)}`, error);
+      return hookFailureResult("postDelete hook failed", error);
     }
   }
 

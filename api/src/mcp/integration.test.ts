@@ -847,6 +847,24 @@ describe("MCP Integration", () => {
       expect(parsed.error).toContain("preCreate hook failed: boom");
     });
 
+    it("preserves APIError titles thrown from preCreate", async () => {
+      const failing: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          preCreate: () => {
+            throw new APIError({status: 400, title: "Title already taken"});
+          },
+        },
+      };
+
+      const result = await handleCreate(failing, {title: "No"}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(result.isError).toBe(true);
+      expect(parsed.error).toBe("Title already taken");
+    });
+
     it("reports a postCreate hook that throws", async () => {
       const failing: MCPRegistryEntry = {
         ...entry,
