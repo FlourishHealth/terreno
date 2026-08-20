@@ -1,20 +1,23 @@
 # Configure Better Auth
 
-Set up Better Auth as an alternative authentication provider with built-in social OAuth support.
+Set up Better Auth as the **default** authentication provider for new Terreno apps — session-based auth with built-in social OAuth and first-class `@terreno/syncdb` integration.
 
 ## Overview
 
-Better Auth is an optional authentication system that runs **alongside** the existing JWT/Passport authentication. You can choose which authentication provider to use at server startup via environment variables.
+Better Auth is the recommended authentication system for new Terreno frontends. Register `BetterAuthApp` on the backend, set `AUTH_PROVIDER=better-auth`, and wire `createBetterAuthClient` + `generateBetterAuthSlice` on the client. Pair with `betterAuthAdapter` when using `@terreno/syncdb`.
 
-**Use Better Auth when you need:**
+JWT/Passport remains available for legacy deployments (`AUTH_PROVIDER=jwt`). Both can run in parallel during migration.
+
+**Choose Better Auth for:**
+- New apps and greenfield screens
 - Social login (Google, GitHub, Apple)
-- Session-based authentication
-- Modern OAuth 2.0 flows
+- Session-based authentication with `@terreno/syncdb`
+- Socket.io sync via `RealtimeApp` bearer sessions
 
-**Use JWT authentication when you need:**
-- Stateless authentication
-- Simpler token-based auth
-- No social login required
+**Stay on JWT only when:**
+- You have an existing JWT deployment and are mid-migration
+- You require a fully stateless token contract with no session cookies
+- You have custom JWT payload requirements Better Auth cannot satisfy
 
 ## Backend Setup
 
@@ -292,5 +295,5 @@ Better Auth runs **in parallel** with JWT auth. You don't need to migrate existi
 
 - [Authentication Architecture](../explanation/authentication.md)
 - [@terreno/api Reference](../reference/api.md#better-auth)
-- [@terreno/rtk Reference](../reference/rtk.md#better-auth)
+- [@terreno/rtk Reference (legacy)](../reference/legacy/rtk.md#better-auth)
 - [Better Auth Documentation](https://better-auth.com/)

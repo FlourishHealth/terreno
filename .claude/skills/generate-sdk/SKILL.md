@@ -1,9 +1,26 @@
 ---
 name: generate-sdk
-description: Regenerate the example-frontend RTK Query SDK (store/openApiSdk.ts) from the example-backend's OpenAPI spec. Handles dependency install, backend startup, SDK codegen, and cleanup from a fresh checkout. Use whenever the backend's API surface changes — new modelRouter routes, custom routes registered via createOpenApiBuilder, new/modified Mongoose models or field descriptions in example-backend, changes to permissions/queryFields/populatePaths/responseHandler, edits to @terreno/api routing or OpenAPI generation, or any time a route is added/removed/renamed. Also use when the user asks to "regenerate the SDK", "update openApiSdk.ts", "run bun run sdk", or reports stale/missing generated hooks.
+description: >-
+  Regenerate the example-frontend RTK Query SDK (store/openApiSdk.ts) from the
+  example-backend's OpenAPI spec. Handles dependency install, backend startup,
+  SDK codegen, and cleanup from a fresh checkout. Use whenever the backend's API
+  surface changes — new modelRouter routes, custom routes registered via
+  createOpenApiBuilder, new/modified Mongoose models or field descriptions in
+  example-backend, changes to
+  permissions/queryFields/populatePaths/responseHandler, edits to @terreno/api
+  routing or OpenAPI generation, or any time a route is added/removed/renamed.
+  Also use when the user asks to "regenerate the SDK", "update openApiSdk.ts",
+  "run bun run sdk", or reports stale/missing generated hooks.
 ---
-
 # Generate Frontend SDK
+
+Regenerates `example-frontend/store/openApiSdk.ts` from the backend OpenAPI spec via RTK Query codegen.
+
+**Scope:** This skill covers **non-synced** routes only (auth, profile, admin, AI, feature flags, custom RPC). Synced collections use `@terreno/syncdb` hooks (`useQuery`, `useMutate`) — they are **not** in the generated SDK. See [syncdb reference](../../docs/reference/syncdb.md) and [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
+
+### Legacy RTK data path
+
+During the `@terreno/rtk` support window, some screens may still use generated `useGetXQuery` / `usePostXMutation` for collections. Do not add new collection hooks — migrate to syncdb instead.
 
 The `example-frontend` consumes the `example-backend` API via auto-generated RTK Query hooks in `store/openApiSdk.ts`. The codegen pulls from the live backend at `http://localhost:4000/openapi.json`, so the backend must be running while `bun run sdk` executes.
 

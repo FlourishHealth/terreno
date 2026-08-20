@@ -1,6 +1,6 @@
 # CLAUDE.md Template for Terreno Projects
 
-Copy this file as `CLAUDE.md` to projects that use @terreno/api, @terreno/ui, and @terreno/rtk.
+Copy this file as `CLAUDE.md` to projects that use @terreno/api, @terreno/ui, @terreno/syncdb, and @terreno/rtk (SDK/auth only).
 
 ---
 
@@ -10,9 +10,9 @@ Full-stack application built with Terreno packages.
 
 ## Tech Stack
 
-- **Backend**: Express + Mongoose using @terreno/api
-- **Frontend**: React Native/Expo using @terreno/ui and @terreno/rtk
-- **Database**: MongoDB
+- **Backend**: Express + Mongoose using @terreno/api (`SyncApp`, `RealtimeApp`, Better Auth)
+- **Frontend**: React Native/Expo using @terreno/ui, `@terreno/syncdb` (collection data), and `@terreno/rtk` (OpenAPI SDK, Better Auth Redux, feature flags)
+- **Database**: MongoDB (replica set required for sync)
 
 ## Commands
 
