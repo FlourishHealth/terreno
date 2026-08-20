@@ -7,8 +7,7 @@ import {
 import {useConflicts, useSyncDbClient, useSyncStatus} from "@terreno/syncdb/react";
 import {Box, Button, Heading, SegmentedControl, Text} from "@terreno/ui";
 import type React from "react";
-import {useCallback, useState} from "react";
-import {View} from "react-native";
+import {useCallback, useEffect, useState} from "react";
 import {SyncLabRateControls} from "@/components/SyncLabRateControls";
 import {useSyncLabRates} from "@/components/syncLabRates";
 import {useOpenSyncDebugger} from "@/hooks/useOpenSyncDebugger";
@@ -27,6 +26,10 @@ const RESYNC_SKIP_MESSAGES: Record<string, string> = {
 /** Conflict resolution strategies, aligned with the toggle labels below. */
 const RESOLVE_STRATEGIES: ConflictResolutionStrategy[] = ["useServer", "keepMine"];
 const RESOLVE_LABELS = ["Use the other version", "Keep my change"];
+
+/** Playwright chaos e2e dispatches this on window to restart the client after flaps.
+ * Must stay mounted even when the visible Sync Lab panel is hidden (__DEV__ false). */
+const E2E_FORCE_RECONNECT_EVENT = "syncdb-e2e-reconnect";
 
 /**
  * Dev panel for exercising syncdb offline/reconnect/wipe flows and Sync Lab churn.
@@ -160,29 +163,23 @@ export const SyncDevPanel: React.FC = () => {
     setIsExpanded((current) => !current);
   }, []);
 
-  const reconnectButton = (
-    <Button
-      disabled={isBusy || isOffline}
-      onClick={handleForceReconnect}
-      testID="syncdb-reconnect-button"
-      text="Force reconnect"
-      variant="outline"
-    />
-  );
-
-  // Production/CircleCI static export sets __DEV__ false, so the visible panel
-  // is hidden. Chaos e2e still needs this control in the DOM to break socket backoff.
-  const hiddenReconnect = (
-    <View
-      style={{height: 1, left: -10000, overflow: "hidden", position: "absolute", width: 1}}
-      testID="syncdb-reconnect-host"
-    >
-      {reconnectButton}
-    </View>
-  );
+  // Listen even when the visible panel is collapsed or omitted so CircleCI's
+  // production static export can still break socket backoff after chaos flaps.
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const onReconnect = (): void => {
+      void handleForceReconnect();
+    };
+    window.addEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
+    return () => {
+      window.removeEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
+    };
+  }, [handleForceReconnect]);
 
   if (!showDevPanel) {
-    return hiddenReconnect;
+    return null;
   }
 
   return (
@@ -196,9 +193,7 @@ export const SyncDevPanel: React.FC = () => {
           variant="ghost"
         />
       </Box>
-      {!isExpanded ? (
-        hiddenReconnect
-      ) : (
+      {!isExpanded ? null : (
         <>
           <Text color="secondaryLight" size="sm">
             {isOffline ? "Simulated offline (transport severed)" : "Client running"}
@@ -239,7 +234,13 @@ export const SyncDevPanel: React.FC = () => {
               text={isOffline ? "Go online" : "Go offline"}
               variant="outline"
             />
-            {reconnectButton}
+            <Button
+              disabled={isBusy || isOffline}
+              onClick={handleForceReconnect}
+              testID="syncdb-reconnect-button"
+              text="Force reconnect"
+              variant="outline"
+            />
             <Button
               disabled={isBusy}
               onClick={handleForceResync}
