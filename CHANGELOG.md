@@ -40,6 +40,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
+  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
+  (`docs/explanation/local-first-data.md`)
+- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
+  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
+
+### Deprecated
+
+- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
+  through the current major line; will not ship in the next major. Migrate collection CRUD to
+  [`@terreno/syncdb`](docs/reference/syncdb.md) using
+  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
+  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
 
 ### Fixed
 
