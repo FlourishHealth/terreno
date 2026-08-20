@@ -200,7 +200,7 @@ const NewTodoForm: React.FC<{disabled: boolean; onCreate: (title: string) => boo
     }, [newTodoTitle, onCreate]);
 
     return (
-      <Card marginBottom={6}>
+      <Card marginBottom={6} testID={disabled ? "todos-form-loading" : "todos-form-ready"}>
         <Box gap={3}>
           <TextField
             id="todos-title-input"
