@@ -434,6 +434,90 @@ describe("openApi middleware no-op paths", () => {
     expect(mw.length).toBe(3);
   });
 
+  it("listOpenApiMiddleware emits x-terreno-sync when sync is configured", () => {
+    let captured: Record<string, unknown> | undefined;
+    listOpenApiMiddleware(
+      FoodModel as any,
+      {
+        openApi: {
+          path: (spec: Record<string, unknown>) => {
+            captured = spec;
+            return (() => {}) as express.RequestHandler;
+          },
+        } as any,
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+        sync: {scope: {type: "owner"}},
+      },
+      "/todos"
+    );
+    expect(captured?.["x-terreno-sync"]).toEqual({collection: "todos", scope: "owner"});
+  });
+
+  it("listOpenApiMiddleware omits x-terreno-sync without routePath", () => {
+    let captured: Record<string, unknown> | undefined;
+    listOpenApiMiddleware(FoodModel as any, {
+      openApi: {
+        path: (spec: Record<string, unknown>) => {
+          captured = spec;
+          return (() => {}) as express.RequestHandler;
+        },
+      } as any,
+      permissions: {
+        create: [Permissions.IsAny],
+        delete: [Permissions.IsAny],
+        list: [Permissions.IsAny],
+        read: [Permissions.IsAny],
+        update: [Permissions.IsAny],
+      },
+      sync: {scope: {type: "owner"}},
+    });
+    expect(captured?.["x-terreno-sync"]).toBeUndefined();
+  });
+
+  it("listOpenApiMiddleware maps tenant and custom sync scopes", () => {
+    let captured: Record<string, unknown> | undefined;
+    const capturePath = (spec: Record<string, unknown>): express.RequestHandler => {
+      captured = spec;
+      return (() => {}) as express.RequestHandler;
+    };
+    const baseOptions = {
+      openApi: {path: capturePath} as any,
+      permissions: {
+        create: [Permissions.IsAny],
+        delete: [Permissions.IsAny],
+        list: [Permissions.IsAny],
+        read: [Permissions.IsAny],
+        update: [Permissions.IsAny],
+      },
+    };
+
+    listOpenApiMiddleware(
+      FoodModel as any,
+      {
+        ...baseOptions,
+        sync: {scope: {field: "organizationId", type: "tenant"}},
+      },
+      "/projects"
+    );
+    expect(captured?.["x-terreno-sync"]).toEqual({collection: "projects", scope: "tenant"});
+
+    listOpenApiMiddleware(
+      FoodModel as any,
+      {
+        ...baseOptions,
+        sync: {scope: () => "workspace"},
+      },
+      "/notes"
+    );
+    expect(captured?.["x-terreno-sync"]).toEqual({collection: "notes", scope: "custom"});
+  });
+
   it("createOpenApiMiddleware returns noop when openApi not configured", () => {
     const mw = createOpenApiMiddleware(FoodModel as any, {});
     expect(mw.length).toBe(3);

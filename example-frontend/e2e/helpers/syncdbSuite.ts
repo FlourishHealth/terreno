@@ -15,7 +15,9 @@
  * Note on clickable Boxes: @terreno/ui Box renders onClick pressables with a
  * "-clickable" testID suffix (Box.tsx), so `todo-toggle-{id}` / `sync-conflict-badge`
  * are addressed as `todo-toggle-{id}-clickable` / `sync-conflict-badge-clickable`,
- * matching the convention already used by todos.spec.ts.
+ * matching the convention already used by todos.spec.ts. `clickTodoControl`
+ * scrolls the target to the viewport center so the Expo Router tab bar does
+ * not intercept Playwright clicks on the 720px CI viewport.
  */
 import type {Browser, BrowserContext, Locator, Page, WebSocketRoute} from "@playwright/test";
 import type {ConsoleGuard} from "../fixtures/test";
@@ -56,6 +58,25 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>
   page.locator('[data-testid^="todo-item-"]').filter({hasText: title});
+
+/**
+ * Click a control that may sit under the bottom tab bar. Playwright's default
+ * scroll-into-view aligns to the viewport bottom, which is exactly where `/ai`
+ * intercepts pointer events on the 720px Desktop Chrome CI viewport.
+ */
+export const clickTodoControl = async (locator: Locator): Promise<void> => {
+  await locator.waitFor({state: "visible"});
+  await locator.evaluate((node: HTMLElement) => {
+    node.scrollIntoView({block: "center", inline: "nearest"});
+  });
+  await locator.click();
+};
+
+export const forceSyncReconnect = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("syncdb-e2e-reconnect"));
+  });
+};
 
 /**
  * Wait for the syncdb-backed Todos screen. The banner is asserted as *attached*

@@ -252,11 +252,21 @@ export const useEntityIds = <TData = Record<string, unknown>>(
 
 export interface UseMutateResult {
   /** Optimistically create an entity; returns the generated ids. */
-  create: (args: {data: Record<string, unknown>}) => {mutationId: string; id: string};
+  create: (args: {
+    data: Record<string, unknown>;
+    maxAttempts?: number;
+  }) => {mutationId: string; id: string};
   /** Optimistically merge fields into an existing entity. */
-  update: (args: {id: string; data: Record<string, unknown>}) => {mutationId: string; id: string};
+  update: (args: {
+    id: string;
+    data: Record<string, unknown>;
+    maxAttempts?: number;
+  }) => {mutationId: string; id: string};
   /** Optimistically soft-delete an entity. */
-  remove: (args: {id: string}) => {mutationId: string; id: string};
+  remove: (args: {
+    id: string;
+    maxAttempts?: number;
+  }) => {mutationId: string; id: string};
 }
 
 /**
@@ -267,20 +277,43 @@ export const useMutate = (collection: string): UseMutateResult => {
   const client = useSyncDbClient();
 
   const create = useCallback(
-    (args: {data: Record<string, unknown>}): {mutationId: string; id: string} =>
-      client.mutate({collection, data: args.data, operation: "create"}),
+    (args: {
+      data: Record<string, unknown>;
+      maxAttempts?: number;
+    }): {mutationId: string; id: string} =>
+      client.mutate({
+        collection,
+        data: args.data,
+        maxAttempts: args.maxAttempts,
+        operation: "create",
+      }),
     [client, collection]
   );
 
   const update = useCallback(
-    (args: {id: string; data: Record<string, unknown>}): {mutationId: string; id: string} =>
-      client.mutate({collection, data: args.data, id: args.id, operation: "update"}),
+    (args: {
+      id: string;
+      data: Record<string, unknown>;
+      maxAttempts?: number;
+    }): {mutationId: string; id: string} =>
+      client.mutate({
+        collection,
+        data: args.data,
+        id: args.id,
+        maxAttempts: args.maxAttempts,
+        operation: "update",
+      }),
     [client, collection]
   );
 
   const remove = useCallback(
-    (args: {id: string}): {mutationId: string; id: string} =>
-      client.mutate({collection, id: args.id, operation: "delete"}),
+    (args: {id: string; maxAttempts?: number}): {mutationId: string; id: string} =>
+      client.mutate({
+        collection,
+        id: args.id,
+        maxAttempts: args.maxAttempts,
+        operation: "delete",
+      }),
     [client, collection]
   );
 

@@ -1,6 +1,6 @@
 import {FlashList, type ListRenderItemInfo} from "@shopify/flash-list";
 import {generateMutationId} from "@terreno/syncdb";
-import {useEntity, useEntityIds, useMutate, useSyncStatus} from "@terreno/syncdb/react";
+import {useEntity, useEntityIds, useSyncStatus} from "@terreno/syncdb/react";
 import {
   Box,
   Button,
@@ -15,29 +15,21 @@ import {
 import {DateTime} from "luxon";
 import type React from "react";
 import {memo, useCallback, useMemo, useState} from "react";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {logout, useAppDispatch} from "@/store/index";
+import {type Todo, useCreateTodo, useDeleteTodo, useUpdateTodo} from "@/store/syncDbSdk";
 
 /**
- * Shape of a todo in the local syncdb store. Server documents carry the full model
- * (toJSON); optimistic local creates carry exactly what the client wrote, which
- * includes _id because creates embed the client-minted id in the data.
+ * Virtualized row: either a section heading or a todo id.
  */
-interface SyncTodo {
-  _id: string;
-  title?: string;
-  completed?: boolean;
-  created?: string;
-}
-
-/** Virtualized row: either a section heading or a todo id. */
 type TodoListRow =
   | {type: "section"; key: string; title: string; count: number}
   | {type: "todo"; id: string};
 
-const sortByCreatedDesc = (a: SyncTodo, b: SyncTodo): number => {
+const sortByCreatedDesc = (a: Todo, b: Todo): number => {
   // Optimistic creates stamp `created` locally (see handleCreate), so newest-first holds
   // before the server ever acks. The MAX_SAFE_INTEGER fallback keeps any row that somehow
   // lacks a timestamp at the top rather than silently last; `_id` breaks the remaining
@@ -51,8 +43,12 @@ const sortByCreatedDesc = (a: SyncTodo, b: SyncTodo): number => {
   return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
 };
 
-const isIncomplete = (todo: SyncTodo): boolean => !todo.completed;
-const isCompleted = (todo: SyncTodo): boolean => Boolean(todo.completed);
+const isIncomplete = (todo: Todo): boolean => !todo.completed;
+const isCompleted = (todo: Todo): boolean => Boolean(todo.completed);
+
+/** Extra list padding so the last row sits above the Expo Router tab bar (Playwright's
+ * 720px Desktop Chrome viewport otherwise leaves the first todo under `/ai`). */
+const TAB_BAR_OVERLAP_PADDING = 96;
 
 /**
  * One row. Subscribes to ONLY its own entity via useEntity, so a change to one
@@ -68,7 +64,7 @@ const SyncTodoItem: React.FC<{
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
 }> = memo(({id, onToggle, onRename, onDelete}) => {
-  const {data} = useEntity<SyncTodo>("todos", id);
+  const {data} = useEntity<Todo>("todos", id);
   const completed = Boolean(data?.completed);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [draftTitle, setDraftTitle] = useState<string>("");
@@ -250,18 +246,22 @@ SectionHeader.displayName = "SectionHeader";
  */
 const SyncTodosScreen: React.FC = () => {
   const isSyncDbReady = useSyncDbReady();
-  const {create, update, remove} = useMutate("todos");
+  const [createTodo] = useCreateTodo();
+  const [updateTodo] = useUpdateTodo();
+  const [deleteTodo] = useDeleteTodo();
   const syncStatus = useSyncStatus();
   // The app mounts exactly one ConflictSheet (owned by SyncHealthToast in _layout.tsx);
   // the banner's conflict badge requests it rather than rendering a second copy.
   const {openConflicts} = useSyncConflictsController();
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
+  const listBottomPadding = insets.bottom + TAB_BAR_OVERLAP_PADDING;
 
-  const incompleteIds = useEntityIds<SyncTodo>("todos", {
+  const incompleteIds = useEntityIds<Todo>("todos", {
     filter: isIncomplete,
     sort: sortByCreatedDesc,
   });
-  const completedIds = useEntityIds<SyncTodo>("todos", {
+  const completedIds = useEntityIds<Todo>("todos", {
     filter: isCompleted,
     sort: sortByCreatedDesc,
   });
@@ -299,10 +299,10 @@ const SyncTodosScreen: React.FC = () => {
       // `created` is stamped locally too (the server overwrites it on save) so the row
       // sorts newest-first immediately instead of tying with every other unacked create.
       const id = generateMutationId();
-      create({data: {_id: id, completed: false, created: DateTime.now().toISO(), title}});
+      createTodo({data: {_id: id, completed: false, created: DateTime.now().toISO(), title}});
       return true;
     },
-    [create, isSyncDbReady]
+    [createTodo, isSyncDbReady]
   );
 
   const handleToggleTodo = useCallback(
@@ -310,9 +310,9 @@ const SyncTodosScreen: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      update({data: {completed: !completed}, id});
+      updateTodo({data: {completed: !completed}, id});
     },
-    [isSyncDbReady, update]
+    [isSyncDbReady, updateTodo]
   );
 
   const handleRenameTodo = useCallback(
@@ -320,9 +320,9 @@ const SyncTodosScreen: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      update({data: {title}, id});
+      updateTodo({data: {title}, id});
     },
-    [isSyncDbReady, update]
+    [isSyncDbReady, updateTodo]
   );
 
   const handleDeleteTodo = useCallback(
@@ -330,9 +330,9 @@ const SyncTodosScreen: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      remove({id});
+      deleteTodo({id});
     },
-    [isSyncDbReady, remove]
+    [deleteTodo, isSyncDbReady]
   );
 
   const openConflictSheet = useCallback((): void => {
@@ -375,33 +375,20 @@ const SyncTodosScreen: React.FC = () => {
   const listHeader = useMemo(
     (): React.ReactElement => (
       <Box>
-        <SyncStatusBanner
-          conflictCount={syncStatus.conflictCount}
-          draining={syncStatus.draining}
-          failedCount={syncStatus.failedCount}
-          isOnline={syncStatus.isOnline}
-          onAuthRequired={handleAuthRequired}
-          onOpenConflicts={openConflictSheet}
-          paused={syncStatus.paused}
-          queuedCount={syncStatus.queuedCount}
-          sentThisDrain={syncStatus.sentThisDrain}
-          totalThisDrain={syncStatus.totalThisDrain}
-        />
         <SyncDevPanel />
+        <Box marginBottom={6}>
+          <Heading size="xl">My Todos</Heading>
+          <Text color="secondaryLight" size="sm">
+            Local-first via @terreno/syncdb
+          </Text>
+          <Text color="secondaryLight" size="sm" testID="todos-count">
+            {totalCount}
+          </Text>
+        </Box>
+        <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       </Box>
     ),
-    [
-      handleAuthRequired,
-      openConflictSheet,
-      syncStatus.conflictCount,
-      syncStatus.draining,
-      syncStatus.failedCount,
-      syncStatus.isOnline,
-      syncStatus.paused,
-      syncStatus.queuedCount,
-      syncStatus.sentThisDrain,
-      syncStatus.totalThisDrain,
-    ]
+    [handleCreate, isSyncDbReady, totalCount]
   );
 
   const listEmpty = useMemo(
@@ -423,24 +410,27 @@ const SyncTodosScreen: React.FC = () => {
       testID="todos-screen"
       width="100%"
     >
-      {listHeader}
-      <Box marginBottom={6}>
-        <Heading size="xl">My Todos</Heading>
-        <Text color="secondaryLight" size="sm">
-          Local-first via @terreno/syncdb
-        </Text>
-        <Text color="secondaryLight" size="sm" testID="todos-count">
-          {totalCount}
-        </Text>
-      </Box>
-      <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
+      <SyncStatusBanner
+        conflictCount={syncStatus.conflictCount}
+        draining={syncStatus.draining}
+        failedCount={syncStatus.failedCount}
+        isOnline={syncStatus.isOnline}
+        onAuthRequired={handleAuthRequired}
+        onOpenConflicts={openConflictSheet}
+        paused={syncStatus.paused}
+        queuedCount={syncStatus.queuedCount}
+        sentThisDrain={syncStatus.sentThisDrain}
+        totalThisDrain={syncStatus.totalThisDrain}
+      />
       <FlashList
+        contentContainerStyle={{paddingBottom: listBottomPadding}}
         contentInsetAdjustmentBehavior="automatic"
         data={listData}
         getItemType={getItemType}
         keyboardShouldPersistTaps="handled"
         keyExtractor={keyExtractor}
         ListEmptyComponent={listEmpty}
+        ListHeaderComponent={listHeader}
         renderItem={renderItem}
         style={{flex: 1}}
       />

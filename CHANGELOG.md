@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `@terreno/syncdb-codegen` CLI (`terreno-syncdb-codegen`) that emits typed
+  collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
+- `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
+  `maxAttempts` on syncdb writes.
 - CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
   deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
 - `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
@@ -30,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+
+### Fixed
+
+- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
+  row so `retries: false` stays fail-fast after keepMine.
+- Example todos Sync Lab panel starts collapsed so the first list row stays
+  above the tab bar on short web viewports.
+- `@terreno/syncdb-codegen` rejects non-identifier collection/type names and
+  JSON-escapes generated strings so a remote OpenAPI document cannot inject
+  TypeScript.
 
 ### Deprecated
 
