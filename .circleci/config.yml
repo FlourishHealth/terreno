@@ -126,11 +126,11 @@ workflows:
             feature-flags/src/.* run-admin-spa-integration true
 
   # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
-  # Path-filtering would drop unknown continuation-only params, so skip it and
-  # continue directly with run-e2e-load.
+  # Continuation uses a differently named parameter so CircleCI does not treat
+  # the setup trigger param as a conflicting continuation param.
   e2e-load-setup:
     when: << pipeline.parameters.run-e2e-load >>
     jobs:
       - continuation/continue:
           configuration_path: .circleci/continue-config.yml
-          parameters: '{"run-e2e-load":true}'
+          parameters: '{"e2e-load":true}'

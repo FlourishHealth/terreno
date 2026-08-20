@@ -118,17 +118,14 @@ instead of only hitting the always-on smoke jobs.
 
 ## Nightly load test
 
-`e2e-load` (syncdb-loadlab) is never PR-blocking. It is gated on the
-`run-e2e-load` pipeline parameter, declared on **both** `.circleci/config.yml`
-(setup) and `.circleci/continue-config.yml`. Path filtering never sets it.
-Trigger a CircleCI **scheduled pipeline** or a manual run with:
+`e2e-load` (syncdb-loadlab) is never PR-blocking. Trigger the **setup** pipeline
+with `run-e2e-load`. Setup skips path-filtering and continues with a differently
+named continuation parameter (`e2e-load`) so CircleCI does not report conflicting
+pipeline parameters.
 
 ```json
 {"run-e2e-load": true}
 ```
-
-When that parameter is true, setup skips path-filtering and continues straight
-into the `e2e-load` workflow.
 
 This replaces the GHA cron / `workflow_dispatch` / `load-test` label triggers in
 `e2e-load-nightly.yml`.

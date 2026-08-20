@@ -54,9 +54,9 @@ parameters:
   run-e2e:
     type: boolean
     default: false
-  # Not set by path filtering — flip via scheduled/manual pipeline trigger to
-  # mirror GHA e2e-load-nightly (cron + dispatch + `load-test` label).
-  run-e2e-load:
+  # Set only by setup continuation when the setup trigger `run-e2e-load` is true.
+  # Different name from the setup parameter to avoid CircleCI continuation conflicts.
+  e2e-load:
     type: boolean
     default: false
 
@@ -931,9 +931,10 @@ workflows:
                 - syncdb-storage
                 - syncdb-chaos
 
-  # Trigger with {"run-e2e-load": true} from a CircleCI scheduled/manual trigger.
+  # Started when setup continues with {"e2e-load": true} after a
+  # {"run-e2e-load": true} setup-pipeline trigger.
   e2e-load:
-    when: << pipeline.parameters.run-e2e-load >>
+    when: << pipeline.parameters.e2e-load >>
     jobs:
       - e2e-load
 
