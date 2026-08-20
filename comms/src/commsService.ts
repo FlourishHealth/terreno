@@ -1,4 +1,5 @@
 import {APIError, logger} from "@terreno/api";
+import {DateTime} from "luxon";
 
 import {
   ConsoleMailProvider,
@@ -8,8 +9,11 @@ import {
 } from "./adapters/console";
 import {CommsMessage} from "./models/commsMessage";
 import {PushToken} from "./models/pushToken";
+import type {CommsMessageDocument} from "./modelTypes";
 import type {
   CheckVerificationOptions,
+  CommsAttempt,
+  CommsChannel,
   CommsHookContext,
   CommsOptions,
   MailMessage,
@@ -33,6 +37,28 @@ const throwUnconfiguredChannel = (): never => {
 };
 
 const isProduction = (): boolean => process.env.NODE_ENV === "production";
+
+const providerErrorResult = (error: unknown): SendResult => ({
+  accepted: false,
+  error: error instanceof Error ? error.message : "Provider send failed",
+  errorClass: "transient",
+  errorCode: "provider-throw",
+});
+
+const isTransientFailure = (result: SendResult): boolean =>
+  !result.accepted && result.errorClass === "transient";
+
+const isPermanentTokenFailure = (result: SendResult): boolean =>
+  Boolean(result.errorClass === "permanent" || result.isPermanentFailure);
+
+const toAttempt = (provider: string, result: SendResult): CommsAttempt => ({
+  at: DateTime.utc().toJSDate(),
+  error: result.error,
+  errorClass: result.errorClass,
+  errorCode: result.errorCode,
+  provider,
+  providerMessageId: result.providerMessageId,
+});
 
 export class CommsService {
   private readonly options: CommsOptions;
@@ -61,23 +87,27 @@ export class CommsService {
     to,
     userId,
   }: {
-    channel: "mail" | "push" | "sms" | "verification";
+    channel: CommsChannel;
     metadata?: Record<string, unknown>;
     provider: string;
     result: SendResult;
     subject?: string;
     to: string | string[];
     userId?: string;
-  }): Promise<void> {
+  }): Promise<CommsMessageDocument | null> {
     if (this.options.logMessages === false) {
-      return;
+      return null;
     }
 
-    await CommsMessage.logSend({
+    const attempt = toAttempt(provider, result);
+    return CommsMessage.logSend({
+      attemptCount: 1,
+      attempts: [attempt],
       channel,
       error: result.error,
       errorClass: result.errorClass,
       errorCode: result.errorCode,
+      lastAttemptAt: attempt.at,
       metadata: {...result.metadata, ...metadata},
       provider,
       providerMessageId: result.providerMessageId,
@@ -85,6 +115,29 @@ export class CommsService {
       subject,
       to: this.recipientForLog(to),
       userId,
+    });
+  }
+
+  private async logRetry({
+    messageId,
+    provider,
+    result,
+  }: {
+    messageId?: string;
+    provider: string;
+    result: SendResult;
+  }): Promise<void> {
+    if (this.options.logMessages === false) {
+      return;
+    }
+    await CommsMessage.appendAttempt({
+      attempt: toAttempt(provider, result),
+      error: result.error,
+      errorClass: result.errorClass,
+      errorCode: result.errorCode,
+      messageId,
+      providerMessageId: result.providerMessageId,
+      status: result.accepted ? "sent" : "failed",
     });
   }
 
@@ -116,17 +169,33 @@ export class CommsService {
     );
   }
 
-  private async sendMailOnce(provider: MailProvider, message: MailMessage): Promise<SendResult> {
+  private async sendOnce(run: () => Promise<SendResult>): Promise<SendResult> {
     try {
-      return await provider.sendMail(message);
+      return await run();
     } catch (error: unknown) {
-      return {
-        accepted: false,
-        error: error instanceof Error ? error.message : "Provider send failed",
-        errorClass: "transient",
-        errorCode: "provider-throw",
-      };
+      return providerErrorResult(error);
     }
+  }
+
+  private async retryTransient({
+    context,
+    result,
+    send,
+  }: {
+    context: CommsHookContext;
+    result: SendResult;
+    send: () => Promise<SendResult>;
+  }): Promise<{context: CommsHookContext; result: SendResult}> {
+    if (!isTransientFailure(result)) {
+      return {context, result};
+    }
+    const retryContext = {...context, attempt: 2, isRetry: true};
+    const onRetry = this.options.onRetry;
+    await this.invokeHook(
+      onRetry ? (): Promise<void> => onRetry(retryContext, result) : undefined,
+      "onRetry"
+    );
+    return {context: retryContext, result: await this.sendOnce(send)};
   }
 
   private mailProvider(): MailProvider {
@@ -179,188 +248,242 @@ export class CommsService {
       ...message,
       from: message.from ?? this.options.defaultFrom,
     };
-    const context = {attempt: 1, channel: "mail" as const, isRetry: false, provider: provider.id};
-
-    let result = await this.sendMailOnce(provider, resolvedMessage);
-    if (!result.accepted && result.errorClass === "transient") {
-      const onRetry = this.options.onRetry;
-      await this.invokeHook(
-        onRetry ? (): Promise<void> => onRetry(context, result) : undefined,
-        "onRetry"
-      );
-      result = await this.sendMailOnce(provider, resolvedMessage);
-    }
-
-    await this.logResult({
+    const send = (): Promise<SendResult> => provider.sendMail(resolvedMessage);
+    const context: CommsHookContext = {
+      attempt: 1,
+      channel: "mail",
+      isRetry: false,
+      message: resolvedMessage,
+      provider: provider.id,
+    };
+    const firstResult = await this.sendOnce(send);
+    const row = await this.logResult({
       channel: "mail",
       provider: provider.id,
-      result,
+      result: firstResult,
       subject: message.subject,
       to: message.to,
     });
-
-    await this.notifyOutcomeHooks(context, result);
-
-    return result;
+    const retried = await this.retryTransient({
+      context: {...context, messageId: row?._id.toString()},
+      result: firstResult,
+      send,
+    });
+    if (retried.context.isRetry) {
+      await this.logRetry({
+        messageId: row?._id.toString(),
+        provider: provider.id,
+        result: retried.result,
+      });
+    }
+    await this.notifyOutcomeHooks(retried.context, retried.result);
+    return retried.result;
   }
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
     const provider = this.smsProvider();
-    const context = {attempt: 1, channel: "sms" as const, isRetry: false, provider: provider.id};
-
-    try {
-      const result = await provider.sendSms(message);
-      await this.logResult({
-        channel: "sms",
+    const send = (): Promise<SendResult> => provider.sendSms(message);
+    const context: CommsHookContext = {
+      attempt: 1,
+      channel: "sms",
+      isRetry: false,
+      message,
+      provider: provider.id,
+    };
+    const firstResult = await this.sendOnce(send);
+    const row = await this.logResult({
+      channel: "sms",
+      provider: provider.id,
+      result: firstResult,
+      to: message.to,
+    });
+    const retried = await this.retryTransient({
+      context: {...context, messageId: row?._id.toString()},
+      result: firstResult,
+      send,
+    });
+    if (retried.context.isRetry) {
+      await this.logRetry({
+        messageId: row?._id.toString(),
         provider: provider.id,
-        result,
-        to: message.to,
+        result: retried.result,
       });
-      await this.notifyOutcomeHooks(context, result);
-      return result;
-    } catch (error: unknown) {
-      const result = {accepted: false, error: "Provider send failed"};
-      await this.logResult({
-        channel: "sms",
-        provider: provider.id,
-        result,
-        to: message.to,
-      });
-      await this.notifyOutcomeHooks(context, result);
-      throw error;
     }
+    await this.notifyOutcomeHooks(retried.context, retried.result);
+    return retried.result;
   }
 
   async sendPushToUser(message: SendPushToUserMessage): Promise<SendResult[]> {
     const provider = this.pushProvider();
-    const context = {attempt: 1, channel: "push" as const, isRetry: false, provider: provider.id};
     const tokens = await PushToken.find({active: true, userId: message.userId});
     if (tokens.length === 0) {
       return [];
     }
 
-    const providerMessage: PushMessage = {
-      badge: message.badge,
-      body: message.body,
-      data: message.data,
-      sound: message.sound,
-      title: message.title,
-      tokens: tokens.map((token) => token.token),
+    const sendFor = async (tokenValues: string[]): Promise<SendResult[]> => {
+      const providerMessage: PushMessage = {
+        badge: message.badge,
+        body: message.body,
+        data: message.data,
+        sound: message.sound,
+        title: message.title,
+        tokens: tokenValues,
+      };
+      try {
+        const results = await provider.sendPush(providerMessage);
+        return tokenValues.map(
+          (_token, index): SendResult =>
+            results[index] ?? {
+              accepted: false,
+              error: "Provider returned no result for token",
+            }
+        );
+      } catch (error: unknown) {
+        return tokenValues.map((): SendResult => providerErrorResult(error));
+      }
     };
-    let results: SendResult[];
-    try {
-      results = await provider.sendPush(providerMessage);
-    } catch (error: unknown) {
-      const failedResult = {accepted: false, error: "Provider send failed"};
-      await Promise.all(
-        tokens.map(
-          (token): Promise<void> =>
-            this.logResult({
-              channel: "push",
-              provider: provider.id,
-              result: failedResult,
-              to: token.token,
-              userId: String(message.userId),
-            })
-        )
+
+    const firstResults = await sendFor(tokens.map((token) => token.token));
+    const retryIndexes = firstResults
+      .map((result, index): number => (isTransientFailure(result) ? index : -1))
+      .filter((index) => index >= 0);
+
+    const baseContext: CommsHookContext = {
+      attempt: 1,
+      channel: "push",
+      isRetry: false,
+      message: {
+        badge: message.badge,
+        body: message.body,
+        data: message.data,
+        sound: message.sound,
+        title: message.title,
+        tokens: tokens.map((token) => token.token),
+      },
+      provider: provider.id,
+      userId: String(message.userId),
+    };
+
+    const finalResults = [...firstResults];
+    if (retryIndexes.length > 0) {
+      const failedResult = firstResults[retryIndexes[0]] as SendResult;
+      const retryContext = {...baseContext, attempt: 2, isRetry: true};
+      const onRetry = this.options.onRetry;
+      await this.invokeHook(
+        onRetry ? (): Promise<void> => onRetry(retryContext, failedResult) : undefined,
+        "onRetry"
       );
-      await this.notifyOutcomeHooks(context, failedResult);
-      throw error;
+      const retryResults = await sendFor(
+        retryIndexes.map((index) => tokens[index]?.token as string)
+      );
+      for (const [retryOffset, index] of retryIndexes.entries()) {
+        finalResults[index] = retryResults[retryOffset] as SendResult;
+      }
     }
 
-    const normalizedResults = tokens.map(
-      (_token, index): SendResult =>
-        results[index] ?? {
-          accepted: false,
-          error: "Provider returned no result for token",
-        }
-    );
     await Promise.all(
       tokens.map(async (token, index): Promise<void> => {
-        const result = normalizedResults[index] as SendResult;
-        await this.logResult({
+        const firstResult = firstResults[index] as SendResult;
+        const result = finalResults[index] as SendResult;
+        const wasRetried = retryIndexes.includes(index);
+        const tokenContext: CommsHookContext = {
+          ...baseContext,
+          attempt: wasRetried ? 2 : 1,
+          isRetry: wasRetried,
+        };
+        const row = await this.logResult({
           channel: "push",
           provider: provider.id,
-          result,
+          result: firstResult,
           to: token.token,
           userId: String(message.userId),
         });
-        await this.notifyOutcomeHooks(context, result);
-        if (!result.accepted && result.isPermanentFailure) {
+        if (wasRetried) {
+          await this.logRetry({
+            messageId: row?._id.toString(),
+            provider: provider.id,
+            result,
+          });
+        }
+        await this.notifyOutcomeHooks(tokenContext, result);
+        if (!result.accepted && isPermanentTokenFailure(result)) {
           token.active = false;
           await token.save();
         }
       })
     );
 
-    return normalizedResults;
+    return finalResults;
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
     const provider = this.verificationProvider();
-    const context = {
+    const send = (): Promise<SendResult> => provider.startVerification(options);
+    const context: CommsHookContext = {
       attempt: 1,
-      channel: "verification" as const,
+      channel: "verification",
       isRetry: false,
+      message: options,
       provider: provider.id,
     };
-    try {
-      const result = await provider.startVerification(options);
-      await this.logResult({
-        channel: "verification",
-        metadata: {verificationChannel: options.channel},
+    const firstResult = await this.sendOnce(send);
+    const row = await this.logResult({
+      channel: "verification",
+      metadata: {verificationChannel: options.channel},
+      provider: provider.id,
+      result: firstResult,
+      to: options.to,
+    });
+    const retried = await this.retryTransient({
+      context: {...context, messageId: row?._id.toString()},
+      result: firstResult,
+      send,
+    });
+    if (retried.context.isRetry) {
+      await this.logRetry({
+        messageId: row?._id.toString(),
         provider: provider.id,
-        result,
-        to: options.to,
+        result: retried.result,
       });
-      await this.notifyOutcomeHooks(context, result);
-      return result;
-    } catch (error: unknown) {
-      const result = {accepted: false, error: "Provider send failed"};
-      await this.logResult({
-        channel: "verification",
-        metadata: {verificationChannel: options.channel},
-        provider: provider.id,
-        result,
-        to: options.to,
-      });
-      await this.notifyOutcomeHooks(context, result);
-      throw error;
     }
+    await this.notifyOutcomeHooks(retried.context, retried.result);
+    return retried.result;
   }
 
   async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
     const provider = this.verificationProvider();
-    const context = {
+    const context: CommsHookContext = {
       attempt: 1,
-      channel: "verification" as const,
+      channel: "verification",
       isRetry: false,
       provider: provider.id,
     };
+    let check: VerificationResult;
     try {
-      const result = await provider.checkVerification(options);
-      const loggedResult: SendResult = {
-        accepted: result.valid,
-        ...(result.valid ? {} : {error: result.error ?? "Verification check failed"}),
-      };
-      await this.logResult({
-        channel: "verification",
-        provider: provider.id,
-        result: loggedResult,
-        to: options.to,
-      });
-      await this.notifyOutcomeHooks(context, loggedResult);
-      return result;
+      check = await provider.checkVerification(options);
     } catch (error: unknown) {
-      const loggedResult = {accepted: false, error: "Provider check failed"};
+      const result = providerErrorResult(error);
       await this.logResult({
         channel: "verification",
         provider: provider.id,
-        result: loggedResult,
+        result,
         to: options.to,
       });
-      await this.notifyOutcomeHooks(context, loggedResult);
-      throw error;
+      await this.notifyOutcomeHooks(context, result);
+      return {error: result.error, valid: false};
     }
+
+    const loggedResult: SendResult = {
+      accepted: check.valid,
+      ...(check.valid ? {} : {error: check.error ?? "Verification check failed"}),
+    };
+    await this.logResult({
+      channel: "verification",
+      provider: provider.id,
+      result: loggedResult,
+      to: options.to,
+    });
+    await this.notifyOutcomeHooks(context, loggedResult);
+    return check;
   }
 }
