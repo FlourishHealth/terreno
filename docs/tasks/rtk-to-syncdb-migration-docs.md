@@ -42,13 +42,13 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
   - Depends on: Task 1.1
   - Acceptance: every documented symbol exists in the inventory; every config option lists a type and default; no `TODO` or placeholder text remains.
 
-- [ ] **Task 2.2**: Remove `rtk.md` from the public reference index
+- [x] **Task 2.2**: Remove `rtk.md` from the public reference index
   - Description: Per IP decision M4 (P7 A), remove `docs/reference/rtk.md` from the public reference tree — do **not** maintain a parallel RTK reference page at launch. Add a Docusaurus redirect from the old URL to `docs/how-to/migrate-rtk-to-syncdb.md`. Archive the pre-launch `rtk.md` content only if inbound links require it (e.g. under `docs/reference/legacy/` with a deprecation banner), but do not list it in `docs/reference/README.md`.
   - Files: `docs/reference/rtk.md` (removed or archived), `website/docusaurus.config.ts`, `docs/reference/README.md`
   - Depends on: Task 2.1
   - Acceptance: `docs/reference/README.md` has no RTK entry; the old URL redirects to the migration guide; no launch doc presents RTK as a supported reference path.
 
-- [ ] **Task 2.3**: Update the reference and docs indexes
+- [x] **Task 2.3**: Update the reference and docs indexes
   - Description: Update `docs/reference/README.md` and `docs/README.md`: add `@terreno/syncdb` and `@terreno/ai` to the package table (`ai` is currently missing entirely), add `@terreno/admin-spa` and `@terreno/feature-flags` if absent. Do **not** list `rtk` in the public reference index per M4 — link the migration guide from a "Migrating from RTK" note instead. Confirm every shipped package in `publish-on-tag.yml` appears exactly once in the appropriate section.
   - Files: `docs/reference/README.md`, `docs/README.md`
   - Depends on: Task 2.2
@@ -80,7 +80,7 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
   - Depends on: Task 3.3
   - Acceptance: all eleven sections complete; the rollback section states what local data survives; the checklist has no step absent from the body; the guide is listed in `docs/how-to/README.md`.
 
-- [ ] **Task 3.5**: Validate the guide by performing the migration
+- [x] **Task 3.5**: Validate the guide by performing the migration
   - Description: On a scratch branch, take a screen in `example-frontend` that #869 did **not** migrate and migrate it following only the guide. Record every point where the guide was insufficient. Fix the guide. Then revert the scratch branch — the migration itself is not part of this IP's deliverable, only the guide corrections are.
   - Files: `docs/how-to/migrate-rtk-to-syncdb.md`
   - Depends on: Task 3.4
@@ -88,13 +88,13 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
 
 ## Phase 4: Explainers and auth repositioning
 
-- [ ] **Task 4.1**: Write `docs/explanation/local-first-data.md`
+- [x] **Task 4.1**: Write `docs/explanation/local-first-data.md`
   - Description: Conceptual explainer, no step-by-step. Cover: what local-first means here (local DB is the UI source of truth, server is the authority), the mental-model shift from request/response to apply-locally-then-reconcile, what the developer stops having to think about (loading states on writes, manual optimistic updates, refetch orchestration), what they must newly think about (conflicts, sync status, encryption at rest, key lifecycle on logout), and the tradeoffs versus server-first fetching. Link the migration guide and the syncdb reference.
   - Files: `docs/explanation/local-first-data.md` (new)
   - Depends on: Task 2.1
   - Acceptance: no shell commands or step lists; names at least three things developers stop doing and three they start doing; linked from `docs/explanation/README.md` if one exists.
 
-- [ ] **Task 4.2**: Reposition authentication documentation
+- [x] **Task 4.2**: Reposition authentication documentation
   - Description: Rewrite `docs/explanation/authentication.md` so Better Auth is the primary path and JWT/Passport is described as legacy with its support status. Update `docs/how-to/configure-better-auth.md` to drop "optional"/"alternative" framing and present it as the default setup. Add a short decision section: when a consumer would still choose JWT (existing deployment, custom token requirements). Verify every claim against `api/src/betterAuth*.ts` and the #869 socket auth changes.
   - Files: `docs/explanation/authentication.md`, `docs/how-to/configure-better-auth.md`
   - Depends on: Task 3.3
@@ -102,25 +102,25 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
 
 ## Phase 5: Agent surfaces
 
-- [ ] **Task 5.1**: Add syncdb agent rules and mark RTK rules legacy
+- [x] **Task 5.1**: Add syncdb agent rules and mark RTK rules legacy
   - Description: Create `.rulesync/rules/syncdb/00-syncdb.md` following the structure of `.rulesync/rules/rtk/00-rtk.md` (commands, architecture, key exports, usage patterns, conventions, testing). Add a legacy banner to the top of the RTK rule file stating that new code must use syncdb and that the RTK rules exist only for maintaining existing consumers. Run `bun run rules` and commit all mirrors.
   - Files: `.rulesync/rules/syncdb/00-syncdb.md` (new), `.rulesync/rules/rtk/00-rtk.md`, generated mirrors
   - Depends on: Task 2.1
   - Acceptance: `bun run rules:check` exits 0; the syncdb rule documents only APIs from the inventory; the RTK rule's first line marks it legacy.
 
-- [ ] **Task 5.2**: Update the SDK codegen skill
+- [x] **Task 5.2**: Update the SDK codegen skill
   - Description: Rewrite `.rulesync/skills/generate-sdk/SKILL.md` for the syncdb codegen path. Keep an explicitly-labeled legacy branch for consumers still on RTK during the support window. Update the trigger description, the prerequisite list, the command, the output file path, and the "never edit the generated file" warning to name the correct file. Regenerate mirrors.
   - Files: `.rulesync/skills/generate-sdk/SKILL.md`, generated mirrors
   - Depends on: Task 3.4
   - Acceptance: the skill's primary path produces a working generated file when run against `example-backend`; the legacy branch is clearly labeled; `bun run rules:check` exits 0.
 
-- [ ] **Task 5.3**: Update root agent context files
+- [x] **Task 5.3**: Update root agent context files
   - Description: Update `AGENTS.md`, `CLAUDE.md`, and `CLAUDE-consumer.md`: replace the `@terreno/rtk` package description and the "always use generated SDK hooks" guidance with the syncdb equivalent, update the architecture diagram, and add a short legacy note pointing at the migration guide. Do not change unrelated sections. Note that `CLAUDE.local.md` also contains a stale copy — either update or delete it (it appears to be an outdated duplicate; confirm before deleting).
   - Files: `AGENTS.md`, `CLAUDE.md`, `CLAUDE-consumer.md`, possibly `CLAUDE.local.md`
   - Depends on: Task 5.1
   - Acceptance: no root agent file instructs writing RTK Query code for new work; the architecture diagram names syncdb; `bun run rules:check` exits 0.
 
-- [ ] **Task 5.4**: Update MCP resources and bootstrap templates
+- [x] **Task 5.4**: Update MCP resources and bootstrap templates
   - Description: Update `mcp-server/src/docs/resources/*.md` (the `terreno://docs/rtk` resource and the patterns/overview bundles) and every file under `mcp-server/src/docs/templates/bootstrap/` that wires the Redux store, auth slice, or RTK hooks. A bootstrapped app must run on syncdb + Better Auth. Also check `mcp-server/src/prompts.ts` for RTK-specific prompt text.
   - Files: `mcp-server/src/docs/resources/*.md`, `mcp-server/src/docs/templates/bootstrap/**`, `mcp-server/src/prompts.ts`
   - Depends on: Task 5.1
@@ -128,37 +128,37 @@ See: [`docs/implementationPlans/rtk-to-syncdb-migration-docs.md`](../implementat
 
 ## Phase 6: Deprecation signalling
 
-- [ ] **Task 6.1**: Add the deprecation notice to `rtk/README.md`
+- [x] **Task 6.1**: Add the deprecation notice to `rtk/README.md`
   - Description: Add a notice block at the very top of `rtk/README.md`: deprecated as of version X, supported through version Y, superseded by `@terreno/syncdb`, link the migration guide. Do not remove existing content.
   - Files: `rtk/README.md`
   - Depends on: Task 2.2
   - Acceptance: the notice is the first content after the title; versions are concrete, not placeholders.
 
-- [ ] **Task 6.2**: Add the changelog entry
+- [x] **Task 6.2**: Add the changelog entry
   - Description: Add a `Deprecated` entry to the root `CHANGELOG.md` under the release that includes #869, naming `@terreno/rtk`, the support window, and the migration guide link. Add the corresponding `Added` entry for `@terreno/syncdb`.
   - Files: `CHANGELOG.md`
   - Depends on: Task 6.1
   - Acceptance: both entries exist under the correct version heading; the migration guide link resolves.
 
-- [ ] **Task 6.3**: Write the upgrade note
+- [x] **Task 6.3**: Write the upgrade note
   - Description: Create `mcp-server/src/docs/upgrades/<version>.md` for the release containing #869, following the format of the existing `0.20.0.md` and `0.21.0.md` notes. Include: what changed, whether action is required, the auth-then-data migration order, links to the migration guide, and before/after snippets for the two most common changes (a read hook and a write hook).
   - Files: `mcp-server/src/docs/upgrades/<version>.md` (new)
   - Depends on: Task 3.4
   - Acceptance: `terreno_get_upgrade_guide` with a range spanning this version returns the note; the format matches the existing notes.
 
-- [ ] **Task 6.4**: Draft the announcement post
+- [x] **Task 6.4**: Draft the announcement post
   - Description: Add the announcement body to `docs/explanation/roadmap-process.md` under a "Drafted announcements" heading (or to a new `docs/explanation/announcements/rtk-deprecation.md` if that file does not exist yet). It should explain to outside users what changed, why local-first, what they must do and by when, and where to ask questions. Under 400 words. Do not post it — posting is a maintainer action.
   - Files: `docs/explanation/roadmap-process.md` or `docs/explanation/announcements/rtk-deprecation.md`
   - Depends on: Task 6.2
   - Acceptance: under 400 words; names the support window; links the migration guide and the Q&A discussion category.
 
-- [ ] **Task 6.5**: Update the README architecture and package list
+- [x] **Task 6.5**: Update the README architecture and package list
   - Description: Update `README.md`: replace `@terreno/rtk` with `@terreno/syncdb` in the architecture diagram and the published-packages list, keeping `rtk` listed with a `(deprecated)` marker. Update the "Integration Flow" numbered list to describe the syncdb loop. Do not make positioning changes here — those belong to [`positioning-django-rails-universal`](../implementationPlans/positioning-django-rails-universal.md).
   - Files: `README.md`
   - Depends on: Task 6.1
   - Acceptance: the diagram names syncdb; `rtk` is marked deprecated; the integration flow describes local-first reads and writes; no positioning prose changed.
 
-- [ ] **Task 6.6**: Delete the working inventory document
+- [x] **Task 6.6**: Delete the working inventory document
   - Description: Confirm every fact from `docs/implementationPlans/syncdb-api-inventory.md` has landed in `docs/reference/syncdb.md` or the migration guide, then delete the working file. It is scaffolding, not a deliverable.
   - Files: `docs/implementationPlans/syncdb-api-inventory.md` (deleted)
   - Depends on: all Phase 2–5 tasks

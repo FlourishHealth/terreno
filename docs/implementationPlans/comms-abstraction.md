@@ -1,6 +1,6 @@
 # Implementation Plan: Pluggable communications layer (@terreno/comms)
 
-**Status:** Implemented
+**Status:** Approved — Phase 1 gap-fill implemented
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1018
 **Priority:** High
 **Effort:** Big batch
@@ -10,7 +10,8 @@
 **Program:** [B2B platform](b2b-platform-program.md)
 **Depends on:** none (inbound-webhooks is needed only by adapter delivery-callback phases)
 **RTK deprecation flag:** None — backend-only package
-**Shipped:** Phases 2–3 and most of Phase 1 in #1037; SendGrid adapter in #1050 (separate IP); Phase 1 gap-fill (hooks, error taxonomy, attempts, payload retention) in this change
+**Shipped:** Phases 2–3 and most of Phase 1 in #1037; SendGrid adapter in #1050 (separate IP)
+**Remaining:** none — Phase 1 gap-fill landed on this branch
 **Research:** [comms-abstraction-research.md](comms-abstraction-research.md)
 
 ## Goal
@@ -327,13 +328,13 @@ None in this IP. example-frontend gains a settings row that registers the Expo p
 
 1. **Package + contracts:** `@terreno/comms` package scaffold, `types.ts`, console
    adapters, `CommsMessage` + logging, `commsService`, unit tests.
-   **Shipped except** dashboard-ready fields, full hook set, payload retention, and
+   **Shipped** including dashboard-ready fields, hooks, payload retention, and
    channel-wide transient retry.
 2. **CommsApp + routes:** plugin registration, `PushToken` model + routes, admin explorer,
    OpenAPI, supertest coverage. **Shipped.**
 3. **Integration:** example-backend registers `CommsApp` (console adapters), seed docs,
    `docs/reference/comms.md`, catalog entries, publish wiring in `publish-on-tag.yml`.
-   **Shipped**; remaining roast updates the reference docs/rules for the gap-fill APIs.
+   **Shipped.**
 
 ## Feature Flags & Migrations
 

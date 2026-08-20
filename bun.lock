@@ -19,7 +19,7 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@google-cloud/storage": "catalog:",
         "@terreno/api": "workspace:*",
@@ -45,7 +45,7 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
@@ -78,7 +78,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -128,7 +128,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "catalog:",
@@ -163,7 +163,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@sentry/bun": "catalog:",
@@ -238,7 +238,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "catalog:",
@@ -254,7 +254,7 @@
     },
     "comms": {
       "name": "@terreno/comms",
-      "version": "0.30.0",
+      "version": "57.0.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "luxon": "catalog:",
@@ -456,6 +456,7 @@
         "@biomejs/biome": "catalog:",
         "@playwright/test": "catalog:",
         "@rtk-query/codegen-openapi": "^2.2.0",
+        "@terreno/syncdb-codegen": "workspace:*",
         "@types/lodash": "catalog:",
         "@types/luxon": "catalog:",
         "@types/react": "catalog:",
@@ -469,7 +470,7 @@
     },
     "feature-flags": {
       "name": "@terreno/feature-flags",
-      "version": "0.30.0",
+      "version": "57.0.0",
       "dependencies": {
         "@openfeature/server-sdk": "catalog:",
         "@terreno/api": "workspace:*",
@@ -493,7 +494,7 @@
     },
     "mcp-server": {
       "name": "@terreno/mcp",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "bin": {
         "terreno-mcp": "./dist/index.js",
         "terreno-mcp-local": "./dist/local/index.js",
@@ -514,7 +515,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@better-auth/expo": "^1.6.25",
         "@openfeature/core": "catalog:",
@@ -587,9 +588,22 @@
         "react",
       ],
     },
+    "syncdb-codegen": {
+      "name": "@terreno/syncdb-codegen",
+      "version": "0.1.0",
+      "bin": {
+        "terreno-syncdb-codegen": "./dist/cli.js",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@types/bun": "catalog:",
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "test": {
       "name": "@terreno/test",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "express": "catalog:",
         "lodash": "catalog:",
@@ -616,7 +630,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "0.31.0",
+      "version": "57.0.0",
       "dependencies": {
         "@expo-google-fonts/caveat": "^0.4.2",
         "@expo-google-fonts/dancing-script": "^0.4.2",
@@ -719,8 +733,9 @@
       "name": "@terreno/website",
       "version": "0.0.0",
       "dependencies": {
-        "@docusaurus/core": "^3.8.1",
-        "@docusaurus/preset-classic": "^3.8.1",
+        "@docusaurus/core": "3.10.1",
+        "@docusaurus/plugin-client-redirects": "3.10.1",
+        "@docusaurus/preset-classic": "3.10.1",
         "@easyops-cn/docusaurus-search-local": "^0.49.0",
         "@mdx-js/react": "^3.1.0",
         "clsx": "^2.1.1",
@@ -730,9 +745,9 @@
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
-        "@docusaurus/module-type-aliases": "^3.8.1",
-        "@docusaurus/tsconfig": "^3.8.1",
-        "@docusaurus/types": "^3.8.1",
+        "@docusaurus/module-type-aliases": "3.10.1",
+        "@docusaurus/tsconfig": "3.10.1",
+        "@docusaurus/types": "3.10.1",
         "@types/node": "^22.15.0",
         "typedoc": "catalog:",
         "typedoc-plugin-markdown": "^4.7.0",
@@ -1409,6 +1424,8 @@
     "@docusaurus/mdx-loader": ["@docusaurus/mdx-loader@3.10.1", "", { "dependencies": { "@docusaurus/logger": "3.10.1", "@docusaurus/utils": "3.10.1", "@docusaurus/utils-validation": "3.10.1", "@mdx-js/mdx": "^3.0.0", "@slorber/remark-comment": "^1.0.0", "escape-html": "^1.0.3", "estree-util-value-to-estree": "^3.0.1", "file-loader": "^6.2.0", "fs-extra": "^11.1.1", "image-size": "^2.0.2", "mdast-util-mdx": "^3.0.0", "mdast-util-to-string": "^4.0.0", "rehype-raw": "^7.0.0", "remark-directive": "^3.0.0", "remark-emoji": "^4.0.0", "remark-frontmatter": "^5.0.0", "remark-gfm": "^4.0.0", "stringify-object": "^3.3.0", "tslib": "^2.6.0", "unified": "^11.0.3", "unist-util-visit": "^5.0.0", "url-loader": "^4.1.1", "vfile": "^6.0.1", "webpack": "^5.88.1" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-GRmeb/wQ+iXRrFwcHBfgQhrJxGElgCsoTWZYDhccjsZVne1p8MK/EpQVIloXttz76TCe78kKD5AEG9n1xc1oxQ=="],
 
     "@docusaurus/module-type-aliases": ["@docusaurus/module-type-aliases@3.10.1", "", { "dependencies": { "@docusaurus/types": "3.10.1", "@types/history": "^4.7.11", "@types/react": "*", "@types/react-router-config": "*", "@types/react-router-dom": "*", "react-helmet-async": "npm:@slorber/react-helmet-async@1.3.0", "react-loadable": "npm:@docusaurus/react-loadable@6.0.0" }, "peerDependencies": { "react": "*", "react-dom": "*" } }, "sha512-YoOZKUdGlp8xSYhuAkGdSo5Ydkbq4V4eK3sD8v0a2hloxCWdQbNBhkc+Ko9QyjpESc0BYcIGM5iHVAy5hdFV6w=="],
+
+    "@docusaurus/plugin-client-redirects": ["@docusaurus/plugin-client-redirects@3.10.1", "", { "dependencies": { "@docusaurus/core": "3.10.1", "@docusaurus/logger": "3.10.1", "@docusaurus/utils": "3.10.1", "@docusaurus/utils-common": "3.10.1", "@docusaurus/utils-validation": "3.10.1", "eta": "^2.2.0", "fs-extra": "^11.1.1", "lodash": "^4.17.21", "tslib": "^2.6.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-LHgd+YDvkhfOHMAE6XtUng3DQNzVM765RqVRrMJgHtzAvfopQhY6ieprqjxDVBdv21cLma6I0jHr+YCZH8fL9A=="],
 
     "@docusaurus/plugin-content-blog": ["@docusaurus/plugin-content-blog@3.10.1", "", { "dependencies": { "@docusaurus/core": "3.10.1", "@docusaurus/logger": "3.10.1", "@docusaurus/mdx-loader": "3.10.1", "@docusaurus/theme-common": "3.10.1", "@docusaurus/types": "3.10.1", "@docusaurus/utils": "3.10.1", "@docusaurus/utils-common": "3.10.1", "@docusaurus/utils-validation": "3.10.1", "cheerio": "1.0.0-rc.12", "combine-promises": "^1.1.0", "feed": "^4.2.2", "fs-extra": "^11.1.1", "lodash": "^4.17.21", "schema-dts": "^1.1.2", "srcset": "^4.0.0", "tslib": "^2.6.0", "unist-util-visit": "^5.0.0", "utility-types": "^3.10.0", "webpack": "^5.88.1" }, "peerDependencies": { "@docusaurus/plugin-content-docs": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-mmkgE6Q2+K74tnkou7tXlpDLvoCU/qkSa2GSQ3XUiHWvcebCoDQzS670RR3tO8PmaWlIyWWISYWzZLuMfxunRA=="],
 
@@ -2277,6 +2294,8 @@
     "@terreno/rtk": ["@terreno/rtk@workspace:rtk"],
 
     "@terreno/syncdb": ["@terreno/syncdb@workspace:syncdb"],
+
+    "@terreno/syncdb-codegen": ["@terreno/syncdb-codegen@workspace:syncdb-codegen"],
 
     "@terreno/test": ["@terreno/test@workspace:test"],
 

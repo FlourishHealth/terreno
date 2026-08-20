@@ -11,6 +11,7 @@ IP: [comms-abstraction](../implementationPlans/comms-abstraction.md)
   - Acceptance: `bun run comms:compile` and `bun run comms:lint` pass
 - [x] **Task 1.2**: Finish provider types for remaining contracts
   - Description: Add `cancelled` to `CommsMessageStatus`; expand `CommsHookContext` (`message`, `userId`, `isRetry`, `attempt`, `messageId`); add `OptOutEvent`; add `errorCode`/`errorClass` on `DeliveryEvent`; keep shipped `onRetry(context, result)` and `isPermanentFailure` alias
+  - Status: base provider/message/`errorCode`/`errorClass` shipped; listed fields remain
   - Files: `comms/src/types.ts`, `comms/src/index.ts`
   - Depends on: 1.1
   - Acceptance: types compile and are exported; existing SendGrid tests still typecheck against `onRetry(context, result)`
@@ -24,8 +25,10 @@ IP: [comms-abstraction](../implementationPlans/comms-abstraction.md)
   - Files: `comms/src/models/commsMessage.ts`, `comms/src/modelTypes.ts` + tests
   - Depends on: 1.2
   - Acceptance: send logging survives a forced model error (logged, not thrown); a second attempt appends without a second row; Mongo TTL index is not used
+  - Status: model, `errorCode`/`errorClass`, and non-throwing `logSend` shipped; listed fields remain
 - [x] **Task 1.5**: Channel-wide transient retry + no rethrow
   - Description: wrap provider throws as `{accepted: false, errorClass: "transient", errorCode: "provider-throw"}`; retry once on transient for `sendMail`, `sendSms`, `startVerification`; for `sendPushToUser`, retry only tokens whose first result is transient; do not retry `checkVerification`; prune tokens when `errorClass === "permanent"` or `isPermanentFailure === true`
+  - Status: mail retry shipped; SMS/push/verification still rethrow; prune is `isPermanentFailure` only
   - Files: `comms/src/commsService.ts` + tests
   - Depends on: 1.2, 1.3, 1.4
   - Acceptance: unit tests cover happy path + unconfigured channel in both env modes; permanent/config failures do not retry; SMS throw returns a `SendResult` instead of rejecting
@@ -86,7 +89,7 @@ IP: [comms-abstraction](../implementationPlans/comms-abstraction.md)
   - Files: `.github/workflows/comms-ci.yml`, `.github/workflows/publish-on-tag.yml`
   - Depends on: 1.x
   - Acceptance: CI green on the PR
-- [ ] **Task 3.4**: Docs refresh for gap-fill APIs
+- [x] **Task 3.4**: Docs refresh for gap-fill APIs
   - Description: document `beforeSend`, `recordDeliveryEvent`/`recordOptOut`, attempt history, payload retention, channel-wide retry, and the `onRetry`/`isPermanentFailure` aliases in reference docs + comms rule
   - Files: `docs/reference/comms.md`, `.rulesync/rules/comms/00-comms.md`
   - Depends on: 1.6, 1.7

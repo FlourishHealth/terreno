@@ -9,32 +9,13 @@ All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/) as one
+file per feature. `bun run changelog:assemble <version>` folds those files into a
+dated section below when cutting a release.
+
 ## [Unreleased]
 
-### Added
-
-- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
-  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
-  (`docs/explanation/local-first-data.md`)
-- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
-  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
-- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
-  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
-  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
-  `onSend`).
-- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `onOptOut`,
-  `recordDeliveryEvent` / `recordOptOut`, attempt history, payload retention, and
-  channel-wide transient retry (provider throws return `SendResult` instead of rejecting).
-  Push hooks and retries are per-token; mail payloads retain `replyTo` and
-  `dynamicTemplateData`; `DeliveryEvent.errorClass` is persisted on the log row.
-
-### Deprecated
-
-- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
-  through the current major line; will not ship in the next major. Migrate collection CRUD to
-  [`@terreno/syncdb`](docs/reference/syncdb.md) using
-  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
-  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
 ## [57.0.0] - 2026-08-20
 
@@ -59,7 +40,7 @@ First stable release of the Expo SDK 57 line, cut from `master` after
   `npx expo install expo@latest --fix` then rebuild native binaries
   ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
 - `@terreno/syncdb` bumps `tinybase` to `^9.5.1` for Expo SDK 57 /
-  `expo-sqlite` type compatibility ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+  `expo-sqlite` type compatibility   ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
 
 ## [57.0.0-beta.1] - 2026-08-20
 

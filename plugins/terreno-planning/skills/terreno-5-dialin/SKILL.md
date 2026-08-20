@@ -39,7 +39,7 @@ Each cycle:
 7. Commit + push fixes (same commit hygiene rules as Pour — see `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`; no AI attribution; `git commit -s` for DCO).
 8. Record the new head SHA, re-check all CI for that SHA, and continue the loop.
 9. Reply to addressed comments and resolve threads when fully fixed.
-10. When user-facing behavior changed, update `CHANGELOG.md` `## [Unreleased]`. Only tick the changelog item in the PR **Checklist** by following the PR Description Preservation rules below.
+10. When user-facing behavior changed, add or update `changelog/unreleased/<feature>.md`. Only tick the changelog item in the PR **Checklist** by following the PR Description Preservation rules below.
 
 ## PR Description Preservation
 
