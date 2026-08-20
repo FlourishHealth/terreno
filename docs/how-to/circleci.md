@@ -115,11 +115,9 @@ its CircleCI parameter — otherwise the twin silently never runs. It runs as th
 edits set `run-circleci-config`, which runs a representative slice (`api-ci`, `ui-ci`,
 `example-backend-ci`, `no-barrel-imports`, `e2e` spec `login`) so config changes are
 actually exercised instead of only hitting the always-on smoke jobs. CircleCI e2e
-pre-starts Expo web and reuses it (60s test timeout, `large` Docker executor) because
-Metro + Chromium on `cimg/node` browsers otherwise times out and then drops port 8082.
-(`xlarge` is not on this project's CircleCI plan.) The Expo pre-start step sets
-`NODE_OPTIONS=--max-old-space-size=4096` — on `large`'s auto-detected heap ceiling,
-Metro's bundle step otherwise hits `JavaScript heap out of memory`.
+pre-starts Expo web with `NODE_OPTIONS=--max-old-space-size=3072` and reuses it
+(60s test timeout, `large` Docker executor). Default Node heap OOMs mid-bundle on
+`cimg/node-browsers` + mongo; `xlarge` is not on this project's plan.
 
 ## Nightly load test
 

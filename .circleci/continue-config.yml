@@ -251,7 +251,8 @@ commands:
           environment:
             CI: "true"
             EXPO_NO_TELEMETRY: "1"
-            NODE_OPTIONS: "--max-old-space-size=4096"
+            # Default ~2GB heap OOMs while bundling on cimg/node-browsers + mongo.
+            NODE_OPTIONS: "--max-old-space-size=3072"
           command: bun expo start --web --port 8082
       - run:
           name: Wait for Expo web
@@ -278,7 +279,7 @@ commands:
             CI: "true"
             EXPO_NO_TELEMETRY: "1"
             MONGO_URI: "mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
-            NODE_OPTIONS: "--max-old-space-size=8192"
+            NODE_OPTIONS: "--max-old-space-size=2048"
             TOKEN_ISSUER: terreno-e2e
           command: |
             set -euo pipefail
