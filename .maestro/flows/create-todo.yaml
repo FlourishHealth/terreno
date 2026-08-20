@@ -2,22 +2,16 @@ url: http://localhost:8082/
 ---
 # Create a todo after login flow (same Maestro session — user is already signed in)
 # Prerequisites: login.yaml ran first in executionOrder
-
-- launchApp
+# Do not launchApp — reload resets syncdb and the authenticated session timing.
 
 - extendedWaitUntil:
     visible:
       id: "todos-screen"
     timeout: 30000
 
-# RN Web: Maestro matches LoginScreen via nativeID (TextField id prop)
-- extendedWaitUntil:
-    visible:
-      id: "todos-title-input"
-    timeout: 30000
-
+# RN Web maps TextField nativeID to the placeholder node; tap the label like login taps "Email"
 - tapOn:
-    id: "todos-title-input"
+    id: "todos-title-input.label"
 - inputText: "Buy groceries"
 
 - tapOn:
