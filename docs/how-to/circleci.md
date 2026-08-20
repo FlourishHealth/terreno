@@ -115,11 +115,9 @@ its CircleCI parameter — otherwise the twin silently never runs. It runs as th
 edits set `run-circleci-config`, which runs a representative slice (`api-ci`, `ui-ci`,
 `example-backend-ci`, `no-barrel-imports`, `e2e` spec `login`) so config changes are
 actually exercised instead of only hitting the always-on smoke jobs. CircleCI e2e
-pre-starts Expo web with `NODE_OPTIONS=--max-old-space-size=3072` and reuses it
-(60s test timeout, `large` Docker executor). Wait for port 8082, then one long
-`/login` request — a 2s poll storm queues abandoned SSR renders until Metro is
-SIGKILL'd. Default Node heap OOMs mid-bundle on `cimg/node-browsers` + mongo;
-`xlarge` is not on this project's plan.
+pre-starts a static `bun expo export` on `:8082` (`NODE_OPTIONS=--max-old-space-size=3072`
+for the export only) and reuses it (60s test timeout, `large` Docker). Keeping Metro
+alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on this project's plan.
 
 ## Nightly load test
 

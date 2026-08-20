@@ -241,43 +241,37 @@ commands:
             echo "backend failed to become healthy"
             exit 1
       - run:
+          name: Export example-frontend web
+          working_directory: ~/project/example-frontend
+          no_output_timeout: 15m
+          environment:
+            CI: "true"
+            EXPO_NO_TELEMETRY: "1"
+            NODE_OPTIONS: "--max-old-space-size=3072"
+          command: bun expo export --platform web
+      - run:
           name: Install Playwright Chromium
           working_directory: ~/project/example-frontend
           command: bunx playwright install --with-deps chromium
       - run:
-          name: Start Expo web
+          name: Serve exported web
           working_directory: ~/project/example-frontend
           background: true
-          environment:
-            CI: "true"
-            EXPO_NO_TELEMETRY: "1"
-            # Default ~2GB heap OOMs while bundling on cimg/node-browsers + mongo.
-            NODE_OPTIONS: "--max-old-space-size=3072"
-          command: bun expo start --web --port 8082
+          command: bunx serve dist -s -l 8082
       - run:
-          name: Wait for Expo web
-          no_output_timeout: 15m
+          name: Wait for static web
           command: |
             set -euo pipefail
-            for i in $(seq 1 90); do
-              if (echo >/dev/tcp/127.0.0.1/8082) 2>/dev/null; then
-                echo "expo web listening after ${i} attempts"
-                break
+            for i in $(seq 1 30); do
+              code="$(curl -sS --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8082/login || true)"
+              if [ "$code" = "200" ]; then
+                echo "static web ready after ${i} attempts"
+                exit 0
               fi
-              sleep 2
+              sleep 1
             done
-            if ! (echo >/dev/tcp/127.0.0.1/8082) 2>/dev/null; then
-              echo "expo web never opened port 8082"
-              exit 1
-            fi
-            # One patient request warms the SSR bundle. Short-timeout polling
-            # abandons each render and queues another until Metro is OOM-killed.
-            code="$(curl -sS --max-time 600 -o /dev/null -w '%{http_code}' http://localhost:8082/login)"
-            echo "expo web returned ${code} for /login"
-            case "$code" in
-              2*|3*) exit 0 ;;
-              *) exit 1 ;;
-            esac
+            echo "static web failed to become ready"
+            exit 1
       - run:
           name: Playwright << parameters.spec >>
           working_directory: ~/project/example-frontend
