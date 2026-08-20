@@ -94,7 +94,11 @@ test.describe("Admin Panel", () => {
     await page.goto("/admin/__scripts");
 
     await expect(page.getByTestId("admin-script-card-resetDatabase")).toBeVisible();
-    await expect(page.getByTestId("admin-script-run-resetDatabase")).toBeEnabled();
+    await page.getByTestId("admin-script-run-resetDatabase").click();
+    await page.getByTestId("admin-script-dry-run-button").click();
+
+    await expect(page.getByText("Dry run completed cleanly.")).toBeVisible({timeout: 15_000});
+    await expect(page.getByText(/Dry run: would reset \d+ record/)).toBeVisible();
   });
 });
 
