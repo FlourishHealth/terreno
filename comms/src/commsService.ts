@@ -78,10 +78,17 @@ export class CommsService {
     }
     try {
       const row = await CommsMessage.findOneOrNone({providerMessageId: event.providerMessageId});
-      if (!row || event.status === "opened") {
+      if (!row) {
+        logger.warn(`[comms] No CommsMessage for delivery event ${event.providerMessageId}`);
+        return;
+      }
+      if (event.status === "opened") {
         return;
       }
       row.status = event.status;
+      if (event.errorClass) {
+        row.errorClass = event.errorClass;
+      }
       if (event.errorCode) {
         row.errorCode = event.errorCode;
       }
@@ -169,15 +176,19 @@ export class CommsService {
     if (channel === "mail") {
       const mail = message as MailMessage;
       return {
+        dynamicTemplateData: mail.dynamicTemplateData,
         from: mail.from,
         html: mail.html,
+        replyTo: mail.replyTo,
         subject: mail.subject,
         templateId: mail.templateId,
         text: mail.text,
+        to: mail.to,
       };
     }
     if (channel === "sms") {
-      return {body: (message as SmsMessage).body};
+      const sms = message as SmsMessage;
+      return {body: sms.body, to: sms.to};
     }
     if (channel === "push") {
       const push = message as PushMessage;
@@ -189,7 +200,7 @@ export class CommsService {
         title: push.title,
       };
     }
-    return {verificationChannel: (message as StartVerificationOptions).channel};
+    return {channel: (message as StartVerificationOptions).channel};
   }
 
   private resolvePayload(context: CommsHookContext, hookErrors: Record<string, string[]>): unknown {
@@ -224,6 +235,21 @@ export class CommsService {
     );
   }
 
+  private cloneContext(
+    context: CommsHookContext,
+    overrides: Partial<CommsHookContext> = {}
+  ): CommsHookContext {
+    return {...context, ...overrides};
+  }
+
+  private resultsByToken(tokens: string[], results: SendResult[]): Map<string, SendResult> {
+    const missingResult: SendResult = {
+      accepted: false,
+      error: "Provider returned no result for token",
+    };
+    return new Map(tokens.map((token, index) => [token, results[index] ?? missingResult]));
+  }
+
   private attemptFromResult(provider: string, result: SendResult): CommsMessageAttempt {
     return {
       at: DateTime.utc().toJSDate(),
@@ -241,6 +267,7 @@ export class CommsService {
     context,
     hookErrors,
     metadata,
+    omitPayload,
     provider,
     result,
     status,
@@ -254,6 +281,7 @@ export class CommsService {
     context: CommsHookContext;
     hookErrors: Record<string, string[]>;
     metadata?: Record<string, unknown>;
+    omitPayload?: boolean;
     provider: string;
     result: SendResult;
     status: CommsMessageStatus;
@@ -266,7 +294,7 @@ export class CommsService {
       return null;
     }
 
-    const payload = this.resolvePayload(context, hookErrors);
+    const payload = omitPayload ? undefined : this.resolvePayload(context, hookErrors);
     const lastAttempt = attempts[attempts.length - 1];
     const mergedMetadata = {
       ...result.metadata,
@@ -627,6 +655,7 @@ export class CommsService {
       return [];
     }
 
+    const tokenDocs = new Map(tokens.map((token) => [token.token, token]));
     const providerMessage: PushMessage = {
       badge: message.badge,
       body: message.body,
@@ -654,7 +683,7 @@ export class CommsService {
             this.logResult({
               attempts: [this.attemptFromResult(provider.id, result)],
               channel: "push",
-              context,
+              context: this.cloneContext(context),
               hookErrors,
               provider: provider.id,
               result,
@@ -667,102 +696,110 @@ export class CommsService {
       return tokens.map(() => result);
     }
 
-    const firstResults = await this.sendPushOnce(provider, activeMessage);
-    const normalizedFirst = tokens.map(
-      (_token, index): SendResult =>
-        firstResults[index] ?? {
-          accepted: false,
-          error: "Provider returned no result for token",
-        }
-    );
-    const retryIndexes = normalizedFirst
-      .map((result, index) => (isTransientFailure(result) ? index : -1))
-      .filter((index) => index >= 0);
+    const sendTokens = activeMessage.tokens;
+    if (sendTokens.length === 0) {
+      return [];
+    }
 
-    const finalResults = [...normalizedFirst];
-    const loggedByIndex = await Promise.all(
-      tokens.map(
-        (token, index): Promise<CommsMessageDocument | null> =>
-          this.logResult({
-            attempts: [this.attemptFromResult(provider.id, normalizedFirst[index] as SendResult)],
-            channel: "push",
-            context,
-            hookErrors,
-            provider: provider.id,
-            result: normalizedFirst[index] as SendResult,
-            status: (normalizedFirst[index] as SendResult).accepted ? "sent" : "failed",
-            to: token.token,
-            userId: String(message.userId),
-          })
-      )
+    const firstByToken = this.resultsByToken(
+      sendTokens,
+      await this.sendPushOnce(provider, activeMessage)
     );
-    const retryIndexSet = new Set(retryIndexes);
+    const loggedByToken = new Map<string, CommsMessageDocument | null>();
+    await Promise.all(
+      sendTokens.map(async (tokenValue): Promise<void> => {
+        const result = firstByToken.get(tokenValue) as SendResult;
+        const tokenContext = this.cloneContext(context);
+        const logged = await this.logResult({
+          attempts: [this.attemptFromResult(provider.id, result)],
+          channel: "push",
+          context: tokenContext,
+          hookErrors,
+          provider: provider.id,
+          result,
+          status: result.accepted ? "sent" : "failed",
+          to: tokenValue,
+          userId: String(message.userId),
+        });
+        loggedByToken.set(tokenValue, logged);
+      })
+    );
+
+    const retryTokens = sendTokens.filter((tokenValue) =>
+      isTransientFailure(firstByToken.get(tokenValue) as SendResult)
+    );
+    const retryTokenSet = new Set(retryTokens);
     const beforeRetryHookErrors = this.cloneHookErrors(hookErrors);
-    if (retryIndexes.length > 0) {
-      context.isRetry = true;
-      context.attempt = 2;
+    const finalByToken = new Map(firstByToken);
+    const retryContext = this.cloneContext(context, {attempt: 2, isRetry: true});
+    if (retryTokens.length > 0) {
       const onRetry = this.options.onRetry;
-      const firstTransient = normalizedFirst[retryIndexes[0]] as SendResult;
+      const firstTransient = firstByToken.get(retryTokens[0] as string) as SendResult;
       this.appendHookError(
         hookErrors,
         "onRetry",
         await this.invokeHook(
-          onRetry ? (): Promise<void> => onRetry(context, firstTransient) : undefined,
+          onRetry ? (): Promise<void> => onRetry(retryContext, firstTransient) : undefined,
           "onRetry"
         )
       );
-      const retryTokens = retryIndexes
-        .map((index) => tokens[index]?.token)
-        .filter((token): token is string => Boolean(token));
-      const retryMessage: PushMessage = {
-        ...activeMessage,
-        tokens: retryTokens,
-      };
-      const retryResults = await this.sendPushOnce(provider, retryMessage);
+      const retryByToken = this.resultsByToken(
+        retryTokens,
+        await this.sendPushOnce(provider, {...activeMessage, tokens: retryTokens})
+      );
       await Promise.all(
-        retryIndexes.map(async (tokenIndex, retryIndex): Promise<void> => {
-          const retryResult =
-            retryResults[retryIndex] ??
-            ({
-              accepted: false,
-              error: "Provider returned no result for token",
-            } satisfies SendResult);
-          finalResults[tokenIndex] = retryResult;
+        retryTokens.map(async (tokenValue): Promise<void> => {
+          const retryResult = retryByToken.get(tokenValue) as SendResult;
+          finalByToken.set(tokenValue, retryResult);
           const tokenHookErrors = this.cloneHookErrors(beforeRetryHookErrors);
           if (hookErrors.onRetry) {
             tokenHookErrors.onRetry = [...hookErrors.onRetry];
           }
+          const logged = loggedByToken.get(tokenValue) ?? null;
           const appended = await this.persistRetry(
-            loggedByIndex[tokenIndex] ?? null,
-            context,
+            logged,
+            this.cloneContext(retryContext, {
+              messageId: logged ? String(logged._id) : undefined,
+            }),
             tokenHookErrors,
             provider.id,
             retryResult
           );
           if (appended) {
-            loggedByIndex[tokenIndex] = appended;
+            loggedByToken.set(tokenValue, appended);
           }
         })
       );
     }
 
     await Promise.all(
-      tokens.map(async (token, index): Promise<void> => {
-        const result = finalResults[index] as SendResult;
+      sendTokens.map(async (tokenValue): Promise<void> => {
+        const result = finalByToken.get(tokenValue) as SendResult;
         const tokenHookErrors = this.cloneHookErrors(beforeRetryHookErrors);
-        if (retryIndexSet.has(index) && hookErrors.onRetry) {
+        if (retryTokenSet.has(tokenValue) && hookErrors.onRetry) {
           tokenHookErrors.onRetry = [...hookErrors.onRetry];
         }
-        await this.notifyOutcomeHooks(context, result, tokenHookErrors);
-        await this.patchHookErrors(loggedByIndex[index] ?? null, tokenHookErrors);
-        if (!result.accepted && isPermanentPushFailure(result)) {
-          token.active = false;
-          await token.save();
+        const logged = loggedByToken.get(tokenValue) ?? null;
+        const didRetry = retryTokenSet.has(tokenValue);
+        await this.notifyOutcomeHooks(
+          this.cloneContext(context, {
+            attempt: didRetry ? 2 : 1,
+            isRetry: didRetry,
+            messageId: logged ? String(logged._id) : undefined,
+          }),
+          result,
+          tokenHookErrors
+        );
+        await this.patchHookErrors(logged, tokenHookErrors);
+        const tokenDoc = tokenDocs.get(tokenValue);
+        if (tokenDoc && !result.accepted && isPermanentPushFailure(result)) {
+          tokenDoc.active = false;
+          await tokenDoc.save();
         }
       })
     );
 
-    return finalResults;
+    return sendTokens.map((tokenValue) => finalByToken.get(tokenValue) as SendResult);
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
@@ -830,6 +867,7 @@ export class CommsService {
         channel: "verification",
         context,
         hookErrors,
+        omitPayload: true,
         provider: provider.id,
         result: loggedResult,
         status: loggedResult.accepted ? "sent" : "failed",
@@ -845,6 +883,7 @@ export class CommsService {
         channel: "verification",
         context,
         hookErrors,
+        omitPayload: true,
         provider: provider.id,
         result: loggedResult,
         status: "failed",

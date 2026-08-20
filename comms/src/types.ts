@@ -96,6 +96,7 @@ export interface VerificationProvider {
 
 export interface DeliveryEvent {
   channel: "mail" | "push" | "sms";
+  errorClass?: CommsErrorClass;
   errorCode?: string;
   providerMessageId: string;
   raw?: unknown;

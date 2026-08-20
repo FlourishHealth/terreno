@@ -24,7 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onSend`).
 - `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `onOptOut`,
   `recordDeliveryEvent` / `recordOptOut`, attempt history, payload retention, and
-  channel-wide transient retry (provider throws return `SendResult` instead of rejecting)
+  channel-wide transient retry (provider throws return `SendResult` instead of rejecting).
+  Push hooks and retries are per-token; mail payloads retain `replyTo` and
+  `dynamicTemplateData`; `DeliveryEvent.errorClass` is persisted on the log row.
 
 ### Deprecated
 

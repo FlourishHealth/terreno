@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import {CommsService} from "./commsService";
 import type {
   CheckVerificationOptions,
+  CommsHookContext,
   MailMessage,
   MailProvider,
   PushMessage,
@@ -706,7 +707,7 @@ describe("CommsService", () => {
     assert.equal(await CommsMessage.countDocuments({status: "cancelled"}), 1);
     const row = await CommsMessage.findExactlyOne({status: "cancelled"});
     assert.equal(row.attemptCount, 1);
-    assert.isUndefined(row.payload?.to);
+    assert.equal((row.payload as {to?: string}).to, "person@example.com");
   });
 
   it("lets beforeSend replace the outbound message", async (): Promise<void> => {
@@ -994,7 +995,189 @@ describe("CommsService", () => {
     assert.equal(retriedRow.attemptCount, 2);
   });
 
+  it("maps push provider results by token after beforeSend reorders the batch", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[first]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    await PushToken.upsert(
+      {token: "ExponentPushToken[second]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "android",
+        userId,
+      }
+    );
+    let sentTokens: string[] = [];
+    const service = new CommsService({
+      beforeSend: async (context) => {
+        const message = context.message as PushMessage;
+        sentTokens = [...message.tokens].reverse();
+        return {
+          message: {
+            ...message,
+            tokens: sentTokens,
+          },
+        };
+      },
+      push: {
+        id: "reorder-push",
+        sendPush: async (message: PushMessage): Promise<SendResult[]> =>
+          message.tokens.map((_token, index) =>
+            index === 0
+              ? {accepted: false, error: "Unregistered", errorClass: "permanent" as const}
+              : {accepted: true, providerMessageId: "second-ok"}
+          ),
+      },
+      redactRecipients: false,
+    });
+
+    await service.sendPushToUser({body: "Hello", title: "Title", userId});
+
+    const sentFirst = sentTokens[0] as string;
+    const sentSecond = sentTokens[1] as string;
+    const deactivated = await PushToken.findExactlyOne({token: sentFirst});
+    const stillActive = await PushToken.findExactlyOne({token: sentSecond});
+    assert.isFalse(deactivated.active);
+    assert.isTrue(stillActive.active);
+    const failedRow = await CommsMessage.findExactlyOne({to: sentFirst});
+    const sentRow = await CommsMessage.findExactlyOne({to: sentSecond});
+    assert.equal(failedRow.errorClass, "permanent");
+    assert.equal(sentRow.status, "sent");
+  });
+
+  it("gives each push token its own outcome hook context", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[keep]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    await PushToken.upsert(
+      {token: "ExponentPushToken[retry]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "android",
+        userId,
+      }
+    );
+    const onSendCalls: Array<{
+      attempt: number;
+      isRetry: boolean;
+      messageId?: string;
+    }> = [];
+    const service = new CommsService({
+      onSend: async (context: CommsHookContext): Promise<void> => {
+        onSendCalls.push({
+          attempt: context.attempt,
+          isRetry: context.isRetry,
+          messageId: context.messageId,
+        });
+      },
+      push: {
+        id: "context-push",
+        sendPush: async (message: PushMessage): Promise<SendResult[]> => {
+          if (message.tokens.length === 1) {
+            return [{accepted: true, providerMessageId: "retry-ok"}];
+          }
+          return message.tokens.map((token) =>
+            token.includes("retry")
+              ? {accepted: false, error: "Timeout", errorClass: "transient" as const}
+              : {accepted: true, providerMessageId: "keep-ok"}
+          );
+        },
+      },
+      redactRecipients: false,
+    });
+
+    await service.sendPushToUser({body: "Hello", title: "Title", userId});
+
+    const keepRow = await CommsMessage.findExactlyOne({to: "ExponentPushToken[keep]"});
+    const retryRow = await CommsMessage.findExactlyOne({to: "ExponentPushToken[retry]"});
+    const keepCall = onSendCalls.find((call) => call.messageId === String(keepRow._id));
+    const retryCall = onSendCalls.find((call) => call.messageId === String(retryRow._id));
+    assert.deepEqual(keepCall, {
+      attempt: 1,
+      isRetry: false,
+      messageId: String(keepRow._id),
+    });
+    assert.deepEqual(retryCall, {
+      attempt: 2,
+      isRetry: true,
+      messageId: String(retryRow._id),
+    });
+  });
+
+  it("retains mail and verification payloads in the IP shape", async (): Promise<void> => {
+    const service = new CommsService({
+      mail: {
+        id: "shape-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      sms: {
+        id: "shape-sms",
+        sendSms: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      verification: {
+        checkVerification: async (): Promise<{valid: boolean}> => ({valid: true}),
+        id: "shape-verification",
+        startVerification: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+
+    await service.sendMail({
+      dynamicTemplateData: {name: "Ada"},
+      from: "sender@example.com",
+      html: "<p>Hi</p>",
+      replyTo: "reply@example.com",
+      subject: "Welcome",
+      templateId: "d-welcome",
+      text: "Hi",
+      to: "person@example.com",
+    });
+    await service.sendSms({body: "Hello", to: "+15555550100"});
+    await service.startVerification({channel: "sms", to: "+15555550100"});
+    await service.checkVerification({code: "123456", to: "+15555550100"});
+
+    const mailRow = await CommsMessage.findExactlyOne({channel: "mail"});
+    assert.deepEqual(mailRow.payload, {
+      dynamicTemplateData: {name: "Ada"},
+      from: "sender@example.com",
+      html: "<p>Hi</p>",
+      replyTo: "reply@example.com",
+      subject: "Welcome",
+      templateId: "d-welcome",
+      text: "Hi",
+      to: "person@example.com",
+    });
+    const smsRow = await CommsMessage.findExactlyOne({channel: "sms"});
+    assert.deepEqual(smsRow.payload, {body: "Hello", to: "+15555550100"});
+    const startRow = await CommsMessage.findExactlyOne({
+      channel: "verification",
+      "metadata.verificationChannel": "sms",
+    });
+    assert.deepEqual(startRow.payload, {channel: "sms"});
+    const checkRow = await CommsMessage.findExactlyOne({
+      channel: "verification",
+      "metadata.verificationChannel": {$exists: false},
+    });
+    assert.isUndefined(checkRow.payload);
+  });
+
   it("updates a delivery log row from recordDeliveryEvent", async (): Promise<void> => {
+    const warnSpy = spyOn(logger, "warn");
     const service = new CommsService({
       mail: {
         id: "event-mail",
@@ -1007,13 +1190,28 @@ describe("CommsService", () => {
     await service.sendMail({subject: "Welcome", to: "person@example.com"});
     await service.recordDeliveryEvent({
       channel: "mail",
+      errorClass: "permanent",
       errorCode: "bounce-500",
       providerMessageId: "mail-delivered",
       status: "bounced",
     });
+    await service.recordDeliveryEvent({
+      channel: "mail",
+      providerMessageId: "mail-delivered",
+      status: "opened",
+    });
+    await service.recordDeliveryEvent({
+      channel: "mail",
+      errorClass: "transient",
+      providerMessageId: "missing-delivery",
+      status: "failed",
+    });
     const row = await CommsMessage.findExactlyOne({providerMessageId: "mail-delivered"});
     assert.equal(row.status, "bounced");
     assert.equal(row.errorCode, "bounce-500");
+    assert.equal(row.errorClass, "permanent");
+    assert.isTrue(warnSpy.mock.calls.some((call) => String(call[0]).includes("missing-delivery")));
+    warnSpy.mockRestore();
   });
 
   it("retries startVerification once on transient failure and never retries checkVerification", async (): Promise<void> => {

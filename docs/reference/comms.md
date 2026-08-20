@@ -150,6 +150,10 @@ When a channel is unconfigured:
 Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `[redacted]` unless
 `redactRecipients` is explicitly `false`. Rendered payloads are retained for `retainPayloadDays`
 (default 30) after `redactPayload`; expired payloads are unset without deleting the log row.
+Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
+`dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
+only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
+and `errorClass` onto the matching row (`opened` does not change status).
 
 `beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
 `onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
