@@ -179,7 +179,7 @@ export class CommsService {
       ...message,
       from: message.from ?? this.options.defaultFrom,
     };
-    const context = {channel: "mail" as const, provider: provider.id};
+    const context = {attempt: 1, channel: "mail" as const, isRetry: false, provider: provider.id};
 
     let result = await this.sendMailOnce(provider, resolvedMessage);
     if (!result.accepted && result.errorClass === "transient") {
@@ -206,7 +206,7 @@ export class CommsService {
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
     const provider = this.smsProvider();
-    const context = {channel: "sms" as const, provider: provider.id};
+    const context = {attempt: 1, channel: "sms" as const, isRetry: false, provider: provider.id};
 
     try {
       const result = await provider.sendSms(message);
@@ -233,7 +233,7 @@ export class CommsService {
 
   async sendPushToUser(message: SendPushToUserMessage): Promise<SendResult[]> {
     const provider = this.pushProvider();
-    const context = {channel: "push" as const, provider: provider.id};
+    const context = {attempt: 1, channel: "push" as const, isRetry: false, provider: provider.id};
     const tokens = await PushToken.find({active: true, userId: message.userId});
     if (tokens.length === 0) {
       return [];
@@ -298,7 +298,12 @@ export class CommsService {
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
     const provider = this.verificationProvider();
-    const context = {channel: "verification" as const, provider: provider.id};
+    const context = {
+      attempt: 1,
+      channel: "verification" as const,
+      isRetry: false,
+      provider: provider.id,
+    };
     try {
       const result = await provider.startVerification(options);
       await this.logResult({
@@ -326,7 +331,12 @@ export class CommsService {
 
   async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
     const provider = this.verificationProvider();
-    const context = {channel: "verification" as const, provider: provider.id};
+    const context = {
+      attempt: 1,
+      channel: "verification" as const,
+      isRetry: false,
+      provider: provider.id,
+    };
     try {
       const result = await provider.checkVerification(options);
       const loggedResult: SendResult = {
