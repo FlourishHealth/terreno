@@ -80,7 +80,8 @@ describe("bootstrap", () => {
       expect(text).toContain("backend/biome.jsonc");
       expect(text).toContain("backend/src/index.ts");
       expect(text).toContain("backend/src/server.ts");
-      expect(text).toContain("backend/src/utils/database.ts");
+      expect(text).toContain("backend/src/utils/betterAuthConfig.ts");
+      expect(text).toContain("backend/.env");
       expect(text).toContain("backend/src/models/modelPlugins.ts");
       expect(text).toContain("backend/src/models/user.ts");
       expect(text).toContain("backend/src/models/appConfiguration.ts");
@@ -106,6 +107,8 @@ describe("bootstrap", () => {
       expect(text).toContain("frontend/app/(tabs)/admin/_layout.tsx");
       expect(text).toContain("frontend/app/(tabs)/admin/index.tsx");
       expect(text).toContain("frontend/app/(tabs)/admin/configuration.tsx");
+      expect(text).toContain("frontend/store/syncdb.ts");
+      expect(text).toContain("frontend/lib/betterAuth.ts");
       expect(text).toContain("frontend/store/index.ts");
       expect(text).toContain("frontend/store/appState.ts");
       expect(text).toContain("frontend/store/errors.ts");
@@ -130,7 +133,7 @@ describe("bootstrap", () => {
       expect(text).toContain("mkdir test-app");
       expect(text).toContain("cd test-app");
       expect(text).toContain("bun install");
-      expect(text).toContain("docker run");
+      expect(text).toContain("replSet rs0");
       expect(text).toContain("SpaceMono");
       expect(text).toContain("bun run dev");
       expect(text).toContain("bun run sdk");
@@ -174,13 +177,16 @@ describe("bootstrap", () => {
       });
       const text = result.content[0].text;
 
-      expect(text).toContain("generateAuthSlice");
+      expect(text).toContain("generateBetterAuthSlice");
+      expect(text).toContain("betterAuthAdapter");
+      expect(text).toContain("SyncDbProvider");
       expect(text).toContain("LoginScreen");
       expect(text).toContain("TabLayout");
       expect(text).toContain("HomeScreen");
       expect(text).toContain("ProfileScreen");
-      expect(text).toContain("useEmailLoginMutation");
-      expect(text).toContain("useEmailSignUpMutation");
+      expect(text).toContain("BetterAuthApp");
+      expect(text).toContain("SyncApp");
+      expect(text).toContain("RealtimeApp");
       expect(text).toContain("persistReducer");
       expect(text).toContain("primitives");
       expect(text).toContain("AdminModelList");

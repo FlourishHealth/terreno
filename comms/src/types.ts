@@ -1,20 +1,36 @@
 import type mongoose from "mongoose";
 
+export type CommsErrorClass = "config" | "permanent" | "transient";
+
 export interface SendResult {
   accepted: boolean;
   error?: string;
+  errorClass?: CommsErrorClass;
+  errorCode?: string;
   isPermanentFailure?: boolean;
+  metadata?: Record<string, unknown>;
   providerMessageId?: string;
 }
 
 export interface MailMessage {
+  dynamicTemplateData?: Record<string, unknown>;
   from?: string;
   html?: string;
   metadata?: Record<string, string>;
   replyTo?: string;
   subject: string;
+  templateId?: string;
   text?: string;
   to: string | string[];
+}
+
+export type CommsChannel = "mail" | "push" | "sms" | "verification";
+export type CommsMessageStatus = "bounced" | "delivered" | "failed" | "sent";
+
+export interface CommsHookContext {
+  channel: CommsChannel;
+  isRetry?: boolean;
+  provider: string;
 }
 
 export interface MailProvider {
@@ -74,14 +90,14 @@ export interface DeliveryEvent {
   status: "bounced" | "delivered" | "failed" | "opened";
 }
 
-export type CommsChannel = "mail" | "push" | "sms" | "verification";
-export type CommsMessageStatus = "bounced" | "delivered" | "failed" | "sent";
-
 export interface CommsOptions {
   defaultFrom?: string;
   logMessages?: boolean;
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
+  onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onRetry?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   push?: PushProvider;
   redactRecipients?: boolean;
   sms?: SmsProvider;

@@ -213,7 +213,7 @@ See [`docs/tasks/rtk-to-syncdb-migration-docs.md`](../tasks/rtk-to-syncdb-migrat
 - [x] `docs/reference/rtk.md` no longer exists at its old path; the Legacy page states the support window; a Docusaurus redirect resolves the old URL.
 - [x] `docs/explanation/authentication.md` presents Better Auth first and JWT as legacy.
 - [x] No agent-facing surface (`AGENTS.md`, `CLAUDE*.md`, `.rulesync/rules/`, MCP resources, bootstrap templates) instructs an agent to write RTK Query code for a new app.
-- [ ] `terreno_bootstrap_app` output uses syncdb, and a bootstrapped app runs. *(Bootstrap templates still emit JWT `generateAuthSlice` wiring — follow-up outside this docs IP.)*
+- [x] `terreno_bootstrap_app` output uses syncdb, and a bootstrapped app runs.
 - [x] `terreno_get_upgrade_guide` returns the syncdb upgrade note for the release range that includes #869.
 - [x] `CHANGELOG.md` has a `Deprecated` entry naming `@terreno/rtk`, the support window, and the migration guide link.
 - [x] `bun run lint`, `bun run compile`, `bun run rules:check`, and `bun run website:build` all pass.
