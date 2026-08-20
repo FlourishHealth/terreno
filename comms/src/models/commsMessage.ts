@@ -40,6 +40,11 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
             description: "Provider error message for this attempt",
             type: String,
           },
+          errorClass: {
+            description: "Classified failure category for this attempt",
+            enum: ["config", "permanent", "transient"],
+            type: String,
+          },
           errorCode: {
             description: "Provider-native error code for this attempt",
             type: String,

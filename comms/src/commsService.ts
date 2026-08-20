@@ -218,10 +218,17 @@ export class CommsService {
     return DateTime.utc().plus({days}).toJSDate();
   }
 
+  private cloneHookErrors(hookErrors: Record<string, string[]>): Record<string, string[]> {
+    return Object.fromEntries(
+      Object.entries(hookErrors).map(([key, values]) => [key, [...values]])
+    );
+  }
+
   private attemptFromResult(provider: string, result: SendResult): CommsMessageAttempt {
     return {
       at: DateTime.utc().toJSDate(),
       error: result.error,
+      errorClass: result.errorClass,
       errorCode: result.errorCode,
       provider,
       providerMessageId: result.providerMessageId,
@@ -689,6 +696,8 @@ export class CommsService {
           })
       )
     );
+    const retryIndexSet = new Set(retryIndexes);
+    const beforeRetryHookErrors = this.cloneHookErrors(hookErrors);
     if (retryIndexes.length > 0) {
       context.isRetry = true;
       context.attempt = 2;
@@ -719,10 +728,14 @@ export class CommsService {
               error: "Provider returned no result for token",
             } satisfies SendResult);
           finalResults[tokenIndex] = retryResult;
+          const tokenHookErrors = this.cloneHookErrors(beforeRetryHookErrors);
+          if (hookErrors.onRetry) {
+            tokenHookErrors.onRetry = [...hookErrors.onRetry];
+          }
           const appended = await this.persistRetry(
             loggedByIndex[tokenIndex] ?? null,
             context,
-            hookErrors,
+            tokenHookErrors,
             provider.id,
             retryResult
           );
@@ -736,8 +749,12 @@ export class CommsService {
     await Promise.all(
       tokens.map(async (token, index): Promise<void> => {
         const result = finalResults[index] as SendResult;
-        await this.notifyOutcomeHooks(context, result, hookErrors);
-        await this.patchHookErrors(loggedByIndex[index] ?? null, hookErrors);
+        const tokenHookErrors = this.cloneHookErrors(beforeRetryHookErrors);
+        if (retryIndexSet.has(index) && hookErrors.onRetry) {
+          tokenHookErrors.onRetry = [...hookErrors.onRetry];
+        }
+        await this.notifyOutcomeHooks(context, result, tokenHookErrors);
+        await this.patchHookErrors(loggedByIndex[index] ?? null, tokenHookErrors);
         if (!result.accepted && isPermanentPushFailure(result)) {
           token.active = false;
           await token.save();

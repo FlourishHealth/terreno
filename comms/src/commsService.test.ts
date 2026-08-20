@@ -781,6 +781,7 @@ describe("CommsService", () => {
     assert.equal(smsResult.errorClass, "permanent");
     const mailRow = await CommsMessage.findExactlyOne({channel: "mail"});
     assert.equal(mailRow.attemptCount, 2);
+    assert.equal(mailRow.attempts[0]?.errorClass, "transient");
     assert.equal(mailRow.attempts[0]?.errorCode, "429");
     assert.equal(mailRow.attempts[1]?.providerMessageId, "mail-2");
     const smsRow = await CommsMessage.findExactlyOne({channel: "sms"});
@@ -1013,5 +1014,52 @@ describe("CommsService", () => {
     const row = await CommsMessage.findExactlyOne({providerMessageId: "mail-delivered"});
     assert.equal(row.status, "bounced");
     assert.equal(row.errorCode, "bounce-500");
+  });
+
+  it("retries startVerification once on transient failure and never retries checkVerification", async (): Promise<void> => {
+    let startCalls = 0;
+    let checkCalls = 0;
+    const service = new CommsService({
+      verification: {
+        checkVerification: async (): Promise<{valid: boolean}> => {
+          checkCalls += 1;
+          return {error: "bad", valid: false};
+        },
+        id: "retry-verification",
+        startVerification: async (): Promise<SendResult> => {
+          startCalls += 1;
+          return {
+            accepted: false,
+            error: "Timeout",
+            errorClass: "transient",
+            errorCode: "429",
+          };
+        },
+      },
+    });
+
+    await service.startVerification({channel: "sms", to: "+15555550100"});
+    await service.checkVerification({code: "123456", to: "+15555550100"});
+
+    assert.equal(startCalls, 2);
+    assert.equal(checkCalls, 1);
+  });
+
+  it("omits payload when redactPayload throws", async (): Promise<void> => {
+    const service = new CommsService({
+      mail: {
+        id: "redact-throw-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      redactPayload: (): unknown => {
+        throw new Error("redact boom");
+      },
+    });
+
+    const result = await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    assert.isTrue(result.accepted);
+    const row = await CommsMessage.findExactlyOne({channel: "mail"});
+    assert.isUndefined(row.payload);
+    assert.include(JSON.stringify(row.metadata?.hookErrors), "redact boom");
   });
 });

@@ -8,6 +8,7 @@ export type CommsMessageMethods = Record<never, never>;
 export interface CommsMessageAttempt {
   at: Date;
   error?: string;
+  errorClass?: CommsErrorClass;
   errorCode?: string;
   provider: string;
   providerMessageId?: string;
