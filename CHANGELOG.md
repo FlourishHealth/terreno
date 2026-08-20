@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
 - `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
   `maxAttempts` on syncdb writes.
+- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
+  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
 - `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
   (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
   (`docs/explanation/local-first-data.md`)
