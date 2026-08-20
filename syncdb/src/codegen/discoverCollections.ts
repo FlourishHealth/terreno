@@ -45,10 +45,16 @@ const fromExtension = (
   const entityName = refName(entitySchemaRaw?.$ref) ?? fallbackEntityName(collection);
   const createSchemaRaw = jsonContentSchema(item?.post?.requestBody?.content);
   const collectionPath = path.endsWith("/") ? path.slice(0, -1) : path;
-  const idPath = Object.keys(spec.paths ?? {}).find(
-    (candidate) =>
-      candidate === `${collectionPath}/{id}` || candidate.startsWith(`${collectionPath}/{`)
-  );
+  const exactIdPath = `${collectionPath}/{id}`;
+  const pathNames = Object.keys(spec.paths ?? {});
+  const idPath = pathNames.includes(exactIdPath)
+    ? exactIdPath
+    : pathNames.find((candidate) => {
+        if (!candidate.startsWith(`${collectionPath}/`)) {
+          return false;
+        }
+        return /^\{[^/]+\}$/.test(candidate.slice(collectionPath.length + 1));
+      });
   const patchOp = idPath ? spec.paths?.[idPath]?.patch : undefined;
   const updateSchemaRaw = jsonContentSchema(patchOp?.requestBody?.content);
   return {

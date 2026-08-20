@@ -54,6 +54,7 @@ describe("discoverCollections", () => {
     const todoItemPath = spec.paths?.["/todos/{id}"];
     spec.paths = {
       "/todos/": todoPath ?? {},
+      "/todos/{id}/complete": {patch: {}},
       "/todos/{id}": todoItemPath ?? {},
     };
 
