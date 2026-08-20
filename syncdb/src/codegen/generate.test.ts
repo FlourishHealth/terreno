@@ -52,11 +52,9 @@ describe("discoverCollections", () => {
     const spec = await loadSpec(fixturePath);
     const todoPath = spec.paths?.["/todos"];
     const todoItemPath = spec.paths?.["/todos/{id}"];
-    spec.paths = {
-      "/todos/": todoPath ?? {},
-      "/todos/{id}/complete": {patch: {}},
-      "/todos/{id}": todoItemPath ?? {},
-    };
+    spec.paths = {"/todos/": todoPath ?? {}};
+    spec.paths["/todos/{id}/complete"] = {patch: {}};
+    spec.paths["/todos/{id}"] = todoItemPath ?? {};
 
     const [discovered] = discoverCollections({spec});
 
