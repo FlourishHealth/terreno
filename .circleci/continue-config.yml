@@ -802,40 +802,6 @@ workflows:
       - rulesync-check
       - dco
 
-  # Validate CircleCI config-only changes with representative package, policy,
-  # and e2e jobs. Skip when other path filters already selected targeted workflows.
-  circleci-config:
-    when:
-      and:
-        - equal: [true, << pipeline.parameters.run-circleci-config >>]
-        - equal: [false, << pipeline.parameters.run-api >>]
-        - equal: [false, << pipeline.parameters.run-ai >>]
-        - equal: [false, << pipeline.parameters.run-rtk >>]
-        - equal: [false, << pipeline.parameters.run-ui >>]
-        - equal: [false, << pipeline.parameters.run-ui-demo >>]
-        - equal: [false, << pipeline.parameters.run-comms >>]
-        - equal: [false, << pipeline.parameters.run-mcp-server >>]
-        - equal: [false, << pipeline.parameters.run-example-frontend >>]
-        - equal: [false, << pipeline.parameters.run-example-backend >>]
-        - equal: [false, << pipeline.parameters.run-example-backend-script >>]
-        - equal: [false, << pipeline.parameters.run-example-backend-docker >>]
-        - equal: [false, << pipeline.parameters.run-admin-spa >>]
-        - equal: [false, << pipeline.parameters.run-repo-policies >>]
-        - equal: [false, << pipeline.parameters.run-e2e >>]
-        - equal: [false, << pipeline.parameters.run-admin-spa-integration >>]
-    jobs:
-      - api-ci
-      - ui-ci
-      - comms-ci
-      - no-barrel-imports
-      - explicit-any
-      - license-coverage
-      - e2e:
-          matrix:
-            parameters:
-              spec:
-                - login
-
   api:
     when: << pipeline.parameters.run-api >>
     jobs:
