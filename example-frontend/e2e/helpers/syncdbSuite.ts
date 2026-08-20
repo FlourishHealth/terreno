@@ -72,6 +72,17 @@ export const clickTodoControl = async (locator: Locator): Promise<void> => {
   await locator.click();
 };
 
+/** Expand the home Sync Lab panel so controls like force-reconnect are in the DOM.
+ * The panel starts collapsed so Maestro/short viewports can see the todo list. */
+export const expandSyncDevPanel = async (page: Page): Promise<void> => {
+  const reconnect = page.getByTestId("syncdb-reconnect-button");
+  if ((await reconnect.count()) > 0) {
+    return;
+  }
+  await page.getByTestId("syncdb-dev-panel-toggle").click();
+  await reconnect.waitFor({state: "visible"});
+};
+
 /**
  * Wait for the syncdb-backed Todos screen. The banner is asserted as *attached*
  * rather than visible: when sync is idle it renders no children, and Playwright
