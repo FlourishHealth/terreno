@@ -15,6 +15,7 @@ import {
 import {DateTime} from "luxon";
 import type React from "react";
 import {memo, useCallback, useMemo, useState} from "react";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
@@ -44,6 +45,10 @@ const sortByCreatedDesc = (a: Todo, b: Todo): number => {
 
 const isIncomplete = (todo: Todo): boolean => !todo.completed;
 const isCompleted = (todo: Todo): boolean => Boolean(todo.completed);
+
+/** Extra list padding so the last row sits above the Expo Router tab bar (Playwright's
+ * 720px Desktop Chrome viewport otherwise leaves the first todo under `/ai`). */
+const TAB_BAR_OVERLAP_PADDING = 96;
 
 /**
  * One row. Subscribes to ONLY its own entity via useEntity, so a change to one
@@ -249,6 +254,8 @@ const SyncTodosScreen: React.FC = () => {
   // the banner's conflict badge requests it rather than rendering a second copy.
   const {openConflicts} = useSyncConflictsController();
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
+  const listBottomPadding = insets.bottom + TAB_BAR_OVERLAP_PADDING;
 
   const incompleteIds = useEntityIds<Todo>("todos", {
     filter: isIncomplete,
@@ -381,10 +388,22 @@ const SyncTodosScreen: React.FC = () => {
           totalThisDrain={syncStatus.totalThisDrain}
         />
         <SyncDevPanel />
+        <Box marginBottom={6}>
+          <Heading size="xl">My Todos</Heading>
+          <Text color="secondaryLight" size="sm">
+            Local-first via @terreno/syncdb
+          </Text>
+          <Text color="secondaryLight" size="sm" testID="todos-count">
+            {totalCount}
+          </Text>
+        </Box>
+        <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       </Box>
     ),
     [
       handleAuthRequired,
+      handleCreate,
+      isSyncDbReady,
       openConflictSheet,
       syncStatus.conflictCount,
       syncStatus.draining,
@@ -394,6 +413,7 @@ const SyncTodosScreen: React.FC = () => {
       syncStatus.queuedCount,
       syncStatus.sentThisDrain,
       syncStatus.totalThisDrain,
+      totalCount,
     ]
   );
 
@@ -416,24 +436,15 @@ const SyncTodosScreen: React.FC = () => {
       testID="todos-screen"
       width="100%"
     >
-      {listHeader}
-      <Box marginBottom={6}>
-        <Heading size="xl">My Todos</Heading>
-        <Text color="secondaryLight" size="sm">
-          Local-first via @terreno/syncdb
-        </Text>
-        <Text color="secondaryLight" size="sm" testID="todos-count">
-          {totalCount}
-        </Text>
-      </Box>
-      <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       <FlashList
+        contentContainerStyle={{paddingBottom: listBottomPadding}}
         contentInsetAdjustmentBehavior="automatic"
         data={listData}
         getItemType={getItemType}
         keyboardShouldPersistTaps="handled"
         keyExtractor={keyExtractor}
         ListEmptyComponent={listEmpty}
+        ListHeaderComponent={listHeader}
         renderItem={renderItem}
         style={{flex: 1}}
       />

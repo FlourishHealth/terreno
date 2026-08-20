@@ -58,6 +58,19 @@ export const todoItemByTitle = (page: Page, title: string): Locator =>
   page.locator('[data-testid^="todo-item-"]').filter({hasText: title});
 
 /**
+ * Click a control that may sit under the bottom tab bar. Playwright's default
+ * scroll-into-view aligns to the viewport bottom, which is exactly where `/ai`
+ * intercepts pointer events on the 720px Desktop Chrome CI viewport.
+ */
+export const clickTodoControl = async (locator: Locator): Promise<void> => {
+  await locator.waitFor({state: "visible"});
+  await locator.evaluate((node: HTMLElement) => {
+    node.scrollIntoView({block: "center", inline: "nearest"});
+  });
+  await locator.click();
+};
+
+/**
  * Wait for the syncdb-backed Todos screen. The banner is asserted as *attached*
  * rather than visible: when sync is idle it renders no children, and Playwright
  * treats the resulting zero-size element as hidden.
