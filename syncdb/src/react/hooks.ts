@@ -244,23 +244,7 @@ export const useEntityIds = <TData = Record<string, unknown>>(
     if (sort) {
       results = [...results].sort((a, b) => sort(a.data, b.data));
     }
-    const ids = results.map((entity) => entity.id);
-    // #region agent log
-    if (collection === "todos") {
-      void fetch("http://localhost:4000/__agent_debug_log", {
-        body: JSON.stringify({
-          data: {count: ids.length, ids},
-          hypothesisId: "H2",
-          location: "syncdb/react/hooks.ts:useEntityIds",
-          message: "useEntityIds select recomputed",
-          timestamp: Date.now(),
-        }),
-        headers: {"Content-Type": "application/json"},
-        method: "POST",
-      }).catch(() => {});
-    }
-    // #endregion
-    return ids;
+    return results.map((entity) => entity.id);
   }, [client, collection, filter, includeDeleted, sort]);
 
   return useCachedExternalStore(subscribe, select, idsEqual);

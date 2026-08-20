@@ -14,8 +14,7 @@ import {
 } from "@terreno/ui";
 import {DateTime} from "luxon";
 import type React from "react";
-import {memo, useCallback, useEffect, useMemo, useState} from "react";
-import {agentDebugLog} from "@/lib/agentDebugLog";
+import {memo, useCallback, useMemo, useState} from "react";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
@@ -272,20 +271,6 @@ const SyncTodosScreen: React.FC = () => {
     sort: sortByCreatedDesc,
   });
   const totalCount = incompleteIds.length + completedIds.length;
-
-  // Log list membership changes so we can correlate store updates with UI render.
-  useEffect(() => {
-    agentDebugLog({
-      data: {
-        completedIds,
-        incompleteIds,
-        totalCount,
-      },
-      hypothesisId: "H3",
-      location: "SyncTodosScreen.tsx:membership",
-      message: "todo list membership changed",
-    });
-  }, [completedIds, incompleteIds, totalCount]);
 
   const listData = useMemo((): TodoListRow[] => {
     if (totalCount === 0) {
