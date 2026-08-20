@@ -1,4 +1,5 @@
 import type {ModelRouterOptions} from "../api";
+import {isFieldExcluded} from "./schemaGenerator";
 import type {MCPConfig, MCPToolArgs} from "./types";
 
 /** Args consumed by pagination/population, never treated as filters. */
@@ -145,9 +146,7 @@ export const buildListQuery = ({
   const query: Record<string, unknown> = {...(options.defaultQueryParams ?? {})};
   const excludeFields = config.excludeFields ?? [];
   const allowedQueryFields = new Set(
-    (options.queryFields ?? []).filter(
-      (field) => !excludeFields.some((excluded) => field === excluded)
-    )
+    (options.queryFields ?? []).filter((field) => !isFieldExcluded(field, excludeFields))
   );
 
   for (const [key, value] of Object.entries(args)) {

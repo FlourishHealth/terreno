@@ -67,6 +67,27 @@ describe("buildListQuery", () => {
     expect(query).toEqual({title: "keep"});
   });
 
+  it("ignores a nested queryField whose parent is excluded", () => {
+    const {error, query} = build(
+      {"metadata.secret": "oracle", title: "keep"},
+      {excludeFields: ["metadata"]},
+      {...baseOptions, queryFields: ["metadata.secret", "title"]}
+    );
+
+    expect(error).toBeUndefined();
+    expect(query).toEqual({title: "keep"});
+  });
+
+  it("rejects an excluded nested field inside a logical branch", () => {
+    const {error} = build(
+      {$or: [{"metadata.secret": "oracle"}]},
+      {excludeFields: ["metadata"]},
+      {...baseOptions, queryFields: ["metadata.secret", "title"]}
+    );
+
+    expect(error).toContain("metadata.secret");
+  });
+
   it("allows comparison operators", () => {
     const {query} = build({title: {$in: ["a", "b"]}});
 

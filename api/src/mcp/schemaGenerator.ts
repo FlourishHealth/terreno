@@ -78,7 +78,7 @@ const mongooseTypeToZod = (schemaPath: MongooseSchemaPath): ZodType => {
   }
 };
 
-const isFieldExcluded = (fieldPath: string, excludeFields: string[]): boolean => {
+export const isFieldExcluded = (fieldPath: string, excludeFields: string[]): boolean => {
   return excludeFields.some((excluded) => {
     if (fieldPath === excluded) {
       return true;
