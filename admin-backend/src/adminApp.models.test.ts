@@ -367,11 +367,12 @@ describe("AdminApp model CRUD routes", () => {
     expect([401, 403, 405]).toContain(res.status);
   });
 
-  it("supports models without hiddenFields (no responseHandler installed)", async () => {
+  it("scrubs responses even when the parent model has no hidden or exclude fields", async () => {
     app = buildApp([foodModelConfig]);
     const agent = await authAsUser(app, "admin");
     await FoodModel.create({calories: 120, hidden: true, name: "Apple"});
     const res = await agent.get("/admin/foods").expect(200);
+    expect(res.body.data[0].name).toBe("Apple");
     expect(res.body.data[0].hidden).toBe(true);
   });
 
@@ -850,5 +851,62 @@ describe("AdminApp per-model queryFilter", () => {
     const res = await agent.get("/admin/foods").expect(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].name).toBe("FilteredOnly");
+  });
+
+  it("accepts Mongo operators from queryFilter without treating them as client filters", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        queryFilter: (): Record<string, unknown> => ({
+          $or: [{name: "Alpha"}, {name: "Beta"}],
+        }),
+      },
+    ]);
+    await FoodModel.create({calories: 1, name: "Alpha"});
+    await FoodModel.create({calories: 2, name: "Other"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Alpha");
+  });
+
+  it("allows default -created sort even when created is not in listDisplay", async () => {
+    const localApp = buildApp([
+      {
+        displayName: "Foods",
+        listFields: ["name"],
+        model: FoodModel,
+        routePath: "/foods",
+      },
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+    await agent.get("/admin/foods?sort=-created").expect(200);
+  });
+
+  it("strips excludeFields from admin create and update bodies", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        excludeFields: ["calories"],
+      },
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+    const created = await agent
+      .post("/admin/foods")
+      .send({calories: 999, name: "Stripped"})
+      .expect(201);
+    expect(created.body.data.calories).toBeUndefined();
+    const createdId = created.body.data._id as string;
+    const stored = await FoodModel.findById(createdId).lean();
+    expect(stored?.calories).toBeUndefined();
+
+    await FoodModel.updateOne({_id: createdId}, {calories: 12});
+    const patched = await agent
+      .patch(`/admin/foods/${createdId}`)
+      .send({calories: 50, name: "Renamed"})
+      .expect(200);
+    expect(patched.body.data.name).toBe("Renamed");
+    const after = await FoodModel.findById(createdId).lean();
+    expect(after?.calories).toBe(12);
   });
 });

@@ -1,6 +1,5 @@
-import type {JSONValue, ModelRouterOptions} from "@terreno/api";
+import type {JSONValue} from "@terreno/api";
 import {modelRouter, Permissions} from "@terreno/api";
-import type express from "express";
 import type {Document, Model} from "mongoose";
 import {User} from "../models/user";
 import type {UserDocument} from "../types/models/userTypes";
@@ -13,10 +12,7 @@ const serializeUser = (doc: SerializableUser): Record<string, unknown> => {
   return rest;
 };
 
-const buildUserRouterOptions = (
-  options?: Partial<ModelRouterOptions<UserDocument>>
-): ModelRouterOptions<UserDocument> => ({
-  ...options,
+export const usersRouter = modelRouter("/users", User as unknown as Model<UserDocument>, {
   admin: {
     defaultSort: "-created",
     displayName: "Users",
@@ -51,19 +47,3 @@ const buildUserRouterOptions = (
   },
   sort: "-created",
 });
-
-export const userRouter = modelRouter(
-  "/users",
-  User as unknown as Model<UserDocument>,
-  buildUserRouterOptions()
-);
-
-export const addUserRoutes = (
-  router: express.Router,
-  options?: Partial<ModelRouterOptions<UserDocument>>
-): void => {
-  router.use(
-    "/users",
-    modelRouter(User as unknown as Model<UserDocument>, buildUserRouterOptions(options))
-  );
-};

@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it} from "bun:test";
 import {resetAdminWidgetWarningsForTests} from "./AdminProvider";
 import type {HomeWidgetComponent} from "./types";

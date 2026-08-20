@@ -582,9 +582,11 @@ export interface ModelRouterRegistration {
   /** The Express router containing CRUD endpoints */
   router: express.Router;
   /** The Mongoose model this router serves */
+  // noExplicitAny: registration stores arbitrary document models
   // biome-ignore lint/suspicious/noExplicitAny: registration stores arbitrary document models
   model: ModelLike<any>;
   /** Options passed to modelRouter (includes optional admin config) */
+  // noExplicitAny: registration stores arbitrary document models
   // biome-ignore lint/suspicious/noExplicitAny: registration stores arbitrary document models
   options: ModelRouterOptions<any>;
   /** @internal Rebuilds the router with OpenAPI and TerrenoApp context injected */

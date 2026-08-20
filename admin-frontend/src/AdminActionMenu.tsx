@@ -53,17 +53,16 @@ export const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
     [onRunAction, toast, visibleActions]
   );
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async (): Promise<void> => {
     if (!confirmActionId) {
       return;
     }
-    void Promise.resolve(onRunAction(confirmActionId))
-      .then(() => {
-        setConfirmActionId(null);
-      })
-      .catch((err) => {
-        toast.catch(err, "Bulk action failed");
-      });
+    try {
+      await onRunAction(confirmActionId);
+      setConfirmActionId(null);
+    } catch (err) {
+      toast.catch(err, "Bulk action failed");
+    }
   }, [confirmActionId, onRunAction, toast]);
 
   if (visibleActions.length === 0) {

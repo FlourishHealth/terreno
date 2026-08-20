@@ -23,17 +23,20 @@ const adminPermissionsToModelPermissions = (
   if (!permissions) {
     return undefined;
   }
-  const enabled = (methods: typeof permissions.create): boolean => {
-    if (methods === undefined) {
-      return true;
-    }
-    return methods.length > 0;
+  const has = (methods: typeof permissions.create): boolean => {
+    return methods != null && methods.length > 0;
   };
-  return {
-    create: enabled(permissions.create),
-    delete: enabled(permissions.delete),
-    update: enabled(permissions.update),
-  };
+  const mapped: AdminModelPermissionsInput = {};
+  if (permissions.create !== undefined) {
+    mapped.create = has(permissions.create);
+  }
+  if (permissions.delete !== undefined) {
+    mapped.delete = has(permissions.delete);
+  }
+  if (permissions.update !== undefined) {
+    mapped.update = has(permissions.update);
+  }
+  return mapped;
 };
 
 const adminFilterToQueryFilter = (

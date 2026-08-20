@@ -1,6 +1,7 @@
 # Program: B2B platform
 
 **Status:** Draft — roadmap items drafted; decisions D1–D7 resolved 2026-08-09; first ten IPs open
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1095
 **Owner:** unassigned
 **Created:** 2026-08-09
 
@@ -96,7 +97,7 @@ All decisions resolved by the maintainer on 2026-08-09:
 | [comms-adapter-expo-push](comms-adapter-expo-push.md) | Draft | [tasks](../tasks/comms-adapter-expo-push.md) |
 | [comms-adapter-twilio-sms](comms-adapter-twilio-sms.md) | Draft | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [comms-adapter-twilio-verify](comms-adapter-twilio-verify.md) | Draft | [tasks](../tasks/comms-adapter-twilio-verify.md) |
-| [comms-adapter-sendgrid](comms-adapter-sendgrid.md) | Draft | [tasks](../tasks/comms-adapter-sendgrid.md) |
+| [comms-adapter-sendgrid](comms-adapter-sendgrid.md) | In progress (Phase 1) | [tasks](../tasks/comms-adapter-sendgrid.md) |
 | [comms-admin-dashboard](comms-admin-dashboard.md) | Draft | [tasks](../tasks/comms-admin-dashboard.md) |
 | [password-reset-and-email-verification](password-reset-and-email-verification.md) | Draft | [tasks](../tasks/password-reset-and-email-verification.md) |
 | [orgs-and-teams](orgs-and-teams.md) | Draft | [tasks](../tasks/orgs-and-teams.md) |

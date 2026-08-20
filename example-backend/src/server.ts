@@ -28,6 +28,7 @@ import {
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
 } from "@terreno/comms";
+import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
@@ -38,7 +39,7 @@ import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
-import {userRouter} from "./api/users";
+import {usersRouter} from "./api/users";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
@@ -184,7 +185,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
       .register(todoRouter)
       .register(projectRouter)
-      .register(userRouter)
+      .register(usersRouter)
       // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
       // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
       // resolve tenant streams (projects are scoped by the user's organizationIds).
@@ -240,12 +241,28 @@ export async function start(skipListen = false): Promise<express.Application> {
     }
 
     if (process.env.COMMS_ENABLED !== "false") {
+      const sendGridApiKey = process.env.SENDGRID_API_KEY;
+      const mailProvider = sendGridApiKey
+        ? new SendGridMailProvider({
+            apiKey: sendGridApiKey,
+            fromEmail: process.env.COMMS_DEFAULT_FROM,
+            fromName: process.env.COMMS_DEFAULT_FROM_NAME,
+            ...(process.env.SENDGRID_SANDBOX_MODE === "true" ? {sandboxMode: true} : {}),
+          })
+        : isDeployed
+          ? undefined
+          : new ConsoleMailProvider();
+
       terraApp.register(
         new CommsApp(
           isDeployed
-            ? {}
+            ? {
+                ...(mailProvider ? {mail: mailProvider} : {}),
+                defaultFrom: process.env.COMMS_DEFAULT_FROM,
+              }
             : {
-                mail: new ConsoleMailProvider(),
+                defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                mail: mailProvider ?? new ConsoleMailProvider(),
                 push: new ConsolePushProvider(),
                 sms: new ConsoleSmsProvider(),
                 verification: new ConsoleVerificationProvider(),

@@ -1,5 +1,7 @@
 # Task List: Admin-Only — Serve Admin SPA From a Terreno Backend
 
+**Status:** Closed (2026-08-20) — IP complete. Shipped as `@terreno/admin-spa`. Open tasks below were not executed; see shipped code in `admin-spa/`.
+
 *Structured task breakdown for automated implementation. Each task should be independently implementable and testable.*
 
 See: `docs/implementationPlans/admin-only.md` for full plan.
