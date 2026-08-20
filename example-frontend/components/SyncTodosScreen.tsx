@@ -19,12 +19,7 @@ import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {logout, useAppDispatch} from "@/store/index";
-import {
-  type Todo,
-  useCreateTodo,
-  useDeleteTodo,
-  useUpdateTodo,
-} from "@/store/syncDbSdk";
+import {type Todo, useCreateTodo, useDeleteTodo, useUpdateTodo} from "@/store/syncDbSdk";
 
 /**
  * Virtualized row: either a section heading or a todo id.

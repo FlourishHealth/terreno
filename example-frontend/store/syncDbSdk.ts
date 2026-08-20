@@ -27,4 +27,7 @@ export const {
   useCreateMutation: useCreateTodo,
   useUpdateMutation: useUpdateTodo,
   useDeleteMutation: useDeleteTodo,
-} = createCollectionHooks<Todo, CreateTodoBody, UpdateTodoBody>({collection: "todos", retries: false});
+} = createCollectionHooks<Todo, CreateTodoBody, UpdateTodoBody>({
+  collection: "todos",
+  retries: false,
+});
