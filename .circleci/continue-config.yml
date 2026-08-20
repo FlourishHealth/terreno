@@ -256,19 +256,28 @@ commands:
           command: bun expo start --web --port 8082
       - run:
           name: Wait for Expo web
+          no_output_timeout: 15m
           command: |
             set -euo pipefail
             for i in $(seq 1 90); do
-              if curl -sf --max-time 2 -o /dev/null http://localhost:8082; then
-                echo "expo web accepted HTTP after ${i} attempts"
-                # First bundle compile often finishes after the port is open.
-                sleep 15
-                exit 0
+              if (echo >/dev/tcp/127.0.0.1/8082) 2>/dev/null; then
+                echo "expo web listening after ${i} attempts"
+                break
               fi
               sleep 2
             done
-            echo "expo web failed to become ready"
-            exit 1
+            if ! (echo >/dev/tcp/127.0.0.1/8082) 2>/dev/null; then
+              echo "expo web never opened port 8082"
+              exit 1
+            fi
+            # One patient request warms the SSR bundle. Short-timeout polling
+            # abandons each render and queues another until Metro is OOM-killed.
+            code="$(curl -sS --max-time 600 -o /dev/null -w '%{http_code}' http://localhost:8082/login)"
+            echo "expo web returned ${code} for /login"
+            case "$code" in
+              2*|3*) exit 0 ;;
+              *) exit 1 ;;
+            esac
       - run:
           name: Playwright << parameters.spec >>
           working_directory: ~/project/example-frontend
