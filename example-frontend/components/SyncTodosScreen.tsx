@@ -388,22 +388,10 @@ const SyncTodosScreen: React.FC = () => {
           totalThisDrain={syncStatus.totalThisDrain}
         />
         <SyncDevPanel />
-        <Box marginBottom={6}>
-          <Heading size="xl">My Todos</Heading>
-          <Text color="secondaryLight" size="sm">
-            Local-first via @terreno/syncdb
-          </Text>
-          <Text color="secondaryLight" size="sm" testID="todos-count">
-            {totalCount}
-          </Text>
-        </Box>
-        <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       </Box>
     ),
     [
       handleAuthRequired,
-      handleCreate,
-      isSyncDbReady,
       openConflictSheet,
       syncStatus.conflictCount,
       syncStatus.draining,
@@ -413,7 +401,6 @@ const SyncTodosScreen: React.FC = () => {
       syncStatus.queuedCount,
       syncStatus.sentThisDrain,
       syncStatus.totalThisDrain,
-      totalCount,
     ]
   );
 
@@ -436,6 +423,17 @@ const SyncTodosScreen: React.FC = () => {
       testID="todos-screen"
       width="100%"
     >
+      {listHeader}
+      <Box marginBottom={6}>
+        <Heading size="xl">My Todos</Heading>
+        <Text color="secondaryLight" size="sm">
+          Local-first via @terreno/syncdb
+        </Text>
+        <Text color="secondaryLight" size="sm" testID="todos-count">
+          {totalCount}
+        </Text>
+      </Box>
+      <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       <FlashList
         contentInsetAdjustmentBehavior="automatic"
         data={listData}
@@ -443,7 +441,6 @@ const SyncTodosScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         keyExtractor={keyExtractor}
         ListEmptyComponent={listEmpty}
-        ListHeaderComponent={listHeader}
         renderItem={renderItem}
         style={{flex: 1}}
       />
