@@ -65,7 +65,7 @@ describe("discoverCollections", () => {
 
   it("filters with --collections", async () => {
     const spec = await loadSpec(fixturePath);
-    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/No OpenAPI path/);
+    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/matched/);
   });
 
   it("errors when the spec has no extensions and no --collections", () => {
@@ -145,6 +145,11 @@ describe("discoverCollections", () => {
     const discovered = discoverCollections({collections: ["todos"], spec});
     expect(discovered).toHaveLength(1);
     expect(discovered[0]?.collection).toBe("todos");
+  });
+
+  it("does not path-fallback --collections when the spec already has x-terreno-sync", async () => {
+    const spec = await loadSpec(fixturePath);
+    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/matched/);
   });
 });
 

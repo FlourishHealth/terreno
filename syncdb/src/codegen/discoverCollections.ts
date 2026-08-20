@@ -126,11 +126,13 @@ export const discoverCollections = ({
 }): DiscoveredCollection[] => {
   const fromSpec: DiscoveredCollection[] = [];
   const allow = collections && collections.length > 0 ? new Set(collections) : undefined;
+  let sawExtension = false;
   for (const [path, item] of Object.entries(spec.paths ?? {})) {
     const extension = item.get?.["x-terreno-sync"];
     if (!extension?.collection) {
       continue;
     }
+    sawExtension = true;
     if (allow && !allow.has(extension.collection)) {
       continue;
     }
@@ -138,8 +140,14 @@ export const discoverCollections = ({
   }
 
   if (fromSpec.length === 0) {
-    if (collections && collections.length > 0) {
+    if (collections && collections.length > 0 && !sawExtension) {
       return collections.map((collection) => fromCollectionFlag({collection, spec}));
+    }
+    if (collections && collections.length > 0 && sawExtension) {
+      throw new Error(
+        `No synced collections matched --collections ${collections.join(",")}. ` +
+          "Check x-terreno-sync on list operations in the OpenAPI spec."
+      );
     }
     throw new Error(
       "No synced collections found. Add x-terreno-sync to list operations " +
