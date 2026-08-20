@@ -13,10 +13,7 @@ const webServers = Array.isArray(baseConfig.webServer)
  */
 const circleCiPlaywrightConfig: PlaywrightTestConfig = {
   ...baseConfig,
-  reporter: [
-    ["list"],
-    ["html", {open: "never"}],
-  ],
+  reporter: [["list"], ["html", {open: "never"}]],
   timeout: 60_000,
   webServer: webServers.map((server) => {
     return {
