@@ -36,6 +36,19 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            from: "/reference/rtk",
+            to: "/next/how-to/migrate-rtk-to-syncdb",
+          },
+        ],
+      },
+    ],
+  ],
   projectName: "terreno",
   tagline: "Full-stack React Native and Express/Mongoose framework",
   themeConfig: {

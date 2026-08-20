@@ -99,7 +99,7 @@ export const prompts: Prompt[] = [
         required: true,
       },
     ],
-    description: "Generate a form screen with validation using @terreno/ui and RTK Query",
+    description: "Generate a form screen with validation using @terreno/ui and @terreno/syncdb",
     name: "terreno_create_form_screen",
   },
   {
@@ -187,24 +187,23 @@ ${hasOwnerBool ? "- ownerId: ObjectId (reference to User, required)" : ""}
    - Add queryFields for filterable fields
    - Set default sort order
 
-### Frontend (using @terreno/ui and @terreno/rtk)
+### Frontend (using @terreno/syncdb, @terreno/ui, and @terreno/rtk for SDK/auth)
 
 3. **List Screen** (\`screens/${name}ListScreen.tsx\`):
-   - Use \`useGet${name}sQuery\` hook
-   - Handle loading and error states
+   - Use \`useQuery\` / \`useEntityIds\` from \`@terreno/syncdb/react\` (not RTK Query list hooks)
+   - Handle sync status with \`useSyncStatus\` instead of request loading spinners
    - Display items in a scrollable list
-   - Add pull-to-refresh functionality
 
 4. **Detail Screen** (\`screens/${name}DetailScreen.tsx\`):
-   - Use \`useGet${name}Query\` with id parameter
+   - Use \`useEntity\` with id parameter
    - Display all fields
-   - Add edit and delete buttons
+   - Use \`useMutate\` for update/delete
 
 5. **Form Screen** (\`screens/${name}FormScreen.tsx\`):
    - Create/Edit form with all fields
    - Client-side validation
-   - Use \`useCreate${name}Mutation\` or \`useUpdate${name}Mutation\`
-   - Handle API errors and display field-specific errors
+   - Use \`useMutate\` \`create\` / \`update\` (local-first — no mutation loading spinners)
+   - Handle conflicts with \`useConflicts\` when the server rejects a write
 
 ## Code Style Requirements
 - Use const arrow functions
@@ -521,12 +520,12 @@ ${features.map((f) => `- ${f}`).join("\n")}
    - POST /auth/logout - Logout
    ${features.includes("passwordReset") ? "- POST /auth/forgot-password\n   - POST /auth/reset-password" : ""}
 
-## Frontend Setup (@terreno/rtk, @terreno/ui)
+## Frontend Setup (@terreno/syncdb, @terreno/rtk for Better Auth + SDK, @terreno/ui)
 
 4. **Store Configuration** (\`store/index.ts\`):
-   - Import authSlice from @terreno/rtk
-   - Configure store with auth reducer
-   - Set up persist configuration
+   - Import \`generateBetterAuthSlice\` from @terreno/rtk for session state
+   - Keep \`terrenoApi\` reducer for non-synced OpenAPI routes only
+   - Add \`store/syncdb.ts\` with \`createSyncDb\` + \`betterAuthAdapter\`
 
 5. **Login Screen** (\`screens/LoginScreen.tsx\`):
    - Email and password fields

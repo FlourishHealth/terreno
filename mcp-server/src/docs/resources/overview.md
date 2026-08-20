@@ -6,7 +6,12 @@ A monorepo containing shared packages for building full-stack applications with 
 
 - **@terreno/api** - REST API framework built on Express/Mongoose
 - **@terreno/ui** - React Native UI component library
-- **@terreno/rtk** - Redux Toolkit Query utilities for API backends
+- **@terreno/syncdb** - Local-first data layer (primary path for collection CRUD)
+- **@terreno/rtk** - OpenAPI SDK, Better Auth Redux, feature flags (legacy for data sync)
+- **@terreno/ai** - AI service layer
+- **@terreno/admin-backend** / **@terreno/admin-frontend** / **@terreno/admin-spa** - Admin panel stack
+
+New apps: **syncdb + Better Auth** for data and auth; **rtk** for generated SDK hooks on non-synced routes only.
 
 ## Development
 

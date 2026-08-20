@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
+  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
+  (`docs/explanation/local-first-data.md`)
+
+### Deprecated
+
+- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
+  through the current major line; will not ship in the next major. Migrate collection CRUD to
+  [`@terreno/syncdb`](docs/reference/syncdb.md) using
+  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
+  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+
 ## [57.0.0-beta.1] - 2026-08-20
 
 First beta of the Expo SDK 57 line, cut from `master` after merging
