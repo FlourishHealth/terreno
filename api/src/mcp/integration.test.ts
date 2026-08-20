@@ -150,6 +150,26 @@ describe("MCP Integration", () => {
       expect(parsed.data.title).toBe("No owner hijack");
       expect(parsed.data.ownerId).toBeUndefined();
     });
+
+    it("does not restore excludeFromCreate fields when preCreate spreads req.body", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          preCreate: (_body, req: express.Request) => ({...req.body}),
+          validation: {excludeFromCreate: ["ownerId"]},
+        },
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {ownerId: otherUser._id.toString(), title: "Hook spread"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Hook spread");
+      expect(parsed.data.ownerId).toBeUndefined();
+    });
   });
 
   describe("handleList", () => {
@@ -339,6 +359,18 @@ describe("MCP Integration", () => {
       expect(result.isError).toBe(true);
       expect(parsed.error).toContain("not found");
     });
+
+    it("reads a document by uppercase hex ObjectId", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Upper id"});
+      const result = await handleRead(
+        entry,
+        {id: doc._id.toString().toUpperCase()},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Upper id");
+    });
   });
 
   describe("handleUpdate", () => {
@@ -397,6 +429,27 @@ describe("MCP Integration", () => {
         ...entry,
         options: {
           ...entry.options,
+          validation: {excludeFromUpdate: ["ownerId"]},
+        },
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {id: doc._id.toString(), ownerId: otherUser._id.toString(), title: "Still mine"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Still mine");
+      expect(String(parsed.data.ownerId)).toBe(normalUser.id);
+    });
+
+    it("does not restore excludeFromUpdate fields when preUpdate spreads req.body", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Keep owner"});
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          preUpdate: (_body, req: express.Request) => ({...req.body}),
           validation: {excludeFromUpdate: ["ownerId"]},
         },
       };

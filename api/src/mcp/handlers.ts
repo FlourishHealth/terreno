@@ -1,4 +1,5 @@
 import type express from "express";
+import mongoose from "mongoose";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
 import type {User} from "../auth";
@@ -6,7 +7,6 @@ import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
-import {isValidObjectId} from "../utils";
 import {buildListQuery} from "./query";
 import {restWriteExcludeFields} from "./schemaGenerator";
 import type {
@@ -162,15 +162,6 @@ const asOptionalString = (value: unknown): string | undefined => {
   return typeof value === "string" ? value : undefined;
 };
 
-/** Invalid or non-ObjectId IDs must not reach Mongoose findById (CastError). */
-const invalidDocumentIdResult = (id: unknown): MCPToolResult | undefined => {
-  const idStr = asOptionalString(id);
-  if (!idStr || !isValidObjectId(idStr)) {
-    return errorResult(`Document ${id} not found`);
-  }
-  return undefined;
-};
-
 const omitDeniedWriteFields = (body: MCPToolArgs, denied: string[]): MCPToolArgs => {
   if (denied.length === 0) {
     return body;
@@ -185,6 +176,28 @@ const omitDeniedWriteFields = (body: MCPToolArgs, denied: string[]): MCPToolArgs
 /** Mongoose's populated query result types don't narrow to a single document. */
 const asDocument = (result: unknown): MCPDocument | null => {
   return (result ?? null) as MCPDocument | null;
+};
+
+/**
+ * Run a findById query and map Mongoose CastError (malformed ids) to null so
+ * callers can return a structured not-found. 24-hex ids with mixed case are
+ * valid for findById even though `isValidObjectId` requires canonical lowercase.
+ */
+const execFindByIdQuery = async (query: {
+  exec: () => Promise<unknown>;
+}): Promise<MCPDocument | null> => {
+  try {
+    return asDocument(await query.exec());
+  } catch (error) {
+    if (error instanceof mongoose.Error.CastError) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+const missingDocumentResult = (id: unknown): MCPToolResult => {
+  return errorResult(`Document ${id} not found`);
 };
 
 /**
@@ -344,15 +357,14 @@ export const handleRead = async (
   if (populateError || !populatePaths) {
     return errorResult(populateError ?? "Could not resolve populate paths");
   }
-  const invalidId = invalidDocumentIdResult(args.id);
-  if (invalidId) {
-    return invalidId;
+  const id = asOptionalString(args.id);
+  if (!id) {
+    return missingDocumentResult(args.id);
   }
-  const populatedQuery = addPopulateToQuery(model.findById(args.id), populatePaths);
-  const data = await populatedQuery.exec();
+  const data = await execFindByIdQuery(addPopulateToQuery(model.findById(id), populatePaths));
 
   if (!data) {
-    return errorResult(`Document ${args.id} not found`);
+    return missingDocumentResult(id);
   }
 
   // Check object-level permission
@@ -391,7 +403,7 @@ export const handleCreate = async (
 
   if (options.preCreate) {
     try {
-      body = await options.preCreate(body, createMCPRequest({args, user}));
+      body = await options.preCreate(body, createMCPRequest({args: body, user}));
       if (body === null || body === undefined) {
         return errorResult("Create not allowed");
       }
@@ -414,7 +426,7 @@ export const handleCreate = async (
 
   if (options.postCreate) {
     try {
-      await options.postCreate(data, createMCPRequest({args, user}));
+      await options.postCreate(data, createMCPRequest({args: body, user}));
     } catch (error) {
       return errorResult(`postCreate hook failed: ${errorMessage(error)}`, error);
     }
@@ -440,16 +452,17 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update");
   }
 
-  const invalidId = invalidDocumentIdResult(id);
-  if (invalidId) {
-    return invalidId;
+  const documentId = asOptionalString(id);
+  if (!documentId) {
+    return missingDocumentResult(id);
   }
 
-  const builtQuery = addPopulateToQuery(model.findById(id), options.populatePaths);
-  let doc = asDocument(await builtQuery.exec());
+  let doc = await execFindByIdQuery(
+    addPopulateToQuery(model.findById(documentId), options.populatePaths)
+  );
 
   if (!doc) {
-    return errorResult(`Document ${id} not found`);
+    return missingDocumentResult(documentId);
   }
 
   if (!(await checkPermissions("update", options.permissions.update, user, doc))) {
@@ -468,7 +481,7 @@ export const handleUpdate = async (
 
   if (options.preUpdate) {
     try {
-      body = await options.preUpdate(body, createMCPRequest({args: updateFields, user}));
+      body = await options.preUpdate(body, createMCPRequest({args: body, user}));
       if (body === null || body === undefined) {
         return errorResult("Update not allowed");
       }
@@ -493,7 +506,7 @@ export const handleUpdate = async (
 
   if (options.postUpdate) {
     try {
-      await options.postUpdate(doc, body, createMCPRequest({args: updateFields, user}), prevDoc);
+      await options.postUpdate(doc, body, createMCPRequest({args: body, user}), prevDoc);
     } catch (error) {
       return errorResult(`postUpdate hook failed: ${errorMessage(error)}`, error);
     }
@@ -519,18 +532,19 @@ export const handleDelete = async (
     return errorResult("Permission denied: cannot delete");
   }
 
-  const invalidId = invalidDocumentIdResult(id);
-  if (invalidId) {
-    return invalidId;
+  const documentId = asOptionalString(id);
+  if (!documentId) {
+    return missingDocumentResult(id);
   }
 
   // Populate before the object-level permission check so custom permissions can inspect
   // populated refs, matching handleRead/handleUpdate and REST's permissionMiddleware.
-  const builtQuery = addPopulateToQuery(model.findById(id), options.populatePaths);
-  const doc = asDocument(await builtQuery.exec());
+  const doc = await execFindByIdQuery(
+    addPopulateToQuery(model.findById(documentId), options.populatePaths)
+  );
 
   if (!doc) {
-    return errorResult(`Document ${id} not found`);
+    return missingDocumentResult(documentId);
   }
 
   if (!(await checkPermissions("delete", options.permissions.delete, user, doc))) {
