@@ -80,6 +80,22 @@ test.describe("Admin Panel", () => {
     await page.getByTestId("admin-configuration-card").waitFor({state: "visible"});
     await expect(page.getByTestId("admin-configuration-card")).toBeVisible();
   });
+
+  test("superadmin profile lists its role and links to role editing", async ({page}) => {
+    await page.goto("/profile");
+    await page.getByTestId("profile-roles-card").waitFor({state: "visible"});
+
+    await expect(page.getByTestId("profile-roles-list")).toContainText("superadmin");
+    await page.getByTestId("profile-edit-roles-button").click();
+    await expect(page).toHaveURL(/\/admin\/roles$/);
+  });
+
+  test("admin scripts include the database reset action", async ({page}) => {
+    await page.goto("/admin/__scripts");
+
+    await expect(page.getByTestId("admin-script-card-resetDatabase")).toBeVisible();
+    await expect(page.getByTestId("admin-script-run-resetDatabase")).toBeEnabled();
+  });
 });
 
 test.describe("Admin Access Control", () => {

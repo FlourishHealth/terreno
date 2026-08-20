@@ -41,6 +41,8 @@ export interface ProfileResponse {
   email: string;
   name: string;
   admin?: boolean;
+  permissions?: Record<string, readonly string[]>;
+  roles?: string[];
 }
 
 // AI Request Explorer types

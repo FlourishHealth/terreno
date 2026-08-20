@@ -1,10 +1,93 @@
 import type {AdminScriptConfig} from "@terreno/admin-backend";
-import {syncConsents} from "@terreno/api";
+import {
+  ConsentForm,
+  ConsentResponse,
+  type ScriptContext,
+  type ScriptResult,
+  syncConsents,
+} from "@terreno/api";
+import {FeatureFlag} from "@terreno/feature-flags";
 
 import {consentDefinitions} from "./consentDefinitions";
+import {AdminAuditLog} from "./models/adminAuditLog";
+import {Project} from "./models/project";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedFeatureFlags} from "./scripts/seed-feature-flags";
+import {seedDefaultData} from "./scripts/seed-test-data";
+
+const getResetRecordCounts = async (): Promise<Record<string, number>> => {
+  const [adminAuditLogs, consentForms, consentResponses, featureFlags, projects, todos] =
+    await Promise.all([
+      AdminAuditLog.countDocuments(),
+      ConsentForm.countDocuments(),
+      ConsentResponse.countDocuments(),
+      FeatureFlag.countDocuments(),
+      Project.countDocuments({deleted: {$ne: true}}),
+      Todo.countDocuments({deleted: {$ne: true}}),
+    ]);
+  return {
+    adminAuditLogs,
+    consentForms,
+    consentResponses,
+    featureFlags,
+    projects,
+    todos,
+  };
+};
+
+const clearResettableData = async (): Promise<void> => {
+  const [projects, todos] = await Promise.all([Project.find({}), Todo.find({})]);
+  for (const project of projects) {
+    project.deleted = true;
+    await project.save();
+  }
+  for (const todo of todos) {
+    todo.deleted = true;
+    await todo.save();
+  }
+
+  await Promise.all([
+    AdminAuditLog.deleteMany({}),
+    ConsentResponse.deleteMany({}),
+    FeatureFlag.deleteMany({}),
+  ]);
+  await ConsentForm.deleteMany({});
+};
+
+export const resetExampleDatabase = async (
+  wetRun: boolean,
+  ctx?: ScriptContext
+): Promise<ScriptResult> => {
+  const counts = await getResetRecordCounts();
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const summary = Object.entries(counts).map(([name, count]) => `${name}: ${count}`);
+
+  if (!wetRun) {
+    return {
+      results: [`Dry run: would reset ${total} record(s)`, ...summary],
+      success: true,
+    };
+  }
+
+  await ctx?.updateProgress(20, "Resetting", "Clearing example application data");
+  await clearResettableData();
+  await ctx?.checkCancellation();
+  await ctx?.updateProgress(60, "Seeding", "Restoring default users and records");
+  await seedDefaultData();
+  const featureFlagResult = await seedFeatureFlags();
+  await ctx?.updateProgress(90, "Verifying", "Checking restored data");
+
+  return {
+    results: [
+      `Reset ${total} record(s)`,
+      ...summary,
+      "Preserved users, authentication records, RBAC roles, and script history",
+      ...featureFlagResult.results,
+    ],
+    success: featureFlagResult.success,
+  };
+};
 
 /**
  * Scripts registered on the admin panel. Exported separately from the server so the
@@ -93,5 +176,11 @@ export const adminScripts: AdminScriptConfig[] = [
       }
       return seedFeatureFlags();
     },
+  },
+  {
+    description:
+      "Reset example application data and restore defaults. Preserves users, authentication, RBAC roles, and script history.",
+    name: "resetDatabase",
+    runner: resetExampleDatabase,
   },
 ];

@@ -61,6 +61,13 @@ const TEST_USERS: SeedUser[] = [
     organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
+  {
+    admin: true,
+    email: "superuser@example.com",
+    name: "Super User",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
+    password: "testpassword123",
+  },
 ];
 
 const SEED_PROJECTS = [

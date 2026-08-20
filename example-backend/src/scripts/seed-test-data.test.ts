@@ -12,17 +12,24 @@ describe("seedDefaultData", () => {
     await seedDefaultData();
 
     const admin = await User.findByEmail("admin@example.com");
+    const superuser = await User.findByEmail("superuser@example.com");
     const user = await User.findByEmail("test@example.com");
 
     assert.exists(admin);
+    assert.exists(superuser);
     assert.exists(user);
-    if (!admin || !user) {
+    if (!admin || !superuser || !user) {
       assert.fail("Default users were not seeded");
     }
 
     assert.isTrue(admin.admin);
+    assert.isTrue(superuser.admin);
+    assert.include(superuser.roles, "superadmin");
     assert.deepEqual(admin.organizationIds, ["org-example"]);
-    assert.equal(await User.countDocuments({email: {$in: [admin.email, user.email]}}), 2);
+    assert.equal(
+      await User.countDocuments({email: {$in: [admin.email, superuser.email, user.email]}}),
+      3
+    );
     assert.equal(await Project.countDocuments({organizationId: "org-example"}), 2);
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
     assert.equal(await ConsentForm.countDocuments({}), 3);
