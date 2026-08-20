@@ -83,6 +83,7 @@ export const buildTablesSchema = ({collections}: {collections: string[]}): Table
       enqueueOrder: {type: "number"},
       entityId: {type: "string"},
       errorNackCount: {type: "number"},
+      maxAttempts: {type: "number"},
       operation: {type: "string"},
       status: {type: "string"},
       userId: {type: "string"},

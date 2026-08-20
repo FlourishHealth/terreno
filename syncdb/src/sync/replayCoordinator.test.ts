@@ -121,6 +121,7 @@ const enqueue = (
     baseVersion,
     operation = "create" as const,
     userId = USER,
+    maxAttempts,
   }: {
     collection?: string;
     entityId: string;
@@ -129,6 +130,7 @@ const enqueue = (
     baseVersion?: number;
     operation?: "create" | "update" | "delete";
     userId?: string;
+    maxAttempts?: number;
   }
 ): void => {
   harness.store.upsertEntity({
@@ -143,6 +145,7 @@ const enqueue = (
     baseVersion,
     collection,
     entityId,
+    maxAttempts,
     mutationId,
     operation,
     userId,
@@ -598,6 +601,35 @@ describe("createReplayCoordinator", () => {
     harness.clock.value += ERROR_NACK_BASE_BACKOFF_MS * 100;
     await harness.coordinator.replay({userId: USER});
     expect(harness.transport.sentMutations).toHaveLength(MAX_ERROR_NACK_ATTEMPTS);
+  });
+
+  it("marks failed after one error-nack when maxAttempts is 1", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {entityId: "t1", maxAttempts: 1, mutationId: "m1"});
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    await harness.coordinator.replay({userId: USER});
+    expect(harness.transport.sentMutations).toHaveLength(1);
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+  });
+
+  it("marks failed after three error-nack attempts when maxAttempts is 3", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {entityId: "t1", maxAttempts: 3, mutationId: "m1"});
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await harness.coordinator.replay({userId: USER});
+      harness.clock.value += ERROR_NACK_BASE_BACKOFF_MS * 2 ** attempt;
+    }
+    expect(harness.transport.sentMutations).toHaveLength(3);
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
   });
 
   it("a concurrent replay for the same user returns the in-flight promise", async () => {
