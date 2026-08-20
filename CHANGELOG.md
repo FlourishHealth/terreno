@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated model tools emit structured success/refusal/failure logs with
   request correlation, duration, stable MCP labels, and Sentry exception
   capture for internal failures
+- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
+  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
+  (`docs/explanation/local-first-data.md`)
+- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
+  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
 - `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
@@ -46,6 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mixed-case 24-hex ids the way REST `findById` does
 - MCP list returns a structured error when `queryFilter` throws, matching REST
   400 handling
+
+### Deprecated
+
+- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
+  through the current major line; will not ship in the next major. Migrate collection CRUD to
+  [`@terreno/syncdb`](docs/reference/syncdb.md) using
+  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
+  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
 
 ## [57.0.0] - 2026-08-20
 
@@ -70,7 +83,7 @@ First stable release of the Expo SDK 57 line, cut from `master` after
   `npx expo install expo@latest --fix` then rebuild native binaries
   ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
 - `@terreno/syncdb` bumps `tinybase` to `^9.5.1` for Expo SDK 57 /
-  `expo-sqlite` type compatibility ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+  `expo-sqlite` type compatibility   ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
 
 ## [57.0.0-beta.1] - 2026-08-20
 
