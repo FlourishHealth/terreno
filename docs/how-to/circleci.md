@@ -26,6 +26,12 @@ Org/project slug: _(record after Phase 0.1 — e.g. `flourishhealth/terreno`)_.
 
 Smoke job `config-ok` always runs on continuation.
 
+`.circleci/**` sets `run-circleci-config`, which starts the `circleci-config`
+workflow: one job from each ported family (package CI, policy, example apps,
+`e2e` with `spec: login`, admin-spa). `comms/**` also sets
+`run-example-backend` and `run-example-backend-script`, matching the GitHub
+Actions twins.
+
 ## Contexts (create empty shells, then fill)
 
 Do **not** paste secret values into the repo. Create these CircleCI Contexts and restrict

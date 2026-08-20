@@ -26,6 +26,8 @@ workflows:
             demo/.* run-ui true
             demo/.* run-ui-demo true
             comms/.* run-comms true
+            comms/.* run-example-backend true
+            comms/.* run-example-backend-script true
             api/.* run-comms true
             test/.* run-comms true
             mcp-server/.* run-mcp-server true
