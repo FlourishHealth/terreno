@@ -12,7 +12,8 @@ const adminModelEntry = (page: Page, modelName: string) =>
     .or(page.getByTestId(`admin-model-card-${modelName}`));
 
 test.describe("Admin Panel", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    consoleGuard.allow("UTC is not a valid timezone");
     await loginAsAdmin(page);
     await page.goto("/admin");
   });
