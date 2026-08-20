@@ -1,5 +1,3 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {DateTime} from "luxon";
 import {model, Schema} from "mongoose";
@@ -42,7 +40,7 @@ const options = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<CompactStuff>;
 
 beforeAll(async () => {
   await setupDb();
@@ -61,7 +59,7 @@ describe("compactTombstones (C7 retention)", () => {
   const registerWithRetention = (retentionDays?: number): void => {
     registerSync({
       config: {scope: {type: "owner"}, ...(retentionDays !== undefined ? {retentionDays} : {})},
-      model: CompactStuffModel as any,
+      model: CompactStuffModel,
       options,
       routePath: "/compactStuff",
     });
@@ -91,7 +89,7 @@ describe("compactTombstones (C7 retention)", () => {
     expect(result.byCollection.compactStuff.tombstones).toBe(1);
 
     const remaining = await CompactStuffModel.collection.find({}).toArray();
-    const names = remaining.map((d: any) => d.name).sort();
+    const names = remaining.map((d) => d.name).sort();
     // The old tombstone is gone; the recent tombstone and the live doc remain.
     expect(names).toEqual(["live", "recent tombstone"]);
   });
@@ -234,7 +232,7 @@ const clearSyncRegistryAndReRegister = (retentionDays: number) => {
   clearSyncRegistry();
   registerSync({
     config: {retentionDays, scope: {type: "owner"}},
-    model: CompactStuffModel as any,
+    model: CompactStuffModel,
     options,
     routePath: "/compactStuff",
   });
