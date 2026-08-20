@@ -48,8 +48,12 @@ Do **not** paste secret values into the repo. Create these CircleCI Contexts and
 | `terreno-agentic` | `CURSOR_API_KEY` | agentic replacements (deferred) |
 | `terreno-github-api` | PAT (`pull-requests`, `contents`, …) | `dco`, PR comments later |
 
-Until contexts exist, attach project env vars with the same names, or rely on job
-fallbacks (`ci-e2e-*-secret` for e2e; DCO skips if `GITHUB_TOKEN` is unset).
+Until contexts exist, e2e jobs may use **project env vars for `E2E_*` secrets only**
+(or the in-job `ci-e2e-*-secret` fallbacks). **Do not** put `GITHUB_TOKEN` (or any
+GitHub PAT) in project env vars — those are injected into every job, including
+`bun` scripts from the PR. Create `terreno-github-api`, restrict it to this
+project, leave fork-PR secret passing off, and attach that context **only** to
+`dco` (and later comment jobs). DCO skips if `GITHUB_TOKEN` is unset.
 
 After contexts exist, attach them on the matching jobs in
 `.circleci/continue-config.yml` (see comments in the `workflows:` section).

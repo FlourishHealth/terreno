@@ -737,7 +737,7 @@ jobs:
           command: |
             set -euo pipefail
             if [ -z "${GITHUB_TOKEN:-}" ]; then
-              echo "GITHUB_TOKEN missing (add terreno-github-api context or project env). Skipping DCO during dual-run scaffold."
+              echo "GITHUB_TOKEN missing (attach terreno-github-api context to the dco job only; never project env). Skipping DCO during dual-run scaffold."
               circleci step halt
             fi
             # Resolve PR base/head via GitHub API when available.
@@ -870,10 +870,13 @@ jobs:
           destination: admin-spa-integration-test-results
 
 workflows:
-  # Contexts (terreno-e2e, terreno-github-api, …) are optional during dual-run.
-  # Attach them in the CircleCI project once Phase 0 contexts exist; jobs fall
-  # back to local secrets / skip when env is missing. Do not hard-require
-  # contexts here until they are created — missing contexts fail the pipeline.
+  # Attach terreno-e2e / terreno-github-api in the CircleCI project once Phase 0
+  # contexts exist. Do not put GITHUB_TOKEN in project env vars (injected into
+  # every job). Missing named contexts fail the pipeline, so they are not
+  # hard-required in this file until created; then attach terreno-github-api
+  # only to dco:
+  #   - dco:
+  #       context: [terreno-github-api]
   always:
     jobs:
       - config-ok
