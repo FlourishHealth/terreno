@@ -851,7 +851,7 @@ describe("CommsService", () => {
     try {
       const service = new CommsService({
         beforeSend: async (): Promise<void> => {
-          throw new Error("beforeSend boom");
+          throw new Error("beforeSend boom for person@example.com key=sg.secret");
         },
         mail: {
           id: "hook-throw-mail",
@@ -901,12 +901,19 @@ describe("CommsService", () => {
       assert.isFalse(smsResult.accepted);
       const mailRow = await CommsMessage.findExactlyOne({channel: "mail"});
       assert.equal(mailRow.status, "sent");
-      assert.include(JSON.stringify(mailRow.metadata?.hookErrors), "beforeSend boom");
-      assert.include(JSON.stringify(mailRow.metadata?.hookErrors), "onSend boom");
+      assert.deepEqual(mailRow.metadata?.hookErrors, {
+        beforeSend: ["hook-threw"],
+        onSend: ["hook-threw"],
+      });
+      assert.notInclude(JSON.stringify(mailRow.metadata), "person@example.com");
+      assert.notInclude(JSON.stringify(mailRow.metadata), "sg.secret");
       const smsRow = await CommsMessage.findExactlyOne({channel: "sms"});
       assert.equal(smsRow.attemptCount, 2);
-      assert.include(JSON.stringify(smsRow.metadata?.hookErrors), "onRetry boom");
-      assert.include(JSON.stringify(smsRow.metadata?.hookErrors), "onError boom");
+      assert.deepEqual(smsRow.metadata?.hookErrors, {
+        beforeSend: ["hook-threw"],
+        onError: ["hook-threw"],
+        onRetry: ["hook-threw"],
+      });
       assert.isTrue(errorSpy.mock.calls.some((call) => String(call[0]).includes("beforeSend")));
       assert.isTrue(errorSpy.mock.calls.some((call) => String(call[0]).includes("onSend")));
       assert.isTrue(errorSpy.mock.calls.some((call) => String(call[0]).includes("onRetry")));
@@ -1281,6 +1288,6 @@ describe("CommsService", () => {
     assert.isTrue(result.accepted);
     const row = await CommsMessage.findExactlyOne({channel: "mail"});
     assert.isUndefined(row.payload);
-    assert.include(JSON.stringify(row.metadata?.hookErrors), "redact boom");
+    assert.deepEqual(row.metadata?.hookErrors, {redactPayload: ["hook-threw"]});
   });
 });

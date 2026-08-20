@@ -172,7 +172,8 @@ and `errorClass` onto the matching row (`opened` does not change status).
 `beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
 `onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
 `errorClass` is `"transient"` (`context.attempt === 2`; shipped signature is `(context, result)`).
-Throwing hooks are logged and never change the send outcome. Adapters should call
+Throwing hooks are logged and never change the send outcome. Exception text stays in logs;
+`metadata.hookErrors` records only `hook-threw` per hook name. Adapters should call
 `recordDeliveryEvent()` and `recordOptOut()` rather than invoking those hooks directly.
 
 Provider throws become `{accepted: false, errorClass: "transient", errorCode: "provider-throw"}`.

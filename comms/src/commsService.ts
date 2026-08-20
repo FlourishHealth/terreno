@@ -36,6 +36,7 @@ const CHANNEL_NOT_CONFIGURED_TITLE = "Comms channel not configured";
 const REDACTED_RECIPIENT = "[redacted]";
 const DEFAULT_RETAIN_PAYLOAD_DAYS = 30;
 const CANCELLED_ERROR = "Cancelled by beforeSend";
+const HOOK_THREW = "hook-threw";
 
 const throwUnconfiguredChannel = (): never => {
   throw new APIError({status: 501, title: CHANNEL_NOT_CONFIGURED_TITLE});
@@ -131,7 +132,7 @@ export class CommsService {
     } catch (error: unknown) {
       const message = `[comms] ${label} hook failed: ${String(error)}`;
       logger.error(message);
-      return String(error);
+      return HOOK_THREW;
     }
   }
 
@@ -166,7 +167,7 @@ export class CommsService {
         message: result.message ?? context.message,
       };
     } catch (error: unknown) {
-      this.appendHookError(hookErrors, "beforeSend", String(error));
+      this.appendHookError(hookErrors, "beforeSend", HOOK_THREW);
       logger.error(`[comms] beforeSend hook failed: ${String(error)}`);
       return {cancel: false, message: context.message};
     }
@@ -215,7 +216,7 @@ export class CommsService {
     try {
       return redactPayload(context, payload);
     } catch (error: unknown) {
-      this.appendHookError(hookErrors, "redactPayload", String(error));
+      this.appendHookError(hookErrors, "redactPayload", HOOK_THREW);
       logger.error(`[comms] redactPayload hook failed: ${String(error)}`);
       return undefined;
     }
