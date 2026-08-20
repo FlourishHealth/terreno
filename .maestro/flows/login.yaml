@@ -1,6 +1,7 @@
 url: http://localhost:8082/login
 ---
-# Login with existing test user
+# Login with the seeded non-admin user. Admin shows Sync Lab / SyncDevPanel,
+# which pushes the first todo off-screen inside FlashList on Maestro's viewport.
 # Prerequisites: backend running on port 4000, test data seeded, frontend running on port 8082
 
 - launchApp
