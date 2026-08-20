@@ -265,6 +265,7 @@ export const terrenoApi = openapi
   .enhanceEndpoints({
     addTagTypes: [
       "admin_scriptRuns",
+      "admin_scriptTask",
       "consentForms",
       "feature-flags",
       "gptHistories",
