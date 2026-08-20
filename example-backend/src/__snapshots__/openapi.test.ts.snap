@@ -10260,6 +10260,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "tags": [
           "exampleprojects",
         ],
+        "x-terreno-sync": {
+          "collection": "projects",
+          "scope": "tenant",
+        },
       },
       "post": {
         "requestBody": {
@@ -11227,6 +11231,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "tags": [
           "todos",
         ],
+        "x-terreno-sync": {
+          "collection": "todos",
+          "scope": "owner",
+        },
       },
       "post": {
         "requestBody": {
