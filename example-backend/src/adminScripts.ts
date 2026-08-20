@@ -55,6 +55,16 @@ const clearResettableData = async (): Promise<void> => {
   await ConsentForm.deleteMany({});
 };
 
+export const isDatabaseResetAllowed = ({
+  isExplicitlyAllowed,
+  isProduction,
+}: {
+  isExplicitlyAllowed: boolean;
+  isProduction: boolean;
+}): boolean => {
+  return !isProduction || isExplicitlyAllowed;
+};
+
 export const resetExampleDatabase = async (
   wetRun: boolean,
   ctx?: ScriptContext
@@ -67,6 +77,19 @@ export const resetExampleDatabase = async (
     return {
       results: [`Dry run: would reset ${total} record(s)`, ...summary],
       success: true,
+    };
+  }
+
+  const isAllowed = isDatabaseResetAllowed({
+    isExplicitlyAllowed: process.env.ALLOW_ADMIN_DB_RESET === "true",
+    isProduction: process.env.NODE_ENV === "production",
+  });
+  if (!isAllowed) {
+    return {
+      results: [
+        "Live database reset is disabled in production. Set ALLOW_ADMIN_DB_RESET=true to enable it explicitly.",
+      ],
+      success: false,
     };
   }
 

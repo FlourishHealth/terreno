@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Example app profiles list every assigned role and link superadmins to role editing. The admin
   script runner includes a guarded `resetDatabase` action, and seed data includes
-  `superuser@example.com`.
+  `superuser@example.com`. Admin script execution requires `admin:runScripts` when RBAC is
+  configured, and live production resets require `ALLOW_ADMIN_DB_RESET=true`.
 - `@terreno/syncdb-codegen` CLI (`terreno-syncdb-codegen`) that emits typed
   collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
 - `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation

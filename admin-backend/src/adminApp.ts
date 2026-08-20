@@ -458,6 +458,20 @@ export class AdminApp {
     return [Permissions.IsAdmin];
   }
 
+  private async hasScriptPermission(
+    user: User | undefined,
+    action: "runScripts" | "viewBackgroundTasks"
+  ): Promise<boolean> {
+    if (!this.options.accessControl) {
+      return Boolean(user?.admin);
+    }
+    const result = await this.options.accessControl.can({
+      permissions: {admin: [action]},
+      user,
+    });
+    return result.allowed;
+  }
+
   private resourceActionPermissions(
     modelName: string,
     action: "list" | "read" | "create" | "update" | "delete"
@@ -1190,8 +1204,8 @@ export class AdminApp {
     router.get(
       "/runs",
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const user = req.user as {admin?: boolean} | undefined;
-        if (!user?.admin) {
+        const user = req.user as User | undefined;
+        if (!(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
           throw new APIError({status: 403, title: "Only admins can view run history"});
         }
 
@@ -1248,8 +1262,8 @@ export class AdminApp {
     router.post(
       "/:name/run",
       asyncHandler(async (req: express.Request<{name: string}>, res: express.Response) => {
-        const user = req.user as {_id: unknown; admin?: boolean; name?: string} | undefined;
-        if (!user?.admin) {
+        const user = req.user as (User & {_id: unknown; name?: string}) | undefined;
+        if (!(await this.hasScriptPermission(user, "runScripts"))) {
           throw new APIError({status: 403, title: "Only admins can run scripts"});
         }
 
@@ -1391,8 +1405,8 @@ export class AdminApp {
     router.get(
       "/tasks/:id",
       asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
-        const user = req.user as {_id: unknown; admin?: boolean} | undefined;
-        if (!user?.admin) {
+        const user = req.user as User | undefined;
+        if (!(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
           throw new APIError({status: 403, title: "Only admins can view tasks"});
         }
 
@@ -1415,8 +1429,8 @@ export class AdminApp {
     router.delete(
       "/tasks/:id",
       asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
-        const user = req.user as {_id: unknown; admin?: boolean; name?: string} | undefined;
-        if (!user?.admin) {
+        const user = req.user as User | undefined;
+        if (!(await this.hasScriptPermission(user, "runScripts"))) {
           throw new APIError({status: 403, title: "Only admins can cancel tasks"});
         }
 

@@ -3,13 +3,21 @@ import {ConsentForm} from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
 import {assert} from "chai";
 
-import {adminScripts, resetExampleDatabase} from "./adminScripts";
+import {adminScripts, isDatabaseResetAllowed, resetExampleDatabase} from "./adminScripts";
 import {Project} from "./models/project";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
 
 describe("resetDatabase admin script", () => {
+  it("requires an explicit override for live production resets", () => {
+    assert.isFalse(
+      isDatabaseResetAllowed({isExplicitlyAllowed: false, isProduction: true})
+    );
+    assert.isTrue(isDatabaseResetAllowed({isExplicitlyAllowed: true, isProduction: true}));
+    assert.isTrue(isDatabaseResetAllowed({isExplicitlyAllowed: false, isProduction: false}));
+  });
+
   it("is registered for the admin script runner", () => {
     const script = adminScripts.find(({name}) => name === "resetDatabase");
 
