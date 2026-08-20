@@ -1263,307 +1263,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "consentforms",
         ],
       },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "active": {
-                    "description": "Whether this consent form is currently active and available to users",
-                    "type": "boolean",
-                  },
-                  "agreeButtonText": {
-                    "description": "Label text for the agreement button",
-                    "type": "string",
-                  },
-                  "allowDecline": {
-                    "description": "Whether users are allowed to decline the consent form",
-                    "type": "boolean",
-                  },
-                  "captureSignature": {
-                    "description": "Whether to require a drawn or typed signature when the user agrees",
-                    "type": "boolean",
-                  },
-                  "checkboxes": {
-                    "description": "List of checkboxes the user must interact with before agreeing",
-                    "items": {
-                      "properties": {
-                        "confirmationPrompt": {
-                          "description": "Optional prompt shown when the user checks this checkbox",
-                          "type": "string",
-                        },
-                        "label": {
-                          "description": "Display label for the checkbox",
-                          "type": "string",
-                        },
-                        "required": {
-                          "description": "Whether this checkbox must be checked before the user can agree",
-                          "type": "boolean",
-                        },
-                      },
-                      "required": [
-                        "label",
-                      ],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                  "content": {
-                    "additionalProperties": {
-                      "type": "string",
-                    },
-                    "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
-                    "type": "object",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "declineButtonText": {
-                    "description": "Label text for the decline button (only shown when allowDecline is true)",
-                    "type": "string",
-                  },
-                  "defaultLocale": {
-                    "description": "Default locale to use when the requested locale is not available",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "order": {
-                    "description": "Display order relative to other consent forms (lower numbers appear first)",
-                    "type": "number",
-                  },
-                  "requireScrollToBottom": {
-                    "description": "Whether users must scroll to the bottom of the form content before agreeing",
-                    "type": "boolean",
-                  },
-                  "required": {
-                    "description": "Whether users must complete this form before accessing the application",
-                    "type": "boolean",
-                  },
-                  "slug": {
-                    "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                    "type": "string",
-                  },
-                  "title": {
-                    "description": "Human-readable title of the consent form",
-                    "type": "string",
-                  },
-                  "type": {
-                    "description": "Category of consent form",
-                    "enum": [
-                      "agreement",
-                      "privacy",
-                      "hipaa",
-                      "research",
-                      "terms",
-                      "custom",
-                    ],
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "version": {
-                    "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                    "type": "number",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "active": {
-                      "description": "Whether this consent form is currently active and available to users",
-                      "type": "boolean",
-                    },
-                    "agreeButtonText": {
-                      "description": "Label text for the agreement button",
-                      "type": "string",
-                    },
-                    "allowDecline": {
-                      "description": "Whether users are allowed to decline the consent form",
-                      "type": "boolean",
-                    },
-                    "captureSignature": {
-                      "description": "Whether to require a drawn or typed signature when the user agrees",
-                      "type": "boolean",
-                    },
-                    "checkboxes": {
-                      "description": "List of checkboxes the user must interact with before agreeing",
-                      "items": {
-                        "properties": {
-                          "confirmationPrompt": {
-                            "description": "Optional prompt shown when the user checks this checkbox",
-                            "type": "string",
-                          },
-                          "label": {
-                            "description": "Display label for the checkbox",
-                            "type": "string",
-                          },
-                          "required": {
-                            "description": "Whether this checkbox must be checked before the user can agree",
-                            "type": "boolean",
-                          },
-                        },
-                        "required": [
-                          "label",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "content": {
-                      "additionalProperties": {
-                        "type": "string",
-                      },
-                      "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
-                      "type": "object",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "declineButtonText": {
-                      "description": "Label text for the decline button (only shown when allowDecline is true)",
-                      "type": "string",
-                    },
-                    "defaultLocale": {
-                      "description": "Default locale to use when the requested locale is not available",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "order": {
-                      "description": "Display order relative to other consent forms (lower numbers appear first)",
-                      "type": "number",
-                    },
-                    "requireScrollToBottom": {
-                      "description": "Whether users must scroll to the bottom of the form content before agreeing",
-                      "type": "boolean",
-                    },
-                    "required": {
-                      "description": "Whether users must complete this form before accessing the application",
-                      "type": "boolean",
-                    },
-                    "slug": {
-                      "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                      "type": "string",
-                    },
-                    "title": {
-                      "description": "Human-readable title of the consent form",
-                      "type": "string",
-                    },
-                    "type": {
-                      "description": "Category of consent form",
-                      "enum": [
-                        "agreement",
-                        "privacy",
-                        "hipaa",
-                        "research",
-                        "terms",
-                        "custom",
-                      ],
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "version": {
-                      "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                      "type": "number",
-                    },
-                  },
-                  "required": [
-                    "content",
-                    "order",
-                    "slug",
-                    "title",
-                    "type",
-                    "version",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentforms",
-        ],
-      },
     },
     "/admin/consent-forms/bulk-patch": {
       "post": {
@@ -1666,69 +1365,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
       },
     },
     "/admin/consent-forms/{id}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful delete",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentforms",
-        ],
-      },
       "get": {
         "parameters": [
           {
@@ -1871,317 +1507,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               },
             },
             "description": "Successful read",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentforms",
-        ],
-      },
-      "patch": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "active": {
-                    "description": "Whether this consent form is currently active and available to users",
-                    "type": "boolean",
-                  },
-                  "agreeButtonText": {
-                    "description": "Label text for the agreement button",
-                    "type": "string",
-                  },
-                  "allowDecline": {
-                    "description": "Whether users are allowed to decline the consent form",
-                    "type": "boolean",
-                  },
-                  "captureSignature": {
-                    "description": "Whether to require a drawn or typed signature when the user agrees",
-                    "type": "boolean",
-                  },
-                  "checkboxes": {
-                    "description": "List of checkboxes the user must interact with before agreeing",
-                    "items": {
-                      "properties": {
-                        "confirmationPrompt": {
-                          "description": "Optional prompt shown when the user checks this checkbox",
-                          "type": "string",
-                        },
-                        "label": {
-                          "description": "Display label for the checkbox",
-                          "type": "string",
-                        },
-                        "required": {
-                          "description": "Whether this checkbox must be checked before the user can agree",
-                          "type": "boolean",
-                        },
-                      },
-                      "required": [
-                        "label",
-                      ],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                  "content": {
-                    "additionalProperties": {
-                      "type": "string",
-                    },
-                    "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
-                    "type": "object",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "declineButtonText": {
-                    "description": "Label text for the decline button (only shown when allowDecline is true)",
-                    "type": "string",
-                  },
-                  "defaultLocale": {
-                    "description": "Default locale to use when the requested locale is not available",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "order": {
-                    "description": "Display order relative to other consent forms (lower numbers appear first)",
-                    "type": "number",
-                  },
-                  "requireScrollToBottom": {
-                    "description": "Whether users must scroll to the bottom of the form content before agreeing",
-                    "type": "boolean",
-                  },
-                  "required": {
-                    "description": "Whether users must complete this form before accessing the application",
-                    "type": "boolean",
-                  },
-                  "slug": {
-                    "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                    "type": "string",
-                  },
-                  "title": {
-                    "description": "Human-readable title of the consent form",
-                    "type": "string",
-                  },
-                  "type": {
-                    "description": "Category of consent form",
-                    "enum": [
-                      "agreement",
-                      "privacy",
-                      "hipaa",
-                      "research",
-                      "terms",
-                      "custom",
-                    ],
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "version": {
-                    "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                    "type": "number",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "active": {
-                      "description": "Whether this consent form is currently active and available to users",
-                      "type": "boolean",
-                    },
-                    "agreeButtonText": {
-                      "description": "Label text for the agreement button",
-                      "type": "string",
-                    },
-                    "allowDecline": {
-                      "description": "Whether users are allowed to decline the consent form",
-                      "type": "boolean",
-                    },
-                    "captureSignature": {
-                      "description": "Whether to require a drawn or typed signature when the user agrees",
-                      "type": "boolean",
-                    },
-                    "checkboxes": {
-                      "description": "List of checkboxes the user must interact with before agreeing",
-                      "items": {
-                        "properties": {
-                          "confirmationPrompt": {
-                            "description": "Optional prompt shown when the user checks this checkbox",
-                            "type": "string",
-                          },
-                          "label": {
-                            "description": "Display label for the checkbox",
-                            "type": "string",
-                          },
-                          "required": {
-                            "description": "Whether this checkbox must be checked before the user can agree",
-                            "type": "boolean",
-                          },
-                        },
-                        "required": [
-                          "label",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "content": {
-                      "additionalProperties": {
-                        "type": "string",
-                      },
-                      "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
-                      "type": "object",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "declineButtonText": {
-                      "description": "Label text for the decline button (only shown when allowDecline is true)",
-                      "type": "string",
-                    },
-                    "defaultLocale": {
-                      "description": "Default locale to use when the requested locale is not available",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "order": {
-                      "description": "Display order relative to other consent forms (lower numbers appear first)",
-                      "type": "number",
-                    },
-                    "requireScrollToBottom": {
-                      "description": "Whether users must scroll to the bottom of the form content before agreeing",
-                      "type": "boolean",
-                    },
-                    "required": {
-                      "description": "Whether users must complete this form before accessing the application",
-                      "type": "boolean",
-                    },
-                    "slug": {
-                      "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                      "type": "string",
-                    },
-                    "title": {
-                      "description": "Human-readable title of the consent form",
-                      "type": "string",
-                    },
-                    "type": {
-                      "description": "Category of consent form",
-                      "enum": [
-                        "agreement",
-                        "privacy",
-                        "hipaa",
-                        "research",
-                        "terms",
-                        "custom",
-                      ],
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "version": {
-                      "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                      "type": "number",
-                    },
-                  },
-                  "required": [
-                    "content",
-                    "order",
-                    "slug",
-                    "title",
-                    "type",
-                    "version",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful update",
           },
           "400": {
             "content": {
@@ -2575,300 +1900,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "consentresponses",
         ],
       },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "agreed": {
-                    "description": "Whether the user agreed (true) or declined (false) the consent form",
-                    "type": "boolean",
-                  },
-                  "agreedAt": {
-                    "description": "Timestamp when the user submitted their agreement or declination",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "checkboxValues": {
-                    "additionalProperties": {
-                      "type": "boolean",
-                    },
-                    "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                    "type": "object",
-                  },
-                  "consentFormId": {
-                    "properties": {
-                      "slug": {
-                        "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                        "type": "string",
-                      },
-                      "title": {
-                        "description": "Human-readable title of the consent form",
-                        "type": "string",
-                      },
-                      "type": {
-                        "description": "Category of consent form",
-                        "enum": [
-                          "agreement",
-                          "privacy",
-                          "hipaa",
-                          "research",
-                          "terms",
-                          "custom",
-                        ],
-                        "type": "string",
-                      },
-                      "version": {
-                        "default": 1,
-                        "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                        "type": "number",
-                      },
-                    },
-                    "type": "object",
-                  },
-                  "contentSnapshot": {
-                    "description": "Snapshot of the form content in the user's locale at the time of response",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "formVersionSnapshot": {
-                    "description": "Version number of the form at the time the user responded",
-                    "type": "number",
-                  },
-                  "ipAddress": {
-                    "description": "IP address of the user at the time of response, captured for audit purposes",
-                    "type": "string",
-                  },
-                  "locale": {
-                    "description": "Locale code of the content version the user viewed when responding",
-                    "type": "string",
-                  },
-                  "signature": {
-                    "description": "Base64-encoded signature image or typed signature text, if captured",
-                    "type": "string",
-                  },
-                  "signedAt": {
-                    "description": "Timestamp when the user provided their signature",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userAgent": {
-                    "description": "User-agent string of the browser or app used to submit the response",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "properties": {
-                      "email": {
-                        "description": "The user's email address, used for authentication",
-                        "type": "string",
-                      },
-                      "name": {
-                        "description": "The user's display name",
-                        "type": "string",
-                      },
-                    },
-                    "type": "object",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "agreed": {
-                      "description": "Whether the user agreed (true) or declined (false) the consent form",
-                      "type": "boolean",
-                    },
-                    "agreedAt": {
-                      "description": "Timestamp when the user submitted their agreement or declination",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "checkboxValues": {
-                      "additionalProperties": {
-                        "type": "boolean",
-                      },
-                      "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                      "type": "object",
-                    },
-                    "consentFormId": {
-                      "properties": {
-                        "slug": {
-                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                          "type": "string",
-                        },
-                        "title": {
-                          "description": "Human-readable title of the consent form",
-                          "type": "string",
-                        },
-                        "type": {
-                          "description": "Category of consent form",
-                          "enum": [
-                            "agreement",
-                            "privacy",
-                            "hipaa",
-                            "research",
-                            "terms",
-                            "custom",
-                          ],
-                          "type": "string",
-                        },
-                        "version": {
-                          "default": 1,
-                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                    "contentSnapshot": {
-                      "description": "Snapshot of the form content in the user's locale at the time of response",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "formVersionSnapshot": {
-                      "description": "Version number of the form at the time the user responded",
-                      "type": "number",
-                    },
-                    "ipAddress": {
-                      "description": "IP address of the user at the time of response, captured for audit purposes",
-                      "type": "string",
-                    },
-                    "locale": {
-                      "description": "Locale code of the content version the user viewed when responding",
-                      "type": "string",
-                    },
-                    "signature": {
-                      "description": "Base64-encoded signature image or typed signature text, if captured",
-                      "type": "string",
-                    },
-                    "signedAt": {
-                      "description": "Timestamp when the user provided their signature",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userAgent": {
-                      "description": "User-agent string of the browser or app used to submit the response",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "properties": {
-                        "email": {
-                          "description": "The user's email address, used for authentication",
-                          "type": "string",
-                        },
-                        "name": {
-                          "description": "The user's display name",
-                          "type": "string",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "agreed",
-                    "agreedAt",
-                    "consentFormId",
-                    "locale",
-                    "userId",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentresponses",
-        ],
-      },
     },
     "/admin/consent-responses/bulk-patch": {
       "post": {
@@ -3109,310 +2140,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               },
             },
             "description": "Successful read",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentresponses",
-        ],
-      },
-      "patch": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "agreed": {
-                    "description": "Whether the user agreed (true) or declined (false) the consent form",
-                    "type": "boolean",
-                  },
-                  "agreedAt": {
-                    "description": "Timestamp when the user submitted their agreement or declination",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "checkboxValues": {
-                    "additionalProperties": {
-                      "type": "boolean",
-                    },
-                    "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                    "type": "object",
-                  },
-                  "consentFormId": {
-                    "properties": {
-                      "slug": {
-                        "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                        "type": "string",
-                      },
-                      "title": {
-                        "description": "Human-readable title of the consent form",
-                        "type": "string",
-                      },
-                      "type": {
-                        "description": "Category of consent form",
-                        "enum": [
-                          "agreement",
-                          "privacy",
-                          "hipaa",
-                          "research",
-                          "terms",
-                          "custom",
-                        ],
-                        "type": "string",
-                      },
-                      "version": {
-                        "default": 1,
-                        "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                        "type": "number",
-                      },
-                    },
-                    "type": "object",
-                  },
-                  "contentSnapshot": {
-                    "description": "Snapshot of the form content in the user's locale at the time of response",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "formVersionSnapshot": {
-                    "description": "Version number of the form at the time the user responded",
-                    "type": "number",
-                  },
-                  "ipAddress": {
-                    "description": "IP address of the user at the time of response, captured for audit purposes",
-                    "type": "string",
-                  },
-                  "locale": {
-                    "description": "Locale code of the content version the user viewed when responding",
-                    "type": "string",
-                  },
-                  "signature": {
-                    "description": "Base64-encoded signature image or typed signature text, if captured",
-                    "type": "string",
-                  },
-                  "signedAt": {
-                    "description": "Timestamp when the user provided their signature",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userAgent": {
-                    "description": "User-agent string of the browser or app used to submit the response",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "properties": {
-                      "email": {
-                        "description": "The user's email address, used for authentication",
-                        "type": "string",
-                      },
-                      "name": {
-                        "description": "The user's display name",
-                        "type": "string",
-                      },
-                    },
-                    "type": "object",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "agreed": {
-                      "description": "Whether the user agreed (true) or declined (false) the consent form",
-                      "type": "boolean",
-                    },
-                    "agreedAt": {
-                      "description": "Timestamp when the user submitted their agreement or declination",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "checkboxValues": {
-                      "additionalProperties": {
-                        "type": "boolean",
-                      },
-                      "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                      "type": "object",
-                    },
-                    "consentFormId": {
-                      "properties": {
-                        "slug": {
-                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                          "type": "string",
-                        },
-                        "title": {
-                          "description": "Human-readable title of the consent form",
-                          "type": "string",
-                        },
-                        "type": {
-                          "description": "Category of consent form",
-                          "enum": [
-                            "agreement",
-                            "privacy",
-                            "hipaa",
-                            "research",
-                            "terms",
-                            "custom",
-                          ],
-                          "type": "string",
-                        },
-                        "version": {
-                          "default": 1,
-                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                    "contentSnapshot": {
-                      "description": "Snapshot of the form content in the user's locale at the time of response",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "formVersionSnapshot": {
-                      "description": "Version number of the form at the time the user responded",
-                      "type": "number",
-                    },
-                    "ipAddress": {
-                      "description": "IP address of the user at the time of response, captured for audit purposes",
-                      "type": "string",
-                    },
-                    "locale": {
-                      "description": "Locale code of the content version the user viewed when responding",
-                      "type": "string",
-                    },
-                    "signature": {
-                      "description": "Base64-encoded signature image or typed signature text, if captured",
-                      "type": "string",
-                    },
-                    "signedAt": {
-                      "description": "Timestamp when the user provided their signature",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userAgent": {
-                      "description": "User-agent string of the browser or app used to submit the response",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "properties": {
-                        "email": {
-                          "description": "The user's email address, used for authentication",
-                          "type": "string",
-                        },
-                        "name": {
-                          "description": "The user's display name",
-                          "type": "string",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "agreed",
-                    "agreedAt",
-                    "consentFormId",
-                    "locale",
-                    "userId",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful update",
           },
           "400": {
             "content": {
@@ -3914,317 +2641,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "featureflags",
         ],
       },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "archived": {
-                    "description": "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
-                    "type": "boolean",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "defaultVariant": {
-                    "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "description": {
-                    "description": "Explanation of what this flag controls",
-                    "type": "string",
-                  },
-                  "enabled": {
-                    "description": "Global kill switch — if false, flag is off for everyone",
-                    "type": "boolean",
-                  },
-                  "key": {
-                    "description": "Unique identifier for the flag, e.g., 'new-checkout-flow'",
-                    "type": "string",
-                  },
-                  "name": {
-                    "description": "Human-readable display name",
-                    "type": "string",
-                  },
-                  "rolloutPercentage": {
-                    "description": "For boolean flags with no matching rules: percentage of users who get true",
-                    "type": "number",
-                  },
-                  "rules": {
-                    "items": {
-                      "properties": {
-                        "enabled": {
-                          "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
-                          "type": "boolean",
-                        },
-                        "field": {
-                          "description": "User field to match against (use with operator + value). Supports dot notation, e.g., 'email', 'admin', 'address.zip'. Use field/operator/value together, OR segment alone.",
-                          "type": "string",
-                        },
-                        "operator": {
-                          "description": "Comparison operator for field-based rules (use with field + value). Use field/operator/value together, OR segment alone.",
-                          "enum": [
-                            "eq",
-                            "neq",
-                            "in",
-                            "nin",
-                            "gt",
-                            "lt",
-                            "contains",
-                          ],
-                          "type": "string",
-                        },
-                        "segment": {
-                          "description": "Name of a registered segment function, e.g., 'pro-users'. Use segment alone, OR field/operator/value together.",
-                          "type": "string",
-                        },
-                        "value": {
-                          "description": "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
-                        },
-                        "variant": {
-                          "description": "For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone.",
-                          "type": "string",
-                        },
-                      },
-                      "required": [],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                  "type": {
-                    "description": "Boolean toggle or multi-variant A/B test",
-                    "enum": [
-                      "boolean",
-                      "variant",
-                    ],
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "variants": {
-                    "items": {
-                      "properties": {
-                        "key": {
-                          "description": "Variant identifier, e.g., 'control', 'variant-a'",
-                          "type": "string",
-                        },
-                        "weight": {
-                          "description": "Percentage weight for assignment (0-100, all must sum to 100)",
-                          "type": "number",
-                        },
-                      },
-                      "required": [
-                        "key",
-                        "weight",
-                      ],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "archived": {
-                      "description": "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
-                      "type": "boolean",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "defaultVariant": {
-                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "description": {
-                      "description": "Explanation of what this flag controls",
-                      "type": "string",
-                    },
-                    "enabled": {
-                      "description": "Global kill switch — if false, flag is off for everyone",
-                      "type": "boolean",
-                    },
-                    "key": {
-                      "description": "Unique identifier for the flag, e.g., 'new-checkout-flow'",
-                      "type": "string",
-                    },
-                    "name": {
-                      "description": "Human-readable display name",
-                      "type": "string",
-                    },
-                    "rolloutPercentage": {
-                      "description": "For boolean flags with no matching rules: percentage of users who get true",
-                      "type": "number",
-                    },
-                    "rules": {
-                      "items": {
-                        "properties": {
-                          "enabled": {
-                            "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
-                            "type": "boolean",
-                          },
-                          "field": {
-                            "description": "User field to match against (use with operator + value). Supports dot notation, e.g., 'email', 'admin', 'address.zip'. Use field/operator/value together, OR segment alone.",
-                            "type": "string",
-                          },
-                          "operator": {
-                            "description": "Comparison operator for field-based rules (use with field + value). Use field/operator/value together, OR segment alone.",
-                            "enum": [
-                              "eq",
-                              "neq",
-                              "in",
-                              "nin",
-                              "gt",
-                              "lt",
-                              "contains",
-                            ],
-                            "type": "string",
-                          },
-                          "segment": {
-                            "description": "Name of a registered segment function, e.g., 'pro-users'. Use segment alone, OR field/operator/value together.",
-                            "type": "string",
-                          },
-                          "value": {
-                            "description": "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
-                          },
-                          "variant": {
-                            "description": "For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone.",
-                            "type": "string",
-                          },
-                        },
-                        "required": [],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "type": {
-                      "description": "Boolean toggle or multi-variant A/B test",
-                      "enum": [
-                        "boolean",
-                        "variant",
-                      ],
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "variants": {
-                      "items": {
-                        "properties": {
-                          "key": {
-                            "description": "Variant identifier, e.g., 'control', 'variant-a'",
-                            "type": "string",
-                          },
-                          "weight": {
-                            "description": "Percentage weight for assignment (0-100, all must sum to 100)",
-                            "type": "number",
-                          },
-                        },
-                        "required": [
-                          "key",
-                          "weight",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "required": [
-                    "key",
-                    "name",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "featureflags",
-        ],
-      },
     },
     "/admin/feature-flags/bulk-patch": {
       "post": {
@@ -4327,69 +2743,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
       },
     },
     "/admin/feature-flags/{id}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful delete",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "featureflags",
-        ],
-      },
       "get": {
         "parameters": [
           {
@@ -4535,327 +2888,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               },
             },
             "description": "Successful read",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "featureflags",
-        ],
-      },
-      "patch": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "archived": {
-                    "description": "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
-                    "type": "boolean",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "defaultVariant": {
-                    "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "description": {
-                    "description": "Explanation of what this flag controls",
-                    "type": "string",
-                  },
-                  "enabled": {
-                    "description": "Global kill switch — if false, flag is off for everyone",
-                    "type": "boolean",
-                  },
-                  "key": {
-                    "description": "Unique identifier for the flag, e.g., 'new-checkout-flow'",
-                    "type": "string",
-                  },
-                  "name": {
-                    "description": "Human-readable display name",
-                    "type": "string",
-                  },
-                  "rolloutPercentage": {
-                    "description": "For boolean flags with no matching rules: percentage of users who get true",
-                    "type": "number",
-                  },
-                  "rules": {
-                    "items": {
-                      "properties": {
-                        "enabled": {
-                          "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
-                          "type": "boolean",
-                        },
-                        "field": {
-                          "description": "User field to match against (use with operator + value). Supports dot notation, e.g., 'email', 'admin', 'address.zip'. Use field/operator/value together, OR segment alone.",
-                          "type": "string",
-                        },
-                        "operator": {
-                          "description": "Comparison operator for field-based rules (use with field + value). Use field/operator/value together, OR segment alone.",
-                          "enum": [
-                            "eq",
-                            "neq",
-                            "in",
-                            "nin",
-                            "gt",
-                            "lt",
-                            "contains",
-                          ],
-                          "type": "string",
-                        },
-                        "segment": {
-                          "description": "Name of a registered segment function, e.g., 'pro-users'. Use segment alone, OR field/operator/value together.",
-                          "type": "string",
-                        },
-                        "value": {
-                          "description": "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
-                        },
-                        "variant": {
-                          "description": "For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone.",
-                          "type": "string",
-                        },
-                      },
-                      "required": [],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                  "type": {
-                    "description": "Boolean toggle or multi-variant A/B test",
-                    "enum": [
-                      "boolean",
-                      "variant",
-                    ],
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "variants": {
-                    "items": {
-                      "properties": {
-                        "key": {
-                          "description": "Variant identifier, e.g., 'control', 'variant-a'",
-                          "type": "string",
-                        },
-                        "weight": {
-                          "description": "Percentage weight for assignment (0-100, all must sum to 100)",
-                          "type": "number",
-                        },
-                      },
-                      "required": [
-                        "key",
-                        "weight",
-                      ],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "archived": {
-                      "description": "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
-                      "type": "boolean",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "defaultVariant": {
-                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "description": {
-                      "description": "Explanation of what this flag controls",
-                      "type": "string",
-                    },
-                    "enabled": {
-                      "description": "Global kill switch — if false, flag is off for everyone",
-                      "type": "boolean",
-                    },
-                    "key": {
-                      "description": "Unique identifier for the flag, e.g., 'new-checkout-flow'",
-                      "type": "string",
-                    },
-                    "name": {
-                      "description": "Human-readable display name",
-                      "type": "string",
-                    },
-                    "rolloutPercentage": {
-                      "description": "For boolean flags with no matching rules: percentage of users who get true",
-                      "type": "number",
-                    },
-                    "rules": {
-                      "items": {
-                        "properties": {
-                          "enabled": {
-                            "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
-                            "type": "boolean",
-                          },
-                          "field": {
-                            "description": "User field to match against (use with operator + value). Supports dot notation, e.g., 'email', 'admin', 'address.zip'. Use field/operator/value together, OR segment alone.",
-                            "type": "string",
-                          },
-                          "operator": {
-                            "description": "Comparison operator for field-based rules (use with field + value). Use field/operator/value together, OR segment alone.",
-                            "enum": [
-                              "eq",
-                              "neq",
-                              "in",
-                              "nin",
-                              "gt",
-                              "lt",
-                              "contains",
-                            ],
-                            "type": "string",
-                          },
-                          "segment": {
-                            "description": "Name of a registered segment function, e.g., 'pro-users'. Use segment alone, OR field/operator/value together.",
-                            "type": "string",
-                          },
-                          "value": {
-                            "description": "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
-                          },
-                          "variant": {
-                            "description": "For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone.",
-                            "type": "string",
-                          },
-                        },
-                        "required": [],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "type": {
-                      "description": "Boolean toggle or multi-variant A/B test",
-                      "enum": [
-                        "boolean",
-                        "variant",
-                      ],
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "variants": {
-                      "items": {
-                        "properties": {
-                          "key": {
-                            "description": "Variant identifier, e.g., 'control', 'variant-a'",
-                            "type": "string",
-                          },
-                          "weight": {
-                            "description": "Percentage weight for assignment (0-100, all must sum to 100)",
-                            "type": "number",
-                          },
-                        },
-                        "required": [
-                          "key",
-                          "weight",
-                        ],
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "required": [
-                    "key",
-                    "name",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful update",
           },
           "400": {
             "content": {
@@ -6116,6 +4148,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -6257,6 +4296,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6321,6 +4367,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -6626,6 +4679,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       },
                       "type": "array",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -6760,6 +4820,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6824,6 +4891,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -12878,6 +10952,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -13019,6 +11100,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -13083,6 +11171,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -13288,6 +11383,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       },
                       "type": "array",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -13422,6 +11524,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -13486,6 +11595,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
