@@ -44,6 +44,7 @@ const rowToMutation = (mutationId: string, row: Partial<OutboxRow>): OutboxMutat
   createdAt: row.createdAt ?? "",
   entityId: row.entityId ?? "",
   errorNackCount: row.errorNackCount ?? 0,
+  maxAttempts: typeof row.maxAttempts === "number" ? row.maxAttempts : undefined,
   mutationId,
   operation: (row.operation ?? "update") as SyncMutationOperation,
   status: (row.status ?? "queued") as OutboxStatus,
@@ -62,6 +63,8 @@ export interface EnqueueArgs {
   userId: string;
   /** Optional explicit id (defaults to a generated UUID; useful in tests). */
   mutationId?: string;
+  /** Per-mutation error-nack budget; omitted → engine default in replay. */
+  maxAttempts?: number;
 }
 
 export interface RecoverStartupStateResult {
@@ -246,6 +249,9 @@ export const createOutbox = ({
     if (args.baseVersion !== undefined) {
       row.baseVersion = args.baseVersion;
     }
+    if (args.maxAttempts !== undefined) {
+      row.maxAttempts = args.maxAttempts;
+    }
     store.raw.setRow(OUTBOX_TABLE, mutationId, row as unknown as Row);
     return rowToMutation(mutationId, row);
   };
@@ -332,8 +338,9 @@ export const createOutbox = ({
     if (from !== "conflicted") {
       throw new Error(`Illegal outbox transition "${from}" → "queued" (mutation ${mutationId})`);
     }
-    // Clone under a fresh id (fresh retry budget, original FIFO position) and drop the
-    // spent row — its mutationId is burned on the server's idempotency ledger.
+    // Clone under a fresh id (reset attempt/error-nack counters, keep the original
+    // FIFO position and per-mutation retry cap) and drop the spent row — its
+    // mutationId is burned on the server's idempotency ledger.
     const retryId = generateMutationId();
     const retryRow: OutboxRow = {
       args: row.args ?? "{}",
@@ -350,6 +357,9 @@ export const createOutbox = ({
     const retryBaseVersion = baseVersion ?? row.baseVersion;
     if (retryBaseVersion !== undefined) {
       retryRow.baseVersion = retryBaseVersion;
+    }
+    if (typeof row.maxAttempts === "number") {
+      retryRow.maxAttempts = row.maxAttempts;
     }
     store.raw.setRow(OUTBOX_TABLE, retryId, retryRow as unknown as Row);
     store.raw.delRow(OUTBOX_TABLE, mutationId);

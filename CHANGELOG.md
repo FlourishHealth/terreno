@@ -11,11 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
+  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
+  `docs/how-to/circleci.md`.
+
 ### Added
 
 - Example app profiles list every assigned role and link superadmins to role editing. The admin
   script runner includes a guarded `resetDatabase` action, and seed data includes
   `superuser@example.com`.
+- `@terreno/syncdb-codegen` CLI (`terreno-syncdb-codegen`) that emits typed
+  collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
+- `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
+  `maxAttempts` on syncdb writes.
 - CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
   deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
 - `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
@@ -27,6 +37,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `recordDeliveryEvent` /
+  `recordOptOut`, attempt history on `CommsMessage`, payload retention
+  (`retainPayloadDays`, `redactPayload`), and channel-wide transient retry (SMS,
+  verification start, per-token push). `onRetry` stays `(context, result)` with
+  `context.attempt`. Push prune honors `errorClass: "permanent"` as well as
+  `isPermanentFailure`.
+
+### Fixed
+
+- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
+  row so `retries: false` stays fail-fast after keepMine.
+- Example todos Sync Lab panel starts collapsed so the first list row stays
+  above the tab bar on short web viewports.
+- `@terreno/syncdb-codegen` rejects non-identifier collection/type names and
+  JSON-escapes generated strings so a remote OpenAPI document cannot inject
+  TypeScript.
 
 ### Security
 

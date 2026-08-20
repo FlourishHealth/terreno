@@ -631,7 +631,7 @@ export function modelRouter<T>(
   }
 
   const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
-  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options);
+  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
 
   if (path !== undefined) {
     // Register for real-time sync if configured
@@ -665,7 +665,7 @@ export function modelRouter<T>(
             runtimeOptions as unknown as ModelRouterOptions<unknown>
           );
         }
-        return _buildModelRouter(model, runtimeOptions);
+        return _buildModelRouter(model, runtimeOptions, path);
       },
       path,
       router,
@@ -690,7 +690,8 @@ export function modelRouter<T>(
 
 const _buildModelRouter = <T>(
   model: ModelLike<T>,
-  options: ModelRouterOptions<T>
+  options: ModelRouterOptions<T>,
+  routePath?: string
 ): express.Router => {
   const router = express.Router();
   const resolvedAccess = resolveModelRouterAccess({
@@ -760,7 +761,7 @@ const _buildModelRouter = <T>(
     [
       authenticateMiddleware(options.allowAnonymous),
       permissionMiddleware(model, options),
-      listOpenApiMiddleware(model, options),
+      listOpenApiMiddleware(model, options, routePath),
       queryValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
