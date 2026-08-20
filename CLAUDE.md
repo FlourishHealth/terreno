@@ -59,35 +59,40 @@ The three core packages form a complete full-stack framework:
 ```
                            BACKEND
   @terreno/api
-  - Mongoose models with modelRouter -> CRUD endpoints
-  - Built-in auth (JWT + Passport)
+  - Mongoose models with modelRouter -> CRUD + sync endpoints
+  - Better Auth (default) + legacy JWT/Passport
   - Automatic OpenAPI spec generation
                               |
-                     /openapi.json
-                              |
-                    RTK Query SDK Codegen
-                              |
+              +---------------+---------------+
+              |                               |
+     /openapi.json                    sync protocol
+              |                               |
+     RTK Query SDK Codegen            @terreno/syncdb
+     (non-synced routes)              (collection CRUD)
+              |                               |
                            FRONTEND
-  @terreno/rtk
-  - Generated hooks from OpenAPI spec
-  - Auth slice with JWT token management
-  - Automatic token refresh
+  @terreno/rtk                         @terreno/syncdb
+  - Generated hooks (auth, admin, AI)  - useQuery / useMutate (local-first)
+  - Better Auth session Redux          - Offline outbox + conflict UI
+  - Feature flags + sockets
                               +
   @terreno/ui
   - React Native components (Box, Button, TextField, etc.)
   - TerrenoProvider for theming
 ```
 
+> **Legacy:** `@terreno/rtk` RTK Query hooks for **collection CRUD** are deprecated — use syncdb. See [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
+
 ### Integration Flow
 
-1. **Backend (api)**: Define Mongoose models, use `modelRouter` to create CRUD endpoints with permissions
-2. **OpenAPI Generation**: `setupServer` automatically generates `/openapi.json`
-3. **SDK Codegen**: Frontend runs `bun run sdk` to generate RTK Query hooks from OpenAPI spec
-4. **Frontend (rtk + ui)**: Use generated hooks with UI components for type-safe API calls
+1. **Backend (api)**: Define Mongoose models with `syncPlugin` + `isDeletedPlugin`; use `modelRouter` with a `sync` config; register `SyncApp` and `RealtimeApp`
+2. **OpenAPI Generation**: `setupServer` generates `/openapi.json` for non-synced routes
+3. **SDK Codegen**: Frontend runs `bun run sdk` for auth, admin, AI, and custom endpoints — **not** for synced collections
+4. **Frontend (syncdb + ui)**: Use `useQuery` / `useMutate` for synced data; use generated SDK hooks only for non-synced routes; Better Auth via `@terreno/rtk`
 
 ## Example Apps (Keep These Updated!)
 
-The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
+The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, syncdb, or rtk:
 
 1. **Add examples** demonstrating new features
 2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`
@@ -291,29 +296,29 @@ Modals:
 - Don't use `style` prop when equivalent props exist (`padding`, `margin`)
 - Never modify `openApiSdk.ts` manually
 
-### @terreno/rtk
+### @terreno/syncdb
 
-Redux Toolkit Query integration:
+Local-first data layer (primary path for collection CRUD):
 
-- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
-- **emptyApi**: Base RTK Query API for code generation
-- **Platform utilities**: Secure token storage (expo-secure-store for native, AsyncStorage for web)
+- **createSyncDb**: Client with durable outbox, socket sync, encrypted persistence
+- **React hooks**: `useQuery`, `useEntity`, `useMutate`, `useSyncStatus`, `useConflicts`
+- **betterAuthAdapter**: Session auth for sync sockets
 
 Key imports:
 ```typescript
-import {generateAuthSlice} from "@terreno/rtk";
+import {createSyncDb, betterAuthAdapter} from "@terreno/syncdb";
+import {SyncDbProvider, useQuery, useMutate} from "@terreno/syncdb/react";
 ```
 
-Always use generated SDK hooks - never use `axios` or `request` directly:
+### @terreno/rtk (legacy data sync; still required for SDK + auth)
 
-```typescript
-// Correct
-import {useGetYourRouteQuery} from "@/store/openApiSdk";
-const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
+Redux Toolkit Query integration for **non-synced** routes and session state:
 
-// Wrong - don't use axios directly
-// const result = await axios.get("/api/yourRoute/value");
-```
+- **generateBetterAuthSlice**: Better Auth session Redux (default for new apps)
+- **emptyApi**: Base RTK Query API for OpenAPI codegen
+- **useTerrenoFeatureFlags**, **useSocketConnection**: Feature flags and realtime
+
+Use generated SDK hooks for non-synced routes only — never use `axios` or `request` directly.
 
 ## React Best Practices (Frontend Packages)
 

@@ -411,6 +411,7 @@ This logs:
 
 ## Related Documentation
 
-- [@terreno/rtk Reference](../reference/rtk.md) — Full API documentation
+- [@terreno/syncdb Reference](../reference/syncdb.md) — Local-first data layer (replaces RTK for synced collections)
+- [@terreno/rtk Reference (legacy)](../reference/legacy/rtk.md) — RTK Query utilities during the support window
 - [Authentication Architecture](../explanation/authentication.md) — JWT system deep-dive
 - [Socket.io Documentation](https://socket.io/docs/v4/) — Official Socket.io docs
