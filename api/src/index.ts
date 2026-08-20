@@ -1,4 +1,5 @@
 export * from "./actions";
+export * from "./adminTypes";
 export * from "./api";
 export * from "./auth";
 export * from "./betterAuth";
@@ -95,6 +96,7 @@ export type {
   RealtimeEvent,
 } from "./realtime/types";
 export * from "./requestContext";
+export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./scriptRunner";
 export * from "./secretProviders";
 export * from "./sync/executors";

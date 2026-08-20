@@ -29,41 +29,41 @@
 
 ## Phase 1 — Core API surface (`@terreno/api`)
 
-- [ ] **Task 1.0**: Extend `TerrenoPlugin.register` additively  
+- [x] **Task 1.0**: Extend `TerrenoPlugin.register` additively  
   - `register(app, openApi?, terrenoApp?)`; `TerrenoApp.build()` passes `this`; rename `_buildWithOpenApi` → `_buildWithContext({openApi, terrenoApp})`; `setMaxListeners(50)`  
   - Files: `api/src/terrenoPlugin.ts`, `terrenoApp.ts`, `api.ts`  
   - Acceptance: Existing plugins compile; test receives `terrenoApp` as third arg.
 
-- [ ] **Task 1.1**: `api/src/adminTypes.ts`  
+- [x] **Task 1.1**: `api/src/adminTypes.ts`  
   - Export `AdminConfig`, `AdminFilter`, `AdminFieldset`, `AdminContribution`, `AdminModelContribution`, `AdminCustomScreen`, `AdminHomeWidgetContribution`, `AdminChangeEvent`, etc. (no `AdminAction.run` — bulk stays declarative v2 shape)  
   - Files: `api/src/adminTypes.ts`, `index.ts`  
   - Acceptance: `bun run compile` clean across monorepo.
 
-- [ ] **Task 1.2**: `admin?: AdminConfig` on `ModelRouterOptions`  
+- [x] **Task 1.2**: `admin?: AdminConfig` on `ModelRouterOptions`  
   - Files: `api/src/api.ts`  
   - Depends on: 1.1
 
-- [ ] **Task 1.3**: `TerrenoApp.getRegistrations()` + `getPlugins()`  
+- [x] **Task 1.3**: `TerrenoApp.getRegistrations()` + `getPlugins()`  
   - Files: `api/src/terrenoApp.ts`, tests  
   - Depends on: none
 
-- [ ] **Task 1.4**: `TerrenoPlugin.adminContribution?()`  
+- [x] **Task 1.4**: `TerrenoPlugin.adminContribution?()`  
   - Files: `api/src/terrenoPlugin.ts`  
   - Depends on: 1.1
 
-- [ ] **Task 1.5**: Typed event bus (`admin:model.changed`)  
+- [x] **Task 1.5**: Typed event bus (`admin:model.changed`)  
   - Files: `api/src/terrenoApp.ts`, tests  
   - Depends on: 1.1
 
-- [ ] **Task 1.6**: `scrubAdminFields` helper + populated recursion  
+- [x] **Task 1.6**: `scrubAdminFields` helper + populated recursion  
   - Files: `api/src/scrubAdminFields.ts`, tests  
   - Depends on: 1.1
 
-- [ ] **Task 1.7**: Emit scrubbed `admin:model.changed` when `admin.realtime`  
+- [x] **Task 1.7**: Emit scrubbed `admin:model.changed` when `admin.realtime`  
   - Files: `api/src/api.ts`, tests  
   - Depends on: 1.0, 1.2, 1.5, 1.6
 
-- [ ] **Task 1.8**: `readonlyFields` / `excludeFields` enforcement on body-accepting routes  
+- [x] **Task 1.8**: `readonlyFields` / `excludeFields` enforcement on body-accepting routes  
   - Files: `api/src/api.ts`, tests  
   - Depends on: 1.0, 1.2, 1.6
 

@@ -73,9 +73,11 @@ const createOpenApiAwareRouteRegistration = (
 
   const registration: ModelRouterRegistration = {
     __type: "modelRouter",
-    _buildWithOpenApi: buildRouter,
+    _buildWithContext: ({openApi}) => buildRouter(openApi),
+    model: {} as ModelRouterRegistration["model"],
+    options: {},
     path: "/",
-    // Placeholder router; TerrenoApp uses _buildWithOpenApi during registration.
+    // Placeholder router; TerrenoApp uses _buildWithContext during registration.
     router: express.Router(),
   };
   return registration;

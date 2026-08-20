@@ -1,9 +1,11 @@
 import {createServer} from "node:http";
+import {EventEmitter} from "node:events";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
 import type {ModelRouterRegistration} from "./api";
+import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {
@@ -149,6 +151,7 @@ export class TerrenoApp {
   private registrations: (ModelRouterRegistration | TerrenoPlugin)[] = [];
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
   private configurationApp: ConfigurationApp | null = null;
+  private readonly adminEvents = new EventEmitter();
 
   /**
    * Create a new TerrenoApp builder.
@@ -157,6 +160,7 @@ export class TerrenoApp {
    */
   constructor(options: TerrenoAppOptions) {
     this.options = options;
+    this.adminEvents.setMaxListeners(50);
   }
 
   /**
@@ -182,6 +186,37 @@ export class TerrenoApp {
   register(registration: ModelRouterRegistration | TerrenoPlugin): this {
     this.registrations.push(registration);
     return this;
+  }
+
+  /**
+   * Returns registered model routers and plugins in mount order.
+   */
+  getRegistrations(): readonly (ModelRouterRegistration | TerrenoPlugin)[] {
+    return this.registrations;
+  }
+
+  /**
+   * Returns only TerrenoPlugin registrations (excludes model routers).
+   */
+  getPlugins(): TerrenoPlugin[] {
+    return this.registrations.filter(
+      (registration): registration is TerrenoPlugin => !this.isModelRouterRegistration(registration)
+    );
+  }
+
+  on(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.on(event, listener);
+    return this;
+  }
+
+  off(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.off(event, listener);
+    return this;
+  }
+
+  /** @internal Emits scrubbed admin model change events from modelRouter hooks. */
+  emitAdminModelChanged(payload: AdminChangeEvent): void {
+    this.adminEvents.emit("admin:model.changed", payload);
   }
 
   /**
@@ -365,10 +400,10 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        const router = registration._buildWithOpenApi(oapi);
+        const router = registration._buildWithContext({openApi: oapi, routePath: registration.path, terrenoApp: this});
         app.use(registration.path, router);
       } else {
-        registration.register(app, oapi);
+        registration.register(app, oapi, this);
       }
     }
 

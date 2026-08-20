@@ -42,7 +42,9 @@ const createOpenApiAwareRouteRegistration = (
 
   const registration: ModelRouterRegistration = {
     __type: "modelRouter",
-    _buildWithOpenApi: buildRouter,
+    _buildWithContext: ({openApi}) => buildRouter(openApi),
+    model: {} as ModelRouterRegistration["model"],
+    options: {},
     path: "/",
     router: express.Router(),
   };

@@ -2131,7 +2131,9 @@ describe("@terreno/api", () => {
       expect(registration).toHaveProperty("__type", "modelRouter");
       expect(registration).toHaveProperty("path", "/food");
       expect(registration).toHaveProperty("router");
-      expect(registration).toHaveProperty("_buildWithOpenApi");
+      expect(registration).toHaveProperty("_buildWithContext");
+      expect(registration).toHaveProperty("model");
+      expect(registration).toHaveProperty("options");
     });
 
     it("logs a warning when realtime config is used without the path form", () => {
