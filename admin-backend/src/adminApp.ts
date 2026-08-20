@@ -1205,7 +1205,7 @@ export class AdminApp {
       "/runs",
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const user = req.user as User | undefined;
-        if (!(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
+        if (!user || !(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
           throw new APIError({status: 403, title: "Only admins can view run history"});
         }
 
@@ -1263,7 +1263,7 @@ export class AdminApp {
       "/:name/run",
       asyncHandler(async (req: express.Request<{name: string}>, res: express.Response) => {
         const user = req.user as (User & {_id: unknown; name?: string}) | undefined;
-        if (!(await this.hasScriptPermission(user, "runScripts"))) {
+        if (!user || !(await this.hasScriptPermission(user, "runScripts"))) {
           throw new APIError({status: 403, title: "Only admins can run scripts"});
         }
 
@@ -1317,7 +1317,7 @@ export class AdminApp {
         let task: BackgroundTaskDocument;
         try {
           task = (await BackgroundTask.create({
-            createdBy: user._id as mongoose.Types.ObjectId,
+            createdBy: user._id as unknown as mongoose.Types.ObjectId,
             isDryRun: !isWetRun,
             logs: [
               {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
@@ -1406,7 +1406,7 @@ export class AdminApp {
       "/tasks/:id",
       asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
         const user = req.user as User | undefined;
-        if (!(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
+        if (!user || !(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
           throw new APIError({status: 403, title: "Only admins can view tasks"});
         }
 
@@ -1429,8 +1429,8 @@ export class AdminApp {
     router.delete(
       "/tasks/:id",
       asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
-        const user = req.user as User | undefined;
-        if (!(await this.hasScriptPermission(user, "runScripts"))) {
+        const user = req.user as (User & {name?: string}) | undefined;
+        if (!user || !(await this.hasScriptPermission(user, "runScripts"))) {
           throw new APIError({status: 403, title: "Only admins can cancel tasks"});
         }
 
