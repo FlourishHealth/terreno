@@ -127,11 +127,20 @@ mcp: {
 
 ## Lifecycle hooks
 
-`preCreate`, `postCreate`, `preUpdate`, `postUpdate`, `preDelete`, and `postDelete` all run for MCP calls. An MCP tool call is JSON-RPC rather than HTTP, so the `request` argument is an Express-shaped object with the authenticated `user`, the tool arguments as `body`, empty `query`/`params`/`headers`, and `isMCPRequest: true`:
+`preCreate`, `postCreate`, `preUpdate`, `postUpdate`, `preDelete`, and `postDelete` all run for MCP calls. An MCP tool call is JSON-RPC rather than HTTP, so `createMCPRequest` builds a stub Express-shaped `request` (`MCPRequest`):
+
+- `user` — the authenticated MCP user
+- `body` — the hook-stage payload after write denylist + transform, not the raw tool args (on delete, `id` is in `body`, not `params`)
+- `headers` / `query` / `params` — always `{}` (MCP does not forward HTTP headers)
+- `isMCPRequest` — `true`
+
+REST `responseHandler` gets the same stub with an empty `body`.
 
 ```typescript
+import type {MCPRequest} from "@terreno/api";
+
 preCreate: (body, req) => {
-  if ((req as unknown as {isMCPRequest?: boolean}).isMCPRequest) {
+  if ((req as unknown as MCPRequest).isMCPRequest) {
     // e.g. tag records created by an assistant
     return {...body, source: "assistant"};
   }

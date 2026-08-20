@@ -71,6 +71,24 @@ const parseResult = (result: {content: Array<{text: string}>}): ParsedToolResult
   return JSON.parse(result.content[0].text);
 };
 
+const expectStubRequest = ({
+  body,
+  request,
+  user,
+}: {
+  body: Record<string, unknown>;
+  request: MCPRequest | undefined;
+  user: TestUser;
+}): void => {
+  expect(request?.isMCPRequest).toBe(true);
+  expect(request?.method).toBe("MCP");
+  expect(request?.body).toEqual(body);
+  expect(request?.headers).toEqual({});
+  expect(request?.query).toEqual({});
+  expect(request?.params).toEqual({});
+  expect((request?.user as unknown as TestUser | undefined)?.id).toBe(user.id);
+};
+
 const createEntry = (): MCPRegistryEntry => ({
   config: {
     maxLimit: 10,
@@ -1089,31 +1107,84 @@ describe("MCP Integration", () => {
   });
 
   describe("lifecycle hook request", () => {
-    it("passes an Express-shaped MCP request to hooks", async () => {
-      let seenRequest: MCPRequest | undefined;
+    it("passes an Express-shaped stub request to every lifecycle hook", async () => {
+      const seen: Partial<Record<string, MCPRequest>> = {};
+      const capture = (name: string, req: express.Request): void => {
+        seen[name] = req as unknown as MCPRequest;
+      };
       const entryWithHooks: MCPRegistryEntry = {
         ...entry,
         options: {
           ...entry.options,
+          postCreate: (_data, req: express.Request) => {
+            capture("postCreate", req);
+          },
+          postDelete: (req: express.Request) => {
+            capture("postDelete", req);
+          },
+          postUpdate: (_doc, _body, req: express.Request) => {
+            capture("postUpdate", req);
+          },
           preCreate: (body, req: express.Request) => {
-            seenRequest = req as unknown as MCPRequest;
+            capture("preCreate", req);
             return {
               ...(body as Record<string, unknown>),
               ownerId: normalUser._id,
             };
           },
+          preDelete: (doc, req: express.Request) => {
+            capture("preDelete", req);
+            return doc;
+          },
+          preUpdate: (body, req: express.Request) => {
+            capture("preUpdate", req);
+            return body;
+          },
         },
       };
 
       await handleCreate(entryWithHooks, {title: "Hooked"}, asUser(normalUser));
+      expectStubRequest({
+        body: {title: "Hooked"},
+        request: seen.preCreate,
+        user: normalUser,
+      });
+      expectStubRequest({
+        body: {ownerId: normalUser._id, title: "Hooked"},
+        request: seen.postCreate,
+        user: normalUser,
+      });
 
-      expect(seenRequest?.isMCPRequest).toBe(true);
-      expect(seenRequest?.method).toBe("MCP");
-      expect(seenRequest?.body).toEqual({title: "Hooked"});
-      expect(seenRequest?.query).toEqual({});
-      expect(seenRequest?.params).toEqual({});
-      expect(seenRequest?.headers).toEqual({});
-      expect((seenRequest?.user as unknown as TestUser | undefined)?.id).toBe(normalUser.id);
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Update hook"});
+      await handleUpdate(
+        entryWithHooks,
+        {id: doc._id.toString(), title: "Updated"},
+        asUser(normalUser)
+      );
+      expectStubRequest({
+        body: {title: "Updated"},
+        request: seen.preUpdate,
+        user: normalUser,
+      });
+      expectStubRequest({
+        body: {title: "Updated"},
+        request: seen.postUpdate,
+        user: normalUser,
+      });
+
+      const toDelete = await TodoModel.create({ownerId: normalUser._id, title: "Delete hook"});
+      const deleteArgs = {id: toDelete._id.toString()};
+      await handleDelete(entryWithHooks, deleteArgs, asUser(normalUser));
+      expectStubRequest({
+        body: deleteArgs,
+        request: seen.preDelete,
+        user: normalUser,
+      });
+      expectStubRequest({
+        body: deleteArgs,
+        request: seen.postDelete,
+        user: normalUser,
+      });
     });
   });
 
@@ -1142,6 +1213,35 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.summary).toBe("Custom");
       expect(parsed.data.method).toBe("read");
+    });
+
+    it("passes a stub Express-shaped request to REST responseHandler", async () => {
+      let seenRequest: MCPRequest | undefined;
+      const entryWithHandler: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          responseHandler: async (value, method, req) => {
+            seenRequest = req as unknown as MCPRequest;
+            return {method, title: (value as {title?: string}).title ?? null};
+          },
+        },
+      };
+
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Stubbed"});
+      const result = await handleRead(
+        entryWithHandler,
+        {id: doc._id.toString()},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Stubbed");
+      expectStubRequest({
+        body: {},
+        request: seenRequest,
+        user: normalUser,
+      });
     });
 
     it("returns a structured error when responseHandler throws", async () => {

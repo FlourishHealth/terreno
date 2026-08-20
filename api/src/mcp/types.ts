@@ -34,10 +34,13 @@ export type MCPDocument = HydratedDocument<Record<string, unknown>>;
 
 /**
  * Express-shaped request handed to modelRouter lifecycle hooks and response handlers
- * during an MCP tool call. See `createMCPRequest` for why the non-user fields are empty.
+ * during an MCP tool call. Built by `createMCPRequest` as a stub: only `user`
+ * and `body` are populated. `headers`, `query`, and `params` are always empty
+ * objects — MCP does not forward HTTP request fields.
  */
 export interface MCPRequest {
   body: MCPToolArgs;
+  /** Always `{}` on MCP paths — not forwarded from HTTP. */
   headers: Record<string, string>;
   /** Lets hooks detect an MCP tool call rather than an HTTP request. */
   isMCPRequest: true;

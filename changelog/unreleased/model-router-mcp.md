@@ -12,4 +12,7 @@ and friends) and top-level `$and` / `$or` on `queryFields`; operators that can
 execute code (`$where`, `$expr`, `$function`) are rejected. `@terreno/rtk`
 adds `useMCPTools()` and `useTerrenoChat()`. MCP HTTP/stdio servers use the
 TypeScript SDK v2 (`2026-07-28`) with a how-to guide and structured tool-call
-logs.
+logs. Lifecycle hooks and REST `responseHandler` receive a stub Express-shaped
+request from `createMCPRequest` (authenticated user, tool args as `body`, empty
+`headers`/`query`/`params`, `isMCPRequest: true`) rather than forwarded HTTP
+headers.

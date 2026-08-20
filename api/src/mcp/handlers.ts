@@ -1,4 +1,3 @@
-import type express from "express";
 import mongoose from "mongoose";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
@@ -7,16 +6,10 @@ import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
+import {createMCPRequest} from "./createMCPRequest";
 import {buildListQuery} from "./query";
 import {restWriteExcludeFields, writeExcludeFields} from "./schemaGenerator";
-import type {
-  MCPDocument,
-  MCPMethod,
-  MCPRegistryEntry,
-  MCPRequest,
-  MCPToolArgs,
-  MCPToolResult,
-} from "./types";
+import type {MCPDocument, MCPMethod, MCPRegistryEntry, MCPToolArgs, MCPToolResult} from "./types";
 
 /** Methods whose responses go through a responseHandler (delete returns only a status). */
 type SerializableMCPMethod = Exclude<MCPMethod, "delete">;
@@ -204,34 +197,6 @@ const execFindByIdQuery = async (query: {
 
 const missingDocumentResult = (id: unknown): MCPToolResult => {
   return errorResult(`Document ${id} not found`);
-};
-
-/**
- * Build the Express-shaped request handed to lifecycle hooks and response handlers.
- *
- * An MCP tool call is JSON-RPC, not HTTP, so there is no real request to forward. The
- * authenticated user is the only field with a genuine equivalent — everything else is
- * filled in with empty defaults so hooks that read `req.body`, `req.query`, `req.params`,
- * or `req.headers` get the shape they expect instead of a TypeError. `isMCPRequest` lets
- * a hook detect the MCP path when it needs to behave differently from HTTP.
- */
-export const createMCPRequest = ({
-  args = {},
-  user,
-}: {
-  args?: MCPToolArgs;
-  user?: User;
-}): express.Request => {
-  const request: MCPRequest = {
-    body: args,
-    headers: {},
-    isMCPRequest: true,
-    method: "MCP",
-    params: {},
-    query: {},
-    user,
-  };
-  return request as unknown as express.Request;
 };
 
 /**
@@ -429,7 +394,7 @@ export const handleCreate = async (
 
   if (options.preCreate) {
     try {
-      body = await options.preCreate(body, createMCPRequest({args: body, user}));
+      body = await options.preCreate(body, createMCPRequest({body, user}));
       if (body === null || body === undefined) {
         return errorResult("Create not allowed");
       }
@@ -452,7 +417,7 @@ export const handleCreate = async (
 
   if (options.postCreate) {
     try {
-      await options.postCreate(data, createMCPRequest({args: body, user}));
+      await options.postCreate(data, createMCPRequest({body, user}));
     } catch (error) {
       return hookFailureResult("postCreate hook failed", error);
     }
@@ -510,7 +475,7 @@ export const handleUpdate = async (
 
   if (options.preUpdate) {
     try {
-      body = await options.preUpdate(body, createMCPRequest({args: body, user}));
+      body = await options.preUpdate(body, createMCPRequest({body, user}));
       if (body === null || body === undefined) {
         return errorResult("Update not allowed");
       }
@@ -535,7 +500,7 @@ export const handleUpdate = async (
 
   if (options.postUpdate) {
     try {
-      await options.postUpdate(doc, body, createMCPRequest({args: body, user}), prevDoc);
+      await options.postUpdate(doc, body, createMCPRequest({body, user}), prevDoc);
     } catch (error) {
       return hookFailureResult("postUpdate hook failed", error);
     }
@@ -585,7 +550,7 @@ export const handleDelete = async (
 
   if (options.preDelete) {
     try {
-      const result = await options.preDelete(doc, createMCPRequest({args, user}));
+      const result = await options.preDelete(doc, createMCPRequest({body: args, user}));
       if (result === null || result === undefined) {
         return errorResult("Delete not allowed");
       }
@@ -611,7 +576,7 @@ export const handleDelete = async (
 
   if (options.postDelete) {
     try {
-      await options.postDelete(createMCPRequest({args, user}), doc);
+      await options.postDelete(createMCPRequest({body: args, user}), doc);
     } catch (error) {
       return hookFailureResult("postDelete hook failed", error);
     }
