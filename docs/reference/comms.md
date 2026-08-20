@@ -162,11 +162,24 @@ When a channel is unconfigured:
 - production throws a `501` `APIError` titled `Comms channel not configured`.
 
 Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `[redacted]` unless
-`redactRecipients` is explicitly `false`.
+`redactRecipients` is explicitly `false`. Rendered payloads are retained for `retainPayloadDays`
+(default 30) after `redactPayload`; expired payloads are unset without deleting the log row.
+Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
+`dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
+only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
+and `errorClass` onto the matching row (`opened` does not change status).
 
-`onSend` and `onError` fire after every channel outcome (mail, SMS, push, and verification).
-`onRetry` runs once per send (or per push batch) before the inline transient retry; it keeps
-the shipped `(context, result)` signature and sets `context.attempt` to `2`.
+`beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
+`onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
+`errorClass` is `"transient"` (`context.attempt === 2`; shipped signature is `(context, result)`).
+Throwing hooks are logged and never change the send outcome. Adapters should call
+`recordDeliveryEvent()` and `recordOptOut()` rather than invoking those hooks directly.
+
+Provider throws become `{accepted: false, errorClass: "transient", errorCode: "provider-throw"}`.
+Permanent and config failures are not retried. Push retries re-send only the tokens whose first
+result was transient; tokens are deactivated when `errorClass` is `"permanent"` or
+`isPermanentFailure` is true. Each push token gets its own hook context (`attempt`, `isRetry`,
+`messageId`).
 
 ## Routes
 
