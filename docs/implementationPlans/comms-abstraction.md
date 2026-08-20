@@ -1,6 +1,6 @@
 # Implementation Plan: Pluggable communications layer (@terreno/comms)
 
-**Status:** Approved
+**Status:** Approved — Phase 1 gap-fill implemented
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1018
 **Priority:** High
 **Effort:** Big batch

@@ -9,15 +9,9 @@ All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
-  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
-  `docs/how-to/circleci.md`.
-
-### Added
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/) as one
+file per feature. `bun run changelog:assemble <version>` folds those files into a
+dated section below when cutting a release.
 
 ### Added
 
@@ -55,13 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   JSON-escapes generated strings so a remote OpenAPI document cannot inject
   TypeScript.
 
-### Deprecated
+## [Unreleased]
 
-- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
-  through the current major line; will not ship in the next major. Migrate collection CRUD to
-  [`@terreno/syncdb`](docs/reference/syncdb.md) using
-  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
-  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
 ## [57.0.0] - 2026-08-20
 
