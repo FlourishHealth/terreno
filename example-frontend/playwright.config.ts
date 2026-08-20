@@ -74,11 +74,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   fullyParallel: false,
   projects: process.env.CI ? ciProjects : localProjects,
-  reporter: process.env.GITHUB_ACTIONS
-    ? [["github"], ["html", {open: "never"}]]
-    : process.env.CI
-      ? [["list"], ["html", {open: "never"}]]
-      : "html",
+  reporter: process.env.CI ? [["github"], ["html", {open: "never"}]] : "html",
   retries: process.env.CI ? 2 : 0,
   testDir: "./e2e",
   // Locally 6 files share one Metro dev server, so page loads can take far longer
