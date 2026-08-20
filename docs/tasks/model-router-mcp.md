@@ -13,10 +13,10 @@
   - Acceptance: Types compile, existing tests still pass, `mcp` is an optional field on `ModelRouterOptions`
 
 - [x] **Task 1.2**: Build MCP tool registry
-  - Description: Create a global registry that collects MCP tool entries as `modelRouter()` is called. When a modelRouter has `mcp` config, it pushes an entry to the registry. Export `getMCPRegistry()` internally and `getMCPTools()` publicly (returns `Record<string, CoreTool>`).
+  - Description: Create a global registry that collects MCP tool entries as `modelRouter()` is called. When a modelRouter has `mcp` config, it pushes an entry to the registry. Export `getMCPRegistry()` from `@terreno/api`. Vercel AI SDK wrapping lives in `getMCPTools()` on `@terreno/ai`.
   - Files: `api/src/mcp/registry.ts`, `api/src/mcp/index.ts`, `api/src/api.ts` (register in modelRouter function)
   - Depends on: Task 1.1
-  - Acceptance: Calling `modelRouter(Todo, { ..., mcp: { methods: ['list', 'read'] } })` adds entries to the registry. `getMCPTools()` returns CoreTool objects.
+  - Acceptance: Calling `modelRouter(Todo, { ..., mcp: { methods: ['list', 'read'] } })` adds entries to the registry. `getMCPRegistry()` returns those entries.
 
 - [x] **Task 1.3**: Generate Zod schemas from Mongoose models
   - Description: Build a utility that converts a Mongoose model's schema into Zod schemas suitable for MCP tool `inputSchema`. Handle common field types (String, Number, Boolean, Date, ObjectId, Array, Mixed). Generate separate schemas for create (required fields), update (all optional + id required), read (id + optional populate), list (queryFields + pagination), and delete (id only). Respect `excludeFields` — omit listed fields from all generated schemas.
@@ -55,10 +55,10 @@
   - Acceptance: Full CRUD lifecycle works over MCP. Permission denials return appropriate errors. Owner filtering restricts results. Population returns nested data.
 
 - [x] **Task 1.9**: Export public API
-  - Description: Export `MCPConfig`, `getMCPTools()`, and any other public interfaces from `@terreno/api`'s main index. Update package exports.
-  - Files: `api/src/index.ts`, `api/src/mcp/index.ts`
+  - Description: Export `MCPConfig` and MCP registry/server helpers from `@terreno/api`. Export `getMCPTools()` from `@terreno/ai` so the Vercel `ai` SDK stays out of `@terreno/api`.
+  - Files: `api/src/index.ts`, `ai/src/index.ts`, `ai/src/service/getMCPTools.ts`
   - Depends on: Task 1.7
-  - Acceptance: Consumers can `import { MCPConfig, getMCPTools } from "@terreno/api"`.
+  - Acceptance: Consumers can `import { MCPConfig } from "@terreno/api"` and `import { getMCPTools } from "@terreno/ai"`.
 
 ---
 

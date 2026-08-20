@@ -18,7 +18,7 @@ This makes every Terreno app instantly AI-native: any model becomes callable by 
 - Auth-agnostic: works with both JWT and Better Auth
 - Tool naming: `{prefix}_list`, `{prefix}_read`, `{prefix}_create`, `{prefix}_update`, `{prefix}_delete`
 - Populate is an option on the read tool, not a separate tool
-- Also exports `getMCPTools()` returning Vercel `ai` SDK `CoreTool` objects for direct in-process use
+- Also exports `getMCPTools()` from `@terreno/ai` returning Vercel `ai` SDK `CoreTool` objects for direct in-process use
 
 **Related work:** The `ai-multimodal-tools-mcp` branch has `MCPService` (MCP client) and `AIService` in `@terreno/ai` — that's the consumer of what this plan builds.
 
@@ -113,7 +113,7 @@ Generated from model name, field names/types, and `queryFields`. Example:
 
 ### CoreTool Export
 
-`getMCPTools()` exported from `@terreno/api` returns all registered MCP tools as `Record<string, CoreTool>` for direct use with the Vercel `ai` SDK's `streamText()` / `generateText()`.
+`getMCPTools()` exported from `@terreno/ai` returns all registered MCP tools as `Record<string, CoreTool>` for direct use with the Vercel `ai` SDK's `streamText()` / `generateText()`.
 
 ## Notifications
 

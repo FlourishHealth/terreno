@@ -20,7 +20,8 @@ export interface UseTerrenoChatOptions {
  * Automatically injects Bearer token from auth state.
  *
  * The backend needs a chat endpoint (e.g. POST /api/chat) that accepts messages
- * and returns a streaming response. The MCP tools are available server-side via getMCPTools().
+ * and returns a streaming response. The MCP tools are available server-side via
+ * `getMCPTools()` from `@terreno/ai`.
  */
 export const useTerrenoChat = (options: UseTerrenoChatOptions = {}) => {
   const {baseURL = baseUrl, apiPath = "/api/chat", id, onError} = options;

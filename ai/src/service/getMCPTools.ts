@@ -1,9 +1,5 @@
+import {generateAllTools, getMCPRegistry, type User} from "@terreno/api";
 import {type Tool, tool} from "ai";
-
-import type {User} from "../auth";
-import {getMCPRegistry} from "./registry";
-import {generateAllTools} from "./toolGenerator";
-import type {MCPToolArgs} from "./types";
 
 /**
  * Returns all registered MCP tools as Vercel AI SDK tool objects.
@@ -12,8 +8,7 @@ import type {MCPToolArgs} from "./types";
 // noExplicitAny: Tool's input/output generics vary per tool schema
 // biome-ignore lint/suspicious/noExplicitAny: Tool's input/output generics vary per tool schema
 export const getMCPTools = (user?: User): Record<string, Tool<any, any>> => {
-  const registry = getMCPRegistry();
-  const toolDefs = generateAllTools(registry);
+  const toolDefs = generateAllTools(getMCPRegistry());
   // noExplicitAny: Tool's input/output generics vary per tool schema
   // biome-ignore lint/suspicious/noExplicitAny: Tool's input/output generics vary per tool schema
   const result: Record<string, Tool<any, any>> = {};
@@ -22,7 +17,7 @@ export const getMCPTools = (user?: User): Record<string, Tool<any, any>> => {
     const coreTool = tool({
       description: toolDef.description,
       execute: async (args: unknown) => {
-        const response = await toolDef.handler(args as MCPToolArgs, user);
+        const response = await toolDef.handler(args as Record<string, unknown>, user);
         const text = response.content.map((c) => c.text).join("\n");
         try {
           return JSON.parse(text);

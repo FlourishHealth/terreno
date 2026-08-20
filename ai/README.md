@@ -36,6 +36,7 @@ This mounts GPT chat (`POST /gpt/prompt`), history CRUD (`/gpt/histories`), proj
 - `LangfuseApp` — optional Langfuse tracing and admin UI routes
 - `FileStorageService` — GCS uploads with signed URLs
 - `MCPService` — SSE MCP client for tool calling
+- `getMCPTools` — wrap registered `modelRouter` MCP tools as Vercel AI SDK tools for in-process `streamText` / `generateText`
 - Gemini and Vertex helpers: `listGeminiApiModels`, `createVertexProvider`
 
 ## Documentation

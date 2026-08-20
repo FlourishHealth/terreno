@@ -55,7 +55,7 @@ Authentication is required by default, matching REST. A tool call with no resolv
 To run the same tools in-process (for example inside a chat route), use `getMCPTools`:
 
 ```typescript
-import {getMCPTools} from "@terreno/api";
+import {getMCPTools} from "@terreno/ai";
 
 const tools = getMCPTools(req.user);
 ```

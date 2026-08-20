@@ -14,7 +14,6 @@ export * from "./expressServer";
 export * from "./githubAuth";
 export * from "./httpClient";
 export * from "./logger";
-export {getMCPTools} from "./mcp/aiTools";
 export {extractUserFromHeaders, type MCPAuthContext} from "./mcp/auth";
 export {clearMCPRegistry, getMCPRegistry, registerMCPModel} from "./mcp/registry";
 export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";

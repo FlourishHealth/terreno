@@ -7,6 +7,7 @@ import {
   addMcpRoutes,
   createVertexProvider,
   FileStorageService,
+  getMCPTools,
   listEnabledVertexModels,
   listGeminiApiModels,
   MCPService,
@@ -21,7 +22,6 @@ import {
   asyncHandler,
   authenticateMiddleware,
   createOpenApiBuilder,
-  getMCPTools,
   logger,
 } from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";

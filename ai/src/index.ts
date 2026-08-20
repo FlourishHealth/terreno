@@ -44,6 +44,7 @@ export {
   listGeminiApiModels,
   normalizeGeminiModelId,
 } from "./service/gemini";
+export {getMCPTools} from "./service/getMCPTools";
 export {MCPService} from "./service/mcpService";
 export type {ParseFailure, ParseResult, ParseSuccess} from "./service/parseAiJson";
 export {
