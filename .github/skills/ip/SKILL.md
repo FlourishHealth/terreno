@@ -984,14 +984,14 @@ These operations manage IPs through their lifecycle after creation. Each is self
 
 ### Lifecycle: Init
 
-Set up the directory structure and tracking index for implementation plans in the current project.
+Set up the directory structure for implementation plans in the current project.
 
 Argument: optional project description or notes (`$ARGUMENTS`).
 
 #### Before Starting
 
 1. Identify the **project root** -- this is the current working directory
-2. Check if IP tracking already exists by looking for `docs/implementationPlans/PLAN_INDEX.md`
+2. Check if IP tracking already exists by looking for `docs/implementationPlans/` with IP files (not `PLAN_INDEX.md`)
    - If it exists, report what's already set up and ask what to regenerate
    - If it doesn't exist, proceed with full setup
 
@@ -1001,7 +1001,7 @@ Argument: optional project description or notes (`$ARGUMENTS`).
 2. Check `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, or similar for project name
 3. Look at recent git log for commit message style
 4. Note the primary language and any existing docs structure
-5. Check if `docs/implementationPlans/` already exists with plan files -- if so, scan them for the highest IP number to seed the index
+5. Check if `docs/implementationPlans/` already exists with plan files -- if so, scan them for the highest IP number
 
 #### Init Step 2: Create Directory Structure
 
@@ -1010,45 +1010,9 @@ mkdir -p docs/implementationPlans/archive
 mkdir -p docs/tasks
 ```
 
-#### Init Step 3: Create PLAN_INDEX.md
+#### Init Step 3: Do not create PLAN_INDEX.md
 
-Create `docs/implementationPlans/PLAN_INDEX.md`:
-
-```markdown
-# Implementation Plan Index
-
-Tracked implementation plans for {project_name}.
-
-See `CLAUDE.md` for IP lifecycle stages and management guidelines.
-
-## Active Plans
-
-| IP | Title | Status | Effort | Priority |
-|----|-------|--------|--------|----------|
-| - | - | - | - | No active plans yet |
-
-## Completed
-
-| IP | Title | Completed | Notes |
-|----|-------|-----------|-------|
-| - | - | - | No completed plans yet |
-
-## Deferred / Closed
-
-| IP | Title | Status | Notes |
-|----|-------|--------|-------|
-| - | - | - | No deferred plans yet |
-
-## Backlog
-
-Low-priority or blocked items. Promote to Active when ready to plan.
-
-| IP | Title | Notes |
-|----|-------|-------|
-| - | - | No backlog items yet |
-```
-
-If existing plan files were found in `docs/implementationPlans/`, populate the Active table with entries for each file, inferring IP numbers from filenames or assigning new ones.
+Do **not** create or update `docs/implementationPlans/PLAN_INDEX.md`. A shared index causes merge conflicts. Status lives on each IP file's `**Status:**` header. If a leftover `PLAN_INDEX.md` exists, delete it.
 
 #### Init Step 4: Create IP_TEMPLATE.md
 
@@ -1127,7 +1091,7 @@ Otherwise, **append** the following section:
 
 ## Implementation Plan (IP) Management
 
-Implementation plans are tracked in `docs/implementationPlans/`. Each IP has a dedicated file and is indexed in `PLAN_INDEX.md`.
+Implementation plans are tracked in `docs/implementationPlans/`. Each IP has a dedicated file. Status lives in that file's `**Status:**` header. Do not maintain `PLAN_INDEX.md`.
 
 ### IP Lifecycle
 
@@ -1148,8 +1112,8 @@ Implementation plans are tracked in `docs/implementationPlans/`. Each IP has a d
 - **Template**: `docs/implementationPlans/IP_TEMPLATE.md`
 - **Task files**: `docs/tasks/{feature-name}.md` (created by Step 5: Generate)
 - **Commit format**: `IP-XXX: Brief description`
-- **Numbering**: Next number = highest across all index sections + 1
-- **Source of truth**: IP file status > index (if discrepancy, file wins)
+- **Numbering**: Next number = highest existing IP number + 1
+- **Source of truth**: the IP file `**Status:**` header
 - **Archive**: Completed IPs move to `docs/implementationPlans/archive/`
 
 ### Inline Annotations (`%%`)
@@ -1171,7 +1135,6 @@ Report what was created:
 ## IP Tracking Initialized
 
 ### Files Created
-- `docs/implementationPlans/PLAN_INDEX.md` -- Plan index
 - `docs/implementationPlans/IP_TEMPLATE.md` -- IP file template (if not already present)
 - `docs/implementationPlans/archive/` -- Archive directory
 - `docs/tasks/` -- Task files directory
@@ -1205,7 +1168,7 @@ Return: project name, purpose, tech stack, directory layout, key gotchas.
 
 Explore the implementation plan system to understand what's been built and what's planned:
 
-1. **Read index** -- `docs/implementationPlans/PLAN_INDEX.md`
+1. **List IPs** -- glob `docs/implementationPlans/*.md` (skip `README.md` and `IP_TEMPLATE.md`); read each `**Status:**` header
 2. **Active IPs** -- Read each active IP file (non-Complete status)
 3. **Archived IPs** -- List files in `docs/implementationPlans/archive/` to understand completed work
 4. **Task files** -- List and scan `docs/tasks/` for active task lists
@@ -1426,12 +1389,12 @@ Generate an up-to-date summary of active implementation plans.
 **Decide which path to take based on conversation context:**
 
 ##### Fast Path (just print the table)
-Use this when you are **confident the index is up to date** -- for example:
+Use this when you are **confident the IP headers are up to date** -- for example:
 - You've been working on IPs in this session (closing, creating, updating)
 - You just ran a full grooming pass recently
 - The user just asked you to "print the status"
 
-Simply read `docs/implementationPlans/PLAN_INDEX.md` and each active IP file, then output the table.
+Glob `docs/implementationPlans/*.md` (skip `README.md` and `IP_TEMPLATE.md`), read each `**Status:**` header, then output the table.
 
 ##### Full Grooming (first invocation or uncertain state)
 Use this when you have **no context about the current state**:
@@ -1442,23 +1405,17 @@ Use this when you have **no context about the current state**:
 Perform these housekeeping checks:
 
 ###### 1. Status Sync Check
-- Read each active IP file and compare its `**Status:**` line to the index
-- If discrepancy, update the index to match the file (file is source of truth)
-- Report any discrepancies found and fixed
+- Read each IP file's `**Status:**` line (skip `README.md` and `IP_TEMPLATE.md`)
+- Group by status for the output table
+- Report any files missing a Status header
 
 ###### 2. Archive Check
 - Look for IP files in `docs/implementationPlans/` (not in `archive/`) with status: Complete, Deferred, or Closed
 - For each such IP not yet archived:
   - Move to `docs/implementationPlans/archive/`
-  - Ensure it's in the appropriate section of the index
 - Report any files archived
 
-###### 3. Orphan Check
-- Check if any IPs in the index don't have corresponding files
-- Check if any IP files exist that aren't in the index (exclude IP_TEMPLATE.md and PLAN_INDEX.md)
-- Report any orphans found
-
-###### 4. Task Progress Check
+###### 3. Task Progress Check
 - For each active IP, check if a corresponding task file exists in `docs/tasks/`
 - Count completed vs total tasks (checked vs unchecked checkboxes)
 - Include task progress in the output table
@@ -1484,7 +1441,7 @@ Notes:
 
 ### Lifecycle: Close
 
-Close an IP by marking it complete (or closed/deferred), archiving the file, and updating the index.
+Close an IP by marking it complete (or closed/deferred) and archiving the file.
 
 Argument should contain:
 - **IP number or name** (required-ish): e.g. `1`, `IP-001`, or the plan filename slug
@@ -1520,33 +1477,24 @@ If no IP number/name provided, infer from conversation context:
 - For Complete: add `**Completed:** {today YYYY-MM-DD}` after Status
 - For Closed/Deferred: add `**Closed:** {today}` if not present
 
-##### 3. Update PLAN_INDEX.md
-
-- Read `docs/implementationPlans/PLAN_INDEX.md`
-- Remove IP's row from **Active Plans** table
-- Add to appropriate section:
-  - **Complete** -> add to top of `## Completed` table with date and notes
-  - **Closed/Deferred** -> add to top of `## Deferred / Closed` table with status and notes
-
-##### 4. Archive the files
+##### 3. Archive the files
 
 - Move IP file to `docs/implementationPlans/archive/`
 - If a corresponding task file exists in `docs/tasks/`, move it to `docs/implementationPlans/archive/` as well (or leave in place if tasks are still referenced)
 
-##### 5. Commit
+##### 4. Commit
 
 Commit all changes in a single atomic commit:
 - Check `git status` for uncommitted changes related to the IP implementation
-- Stage implementation files, archived IP, deleted original path, `PLAN_INDEX.md`
+- Stage implementation files, archived IP, and deleted original path
 - Commit with message: `IP-{number}: {title}`
 
-##### 6. Close Summary
+##### 5. Close Summary
 
 Report:
 - IP number and title
 - Disposition (Complete / Closed / Deferred)
 - Status updated in IP file
-- Moved from Active to the appropriate section in index
 - Archived to `docs/implementationPlans/archive/`
 - Committed: {short hash}
 
