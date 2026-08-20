@@ -599,6 +599,56 @@ describe("CommsService", () => {
     assert.deepEqual(onErrorChannels, ["verification"]);
   });
 
+  it("invokes onError once when push provider throws for multiple tokens", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[hooks-a]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    await PushToken.upsert(
+      {token: "ExponentPushToken[hooks-b]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+
+    let onErrorCount = 0;
+    const service = new CommsService({
+      onError: async (): Promise<void> => {
+        onErrorCount += 1;
+      },
+      push: {
+        id: "throw-push",
+        sendPush: async (): Promise<never> => {
+          throw new Error("Provider unavailable");
+        },
+      },
+    });
+
+    const error = await captureError(
+      (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId})
+    );
+    assert.instanceOf(error, Error);
+    assert.equal(onErrorCount, 1);
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "push",
+        error: "Provider send failed",
+        provider: "throw-push",
+        status: "failed",
+      }),
+      2
+    );
+  });
+
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {
     const userId = new mongoose.Types.ObjectId();
     const token = await PushToken.upsert(

@@ -10,6 +10,7 @@ import {CommsMessage} from "./models/commsMessage";
 import {PushToken} from "./models/pushToken";
 import type {
   CheckVerificationOptions,
+  CommsHookContext,
   CommsOptions,
   MailMessage,
   MailProvider,
@@ -263,9 +264,7 @@ export class CommsService {
             })
         )
       );
-      await Promise.all(
-        tokens.map((): Promise<void> => this.notifyOutcomeHooks(context, failedResult))
-      );
+      await this.notifyOutcomeHooks(context, failedResult);
       throw error;
     }
 
