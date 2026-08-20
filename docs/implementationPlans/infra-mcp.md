@@ -1,6 +1,7 @@
 # Implementation Plan: Infrastructure MCP server (`@terreno/infra-mcp`)
 
 **Status:** Draft — blocked on the RBAC module ([rbac-permissions.md](rbac-permissions.md)) landing in `@terreno/api`
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1090
 **Branch:** TBD
 **Owner:** TBD
 **Created:** 2026-08-09

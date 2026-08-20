@@ -1,5 +1,7 @@
 # Task List: Offline Mode
 
+**Status:** Closed (2026-08-20) — IP deferred; superseded by `@terreno/syncdb`. Open tasks below will not be executed.
+
 *Structured task breakdown for automated implementation. Each task should be independently implementable and testable.*
 
 ## Phase 1: RTK Core Offline Framework
