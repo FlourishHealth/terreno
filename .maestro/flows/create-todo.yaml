@@ -21,8 +21,11 @@ url: http://localhost:8082/
 - inputText: "Buy groceries"
 
 - tapOn:
-    id: "Add Todo"
+    id: "todos-create-button"
 
-- extendedWaitUntil:
-    visible: "Buy groceries"
+# FlashList puts the new row below the heading/form; on short Maestro viewports
+# that lands under the Expo tab bar unless we scroll it into view.
+- scrollUntilVisible:
+    direction: DOWN
+    element: "Buy groceries"
     timeout: 30000
