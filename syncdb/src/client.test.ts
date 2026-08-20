@@ -1423,7 +1423,8 @@ describe("createSyncDb", () => {
         await flush();
         const originalListQueued = client.outbox.listQueued;
         let calls = 0;
-        // biome-ignore lint/suspicious/noExplicitAny: test-only spy shim
+        // noExplicitAny: test-only spy shim on a private outbox method
+        // biome-ignore lint/suspicious/noExplicitAny: test-only spy shim on a private outbox method
         (client.outbox as any).listQueued = (...args: any[]) => {
           calls += 1;
           return originalListQueued(...(args as [{collection?: string; userId: string}]));

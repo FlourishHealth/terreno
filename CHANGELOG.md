@@ -13,12 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Filter` and its composable select, boolean, accordion, and change-badge controls in
-  `@terreno/ui` for desktop web filtering flows ([#972](https://github.com/FlourishHealth/terreno/pull/972))
 - `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+
+## [57.0.0-beta.1] - 2026-08-20
+
+First beta of the Expo SDK 57 line, cut from `master` after merging
+[`#1065`](https://github.com/FlourishHealth/terreno/pull/1065). Publishes under the npm
+`beta` dist-tag; `npm install @terreno/ui` still resolves to the stable `0.x` line.
+
+### Added
+
+- `Filter` and its composable select, boolean, accordion, and change-badge controls in
+  `@terreno/ui` for desktop web filtering flows
+  ([#972](https://github.com/FlourishHealth/terreno/pull/972))
+
+### Changed
+
+- Terreno's version major now tracks Expo SDK 57 (`57.x.y`). The stable `0.x` packages are
+  unaffected; this beta does not move `latest`
+  ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+- Frontend peer/catalog stack moves to Expo SDK 57 / React Native 0.86.2
+  (`expo ~57.0.14`, matching React Native DevTools and Hermes V1 fixes from
+  `expo@57.0.9+`). React stays at `19.2.3`. Consuming apps should run
+  `npx expo install expo@latest --fix` then rebuild native binaries
+  ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+- `@terreno/syncdb` bumps `tinybase` to `^9.5.1` for Expo SDK 57 /
+  `expo-sqlite` type compatibility ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
 
 ## [56.0.0-beta.2] - 2026-08-17
 

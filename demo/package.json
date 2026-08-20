@@ -85,6 +85,13 @@
   "engine": {
     "node": "22"
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@shopify/react-native-skia"
+      ]
+    }
+  },
   "main": "index.js",
   "name": "terreno-demo",
   "prettier": {

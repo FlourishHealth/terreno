@@ -42,11 +42,20 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
-      - name: Start MongoDB
+      - name: Start MongoDB via GCR mirror
+        id: mongodb_mirror
+        continue-on-error: true
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-image: mirror.gcr.io/library/mongo
+
+      - name: Fallback to Docker Hub MongoDB image
+        if: steps.mongodb_mirror.outcome == 'failure'
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-image: mongo
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
