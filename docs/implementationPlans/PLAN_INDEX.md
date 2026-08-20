@@ -14,8 +14,8 @@ Umbrella plans that coordinate several IPs.
 
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
+| [Admin improvements (post–v2 architecture)](admin-improvements.md) | Approved — decisions 2026-08-20 | 2026-06-01 | [tasks](../tasks/admin-improvements.md) |
 | [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — decisions recorded | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
-| [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [@terreno/syncdb-codegen](syncdb-codegen.md) | Draft | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
 | [SyncDB local-first data layer (v2)](syncdb-local-first.md) | In progress — Phases 1–8 landed, Phase 9 follow-ups open | 2026-06-23 | [tasks](../tasks/syncdb-local-first.md) |
 | [SyncDB hardening (syncdb-2)](terreno-syncdb-2.md) | Implemented — Phases A–F landed; deviations carried into Phase 9 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8/9) |
@@ -25,6 +25,7 @@ Umbrella plans that coordinate several IPs.
 
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
+| [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Complete — phased tasks verified in-repo | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
 
 ## Deferred / Closed
