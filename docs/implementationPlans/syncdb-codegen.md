@@ -1,6 +1,7 @@
 # Implementation Plan: @terreno/syncdb-codegen
 
 **Status:** Approved
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1087
 **Branch:** cursor/ip-syncdb-codegen-fb2e
 **Owner:**
 **Created:** 2026-07-08

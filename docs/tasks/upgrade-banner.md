@@ -1,5 +1,7 @@
 # Task List: Upgrade Banner
 
+**Status:** Closed (2026-08-20) — IP complete. Shipped via `VersionCheckPlugin`, `AdminVersionConfig`, `useUpgradeCheck`, and `UpgradeRequiredScreen`. Open tasks below were not executed.
+
 *Structured task breakdown for automated implementation. Each task should be independently implementable and testable.*
 
 ## Phase 1: Backend + Admin

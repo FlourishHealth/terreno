@@ -18,6 +18,19 @@ const config: Config = {
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   organizationName: "flourishhealth",
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            from: "/next/reference/rtk",
+            to: "/next/how-to/migrate-rtk-to-syncdb",
+          },
+        ],
+      },
+    ],
+  ],
   presets: [
     [
       "classic",

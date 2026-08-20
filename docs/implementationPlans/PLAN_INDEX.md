@@ -17,7 +17,7 @@ Umbrella plans that coordinate several IPs.
 |------|--------|---------|-------|
 | [Admin improvements (post–v2 architecture)](admin-improvements.md) | Approved — decisions 2026-08-20 | 2026-06-01 | [tasks](../tasks/admin-improvements.md) |
 | [Pluggable database layer and SQLite adapter](pluggable-database-sqlite.md) | Approved — decisions 2026-08-20 | 2026-08-20 | [tasks](../tasks/pluggable-database-sqlite.md) |
-| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — decisions recorded | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | In progress — Phase 1–3 CI (deploys deferred) | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [@terreno/syncdb-codegen](syncdb-codegen.md) | Approved | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
 | [SyncDB local-first data layer (v2)](syncdb-local-first.md) | In progress — Phases 1–8 landed, Phase 9 follow-ups open | 2026-06-23 | [tasks](../tasks/syncdb-local-first.md) |
@@ -89,10 +89,18 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
+| [Admin-only — serve admin SPA from backend](admin-only.md) | Complete | 2026-05-11 | [tasks](../tasks/admin-only.md) (closed) |
+| [Admin-only research](admin-only-research.md) | Complete | — | n/a |
+| [Consent forms system](consent-forms.md) | Complete | — | [tasks](../tasks/consent-forms.md) (closed) |
+| [Upgrade banner](upgrade-banner.md) | Complete | — | [tasks](../tasks/upgrade-banner.md) (closed) |
 
 ## Deferred / Closed
 
-*(Plans parked or superseded.)*
+| Plan | Status | Closed | Notes |
+|------|--------|--------|-------|
+| [Offline mode](offline-mode.md) | Deferred | 2026-08-20 | Superseded by [syncdb](syncdb-local-first.md) |
+| [modelRouter actions](model-router-actions.md) | Deferred | 2026-08-20 | Custom `endpoints` remain supported |
+| [Feature flags (pre-OpenFeature)](feature-flags.md) | Deferred | 2026-08-20 | Superseded by [feature-flags-openfeature](feature-flags-openfeature.md) |
 
 ## Backlog
 
@@ -102,8 +110,11 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 |------|-------|
 | [Langfuse integration](terreno-langfuse-integration.md) | AI observability plugin |
 | [modelRouter MCP tools](model-router-mcp.md) | MCP surface for consumer app APIs |
-| [Offline mode](offline-mode.md) | Superseded in large part by [syncdb](syncdb-local-first.md) — confirm and close |
-| [modelRouter actions](model-router-actions.md) | — |
 | [RBAC Permissions](rbac-permissions.md) | Draft (API design) |
 | [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) |
 | [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) |
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — awaiting Approval |
+| [Docs site and versioning](docs-site-and-versioning.md) | Docusaurus + versioned docs |
+| [SyncDB codegen](syncdb-codegen.md) | OpenAPI → syncdb descriptors |
+| [Modular API (`TerrenoApp`)](ModularAPI.md) | Landed; IP retained as history |
+| [Admin improvements (v1)](admin-improvements.md) | Superseded by admin UI v2 |

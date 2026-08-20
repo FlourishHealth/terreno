@@ -8,6 +8,7 @@
 **Prerequisite:** [Admin UI v2 — Django-parity admin](./admin-ui-v2-django-parity.md) (**Complete**)  
 **Research:** [admin-improvements-research.md](./admin-improvements-research.md)
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1099
 ## Goal
 
 Finish the **architectural** admin overhaul that Admin UI v2 did not ship: co-locate admin config on `modelRouter`, aggregate admins from plugins via `adminContribution()`, introduce `AdminProvider` + a three-bucket widget registry + `AdminScreenRouter`, harden list filters with a strict parser, lift field scrubbing into `@terreno/api`, and migrate pre-built plugin admins — **on top of** the v2 shell, `home.slots`, `bulk-patch`, and script runner already in production.
