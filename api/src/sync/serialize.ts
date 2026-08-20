@@ -1,9 +1,14 @@
-// noExplicitAny: serialization operates generically across registered models
-// biome-ignore-all lint/suspicious/noExplicitAny: serialization operates generically across registered models
 import type express from "express";
+import type {Document} from "mongoose";
 
 import type {SyncRegistryEntry} from "./registry";
 import type {SyncMutationOperation} from "./types";
+
+/** Optional Mongoose serialization hooks a payload may or may not carry. */
+interface MaybeHydratedDoc {
+  toObject?: () => Record<string, unknown>;
+  toJSON?: () => unknown;
+}
 
 /**
  * Shared serializer for sync payloads (snapshot entities, conflict server docs, and
@@ -27,10 +32,8 @@ export const serializeSyncPayload = async ({
   method?: SyncMutationOperation;
   req: express.Request;
 }): Promise<unknown> => {
-  const plain =
-    typeof (doc as any).toObject === "function"
-      ? ((doc as any).toObject() as Record<string, unknown>)
-      : doc;
+  const maybeHydrated = doc as MaybeHydratedDoc;
+  const plain = typeof maybeHydrated.toObject === "function" ? maybeHydrated.toObject() : doc;
   if (entry.config.responseHandler) {
     return entry.config.responseHandler(plain, method);
   }
@@ -39,10 +42,15 @@ export const serializeSyncPayload = async ({
     // modelRouter responseHandler must run with single-entity `"read"` semantics — not
     // the hardcoded `"list"`, which can trigger list-only shaping (field trimming, array
     // wrapping) that corrupts a single-doc payload.
-    return entry.options.responseHandler(doc as any, "read", req, entry.options);
+    return entry.options.responseHandler(
+      doc as unknown as Document<unknown, unknown, unknown>,
+      "read",
+      req,
+      entry.options
+    );
   }
-  if (typeof (doc as any).toJSON === "function") {
-    return (doc as any).toJSON();
+  if (typeof maybeHydrated.toJSON === "function") {
+    return maybeHydrated.toJSON();
   }
   return plain;
 };
