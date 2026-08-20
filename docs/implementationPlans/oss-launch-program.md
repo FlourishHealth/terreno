@@ -1,6 +1,7 @@
 # Program: Open Source Launch
 
 **Status:** Draft — decisions recorded (defaults accepted 2026-07-29)
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1094
 **Priority:** High
 **Effort:** Epic (multiple IPs)
 **Owner:** unassigned

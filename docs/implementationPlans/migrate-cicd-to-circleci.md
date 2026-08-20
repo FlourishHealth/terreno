@@ -2,7 +2,7 @@
 
 **Status:** In progress — Phase 1–3 CI config landed (deploys deferred per request)  
 **Discussion:** _(none)_  
-**Roadmap issue:** _(pending — hand off via `roadmap-item` when Approved)_  
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Linear:** _(none)_  
 **Priority:** High  
 **Effort:** Large (cross-cutting infra; many workflows)  

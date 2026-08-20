@@ -942,17 +942,34 @@ workflows:
     jobs:
       - admin-spa-integration
 
-  # `.circleci/**` edits cannot be validated by package path params, so config
-  # changes dual-run a representative slice of package CI, policy, and e2e.
+  # Path-filter `run-circleci-config` is set for `.circleci/**`. Dual-run a
+  # representative subset of ported jobs so config-only PRs still exercise
+  # package, policy, example, and e2e twins (one e2e spec, not the full matrix).
   circleci-config:
     when: << pipeline.parameters.run-circleci-config >>
     jobs:
       - api-ci
+      - ai-ci
+      - rtk-ci
       - ui-ci
+      - ui-demo-typecheck
+      - comms-ci
+      - mcp-server-ci
+      - mcp-server-docker:
+          requires:
+            - mcp-server-ci
+      - example-frontend-ci
       - example-backend-ci
+      - example-backend-script-runner
+      - example-backend-docker
+      - admin-spa-ci
       - no-barrel-imports
+      - explicit-any
+      - license-coverage
+      - circleci-parity
       - e2e:
           matrix:
             parameters:
               spec:
                 - todos
+      - admin-spa-integration

@@ -88,10 +88,18 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
+| [Admin-only — serve admin SPA from backend](admin-only.md) | Complete | 2026-05-11 | [tasks](../tasks/admin-only.md) (closed) |
+| [Admin-only research](admin-only-research.md) | Complete | — | n/a |
+| [Consent forms system](consent-forms.md) | Complete | — | [tasks](../tasks/consent-forms.md) (closed) |
+| [Upgrade banner](upgrade-banner.md) | Complete | — | [tasks](../tasks/upgrade-banner.md) (closed) |
 
 ## Deferred / Closed
 
-*(Plans parked or superseded.)*
+| Plan | Status | Closed | Notes |
+|------|--------|--------|-------|
+| [Offline mode](offline-mode.md) | Deferred | 2026-08-20 | Superseded by [syncdb](syncdb-local-first.md) |
+| [modelRouter actions](model-router-actions.md) | Deferred | 2026-08-20 | Custom `endpoints` remain supported |
+| [Feature flags (pre-OpenFeature)](feature-flags.md) | Deferred | 2026-08-20 | Superseded by [feature-flags-openfeature](feature-flags-openfeature.md) |
 
 ## Backlog
 
@@ -101,8 +109,11 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 |------|-------|
 | [Langfuse integration](terreno-langfuse-integration.md) | AI observability plugin |
 | [modelRouter MCP tools](model-router-mcp.md) | MCP surface for consumer app APIs |
-| [Offline mode](offline-mode.md) | Superseded in large part by [syncdb](syncdb-local-first.md) — confirm and close |
-| [modelRouter actions](model-router-actions.md) | — |
 | [RBAC Permissions](rbac-permissions.md) | Draft (API design) |
 | [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) |
 | [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) |
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — awaiting Approval |
+| [Docs site and versioning](docs-site-and-versioning.md) | Docusaurus + versioned docs |
+| [SyncDB codegen](syncdb-codegen.md) | OpenAPI → syncdb descriptors |
+| [Modular API (`TerrenoApp`)](ModularAPI.md) | Landed; IP retained as history |
+| [Admin improvements (v1)](admin-improvements.md) | Superseded by admin UI v2 |

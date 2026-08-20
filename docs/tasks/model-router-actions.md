@@ -1,5 +1,7 @@
 # modelRouter Actions — Task List
 
+**Status:** Closed (2026-08-20) — IP deferred. Open tasks below will not be executed.
+
 ## Phase 1: Foundation (types + runtime + per-route OpenAPI middleware)
 
 - [ ] **Task 1.1**: Add `zod ^4.3.6` as a **peerDependency** of `@terreno/api` (also pin `^4.3.6` in `devDependencies` so the package compiles/tests on its own) and `@asteasolutions/zod-to-openapi ^8.5.0` as a regular `dependency` (it bundles its own usage). Use Bun catalog for Zod if a catalog version exists.

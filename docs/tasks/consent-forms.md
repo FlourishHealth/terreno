@@ -1,5 +1,7 @@
 # Task List: Consent Forms System
 
+**Status:** Closed (2026-08-20) — IP complete. Shipped in `@terreno/api` (`ConsentApp`) and `@terreno/ui`. Open tasks below were not executed.
+
 *Structured task breakdown for automated implementation. Each task should be independently implementable and testable.*
 
 ## Phase 1: Models + API
