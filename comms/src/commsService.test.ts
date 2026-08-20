@@ -583,7 +583,7 @@ describe("CommsService", () => {
         sendSms: async (): Promise<SendResult> => ({accepted: true}),
       },
       verification: {
-        checkVerification: async (): Promise<{valid: boolean}> => ({valid: false, error: "bad"}),
+        checkVerification: async (): Promise<{valid: boolean}> => ({error: "bad", valid: false}),
         id: "hook-verification",
         startVerification: async (): Promise<SendResult> => ({accepted: true}),
       },

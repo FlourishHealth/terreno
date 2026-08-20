@@ -264,9 +264,7 @@ export class CommsService {
         )
       );
       await Promise.all(
-        tokens.map(
-          (): Promise<void> => this.notifyOutcomeHooks(context, failedResult)
-        )
+        tokens.map((): Promise<void> => this.notifyOutcomeHooks(context, failedResult))
       );
       throw error;
     }
