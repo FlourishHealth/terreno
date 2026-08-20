@@ -16,6 +16,14 @@ targets:
 ---
 # Generate Frontend SDK
 
+Regenerates `example-frontend/store/openApiSdk.ts` from the backend OpenAPI spec via RTK Query codegen.
+
+**Scope:** This skill covers **non-synced** routes only (auth, profile, admin, AI, feature flags, custom RPC). Synced collections use `@terreno/syncdb` hooks (`useQuery`, `useMutate`) — they are **not** in the generated SDK. See [syncdb reference](../../docs/reference/syncdb.md) and [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
+
+### Legacy RTK data path
+
+During the `@terreno/rtk` support window, some screens may still use generated `useGetXQuery` / `usePostXMutation` for collections. Do not add new collection hooks — migrate to syncdb instead.
+
 The `example-frontend` consumes the `example-backend` API via auto-generated RTK Query hooks in `store/openApiSdk.ts`. The codegen pulls from the live backend at `http://localhost:4000/openapi.json`, so the backend must be running while `bun run sdk` executes.
 
 **Never edit `example-frontend/store/openApiSdk.ts` by hand — it is fully overwritten by this skill.**
