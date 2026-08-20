@@ -464,29 +464,25 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       if (ids.length === 0) {
         return;
       }
-      try {
-        if (action.background) {
-          await enqueueBackground({
-            ids,
-            kind: action.id,
-            metadata: {actionId: action.id},
-            resourceRoute: modelConfig.routePath,
-          }).unwrap();
-          toast.success("Background task queued");
-        } else if (action.patchKeys && action.patchKeys.length > 0) {
-          const patch: Record<string, unknown> = {};
-          for (const k of action.patchKeys) {
-            patch[k] = true;
-          }
-          await bulkPatch({ids, patch}).unwrap();
-          toast.success("Bulk update applied");
-        } else {
-          toast.warn("This action has no bulk handler configured.");
+      if (action.background) {
+        await enqueueBackground({
+          ids,
+          kind: action.id,
+          metadata: {actionId: action.id},
+          resourceRoute: modelConfig.routePath,
+        }).unwrap();
+        toast.success("Background task queued");
+      } else if (action.patchKeys && action.patchKeys.length > 0) {
+        const patch: Record<string, unknown> = {};
+        for (const k of action.patchKeys) {
+          patch[k] = true;
         }
-        setSelectedIds(new Set());
-      } catch (err) {
-        toast.catch(err, "Bulk action failed");
+        await bulkPatch({ids, patch}).unwrap();
+        toast.success("Bulk update applied");
+      } else {
+        toast.warn("This action has no bulk handler configured.");
       }
+      setSelectedIds(new Set());
     },
     [bulkPatch, enqueueBackground, modelConfig, selectedIds, toast, visibleActions]
   );

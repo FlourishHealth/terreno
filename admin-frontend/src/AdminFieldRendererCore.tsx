@@ -108,6 +108,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   const helperText = fieldConfig.description;
   const refModel = getRefModel(modelConfigs, USER_REF_MODEL_NAME);
   const isReadOnly = Boolean(readOnly);
+  const useAutocomplete = Boolean(autocompleteFields?.includes(fieldKey));
   const FieldWidget = useFieldWidget(fieldConfig.widget);
 
   if (FieldWidget && fieldConfig.widget) {
@@ -142,6 +143,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         <AdminPrimitiveArrayField
           api={api}
           apiBase={apiBase}
+          autocomplete={useAutocomplete}
           baseUrl={baseUrl}
           errorText={errorText}
           helperText={helperText ?? "Select users to target for this rule."}
@@ -164,6 +166,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         return (
           <CustomRenderer
             api={api}
+            autocomplete={useAutocomplete}
             baseUrl={baseUrl}
             errorText={errorText}
             helperText={helperText ?? "Select the user to target for this rule."}
@@ -180,6 +183,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         return (
           <AdminRefField
             api={api}
+            autocomplete={useAutocomplete}
             baseUrl={baseUrl}
             errorText={errorText}
             helperText={helperText ?? "Select the user to target for this rule."}
@@ -229,6 +233,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         <CustomRenderer
           api={api}
           apiBase={apiBase}
+          autocomplete={useAutocomplete}
           baseUrl={baseUrl}
           errorText={errorText}
           helperText={helperText}
@@ -243,7 +248,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       );
     }
     if (refModel) {
-      const useAutocomplete = Boolean(autocompleteFields?.includes(fieldKey));
       return (
         <AdminRefField
           api={api}
@@ -354,6 +358,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       <AdminPrimitiveArrayField
         api={api}
         apiBase={apiBase}
+        autocomplete={useAutocomplete}
         baseUrl={baseUrl}
         errorText={errorText}
         helperText={helperText}

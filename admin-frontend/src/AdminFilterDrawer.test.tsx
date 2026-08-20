@@ -5,17 +5,19 @@ import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {AdminFilterDrawer} from "./AdminFilterDrawer";
 
+let mockWindowWidth = 1200;
+
 mock.module("react-native", () => ({
-  Dimensions: {get: () => ({height: 800, width: 1200})},
+  Dimensions: {get: () => ({height: 800, width: mockWindowWidth})},
   Platform: {OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default},
   Pressable: "Pressable",
   StyleSheet: {create: (s: unknown) => s, flatten: (s: unknown) => s},
-  useWindowDimensions: () => ({height: 800, width: 1200}),
+  useWindowDimensions: () => ({height: 800, width: mockWindowWidth}),
 }));
 
 describe("AdminFilterDrawer", () => {
   beforeEach(() => {
-    mock.restore();
+    mockWindowWidth = 1200;
   });
 
   it("renders desktop drawer with apply button and filter testIDs", async () => {

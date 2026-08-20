@@ -207,6 +207,16 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
     }
   }, [draftState, isMobileLayout, onApply]);
 
+  const handleOpenSheet = useCallback(() => {
+    setDraftState(appliedFilterState);
+    setIsSheetOpen(true);
+  }, [appliedFilterState]);
+
+  const handleDismissSheet = useCallback(() => {
+    setDraftState(appliedFilterState);
+    setIsSheetOpen(false);
+  }, [appliedFilterState]);
+
   const filterContent = useMemo(
     () => (
       <FilterFields
@@ -234,21 +244,16 @@ export const AdminFilterDrawer: React.FC<AdminFilterDrawerProps> = ({
     return (
       <Box testID="admin-filter-drawer">
         <Button
-          onClick={() => {
-            setIsSheetOpen(true);
-          }}
+          onClick={handleOpenSheet}
+          testID="admin-filter-open"
           text="Filters"
           variant="outline"
         />
         <Modal
-          onDismiss={() => {
-            setIsSheetOpen(false);
-          }}
+          onDismiss={handleDismissSheet}
           primaryButtonOnClick={handleApply}
           primaryButtonText="Apply filters"
-          secondaryButtonOnClick={() => {
-            setIsSheetOpen(false);
-          }}
+          secondaryButtonOnClick={handleDismissSheet}
           secondaryButtonText="Cancel"
           title="Filters"
           visible={isSheetOpen}
