@@ -77,7 +77,8 @@ const deleteAtPath = (obj: unknown, segments: string[]): void => {
  *
  * Bare field names are removed at every depth (including inside arrays and populated
  * refs) so a redacted name never leaks through a nested document. Use a dot-notation
- * path when only one specific location should be removed.
+ * path when only one specific location should be removed. Literal object keys that
+ * equal a denylist entry (including dotted names) are also dropped.
  */
 const stripExcludedFields = (data: unknown, excludeFields: string[]): unknown => {
   if (!excludeFields.length || !data) {
@@ -99,7 +100,9 @@ const stripExcludedFields = (data: unknown, excludeFields: string[]): unknown =>
     }
     const result: Record<string, unknown> = {};
     for (const [key, nested] of Object.entries(plain)) {
-      if (bareKeys.has(key)) {
+      // Exact key match covers both bare names and literal dotted keys
+      // ("metadata.nested.token") that Mongoose would otherwise treat as a path.
+      if (bareKeys.has(key) || excludeFields.includes(key)) {
         continue;
       }
       result[key] = strip(nested);
@@ -246,19 +249,26 @@ const serializeResponse = async (
   method: SerializableMCPMethod,
   entry: MCPRegistryEntry,
   user?: User
-): Promise<JSONValue> => {
-  const excludeFields = entry.config.excludeFields ?? [];
+): Promise<{error: MCPToolResult} | {value: JSONValue}> => {
+  try {
+    const excludeFields = entry.config.excludeFields ?? [];
 
-  if (entry.config.mcpResponseHandler) {
-    const result = await entry.config.mcpResponseHandler(data, method, user);
-    return stripExcludedFields(result, excludeFields) as JSONValue;
+    if (entry.config.mcpResponseHandler) {
+      const result = await entry.config.mcpResponseHandler(data, method, user);
+      return {value: stripExcludedFields(result, excludeFields) as JSONValue};
+    }
+
+    // Use the model router's responseHandler if available, otherwise default
+    const responseHandler = entry.options.responseHandler ?? defaultResponseHandler;
+
+    const result = await responseHandler(data, method, createMCPRequest({user}), entry.options);
+    return {value: stripExcludedFields(result, excludeFields) as JSONValue};
+  } catch (error) {
+    if (isAPIError(error)) {
+      return {error: errorResult(error.title, error)};
+    }
+    return {error: errorResult(`Response handler failed: ${errorMessage(error)}`, error)};
   }
-
-  // Use the model router's responseHandler if available, otherwise default
-  const responseHandler = entry.options.responseHandler ?? defaultResponseHandler;
-
-  const result = await responseHandler(data, method, createMCPRequest({user}), entry.options);
-  return stripExcludedFields(result, excludeFields) as JSONValue;
 };
 
 export const handleList = async (
@@ -333,8 +343,11 @@ export const handleList = async (
   const sliced = more ? data.slice(0, limit) : data;
 
   const serialized = await serializeResponse(sliced, "list", entry, user);
+  if ("error" in serialized) {
+    return serialized.error;
+  }
 
-  return textResult(JSON.stringify({data: serialized, more, page, total}));
+  return textResult(JSON.stringify({data: serialized.value, more, page, total}));
 };
 
 export const handleRead = async (
@@ -376,7 +389,10 @@ export const handleRead = async (
   }
 
   const serialized = await serializeResponse(data, "read", entry, user);
-  return textResult(JSON.stringify({data: serialized}));
+  if ("error" in serialized) {
+    return serialized.error;
+  }
+  return textResult(JSON.stringify({data: serialized.value}));
 };
 
 export const handleCreate = async (
@@ -436,7 +452,10 @@ export const handleCreate = async (
   }
 
   const serialized = await serializeResponse(data, "create", entry, user);
-  return textResult(JSON.stringify({data: serialized}));
+  if ("error" in serialized) {
+    return serialized.error;
+  }
+  return textResult(JSON.stringify({data: serialized.value}));
 };
 
 export const handleUpdate = async (
@@ -516,7 +535,10 @@ export const handleUpdate = async (
   }
 
   const serialized = await serializeResponse(doc, "update", entry, user);
-  return textResult(JSON.stringify({data: serialized}));
+  if ("error" in serialized) {
+    return serialized.error;
+  }
+  return textResult(JSON.stringify({data: serialized.value}));
 };
 
 export const handleDelete = async (

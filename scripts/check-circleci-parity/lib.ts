@@ -7,7 +7,7 @@
  * mapping silently skips the twin, so CircleCI reports success without ever
  * running the job.
  */
-import {readFileSync} from "node:fs";
+import {existsSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
 // GHA workflow file (without extension) -> CircleCI pipeline parameter.
@@ -59,8 +59,21 @@ interface WorkflowConfig {
 
 const parseYaml = <T>(path: string): T => Bun.YAML.parse(readFileSync(path, "utf8")) as T;
 
+const SETUP_CONFIG_FILES = ["config.setup.yml", "config.yml"] as const;
+
+const readSetupConfig = ({repoRoot}: {repoRoot: string}): SetupConfig => {
+  for (const fileName of SETUP_CONFIG_FILES) {
+    const path = join(repoRoot, ".circleci", fileName);
+    if (!existsSync(path)) {
+      continue;
+    }
+    return parseYaml<SetupConfig>(path);
+  }
+  throw new Error("no CircleCI setup config found (.circleci/config.setup.yml or config.yml)");
+};
+
 export const readMappings = ({repoRoot}: {repoRoot: string}): Mapping[] => {
-  const config = parseYaml<SetupConfig>(join(repoRoot, ".circleci", "config.yml"));
+  const config = readSetupConfig({repoRoot});
   const filterJob = config?.workflows?.setup?.jobs?.[0]?.["path-filtering/filter"];
   const raw = filterJob?.mapping ?? "";
   return raw
@@ -136,7 +149,9 @@ export const collectParityGaps = ({
 }): Gap[] => {
   const mappings = readMappings({repoRoot});
   if (mappings.length === 0) {
-    throw new Error("no path-filtering mapping found in .circleci/config.yml");
+    throw new Error(
+      "no path-filtering mapping found in .circleci/config.setup.yml or .circleci/config.yml"
+    );
   }
 
   const gaps: Gap[] = [];

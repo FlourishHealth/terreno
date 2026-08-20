@@ -86,6 +86,8 @@ export interface OutboxRow {
    * (`MAX_ERROR_NACK_ATTEMPTS`) is checked against this, not `attemptCount`.
    */
   errorNackCount: number;
+  /** Per-mutation error-nack budget; absent cell → engine default in replay. */
+  maxAttempts?: number;
   /** Absent when the mutation carries no base version (e.g. creates). */
   baseVersion?: number;
   collection: string;

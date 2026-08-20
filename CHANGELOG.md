@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
+  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
+  `docs/how-to/circleci.md`.
+
 ### Added
 
 - Model Context Protocol support in `modelRouter` via an `mcp` option: opted-in
@@ -31,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated model tools emit structured success/refusal/failure logs with
   request correlation, duration, stable MCP labels, and Sentry exception
   capture for internal failures
+- `@terreno/syncdb-codegen` CLI (`terreno-syncdb-codegen`) that emits typed
+  collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
+- `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
+  `maxAttempts` on syncdb writes.
 - CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
   deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
 - `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
@@ -42,6 +52,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+
+### Fixed
+
+- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
+  row so `retries: false` stays fail-fast after keepMine.
+- Example todos Sync Lab panel starts collapsed so the first list row stays
+  above the tab bar on short web viewports.
+- `@terreno/syncdb-codegen` rejects non-identifier collection/type names and
+  JSON-escapes generated strings so a remote OpenAPI document cannot inject
+  TypeScript.
 
 ### Deprecated
 
@@ -63,6 +83,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mixed-case 24-hex ids the way REST `findById` does
 - MCP list returns a structured error when `queryFilter` throws, matching REST
   400 handling
+- MCP create/update drop literal dotted keys that match a denylist path so
+  Mongoose cannot treat `"metadata.nested.token"` as a nested write
+- MCP list/read/create/update return a structured tool error when a
+  `responseHandler` or `mcpResponseHandler` throws, instead of crashing the
+  MCP protocol call
 
 ## [57.0.0] - 2026-08-20
 

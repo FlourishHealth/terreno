@@ -3,7 +3,13 @@
 Dual-run migration from GitHub Actions. See
 [`docs/implementationPlans/migrate-cicd-to-circleci.md`](../implementationPlans/migrate-cicd-to-circleci.md).
 
-**Status (2026-08-17):** Phase 1–3 config is in-repo (package CI, repo policy, Playwright
+**Status (2026-08-20):** CircleCI is **disabled**. GitHub Actions is the CI of
+record. Setup/path-filtering is parked in `.circleci/config.setup.yml`;
+`.circleci/config.yml` is a no-op (`workflows.disabled.when: false`). Real jobs
+remain in `.circleci/continue-config.yml`. To re-enable, copy `config.setup.yml`
+over `config.yml`.
+
+**Parked (2026-08-17):** Phase 1–3 config is in-repo (package CI, repo policy, Playwright
 e2e). **Deploys are not ported yet** (Netlify, GCP CD, EAS, npm publish). GHA remains
 required until CircleCI twins are trusted.
 
@@ -21,7 +27,8 @@ Org/project slug: _(record after Phase 0.1 — e.g. `flourishhealth/terreno`)_.
 
 | File | Role |
 |------|------|
-| `.circleci/config.yml` | Setup workflow + `path-filtering` → sets boolean pipeline params |
+| `.circleci/config.yml` | Active CircleCI config (currently a disabled no-op) |
+| `.circleci/config.setup.yml` | Parked setup workflow + `path-filtering` (copy over `config.yml` to re-enable) |
 | `.circleci/continue-config.yml` | Real jobs/workflows gated by those params |
 
 Smoke job `config-ok` always runs on continuation.
@@ -110,15 +117,17 @@ names so branch protection can be remapped in one pass later:
 its CircleCI parameter — otherwise the twin silently never runs. It runs as the
 `circleci-parity` job (CircleCI) and the **CircleCI path-filter parity** job
 (GitHub Actions `repo-policies`). Add new packages/paths to the mapping in
-`.circleci/config.yml` and to `WORKFLOW_PARAMETERS` in
-`scripts/check-circleci-parity/check.ts`.
+`.circleci/config.setup.yml` (or `config.yml` when enabled) and to `WORKFLOW_PARAMETERS` in
+`scripts/check-circleci-parity/lib.ts`.
 
 ## Config-only changes
 
-`.circleci/config.yml` / `continue-config.yml` / `example-frontend/playwright.circleci.config.ts`
-edits set `run-circleci-config`, which runs a representative slice (`api-ci`, `ui-ci`,
-`example-backend-ci`, `no-barrel-imports`, `e2e` spec `login`) so config changes are
-actually exercised instead of only hitting the always-on smoke jobs. CircleCI e2e
+When CircleCI is enabled, `.circleci/config.yml` / `continue-config.yml` /
+`example-frontend/playwright.circleci.config.ts` edits set `run-circleci-config`,
+which runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
+`no-barrel-imports`, `e2e` spec `login`) so config changes are actually exercised
+instead of only hitting the always-on smoke jobs. While disabled, keep the mapping
+in `config.setup.yml` in sync; `check:circleci-parity` reads that file first. CircleCI e2e
 pre-starts a static `bun expo export` on `:8082` (`NODE_OPTIONS=--max-old-space-size=3072`
 for the export only) and reuses it (60s test timeout, `large` Docker). Keeping Metro
 alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on this project's plan.
@@ -148,7 +157,7 @@ circleci config validate .circleci/continue-config.yml
 
 While both systems run, keep these in sync when editing a GHA workflow:
 
-1. `paths:` → mapping in `.circleci/config.yml` (enforced by `check:circleci-parity`)
+1. `paths:` → mapping in `.circleci/config.setup.yml` (or `config.yml` when enabled; enforced by `check:circleci-parity`)
 2. e2e `spec:` matrix → `e2e` workflow matrix in `continue-config.yml`
 3. New package CI workflow → new param + job + `WORKFLOW_PARAMETERS` entry
 

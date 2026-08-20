@@ -217,6 +217,29 @@ describe("MCP Integration", () => {
         nested: {visible: "shown"},
       });
     });
+
+    it("strips literal dotted keys that match excludeFields from create", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["metadata.nested.token"]},
+        options: {...entry.options, preCreate: undefined},
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {
+          "metadata.nested.token": "stolen",
+          title: "Literal dotted key",
+        },
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(result.isError).not.toBe(true);
+      expect(parsed.data.title).toBe("Literal dotted key");
+      const stored = await TodoModel.findOne({title: "Literal dotted key"}).lean();
+      expect(stored?.metadata).toBeUndefined();
+      expect((stored as Record<string, unknown> | null)?.["metadata.nested.token"]).toBeUndefined();
+    });
   });
 
   describe("handleList", () => {
@@ -554,6 +577,33 @@ describe("MCP Integration", () => {
       expect(parsed.data.title).toBe("Nested updated");
       const stored = await TodoModel.findById(doc._id).lean();
       expect(stored?.metadata).toEqual({items: [{name: "one"}], visible: "ok"});
+    });
+
+    it("strips literal dotted keys that match excludeFields from update", async () => {
+      const doc = await TodoModel.create({
+        ownerId: normalUser._id,
+        title: "Keep nested secret",
+      });
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["metadata.nested.token"]},
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {
+          id: doc._id.toString(),
+          "metadata.nested.token": "stolen",
+          title: "Literal dotted update",
+        },
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(result.isError).not.toBe(true);
+      expect(parsed.data.title).toBe("Literal dotted update");
+      const stored = await TodoModel.findById(doc._id).lean();
+      expect(stored?.metadata).toBeUndefined();
+      expect((stored as Record<string, unknown> | null)?.["metadata.nested.token"]).toBeUndefined();
     });
   });
 
@@ -1074,6 +1124,30 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.summary).toBe("Custom");
       expect(parsed.data.method).toBe("read");
+    });
+
+    it("returns a structured error when responseHandler throws", async () => {
+      const entryWithHandler: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          responseHandler: async () => {
+            throw new Error("serializer exploded");
+          },
+        },
+      };
+
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Boom"});
+      const result = await handleRead(
+        entryWithHandler,
+        {id: doc._id.toString()},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(result.isError).toBe(true);
+      expect(parsed.error).toContain("Response handler failed");
+      expect(parsed.error).toContain("serializer exploded");
     });
   });
 

@@ -10,7 +10,7 @@ import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
-  clickTodoToggle,
+  clickTodoControl,
   goSyncOffline,
   goSyncOnline,
   installOfflineControl,
@@ -80,7 +80,7 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
     await goSyncOffline(page);
 
     // Toggle completion — the item is marked completed immediately.
-    await clickTodoToggle(page, toggled._id);
+    await clickTodoControl(page.getByTestId(`todo-toggle-${toggled._id}-clickable`));
     await expect(page.getByTestId("todos-completed-section")).toBeVisible();
     await expect(page.getByTestId(`todo-item-${toggled._id}`)).toHaveAttribute(
       "aria-label",
@@ -88,7 +88,7 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
     );
 
     // Delete — the item disappears immediately.
-    await page.getByTestId(`todo-delete-${doomed._id}`).click();
+    await clickTodoControl(page.getByTestId(`todo-delete-${doomed._id}`));
     await expect(page.getByTestId(`todo-item-${doomed._id}`)).toBeHidden();
 
     await expect(page.getByTestId("sync-queued-count")).toContainText("2");

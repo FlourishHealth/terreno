@@ -637,7 +637,7 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
-  const router = _buildModelRouter(model, options);
+  const router = _buildModelRouter(model, options, path);
 
   // Register MCP tools if configured
   if (options.mcp) {
@@ -662,7 +662,7 @@ export function modelRouter<T>(
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
-        _buildModelRouter(model, {...options, openApi}),
+        _buildModelRouter(model, {...options, openApi}, path),
       path,
       router,
     };
@@ -686,7 +686,8 @@ export function modelRouter<T>(
 
 const _buildModelRouter = <T>(
   model: ModelLike<T>,
-  options: ModelRouterOptions<T>
+  options: ModelRouterOptions<T>,
+  routePath?: string
 ): express.Router => {
   const router = express.Router();
 
@@ -739,7 +740,7 @@ const _buildModelRouter = <T>(
     [
       authenticateMiddleware(options.allowAnonymous),
       permissionMiddleware(model, options),
-      listOpenApiMiddleware(model, options),
+      listOpenApiMiddleware(model, options, routePath),
       queryValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
