@@ -888,6 +888,16 @@ describe("AdminApp per-model queryFilter", () => {
     expect(res.body.data[0].name).toBe("Alpha");
   });
 
+  it("applies q against searchFields derived from listFields when none are configured", async () => {
+    const localApp = buildApp([foodModelConfig]);
+    await FoodModel.create({calories: 1, name: "GreenApple"});
+    await FoodModel.create({calories: 2, name: "Banana"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods?q=apple").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("GreenApple");
+  });
+
   it("applies q as a case-insensitive partial match across searchFields", async () => {
     const localApp = buildApp([
       {

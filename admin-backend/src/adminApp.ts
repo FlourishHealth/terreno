@@ -276,9 +276,12 @@ const scrubAdminResponse = (
 };
 
 const buildAdminListQueryFilter = (
-  config: ResolvedAdminModel
+  config: ResolvedAdminModel,
+  /** Resolved (possibly derived) search fields from `/admin/config`, not just explicit config. */
+  resolvedSearchFields?: string[]
 ): NonNullable<ModelRouterOptions<unknown>["queryFilter"]> => {
   const base = config.queryFilter;
+  const searchFields = resolvedSearchFields ?? config.searchFields ?? [];
   return async (user, query) => {
     const clientQuery: Record<string, unknown> = {...(query ?? {})};
     const {consumedKeys, errors, filter} = parseAdminListFilters(clientQuery, config.filters ?? []);
@@ -300,7 +303,7 @@ const buildAdminListQueryFilter = (
         ? buildAdminPartialSearchFilter({
             model: config.model,
             q: rawSearch,
-            searchFields: config.searchFields ?? [],
+            searchFields,
           })
         : undefined;
 
@@ -1008,7 +1011,7 @@ export class AdminApp {
             q,
           });
           try {
-            const scoped = await buildAdminListQueryFilter(config)(
+            const scoped = await buildAdminListQueryFilter(config, modelMeta?.searchFields)(
               req.user as User | undefined,
               {}
             );
@@ -1170,9 +1173,9 @@ export class AdminApp {
           filters: config.filters,
           listDisplay: config.listDisplay,
           listFields: config.listFields,
-          searchFields: config.searchFields,
+          searchFields: modelMeta?.searchFields ?? config.searchFields,
         }),
-        queryFilter: buildAdminListQueryFilter(config),
+        queryFilter: buildAdminListQueryFilter(config, modelMeta?.searchFields),
         responseHandler: async (value, _method, _request, _options): Promise<JSONValue> =>
           scrubAdminResponse(value, config, allModelAdmins) as JSONValue,
         sort: config.defaultSort ?? "-created",
