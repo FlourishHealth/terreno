@@ -1,137 +1,22 @@
-# Setup config — path-filtering + dynamic continuation.
-# Real jobs live in continue-config.yml (Phase 1–3 CI; deploys deferred).
-# Requires project setting: Enable dynamic config / setup workflows.
+# CircleCI is disabled. GitHub Actions is the CI of record.
+# Jobs and path-filtering live in `config.setup.yml` + `continue-config.yml`.
+# Re-enable: copy `.circleci/config.setup.yml` over this file.
 version: 2.1
 
-setup: true
-
-parameters:
-  run-e2e-load:
-    type: boolean
-    default: false
-
-orbs:
-  continuation: circleci/continuation@1.0.0
-  path-filtering: circleci/path-filtering@3.0.0
+jobs:
+  circleci-disabled:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: CircleCI disabled
+          command: |
+            echo "CircleCI is disabled. GitHub Actions is the CI of record."
+            echo "Re-enable by copying .circleci/config.setup.yml to .circleci/config.yml"
 
 workflows:
-  setup:
-    unless: << pipeline.parameters.run-e2e-load >>
+  disabled:
+    when: false
     jobs:
-      - path-filtering/filter:
-          name: check-updated-files
-          base-revision: master
-          config-path: .circleci/continue-config.yml
-          # <path regex> <pipeline parameter> <value>
-          # Regexes are anchored (^…$) by the orb.
-          mapping: |
-            \.circleci/config\.yml run-circleci-config true
-            \.circleci/continue-config\.yml run-circleci-config true
-            example-frontend/playwright\.circleci\.config\.ts run-circleci-config true
-            \.circleci/.* run-repo-policies true
-            scripts/check-circleci-parity/.* run-repo-policies true
-            api/.* run-api true
-            ai/.* run-ai true
-            rtk/.* run-rtk true
-            ui/.* run-ui true
-            demo/.* run-ui true
-            demo/.* run-ui-demo true
-            comms/.* run-comms true
-            comms/.* run-example-backend true
-            comms/.* run-example-backend-script true
-            api/.* run-comms true
-            test/.* run-comms true
-            mcp-server/.* run-mcp-server true
-            scripts/check-coverage\.ts run-api true
-            scripts/check-coverage\.ts run-rtk true
-            scripts/check-coverage\.ts run-mcp-server true
-            example-frontend/.* run-example-frontend true
-            admin-frontend/.* run-example-frontend true
-            example-backend/.* run-example-backend true
-            example-backend/.* run-example-backend-script true
-            example-backend/.* run-example-backend-docker true
-            api/.* run-example-backend-script true
-            api/.* run-example-backend-docker true
-            ai/.* run-example-backend true
-            ai/.* run-example-backend-script true
-            admin-backend/.* run-example-backend true
-            admin-backend/.* run-example-backend-script true
-            admin-frontend/.* run-example-backend true
-            admin-frontend/.* run-example-backend-script true
-            admin-spa/.* run-example-backend true
-            admin-spa/.* run-example-backend-script true
-            admin-spa/.* run-admin-spa true
-            admin-spa/.* run-admin-spa-integration true
-            admin-frontend/.* run-admin-spa true
-            api-health/.* run-example-backend true
-            api-health/.* run-example-backend-script true
-            api-health/.* run-admin-spa-integration true
-            feature-flags/.* run-example-backend true
-            feature-flags/.* run-example-backend-script true
-            feature-flags/.* run-e2e true
-            feature-flags/.* run-admin-spa-integration true
-            rtk/.* run-example-backend true
-            rtk/.* run-example-backend-script true
-            rtk/.* run-admin-spa true
-            rtk/.* run-e2e true
-            ui/.* run-example-backend true
-            ui/.* run-example-backend-script true
-            ui/.* run-admin-spa true
-            ui/.* run-e2e true
-            bun\.lock run-ai true
-            bun\.lock run-comms true
-            bun\.lock run-example-backend true
-            bun\.lock run-example-backend-script true
-            bun\.lock run-example-backend-docker true
-            bun\.lock run-e2e true
-            bun\.lock run-admin-spa-integration true
-            package\.json run-comms true
-            package\.json run-example-backend-docker true
-            package\.json run-repo-policies true
-            .*\.ts$ run-repo-policies true
-            .*\.tsx$ run-repo-policies true
-            .*/package\.json$ run-repo-policies true
-            LICENSE$ run-repo-policies true
-            .*/LICENSE$ run-repo-policies true
-            biome/plugins/no-barrel-imports\.grit run-repo-policies true
-            scripts/no-barrel-imports/.* run-repo-policies true
-            scripts/check-explicit-any/.* run-repo-policies true
-            scripts/check-license-coverage/.* run-repo-policies true
-            docs/explanation/no-barrel-imports\.md run-repo-policies true
-            docs/explanation/explicit-any-policy\.md run-repo-policies true
-            example-frontend/app/.* run-e2e true
-            example-frontend/constants/.* run-e2e true
-            example-frontend/hooks/.* run-e2e true
-            example-frontend/lib/.* run-e2e true
-            example-frontend/store/.* run-e2e true
-            example-frontend/utils/.* run-e2e true
-            example-frontend/e2e/.* run-e2e true
-            example-frontend/playwright\.config\.ts run-e2e true
-            example-frontend/package\.json run-e2e true
-            example-backend/src/.* run-e2e true
-            example-backend/src/.* run-admin-spa-integration true
-            api/src/.* run-e2e true
-            api/src/.* run-admin-spa-integration true
-            ai/src/.* run-e2e true
-            admin-backend/src/.* run-e2e true
-            admin-backend/src/.* run-admin-spa-integration true
-            admin-frontend/src/.* run-e2e true
-            admin-frontend/src/.* run-admin-spa-integration true
-            admin-spa/.* run-admin-spa-integration true
-            rtk/src/.* run-e2e true
-            rtk/src/.* run-admin-spa-integration true
-            ui/src/.* run-e2e true
-            ui/src/.* run-admin-spa-integration true
-            api-health/src/.* run-e2e true
-            feature-flags/src/.* run-e2e true
-            feature-flags/src/.* run-admin-spa-integration true
-
-  # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
-  # Continuation uses a differently named parameter so CircleCI does not treat
-  # the setup trigger param as a conflicting continuation param.
-  e2e-load-setup:
-    when: << pipeline.parameters.run-e2e-load >>
-    jobs:
-      - continuation/continue:
-          configuration_path: .circleci/continue-config.yml
-          parameters: '{"e2e-load":true}'
+      - circleci-disabled
