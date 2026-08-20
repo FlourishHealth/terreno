@@ -27,7 +27,7 @@ url: http://localhost:8082/login
     timeout: 30000
 
 - tapOn:
-    id: "todos-title-input"
+    id: "todo-new-input"
 - inputText: "Buy groceries"
 
 - tapOn:

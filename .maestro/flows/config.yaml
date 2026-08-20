@@ -1,6 +1,13 @@
-# CI runs login + create-todo + demo smokes. signup.yaml is kept for local runs
-# (new users must complete consent modals, which this smoke set does not cover).
+# CI: login → create-todo → demo smokes. signup.yaml is for local runs only.
 flows:
   - "login.yaml"
   - "create-todo.yaml"
   - "demo/*"
+
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - login
+    - create-todo
+    - demo-home
+    - demo-button
