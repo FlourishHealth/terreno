@@ -10,6 +10,7 @@ import {SYNCDB_CONFLICTS_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
+  clickTodoToggle,
   CONVERGE_TIMEOUT,
   goSyncOffline,
   goSyncOnline,
@@ -43,7 +44,7 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
    */
   const produceConflict = async (page: Page): Promise<void> => {
     await goSyncOffline(page);
-    await page.getByTestId(`todo-toggle-${target._id}-clickable`).click();
+    await clickTodoToggle(page, target._id);
     await expect(page.getByTestId("sync-queued-count")).toContainText("1");
 
     // "Another client" edits the same todo while we're offline.

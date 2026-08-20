@@ -86,6 +86,9 @@ export default defineConfig({
     screenshot: "only-on-failure",
     trace: "on-first-retry",
     video: "on-first-retry",
+    // Desktop Chrome's default 720px height parks the first todo row under the
+    // tab bar; Playwright then reports the AI/PDF tabs intercepting checkbox clicks.
+    viewport: {height: 900, width: 1280},
   },
   webServer: [
     {

@@ -9,6 +9,7 @@ import {SYNCDB_OFFLINE_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
+  clickTodoToggle,
   CONVERGE_TIMEOUT,
   goSyncOffline,
   goSyncOnline,
@@ -79,7 +80,7 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
     await goSyncOffline(page);
 
     // Toggle completion — the item is marked completed immediately.
-    await page.getByTestId(`todo-toggle-${toggled._id}-clickable`).click();
+    await clickTodoToggle(page, toggled._id);
     await expect(page.getByTestId("todos-completed-section")).toBeVisible();
     await expect(page.getByTestId(`todo-item-${toggled._id}`)).toHaveAttribute(
       "aria-label",

@@ -58,6 +58,20 @@ export const todoItemByTitle = (page: Page, title: string): Locator =>
   page.locator('[data-testid^="todo-item-"]').filter({hasText: title});
 
 /**
+ * Click a todo's completion toggle. Playwright's default hit-testing often lands on
+ * the bottom tab bar (the AI tab sits under the left-side checkbox on the default
+ * 1280x720 desktop viewport), so we scroll the control to the center and force the
+ * click onto the already-resolved locator.
+ */
+export const clickTodoToggle = async (page: Page, itemId: string): Promise<void> => {
+  const toggle = page.getByTestId(`todo-toggle-${itemId}-clickable`);
+  await toggle.evaluate((node: HTMLElement) => {
+    node.scrollIntoView({block: "center", inline: "center"});
+  });
+  await toggle.click({force: true});
+};
+
+/**
  * Wait for the syncdb-backed Todos screen. The banner is asserted as *attached*
  * rather than visible: when sync is idle it renders no children, and Playwright
  * treats the resulting zero-size element as hidden.

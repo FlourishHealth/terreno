@@ -3,6 +3,7 @@ import {clearTodos} from "./helpers/clearTodos";
 import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
+  clickTodoToggle,
   CONVERGE_TIMEOUT,
   createTodoViaUi,
   openSyncTodos,
@@ -38,7 +39,7 @@ test.describe("Todos", () => {
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todo-item-unknown";
     const itemId = todoTestId.replace("todo-item-", "");
 
-    await page.getByTestId(`todo-toggle-${itemId}-clickable`).click();
+    await clickTodoToggle(page, itemId);
     await expect(page.getByTestId(`todo-item-${itemId}`)).toHaveAttribute(
       "aria-label",
       "completed todo"
@@ -66,7 +67,7 @@ test.describe("Todos", () => {
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todo-item-unknown";
     const itemId = todoTestId.replace("todo-item-", "");
 
-    await page.getByTestId(`todo-toggle-${itemId}-clickable`).click();
+    await clickTodoToggle(page, itemId);
     await expect(page.getByTestId("todos-completed-section")).toBeVisible();
     await expect(page.getByTestId(`todo-item-${itemId}`)).toHaveAttribute(
       "aria-label",
