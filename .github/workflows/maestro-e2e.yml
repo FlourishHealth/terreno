@@ -86,25 +86,12 @@ jobs:
           INPUT_REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
           INPUT_SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
 
-      - name: Build API dependency
+      - name: Compile workspace packages
         run: bun run compile
-        working-directory: api
-
-      - name: Build UI dependency
-        run: bun run compile
-        working-directory: ui
 
       - name: Generate UI type documentation
         run: bun run types
         working-directory: ui
-
-      - name: Build RTK dependency
-        run: bun run compile
-        working-directory: rtk
-
-      - name: Build Admin Frontend dependency
-        run: bun run compile
-        working-directory: admin-frontend
 
       - name: Export example frontend for web
         run: bun run export
