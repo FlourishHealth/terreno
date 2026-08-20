@@ -375,18 +375,6 @@ const SyncTodosScreen: React.FC = () => {
   const listHeader = useMemo(
     (): React.ReactElement => (
       <Box>
-        <SyncStatusBanner
-          conflictCount={syncStatus.conflictCount}
-          draining={syncStatus.draining}
-          failedCount={syncStatus.failedCount}
-          isOnline={syncStatus.isOnline}
-          onAuthRequired={handleAuthRequired}
-          onOpenConflicts={openConflictSheet}
-          paused={syncStatus.paused}
-          queuedCount={syncStatus.queuedCount}
-          sentThisDrain={syncStatus.sentThisDrain}
-          totalThisDrain={syncStatus.totalThisDrain}
-        />
         <SyncDevPanel />
         <Box marginBottom={6}>
           <Heading size="xl">My Todos</Heading>
@@ -400,21 +388,7 @@ const SyncTodosScreen: React.FC = () => {
         <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       </Box>
     ),
-    [
-      handleAuthRequired,
-      handleCreate,
-      isSyncDbReady,
-      openConflictSheet,
-      syncStatus.conflictCount,
-      syncStatus.draining,
-      syncStatus.failedCount,
-      syncStatus.isOnline,
-      syncStatus.paused,
-      syncStatus.queuedCount,
-      syncStatus.sentThisDrain,
-      syncStatus.totalThisDrain,
-      totalCount,
-    ]
+    [handleCreate, isSyncDbReady, totalCount]
   );
 
   const listEmpty = useMemo(
@@ -436,6 +410,18 @@ const SyncTodosScreen: React.FC = () => {
       testID="todos-screen"
       width="100%"
     >
+      <SyncStatusBanner
+        conflictCount={syncStatus.conflictCount}
+        draining={syncStatus.draining}
+        failedCount={syncStatus.failedCount}
+        isOnline={syncStatus.isOnline}
+        onAuthRequired={handleAuthRequired}
+        onOpenConflicts={openConflictSheet}
+        paused={syncStatus.paused}
+        queuedCount={syncStatus.queuedCount}
+        sentThisDrain={syncStatus.sentThisDrain}
+        totalThisDrain={syncStatus.totalThisDrain}
+      />
       <FlashList
         contentContainerStyle={{paddingBottom: listBottomPadding}}
         contentInsetAdjustmentBehavior="automatic"
