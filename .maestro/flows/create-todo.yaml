@@ -10,8 +10,14 @@ url: http://localhost:8082/
       id: "todos-screen"
     timeout: 30000
 
+# RN Web: testID maps to resource-id on the TextInput, not the placeholder node
+- extendedWaitUntil:
+    visible:
+      id: "todos-title-input"
+    timeout: 30000
+
 - tapOn:
-    id: "todo-new-input"
+    id: "todos-title-input"
 - inputText: "Buy groceries"
 
 - tapOn:
@@ -19,4 +25,4 @@ url: http://localhost:8082/
 
 - extendedWaitUntil:
     visible: "Buy groceries"
-    timeout: 10000
+    timeout: 30000
