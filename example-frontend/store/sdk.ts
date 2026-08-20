@@ -263,7 +263,14 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "feature-flags", "gptHistories", "profile", "PendingConsents"],
+    addTagTypes: [
+      "admin_scriptRuns",
+      "consentForms",
+      "feature-flags",
+      "gptHistories",
+      "profile",
+      "PendingConsents",
+    ],
     endpoints: {
       ...generateTags(openapi, [...CACHE_TAG_TYPES, "consentForms", "PendingConsents"]),
       ...TODO_REALTIME_ENDPOINTS,
