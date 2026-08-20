@@ -113,7 +113,7 @@ its CircleCI parameter — otherwise the twin silently never runs. It runs as th
 
 `.circleci/config.yml` / `continue-config.yml` edits set `run-circleci-config`,
 which runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
-`no-barrel-imports`, `e2e` spec `todos`) so config changes are actually exercised
+`no-barrel-imports`, `e2e` spec `login`) so config changes are actually exercised
 instead of only hitting the always-on smoke jobs.
 
 ## Nightly load test

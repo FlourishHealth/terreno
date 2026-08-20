@@ -572,7 +572,8 @@ jobs:
               .
 
   admin-spa-ci:
-    executor: node22_browsers
+    executor: node22
+    resource_class: large
     working_directory: ~/project
     steps:
       - checkout
@@ -584,6 +585,7 @@ jobs:
       - run:
           name: Lint / compile / types / unit / build / smoke
           working_directory: ~/project/admin-spa
+          no_output_timeout: 20m
           environment:
             CI: "true"
           command: |
@@ -601,9 +603,16 @@ jobs:
       - run:
           name: Admin SPA e2e
           working_directory: ~/project/admin-spa
+          no_output_timeout: 10m
           environment:
             CI: "true"
           command: bun run test:e2e
+      - store_artifacts:
+          path: admin-spa/playwright-report
+          destination: admin-spa-playwright-report
+      - store_artifacts:
+          path: admin-spa/test-results
+          destination: admin-spa-playwright-results
 
   no-barrel-imports:
     executor: node22
@@ -946,6 +955,7 @@ workflows:
   # Path-filter `run-circleci-config` is set for `.circleci/**`. Dual-run a
   # representative subset of ported jobs so config-only PRs still exercise
   # package, policy, example, and e2e twins (one e2e spec, not the full matrix).
+  # Use login, not todos: master GHA E2E · todos is currently red (30s timeout).
   circleci-config:
     when: << pipeline.parameters.run-circleci-config >>
     jobs:
@@ -972,5 +982,5 @@ workflows:
           matrix:
             parameters:
               spec:
-                - todos
+                - login
       - admin-spa-integration
