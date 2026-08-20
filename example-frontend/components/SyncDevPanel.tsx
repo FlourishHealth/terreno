@@ -8,6 +8,7 @@ import {useConflicts, useSyncDbClient, useSyncStatus} from "@terreno/syncdb/reac
 import {Box, Button, Heading, SegmentedControl, Text} from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
+import {View} from "react-native";
 import {SyncLabRateControls} from "@/components/SyncLabRateControls";
 import {useSyncLabRates} from "@/components/syncLabRates";
 import {useOpenSyncDebugger} from "@/hooks/useOpenSyncDebugger";
@@ -172,12 +173,12 @@ export const SyncDevPanel: React.FC = () => {
   // Production/CircleCI static export sets __DEV__ false, so the visible panel
   // is hidden. Chaos e2e still needs this control in the DOM to break socket backoff.
   const hiddenReconnect = (
-    <Box
+    <View
       style={{height: 1, left: -10000, overflow: "hidden", position: "absolute", width: 1}}
       testID="syncdb-reconnect-host"
     >
       {reconnectButton}
-    </Box>
+    </View>
   );
 
   if (!showDevPanel) {
