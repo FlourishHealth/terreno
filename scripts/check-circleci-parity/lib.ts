@@ -117,8 +117,12 @@ export const isCovered = ({
   samples: string[];
 }): boolean => {
   const candidates = mappings.filter((mapping) => mapping.parameter === parameter);
-  // path-filtering anchors every mapping regex with ^…$.
-  return samples.some((sample) =>
+  if (samples.length === 0) {
+    return false;
+  }
+  // path-filtering anchors every mapping regex with ^…$. A GHA glob is covered
+  // only when every representative sample would set the twin's parameter.
+  return samples.every((sample) =>
     candidates.some((mapping) => new RegExp(`^(?:${mapping.regex})$`).test(sample))
   );
 };

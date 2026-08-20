@@ -86,6 +86,27 @@ describe("isCovered", () => {
       })
     );
   });
+
+  it("requires every glob sample to match, not just one", () => {
+    const mappings = [{parameter: "run-repo-policies", regex: "package\\.json"}];
+    assert.isFalse(
+      isCovered({
+        mappings,
+        parameter: "run-repo-policies",
+        samples: ["package.json", "nested/package.json"],
+      })
+    );
+    assert.isTrue(
+      isCovered({
+        mappings: [
+          {parameter: "run-repo-policies", regex: "package\\.json"},
+          {parameter: "run-repo-policies", regex: ".*/package\\.json"},
+        ],
+        parameter: "run-repo-policies",
+        samples: ["package.json", "nested/package.json"],
+      })
+    );
+  });
 });
 
 describe("readMappings", () => {

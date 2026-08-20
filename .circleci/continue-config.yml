@@ -447,6 +447,7 @@ jobs:
 
   mcp-server-ci:
     executor: node22
+    resource_class: large
     steps:
       - checkout
       - install_bun_and_deps
@@ -470,6 +471,7 @@ jobs:
 
   mcp-server-docker:
     executor: node22
+    resource_class: large
     steps:
       - run:
           name: Skip Docker build on pull requests
