@@ -10,6 +10,7 @@ export {CommsService} from "./commsService";
 export {CommsMessage} from "./models/commsMessage";
 export {PushToken} from "./models/pushToken";
 export type {
+  AppendAttemptParams,
   CommsMessageDocument,
   CommsMessageMethods,
   CommsMessageModel,
@@ -27,14 +28,17 @@ export type {MessageTemplate, RenderTemplateOptions} from "./templates";
 export {renderTemplate} from "./templates";
 export type {
   CheckVerificationOptions,
+  CommsAttempt,
   CommsChannel,
   CommsErrorClass,
   CommsHookContext,
+  CommsHookMessage,
   CommsMessageStatus,
   CommsOptions,
   DeliveryEvent,
   MailMessage,
   MailProvider,
+  OptOutEvent,
   PushMessage,
   PushProvider,
   SendPushToUserMessage,

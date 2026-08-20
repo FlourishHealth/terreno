@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `recordDeliveryEvent` /
+  `recordOptOut`, attempt history on `CommsMessage`, payload retention
+  (`retainPayloadDays`, `redactPayload`), and channel-wide transient retry (SMS,
+  verification start, per-token push). `onRetry` stays `(context, result)` with
+  `context.attempt`. Push prune honors `errorClass: "permanent"` as well as
+  `isPermanentFailure`.
 
 ### Fixed
 
