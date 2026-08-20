@@ -203,7 +203,7 @@ const NewTodoForm: React.FC<{disabled: boolean; onCreate: (title: string) => boo
       <Card marginBottom={6}>
         <Box gap={3}>
           <TextField
-            id="todo-new-input"
+            id="todos-title-input"
             onChange={setNewTodoTitle}
             onEnter={handleCreate}
             placeholder="What needs to be done?"

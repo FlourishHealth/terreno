@@ -10,7 +10,7 @@ url: http://localhost:8082/
       id: "todos-screen"
     timeout: 30000
 
-# RN Web: testID maps to resource-id on the TextInput, not the placeholder node
+# RN Web: Maestro matches LoginScreen via nativeID (TextField id prop)
 - extendedWaitUntil:
     visible:
       id: "todos-title-input"
