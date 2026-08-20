@@ -142,9 +142,10 @@ export interface ModelRouterOptions<T> {
    * A group of method-level (create/read/update/delete/list) permissions.
    * Determine if the user can perform the operation at all, and for read/update/delete methods,
    * whether the user can perform the operation on the object referenced.
-   * @deprecated Use `access` with `accessControl` instead.
+   * @deprecated Use `access` with `accessControl` instead. Still required as a type-level
+   * fallback; `resolveModelRouterAccess` replaces these methods when `access` is set.
    * */
-  permissions?: RESTPermissions<T>;
+  permissions: RESTPermissions<T>;
   /**
    * RBAC access configuration for this router. Requires `accessControl` on the same options object
    * or injected by TerrenoApp at build time.

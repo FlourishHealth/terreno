@@ -185,7 +185,7 @@ export const createRoleManager = (args: {
           : targetUser),
         id: targetUser.id,
         roles: [...new Set(roleNames)],
-      } as User;
+      } as unknown as User;
       invalidateCache({userId});
       const after = await getActorPermissions(previewUser);
       const diff = diffPermissionSets(before, after);

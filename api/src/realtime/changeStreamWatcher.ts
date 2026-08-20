@@ -8,7 +8,7 @@ import type {Server, Socket} from "socket.io";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions, type PermissionMethod} from "../permissions";
+import type {PermissionMethod} from "../permissions";
 import {canReadDocumentRealtime, maskRealtimeDocument} from "../rbac/realtimeAccess";
 import {computeStableFrontier, SyncScopeMove} from "../sync/models";
 import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";

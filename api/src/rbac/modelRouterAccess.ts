@@ -1,5 +1,6 @@
 import type express from "express";
 import type {RESTMethod} from "../api";
+import type {User} from "../auth";
 import {APIError} from "../errors";
 import type {PermissionMethod, RESTPermissions} from "../permissions";
 import {defaultResponseHandler} from "../transformers";
@@ -79,6 +80,9 @@ export const buildAccessPermissions = <T>(
     ];
     if (access.scope?.check) {
       checks.push(async (_method, user, obj) => {
+        if (!user) {
+          return false;
+        }
         const result = await access.scope?.check?.({
           action,
           doc: obj,
@@ -134,7 +138,7 @@ export const buildAccessQueryFilter = <_T>(
       user,
     });
     let withAccessScope = mergeFilters(merged, scopeFilter);
-    if (access.scope?.filter) {
+    if (access.scope?.filter && user) {
       const routerScopeFilter = await access.scope.filter({
         action: listAction,
         user,
@@ -195,7 +199,7 @@ export const validateAccessWriteBody = async ({
   body: Record<string, unknown>;
   doc?: unknown;
   phase: "create" | "write";
-  user?: express.Request["user"];
+  user?: User;
 }): Promise<void> => {
   const mask = await accessControl.fieldMask({
     doc,
@@ -233,7 +237,7 @@ export const validateAccessWritePayload = async ({
   body: unknown;
   doc?: unknown;
   phase: "create" | "write";
-  user?: express.Request["user"];
+  user?: User;
 }): Promise<void> => {
   if (!options.access || !options.accessControl || body == null) {
     return;

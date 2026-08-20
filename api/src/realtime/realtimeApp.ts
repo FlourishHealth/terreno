@@ -8,7 +8,6 @@ import {Server, type Socket} from "socket.io";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
 import {canSubscribeRealtime} from "../rbac/realtimeAccess";
 import {warnOnSyncScopesWithoutUserModel} from "../sync/registry";
 import {installSyncSocketHandlers} from "../sync/socketHandlers";

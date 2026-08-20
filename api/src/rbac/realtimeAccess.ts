@@ -1,9 +1,16 @@
 import type {RESTMethod} from "../api";
 import type {User} from "../auth";
-import {checkPermissions} from "../permissions";
-import type {RealtimeRegistryEntry} from "../realtime/registry";
+import {checkPermissions, type PermissionMethod} from "../permissions";
 import {applyReadMask} from "./fieldViews";
-import type {ModelRouterAccessOptions} from "./types";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./types";
+
+interface RealtimeAccessEntry {
+  options: {
+    access?: ModelRouterAccessOptions;
+    accessControl?: AnyTerrenoAccess;
+    permissions?: {read?: PermissionMethod<unknown>[]; list?: PermissionMethod<unknown>[]};
+  };
+}
 
 const DEFAULT_METHOD_ACTIONS: Record<"list" | "read", string> = {
   list: "list",
@@ -34,7 +41,7 @@ const resolveActionForMethod = (
 };
 
 export const canSubscribeRealtime = async (
-  entry: RealtimeRegistryEntry,
+  entry: RealtimeAccessEntry,
   method: "list" | "read",
   user?: User
 ): Promise<boolean> => {
@@ -59,7 +66,7 @@ export const canSubscribeRealtime = async (
 };
 
 export const canReadDocumentRealtime = async (
-  entry: RealtimeRegistryEntry,
+  entry: RealtimeAccessEntry,
   user?: User,
   doc?: Record<string, unknown>
 ): Promise<boolean> => {
@@ -84,7 +91,7 @@ export const canReadDocumentRealtime = async (
 };
 
 export const maskRealtimeDocument = async (
-  entry: RealtimeRegistryEntry,
+  entry: RealtimeAccessEntry,
   user: User | undefined,
   doc: unknown,
   method: RESTMethod
