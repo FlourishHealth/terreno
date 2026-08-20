@@ -1,5 +1,6 @@
 # Implementation Plan: Admin Interface Overhaul (Django-Admin Parity)
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1099
 ## Goal
 
 Bring Terreno's admin from "rendered CRUD" to "Django-admin-class developer experience": admin config co-located on `modelRouter`, pre-built admins composable via the existing `TerrenoPlugin` contract, a richer table (search, filter sidebar, bulk actions, fieldsets, readonlyFields), a declarative customizable home page, a widget registry consumers can extend, and an API surface that's forward-compatible with realtime via Socket.io.
