@@ -7,8 +7,9 @@
     "downlevelIteration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
     "jsx": "react",
-    "lib": ["es2017", "dom", "es2017.object"],
+    "lib": ["es2022", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noEmit": false,
@@ -18,6 +19,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "outDir": "./dist",
+    "rootDir": "./src",
     "preserveConstEnums": true,
     "removeComments": false,
     "skipLibCheck": true,
@@ -34,5 +36,5 @@
     "src/**/*.isolated.tsx",
     "src/tests"
   ],
-  "include": ["src/**/*.ts*", "src/*.ts", "types.d.ts"]
+  "include": ["src/**/*.ts*", "src/*.ts", "src/**/*.d.ts"]
 }

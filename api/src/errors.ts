@@ -478,6 +478,39 @@ export const mongooseErrorToAPIError = (err: Error): APIError | null => {
   return null;
 };
 
+/**
+ * Picks the error to throw for something caught in a hook, transformer, or Mongoose middleware.
+ * An `APIError` is passed through untouched so its status, code, detail, and meta reach the client;
+ * anything else is wrapped in the given framework error. `wrapper` may override any field,
+ * including `detail`, which defaults to the caught error's text.
+ */
+export const passthroughOrWrap = (error: unknown, wrapper: APIErrorOptions): APIError => {
+  if (isAPIError(error)) {
+    return error;
+  }
+  return new APIError({
+    cause: error,
+    detail: errorDetail(error),
+    disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+    ...wrapper,
+  });
+};
+
+/**
+ * `passthroughOrWrap` for write paths (`model.create`, `doc.save`). Mongoose validation and cast
+ * errors are converted first so their per-field messages survive as `meta.fields` instead of being
+ * flattened into the wrapper's `detail`.
+ */
+export const passthroughOrWrapWrite = (error: unknown, wrapper: APIErrorOptions): APIError => {
+  if (!isAPIError(error) && error instanceof Error) {
+    const converted = mongooseErrorToAPIError(error);
+    if (converted) {
+      return converted;
+    }
+  }
+  return passthroughOrWrap(error, wrapper);
+};
+
 // Logs the error (warn for 4xx client errors, error for 5xx server errors) and captures it with
 // Sentry unless external tracking is disabled. Fingerprints on the logical error type
 // (name + code/title + status) so unrelated errors constructed at the same framework lines don't

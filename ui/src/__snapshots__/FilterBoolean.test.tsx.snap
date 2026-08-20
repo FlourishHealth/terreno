@@ -1,0 +1,109 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`FilterBoolean renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Urgent only",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 6,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#2B6072",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "height": 16,
+              "width": 16,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "flex-start",
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#2B6072",
+          "borderRadius": 20,
+          "borderWidth": 1,
+          "height": 20,
+          "justifyContent": "center",
+          "paddingHorizontal": 1,
+          "width": 36,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityRole": "switch",
+    "accessibilityState": {
+      "checked": false,
+      "disabled": false,
+    },
+    "aria-checked": false,
+    "aria-disabled": false,
+    "disabled": false,
+    "onHoverIn": [Function],
+    "onHoverOut": [Function],
+    "onKeyDown": [Function],
+    "onPress": [Function],
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "justifyContent": "space-between",
+      "paddingHorizontal": 8,
+      "paddingVertical": 12,
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;

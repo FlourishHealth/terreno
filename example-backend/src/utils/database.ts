@@ -2,6 +2,11 @@ import {logger} from "@terreno/api";
 import mongoose from "mongoose";
 import {initConfiguration} from "../models/configuration";
 
+export const resolveMongoDbName = (mongoDbName?: string): string | undefined => {
+  const trimmed = mongoDbName?.trim();
+  return trimmed || undefined;
+};
+
 export const connectToMongoDB = async (): Promise<void> => {
   // Check if already connected
   if (mongoose.connection.readyState === 1) {
@@ -10,10 +15,11 @@ export const connectToMongoDB = async (): Promise<void> => {
   }
 
   const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/terreno-example";
+  const mongoDbName = resolveMongoDbName(process.env.MONGO_DB_NAME);
 
   try {
-    await mongoose.connect(mongoURI);
-    logger.info("Connected to MongoDB");
+    await mongoose.connect(mongoURI, mongoDbName ? {dbName: mongoDbName} : undefined);
+    logger.info(`Connected to MongoDB database ${mongoose.connection.name}`);
 
     // Initialize configuration system after MongoDB connection
     try {

@@ -218,6 +218,8 @@ export interface TextThemeConfig {
 
 export interface SurfaceThemeConfig {
   base: keyof ThemePrimitiveColors;
+  baseAlternate: keyof ThemePrimitiveColors;
+  baseHover: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
   secondaryExtraLight: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
@@ -287,6 +289,8 @@ export interface TextTheme {
 
 export interface SurfaceTheme {
   base: string;
+  baseAlternate: string;
+  baseHover: string;
   primary: string;
   secondaryExtraLight: string;
   secondaryLight: string;
@@ -397,8 +401,10 @@ export type OnChangeCallback = (result: string) => void;
  * }
  * ```
  */
-// biome-ignore lint/suspicious/noEmptyInterface: Intentionally empty so consumers can augment it via declaration merging.
-export interface CustomIconRegistry {}
+export interface CustomIconRegistry {
+  /** Built-in "bars-filter" glyph (FontAwesome Classic Solid, E0AD). */
+  "bars-filter": true;
+}
 
 /** The set of custom icon names registered via {@link CustomIconRegistry}. */
 export type CustomIconName = keyof CustomIconRegistry & string;
@@ -426,6 +432,97 @@ export type CustomIconComponent = FC<CustomIconProps>;
  * `TerrenoProvider` via the `icons` prop to register custom icons.
  */
 export type IconRegistryMap = Record<string, CustomIconComponent>;
+
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
+/** Small blue dot that signals a filter control differs from its default. */
+export type FilterChangesBadgeProps = WithTestID;
+
+export interface FilterSelectMenuProps extends WithTestID {
+  /** Label shown to the left of the select control. */
+  title: string;
+  /** Selectable options for the single-select control. */
+  options: FilterOption[];
+  /** Currently selected value. */
+  value?: string;
+  /** Called with the newly selected value. */
+  onChange: (value: string) => void;
+  /** Text shown when no value is selected. */
+  placeholder?: string;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+  /** Disables the control. */
+  disabled?: boolean;
+}
+
+export interface FilterBooleanProps extends WithTestID {
+  /** Label shown to the left of the toggle. */
+  title: string;
+  /** Whether the toggle is on. */
+  value: boolean;
+  /** Called with the next toggle value. The entire row is the click zone. */
+  onChange: (value: boolean) => void;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+  /** Disables the toggle and the row click zone. */
+  disabled?: boolean;
+  /** Renders the toggle in a focused (keyboard) state. */
+  focused?: boolean;
+}
+
+export interface FilterAccordionProps extends WithTestID {
+  /** Label shown in the always-visible header row. */
+  title: string;
+  /** Custom content revealed when expanded. Empty by default. */
+  children?: React.ReactNode;
+  /** Controlled expanded state. Omit to use `defaultExpanded`. */
+  expanded?: boolean;
+  /** Initial expanded state when uncontrolled. */
+  defaultExpanded?: boolean;
+  /** Called with the next expanded state when the header row is pressed. */
+  onToggle?: (expanded: boolean) => void;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+}
+
+export interface FilterProps extends WithTestID {
+  /** Composed filter controls rendered inside the dropdown panel. */
+  children: React.ReactNode;
+  /** Trigger button label. */
+  label?: string;
+  /** Trigger button icon. Defaults to the built-in `bars-filter` glyph. */
+  iconName?: IconName;
+  /** Controlled open state. Omit to use `defaultOpen`. */
+  isOpen?: boolean;
+  /** Initial open state when uncontrolled. */
+  defaultOpen?: boolean;
+  /** Called whenever the dropdown opens or closes. */
+  onOpenChange?: (isOpen: boolean) => void;
+  /** Master toggle for the Apply/Clear/Cancel footer. */
+  showActionButtons?: boolean;
+  /** Show the Apply button in the footer. */
+  showApplyButton?: boolean;
+  /** Show the Clear hyperlink in the footer. */
+  showClearButton?: boolean;
+  /** Show the Cancel button in the footer. */
+  showCancelButton?: boolean;
+  applyButtonText?: string;
+  clearButtonText?: string;
+  cancelButtonText?: string;
+  /** Called when Apply is pressed. The dropdown then closes. */
+  onApply?: () => void;
+  /** Called when Clear is pressed. The dropdown then closes. */
+  onClear?: () => void;
+  /** Called when Cancel or a click-outside closes the dropdown. */
+  onCancel?: () => void;
+  /** Primary theming for the trigger and Apply button. */
+  variant?: "primary" | "secondary";
+  /** Panel width in pixels. Defaults to 320 per the design spec. */
+  width?: number;
+}
 
 export type AlignContent = "start" | "end" | "center" | "between" | "around" | "stretch";
 export type AlignSelf = "auto" | "start" | "end" | "center" | "baseline" | "stretch";
@@ -518,6 +615,13 @@ export interface LayerProps {
 export interface AccessibilityProps {
   accessibilityLabel: string;
   accessibilityHint: string;
+  /**
+   * RN/RNW accessibility role (e.g. "button") for a clickable Box. Optional —
+   * most onClick Boxes get an implicit button role already (see Box.tsx); set
+   * this explicitly when a screen-reader-facing role needs to be guaranteed
+   * (e.g. a badge that opens a sheet).
+   */
+  accessibilityRole?: string;
 }
 
 export interface BoxPropsBase extends WithTestID {
@@ -1555,7 +1659,14 @@ export interface BadgeProps extends WithTestID {
    * The status of the badge. Determines its color and appearance.
    * @default "info"
    */
-  status?: "info" | "error" | "warning" | "success" | "neutral" | "custom";
+  status?: "info" | "error" | "warning" | "success" | "neutral" | "active" | "custom";
+
+  /**
+   * For the "status" variant, whether the dot uses the bold (saturated) or
+   * subtle (light) tone.
+   * @default "bold"
+   */
+  color?: "bold" | "subtle";
 
   /**
    * The text or number to display inside the badge.
@@ -1563,9 +1674,10 @@ export interface BadgeProps extends WithTestID {
   value?: number | string;
 
   /**
-   * The variant of the badge. Determines if it displays an icon or number only.
+   * The variant of the badge. "status" renders a small colored dot (no text)
+   * used to indicate an active/modified state.
    */
-  variant?: "iconOnly" | "numberOnly";
+  variant?: "iconOnly" | "numberOnly" | "status";
 }
 
 export type ThumbsUpDownFeedbackValue = "positive" | "negative";
@@ -2600,6 +2712,12 @@ export interface TextFieldPickerActionSheetProps {
 
 export interface ToastProps {
   title: string;
+  /**
+   * Stable toast id, forwarded by `useToast` from the caller's options. Used to
+   * disambiguate the action button's testID so two stacked action toasts do not
+   * both answer to `toast-action-button`.
+   */
+  id?: string;
   variant?: "error" | "info" | "success" | "warning";
   secondary?: boolean;
   size?: "sm" | "lg";
@@ -2607,9 +2725,14 @@ export interface ToastProps {
   persistent?: boolean;
   // TODO enforce these should only show if size is "lg" with type discrinimation
   subtitle?: string;
-  // TODO Add buttons for Toast
-  // buttonText?: string;
-  // buttonOnClick?: () => void | Promise<void>;
+  /**
+   * Optional action button label. Renders only when `buttonOnClick` is also provided.
+   */
+  buttonText?: string;
+  /**
+   * Optional action button handler. Renders only when `buttonText` is also provided.
+   */
+  buttonOnClick?: () => void | Promise<void>;
 }
 
 export interface TooltipProps {
@@ -3046,6 +3169,16 @@ export interface SelectFieldPropsBase extends WithTestID {
    * @default false
    */
   disableSearch?: boolean;
+
+  /**
+   * Web only. When true, the dropdown menu renders in a fixed portal on
+   * `document.body` (zIndex 9999) instead of a React Native `Modal`. Use this
+   * when the select lives inside another portaled/high-zIndex overlay (e.g. the
+   * `Filter` panel) where a `Modal` would stack behind the overlay and be
+   * invisible and unclickable.
+   * @default false
+   */
+  renderMenuInBodyPortal?: boolean;
 
   /**
    * The title of the select field.

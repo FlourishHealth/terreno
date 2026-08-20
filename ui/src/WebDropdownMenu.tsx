@@ -24,6 +24,13 @@ export const scheduleAfterPaint = (callback: () => void): void => {
   }
 };
 
+export const resolveDocumentBodyPortalTarget = (): HTMLElement | null => {
+  if (typeof document === "undefined" || typeof HTMLElement === "undefined") {
+    return null;
+  }
+  return document.body instanceof HTMLElement ? document.body : null;
+};
+
 export interface WebDropdownMenuOption {
   key?: string | number;
   label: string;
@@ -85,6 +92,8 @@ export interface WebDropdownMenuProps {
    * Web only.
    */
   keepTriggerFocus?: boolean;
+  /** Web only. Renders the menu in a fixed portal attached to `document.body`. */
+  renderInBodyPortal?: boolean;
   /**
    * `anchored` positions the menu below/above the trigger (web-style).
    * `centered` shows a centered dialog, matching Android's native picker modal.
@@ -124,6 +133,7 @@ export const WebDropdownMenu = ({
   disableSearch = false,
   showEmptyStateWhenNoOptions = false,
   keepTriggerFocus = false,
+  renderInBodyPortal = false,
   presentation = "anchored",
 }: WebDropdownMenuProps): ReactElement => {
   const searchable = !disableSearch;
@@ -264,6 +274,7 @@ export const WebDropdownMenu = ({
   const menuLayoutStyle = isCenteredPresentation
     ? centeredMenuLayoutStyle
     : anchoredMenuLayoutStyle;
+  const usesWebPortal = keepTriggerFocus || renderInBodyPortal;
 
   const menuContent = (
     <>
@@ -375,7 +386,7 @@ export const WebDropdownMenu = ({
 
   // Close on Escape when using the portal overlay (Modal handles this itself).
   useEffect(() => {
-    if (!visible || !keepTriggerFocus || Platform.OS !== "web" || typeof document === "undefined") {
+    if (!visible || !usesWebPortal || Platform.OS !== "web" || typeof document === "undefined") {
       return;
     }
     const closeOnEscape = (event: KeyboardEvent): void => {
@@ -390,9 +401,9 @@ export const WebDropdownMenu = ({
         document.removeEventListener("keyup", closeOnEscape, false);
       }
     };
-  }, [keepTriggerFocus, onClose, visible]);
+  }, [onClose, usesWebPortal, visible]);
 
-  if (Platform.OS === "web" && keepTriggerFocus) {
+  if (Platform.OS === "web" && usesWebPortal) {
     if (!visible) {
       return <View testID={`${testIDPrefix}_modal`} />;
     }
@@ -428,10 +439,7 @@ export const WebDropdownMenu = ({
       </View>
     );
 
-    const portalTarget =
-      typeof document !== "undefined" && document.body instanceof HTMLElement
-        ? document.body
-        : null;
+    const portalTarget = resolveDocumentBodyPortalTarget();
 
     if (portalTarget) {
       return createWebPortal({children: overlay, container: portalTarget});
@@ -506,23 +514,37 @@ export const WebDropdownMenu = ({
 export const useWebDropdownAnchor = (): {
   triggerRef: React.RefObject<View | null>;
   anchor: WebDropdownAnchor;
+  cancelPendingMeasurement: () => void;
   measure: (onMeasured: (anchor: WebDropdownAnchor) => void) => void;
 } => {
   const triggerRef = useRef<View>(null);
   const [anchor, setAnchor] = useState<WebDropdownAnchor>({height: 0, width: 0, x: 0, y: 0});
+  const measurementRequestRef = useRef(0);
 
-  const measure = (onMeasured: (next: WebDropdownAnchor) => void): void => {
-    const node = triggerRef.current;
-    if (node && typeof node.measureInWindow === "function") {
-      node.measureInWindow((x, y, w, h) => {
-        const next = {height: h, width: w, x, y};
-        setAnchor(next);
-        onMeasured(next);
-      });
-      return;
-    }
-    onMeasured(anchor);
-  };
+  const cancelPendingMeasurement = useCallback((): void => {
+    measurementRequestRef.current += 1;
+  }, []);
 
-  return {anchor, measure, triggerRef};
+  const measure = useCallback(
+    (onMeasured: (next: WebDropdownAnchor) => void): void => {
+      const requestId = measurementRequestRef.current + 1;
+      measurementRequestRef.current = requestId;
+      const node = triggerRef.current;
+      if (node && typeof node.measureInWindow === "function") {
+        node.measureInWindow((x, y, w, h) => {
+          if (requestId !== measurementRequestRef.current) {
+            return;
+          }
+          const next = {height: h, width: w, x, y};
+          setAnchor(next);
+          onMeasured(next);
+        });
+        return;
+      }
+      onMeasured(anchor);
+    },
+    [anchor]
+  );
+
+  return {anchor, cancelPendingMeasurement, measure, triggerRef};
 };

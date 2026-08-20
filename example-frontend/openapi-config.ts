@@ -2,7 +2,7 @@
 import type {ConfigFile} from "@rtk-query/codegen-openapi";
 
 const config: ConfigFile = {
-  apiFile: "@terreno/rtk",
+  apiFile: "./store/betterAuthApi.ts",
   apiImport: "emptySplitApi",
   argSuffix: "Args",
   exportName: "openapi",

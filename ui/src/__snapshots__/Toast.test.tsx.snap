@@ -1176,7 +1176,8 @@ exports[`Toast renders persistent toast with dismiss button 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
-            "aria-role": "button",
+            "accessibilityLabel": "Dismiss notification",
+            "accessibilityRole": "button",
             "onPress": [class Function],
             "style": {
               "alignItems": "center",
@@ -1327,7 +1328,8 @@ exports[`Toast renders dismiss button when persistent with onDismiss 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
-            "aria-role": "button",
+            "accessibilityLabel": "Dismiss notification",
+            "accessibilityRole": "button",
             "onPress": [class Function],
             "style": {
               "alignItems": "center",
