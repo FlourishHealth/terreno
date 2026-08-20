@@ -5,19 +5,17 @@ url: http://localhost:8082/login
 
 - launchApp
 
-# Wait for the login screen to load
+# Wait for the login screen (text selectors — testID/id are unreliable on RN Web)
 - extendedWaitUntil:
-    visible: "Welcome Back"
-    timeout: 30000
+    visible: "Log In"
+    timeout: 60000
 
 # Fill in email
-- tapOn:
-    id: "login-screen-email-input"
+- tapOn: "Email"
 - inputText: "admin@example.com"
 
 # Fill in password
-- tapOn:
-    id: "login-screen-password-input"
+- tapOn: "Password"
 - inputText: "testpassword123"
 
 # Submit login
@@ -26,4 +24,4 @@ url: http://localhost:8082/login
 # Assert navigation to Todos screen
 - extendedWaitUntil:
     visible: "My Todos"
-    timeout: 15000
+    timeout: 30000

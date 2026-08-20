@@ -284,9 +284,7 @@ const acceptPendingConsentsForUser = async (user: UserDocument): Promise<void> =
     if (matchingResponses.length === 0) {
       return true;
     }
-    return !matchingResponses.some(
-      (response) => response.formVersionSnapshot === form.version
-    );
+    return !matchingResponses.some((response) => response.formVersionSnapshot === form.version);
   });
 
   if (pendingForms.length === 0) {
