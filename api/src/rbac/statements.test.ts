@@ -41,7 +41,7 @@ describe("rbac statements", () => {
       READ_ACTIONS
     );
 
-    expect(expanded.admin).toEqual(["access"]);
+    expect(expanded.admin).toBeUndefined();
     expect(expanded.user).toEqual(["list", "read"]);
     expect(expanded.rbac).toEqual(["read"]);
     expect(expanded.configuration).toEqual(["read"]);

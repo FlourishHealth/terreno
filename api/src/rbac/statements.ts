@@ -9,7 +9,7 @@ export type Statements = Record<string, readonly string[]>;
 
 export type PermissionSet = {[resource: string]: readonly string[]};
 
-export const READ_ACTIONS = ["read", "list", "access", "view"] as const;
+export const READ_ACTIONS = ["read", "list", "view"] as const;
 
 export const READ_ONLY_ROLE_PERMISSIONS = {readOnly: true} as const;
 

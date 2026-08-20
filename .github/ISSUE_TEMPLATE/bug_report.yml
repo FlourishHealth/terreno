@@ -20,6 +20,7 @@ body:
         - "@terreno/admin-spa"
         - "@terreno/ai"
         - "@terreno/api-health"
+        - "@terreno/comms"
         - "@terreno/feature-flags"
         - "@terreno/mcp"
         - docs

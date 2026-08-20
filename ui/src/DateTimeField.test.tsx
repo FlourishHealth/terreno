@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {
   afterAll,
   afterEach,
@@ -11,7 +9,9 @@ import {
   mock,
 } from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import {DateTime} from "luxon";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {DateTimeField} from "./DateTimeField";
 import {renderWithTheme, setupComponentTest, teardownComponentTest} from "./test-utils";
@@ -279,8 +279,8 @@ describe("DateTimeField", () => {
       });
 
       // Month should be capped and always return a valid date
-      const validCalls = mockOnChange.mock.calls.filter((args: any[]) => {
-        const date = DateTime.fromISO(args[0]);
+      const validCalls = mockOnChange.mock.calls.filter((args: unknown[]) => {
+        const date = DateTime.fromISO(String(args[0]));
         return date.isValid && date.month <= 12;
       });
 
@@ -307,7 +307,7 @@ describe("DateTimeField", () => {
       // and must never emit an invalid minute (60).
       expect(mockOnChange).toHaveBeenCalled();
       expect(mockOnChange).toHaveBeenCalledTimes(4);
-      const calls = mockOnChange.mock.calls.map(([iso]: any) => iso);
+      const calls = mockOnChange.mock.calls.map((call: unknown[]) => String(call[0]));
       // No call should use an invalid "60" minute.
       expect(calls.some((iso: string) => iso.includes(":60:00.000Z"))).toBe(false);
       // It should include a reset to "00" and then a valid "06".
@@ -762,7 +762,7 @@ describe("DateTimeField", () => {
       );
 
       const actionSheet = UNSAFE_root.findAll(
-        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.visible !== undefined
       );
       expect(actionSheet.length).toBeGreaterThan(0);
       await act(async () => {
@@ -783,7 +783,7 @@ describe("DateTimeField", () => {
       );
 
       const actionSheet = UNSAFE_root.findAll(
-        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.visible !== undefined
       );
       expect(actionSheet.length).toBeGreaterThan(0);
       await act(async () => {
@@ -804,7 +804,7 @@ describe("DateTimeField", () => {
       );
 
       const actionSheet = UNSAFE_root.findAll(
-        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.visible !== undefined
       );
       expect(actionSheet.length).toBeGreaterThan(0);
       await act(async () => {
@@ -825,7 +825,7 @@ describe("DateTimeField", () => {
       );
 
       const actionSheet = UNSAFE_root.findAll(
-        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.visible !== undefined
       );
       expect(actionSheet.length).toBeGreaterThan(0);
       await act(async () => {
@@ -848,7 +848,7 @@ describe("DateTimeField", () => {
         />
       );
 
-      const amPmSelects = UNSAFE_root.findAll((n: any) => n.props?.onAmPmChange);
+      const amPmSelects = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.onAmPmChange);
       expect(amPmSelects.length).toBeGreaterThan(0);
       await act(async () => {
         amPmSelects[0].props.onAmPmChange("pm");
@@ -871,7 +871,7 @@ describe("DateTimeField", () => {
         />
       );
 
-      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      const tzPickers = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.onTimezoneChange);
       expect(tzPickers.length).toBeGreaterThan(0);
       await act(async () => {
         tzPickers[0].props.onTimezoneChange("America/Chicago");
@@ -890,7 +890,7 @@ describe("DateTimeField", () => {
         />
       );
 
-      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      const tzPickers = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.onTimezoneChange);
       expect(tzPickers.length).toBeGreaterThan(0);
       await act(async () => {
         tzPickers[0].props.onTimezoneChange("America/Chicago");
@@ -995,7 +995,7 @@ describe("DateTimeField", () => {
       );
 
       const actionSheet = UNSAFE_root.findAll(
-        (n: any) => n.props?.onDismiss && n.props?.visible !== undefined
+        (n: ReactTestInstance) => n.props?.onDismiss && n.props?.visible !== undefined
       );
       expect(actionSheet.length).toBeGreaterThan(0);
       await act(async () => {
@@ -1015,7 +1015,7 @@ describe("DateTimeField", () => {
         />
       );
 
-      const pressables = UNSAFE_root.findAll((n: any) => n.props?.onLayout);
+      const pressables = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.onLayout);
       expect(pressables.length).toBeGreaterThan(0);
       await act(async () => {
         pressables[0].props.onLayout({nativeEvent: {layout: {width: 500}}});
@@ -1035,7 +1035,7 @@ describe("DateTimeField", () => {
           value="2023-05-15T15:30:00.000Z"
         />
       );
-      const selects = UNSAFE_root.findAll((n: any) => {
+      const selects = UNSAFE_root.findAll((n: ReactTestInstance) => {
         const opts = n.props?.options;
         return (
           Array.isArray(opts) &&
@@ -1180,7 +1180,7 @@ describe("DateTimeField", () => {
 
       mockOnChange.mockClear();
       const actionSheet = UNSAFE_root.findAll(
-        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+        (n: ReactTestInstance) => n.props?.onChange && n.props?.visible !== undefined
       );
       expect(actionSheet.length).toBeGreaterThan(0);
       await act(async () => {
@@ -1282,7 +1282,7 @@ describe("DateTimeField", () => {
         />
       );
 
-      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      const tzPickers = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.onTimezoneChange);
       expect(tzPickers.length).toBeGreaterThan(0);
       await act(async () => {
         tzPickers[0].props.onTimezoneChange("America/Chicago");
@@ -1301,12 +1301,46 @@ describe("DateTimeField", () => {
         />
       );
 
-      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      const tzPickers = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.onTimezoneChange);
       expect(tzPickers.length).toBeGreaterThan(0);
       await act(async () => {
         tzPickers[0].props.onTimezoneChange("America/Chicago");
       });
       expect(mockOnChange).toHaveBeenCalled();
+    });
+  });
+
+  describe("TimezonePicker onChange", () => {
+    it("forwards the picked timezone to onTimezoneChange and emits a new value", async () => {
+      setDesktop();
+      const mockTzChange = mock(() => {});
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          onTimezoneChange={mockTzChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      // Select the rendered TimezonePicker itself rather than any ancestor that happens to
+      // have an onTimezoneChange prop, so the component's own handler runs.
+      const pickers = UNSAFE_root.findAll((node: ReactTestInstance) =>
+        Boolean((node.props as {shortTimezone?: boolean}).shortTimezone)
+      );
+      assert.isAbove(pickers.length, 0);
+      await act(async () => {
+        pickers[0].props.onChange("America/Chicago");
+      });
+
+      assert.isTrue(mockTzChange.mock.calls.some((call) => call[0] === "America/Chicago"));
+      // The picked timezone is applied to the current segments and emitted.
+      assert.isAbove(mockOnChange.mock.calls.length, 0);
+      assert.equal(
+        mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0],
+        "2023-05-15T16:30:00.000Z"
+      );
     });
   });
 
@@ -1330,6 +1364,20 @@ describe("DateTimeField", () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       });
       expect(hourInput).toBeTruthy();
+    });
+  });
+
+  describe("timezone abbreviation", () => {
+    it("falls back to the current time when there is no value and no complete segments", () => {
+      setMobile();
+      const {getByText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+
+      const expectedAbbr = DateTime.now().setZone("America/New_York").offsetNameShort ?? "";
+      assert.isNotEmpty(expectedAbbr);
+      // With no value the placeholder is built from the current time in the given timezone.
+      assert.isTrue(Boolean(getByText(`12:00 PM ${expectedAbbr}`)));
     });
   });
 });

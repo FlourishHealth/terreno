@@ -23,6 +23,15 @@ const serviceName = process.env.FLOURISH_SERVICE || "flourish-backend";
 const serviceVersion = process.env.npm_package_version || "1.0.0";
 
 if (isTracingEnabled) {
+  const mongooseInstrumentation = new MongooseInstrumentation({
+    // Enable response hook to capture query results metadata
+    responseHook: (span, _responseInfo): void => {
+      // Add basic operation metadata
+      span.setAttributes({
+        "db.operation.completed": true,
+      });
+    },
+  });
   const sdk = new NodeSDK({
     instrumentations: [
       // HTTP instrumentation for incoming requests
@@ -40,15 +49,7 @@ if (isTracingEnabled) {
       // Express instrumentation for route-level tracing
       new ExpressInstrumentation(),
       // Mongoose instrumentation for database operations
-      new MongooseInstrumentation({
-        // Enable response hook to capture query results metadata
-        responseHook: (span, _responseInfo): void => {
-          // Add basic operation metadata
-          span.setAttributes({
-            "db.operation.completed": true,
-          });
-        },
-      }),
+      mongooseInstrumentation,
     ],
     resource: resourceFromAttributes({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
@@ -61,6 +62,14 @@ if (isTracingEnabled) {
   });
 
   sdk.start();
+  // @terreno/api loads Mongoose before the SDK installs module hooks. Patch the loaded module
+  // directly so Bun emits database spans; 0.66.0 contains Mongoose 9 patch logic but still
+  // advertises a pre-9 automatic instrumentation range.
+  (
+    mongooseInstrumentation as unknown as {
+      patch: (module: typeof mongoose, moduleVersion: string) => unknown;
+    }
+  ).patch(mongoose, mongoose.version);
   // Use logger instead of console in production, if you need to debug if this is working.
   // process.stdout.write("OpenTelemetry instrumentation initialized successfully\n");
 

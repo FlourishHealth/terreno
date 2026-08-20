@@ -1,3 +1,5 @@
+import cloneDeep from "lodash/cloneDeep";
+
 import type {FieldMask} from "./types";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -34,10 +36,22 @@ const pickPaths = (doc: Record<string, unknown>, paths: string[]): Record<string
   for (const path of paths) {
     const value = getNestedValue(doc, path);
     if (value !== undefined) {
-      setNestedValue(result, path, value);
+      setNestedValue(result, path, cloneDeep(value));
     }
   }
   return result;
+};
+
+const omitPath = (doc: Record<string, unknown>, omitPathName: string): void => {
+  const parts = omitPathName.split(".");
+  if (parts.length === 1) {
+    delete doc[parts[0]];
+    return;
+  }
+  const parent = getNestedValue(doc, parts.slice(0, -1).join("."));
+  if (isPlainObject(parent)) {
+    delete parent[parts[parts.length - 1]];
+  }
 };
 
 export const applyReadMask = (value: unknown, mask: FieldMask): unknown => {
@@ -52,24 +66,48 @@ export const applyReadMask = (value: unknown, mask: FieldMask): unknown => {
   const doc = value as Record<string, unknown>;
   let result: Record<string, unknown>;
   if (mask.read === "*") {
-    result = {...doc};
+    result = cloneDeep(doc);
   } else {
     result = pickPaths(doc, mask.read);
   }
 
-  for (const omitPath of mask.omit ?? []) {
-    const parts = omitPath.split(".");
-    if (parts.length === 1) {
-      delete result[parts[0]];
-    } else {
-      const parent = getNestedValue(result, parts.slice(0, -1).join("."));
-      if (isPlainObject(parent)) {
-        delete parent[parts[parts.length - 1]];
-      }
-    }
+  for (const pathToOmit of mask.omit ?? []) {
+    omitPath(result, pathToOmit);
   }
 
   return result;
+};
+
+const isWritePathAllowed = (path: string, write: string[]): boolean => {
+  for (const allowed of write) {
+    if (path === allowed || path.startsWith(`${allowed}.`)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const pathHasNestedWriteAllow = (path: string, write: string[]): boolean => {
+  return write.some((allowed) => allowed.startsWith(`${path}.`));
+};
+
+const collectDisallowedWriteKeys = (
+  body: Record<string, unknown>,
+  write: string[],
+  prefix = ""
+): string[] => {
+  const disallowed: string[] = [];
+  for (const [key, value] of Object.entries(body)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isPlainObject(value) && pathHasNestedWriteAllow(path, write)) {
+      disallowed.push(...collectDisallowedWriteKeys(value, write, path));
+      continue;
+    }
+    if (!isWritePathAllowed(path, write)) {
+      disallowed.push(path);
+    }
+  }
+  return disallowed;
 };
 
 export const getDisallowedWriteKeys = (
@@ -80,6 +118,5 @@ export const getDisallowedWriteKeys = (
     return [];
   }
 
-  const allowed = new Set(mask.write);
-  return Object.keys(body).filter((key) => !allowed.has(key));
+  return collectDisallowedWriteKeys(body, mask.write);
 };

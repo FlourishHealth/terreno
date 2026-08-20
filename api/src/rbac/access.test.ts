@@ -314,4 +314,44 @@ describe("createAccess", () => {
     });
     expect(mask.read).toEqual(["title"]);
   });
+
+  it("honors createView deny and unknown view names as empty masks", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Writer",
+          name: "writer",
+          permissions: {todo: ["create"]},
+        },
+      ],
+      fieldViews: {
+        todo: {
+          createView: "deny",
+          select: () => "missing",
+          views: {
+            public: {omit: [], read: ["title"], write: ["title"]},
+          },
+        },
+      },
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["writer"]});
+    const createMask = await access.fieldMask({
+      phase: "create",
+      resource: "todo",
+      user,
+    });
+    expect(createMask.write).toEqual([]);
+
+    const readMask = await access.fieldMask({
+      phase: "read",
+      resource: "todo",
+      user,
+    });
+    expect(readMask.write).toEqual([]);
+  });
 });

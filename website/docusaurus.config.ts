@@ -18,6 +18,19 @@ const config: Config = {
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   organizationName: "flourishhealth",
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            from: "/next/reference/rtk",
+            to: "/next/how-to/migrate-rtk-to-syncdb",
+          },
+        ],
+      },
+    ],
+  ],
   presets: [
     [
       "classic",
@@ -56,6 +69,18 @@ const config: Config = {
         {
           items: [
             {href: "https://github.com/flourishhealth/terreno", label: "GitHub"},
+            {
+              href: "https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md",
+              label: "Roadmap",
+            },
+            {
+              href: "https://github.com/FlourishHealth/terreno/discussions",
+              label: "Discussions",
+            },
+            {
+              href: "https://github.com/FlourishHealth/terreno/discussions/categories/docs-feedback",
+              label: "Docs feedback",
+            },
             {href: demoUrl, label: "Component demo"},
           ],
           title: "Community",

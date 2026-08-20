@@ -1,0 +1,58 @@
+name: Generate roadmap
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    name: Regenerate ROADMAP.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        env:
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+          # The default GITHUB_TOKEN is repository-scoped and cannot read
+          # ProjectV2, so the roadmap query needs a PAT with `read:project`.
+          ROADMAP_PROJECT_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          missing=()
+          if [ -z "$TERRENO_PROJECT_NUMBER" ]; then missing+=("TERRENO_PROJECT_NUMBER"); fi
+          if [ -z "$ROADMAP_PROJECT_TOKEN" ]; then missing+=("ROADMAP_PROJECT_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required variables: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate ROADMAP.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+        run: bun run roadmap:generate
+
+      - name: Commit roadmap changes
+        run: |
+          if git diff --quiet ROADMAP.md; then
+            echo "ROADMAP.md unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ROADMAP.md
+          git commit -m "chore: regenerate ROADMAP.md from project board"
+          git push

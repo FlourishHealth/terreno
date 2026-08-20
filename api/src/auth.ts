@@ -162,6 +162,114 @@ export const signupUser = async (
   }
 };
 
+/** A user document exposing passport-local-mongoose's `setPassword`. */
+export interface HasSetPassword {
+  _id?: unknown;
+  id?: string;
+  setPassword: (
+    password: string,
+    callback?: (error?: unknown) => void
+  ) => Promise<unknown> | unknown;
+}
+
+/** Upper bound on password length accepted by {@link setPasswordForUser} (D5). */
+export const MAX_PASSWORD_LENGTH = 256;
+
+/** Optional audit context for {@link setPasswordForUser} — never includes the password itself. */
+export interface SetPasswordAuditContext {
+  /** The admin performing the change, when set via an admin-only route. */
+  adminId?: unknown;
+}
+
+/**
+ * Sets a password on a passport-local-mongoose user document, returning a Promise regardless of
+ * whether the installed version of `setPassword` is callback- or promise-based. Newer versions
+ * return a promise while older ones only invoke the callback; this helper normalizes both and
+ * rejects after `timeoutMs` (default 15s) if neither settles. Call `user.save()` afterwards to
+ * persist the new hash/salt.
+ *
+ * Rejects synchronously (before touching `setPassword`) when `password` exceeds
+ * {@link MAX_PASSWORD_LENGTH} characters. When `audit.adminId` is provided (an admin-initiated
+ * password change), logs a `logger.info` audit line with the admin id, target user id, and
+ * timestamp — NEVER the password itself.
+ */
+export const setPasswordForUser = async (
+  user: HasSetPassword,
+  password: string,
+  timeoutMs = 15_000,
+  audit?: SetPasswordAuditContext
+): Promise<void> => {
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new APIError({
+      status: 400,
+      title: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
+    });
+  }
+  if (audit?.adminId !== undefined) {
+    const targetUserId = user._id ?? user.id ?? "unknown";
+    logger.info(
+      `[auth] Admin ${String(audit.adminId)} set password for user ${String(targetUserId)} ` +
+        `at ${DateTime.now().toISO()}`
+    );
+  }
+  await new Promise<void>((resolve, reject) => {
+    let isSettled = false;
+    const timeout = setTimeout(() => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      reject(new Error("Timed out while setting password"));
+    }, timeoutMs);
+
+    const resolveOnce = (): void => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    const rejectOnce = (error: unknown): void => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      clearTimeout(timeout);
+      reject(error);
+    };
+
+    try {
+      const maybePromise = user.setPassword(password, (error?: unknown) => {
+        if (error) {
+          rejectOnce(error);
+          return;
+        }
+        resolveOnce();
+      });
+
+      if (maybePromise && typeof (maybePromise as Promise<unknown>).then === "function") {
+        (maybePromise as Promise<unknown>).then(resolveOnce).catch(rejectOnce);
+      }
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+};
+
+/**
+ * Returns the duration when `ms` can parse it, otherwise logs and returns undefined so the caller
+ * keeps its default. Signing a token with an unparseable duration throws instead.
+ */
+const validateDuration = (envName: string, value: string): StringValue | undefined => {
+  if (ms(value as StringValue) === undefined) {
+    logger.error(`${envName} is not a valid duration: "${value}". Using the default instead.`);
+    return undefined;
+  }
+  return value as StringValue;
+};
+
 /**
  * Generates both an access token (JWT) and a refresh token for a given user.
  *
@@ -204,14 +312,9 @@ export const generateTokens = async (
   if (authOptions?.generateTokenExpiration) {
     tokenOptions.expiresIn = authOptions.generateTokenExpiration(user);
   } else if (process.env.TOKEN_EXPIRES_IN) {
-    try {
-      // this call to ms is purely for validation of the env variable. If it is invalid,
-      // we want to be able to log the error and use the default.
-      ms(process.env.TOKEN_EXPIRES_IN as StringValue);
-      tokenOptions.expiresIn = process.env.TOKEN_EXPIRES_IN as StringValue;
-    } catch (error) {
-      // This error will result in using the default value above of 15m.
-      logger.error(error as string);
+    const expiresIn = validateDuration("TOKEN_EXPIRES_IN", process.env.TOKEN_EXPIRES_IN);
+    if (expiresIn) {
+      tokenOptions.expiresIn = expiresIn;
     }
   }
   if (process.env.TOKEN_ISSUER) {
@@ -228,14 +331,12 @@ export const generateTokens = async (
     if (authOptions?.generateRefreshTokenExpiration) {
       refreshTokenOptions.expiresIn = authOptions.generateRefreshTokenExpiration(user);
     } else if (process.env.REFRESH_TOKEN_EXPIRES_IN) {
-      try {
-        // this call to ms is purely for validation of the env variable. If it is invalid,
-        // we want to be able to log the error and use the default.
-        ms(process.env.REFRESH_TOKEN_EXPIRES_IN as StringValue);
-        refreshTokenOptions.expiresIn = process.env.REFRESH_TOKEN_EXPIRES_IN as StringValue;
-      } catch (error) {
-        // This error will result in using the default value above of 30d.
-        logger.error(error as string);
+      const expiresIn = validateDuration(
+        "REFRESH_TOKEN_EXPIRES_IN",
+        process.env.REFRESH_TOKEN_EXPIRES_IN
+      );
+      if (expiresIn) {
+        refreshTokenOptions.expiresIn = expiresIn;
       }
     }
     refreshToken = jwt.sign(payload, refreshTokenSecretOrKey, refreshTokenOptions);
@@ -246,6 +347,10 @@ export const generateTokens = async (
 };
 
 export const setupAuth = (app: express.Application, userModel: UserModel): void => {
+  if (!userModel.createStrategy) {
+    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
+  }
+
   passport.use(new AnonymousStrategy());
   passport.use(userModel.createStrategy());
   passport.use(
@@ -266,10 +371,6 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     ) as passport.Strategy
   );
 
-  if (!userModel.createStrategy) {
-    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
-  }
-
   const customTokenExtractor: JwtFromRequestFunction = (req) => {
     let token: string | null = null;
     if (req?.cookies?.jwt) {
@@ -286,9 +387,6 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     }
 
     const secretOrKey = process.env.TOKEN_SECRET;
-    if (!secretOrKey) {
-      throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
-    }
     const jwtOpts: StrategyOptions = {
       issuer: process.env.TOKEN_ISSUER,
       jwtFromRequest: customTokenExtractor,
@@ -353,6 +451,19 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
         issuer: process.env.TOKEN_ISSUER,
       }) as jwt.JwtPayload;
     } catch (error: unknown) {
+      // A bearer token that is not a JWT at all (e.g. a Better Auth opaque session
+      // token) is not ours to reject — fall through so a later auth layer (Better
+      // Auth session middleware) or the route's own permissions can handle it.
+      // Detect this by decoding the token's header/payload structure (D1) rather
+      // than counting dot-delimited segments: an opaque token can coincidentally
+      // contain exactly two dots, and a malformed-but-JWT-shaped string can fail
+      // this same check for the wrong reason — `jwt.decode` parses the actual
+      // base64url JSON structure of each segment, which dot-counting cannot.
+      // Genuine JWTs that fail verification (malformed/expired) still return 401 so the
+      // client's token-refresh flow is preserved.
+      if (jwt.decode(token, {complete: true}) === null) {
+        return next();
+      }
       const userText = req.user?._id ? ` for user ${req.user._id} ` : "";
       const expiredAt =
         error && typeof error === "object" && "expiredAt" in error

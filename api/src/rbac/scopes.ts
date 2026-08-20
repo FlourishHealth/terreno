@@ -1,46 +1,17 @@
 import type {User} from "../auth";
+import {matchesQuery} from "../realtime/queryMatcher";
 import type {ResourceScope, ScopeArgs} from "./types";
 
-const getValueAtPath = (doc: unknown, path: string): unknown => {
-  const parts = path.split(".");
-  let current: unknown = doc;
-  for (const part of parts) {
-    if (current == null || typeof current !== "object") {
-      return undefined;
-    }
-    current = (current as Record<string, unknown>)[part];
-  }
-  return current;
-};
-
-const matchesFragment = (
-  doc: unknown,
+const projectDocForFieldOf = <TDoc>(
+  doc: TDoc,
   fragment: Record<string, unknown>,
-  fieldOf?: (doc: unknown, path: string) => unknown
-): boolean => {
-  for (const [path, expected] of Object.entries(fragment)) {
-    const actual = fieldOf ? fieldOf(doc, path) : getValueAtPath(doc, path);
-    if (expected && typeof expected === "object" && !Array.isArray(expected)) {
-      const query = expected as Record<string, unknown>;
-      if ("$in" in query) {
-        const values = (query.$in as unknown[]).map((value) => String(value));
-        if (!values.includes(String(actual))) {
-          return false;
-        }
-        continue;
-      }
-      if ("$eq" in query) {
-        if (String(actual) !== String(query.$eq)) {
-          return false;
-        }
-        continue;
-      }
-    }
-    if (String(actual) !== String(expected)) {
-      return false;
-    }
+  fieldOf: (doc: TDoc, path: string) => unknown
+): Record<string, unknown> => {
+  const projected: Record<string, unknown> = {};
+  for (const path of Object.keys(fragment)) {
+    projected[path] = fieldOf(doc, path);
   }
-  return true;
+  return projected;
 };
 
 export interface ScopeDefinition<TDoc> {
@@ -64,11 +35,10 @@ export const defineScope = <TDoc>(def: ScopeDefinition<TDoc>): ResourceScope<TDo
       if (!args.doc) {
         return true;
       }
-      return matchesFragment(
-        args.doc,
-        fragment,
-        def.fieldOf as (doc: unknown, path: string) => unknown
-      );
+      const subject = def.fieldOf
+        ? projectDocForFieldOf(args.doc as TDoc, fragment, def.fieldOf)
+        : (args.doc as Record<string, unknown>);
+      return matchesQuery(subject, fragment);
     },
     filter: async (args) => {
       if (def.adminBypass && (await def.adminBypass(args))) {

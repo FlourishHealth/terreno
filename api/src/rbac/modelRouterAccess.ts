@@ -77,6 +77,16 @@ export const buildAccessPermissions = <T>(
     const checks: PermissionMethod<T>[] = [
       isPermitted(buildPermissionRequest(access.resource, action)) as PermissionMethod<T>,
     ];
+    if (access.scope?.check) {
+      checks.push(async (_method, user, obj) => {
+        const result = await access.scope?.check?.({
+          action,
+          doc: obj,
+          user,
+        });
+        return result !== false;
+      });
+    }
     const also = access.also?.[method] ?? [];
     return [...checks, ...(also as PermissionMethod<T>[])];
   };
@@ -123,8 +133,16 @@ export const buildAccessQueryFilter = <_T>(
       resource: access.resource,
       user,
     });
+    let withAccessScope = mergeFilters(merged, scopeFilter);
+    if (access.scope?.filter) {
+      const routerScopeFilter = await access.scope.filter({
+        action: listAction,
+        user,
+      });
+      withAccessScope = mergeFilters(withAccessScope, routerScopeFilter);
+    }
 
-    return mergeFilters(merged, scopeFilter);
+    return withAccessScope;
   };
 };
 
@@ -199,6 +217,42 @@ export const validateAccessWriteBody = async ({
     status: 400,
     title: "Validation failed",
   });
+};
+
+export const validateAccessWritePayload = async ({
+  options,
+  body,
+  doc,
+  phase,
+  user,
+}: {
+  options: {
+    access?: ModelRouterAccessOptions;
+    accessControl?: AnyTerrenoAccess;
+  };
+  body: unknown;
+  doc?: unknown;
+  phase: "create" | "write";
+  user?: express.Request["user"];
+}): Promise<void> => {
+  if (!options.access || !options.accessControl || body == null) {
+    return;
+  }
+
+  const items = Array.isArray(body) ? body : [body];
+  for (const item of items) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    await validateAccessWriteBody({
+      access: options.access,
+      accessControl: options.accessControl,
+      body: item as Record<string, unknown>,
+      doc,
+      phase,
+      user,
+    });
+  }
 };
 
 export const resolveModelRouterAccess = <T>(options: {

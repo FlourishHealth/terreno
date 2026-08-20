@@ -9,14 +9,24 @@ describe("fieldViews", () => {
     expect(masked).toEqual({name: "Todo", ownerId: "u1"});
   });
 
-  it("applyReadMask omits nested paths from read results", () => {
-    const doc = {profile: {email: "a@b.com", phone: "555"}};
+  it("applyReadMask omits nested paths without mutating the original document", () => {
+    const profile = {email: "a@b.com", phone: "555"};
+    const doc = {profile};
     const masked = applyReadMask(doc, {
       omit: ["profile.phone"],
       read: "*",
       write: "*",
     });
     expect(masked).toEqual({profile: {email: "a@b.com"}});
+    expect(profile.phone).toBe("555");
+  });
+
+  it("getDisallowedWriteKeys rejects nested keys outside a dotted write mask", () => {
+    const disallowed = getDisallowedWriteKeys(
+      {profile: {email: "a@b.com", phone: "555"}},
+      {omit: [], read: "*", write: ["profile.email"]}
+    );
+    expect(disallowed).toEqual(["profile.phone"]);
   });
 
   it("getDisallowedWriteKeys rejects keys outside the write mask", () => {

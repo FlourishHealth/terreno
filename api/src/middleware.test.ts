@@ -1,9 +1,14 @@
 import {beforeEach, describe, expect, it, type Mock, mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
+import {assert} from "chai";
 import express, {type NextFunction, type Request, type Response} from "express";
 import supertest from "supertest";
 
-import {jsonResponseRequestIdMiddleware, sentryAppVersionMiddleware} from "./middleware";
+import {
+  jsonResponseRequestIdMiddleware,
+  requireAdminMiddleware,
+  sentryAppVersionMiddleware,
+} from "./middleware";
 import {requestContextMiddleware} from "./requestContext";
 
 const buildReq = (headers: Record<string, string | undefined>): Request => {
@@ -13,6 +18,41 @@ const buildReq = (headers: Record<string, string | undefined>): Request => {
 };
 
 const buildNext = (): Mock<() => void> => mock(() => {});
+
+describe("requireAdminMiddleware", () => {
+  it("calls next when the user is an admin", () => {
+    const next = buildNext();
+    const req = {user: {admin: true}} as unknown as Request;
+
+    requireAdminMiddleware(req, {} as Response, next as unknown as NextFunction);
+
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws a 403 APIError when the user is not an admin", () => {
+    const next = buildNext();
+    const req = {user: {admin: false}} as unknown as Request;
+
+    expect(() =>
+      requireAdminMiddleware(req, {} as Response, next as unknown as NextFunction)
+    ).toThrow("Admin access required");
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("throws a 403 APIError when there is no user", () => {
+    const next = buildNext();
+    const req = {} as unknown as Request;
+
+    let status: number | undefined;
+    try {
+      requireAdminMiddleware(req, {} as Response, next as unknown as NextFunction);
+    } catch (error) {
+      status = (error as {status?: number}).status;
+    }
+    expect(status).toBe(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
 
 describe("sentryAppVersionMiddleware", () => {
   let setTagMock: Mock<(key: string, value: string) => void>;
@@ -129,6 +169,21 @@ describe("jsonResponseRequestIdMiddleware", () => {
     const res = await supertest(app).get("/openapi/validate").expect(200);
     expect(res.body).toEqual({document: {openapi: "3.0.0"}, valid: true});
     expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("leaves bodies untouched when no request context or requestId exists", async () => {
+    // Without requestContextMiddleware there is no requestId to correlate on, so
+    // the middleware must pass payloads through unchanged.
+    const app = express();
+    app.use(jsonResponseRequestIdMiddleware);
+    app.get("/object", (_req, res) => {
+      return res.json({hello: "world"});
+    });
+
+    const res = await supertest(app).get("/object").expect(200);
+
+    assert.deepEqual(res.body, {hello: "world"});
+    assert.isUndefined(res.headers["x-request-id"]);
   });
 
   it("uses incoming X-Request-ID on wrapped object responses", async () => {

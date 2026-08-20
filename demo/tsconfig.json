@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@stories/*": ["stories/*"],
       "@components/*": ["components/*"],
@@ -12,6 +13,6 @@
     },
     "jsx": "react-jsx"
   },
-  "exclude": ["**/*.test.ts", "**/*.test.tsx", "appium/**"]
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }
 

@@ -12,6 +12,7 @@ export const PUBLISHED_PACKAGES = [
   "admin-spa",
   "ai",
   "api-health",
+  "comms",
   "feature-flags",
   "mcp-server",
 ] as const;

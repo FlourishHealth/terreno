@@ -1,5 +1,5 @@
 import type {FindExactlyOnePlugin, FindOneOrNonePlugin} from "@terreno/api";
-import type {LanguageModel} from "ai";
+import type {LanguageModel, StopCondition, ToolSet} from "ai";
 import type mongoose from "mongoose";
 
 // ============================================================
@@ -164,9 +164,7 @@ export interface AIServiceOptions {
 export interface GenerateTextOptions {
   maxOutputTokens?: number;
   prompt: string;
-  // noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
-  // biome-ignore lint/suspicious/noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
-  stopWhen?: import("ai").StopCondition<any>;
+  stopWhen?: StopCondition<ToolSet>;
   systemPrompt?: string;
   temperature?: number;
   toolChoice?: "auto" | "none" | "required";
@@ -184,9 +182,7 @@ export interface GenerateStreamOptions {
 
 export interface GenerateChatStreamOptions {
   messages: Array<{content: string; role: "user" | "assistant" | "system"}>;
-  // noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
-  // biome-ignore lint/suspicious/noExplicitAny: Vercel AI SDK's StopCondition is generic over the tool set; consumers may pass any tool shape.
-  stopWhen?: import("ai").StopCondition<any>;
+  stopWhen?: StopCondition<ToolSet>;
   systemPrompt?: string;
   toolChoice?: "auto" | "none" | "required";
   tools?: Record<string, import("ai").Tool>;

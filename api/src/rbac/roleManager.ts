@@ -178,7 +178,14 @@ export const createRoleManager = (args: {
         throw new APIError({status: 404, title: "User not found"});
       }
       const before = await getActorPermissions(targetUser);
-      const previewUser = {...targetUser, roles: [...new Set(roleNames)]};
+      const previewUser = {
+        ...(typeof (targetUser as {toObject?: () => Record<string, unknown>}).toObject ===
+        "function"
+          ? (targetUser as {toObject: () => Record<string, unknown>}).toObject()
+          : targetUser),
+        id: targetUser.id,
+        roles: [...new Set(roleNames)],
+      } as User;
       invalidateCache({userId});
       const after = await getActorPermissions(previewUser);
       const diff = diffPermissionSets(before, after);
@@ -227,6 +234,18 @@ export const createRoleManager = (args: {
       if (existing.isSealed) {
         throw new APIError({status: 400, title: "Cannot modify a sealed role"});
       }
+      if (existing.isLocked) {
+        const forbidden = Object.keys(changes).filter(
+          (key) =>
+            !["description", "displayName", "permissions", "excludesRoles", "name"].includes(key)
+        );
+        if (forbidden.length > 0) {
+          throw new APIError({
+            status: 400,
+            title: "Cannot change locked fields on a locked role",
+          });
+        }
+      }
       if (changes.permissions) {
         assertValidPermissionSet(changes.permissions, statements);
         await assertNoEscalation(actor, changes.permissions, getActorPermissions);
@@ -234,8 +253,30 @@ export const createRoleManager = (args: {
       if (changes.name && existing.isLocked) {
         throw new APIError({status: 400, title: "Cannot rename a locked role"});
       }
+      if (changes.excludesRoles && userModel) {
+        const holders = await userModel.find({roles: roleName});
+        const excluded = new Set(changes.excludesRoles);
+        const conflicts = holders.filter((holder) => {
+          const holderRoles = ((holder as unknown as {roles?: string[]}).roles ?? []).filter(
+            (role) => role !== roleName
+          );
+          return holderRoles.some((role) => excluded.has(role));
+        });
+        if (conflicts.length > 0) {
+          throw new APIError({
+            status: 400,
+            title: "excludesRoles conflicts with existing assignments",
+          });
+        }
+      }
 
-      Object.assign(existing, changes);
+      const allowedChanges: Record<string, unknown> = {};
+      for (const key of ["description", "displayName", "permissions", "excludesRoles", "name"]) {
+        if (key in changes) {
+          allowedChanges[key] = (changes as Record<string, unknown>)[key];
+        }
+      }
+      Object.assign(existing, allowedChanges);
       await existing.save();
       invalidateCache();
       return existing;

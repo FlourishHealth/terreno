@@ -6,13 +6,11 @@
   "dependencies": {
     "@expo/vector-icons": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
-    "@react-navigation/native": "catalog:",
     "@reduxjs/toolkit": "catalog:",
     "@terreno/admin-frontend": "workspace:*",
     "@terreno/rtk": "workspace:*",
     "@terreno/ui": "workspace:*",
     "better-auth": "catalog:",
-    "express": "catalog:",
     "expo": "catalog:",
     "expo-constants": "catalog:",
     "expo-font": "catalog:",
@@ -20,6 +18,7 @@
     "expo-router": "catalog:",
     "expo-splash-screen": "catalog:",
     "expo-status-bar": "catalog:",
+    "express": "catalog:",
     "http-proxy-middleware": "^3.0.3",
     "luxon": "catalog:",
     "react": "catalog:",
@@ -102,5 +101,5 @@
     "web": "expo start --web --port 8083"
   },
   "types": "./src/dist/index.d.ts",
-  "version": "0.30.0"
+  "version": "57.0.0"
 }

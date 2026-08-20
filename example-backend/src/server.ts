@@ -4,9 +4,7 @@ import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {LangfuseApp} from "@terreno/ai";
 import {
-  type AuthProvider,
   BetterAuthApp,
-  type BetterAuthConfig,
   backfillAdmins,
   ConsentApp,
   ConsentForm,
@@ -14,17 +12,28 @@ import {
   checkModelsStrict,
   configureOpenApiValidator,
   consentResponsePopulatePaths,
+  createBetterAuth,
+  getMongoClientFromMongoose,
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
   rbacRouter,
+  SyncApp,
   syncConsents,
   TerrenoApp,
   type UserModel as TerrenoAuthUserModel,
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
+import {
+  CommsApp,
+  ConsoleMailProvider,
+  ConsolePushProvider,
+  ConsoleSmsProvider,
+  ConsoleVerificationProvider,
+} from "@terreno/comms";
+import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
@@ -32,6 +41,8 @@ import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addLoadTestRoutes} from "./api/loadtest";
+import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
@@ -42,6 +53,8 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
+import {seedDefaultData} from "./scripts/seed-test-data";
+import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
 
@@ -72,50 +85,7 @@ const createOpenApiAwareRouteRegistration = (
   return registration;
 };
 
-/**
- * Builds Better Auth configuration from environment variables.
- * Returns undefined if AUTH_PROVIDER is not set to "better-auth".
- */
-const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
-  const authProvider = process.env.AUTH_PROVIDER as AuthProvider | undefined;
-
-  if (authProvider !== "better-auth") {
-    return undefined;
-  }
-
-  const config: BetterAuthConfig = {
-    enabled: true,
-    trustedOrigins: ["terreno://", "exp://"],
-  };
-
-  // Add Google OAuth if configured
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    config.googleOAuth = {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    };
-  }
-
-  // Add GitHub OAuth if configured
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-    config.githubOAuth = {
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    };
-  }
-
-  // Add Apple OAuth if configured
-  if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
-    config.appleOAuth = {
-      clientId: process.env.APPLE_CLIENT_ID,
-      clientSecret: process.env.APPLE_CLIENT_SECRET,
-    };
-  }
-
-  return config;
-};
-
-export const start = async (skipListen = false): Promise<express.Application> => {
+export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
   await access.roles.seedDefaults();
@@ -124,6 +94,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     userModel: User as unknown as TerrenoAuthUserModel,
     wetRun: true,
   });
+
+  if (process.env.SEED_DEFAULTS === "true") {
+    logger.info("Seeding default example data");
+    await seedDefaultData();
+  }
 
   // Sync default consent forms on startup
   await syncConsents(consentDefinitions).catch((err: unknown) => {
@@ -143,7 +118,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     },
   });
 
-  const authProvider = (process.env.AUTH_PROVIDER as AuthProvider) ?? "jwt";
+  const authProvider = getAuthProvider();
   logger.info(
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
@@ -166,12 +141,29 @@ export const start = async (skipListen = false): Promise<express.Application> =>
 
   try {
     const betterAuthConfig = buildBetterAuthConfig();
+    // Build the Better Auth instance eagerly (MongoDB is connected above). It is shared
+    // with the RealtimeApp socket auth validator. We cannot use BetterAuthApp.getAuth()
+    // for this: plugin.register() (which populates it) runs later inside terraApp.start(),
+    // so getAuth() is still undefined at construction time here — that left the socket with
+    // only the legacy JWT validator, rejecting Better Auth session tokens on (re)connect.
+    const betterAuthInstance = betterAuthConfig
+      ? createBetterAuth({
+          config: betterAuthConfig,
+          mongoClient: getMongoClientFromMongoose(),
+          // noExplicitAny: User model type mismatch
+          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+          userModel: User as any,
+        })
+      : undefined;
 
     const adminWebsocketsDebug = await AppConfiguration.getConfig("debug.websocketsDebug");
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
     const terraApp = new TerrenoApp({
       accessControl: access,
+      // Reflect specific web origins (never "*") so Better Auth's credentialed
+      // cross-origin requests from the Expo web frontend pass the browser CORS check.
+      corsOrigin: getWebOrigins(),
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -203,8 +195,20 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
+      .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
       .register(todoRouter)
+      .register(projectRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
+      // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
+      // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
+      // resolve tenant streams (projects are scoped by the user's organizationIds).
+      .register(
+        new SyncApp({
+          getUserScopes: (user) => {
+            return (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
+          },
+        })
+      )
       .register(new VersionCheckPlugin())
       .register(
         new HealthApp({
@@ -224,14 +228,60 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     if (isWebsocketService) {
       terraApp.register(
         new RealtimeApp({
+          betterAuth: betterAuthInstance
+            ? {
+                auth: betterAuthInstance,
+                // noExplicitAny: User model type mismatch
+                // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+                userModel: User as any,
+              }
+            : undefined,
           changeStream: {
             ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
           },
           debug: websocketsDebug,
+          // Required by the tenant-scoped `projects` sync stream: socket authorization
+          // otherwise falls back to the synthetic JWT-claim user, which carries no
+          // `organizationIds`, so tenant streams resolve to nothing and `admin` is
+          // trusted from the token instead of the database (Task 9.21).
+          // noExplicitAny: User model type mismatch
+          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+          userModel: User as any,
         })
       );
     } else {
       logger.info("RealtimeApp disabled because BACKEND_SERVICE is not websockets/all");
+    }
+
+    if (process.env.COMMS_ENABLED !== "false") {
+      const sendGridApiKey = process.env.SENDGRID_API_KEY;
+      const mailProvider = sendGridApiKey
+        ? new SendGridMailProvider({
+            apiKey: sendGridApiKey,
+            fromEmail: process.env.COMMS_DEFAULT_FROM,
+            fromName: process.env.COMMS_DEFAULT_FROM_NAME,
+            ...(process.env.SENDGRID_SANDBOX_MODE === "true" ? {sandboxMode: true} : {}),
+          })
+        : isDeployed
+          ? undefined
+          : new ConsoleMailProvider();
+
+      terraApp.register(
+        new CommsApp(
+          isDeployed
+            ? {
+                ...(mailProvider ? {mail: mailProvider} : {}),
+                defaultFrom: process.env.COMMS_DEFAULT_FROM,
+              }
+            : {
+                defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                mail: mailProvider ?? new ConsoleMailProvider(),
+                push: new ConsolePushProvider(),
+                sms: new ConsoleSmsProvider(),
+                verification: new ConsoleVerificationProvider(),
+              }
+        )
+      );
     }
 
     terraApp
@@ -338,7 +388,9 @@ export const start = async (skipListen = false): Promise<express.Application> =>
               listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
               listDisplayLinks: ["title"],
               listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
-              model: Todo,
+              // noExplicitAny: String _id model mismatches Model<any> variance
+              // biome-ignore lint/suspicious/noExplicitAny: String _id model mismatches Model<any> variance
+              model: Todo as any,
               pageSize: 25,
               permissions: {delete: false},
               readonlyFields: ["ownerId"],
@@ -530,7 +582,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
-};
+}
 
 process.on("unhandledRejection", (error: unknown) => {
   logger.error(`unhandledRejection: ${(error as Error).message}\n${(error as Error).stack}`);

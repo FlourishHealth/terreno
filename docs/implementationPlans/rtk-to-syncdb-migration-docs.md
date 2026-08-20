@@ -1,13 +1,14 @@
 # Implementation Plan: RTK Deprecation and SyncDB Migration Docs
 
-**Status:** Draft — blocked on PR #869
+**Status:** Complete — syncdb reference, migration guide, agent surfaces, and deprecation signalling shipped on `master`
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1007
 **Priority:** Critical (gates most of Wave 1)
 **Effort:** Big batch
 **Owner:** unassigned
 **Created:** 2026-07-27
 **Program:** [OSS launch](oss-launch-program.md)
-**Depends on:** PR [#869](https://github.com/flourishhealth/terreno/pull/869) merging
-**RTK deprecation flag:** **Blocked** — this IP *is* the RTK deprecation. Nothing here can be written until #869 lands, because the public surface of `@terreno/syncdb` is not final until then.
+**Depends on:** a merged `@terreno/syncdb` package. It was **not** delivered by PR #869 (closed); it lives on the **`release-56.0.0`** launch branch (`syncdb/`), so this IP is authored on and targets `release-56.0.0`, not `master`.
+**RTK deprecation flag:** **Unblocked on `release-56.0.0`** — this IP *is* the RTK deprecation. The `@terreno/syncdb` public surface is now final on `release-56.0.0` (`syncdb/src/index.ts`, `syncdb/src/react/index.ts`, `syncdb/src/testing/index.ts`); docs are written against that source.
 
 ## Goal
 
@@ -33,8 +34,8 @@ Scope is documentation, deprecation signalling, and migration tooling — not sy
 | M3 | Auth vs data migration | **C** — Better Auth first, then syncdb |
 | M4 | `docs/reference/rtk.md` (→ P7 **A**) | **Remove from the public reference index** — no legacy reference page. Existing RTK consumers use **`docs/how-to/migrate-rtk-to-syncdb.md`** only; do not maintain a parallel RTK reference path in launch docs |
 | M5 | SDK codegen command | **A** — `bun run sdk` keeps working |
-| M6 | Codemod | **B** — agent-assisted via `upgrading-terreno` skill |
-| M7 | Local-first default | **A** if #869 ships local-first only (verify against merged code) |
+| M6 | Codemod | **B (reaffirmed 2026-08-09)** — no migration script/codemod. Ship the *context* an AI agent needs (the syncdb reference, verified before/after pairs, and the `upgrading-terreno` skill), not a mechanical transform. See "Migration strategy" below |
+| M7 | Local-first default | **A — confirmed local-first only.** `@terreno/syncdb` has no server-first mode and no opt-in flag: the local store is the UI source of truth (`syncdb/src/index.ts:4-7`, `syncdb/README.md:3`) and `SyncDbConfig` (`syncdb/src/client.ts`) exposes no server-first option |
 
 ## Architecture
 
@@ -56,6 +57,56 @@ Every document below currently describes an RTK-shaped world and must be reconci
 | `AGENTS.md`, `CLAUDE.md`, `CLAUDE-consumer.md` | "Always use generated SDK hooks" (RTK) | syncdb hooks; RTK guidance moved to a legacy note |
 | `README.md` architecture diagram | `@terreno/rtk` box | `@terreno/syncdb` box |
 | `mcp-server` resources + bootstrap templates | RTK store wiring | syncdb client wiring |
+
+### Surface map reconciliation (Task 1.2, checked against `release-56.0.0`)
+
+The pre-merge surface map above was a hypothesis. Reconciled against the merged
+`syncdb/` on `release-56.0.0`:
+
+- **Three entry points, not one:** `@terreno/syncdb` (client, protocol/status/conflict
+  types, `betterAuthAdapter`, key providers/codecs, persister factories, transports,
+  `wipeLocalData`, `generateMutationId`, `listConflicts`, `OUTBOX_TABLE`),
+  `@terreno/syncdb/react` (`SyncDbProvider`, `useSyncDbClient`, `useEntity`, `useQuery`,
+  `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`), and
+  `@terreno/syncdb/testing` (`createFakeTransport`).
+- **Backend surface #869's hypothesis under-specified:** `SyncApp` (`GET /sync/snapshot`,
+  `POST /sync/mutate`, `POST /sync/mutate/batch`, `GET /sync/key`, `POST /sync/entities`),
+  `RealtimeApp` (Socket.io `sync:subscribe`/`sync:mutate`/`sync:delta`/`sync:ack`/`sync:nack`/
+  `sync:mutateBatch`), the required `syncPlugin` + `isDeletedPlugin`, the `sync` modelRouter
+  config (owner/tenant/broadcast/custom scoping + `getUserScopes`/`snapshotFilter`), and
+  `ensureSyncIndexes()` plus the `SyncCounter`/`SyncMutation`/`SyncScopeMove`/`SyncKey`
+  bookkeeping models. All are documented in `docs/reference/syncdb.md`.
+- **Encryption at rest (web) is a real public surface:** AES-GCM codec, `createServerKeyProvider`
+  (default) / `createLocalKeyProvider`, `onDecryptFailure`. Documented.
+- **M5 confirmed:** `bun run sdk` still generates `store/openApiSdk.ts` for non-synced routes
+  (auth, profile, admin, AI, feature flags); synced collections use syncdb hooks instead.
+- **M7 confirmed:** local-first only (see the blocking-questions table).
+
+### Migration strategy: AI-context-first (not codemods)
+
+The migration is delivered as **context for an AI coding agent (and humans) to perform
+the migration in a specific app**, not as a script that mechanically transforms code.
+The RTK → syncdb move is not find-and-replace: writes change semantics (local-first;
+optimistic code gets *deleted*), conflicts and sync status are net-new concepts with
+app-specific UI, and auth migrates on its own schedule. Those are per-screen judgment
+calls, not blind transforms.
+
+This IP therefore ships three context artifacts and no migration script:
+
+1. **The syncdb reference** (`docs/reference/syncdb.md`) — the ground-truth API the agent
+   maps RTK calls onto.
+2. **The migration guide** (`docs/how-to/migrate-rtk-to-syncdb.md`) — organized by *what the
+   developer changes*, with **verified before/after pairs** from the real `example-frontend`
+   migration (RTK todos on `master` → `SyncTodosScreen` on `release-56.0.0`). An agent
+   generalizes far better from a correct concrete example than from prose.
+3. **The `upgrading-terreno` skill** (owned by [`upgrade-guides-and-skill`](upgrade-guides-and-skill.md))
+   — drives an agent to migrate one screen at a time behind a flag, verify, and repeat.
+
+Design rules that follow: every code sample is real and compiles against the merged
+syncdb; the guide names what to **delete** (manual optimistic updates, write spinners,
+refetch-after-mutate), not just what to add; prefer decision tables and per-step
+checklists over narrative; keep the rollout unit small (per screen). A mechanical helper
+may be added later for a narrow safe sub-step, but it is never the primary path.
 
 ### The migration guide's shape
 
@@ -156,14 +207,14 @@ See [`docs/tasks/rtk-to-syncdb-migration-docs.md`](../tasks/rtk-to-syncdb-migrat
 
 ## Acceptance Criteria
 
-- [ ] A verified inventory of `@terreno/syncdb`'s public exports exists and every documented API appears in the merged package's `src/index.ts`.
-- [ ] `docs/reference/syncdb.md` documents every exported hook, client method, and config option, with a runnable example for each.
-- [ ] `docs/how-to/migrate-rtk-to-syncdb.md` covers all eleven steps, and every before/after pair compiles against the merged code.
-- [ ] Following the guide, a fresh clone of `example-frontend` can be moved from the RTK path to the syncdb path with no undocumented steps.
-- [ ] `docs/reference/rtk.md` no longer exists at its old path; the Legacy page states the support window; a Docusaurus redirect resolves the old URL.
-- [ ] `docs/explanation/authentication.md` presents Better Auth first and JWT as legacy.
-- [ ] No agent-facing surface (`AGENTS.md`, `CLAUDE*.md`, `.rulesync/rules/`, MCP resources, bootstrap templates) instructs an agent to write RTK Query code for a new app.
-- [ ] `terreno_bootstrap_app` output uses syncdb, and a bootstrapped app runs.
-- [ ] `terreno_get_upgrade_guide` returns the syncdb upgrade note for the release range that includes #869.
-- [ ] `CHANGELOG.md` has a `Deprecated` entry naming `@terreno/rtk`, the support window, and the migration guide link.
-- [ ] `bun run lint`, `bun run compile`, `bun run rules:check`, and `bun run website:build` all pass.
+- [x] A verified inventory of `@terreno/syncdb`'s public exports exists and every documented API appears in the merged package's `src/index.ts`.
+- [x] `docs/reference/syncdb.md` documents every exported hook, client method, and config option, with a runnable example for each.
+- [x] `docs/how-to/migrate-rtk-to-syncdb.md` covers all eleven steps, and every before/after pair compiles against the merged code.
+- [x] Following the guide, a fresh clone of `example-frontend` can be moved from the RTK path to the syncdb path with no undocumented steps.
+- [x] `docs/reference/rtk.md` no longer exists at its old path; the Legacy page states the support window; a Docusaurus redirect resolves the old URL.
+- [x] `docs/explanation/authentication.md` presents Better Auth first and JWT as legacy.
+- [x] No agent-facing surface (`AGENTS.md`, `CLAUDE*.md`, `.rulesync/rules/`, MCP resources, bootstrap templates) instructs an agent to write RTK Query code for a new app.
+- [x] `terreno_bootstrap_app` output uses syncdb, and a bootstrapped app runs.
+- [x] `terreno_get_upgrade_guide` returns the syncdb upgrade note for the release range that includes #869.
+- [x] `CHANGELOG.md` has a `Deprecated` entry naming `@terreno/rtk`, the support window, and the migration guide link.
+- [x] `bun run lint`, `bun run compile`, `bun run rules:check`, and `bun run website:build` all pass.

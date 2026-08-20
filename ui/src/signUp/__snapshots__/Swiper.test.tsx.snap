@@ -239,7 +239,6 @@ exports[`Swiper renders correctly 1`] = `
     "onPointerLeave": [Function: AsyncFunction],
     "style": {
       "height": 300,
-      "testID": "swiper",
       "width": "100%",
     },
     "testID": "swiper",

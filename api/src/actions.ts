@@ -1,7 +1,7 @@
 import {OpenAPIRegistry, OpenApiGeneratorV3} from "@asteasolutions/zod-to-openapi";
 import type express from "express";
 import type {NextFunction, Request, Response} from "express";
-import type {Model} from "mongoose";
+import type {Model, SchemaType} from "mongoose";
 import type {ZodSchema, ZodType} from "zod";
 import {asyncHandler, type ModelRouterOptions, type RESTMethod} from "./api";
 import {authenticateMiddleware, type User} from "./auth";
@@ -296,7 +296,7 @@ export const createActionOpenApiMiddleware = <T>({
 };
 
 const getArrayFieldNames = <T>(model: Model<T>): string[] => {
-  return Object.values(model.schema.paths)
+  return (Object.values(model.schema.paths) as SchemaType[])
     .filter((config) => config.instance === "Array")
     .map((config) => config.path);
 };

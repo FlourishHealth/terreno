@@ -171,9 +171,12 @@ export const rbacRouter = ({
           if (!actor) {
             throw new APIError({status: 401, title: "Unauthorized"});
           }
+          if (!Array.isArray(req.body.roleNames)) {
+            throw new APIError({status: 400, title: "roleNames is required"});
+          }
           await access.roles.assign({
             actor,
-            roleNames: req.body.roleNames ?? [],
+            roleNames: req.body.roleNames,
             userId: req.params.id,
           });
           await recordAudit({
@@ -190,8 +193,11 @@ export const rbacRouter = ({
         authenticateMiddleware(),
         access.middleware({rbac: ["assignRoles"]}),
         asyncHandler(async (req, res) => {
+          if (!Array.isArray(req.body.roleNames)) {
+            throw new APIError({status: 400, title: "roleNames is required"});
+          }
           const diff = await access.roles.previewAssignment({
-            roleNames: req.body.roleNames ?? [],
+            roleNames: req.body.roleNames,
             userId: req.params.id,
           });
           return res.json({data: diff});

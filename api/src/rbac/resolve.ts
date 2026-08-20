@@ -129,9 +129,11 @@ export const createPermissionResolver = <S extends Statements>(args: {
 
     const roleNames = [...getUserRoles(user)];
     const permissionSets: PermissionSet[] = [];
+    const sourceResults = new Map<string, PermissionSourceGrants | null>();
 
     for (const source of sources) {
       const grants = await fetchSourceGrants(user, source);
+      sourceResults.set(source.name, grants);
       if (!grants) {
         continue;
       }
@@ -156,7 +158,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     let permissions = unionPermissionSets(...permissionSets);
 
     for (const source of sources) {
-      const grants = await fetchSourceGrants(user, source);
+      const grants = sourceResults.get(source.name);
       if (grants?.deny) {
         permissions = applyDenyGrants(permissions, grants.deny);
       }

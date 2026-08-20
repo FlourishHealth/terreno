@@ -24,6 +24,7 @@ import {
   requestContextMiddleware,
   updateRequestContextFromRequest,
 } from "./requestContext";
+import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
 
@@ -425,7 +426,16 @@ export class TerrenoApp {
       if (!hasRealtimePlugin) {
         const realtimeConfig =
           typeof this.options.realtime === "object" ? this.options.realtime : {};
-        this.register(new RealtimeApp(realtimeConfig));
+        this.register(
+          new RealtimeApp({
+            ...realtimeConfig,
+            // Task 9.21 (D2): default the socket full-user load to this app's own user
+            // model. Without it socket authorization falls back to the synthetic
+            // JWT-claim user, which trusts the token's `admin` over the database and
+            // carries no membership fields for tenant-scoped sync.
+            userModel: realtimeConfig.userModel ?? (this.options.userModel as never),
+          })
+        );
       }
     }
 
@@ -433,24 +443,34 @@ export class TerrenoApp {
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
-      try {
-        const server = createServer(app);
+      // Await sync index creation before listening: the per-model snapshot indexes (a
+      // failed createIndex degrades the snapshot/catch-up query to a table scan) and the
+      // bookkeeping-model indexes enqueued by SyncApp (the unique mutationId index is what
+      // makes duplicate mutation deliveries idempotent, and the unique stream index is what
+      // keeps the counter upsert race from minting duplicate seqs). Either failure is a
+      // loud startup error rather than a silent correctness cliff. No-op when no sync
+      // models or SyncApp are registered. Detached because start() returns synchronously.
+      void (async (): Promise<void> => {
+        try {
+          await ensureSyncIndexes();
+          const server = createServer(app);
 
-        // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
-        for (const reg of this.registrations) {
-          if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-            reg.onServerCreated(server);
+          // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
+          for (const reg of this.registrations) {
+            if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+              reg.onServerCreated(server);
+            }
           }
-        }
 
-        server.listen(port, () => {
-          logger.info(`Listening on port ${port}`);
-        });
-      } catch (error) {
-        const stack = error instanceof Error ? error.stack : String(error);
-        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-        process.exit(1);
-      }
+          server.listen(port, () => {
+            logger.info(`Listening on port ${port}`);
+          });
+        } catch (error) {
+          const stack = error instanceof Error ? error.stack : String(error);
+          logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
+          process.exit(1);
+        }
+      })();
     }
 
     return app;

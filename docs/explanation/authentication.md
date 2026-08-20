@@ -1,30 +1,59 @@
 # Authentication Architecture
 
-Understanding how authentication works in @terreno/api — from JWT tokens to OAuth strategies to automatic token refresh.
+Understanding how authentication works in @terreno/api — Better Auth sessions for new apps, with JWT/Passport documented for legacy consumers.
 
 ## Overview
 
-@terreno/api provides two complete authentication systems to choose from:
+**Better Auth is the default path** for new Terreno apps. It provides session-based authentication with MongoDB storage, built-in social OAuth (Google, GitHub, Apple), and clean integration with `@terreno/syncdb` (`betterAuthAdapter`, `RealtimeApp` socket sessions).
 
-**JWT/Passport Authentication (Default)**
-- **JWT (JSON Web Tokens)** for stateless session management
-- **Passport.js** for authentication strategy management
-- **Multiple strategies**: Email/password, GitHub OAuth, Anonymous
-- **Automatic token refresh** to maintain long-lived sessions
-- **Token storage utilities** for secure frontend storage (via @terreno/rtk)
+Set `AUTH_PROVIDER=better-auth` and register `BetterAuthApp` on the server. On the client, use `createBetterAuthClient` + `generateBetterAuthSlice` from `@terreno/rtk` for session Redux state, then wire `betterAuthAdapter` into `createSyncDb`.
 
-**Better Auth (Optional)**
-- **Session-based authentication** with MongoDB storage
-- **Built-in OAuth providers**: Google, GitHub, Apple
-- **Modern OAuth 2.0 flows** with PKCE
-- **Automatic session management** via cookies
-- **Redux integration** for session state (via @terreno/rtk)
+**JWT/Passport (legacy)** remains supported through the current major release line for existing deployments. It uses stateless tokens, Passport strategies (email/password, GitHub OAuth, anonymous), and manual token refresh via `@terreno/rtk`. New projects should not start on JWT unless they have a specific requirement (custom token contracts, non-cookie clients, or a phased migration).
 
-Choose your authentication provider via `AUTH_PROVIDER` environment variable. Both systems can run in parallel, allowing gradual migration.
+Both systems can run in parallel during migration (`AUTH_PROVIDER` selects the primary path; legacy JWT routes stay available).
+
+## When to choose which
+
+| Choose Better Auth | Stay on JWT (legacy) |
+|--------------------|----------------------|
+| New app or greenfield screen | Existing production JWT deployment |
+| Social login (Google, GitHub, Apple) | Custom JWT payload requirements |
+| `@terreno/syncdb` local-first data | Non-cookie API clients only |
+| Socket sessions via `RealtimeApp` | Gradual migration in progress |
+
+**Setup:** [Configure Better Auth](../how-to/configure-better-auth.md). **Data layer:** migrate auth before or with syncdb — see [Migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md) §7.
 
 ## Authentication Strategies
 
-### Email/Password (Local Strategy)
+### Better Auth (default)
+
+Modern session-based authentication with built-in social OAuth support.
+
+**Flow:**
+1. Configure Better Auth with `AUTH_PROVIDER=better-auth` and register `BetterAuthApp`
+2. User chooses social provider (Google, GitHub, Apple) or email/password
+3. Backend redirects to OAuth provider or validates credentials
+4. Better Auth creates session in MongoDB
+5. Frontend receives session cookie (web) or bearer session token (native)
+6. Session middleware populates `req.user` for subsequent requests
+
+**Key properties:**
+- Session-based (cookies / bearer session) vs. stateless JWT
+- Built-in OAuth providers with PKCE
+- `betterAuthAdapter` for syncdb socket auth
+- `sync:auth-expired` socket event when the session is no longer valid
+
+**Endpoints (when enabled):**
+- `POST /api/auth/signup/email` — Email/password signup
+- `POST /api/auth/signin/email` — Email/password signin
+- `GET /api/auth/signin/{provider}` — Initiate OAuth flow (google, github, apple)
+- `GET /api/auth/callback/{provider}` — OAuth callback handler
+- `POST /api/auth/signout` — Sign out session
+- `GET /api/auth/session` — Get current session
+
+**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
+
+### Email/Password (JWT / Local Strategy — legacy)
 
 Traditional username/password authentication using `passport-local-mongoose`.
 
@@ -39,7 +68,7 @@ Traditional username/password authentication using `passport-local-mongoose`.
 - `POST /auth/signup` — Create new user account
 - `POST /auth/login` — Authenticate and receive tokens
 
-### GitHub OAuth Strategy
+### GitHub OAuth Strategy (JWT — legacy)
 
 OAuth 2.0 authentication with GitHub.
 
@@ -60,45 +89,7 @@ OAuth 2.0 authentication with GitHub.
 
 **Learn more:** [How to add GitHub OAuth](../how-to/add-github-oauth.md)
 
-### Better Auth Strategy
-
-Modern session-based authentication with built-in social OAuth support. Better Auth runs **alongside** JWT/Passport authentication as an optional alternative.
-
-**Flow:**
-1. Configure Better Auth with `AUTH_PROVIDER=better-auth`
-2. User chooses social provider (Google, GitHub, Apple) or email/password
-3. Backend redirects to OAuth provider or validates credentials
-4. Better Auth creates session in MongoDB
-5. Frontend receives session cookie
-6. Session middleware populates `req.user` for subsequent requests
-
-**Key differences from JWT auth:**
-- Session-based (cookies) vs. stateless (tokens)
-- Built-in OAuth providers vs. custom Passport strategies
-- Automatic session management vs. manual token refresh
-- Modern OAuth 2.0 flows with PKCE
-
-**Use Better Auth when you need:**
-- Social login (Google, GitHub, Apple)
-- Session-based authentication
-- Modern OAuth 2.0 flows
-
-**Use JWT authentication when you need:**
-- Stateless authentication
-- Simpler token-based auth
-- No social login required
-
-**Endpoints (when enabled):**
-- `POST /api/auth/signup/email` — Email/password signup
-- `POST /api/auth/signin/email` — Email/password signin
-- `GET /api/auth/signin/{provider}` — Initiate OAuth flow (google, github, apple)
-- `GET /api/auth/callback/{provider}` — OAuth callback handler
-- `POST /api/auth/signout` — Sign out session
-- `GET /api/auth/session` — Get current session
-
-**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
-
-### Anonymous Strategy
+### Anonymous Strategy (JWT — legacy)
 
 Allows limited access without authentication.
 
@@ -116,7 +107,9 @@ modelRouter(Model, {
 });
 ``````
 
-## JWT Token System
+## JWT Token System (legacy)
+
+> JWT/Passport auth is **legacy**. It remains supported through the current major line but is not the recommended path for new apps. Prefer Better Auth above.
 
 ### Token Types
 
@@ -435,4 +428,4 @@ router.post("/webhook", asyncHandler(async (req, res) => {
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Create a model](../how-to/create-a-model.md)
 - [API reference](../reference/api.md)
-- [@terreno/rtk reference](../reference/rtk.md)
+- [@terreno/rtk reference (legacy)](../reference/legacy/rtk.md)

@@ -50,6 +50,11 @@ export const hasPermission = (
 
 export const createPermissionSelectors = (api: {reducerPath: string}) => {
   const selectPermissions = (state: RootState): PermissionSet | undefined => {
+    const auth = (state as {auth?: {userId?: string | null}}).auth;
+    if (auth && !auth.userId) {
+      return undefined;
+    }
+
     const apiState = (
       state as Record<string, {queries?: Record<string, QueryCacheEntry>} | undefined>
     )[api.reducerPath];
@@ -59,6 +64,9 @@ export const createPermissionSelectors = (api: {reducerPath: string}) => {
     }
 
     for (const [cacheKey, entry] of Object.entries(queries)) {
+      if (entry?.status && entry.status !== "fulfilled") {
+        continue;
+      }
       const permissions = entry?.data?.permissions;
       if (!permissions) {
         continue;

@@ -13,10 +13,12 @@ on:
       - "admin-backend/**"
       - "admin-frontend/**"
       - "admin-spa/**"
+      - "comms/**"
       - "feature-flags/**"
       - "rtk/**"
       - "ui/**"
       - "example-backend/**"
+      - "bun.lock"
       - ".github/workflows/example-backend-script-runner.yml"
 
 jobs:
@@ -36,7 +38,7 @@ jobs:
 
       - name: Cache Bun dependencies
         id: cache
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -57,7 +59,7 @@ jobs:
       # example-backend imports the compiled output of these workspace packages.
       - name: Build dependencies
         run: |
-          for pkg in api ai api-health admin-backend feature-flags ui rtk admin-frontend admin-spa; do
+          for pkg in api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa; do
             echo "::group::compile $pkg"
             (cd "$pkg" && bun run compile)
             echo "::endgroup::"

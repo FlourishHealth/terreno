@@ -39,8 +39,9 @@ export const createRequireAccess =
 
         if (!result.allowed) {
           throw new APIError({
+            detail: result.reason,
             status: 403,
-            title: result.reason ?? "Access denied",
+            title: "Access denied",
           });
         }
 

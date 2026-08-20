@@ -1,0 +1,71 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@terreno/api": "workspace:*",
+    "luxon": "catalog:"
+  },
+  "description": "Pluggable communications providers for Terreno backends",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@terreno/test": "workspace:*",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/supertest": "catalog:",
+    "chai": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./adapters/sendgrid": {
+      "types": "./dist/adapters/sendgrid.d.ts",
+      "default": "./dist/adapters/sendgrid.js"
+    }
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "communications",
+    "email",
+    "sms",
+    "push",
+    "terreno"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@terreno/comms",
+  "peerDependencies": {
+    "@sendgrid/mail": "^8.0.0",
+    "mongoose": "^8.0.0 || ^9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@sendgrid/mail": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
+    "dev": "bun tsc -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test",
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  },
+  "types": "dist/index.d.ts",
+  "version": "57.0.0"
+}

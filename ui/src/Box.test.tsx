@@ -1,12 +1,17 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
+import type {ScrollView} from "react-native";
 
 import {Box} from "./Box";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
+
+/** Imperative handle exposed by Box's forwarded ref. */
+interface BoxScrollHandle {
+  scrollTo: (y: number) => void;
+  scrollToEnd: () => void;
+}
 
 describe("Box", () => {
   describe("basic rendering", () => {
@@ -502,6 +507,37 @@ describe("Box", () => {
       expect(root).toBeTruthy();
       // Just verify the component renders without error when onScroll is provided
     });
+
+    // Behavior props leaking into style reach the native view as unserializable
+    // values: a ref object in style is cyclical (host instance points back at the
+    // node) and gets dev-frozen, so React throws when detaching it on unmount.
+    it("should keep behavior props out of the ScrollView style", () => {
+      const scrollRef = React.createRef<ScrollView>();
+      const {root} = renderWithTheme(
+        <Box onScroll={mock(() => {})} scroll scrollRef={scrollRef}>
+          <Text>Scrollable</Text>
+        </Box>
+      );
+
+      // RN Testing Library resolves host ScrollView by display name, not the JS class.
+      const scrollView = root.findByType("ScrollView");
+      expect(scrollView.props.style).not.toHaveProperty("scrollRef");
+      expect(scrollView.props.style).not.toHaveProperty("scroll");
+      expect(scrollView.props.style).not.toHaveProperty("onScroll");
+      expect(scrollView.props.style).not.toHaveProperty("testID");
+    });
+
+    it("should keep behavior props out of the View style", () => {
+      const {root} = renderWithTheme(
+        <Box avoidKeyboard keyboardOffset={12} onLayout={mock(() => {})} testID="behavior-box" />
+      );
+
+      const view = root.findByType("View");
+      expect(view.props.style).not.toHaveProperty("onLayout");
+      expect(view.props.style).not.toHaveProperty("avoidKeyboard");
+      expect(view.props.style).not.toHaveProperty("keyboardOffset");
+      expect(view.props.style).not.toHaveProperty("testID");
+    });
   });
 
   describe("keyboard avoidance", () => {
@@ -548,7 +584,7 @@ describe("Box", () => {
 
   describe("ref forwarding", () => {
     it("should expose scrollToEnd method", () => {
-      const ref = React.createRef<any>();
+      const ref = React.createRef<BoxScrollHandle>();
       renderWithTheme(<Box ref={ref} scroll />);
 
       expect(ref.current).toBeTruthy();
@@ -556,7 +592,7 @@ describe("Box", () => {
     });
 
     it("should expose scrollTo method", () => {
-      const ref = React.createRef<any>();
+      const ref = React.createRef<BoxScrollHandle>();
       renderWithTheme(<Box ref={ref} scroll />);
 
       expect(ref.current).toBeTruthy();
@@ -566,8 +602,10 @@ describe("Box", () => {
     it("scrollTo forwards to the underlying scroll ref after the delay", async () => {
       const scrollTo = mock(() => {});
       const scrollToEnd = mock(() => {});
-      const scrollRef = {current: {scrollTo, scrollToEnd}} as any;
-      const ref = React.createRef<any>();
+      const scrollRef = {
+        current: {scrollTo, scrollToEnd},
+      } as unknown as React.RefObject<ScrollView>;
+      const ref = React.createRef<BoxScrollHandle>();
       // Intentionally omit `scroll` so the ScrollView does not claim `scrollRef`
       // and overwrite `.current`; the imperative handle still reads it.
       renderWithTheme(
@@ -601,12 +639,10 @@ describe("Box", () => {
   });
 
   describe("warnings", () => {
-    it("should warn when using wrap and alignItems together", () => {
+    it("should not warn when using wrap and alignItems together", () => {
       const consoleSpy = spyOn(console, "warn").mockImplementation(() => {});
       renderWithTheme(<Box alignItems="center" wrap />);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "React Native doesn't support wrap and alignItems together."
-      );
+      expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });
@@ -695,54 +731,54 @@ describe("Box", () => {
 
   describe("edge case warnings and fallbacks", () => {
     it("returns empty style when border prop is falsy", () => {
-      const {root} = renderWithTheme(<Box border={undefined as any} />);
+      const {root} = renderWithTheme(<Box border={undefined} />);
       expect(root).toBeTruthy();
     });
 
     it("returns empty style when borderBottom prop is falsy", () => {
-      const {root} = renderWithTheme(<Box borderBottom={undefined as any} />);
+      const {root} = renderWithTheme(<Box borderBottom={undefined} />);
       expect(root).toBeTruthy();
     });
 
     it("returns empty style when borderLeft prop is falsy", () => {
-      const {root} = renderWithTheme(<Box borderLeft={undefined as any} />);
+      const {root} = renderWithTheme(<Box borderLeft={undefined} />);
       expect(root).toBeTruthy();
     });
 
     it("returns empty style when borderRight prop is falsy", () => {
-      const {root} = renderWithTheme(<Box borderRight={undefined as any} />);
+      const {root} = renderWithTheme(<Box borderRight={undefined} />);
       expect(root).toBeTruthy();
     });
 
     it("returns empty style when borderTop prop is falsy", () => {
-      const {root} = renderWithTheme(<Box borderTop={undefined as any} />);
+      const {root} = renderWithTheme(<Box borderTop={undefined} />);
       expect(root).toBeTruthy();
     });
 
     it("warns when invalid height value is provided", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box height={"abc" as any} />);
+      renderWithTheme(<Box height={"abc"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
     it("warns when invalid maxHeight value is provided", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box maxHeight={"xyz" as any} />);
+      renderWithTheme(<Box maxHeight={"xyz"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
     it("warns when invalid maxWidth value is provided", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box maxWidth={"abc" as any} />);
+      renderWithTheme(<Box maxWidth={"abc"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
     it("warns when invalid minHeight value is provided", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box minHeight={"abc" as any} />);
+      renderWithTheme(<Box minHeight={"abc"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
@@ -754,7 +790,7 @@ describe("Box", () => {
     });
 
     it("applies a valid minHeight value", () => {
-      const {root} = renderWithTheme(<Box minHeight={"50%" as any} />);
+      const {root} = renderWithTheme(<Box minHeight={"50%"} />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({minHeight: "50%"});
     });
@@ -766,21 +802,21 @@ describe("Box", () => {
     });
 
     it("applies a valid minWidth value", () => {
-      const {root} = renderWithTheme(<Box minWidth={"25%" as any} />);
+      const {root} = renderWithTheme(<Box minWidth={"25%"} />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({minWidth: "25%"});
     });
 
     it("warns when invalid minWidth value is provided", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box minWidth={"abc" as any} />);
+      renderWithTheme(<Box minWidth={"abc"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
     it("warns when invalid width value is provided", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box width={"abc" as any} />);
+      renderWithTheme(<Box width={"abc"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
     });
@@ -807,11 +843,13 @@ describe("Box", () => {
       expect(view.props.style.height).toBe(84);
     });
 
-    it("warns when wrap is combined with alignItems on native", () => {
-      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box alignItems="center" wrap />);
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
+    it("keeps an explicit alignItems when combined with wrap", () => {
+      const {root} = renderWithTheme(<Box alignItems="center" wrap />);
+      const view = root.findByType("View");
+      expect(view.props.style).toMatchObject({
+        alignItems: "center",
+        flexWrap: "wrap",
+      });
     });
 
     it("applies dangerouslySetInlineStyle overrides", () => {
@@ -881,7 +919,7 @@ describe("Box", () => {
           <Text>Scrollable</Text>
         </Box>
       );
-      const scrollView = root.findByType("ScrollView" as any);
+      const scrollView = root.findByType("ScrollView");
       await act(async () => {
         scrollView.props.onScroll?.({nativeEvent: {contentOffset: {y: 100}}});
       });
@@ -908,7 +946,7 @@ describe("Box", () => {
     });
 
     it("exposes scrollTo and scrollToEnd through ref", () => {
-      const ref = React.createRef<any>();
+      const ref = React.createRef<BoxScrollHandle>();
       renderWithTheme(
         <Box ref={ref} scroll>
           <Text>Content</Text>

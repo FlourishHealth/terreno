@@ -24,7 +24,7 @@ Most apps need the same foundational pieces: authentication, user management, CR
 - **Authentication** — Email/password, Google, GitHub, and Apple OAuth with JWT or Better Auth. Login, signup, token refresh, and session management all built in.
 - **REST APIs in minutes** — Define a Mongoose model, pass it to `modelRouter`, and get a full CRUD API with permissions, pagination, filtering, sorting, and OpenAPI docs.
 - **90+ UI components** — A themed React Native component library that works on iOS, Android, and web. Forms, tables, modals, navigation — everything you need to build real screens.
-- **Auto-generated frontend SDK** — Your backend's OpenAPI spec generates type-safe RTK Query hooks. Change a backend route and regenerate — no manual API wiring.
+- **Auto-generated frontend SDK** — Your backend's OpenAPI spec generates type-safe RTK Query hooks for **non-synced** routes (auth, admin, AI). Synced collections use `@terreno/syncdb` local-first hooks instead.
 - **Admin panel** — Register your models and get a full admin interface with list views, forms, and reference linking. No custom admin code needed.
 - **AI integration** — Provider-agnostic AI service with streaming chat, text generation, conversation history, and request logging. Plug in any model via Vercel AI SDK.
 - **Real-time** — Socket.io integration with auth-aware connections, auto-reconnect, and token refresh.
@@ -44,7 +44,7 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 
 ### Philosophy
 
-- **Flexible but opinionated.** Terreno makes strong default choices (Mongoose, RTK Query, Expo Router) so you don't have to. But every layer is configurable when you need it to be.
+- **Flexible but opinionated.** Terreno makes strong default choices (Mongoose, `@terreno/syncdb`, Better Auth, Expo Router) so you don't have to. But every layer is configurable when you need it to be.
 - **Your app is just business logic.** If most apps need it and it doesn't add unique value to your product, it belongs in Terreno, not in your codebase.
 - **Full-stack coherence.** Backend models flow into OpenAPI specs, which generate frontend hooks, which power typed UI components. One change propagates cleanly across the stack.
 - **Ship, don't configure.** Terreno optimizes for getting to a launchable product with minimal effort — not for maximum flexibility at the cost of productivity.
@@ -54,13 +54,18 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 ### Published Packages
 
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
+- **test/** - Bun and MongoDB test helpers (published as `@terreno/test`)
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
-- **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
+- **syncdb/** - Local-first data layer for collection CRUD (published as `@terreno/syncdb`)
+- **rtk/** - OpenAPI SDK, Better Auth Redux, feature flags (published as `@terreno/rtk`, **deprecated for data sync**)
 - **ai/** - AI service layer with streaming chat, text generation, and Langfuse integration (published as `@terreno/ai`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
+- **admin-spa/** - Standalone admin SPA and Express serve plugin (published as `@terreno/admin-spa`)
 - **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
+- **comms/** - Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
 - **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
+- **mcp-server/** - MCP server and local CLI (published as `@terreno/mcp`)
 
 ### Deployed Services
 
@@ -71,7 +76,7 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 ### Example/Demo Apps
 
 - **example-backend/** - Example backend application using `@terreno/api`
-- **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
+- **example-frontend/** - Example frontend application using `@terreno/ui`, `@terreno/syncdb`, and `@terreno/rtk` (SDK/auth)
 - **demo/** - Demo app for showcasing and testing UI components
 
 ## Feature flags: OpenFeature migration
@@ -252,7 +257,8 @@ In the consumer’s `package.json`, set each linked dependency back to a version
 
 ## Releasing
 
-Packages are published to npm automatically when you create a release on GitHub. All publishable packages (`@terreno/api`, `@terreno/ui`, `@terreno/rtk`) are kept in lockstep with the same version number.
+Packages are published to npm automatically when a semantic-version tag is pushed. The twelve
+published packages listed above are kept in lockstep at the same version.
 
 ### Publishing a Release
 
@@ -263,19 +269,10 @@ Packages are published to npm automatically when you create a release on GitHub.
 5. Click "Publish release"
 
 The GitHub Action will automatically:
-   - Compare the tag with the previous tag to detect which packages have changes
-   - Only publish packages that have actual changes since the last release
-   - Create a PR to update the `package.json` versions in the repo
-   - Send a Slack notification with the results
-
-### How Change Detection Works
-
-The workflow compares each package directory against the previous tag:
-- If `api/` has changes since the last tag → `@terreno/api` is published
-- If `ui/` has changes since the last tag → `@terreno/ui` is published
-- If `rtk/` has changes since the last tag → `@terreno/rtk` is published
-
-If no previous tag exists (first release), all packages are published.
+   - Validate required upgrade documentation
+   - Publish all twelve packages in dependency order
+   - Commit package version updates directly to `master` for non-prerelease tags
+   - Send a Zoom Chat notification with the results
 
 ### Version Format
 
@@ -286,8 +283,10 @@ If no previous tag exists (first release), all packages are published.
 ### Required Secrets
 
 The following secrets must be configured in your GitHub repository:
-- `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
-- `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
+- `NPM_TOKEN` - npm access token with publish permissions
+- `REPO_ADMIN_TOKEN` - repository token used for the version-bump commit
+- `ZOOM_WEBHOOK_URL` - Zoom Chat incoming webhook URL
+- `ZOOM_WEBHOOK_TOKEN` - Zoom Chat webhook authorization token
 
 ## GCP Static Site Hosting
 
@@ -421,6 +420,12 @@ The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules
 ## License
 
 Terreno is [MIT licensed](LICENSE).
+
+## Roadmap and community
+
+- **[ROADMAP.md](ROADMAP.md)** — public roadmap (generated from the Terreno Roadmap GitHub Project)
+- **[GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions)** — Ideas, Q&A, RFCs, and release announcements
+- **[Roadmap process](docs/explanation/roadmap-process.md)** — how work is triaged and how GitHub relates to Linear
 
 ## Contributing
 

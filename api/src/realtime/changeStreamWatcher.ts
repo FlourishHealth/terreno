@@ -1,12 +1,26 @@
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import {DateTime} from "luxon";
+import type {ChangeStream, ChangeStreamDocument, ChangeStreamOptions} from "mongodb";
 import mongoose from "mongoose";
 import type {Server, Socket} from "socket.io";
 
-type ChangeStream = mongoose.mongo.ChangeStream;
-type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
-type ChangeStreamOptions = mongoose.mongo.ChangeStreamOptions;
+import type {User} from "../auth";
+import {APIError} from "../errors";
+import {logger} from "../logger";
+import {checkPermissions, type PermissionMethod} from "../permissions";
+import {canReadDocumentRealtime, maskRealtimeDocument} from "../rbac/realtimeAccess";
+import {computeStableFrontier, SyncScopeMove} from "../sync/models";
+import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
+import {serializeSyncPayload} from "../sync/serialize";
+import {syncRoomForStream} from "../sync/socketHandlers";
+import {resolveStreamForDoc} from "../sync/streams";
+import type {SyncDelta, SyncMutationOperation, SyncResyncHint} from "../sync/types";
+import {matchesQuery} from "./queryMatcher";
+import {getQuerySubscriptionsForCollection} from "./queryStore";
+import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
+import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
+import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
 /**
  * The subset of ChangeStreamDocument variants this watcher actually processes.
@@ -18,19 +32,98 @@ type WatchedChange = Extract<
   {operationType: "insert" | "update" | "replace" | "delete"}
 >;
 
-import type {User} from "../auth";
-import {APIError} from "../errors";
-import {logger} from "../logger";
-import {canReadDocumentRealtime, maskRealtimeDocument} from "../rbac/realtimeAccess";
-import {matchesQuery} from "./queryMatcher";
-import {getQuerySubscriptionsForCollection} from "./queryStore";
-import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
-import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
-import type {ChangeStreamConfig, RealtimeEvent} from "./types";
-
 let changeWatcher: ChangeStream | null = null;
 
-const DEFAULT_IGNORED_COLLECTIONS = ["socketio", "sessions"];
+/**
+ * Task 9.16: restart state for the single process-wide watcher.
+ *
+ * The watcher used to only LOG on `error`/`close`: a replica-set election, a network blip,
+ * or a dropped cursor permanently killed every realtime event and every `sync:delta` until
+ * the process was restarted — online clients silently stopped receiving data while looking
+ * perfectly connected. The stream is now re-created with backoff, resuming from the last
+ * observed resume token so no events in the gap are missed.
+ */
+/** Resume token of the last change seen, replayed via `resumeAfter` on restart. */
+let lastResumeToken: unknown;
+
+/** Bumped on every open/stop so callbacks from a replaced stream are ignored. */
+let watcherGeneration = 0;
+
+/** True between `stopChangeStreamWatcher()` and the next `startChangeStreamWatcher()`. */
+let watcherStopped = true;
+
+/** Consecutive failed opens, driving the backoff delay. Reset on a successful change. */
+let restartAttempts = 0;
+
+let restartTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** First restart delay; doubles per consecutive attempt up to the max. */
+export const CHANGE_STREAM_RESTART_BASE_DELAY_MS = 250;
+
+/** Ceiling for the restart backoff — a long outage retries once every 30s, forever. */
+export const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
+
+/**
+ * Socket event telling clients their cached cursors may have gaps and they must
+ * re-bootstrap. Emitted when the change stream's oplog history is gone
+ * (`ChangeStreamHistoryLost`), which is the one failure a resume token cannot repair.
+ * Payload: {@link SyncResyncHint}.
+ */
+export const SYNC_RESYNC_EVENT = "sync:resync-required";
+
+/** MongoDB error code / codeName for an unresumable change stream (oplog rolled past). */
+const CHANGE_STREAM_HISTORY_LOST_CODE = 286;
+
+/** True when the error means the resume token can no longer be used. */
+const isHistoryLostError = (error: unknown): boolean => {
+  const {code, codeName, message} = (error ?? {}) as {
+    code?: unknown;
+    codeName?: string;
+    message?: string;
+  };
+  return (
+    code === CHANGE_STREAM_HISTORY_LOST_CODE ||
+    codeName === "ChangeStreamHistoryLost" ||
+    Boolean(message?.includes("ChangeStreamHistoryLost")) ||
+    Boolean(message?.includes("resume point may no longer be in the oplog"))
+  );
+};
+
+/**
+ * C8: per-entity serialized dispatch. The change-stream `"change"` handler is async and
+ * multiple events can be in flight at once; without ordering, two events for the SAME
+ * document could emit their deltas out of order (a client would then see LWW-by-seq
+ * violated within an entity). This keeps a promise chain PER entity key
+ * (`{collection}:{docId}`) so same-entity deltas dispatch strictly in change-stream
+ * order, while different entities still run concurrently. Chains self-clean when idle.
+ */
+const entityDispatchChains = new Map<string, Promise<void>>();
+
+const serializePerEntity = (key: string, task: () => Promise<void>): void => {
+  const prior = entityDispatchChains.get(key) ?? Promise.resolve();
+  const next = prior.then(task, task);
+  entityDispatchChains.set(key, next);
+  void next.finally(() => {
+    // Drop the chain once this was the last queued task, so the map does not grow.
+    if (entityDispatchChains.get(key) === next) {
+      entityDispatchChains.delete(key);
+    }
+  });
+};
+
+/**
+ * C7: the sync bookkeeping collections must never drive fan-out — their own change
+ * events are internal (counters/ledger/markers/keys), and processing them would emit
+ * spurious deltas or reprocess scope-move markers. Exported for testing.
+ */
+export const DEFAULT_IGNORED_COLLECTIONS = [
+  "socketio",
+  "sessions",
+  "synccounters",
+  "syncmutations",
+  "syncscopemoves",
+  "synckeys",
+];
 
 /**
  * Map MongoDB change stream operation types to our method names.
@@ -94,8 +187,17 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
   return sockets;
 };
 
+/**
+ * The minimal registry-entry shape the authorized-room emitters need. Both
+ * `RealtimeRegistryEntry` and `SyncRegistryEntry` satisfy it structurally.
+ */
+export interface AuthorizedEmitEntry {
+  modelName: string;
+  options: {permissions: {read: PermissionMethod<unknown>[]}};
+}
+
 const canReadDocument = async (
-  entry: RealtimeRegistryEntry,
+  entry: AuthorizedEmitEntry,
   user?: User,
   doc?: Record<string, unknown>
 ): Promise<boolean> => canReadDocumentRealtime(entry, user, doc);
@@ -222,14 +324,32 @@ export const serializeDoc = async (
   return ensureApiId(maskedFallback);
 };
 
-export const emitToAuthorizedRoom = async (
-  io: Server,
-  room: string,
-  event: RealtimeEvent,
-  entry: RealtimeRegistryEntry,
-  fullDocument: Record<string, unknown> | undefined,
-  logDebug: (msg: string) => void
-): Promise<void> => {
+/**
+ * Generalized authorized-room emitter: iterates the sockets in `room`, runs the per-socket
+ * read-permission check against `fullDocument`, builds the payload per socket (so
+ * responseHandlers can tailor output to the receiving user), and emits `eventName`.
+ *
+ * `emitToAuthorizedRoom` (legacy "sync" events) and the sync layer's `sync:delta`
+ * emission both delegate here.
+ */
+export const emitPayloadToAuthorizedRoom = async ({
+  io,
+  room,
+  eventName,
+  entry,
+  fullDocument,
+  buildPayload,
+  logDebug,
+}: {
+  io: Server;
+  room: string;
+  eventName: string;
+  entry: AuthorizedEmitEntry;
+  fullDocument: Record<string, unknown> | undefined;
+  /** Build the per-socket payload; a throw drops the emission for that socket only. */
+  buildPayload: (user: User | undefined) => Promise<unknown> | unknown;
+  logDebug: (msg: string) => void;
+}): Promise<void> => {
   const sockets = getSocketsInRoom(io, room);
   for (const socket of sockets) {
     const user = getSocketUser(socket);
@@ -243,21 +363,39 @@ export const emitToAuthorizedRoom = async (
         continue;
       }
 
-      if (!fullDocument) {
-        socket.emit("sync", event);
-        continue;
-      }
-
-      const data = await serializeDoc(entry, fullDocument, event.method, user);
-      socket.emit("sync", {...event, data});
+      socket.emit(eventName, await buildPayload(user));
     } catch (error) {
       logger.error(
-        `[realtime] Failed to emit ${entry.modelName}/${event.method} to socket ${socket.id}: ${error}`
+        `[realtime] Failed to emit ${eventName} for ${entry.modelName} to socket ${socket.id}: ${error}`
       );
       Sentry.captureException(error);
     }
   }
 };
+
+export const emitToAuthorizedRoom = async (
+  io: Server,
+  room: string,
+  event: RealtimeEvent,
+  entry: RealtimeRegistryEntry,
+  fullDocument: Record<string, unknown> | undefined,
+  logDebug: (msg: string) => void
+): Promise<void> =>
+  emitPayloadToAuthorizedRoom({
+    buildPayload: async (user) => {
+      if (!fullDocument) {
+        return event;
+      }
+      const data = await serializeDoc(entry, fullDocument, event.method, user);
+      return {...event, data};
+    },
+    entry,
+    eventName: "sync",
+    fullDocument,
+    io,
+    logDebug,
+    room,
+  });
 
 /**
  * Emit a sync event to document-specific and query rooms.
@@ -372,13 +510,323 @@ export const emitToDocumentAndQueryRooms = async (
 };
 
 /**
+ * Emit legacy realtime "sync" events for a change on a realtime-registered collection.
+ * Extracted verbatim from the change handler so sync-delta emission (which is keyed off
+ * the independent sync registry) runs even when the realtime path skips the change.
+ */
+const processRealtimeChange = async ({
+  io,
+  entry,
+  change,
+  docId,
+  logDebug,
+  logInfo,
+}: {
+  io: Server;
+  entry: RealtimeRegistryEntry;
+  change: WatchedChange;
+  docId: string;
+  logDebug: (msg: string) => void;
+  logInfo: (msg: string) => void;
+}): Promise<void> => {
+  // Map to our method type. Pass enabledMethods so soft deletes only
+  // remap to "delete" when the model actually subscribes to deletes —
+  // otherwise the change is kept as "update" so update subscribers
+  // still receive it.
+  const method = mapOperationType(change.operationType, change, entry.config.methods);
+  if (!method) {
+    return;
+  }
+
+  // Check if this method is enabled for this model
+  if (!entry.config.methods.includes(method)) {
+    logDebug(`[realtime] Method ${method} not enabled for ${entry.modelName}`);
+    return;
+  }
+
+  // fullDocument is present on insert/update/replace; absent on delete.
+  const fullDocument = change.operationType === "delete" ? undefined : change.fullDocument;
+
+  // For hard deletes, we don't have the full document
+  const isHardDelete = method === "delete" && !fullDocument;
+
+  // Determine target rooms
+  let rooms: string[];
+  if (isHardDelete) {
+    // Hard delete: no fullDocument, so we can't resolve owner/custom rooms.
+    // For owner strategy we cannot safely fan out to a model room without
+    // leaking deletes across users — admins still receive the event via the
+    // admin room and any document-specific subscribers via document rooms.
+    if (entry.config.roomStrategy === "owner") {
+      rooms = ["admin"];
+    } else if (entry.config.roomStrategy === "broadcast") {
+      rooms = ["authenticated"];
+    } else {
+      const collectionTag = getCollectionTag(entry.routePath);
+      rooms = [`model:${collectionTag}`];
+    }
+  } else {
+    rooms = resolveRooms(entry, fullDocument ?? {}, method);
+  }
+
+  const collection = getCollectionTag(entry.routePath);
+
+  const event: RealtimeEvent = {
+    collection,
+    id: docId,
+    method,
+    model: entry.modelName,
+    timestamp: DateTime.now().toMillis(),
+    ...(change.operationType === "update" && change.updateDescription?.updatedFields
+      ? {updatedFields: Object.keys(change.updateDescription.updatedFields)}
+      : {}),
+  };
+
+  // Emit to strategy-based rooms (model/owner/broadcast)
+  for (const room of rooms) {
+    await emitToAuthorizedRoom(io, room, event, entry, fullDocument, logDebug);
+  }
+
+  // Emit to document-specific and query rooms
+  await emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
+
+  logDebug(
+    `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
+  );
+  // Log only metadata — never the document payload, which may contain sensitive fields.
+  const metadata: Record<string, unknown> = {
+    collection: event.collection,
+    id: event.id,
+    method: event.method,
+    model: event.model,
+    timestamp: event.timestamp,
+  };
+  if (event.updatedFields) {
+    metadata.updatedFields = event.updatedFields;
+  }
+  logInfo(`[realtime] sync event: ${JSON.stringify(metadata)}`);
+};
+
+/**
+ * Emit `sync:delta` events for a change on a sync-registered collection.
+ *
+ * Deltas fan out to the dedicated `sync:{stream}` rooms joined via `sync:subscribe`
+ * (independent of the legacy realtime rooms), with the same per-socket read-permission
+ * checks as legacy events. `seq` and `stream` come from the post-image: the `syncPlugin`
+ * stamps `_syncSeq` on every synced write and the watcher runs `updateLookup`.
+ *
+ * Soft deletes (an update setting `deleted: true`, reclassified by `mapOperationType`)
+ * produce a `method: "delete"` delta with `deleted: true` and the tombstone data intact.
+ *
+ * Scope moves (C4): the old-stream tombstone is derived from durable `SyncScopeMove`
+ * markers (written by `syncPlugin` in the same op-scope as the move), NOT from the racy
+ * `_syncPrevStream` post-image — a second write racing this event's processing can reset
+ * `_syncPrevStream`, but it cannot erase the durable marker. For each marker on this
+ * document, a data-less tombstone is emitted to the marker's `fromStream` (carrying the
+ * marker's old-stream seq), and the new-stream delta is reported as `method: "create"`.
+ * Client tombstone application is idempotent by seq, so re-emitting a marker on a later
+ * change of the same doc is harmless.
+ *
+ * Every emitted delta carries `frontierSeq` (the emitting stream's stable frontier at
+ * emit time, C1); the client advances its cursor to `min(delta.seq, delta.frontierSeq)`
+ * so a delta observed out of commit order never advances a cursor past an uncommitted hole.
+ *
+ * A model with both `realtime` and `sync` configs emits both the legacy "sync" event and
+ * "sync:delta" — distinct event names, no interference (documented as transitional).
+ *
+ * Exported for testing.
+ */
+export const emitSyncDeltaForChange = async ({
+  io,
+  entry,
+  change,
+  docId,
+  logDebug,
+}: {
+  io: Server;
+  entry: SyncRegistryEntry;
+  change: WatchedChange;
+  docId: string;
+  logDebug: (msg: string) => void;
+}): Promise<void> => {
+  if (change.operationType === "delete") {
+    // Hard deletes are blocked on synced models by syncPlugin; a direct collection-level
+    // delete has no post-image, so neither stream nor seq can be resolved. Clients
+    // reconcile via snapshot instead.
+    logDebug(
+      `[sync] Skipping hard delete for synced collection ${entry.collectionTag}/${docId}: ` +
+        "no post-image to resolve stream/seq"
+    );
+    return;
+  }
+  const fullDocument = change.fullDocument as Record<string, unknown> | undefined;
+  if (!fullDocument) {
+    logDebug(`[sync] Skipping ${entry.collectionTag}/${docId}: change has no fullDocument`);
+    return;
+  }
+
+  const mapped = mapOperationType(change.operationType, change);
+  if (!mapped) {
+    return;
+  }
+  let method: SyncMutationOperation = mapped;
+  const deleted = fullDocument.deleted === true;
+  const seq = typeof fullDocument._syncSeq === "number" ? fullDocument._syncSeq : 0;
+  const stream = resolveStreamForDoc({
+    collectionTag: entry.collectionTag,
+    doc: fullDocument,
+    scope: entry.config.scope,
+  });
+
+  // C4: emit old-stream tombstones from durable markers, not the racy _syncPrevStream.
+  const markers = await SyncScopeMove.find({
+    collectionTag: entry.collectionTag,
+    entityId: docId,
+  }).lean();
+  let movedAway = false;
+  for (const marker of markers) {
+    if (marker.fromStream === stream) {
+      continue;
+    }
+    movedAway = true;
+    const markerFrontier = await computeStableFrontier({stream: marker.fromStream});
+    const tombstone: SyncDelta = {
+      collection: entry.collectionTag,
+      deleted: true,
+      frontierSeq: markerFrontier,
+      id: docId,
+      method: "delete",
+      seq: marker.seq,
+      stream: marker.fromStream,
+    };
+    await emitPayloadToAuthorizedRoom({
+      buildPayload: () => tombstone,
+      entry,
+      eventName: "sync:delta",
+      fullDocument,
+      io,
+      logDebug,
+      room: syncRoomForStream(marker.fromStream),
+    });
+    logDebug(
+      `[sync] Emitted scope-move tombstone for ${entry.collectionTag}/${docId} to ${marker.fromStream} seq=${marker.seq}`
+    );
+  }
+  // The new stream sees a moved-away doc for the first time: report it as a create
+  // (unless the same write also soft-deleted the doc, in which case the tombstone wins).
+  if (movedAway && method !== "delete") {
+    method = "create";
+  }
+
+  const frontierSeq = await computeStableFrontier({stream});
+  const delta: SyncDelta = {
+    collection: entry.collectionTag,
+    frontierSeq,
+    id: docId,
+    method,
+    seq,
+    stream,
+    ...(deleted ? {deleted: true} : {}),
+  };
+  await emitPayloadToAuthorizedRoom({
+    // C7: tombstone deltas carry no data (only id/seq/deleted); live deltas serialize.
+    buildPayload: deleted
+      ? () => delta
+      : async (user) => {
+          const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
+          const data = ensureApiId(
+            await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
+          );
+          return {...delta, data};
+        },
+    entry,
+    eventName: "sync:delta",
+    fullDocument,
+    io,
+    logDebug,
+    room: syncRoomForStream(stream),
+  });
+  logDebug(
+    `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${stream} frontier=${frontierSeq}`
+  );
+};
+
+/**
  * Start watching MongoDB change streams and emitting real-time events.
+ *
+ * Task 9.16: the stream is supervised — an `error`/`close`/`end` schedules a re-open with
+ * exponential backoff, resuming from the last seen token. Call
+ * {@link stopChangeStreamWatcher} to end supervision.
  */
 export const startChangeStreamWatcher = (
   io: Server,
   config: ChangeStreamConfig = {},
   debug = false
 ): void => {
+  watcherStopped = false;
+  restartAttempts = 0;
+  lastResumeToken = undefined;
+  openChangeStream({config, debug, io});
+};
+
+/**
+ * Task 9.16: schedule a re-open after a stream failure. Silently returns when the watcher
+ * was stopped, when a newer stream is already running (a failing stream can fire several
+ * terminal events), or when a restart is already pending.
+ */
+const scheduleChangeStreamRestart = ({
+  config,
+  debug,
+  generation,
+  io,
+  reason,
+}: {
+  config: ChangeStreamConfig;
+  debug: boolean;
+  generation: number;
+  io: Server;
+  reason: string;
+}): void => {
+  if (watcherStopped || generation !== watcherGeneration || restartTimer) {
+    return;
+  }
+  restartAttempts += 1;
+  const delayMs = Math.min(
+    CHANGE_STREAM_RESTART_BASE_DELAY_MS * 2 ** (restartAttempts - 1),
+    CHANGE_STREAM_RESTART_MAX_DELAY_MS
+  );
+  logger.warn(
+    `[realtime] Change stream ${reason}; reopening in ${delayMs}ms (attempt ${restartAttempts})`,
+    {resumable: lastResumeToken !== undefined}
+  );
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
+    if (watcherStopped) {
+      return;
+    }
+    openChangeStream({config, debug, io, isReopen: true});
+  }, delayMs);
+  // Never hold the process open just to retry a watcher.
+  restartTimer.unref?.();
+};
+
+/**
+ * Open (or re-open) the change stream and wire its listeners. Throws only for a
+ * configuration-level failure on the FIRST open (no connection, `watch` returned nothing),
+ * which must fail startup loudly; a failure while reopening is retried with backoff.
+ */
+const openChangeStream = ({
+  config,
+  debug,
+  io,
+  isReopen = false,
+}: {
+  config: ChangeStreamConfig;
+  debug: boolean;
+  io: Server;
+  /** True for a supervised reopen: failures retry with backoff instead of throwing. */
+  isReopen?: boolean;
+}): void => {
   const logInfo = (message: string): void => {
     if (debug) {
       logger.info(message);
@@ -390,6 +838,8 @@ export const startChangeStreamWatcher = (
       logger.debug(message);
     }
   };
+
+  const generation = ++watcherGeneration;
 
   try {
     logInfo("[realtime] Initializing change stream watcher...");
@@ -432,16 +882,30 @@ export const startChangeStreamWatcher = (
       // How long the cursor waits for new events before yielding control.
       // Lower values give more responsive updates at the cost of more frequent driver round-trips.
       maxAwaitTimeMS: 1000,
+      // Task 9.16: resume where the previous stream died so events during the outage are
+      // delivered rather than lost. Absent on a first open and after history loss.
+      ...(lastResumeToken !== undefined ? {resumeAfter: lastResumeToken} : {}),
     };
 
-    changeWatcher = nativeDb.watch(pipeline, options);
+    const stream = nativeDb.watch(pipeline, options);
 
-    if (!changeWatcher) {
+    if (!stream) {
       throw new APIError({status: 500, title: "Failed to create change stream watcher"});
     }
+    changeWatcher = stream;
 
-    changeWatcher.on("change", async (rawChange: ChangeStreamDocument) => {
+    stream.on("change", async (rawChange: ChangeStreamDocument) => {
       try {
+        // Task 9.16: record the resume token FIRST, for every change — including ones this
+        // watcher ignores. A token only from processed events would rewind the stream to an
+        // old position after a restart and re-deliver everything since.
+        const token = (rawChange as {_id?: unknown})._id;
+        if (token !== undefined) {
+          lastResumeToken = token;
+        }
+        // A stream that is delivering events has recovered; drop the accumulated backoff so
+        // the next unrelated failure retries promptly instead of at the previous ceiling.
+        restartAttempts = 0;
         // The pipeline restricts operationType to a subset that always has ns/documentKey;
         // narrow once here so downstream code doesn't need repeated casts.
         if (
@@ -465,122 +929,94 @@ export const startChangeStreamWatcher = (
           return;
         }
 
-        // Find the registry entry for this collection
+        // Realtime and sync registries are independent: a model may be in either or both.
+        // A model with both configs emits both the legacy "sync" event and "sync:delta".
         const entry = findRegistryEntryByCollection(collectionName);
+        const syncEntry = findSyncEntryByCollectionName(collectionName);
 
-        if (!entry) {
-          // Not a registered realtime model — skip
+        if (!entry && !syncEntry) {
+          // Not a registered realtime or sync model — skip
           logDebug(`[realtime] No registry entry for collection: ${collectionName}`);
           return;
         }
 
-        // Map to our method type. Pass enabledMethods so soft deletes only
-        // remap to "delete" when the model actually subscribes to deletes —
-        // otherwise the change is kept as "update" so update subscribers
-        // still receive it.
-        const method = mapOperationType(change.operationType, change, entry.config.methods);
-        if (!method) {
-          return;
+        if (entry) {
+          await processRealtimeChange({change, docId, entry, io, logDebug, logInfo});
         }
 
-        // Check if this method is enabled for this model
-        if (!entry.config.methods.includes(method)) {
-          logDebug(`[realtime] Method ${method} not enabled for ${entry.modelName}`);
-          return;
+        if (syncEntry) {
+          // C8: serialize per entity so same-doc deltas emit in change-stream order;
+          // different docs still dispatch concurrently. See serializePerEntity + the
+          // per-entity LWW-by-seq contract documented in sync/types.ts (SyncDelta).
+          serializePerEntity(`${collectionName}:${docId}`, async () => {
+            try {
+              await emitSyncDeltaForChange({change, docId, entry: syncEntry, io, logDebug});
+            } catch (error) {
+              logger.error(`[sync] Error emitting sync delta: ${error}`);
+              Sentry.captureException(error);
+            }
+          });
         }
-
-        // fullDocument is present on insert/update/replace; absent on delete.
-        const fullDocument = change.operationType === "delete" ? undefined : change.fullDocument;
-
-        // For hard deletes, we don't have the full document
-        const isHardDelete = method === "delete" && !fullDocument;
-
-        // Determine target rooms
-        let rooms: string[];
-        if (isHardDelete) {
-          // Hard delete: no fullDocument, so we can't resolve owner/custom rooms.
-          // For owner strategy we cannot safely fan out to a model room without
-          // leaking deletes across users — admins still receive the event via the
-          // admin room and any document-specific subscribers via document rooms.
-          if (entry.config.roomStrategy === "owner") {
-            rooms = ["admin"];
-          } else if (entry.config.roomStrategy === "broadcast") {
-            rooms = ["authenticated"];
-          } else {
-            const collectionTag = getCollectionTag(entry.routePath);
-            rooms = [`model:${collectionTag}`];
-          }
-        } else {
-          rooms = resolveRooms(entry, fullDocument ?? {}, method);
-        }
-
-        const collection = getCollectionTag(entry.routePath);
-
-        const event: RealtimeEvent = {
-          collection,
-          id: docId,
-          method,
-          model: entry.modelName,
-          timestamp: DateTime.now().toMillis(),
-          ...(change.operationType === "update" && change.updateDescription?.updatedFields
-            ? {updatedFields: Object.keys(change.updateDescription.updatedFields)}
-            : {}),
-        };
-
-        // Emit to strategy-based rooms (model/owner/broadcast)
-        for (const room of rooms) {
-          await emitToAuthorizedRoom(io, room, event, entry, fullDocument, logDebug);
-        }
-
-        // Emit to document-specific and query rooms
-        await emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
-
-        logDebug(
-          `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
-        );
-        // Log only metadata — never the document payload, which may contain sensitive fields.
-        const metadata: Record<string, unknown> = {
-          collection: event.collection,
-          id: event.id,
-          method: event.method,
-          model: event.model,
-          timestamp: event.timestamp,
-        };
-        if (event.updatedFields) {
-          metadata.updatedFields = event.updatedFields;
-        }
-        logInfo(`[realtime] sync event: ${JSON.stringify(metadata)}`);
       } catch (error) {
         logger.error(`[realtime] Error processing change event: ${error}`);
         Sentry.captureException(error);
       }
     });
 
-    changeWatcher.on("error", (err: Error) => {
+    stream.on("error", (err: Error) => {
       Sentry.captureException(err);
       logger.error(`[realtime] Change stream error: ${err?.message || err}`);
+      if (isHistoryLostError(err)) {
+        // The oplog no longer contains the resume point, so the gap can never be replayed.
+        // Reopen from NOW and tell clients to re-bootstrap: their cursors may sit below
+        // changes (including deletions) they will otherwise never hear about.
+        lastResumeToken = undefined;
+        logger.error(
+          "[sync] Change stream history lost; reopening without a resume token and asking " +
+            "clients to resync"
+        );
+        const hint: SyncResyncHint = {reason: "history_lost"};
+        io.emit(SYNC_RESYNC_EVENT, hint);
+      }
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "errored"});
     });
 
-    changeWatcher.on("close", () => {
+    stream.on("close", () => {
       logger.warn("[realtime] Change stream closed");
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "closed"});
     });
 
-    changeWatcher.on("end", () => {
+    stream.on("end", () => {
       logger.warn("[realtime] Change stream ended");
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "ended"});
     });
 
     logInfo("[realtime] Change stream watcher initialized successfully");
   } catch (error) {
     logger.error(`[realtime] Failed to initialize change stream watcher: ${error}`);
     Sentry.captureException(error);
+    // A first open must fail startup loudly; a failed REOPEN (the DB is down mid-flight)
+    // has no caller to throw to, so keep retrying with backoff instead.
+    if (isReopen && !watcherStopped) {
+      scheduleChangeStreamRestart({config, debug, generation, io, reason: "failed to open"});
+      return;
+    }
     throw error;
   }
 };
 
 /**
- * Stop the change stream watcher.
+ * Stop the change stream watcher and end Task 9.16's restart supervision (a pending
+ * reopen is cancelled, and terminal events from the closing stream are ignored).
  */
 export const stopChangeStreamWatcher = async (): Promise<void> => {
+  watcherStopped = true;
+  if (restartTimer) {
+    clearTimeout(restartTimer);
+    restartTimer = null;
+  }
+  restartAttempts = 0;
+  lastResumeToken = undefined;
   if (changeWatcher) {
     await changeWatcher.close();
     changeWatcher = null;

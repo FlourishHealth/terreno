@@ -1,9 +1,15 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterAll, afterEach, beforeAll, describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeAll, describe, expect, it, type Mock, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
-import {createRef} from "react";
-import {Text} from "react-native";
+import {createRef, type RefObject} from "react";
+import {
+  Animated,
+  Dimensions,
+  type KeyboardEvent,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Text,
+} from "react-native";
 
 import {
   ActionSheet,
@@ -14,11 +20,32 @@ import {
 } from "./ActionSheet";
 import {ThemeProvider} from "./Theme";
 
+const scrollEvent = (y: number): NativeSyntheticEvent<NativeScrollEvent> =>
+  ({nativeEvent: {contentOffset: {x: 0, y}}}) as NativeSyntheticEvent<NativeScrollEvent>;
+
+const layoutEvent = (height: number, width: number): LayoutChangeEvent =>
+  ({nativeEvent: {layout: {height, width, x: 0, y: 0}}}) as LayoutChangeEvent;
+
+/** Stands in for the SafeAreaView ref, whose measureInWindow reports `height`. */
+const measuringSafeAreaRef = (
+  height: number
+): React.RefObject<{
+  measureInWindow: (
+    callback: (x: number, y: number, width: number, height: number) => void
+  ) => void;
+}> => ({
+  current: {
+    measureInWindow: (callback) => {
+      callback(0, 0, 100, height);
+    },
+  },
+});
+
 beforeAll(() => {
-  (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => {
+  globalThis.requestAnimationFrame = (callback: FrameRequestCallback) => {
     return setTimeout(() => callback(Date.now()), 0) as unknown as number;
   };
-  (global as any).cancelAnimationFrame = (id: number) => {
+  globalThis.cancelAnimationFrame = (id: number) => {
     clearTimeout(id);
   };
 });
@@ -232,7 +259,7 @@ describe("ActionSheet", () => {
     act(() => {
       ref.current?.show();
     });
-    expect(() => (ref.current as any)._onRequestClose()).not.toThrow();
+    expect(() => ref.current!._onRequestClose()).not.toThrow();
   });
 
   it("_onTouchBackdrop hides modal when closeOnTouchBackdrop is true", () => {
@@ -247,7 +274,7 @@ describe("ActionSheet", () => {
     act(() => {
       ref.current?.show();
     });
-    expect(() => (ref.current as any)._onTouchBackdrop()).not.toThrow();
+    expect(() => ref.current!._onTouchBackdrop()).not.toThrow();
   });
 
   it("_onRequestClose does not hide when closeOnPressBack is false", () => {
@@ -262,7 +289,7 @@ describe("ActionSheet", () => {
     act(() => {
       ref.current?.show();
     });
-    (ref.current as any)._onRequestClose();
+    ref.current!._onRequestClose();
     expect(ref.current?.state.modalVisible).toBe(true);
   });
 
@@ -278,7 +305,7 @@ describe("ActionSheet", () => {
     act(() => {
       ref.current?.show();
     });
-    (ref.current as any)._onTouchBackdrop();
+    ref.current!._onTouchBackdrop();
     expect(ref.current?.state.modalVisible).toBe(true);
   });
 
@@ -291,11 +318,7 @@ describe("ActionSheet", () => {
         </ActionSheet>
       </ThemeProvider>
     );
-    expect(() =>
-      (ref.current as any)._onScroll({
-        nativeEvent: {contentOffset: {x: 0, y: 10}},
-      })
-    ).not.toThrow();
+    expect(() => ref.current!._onScroll(scrollEvent(10))).not.toThrow();
   });
 
   it("_onTouchStart and _onTouchMove do not throw", () => {
@@ -307,9 +330,9 @@ describe("ActionSheet", () => {
         </ActionSheet>
       </ThemeProvider>
     );
-    expect(() => (ref.current as any)._onTouchStart()).not.toThrow();
-    expect(() => (ref.current as any)._onTouchMove()).not.toThrow();
-    expect(() => (ref.current as any)._onTouchEnd()).not.toThrow();
+    expect(() => ref.current!._onTouchStart()).not.toThrow();
+    expect(() => ref.current!._onTouchMove()).not.toThrow();
+    expect(() => ref.current!._onTouchEnd()).not.toThrow();
   });
 
   describe("getDeviceHeight", () => {
@@ -356,7 +379,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const result = await (ref.current as any).measure();
+      const result = await ref.current!.measure();
       expect(result).toBe(20);
     });
 
@@ -369,14 +392,8 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).safeAreaViewRef = {
-        current: {
-          measureInWindow: (_cb: any) => {
-            _cb(0, 0, 100, 44);
-          },
-        },
-      };
-      const result = await (ref.current as any).measure();
+      ref.current!.safeAreaViewRef = measuringSafeAreaRef(44);
+      const result = await ref.current!.measure();
       expect(result).toBe(44);
     });
 
@@ -389,14 +406,8 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).safeAreaViewRef = {
-        current: {
-          measureInWindow: (_cb: any) => {
-            _cb(0, 0, 100, 0);
-          },
-        },
-      };
-      const result = await (ref.current as any).measure();
+      ref.current!.safeAreaViewRef = measuringSafeAreaRef(0);
+      const result = await ref.current!.measure();
       expect(result).toBe(20);
     });
   });
@@ -411,7 +422,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      await (ref.current as any)._showModal({});
+      await ref.current!._showModal({} as LayoutChangeEvent);
       expect(ref.current).toBeTruthy();
     });
 
@@ -425,10 +436,8 @@ describe("ActionSheet", () => {
         </ThemeProvider>
       );
       ref.current!.layoutHasCalled = false;
-      await (ref.current as any)._showModal({
-        nativeEvent: {layout: {height: 500, width: 400}},
-      });
-      expect((ref.current as any).actionSheetHeight).toBe(500);
+      await ref.current!._showModal(layoutEvent(500, 400));
+      expect(ref.current!.actionSheetHeight).toBe(500);
       expect(ref.current!.layoutHasCalled).toBe(true);
     });
 
@@ -442,11 +451,9 @@ describe("ActionSheet", () => {
         </ThemeProvider>
       );
       ref.current!.layoutHasCalled = true;
-      (ref.current as any).actionSheetHeight = 400;
-      await (ref.current as any)._showModal({
-        nativeEvent: {layout: {height: 600, width: 400}},
-      });
-      expect((ref.current as any).actionSheetHeight).toBe(600);
+      ref.current!.actionSheetHeight = 400;
+      await ref.current!._showModal(layoutEvent(600, 400));
+      expect(ref.current!.actionSheetHeight).toBe(600);
     });
   });
 
@@ -460,7 +467,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      expect(() => (ref.current as any)._openAnimation(100)).not.toThrow();
+      expect(() => ref.current!._openAnimation(100)).not.toThrow();
     });
 
     it("sets opacity directly when animated is false", () => {
@@ -472,7 +479,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      expect(() => (ref.current as any)._openAnimation(100)).not.toThrow();
+      expect(() => ref.current!._openAnimation(100)).not.toThrow();
     });
   });
 
@@ -486,10 +493,8 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      await (ref.current as any)._onScrollBeginDrag({
-        nativeEvent: {contentOffset: {y: 42}},
-      });
-      expect((ref.current as any).prevScroll).toBe(42);
+      await ref.current!._onScrollBeginDrag(scrollEvent(42));
+      expect(ref.current!.prevScroll).toBe(42);
     });
   });
 
@@ -503,11 +508,9 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).actionSheetHeight = 99999;
-      (ref.current as any)._applyHeightLimiter();
-      expect((ref.current as any).actionSheetHeight).toBeLessThanOrEqual(
-        ref.current!.state.deviceHeight
-      );
+      ref.current!.actionSheetHeight = 99999;
+      ref.current!._applyHeightLimiter();
+      expect(ref.current!.actionSheetHeight).toBeLessThanOrEqual(ref.current!.state.deviceHeight);
     });
 
     it("does not change actionSheetHeight when smaller than deviceHeight", () => {
@@ -519,9 +522,9 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).actionSheetHeight = 100;
-      (ref.current as any)._applyHeightLimiter();
-      expect((ref.current as any).actionSheetHeight).toBe(100);
+      ref.current!.actionSheetHeight = 100;
+      ref.current!._applyHeightLimiter();
+      expect(ref.current!.actionSheetHeight).toBe(100);
     });
   });
 
@@ -535,12 +538,10 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).prevScroll = 100;
-      (ref.current as any).actionSheetHeight = 500;
-      (ref.current as any).isRecoiling = false;
-      await (ref.current as any)._onScrollEnd({
-        nativeEvent: {contentOffset: {y: 200}},
-      });
+      ref.current!.prevScroll = 100;
+      ref.current!.actionSheetHeight = 500;
+      ref.current!.isRecoiling = false;
+      await ref.current!._onScrollEnd(scrollEvent(200));
       expect(ref.current).toBeTruthy();
     });
 
@@ -553,10 +554,8 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).isRecoiling = true;
-      await (ref.current as any)._onScrollEnd({
-        nativeEvent: {contentOffset: {y: 50}},
-      });
+      ref.current!.isRecoiling = true;
+      await ref.current!._onScrollEnd(scrollEvent(50));
       expect(ref.current).toBeTruthy();
     });
 
@@ -569,11 +568,9 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).prevScroll = 200;
-      (ref.current as any).isRecoiling = false;
-      await (ref.current as any)._onScrollEnd({
-        nativeEvent: {contentOffset: {y: 50}},
-      });
+      ref.current!.prevScroll = 200;
+      ref.current!.isRecoiling = false;
+      await ref.current!._onScrollEnd(scrollEvent(50));
       expect(ref.current).toBeTruthy();
     });
 
@@ -586,11 +583,9 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).prevScroll = 100;
-      (ref.current as any).isRecoiling = false;
-      await (ref.current as any)._onScrollEnd({
-        nativeEvent: {contentOffset: {y: 95}},
-      });
+      ref.current!.prevScroll = 100;
+      ref.current!.isRecoiling = false;
+      await ref.current!._onScrollEnd(scrollEvent(95));
       expect(ref.current).toBeTruthy();
     });
 
@@ -603,17 +598,53 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).prevScroll = 100;
-      (ref.current as any).actionSheetHeight = 500;
-      (ref.current as any).isRecoiling = false;
-      await (ref.current as any)._onScrollEnd({
-        nativeEvent: {contentOffset: {y: 110}},
-      });
+      ref.current!.prevScroll = 100;
+      ref.current!.actionSheetHeight = 500;
+      ref.current!.isRecoiling = false;
+      await ref.current!._onScrollEnd(scrollEvent(110));
       expect(ref.current).toBeTruthy();
     });
   });
 
   describe("_onKeyboardShow", () => {
+    const timing = (Animated as unknown as {timing: Mock<(...args: never[]) => unknown>}).timing;
+
+    /**
+     * Focuses a field at `pageY` with a 40pt height and measures it synchronously, mirroring
+     * how UIManager.measure calls back on a real device.
+     */
+    const withFocusedField = (pageY: number, run: () => void): void => {
+      const {TextInput: MockTextInput, UIManager: MockUIManager} = require("react-native");
+      const origState = MockTextInput.State;
+      const origMeasure = MockUIManager.measure;
+      MockTextInput.State = {currentlyFocusedField: () => 42};
+      MockUIManager.measure = (
+        _node: number,
+        callback: (
+          originX: number,
+          originY: number,
+          width: number,
+          height: number,
+          pageX: number,
+          pageY: number
+        ) => void
+      ): void => {
+        callback(0, 0, 100, 40, 0, pageY);
+      };
+      try {
+        run();
+      } finally {
+        MockTextInput.State = origState;
+        MockUIManager.measure = origMeasure;
+      }
+    };
+
+    const showKeyboard = (ref: RefObject<ActionSheet | null>, keyboardHeight: number): void => {
+      ref.current?._onKeyboardShow({
+        endCoordinates: {height: keyboardHeight, screenX: 0, screenY: 500, width: 400},
+      } as KeyboardEvent);
+    };
+
     it("sets keyboard state to true and handles no focused field", () => {
       const ref = createRef<ActionSheet>();
       render(
@@ -628,16 +659,16 @@ describe("ActionSheet", () => {
       MockTextInput.State = {
         currentlyFocusedField: () => null,
       };
+      const timingCallsBefore = timing.mock.calls.length;
       act(() => {
-        (ref.current as any)._onKeyboardShow({
-          endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 400},
-        });
+        showKeyboard(ref, 300);
       });
       expect(ref.current!.state.keyboard).toBe(true);
+      expect(timing.mock.calls.length).toBe(timingCallsBefore);
       MockTextInput.State = origState;
     });
 
-    it("handles keyboard show with focused field", () => {
+    it("does not animate when the focused field stays above the keyboard", () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
@@ -646,26 +677,19 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const {TextInput: MockTextInput, UIManager: MockUIManager} = require("react-native");
-      const origState = MockTextInput.State;
-      const origMeasure = MockUIManager.measure;
-      MockTextInput.State = {
-        currentlyFocusedField: () => 42,
-      };
-      MockUIManager.measure = (_node: any, cb: any) => {
-        cb(0, 0, 100, 40, 0, 400);
-      };
-      act(() => {
-        (ref.current as any)._onKeyboardShow({
-          endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 400},
+      const timingCallsBefore = timing.mock.calls.length;
+      withFocusedField(400, () => {
+        act(() => {
+          showKeyboard(ref, 300);
         });
       });
       expect(ref.current!.state.keyboard).toBe(true);
-      MockTextInput.State = origState;
-      MockUIManager.measure = origMeasure;
+      // windowHeight (896) - keyboardHeight (300) - (pageY (400) + fieldHeight (40)) = 156 above
+      // the keyboard, so no animation is needed.
+      expect(timing.mock.calls.length).toBe(timingCallsBefore);
     });
 
-    it("handles keyboard show with enough gap (no animation needed)", () => {
+    it("animates the sheet up by the overlap when the keyboard covers the focused field", () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
@@ -674,23 +698,35 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const {TextInput: MockTextInput, UIManager: MockUIManager} = require("react-native");
-      const origState = MockTextInput.State;
-      const origMeasure = MockUIManager.measure;
-      MockTextInput.State = {
-        currentlyFocusedField: () => 42,
-      };
-      MockUIManager.measure = (_node: any, cb: any) => {
-        cb(0, 0, 100, 40, 0, 100);
-      };
-      act(() => {
-        (ref.current as any)._onKeyboardShow({
-          endCoordinates: {height: 100, screenX: 0, screenY: 500, width: 400},
+      const timingCallsBefore = timing.mock.calls.length;
+      withFocusedField(800, () => {
+        act(() => {
+          showKeyboard(ref, 300);
         });
       });
-      expect(ref.current!.state.keyboard).toBe(true);
-      MockTextInput.State = origState;
-      MockUIManager.measure = origMeasure;
+      const {height: windowHeight} = Dimensions.get("window");
+      const gap = windowHeight - 300 - (800 + 40);
+      expect(timing.mock.calls.length).toBe(timingCallsBefore + 1);
+      expect(timing.mock.calls[timingCallsBefore][1].toValue).toBe(gap - 10);
+    });
+
+    it("shifts by the keyboard height instead of the overlap in position keyboard mode", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet keyboardMode="position" ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const timingCallsBefore = timing.mock.calls.length;
+      withFocusedField(800, () => {
+        act(() => {
+          showKeyboard(ref, 300);
+        });
+      });
+      expect(timing.mock.calls.length).toBe(timingCallsBefore + 1);
+      expect(timing.mock.calls[timingCallsBefore][1].toValue).toBe(-(300 + 15));
     });
   });
 
@@ -705,7 +741,7 @@ describe("ActionSheet", () => {
         </ThemeProvider>
       );
       act(() => {
-        (ref.current as any)._onKeyboardHide();
+        ref.current!._onKeyboardHide();
       });
       expect(ref.current!.state.keyboard).toBe(false);
     });
@@ -721,9 +757,9 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).offsetY = 200;
-      (ref.current as any).prevScroll = 100;
-      await (ref.current as any).handleChildScrollEnd();
+      ref.current!.offsetY = 200;
+      ref.current!.prevScroll = 100;
+      await ref.current!.handleChildScrollEnd();
       expect(ref.current).toBeTruthy();
     });
 
@@ -736,10 +772,10 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).offsetY = 0;
-      (ref.current as any).prevScroll = 200;
-      (ref.current as any).actionSheetHeight = 500;
-      await (ref.current as any).handleChildScrollEnd();
+      ref.current!.offsetY = 0;
+      ref.current!.prevScroll = 200;
+      ref.current!.actionSheetHeight = 500;
+      await ref.current!.handleChildScrollEnd();
       expect(ref.current).toBeTruthy();
     });
 
@@ -752,9 +788,9 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).offsetY = 90;
-      (ref.current as any).prevScroll = 100;
-      await (ref.current as any).handleChildScrollEnd();
+      ref.current!.offsetY = 90;
+      ref.current!.prevScroll = 100;
+      await ref.current!.handleChildScrollEnd();
       expect(ref.current).toBeTruthy();
     });
 
@@ -767,10 +803,10 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).offsetY = 50;
-      (ref.current as any).prevScroll = 200;
-      (ref.current as any).actionSheetHeight = 200;
-      await (ref.current as any).handleChildScrollEnd();
+      ref.current!.offsetY = 50;
+      ref.current!.prevScroll = 200;
+      ref.current!.actionSheetHeight = 200;
+      await ref.current!.handleChildScrollEnd();
       expect(ref.current).toBeTruthy();
     });
   });
@@ -800,11 +836,9 @@ describe("ActionSheet", () => {
         </ThemeProvider>
       );
       const existingTimeout = setTimeout(() => {}, 1000);
-      (ref.current as any).timeout = existingTimeout;
-      (ref.current as any)._onDeviceLayout({
-        nativeEvent: {layout: {height: 812, width: 375}},
-      });
-      const newTimeout = (ref.current as any).timeout;
+      ref.current!.timeout = existingTimeout;
+      ref.current!._onDeviceLayout(layoutEvent(812, 375));
+      const newTimeout = ref.current!.timeout;
       expect(newTimeout).not.toBe(existingTimeout);
       clearTimeout(newTimeout);
     });
@@ -820,8 +854,8 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).actionSheetHeight = 500;
-      const pos = (ref.current as any).getInitialScrollPosition();
+      ref.current!.actionSheetHeight = 500;
+      const pos = ref.current!.getInitialScrollPosition();
       expect(typeof pos).toBe("number");
     });
 
@@ -834,8 +868,8 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).actionSheetHeight = 500;
-      const pos = (ref.current as any).getInitialScrollPosition();
+      ref.current!.actionSheetHeight = 500;
+      const pos = ref.current!.getInitialScrollPosition();
       expect(typeof pos).toBe("number");
     });
   });
@@ -853,9 +887,9 @@ describe("ActionSheet", () => {
       act(() => {
         ref.current?.show();
       });
-      (ref.current as any).isClosing = false;
+      ref.current!.isClosing = false;
       act(() => {
-        (ref.current as any)._hideAnimation();
+        ref.current!._hideAnimation();
       });
       await act(async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -875,9 +909,9 @@ describe("ActionSheet", () => {
       act(() => {
         ref.current?.show();
       });
-      (ref.current as any).isClosing = false;
+      ref.current!.isClosing = false;
       act(() => {
-        (ref.current as any)._hideAnimation();
+        ref.current!._hideAnimation();
       });
       await act(async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -896,7 +930,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      await expect((ref.current as any)._onScrollBegin()).resolves.toBeUndefined();
+      await expect(ref.current!._onScrollBegin()).resolves.toBeUndefined();
     });
   });
 
@@ -910,19 +944,19 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).actionSheetHeight = 100;
+      ref.current!.actionSheetHeight = 100;
       // scrollOffset ≈ 100*0.5 + deviceHeight*0.15 ≈ 150
       // Need offsetY > scrollOffset - 100, so offsetY = 120 works
-      (ref.current as any).offsetY = 120;
-      (ref.current as any).prevScroll = 200;
+      ref.current!.offsetY = 120;
+      ref.current!.prevScroll = 200;
       await act(async () => {
-        await (ref.current as any).handleChildScrollEnd();
+        await ref.current!.handleChildScrollEnd();
       });
-      expect((ref.current as any).isRecoiling).toBe(true);
+      expect(ref.current!.isRecoiling).toBe(true);
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });
-      expect((ref.current as any).isRecoiling).toBe(false);
+      expect(ref.current!.isRecoiling).toBe(false);
     });
   });
 
@@ -936,16 +970,16 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).offsetY = 98;
-      (ref.current as any).prevScroll = 100;
+      ref.current!.offsetY = 98;
+      ref.current!.prevScroll = 100;
       await act(async () => {
-        await (ref.current as any).handleChildScrollEnd();
+        await ref.current!.handleChildScrollEnd();
       });
-      expect((ref.current as any).isRecoiling).toBe(true);
+      expect(ref.current!.isRecoiling).toBe(true);
       await act(async () => {
         await new Promise((r) => setTimeout(r, 600));
       });
-      expect((ref.current as any).isRecoiling).toBe(false);
+      expect(ref.current!.isRecoiling).toBe(false);
     });
 
     it("recoils when within scroll threshold of initial position", async () => {
@@ -957,7 +991,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const instance = ref.current as any;
+      const instance = ref.current!;
       instance.actionSheetHeight = 500;
       instance.prevScroll = 300;
       instance.offsetY = 250;
@@ -983,7 +1017,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const instance = ref.current as any;
+      const instance = ref.current!;
       instance.actionSheetHeight = 500;
       instance.prevScroll = 300;
       instance.offsetY = 100;
@@ -1005,7 +1039,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const instance = ref.current as any;
+      const instance = ref.current!;
       instance.actionSheetHeight = 500;
       instance.prevScroll = 300;
       instance.offsetY = 290;
@@ -1029,7 +1063,7 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      const instance = ref.current as any;
+      const instance = ref.current!;
       instance.prevScroll = 200;
       instance.offsetY = 195;
       instance._scrollTo = mock(() => {});
@@ -1057,14 +1091,12 @@ describe("ActionSheet", () => {
         </ThemeProvider>
       );
       await act(async () => {
-        (ref.current as any)._onDeviceLayout({
-          nativeEvent: {layout: {height: 800, width: 400}},
-        });
+        ref.current!._onDeviceLayout(layoutEvent(800, 400));
         // measure() has a 100ms timeout on iOS; on android it uses StatusBar.currentHeight
         await new Promise((r) => setTimeout(r, 200));
       });
       // The callback should have run and set deviceLayoutCalled
-      expect((ref.current as any).deviceLayoutCalled).toBe(true);
+      expect(ref.current!.deviceLayoutCalled).toBe(true);
     });
 
     it("updates state after layout timeout fires without drawUnderStatusBar on android", async () => {
@@ -1077,12 +1109,10 @@ describe("ActionSheet", () => {
         </ThemeProvider>
       );
       await act(async () => {
-        (ref.current as any)._onDeviceLayout({
-          nativeEvent: {layout: {height: 900, width: 400}},
-        });
+        ref.current!._onDeviceLayout(layoutEvent(900, 400));
         await new Promise((r) => setTimeout(r, 200));
       });
-      expect((ref.current as any).deviceLayoutCalled).toBe(true);
+      expect(ref.current!.deviceLayoutCalled).toBe(true);
     });
   });
 });

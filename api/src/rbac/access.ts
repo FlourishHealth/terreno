@@ -20,6 +20,12 @@ const FULL_FIELD_MASK: FieldMask = {
   write: "*",
 };
 
+const EMPTY_FIELD_MASK: FieldMask = {
+  omit: [],
+  read: [],
+  write: [],
+};
+
 export const createAccess = <S extends Statements>(options: AccessOptions<S>): TerrenoAccess<S> => {
   const mergedStatements = mergeStatements(options.statements) as S;
   const rbacRoleModel = createRbacRoleModel(options.connection);
@@ -60,7 +66,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
       };
     }
 
-    if (args.doc && options.scopes) {
+    if (options.scopes) {
       for (const [resource, actions] of Object.entries(args.permissions)) {
         for (const action of actions ?? []) {
           const scopeKey = `${resource}.${action}`;
@@ -146,6 +152,17 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
 
     const permissions = await resolver.resolvePermissionsForUser(args.user);
     const phase = args.phase ?? "read";
+
+    if (phase === "create" && fieldView.createView !== undefined) {
+      if (fieldView.createView === "deny") {
+        return EMPTY_FIELD_MASK;
+      }
+      if (typeof fieldView.createView === "string") {
+        return fieldView.views[fieldView.createView] ?? EMPTY_FIELD_MASK;
+      }
+      return fieldView.createView;
+    }
+
     const selected = await fieldView.select({
       doc: args.doc,
       permissions,
@@ -154,7 +171,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
     });
 
     if (typeof selected === "string") {
-      return fieldView.views[selected] ?? FULL_FIELD_MASK;
+      return fieldView.views[selected] ?? EMPTY_FIELD_MASK;
     }
 
     return selected;
