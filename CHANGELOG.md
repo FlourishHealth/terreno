@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
   row so `retries: false` stays fail-fast after keepMine.
+- Example todos Sync Lab panel starts collapsed so the first list row stays
+  above the tab bar on short web viewports.
 
 ### Deprecated
 

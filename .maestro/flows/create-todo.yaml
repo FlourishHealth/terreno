@@ -23,9 +23,9 @@ url: http://localhost:8082/
 - tapOn:
     id: "Add Todo"
 
-# FlashList puts the new row below the heading/form; on short Maestro viewports
-# that lands under the Expo tab bar unless we scroll it into view.
-- scrollUntilVisible:
-    direction: DOWN
-    element: "Buy groceries"
+# SyncDevPanel starts collapsed so the new row sits below the form in the
+# Maestro viewport. Window scrollUntilVisible does not move FlashList's
+# inner scroller — do not use it here.
+- extendedWaitUntil:
+    visible: "Buy groceries"
     timeout: 30000
