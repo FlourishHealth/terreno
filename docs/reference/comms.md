@@ -146,6 +146,9 @@ When a channel is unconfigured:
 Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `[redacted]` unless
 `redactRecipients` is explicitly `false`.
 
+`onSend` and `onError` fire after every channel outcome (mail, SMS, push, and verification).
+`onRetry` currently runs only for transient mail failures before the one automatic retry.
+
 ## Routes
 
 The default `basePath` is `/comms`.

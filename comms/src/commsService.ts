@@ -98,6 +98,23 @@ export class CommsService {
     }
   }
 
+  private async notifyOutcomeHooks(context: CommsHookContext, result: SendResult): Promise<void> {
+    if (result.accepted) {
+      const onSend = this.options.onSend;
+      await this.invokeHook(
+        onSend ? (): Promise<void> => onSend(context, result) : undefined,
+        "onSend"
+      );
+      return;
+    }
+
+    const onError = this.options.onError;
+    await this.invokeHook(
+      onError ? (): Promise<void> => onError(context, result) : undefined,
+      "onError"
+    );
+  }
+
   private async sendMailOnce(provider: MailProvider, message: MailMessage): Promise<SendResult> {
     try {
       return await provider.sendMail(message);
@@ -181,25 +198,14 @@ export class CommsService {
       to: message.to,
     });
 
-    if (result.accepted) {
-      const onSend = this.options.onSend;
-      await this.invokeHook(
-        onSend ? (): Promise<void> => onSend(context, result) : undefined,
-        "onSend"
-      );
-    } else {
-      const onError = this.options.onError;
-      await this.invokeHook(
-        onError ? (): Promise<void> => onError(context, result) : undefined,
-        "onError"
-      );
-    }
+    await this.notifyOutcomeHooks(context, result);
 
     return result;
   }
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
     const provider = this.smsProvider();
+    const context = {channel: "sms" as const, provider: provider.id};
 
     try {
       const result = await provider.sendSms(message);
@@ -209,20 +215,24 @@ export class CommsService {
         result,
         to: message.to,
       });
+      await this.notifyOutcomeHooks(context, result);
       return result;
     } catch (error: unknown) {
+      const result = {accepted: false, error: "Provider send failed"};
       await this.logResult({
         channel: "sms",
         provider: provider.id,
-        result: {accepted: false, error: "Provider send failed"},
+        result,
         to: message.to,
       });
+      await this.notifyOutcomeHooks(context, result);
       throw error;
     }
   }
 
   async sendPushToUser(message: SendPushToUserMessage): Promise<SendResult[]> {
     const provider = this.pushProvider();
+    const context = {channel: "push" as const, provider: provider.id};
     const tokens = await PushToken.find({active: true, userId: message.userId});
     if (tokens.length === 0) {
       return [];
@@ -240,16 +250,22 @@ export class CommsService {
     try {
       results = await provider.sendPush(providerMessage);
     } catch (error: unknown) {
+      const failedResult = {accepted: false, error: "Provider send failed"};
       await Promise.all(
         tokens.map(
           (token): Promise<void> =>
             this.logResult({
               channel: "push",
               provider: provider.id,
-              result: {accepted: false, error: "Provider send failed"},
+              result: failedResult,
               to: token.token,
               userId: String(message.userId),
             })
+        )
+      );
+      await Promise.all(
+        tokens.map(
+          (): Promise<void> => this.notifyOutcomeHooks(context, failedResult)
         )
       );
       throw error;
@@ -272,6 +288,7 @@ export class CommsService {
           to: token.token,
           userId: String(message.userId),
         });
+        await this.notifyOutcomeHooks(context, result);
         if (!result.accepted && result.isPermanentFailure) {
           token.active = false;
           await token.save();
@@ -284,6 +301,7 @@ export class CommsService {
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
     const provider = this.verificationProvider();
+    const context = {channel: "verification" as const, provider: provider.id};
     try {
       const result = await provider.startVerification(options);
       await this.logResult({
@@ -293,40 +311,48 @@ export class CommsService {
         result,
         to: options.to,
       });
+      await this.notifyOutcomeHooks(context, result);
       return result;
     } catch (error: unknown) {
+      const result = {accepted: false, error: "Provider send failed"};
       await this.logResult({
         channel: "verification",
         metadata: {verificationChannel: options.channel},
         provider: provider.id,
-        result: {accepted: false, error: "Provider send failed"},
+        result,
         to: options.to,
       });
+      await this.notifyOutcomeHooks(context, result);
       throw error;
     }
   }
 
   async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
     const provider = this.verificationProvider();
+    const context = {channel: "verification" as const, provider: provider.id};
     try {
       const result = await provider.checkVerification(options);
+      const loggedResult: SendResult = {
+        accepted: result.valid,
+        ...(result.valid ? {} : {error: result.error ?? "Verification check failed"}),
+      };
       await this.logResult({
         channel: "verification",
         provider: provider.id,
-        result: {
-          accepted: result.valid,
-          ...(result.valid ? {} : {error: result.error ?? "Verification check failed"}),
-        },
+        result: loggedResult,
         to: options.to,
       });
+      await this.notifyOutcomeHooks(context, loggedResult);
       return result;
     } catch (error: unknown) {
+      const loggedResult = {accepted: false, error: "Provider check failed"};
       await this.logResult({
         channel: "verification",
         provider: provider.id,
-        result: {accepted: false, error: "Provider check failed"},
+        result: loggedResult,
         to: options.to,
       });
+      await this.notifyOutcomeHooks(context, loggedResult);
       throw error;
     }
   }

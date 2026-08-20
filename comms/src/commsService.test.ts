@@ -549,6 +549,56 @@ describe("CommsService", () => {
     }
   });
 
+  it("invokes onSend and onError hooks for every channel", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[hooks]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+
+    const onSendChannels: string[] = [];
+    const onErrorChannels: string[] = [];
+    const service = new CommsService({
+      mail: {
+        id: "hook-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      onError: async (context): Promise<void> => {
+        onErrorChannels.push(context.channel);
+      },
+      onSend: async (context): Promise<void> => {
+        onSendChannels.push(context.channel);
+      },
+      push: {
+        id: "hook-push",
+        sendPush: async (): Promise<SendResult[]> => [{accepted: true}],
+      },
+      sms: {
+        id: "hook-sms",
+        sendSms: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      verification: {
+        checkVerification: async (): Promise<{valid: boolean}> => ({valid: false, error: "bad"}),
+        id: "hook-verification",
+        startVerification: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    await service.sendSms({body: "Hello", to: "+15555550100"});
+    await service.sendPushToUser({body: "Hello", title: "Title", userId});
+    await service.startVerification({channel: "sms", to: "+15555550100"});
+    await service.checkVerification({code: "123456", to: "+15555550100"});
+
+    assert.deepEqual(onSendChannels, ["mail", "sms", "push", "verification"]);
+    assert.deepEqual(onErrorChannels, ["verification"]);
+  });
+
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {
     const userId = new mongoose.Types.ObjectId();
     const token = await PushToken.upsert(
