@@ -124,15 +124,19 @@ row.
 ```typescript
 interface CommsAppOptions {
   basePath?: string; // default: "/comms"
+  beforeSend?: (context: CommsHookContext) => Promise<BeforeSendResult | undefined>;
   defaultFrom?: string;
   logMessages?: boolean; // default: true
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
   onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onOptOut?: (event: OptOutEvent) => Promise<void>;
   onRetry?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   push?: PushProvider;
+  redactPayload?: (context: CommsHookContext, payload: unknown) => unknown;
   redactRecipients?: boolean; // default: true
+  retainPayloadDays?: number; // default: 30; 0 stores no payload
   sms?: SmsProvider;
   verification?: VerificationProvider;
 }
@@ -144,10 +148,19 @@ When a channel is unconfigured:
 - production throws a `501` `APIError` titled `Comms channel not configured`.
 
 Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `[redacted]` unless
-`redactRecipients` is explicitly `false`.
+`redactRecipients` is explicitly `false`. Rendered payloads are retained for `retainPayloadDays`
+(default 30) after `redactPayload`; expired payloads are unset without deleting the log row.
 
-`onSend` and `onError` fire after every channel outcome (mail, SMS, push, and verification).
-`onRetry` currently runs only for transient mail failures before the one automatic retry.
+`beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
+`onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
+`errorClass` is `"transient"` (`context.attempt === 2`). Throwing hooks are logged and never change
+the send outcome. Adapters should call `recordDeliveryEvent()` and `recordOptOut()` rather than
+invoking those hooks directly.
+
+Provider throws become `{accepted: false, errorClass: "transient", errorCode: "provider-throw"}`.
+Permanent and config failures are not retried. Push retries re-send only the tokens whose first
+result was transient; tokens are deactivated when `errorClass` is `"permanent"` or
+`isPermanentFailure` is true.
 
 ## Routes
 

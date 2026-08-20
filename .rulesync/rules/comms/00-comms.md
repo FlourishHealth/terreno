@@ -39,7 +39,8 @@ await getCommsService().sendMail({
   `channel: "sms"` and `channel: "email"`.
 - Invalid verification results may include an `error` reason; start attempts log the selected
   verification channel in metadata without storing the destination.
-- Permanent push failures set `isPermanentFailure: true`; only those failures deactivate tokens.
+- Permanent push failures set `isPermanentFailure: true` or `errorClass: "permanent"`; the facade
+  deactivates tokens for either form.
 
 Concrete providers belong in adapter subpath exports with optional peer dependencies. Never add a
 provider SDK to core `dependencies`.
@@ -63,6 +64,8 @@ fast when the key is missing. Errors return classified `SendResult` values and n
 - Unconfigured production channels throw a 501 `APIError`.
 - Every provider attempt creates a `CommsMessage`; logging failure never breaks the send.
 - Recipients are redacted at rest by default.
+- `beforeSend` can mutate or cancel; throwing hooks are logged and never change the send outcome.
+- Transient `errorClass` failures retry once inline; provider throws are classified as transient.
 - Console logs contain counts and lengths only, never content, addresses, phone numbers, tokens, or
   verification codes.
 

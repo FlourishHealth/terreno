@@ -1,39 +1,63 @@
 import type {FindExactlyOnePlugin, FindOneOrNonePlugin, HasUpsert} from "@terreno/api";
 import type mongoose from "mongoose";
 
-import type {CommsChannel, CommsMessageStatus} from "./types";
+import type {CommsChannel, CommsErrorClass, CommsMessageStatus} from "./types";
 
 export type CommsMessageMethods = Record<never, never>;
+
+export interface CommsMessageAttempt {
+  at: Date;
+  error?: string;
+  errorCode?: string;
+  provider: string;
+  providerMessageId?: string;
+}
 
 export interface CommsMessageDocument
   extends mongoose.Document<mongoose.Types.ObjectId>,
     CommsMessageMethods {
+  attemptCount: number;
+  attempts: CommsMessageAttempt[];
   channel: CommsChannel;
   created: Date;
   deleted: boolean;
   error?: string;
-  errorClass?: "config" | "permanent" | "transient";
+  errorClass?: CommsErrorClass;
   errorCode?: string;
+  lastAttemptAt?: Date;
   metadata?: Record<string, unknown>;
+  payload?: unknown;
+  payloadExpiresAt?: Date;
   provider: string;
   providerMessageId?: string;
+  retriedById?: mongoose.Types.ObjectId;
+  retriedFromId?: mongoose.Types.ObjectId;
   status: CommsMessageStatus;
   subject?: string;
+  templateId?: string;
   to: string;
   updated: Date;
   userId?: mongoose.Types.ObjectId;
 }
 
 export interface LogSendParams {
+  attemptCount?: number;
+  attempts?: CommsMessageAttempt[];
   channel: CommsChannel;
   error?: string;
-  errorClass?: "config" | "permanent" | "transient";
+  errorClass?: CommsErrorClass;
   errorCode?: string;
+  lastAttemptAt?: Date;
   metadata?: Record<string, unknown>;
+  payload?: unknown;
+  payloadExpiresAt?: Date;
   provider: string;
   providerMessageId?: string;
+  retriedById?: mongoose.Types.ObjectId | string;
+  retriedFromId?: mongoose.Types.ObjectId | string;
   status: CommsMessageStatus;
   subject?: string;
+  templateId?: string;
   to: string;
   userId?: mongoose.Types.ObjectId | string;
 }
@@ -41,6 +65,19 @@ export interface LogSendParams {
 export interface CommsMessageStatics
   extends FindExactlyOnePlugin<CommsMessageDocument>,
     FindOneOrNonePlugin<CommsMessageDocument> {
+  appendAttempt(params: {
+    error?: string;
+    errorClass?: CommsErrorClass;
+    errorCode?: string;
+    id: mongoose.Types.ObjectId | string;
+    metadata?: Record<string, unknown>;
+    payload?: unknown;
+    payloadExpiresAt?: Date;
+    providerMessageId?: string;
+    status: CommsMessageStatus;
+    attempt: CommsMessageAttempt;
+  }): Promise<CommsMessageDocument | null>;
+  clearExpiredPayloads(): Promise<number>;
   logSend(params: LogSendParams): Promise<CommsMessageDocument | null>;
 }
 
