@@ -190,6 +190,7 @@
     "bootstrap": "bun install && bun run compile",
     "bootstrap:update": "bun install && bun run compile",
     "check": "bun run check:no-barrel-imports && bun run check:explicit-any:baseline",
+    "check:circleci-parity": "bun run scripts/check-circleci-parity/check.ts",
     "check:explicit-any": "bun run scripts/check-explicit-any/check.ts",
     "check:explicit-any:baseline": "bun run scripts/check-explicit-any/check.ts --check-baseline",
     "check:explicit-any:json": "bun run scripts/check-explicit-any/check.ts --json",

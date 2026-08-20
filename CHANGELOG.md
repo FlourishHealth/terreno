@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated model tools emit structured success/refusal/failure logs with
   request correlation, duration, stable MCP labels, and Sentry exception
   capture for internal failures
+- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
+  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
 - `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
   (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
   (`docs/explanation/local-first-data.md`)

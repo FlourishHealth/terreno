@@ -16,7 +16,7 @@ Umbrella plans that coordinate several IPs.
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [Admin improvements (post–v2 architecture)](admin-improvements.md) | Approved — decisions 2026-08-20 | 2026-06-01 | [tasks](../tasks/admin-improvements.md) |
-| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — decisions recorded | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | In progress — Phase 1–3 CI (deploys deferred) | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [@terreno/syncdb-codegen](syncdb-codegen.md) | Approved | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
 | [SyncDB local-first data layer (v2)](syncdb-local-first.md) | In progress — Phases 1–8 landed, Phase 9 follow-ups open | 2026-06-23 | [tasks](../tasks/syncdb-local-first.md) |
