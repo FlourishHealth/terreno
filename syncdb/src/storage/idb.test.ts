@@ -9,12 +9,14 @@ const uniqueDbName = (): string => `idb-test-${Date.now()}-${dbCounter++}`;
 
 const withoutIndexedDb = async (run: () => Promise<void>): Promise<void> => {
   const original = globalThis.indexedDB;
+  // noExplicitAny: deliberately unsetting a global for the failure-path test
   // biome-ignore lint/suspicious/noExplicitAny: deliberately unsetting a global for the failure-path test
   (globalThis as any).indexedDB = undefined;
   try {
     await run();
   } finally {
-    // biome-ignore lint/suspicious/noExplicitAny: restoring the global
+    // noExplicitAny: restoring the global after the failure-path test
+    // biome-ignore lint/suspicious/noExplicitAny: restoring the global after the failure-path test
     (globalThis as any).indexedDB = original;
   }
 };

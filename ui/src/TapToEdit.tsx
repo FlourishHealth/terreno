@@ -84,15 +84,16 @@ export const TapToEdit: FC<TapToEditProps> = ({
   const helperText: string | undefined = propsHelperText;
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
-  // noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
-  // biome-ignore lint/suspicious/noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
-  const inputRef = useRef<any>(null);
+  interface FocusableInput {
+    focus?: () => void;
+  }
+  const inputRef = useRef<FocusableInput | null>(null);
 
   // bring the bring the input into focus when editing from within the component,
   // but not when editing from outside
   useEffect(() => {
     if (editable && editing && !isEditing) {
-      inputRef.current?.focus();
+      inputRef.current?.focus?.();
     }
   }, [editable, editing, isEditing]);
 
@@ -113,7 +114,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
             inputRef={
               ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
                 ? (ref: unknown) => {
-                    inputRef.current = ref;
+                    inputRef.current = ref as FocusableInput | null;
                   }
                 : undefined
             }
