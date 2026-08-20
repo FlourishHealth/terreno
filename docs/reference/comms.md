@@ -58,12 +58,22 @@ await getCommsService().sendSms({
 });
 ```
 
-`sendPushToUser()` resolves active device tokens and deactivates tokens only when a provider marks
-a failure as permanent. `startVerification()` and `checkVerification()` delegate to the configured
-verification provider. `startVerification()` accepts `channel: "sms"` or `channel: "email"`;
-`checkVerification()` verifies the code against the same phone number or email destination and may
-return an `error` reason when `valid` is false. Start attempts store the verification channel in
-delivery-log metadata while recipient values remain redacted.
+`sendPushToUser()` resolves active device tokens and deactivates tokens when
+`errorClass` is `"permanent"` or `isPermanentFailure` is `true`. Provider throws become
+`errorClass: "transient"` with `errorCode: "provider-throw"` and never reject the
+`CommsService` promise. Transient failures retry once (`onRetry` with
+`context.attempt === 2`); push retries only the failed tokens. `checkVerification()` does
+not retry.
+
+`beforeSend` may mutate the message or cancel (`status: "cancelled"`, no provider call).
+A throwing `beforeSend` is logged and treated as no-op (send continues). Adapters later
+call `recordDeliveryEvent()` / `recordOptOut()` to update the log and fire
+`onDeliveryEvent` / `onOptOut`.
+
+Each send stores one `CommsMessage` row with `attempts[]`. Rendered payloads are retained
+for `retainPayloadDays` (default 30, `0` disables) after `redactPayload`. Push payloads
+omit tokens. Verification start stores `{channel}` only. Expired payloads are unset, not
+deleted.
 
 ## Provider contracts
 
@@ -124,15 +134,20 @@ row.
 ```typescript
 interface CommsAppOptions {
   basePath?: string; // default: "/comms"
+  beforeSend?: (context: CommsHookContext) =>
+    Promise<{cancel?: boolean; message?: CommsHookMessage} | undefined>;
   defaultFrom?: string;
   logMessages?: boolean; // default: true
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
   onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onOptOut?: (event: OptOutEvent) => Promise<void>;
   onRetry?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   push?: PushProvider;
+  redactPayload?: (context: CommsHookContext, payload: unknown) => unknown;
   redactRecipients?: boolean; // default: true
+  retainPayloadDays?: number; // default: 30; 0 stores no payload
   sms?: SmsProvider;
   verification?: VerificationProvider;
 }
@@ -147,7 +162,8 @@ Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `
 `redactRecipients` is explicitly `false`.
 
 `onSend` and `onError` fire after every channel outcome (mail, SMS, push, and verification).
-`onRetry` currently runs only for transient mail failures before the one automatic retry.
+`onRetry` runs once per send (or per push batch) before the inline transient retry; it keeps
+the shipped `(context, result)` signature and sets `context.attempt` to `2`.
 
 ## Routes
 
