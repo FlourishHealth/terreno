@@ -5,14 +5,6 @@ const jsonContentSchema = (
   content?: Record<string, {schema?: OpenApiSchema}>
 ): OpenApiSchema | undefined => content?.["application/json"]?.schema;
 
-const listItemSchema = (operationSchema: OpenApiSchema | undefined): OpenApiSchema | undefined => {
-  const items = operationSchema?.properties?.data?.items;
-  if (items) {
-    return items;
-  }
-  return operationSchema;
-};
-
 const resolveSchema = (spec: OpenApiDocument, schema: OpenApiSchema | undefined): OpenApiSchema => {
   if (!schema) {
     return {properties: {}, type: "object"};
@@ -27,6 +19,22 @@ const resolveSchema = (spec: OpenApiDocument, schema: OpenApiSchema | undefined)
   return schema;
 };
 
+const listItemSchema = (
+  spec: OpenApiDocument,
+  operationSchema: OpenApiSchema | undefined
+): OpenApiSchema | undefined => {
+  if (!operationSchema) {
+    return undefined;
+  }
+  const resolved = resolveSchema(spec, operationSchema);
+  const data = resolved.properties?.data;
+  if (!data) {
+    return undefined;
+  }
+  const resolvedData = resolveSchema(spec, data);
+  return resolvedData.items;
+};
+
 const fallbackEntityName = (collection: string): string => {
   const pascal = toPascalCase(collection);
   if (pascal.endsWith("s") && pascal.length > 1) {
@@ -35,14 +43,38 @@ const fallbackEntityName = (collection: string): string => {
   return pascal;
 };
 
+const findCollectionPath = ({
+  collection,
+  spec,
+}: {
+  collection: string;
+  spec: OpenApiDocument;
+}): string | undefined => {
+  const candidates = [`/${collection}`, `/${collection}/`];
+  for (const path of candidates) {
+    if (spec.paths?.[path]) {
+      return path;
+    }
+  }
+  return undefined;
+};
+
 const fromExtension = (
   spec: OpenApiDocument,
   path: string,
   collection: string
 ): DiscoveredCollection => {
   const item = spec.paths?.[path];
-  const entitySchemaRaw = listItemSchema(jsonContentSchema(item?.get?.responses?.["200"]?.content));
-  const entityName = refName(entitySchemaRaw?.$ref) ?? fallbackEntityName(collection);
+  const entitySchemaRaw = listItemSchema(
+    spec,
+    jsonContentSchema(item?.get?.responses?.["200"]?.content)
+  );
+  if (!entitySchemaRaw) {
+    throw new Error(
+      `List operation GET ${path} has no JSON 200 data.items schema for collection "${collection}"`
+    );
+  }
+  const entityName = refName(entitySchemaRaw.$ref) ?? fallbackEntityName(collection);
   const createSchemaRaw = jsonContentSchema(item?.post?.requestBody?.content);
   const collectionPath = path.endsWith("/") ? path.slice(0, -1) : path;
   const exactIdPath = `${collectionPath}/{id}`;
@@ -68,17 +100,21 @@ const fromExtension = (
   };
 };
 
-const emptyCollection = (collection: string): DiscoveredCollection => {
-  const entityName = fallbackEntityName(collection);
-  return {
-    collection,
-    createName: `Create${entityName}Body`,
-    createSchema: {properties: {}, type: "object"},
-    entityName,
-    entitySchema: {properties: {}, type: "object"},
-    updateName: `Update${entityName}Body`,
-    updateSchema: {properties: {}, type: "object"},
-  };
+const fromCollectionFlag = ({
+  collection,
+  spec,
+}: {
+  collection: string;
+  spec: OpenApiDocument;
+}): DiscoveredCollection => {
+  const path = findCollectionPath({collection, spec});
+  if (!path) {
+    throw new Error(
+      `No OpenAPI path for collection "${collection}" (tried /${collection} and /${collection}/). ` +
+        "Add x-terreno-sync to the list operation, or pass a collection whose list path exists."
+    );
+  }
+  return fromExtension(spec, path, collection);
 };
 
 export const discoverCollections = ({
@@ -99,7 +135,7 @@ export const discoverCollections = ({
 
   if (fromSpec.length === 0) {
     if (collections && collections.length > 0) {
-      return collections.map(emptyCollection);
+      return collections.map((collection) => fromCollectionFlag({collection, spec}));
     }
     throw new Error(
       "No synced collections found. Add x-terreno-sync to list operations " +

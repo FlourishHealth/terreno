@@ -32,7 +32,6 @@ import {
 /**
  * Virtualized row: either a section heading or a todo id.
  */
-/** Virtualized row: either a section heading or a todo id. */
 type TodoListRow =
   | {type: "section"; key: string; title: string; count: number}
   | {type: "todo"; id: string};

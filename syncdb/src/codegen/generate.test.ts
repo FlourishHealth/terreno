@@ -73,6 +73,57 @@ describe("discoverCollections", () => {
       /No synced collections found/
     );
   });
+
+  it("reads list/create/patch schemas from /{name} when --collections is the fallback", async () => {
+    const spec = await loadSpec(fixturePath);
+    if (spec.paths?.["/todos"]?.get) {
+      delete spec.paths["/todos"].get["x-terreno-sync"];
+    }
+    const [discovered] = discoverCollections({collections: ["todos"], spec});
+    expect(discovered?.entityName).toBe("Todo");
+    expect(discovered?.createName).toBe("CreateTodoBody");
+    expect(discovered?.updateSchema.properties?.title?.type).toBe("string");
+  });
+
+  it("errors when --collections names a path that is missing", () => {
+    expect(() =>
+      discoverCollections({
+        collections: ["notes"],
+        spec: {paths: {"/health": {get: {}}}},
+      })
+    ).toThrow(/No OpenAPI path for collection "notes"/);
+  });
+
+  it("errors when the list 200 schema has no data.items", () => {
+    expect(() =>
+      discoverCollections({
+        spec: {
+          paths: {
+            "/todos": {
+              get: {
+                responses: {
+                  "200": {
+                    content: {
+                      "application/json": {
+                        schema: {
+                          properties: {
+                            data: {type: "object"},
+                            page: {type: "number"},
+                          },
+                          type: "object",
+                        },
+                      },
+                    },
+                  },
+                },
+                "x-terreno-sync": {collection: "todos", scope: "owner"},
+              },
+            },
+          },
+        },
+      })
+    ).toThrow(/data.items schema/);
+  });
 });
 
 describe("generateSyncDbSdk", () => {

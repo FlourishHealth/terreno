@@ -54,7 +54,7 @@ terreno-syncdb-codegen \
 |------|----------|---------|
 | `--schema` | yes | OpenAPI URL or JSON file |
 | `--out` | yes | Output `.ts` path |
-| `--collections a,b` | no | Allowlist, or fallback when the spec has no `x-terreno-sync` |
+| `--collections a,b` | no | Allowlist when `x-terreno-sync` exists; otherwise reads GET `/name` (or `/name/`) list schemas. Missing path or missing `data.items` is an error. |
 | `--config` | no | JSON `{overrides: {todos: {retries: false}}}` |
 | `--no-format` | no | Skip biome formatting |
 

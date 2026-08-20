@@ -314,7 +314,7 @@ terreno-syncdb-codegen \
   --config ./syncdb-codegen.json
 ```
 
-Do not edit the generated file. `--collections` filters when extensions exist, and is the fallback when they do not. A spec with no extensions and no `--collections` exits non-zero.
+Do not edit the generated file. `--collections` filters when extensions exist. When they do not, it reads list/create/patch schemas from `GET /{name}` (or `/{name}/`). A missing path, a list response without `data.items`, a spec with no extensions and no `--collections` all exit non-zero.
 
 ## Conflict API
 
