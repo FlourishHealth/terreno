@@ -105,25 +105,41 @@ export const createSocketTransport = ({
   const subscribed = new Set<string>();
   const inboundDeltaBatches = new Map<(deltas: SyncDelta[]) => void, SyncDelta[]>();
   let isInboundDeltaBatchScheduled = false;
+  let inboundDeltaBatchWatchdog: ReturnType<typeof setTimeout> | undefined;
+
+  const isAnimationFramePaused = (): boolean => {
+    const doc = globalThis.document;
+    return typeof doc !== "undefined" && doc.visibilityState !== "visible";
+  };
 
   const scheduleInboundDeltaBatchFlush = (): void => {
     if (isInboundDeltaBatchScheduled) {
       return;
     }
     isInboundDeltaBatchScheduled = true;
-    // Socket.IO can deliver a high-volume stream in separate tasks. Deferring to
-    // the next paint coalesces that stream into one store transaction, so React
-    // does not render once per delta. Non-DOM environments retain microtask
-    // semantics for SSR and transport tests.
-    if (typeof globalThis.requestAnimationFrame === "function") {
+    // Socket.IO can deliver a high-volume stream in separate tasks. Deferring
+    // coalesces that stream into one store transaction, so React does not
+    // render once per delta.
+    //
+    // rAF pauses in hidden browser tabs and backgrounded React Native apps, so
+    // it cannot be the only scheduler or inbound sync stalls (unbounded queue,
+    // delayed persist/reconcile). Use a timer when frames are paused; when rAF
+    // is armed, a watchdog covers environments that pause rAF without a
+    // document.visibilityState signal (React Native).
+    if (typeof globalThis.requestAnimationFrame === "function" && !isAnimationFramePaused()) {
       globalThis.requestAnimationFrame(flushInboundDeltaBatch);
+      inboundDeltaBatchWatchdog = setTimeout(flushInboundDeltaBatch, 250);
       return;
     }
-    queueMicrotask(flushInboundDeltaBatch);
+    setTimeout(flushInboundDeltaBatch, 0);
   };
 
   const flushInboundDeltaBatch = (): void => {
     isInboundDeltaBatchScheduled = false;
+    if (inboundDeltaBatchWatchdog !== undefined) {
+      clearTimeout(inboundDeltaBatchWatchdog);
+      inboundDeltaBatchWatchdog = undefined;
+    }
     const batches = [...inboundDeltaBatches];
     inboundDeltaBatches.clear();
     for (const [listener, deltas] of batches) {

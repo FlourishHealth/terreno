@@ -335,6 +335,41 @@ describe("createSocketTransport", () => {
     }
   });
 
+  it("flushes inbound deltas while the document is hidden even if rAF never runs", async () => {
+    const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+    const originalDocumentDescriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+    globalThis.requestAnimationFrame = (): number => 1;
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {visibilityState: "hidden"},
+    });
+    try {
+      const receiver = makeTransport();
+      const batches: SyncDelta[][] = [];
+      receiver.onDeltaBatch?.((deltas) => batches.push(deltas));
+      await receiver.connect();
+
+      const delta: SyncDelta = {
+        collection: "todos",
+        data: {title: "hidden"},
+        id: "t1",
+        method: "create",
+        seq: 1,
+        stream: "todos|owner:u1",
+      };
+      server.sockets[0]?.emit("sync:delta", delta);
+      await waitUntil(() => batches.length === 1);
+      expect(batches).toEqual([[delta]]);
+    } finally {
+      globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+      if (originalDocumentDescriptor) {
+        Object.defineProperty(globalThis, "document", originalDocumentDescriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, "document");
+      }
+    }
+  });
+
   it("sendMutationBatch resolves results from the Socket.io ack callback (FIX 5)", async () => {
     server.mutateBatchHandler = (request, socket, ack) => {
       socket.emit("sync:batchReceived", {batchId: request.batchId});
