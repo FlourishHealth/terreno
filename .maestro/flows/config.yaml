@@ -1,0 +1,13 @@
+# CI: login → create-todo → demo smokes. signup.yaml is for local runs only.
+flows:
+  - "login.yaml"
+  - "create-todo.yaml"
+  - "demo/*"
+
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - login
+    - create-todo
+    - demo-home
+    - demo-button

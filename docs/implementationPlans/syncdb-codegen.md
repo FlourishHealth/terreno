@@ -1,10 +1,12 @@
 # Implementation Plan: @terreno/syncdb-codegen
 
-**Status:** Draft
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1087
-**Branch:** cursor/ip-syncdb-codegen-41d6
+**Branch:** cursor/ip-syncdb-codegen-fb2e
 **Owner:**
 **Created:** 2026-07-08
+**Approved:** 2026-08-20
+**Research:** [syncdb-codegen-research.md](./syncdb-codegen-research.md)
 
 ## Goal
 
@@ -19,14 +21,14 @@ const todos = useQuery<SyncTodo>("todos", {sort: sortByCreatedDesc});
 const {update, remove} = useMutate("todos"); // update/remove payloads are Record<string, unknown>
 ```
 
-After this IP, a generated `store/syncDbSdk.ts` provides one hook per operation with the exact names RTK codegen would produce for the same routes — `useGetTodosQuery` (list query), `useGetTodosByIdQuery` (read), `usePostTodosMutation` (create), `usePatchTodosByIdMutation` (update/patch), `useDeleteTodosByIdMutation` (delete) — with payload types derived from the same OpenAPI schemas RTK codegen uses (`Todo`, `CreateTodoBody`, `UpdateTodoBody`), plus a `SYNC_COLLECTIONS` constant that feeds `createSyncDb`. Migrating a screen from RTK to syncdb becomes (mostly) an import-path change. Custom hooks are supported the same way RTK supports custom endpoints: the generated file is never edited, and consumers extend it in a sibling file using the same public factory the generated code uses.
+After this IP, a generated `store/syncDbSdk.ts` provides one hook per operation with **friendly, entity-centric names** — `useTodos` (list), `useTodo` (read by id), `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo` — with payload types derived from the same OpenAPI schemas RTK codegen uses (`Todo`, `CreateTodoBody`, `UpdateTodoBody`), plus a `SYNC_COLLECTIONS` constant that feeds `createSyncDb`. Names deliberately differ from RTK codegen so `openApiSdk.ts` and `syncDbSdk.ts` can coexist without collision during migration. Mutation hooks still use one-element `[trigger]` tuples for familiar destructuring; triggers are syncdb-native (no `.unwrap()`). Custom hooks are supported the same way RTK supports custom endpoints: the generated file is never edited, and consumers extend it in a sibling file using `createCollectionHooks`.
 
 ## Non-Goals
 
 - Covering the whole syncdb surface. Only the five CRUD operations (list query, read, create, update/patch, delete) get generated per-collection hooks. `useSyncStatus`, `useConflicts`, `useSyncDbClient`, and `SyncDbProvider` are global (not per-collection) and stay as direct imports from `@terreno/syncdb/react`.
-- Full RTK return-shape emulation. Hook **names and call sites** match RTK; return shapes are syncdb-native where the semantics differ (no `isLoading`/`error` async state on mutations — writes are synchronous local applies plus a durable outbox; sync state lives in `useSyncStatus`). The mapping is documented in the generated file header and the migration guide.
+- Full RTK return-shape emulation. Hook **names** are syncdb-friendly (not RTK-derived); mutation hooks use `[trigger]` tuples only. Return shapes are syncdb-native (no `isLoading`/`error` async state on mutations — writes are synchronous local applies plus a durable outbox; sync state lives in `useSyncStatus`). The RTK ↔ syncdb mapping is documented in the generated file header and the migration guide.
 - Runtime schema validation of mutation payloads (types are compile-time only, matching RTK codegen).
-- Publishing per-platform compiled binaries to npm or GitHub releases (the compiled binary is a local/CI build target for now; `@terreno/syncdb` itself is not in `publish-on-tag.yml` yet either).
+- Publishing per-platform compiled binaries as GitHub release artifacts (the compiled binary remains a local/CI `build:binary` target).
 - Watch mode, incremental generation, or multi-output-file support.
 - Generating Redux integration or migrating non-synced endpoints — per `docs/how-to/migrate-rtk-to-syncdb.md`, custom routes stay on RTK.
 
@@ -41,9 +43,11 @@ Options were considered where the design was genuinely open; each row records th
 | **Config surface: flags only, or a config file?** The binary should "take a few args", but per-collection overrides (retries, exclusions) don't map well to flags. | **Flags for the common path, optional JSON config for overrides.** `--schema`, `--out`, `--collections` cover the RTK-equivalent happy path. `--config ./syncdb-codegen.json` adds `{overrides: {<collection>: {retries?: boolean \| number}}, exportName?, sdkImportPath?}`. JSON (not TS) because a compiled bun binary cannot reliably import arbitrary consumer TypeScript at runtime; RTK's TS `ConfigFile` needs the `tsx`/`TS_NODE_PROJECT` dance we currently work around in `example-frontend/scripts/generate-sdk.ts`. |
 | **How are TS types emitted from OpenAPI schemas?** Options: (a) a small hand-rolled emitter for the subset `mongoose-to-swagger` actually produces (objects, primitives, enums as string unions, arrays, `$ref`); (b) depend on `openapi-typescript` or oazapfts. | **(a).** The @terreno/api spec is a narrow, known dialect; a ~150-line emitter with snapshot tests keeps the binary dependency-free and small. If the emitter grows past that dialect, revisit (b). |
 | **Where does the shared hook factory live?** Generated code and custom hooks must be built the same way (the RTK parallel: generated `injectEndpoints` and app `sdk.ts` both build on `emptySplitApi`). Options: (a) new `createCollectionHooks` export in `@terreno/syncdb/react`; (b) inline the factory into every generated file; (c) a runtime export of `@terreno/syncdb-codegen`. | **(a).** One implementation, versioned with the hooks it wraps, and consumers already depend on `@terreno/syncdb`. (b) duplicates logic into generated output; (c) would make the codegen package a runtime dependency of apps, which it should never be. |
-| **Hook granularity and naming.** Options: (a) one grouped `useTodosMutate()` returning `{create, update, remove}`; (b) one hook per operation with RTK codegen's exact naming scheme (`use{Method}{Path}Query/Mutation`); (c) per-operation hooks with friendlier names (`useCreateTodo`). | **(b) — per-operation, RTK names.** Generated per collection: `useGetTodosQuery`, `useGetTodosByIdQuery`, `usePostTodosMutation`, `usePatchTodosByIdMutation`, `useDeleteTodosByIdMutation`. Name derivation is the same deterministic pascal-case of the route path RTK uses (no singularization heuristics). This makes RTK→syncdb migration an import swap. Two consequences are accepted: (1) name **collisions with `openApiSdk.ts`** are intentional — during migration both files export e.g. `useGetTodosQuery`, and the import path picks the data source; imports must never be mixed via a barrel that re-exports both. (2) "update" and "patch" are the **same hook**: modelRouter only exposes PATCH (merge semantics) and syncdb's update is a merge, so `usePatchTodosByIdMutation` is the update hook — there is no separate PUT/replace hook to generate. |
+| **Hook granularity and naming.** Options: (a) one grouped `useTodosMutate()` returning `{create, update, remove}`; (b) one hook per operation with RTK codegen's exact naming scheme (`use{Method}{Path}Query/Mutation`); (c) per-operation hooks with friendlier names (`useCreateTodo`). | **(c) — per-operation, friendly names.** Generated per collection (entity `Todo`, collection `todos`): `useTodos`, `useTodo`, `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo`. Derivation: `entityName` from the list-item schema `$ref` basename (`Todo`); `pluralName` = PascalCase of the collection path segment (`todos` → `Todos`). List hook `use{Plural}`; read hook `use{Entity}`; mutations `useCreate{Entity}`, `useUpdate{Entity}`, `useDelete{Entity}`. No collision with RTK hooks during dual-stack migration. "Update" and "patch" are the same hook — modelRouter only exposes PATCH (merge semantics). |
 | **Mutation hook return shape.** RTK mutation hooks return `[trigger, {isLoading, error, ...}]` and triggers return promises with `.unwrap()`. syncdb writes are synchronous local applies; there is no per-call async state. | **One-element tuple `[trigger]`.** Keeps the RTK call site (`const [createTodo] = usePostTodosMutation()`) working unchanged; the trigger returns `{mutationId, id}` synchronously instead of a promise, so `.unwrap()`/`isLoading` usages are deleted during migration (the compiler flags them). Pending/conflict state is per-entity (`isPending` on reads) and global (`useSyncStatus`), not per-call. |
-| **Distribution.** "Compiled bun binary" vs npm reality. | **Both, npm-bin first.** The package ships `"bin": {"terreno-syncdb-codegen": "./dist/cli.js"}` with a `#!/usr/bin/env bun` shebang (the `@terreno/mcp` pattern), plus a `build:binary` script running `bun build --compile src/cli.ts --outfile dist/terreno-syncdb-codegen` (the `example-backend/Dockerfile` pattern) for standalone use. Publishing platform binaries is future work. |
+| **Distribution.** "Compiled bun binary" vs npm reality. | **Both, npm-bin first, published on tag.** The package ships `"bin": {"terreno-syncdb-codegen": "./dist/cli.js"}` with a `#!/usr/bin/env bun` shebang (the `@terreno/mcp` pattern), plus a `build:binary` script running `bun build --compile src/cli.ts --outfile dist/terreno-syncdb-codegen` for standalone use. Add `publish-syncdb-codegen` to `publish-on-tag.yml` (modeled on `publish-syncdb` / `publish-mcp`). |
+| **Delivery shape.** Four phased PRs vs one. | **Single PR** — all runtime, api, codegen, integration, docs, and publish wiring land together. Task phases remain for implementation order inside the PR. |
+| **example-frontend generated collections.** Backend syncs todos and projects; example app scope. | **todos only** in the checked-in `syncDbSdk.ts`; projects stay manual or a follow-up when a syncdb screen ships for them. |
 
 ## Architecture
 
@@ -60,9 +64,10 @@ example-backend                                example-frontend
                                               store/syncDbSdk.ts   (generated, never edited)
                                                 ├─ interface Todo / CreateTodoBody / UpdateTodoBody
                                                 ├─ export const SYNC_COLLECTIONS = ["todos"] as const
-                                                └─ export const {useGetTodosQuery, useGetTodosByIdQuery,
-                                                     usePostTodosMutation, usePatchTodosByIdMutation,
-                                                     useDeleteTodosByIdMutation} =
+                                                └─ export const {useListQuery: useTodos, useReadQuery: useTodo,
+                                                     useCreateMutation: useCreateTodo,
+                                                     useUpdateMutation: useUpdateTodo,
+                                                     useDeleteMutation: useDeleteTodo} =
                                                        createCollectionHooks<...>({collection: "todos"})
                                                              │ extended by (custom hooks)
                                                              ▼
@@ -107,7 +112,7 @@ export const createCollectionHooks = <
 >(config: CollectionHooksConfig): CollectionHooks<TData, TCreate, TUpdate> => { ... };
 ```
 
-The factory returns **operation-named keys** (`useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`); the generated file renames them to the RTK-style collection-specific names via destructuring (`useListQuery: useGetTodosQuery`, ...). Custom hooks can keep the generic names or rename the same way. Each hook delegates to the existing `useQuery`/`useEntity`/`useMutate` internals (no listener logic duplicated) and threads `retries` into `client.mutate` as `maxAttempts`. This is the `emptySplitApi` of the syncdb world: generated code calls it, and custom hooks call it directly — that is the whole "custom hooks the same way RTK does" story.
+The factory returns **operation-named keys** (`useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`); the generated file renames them to friendly collection-specific names via destructuring (`useListQuery: useTodos`, `useReadQuery: useTodo`, …). Custom hooks can keep the generic factory keys or apply the same rename pattern. Each hook delegates to the existing `useQuery`/`useEntity`/`useMutate` internals (no listener logic duplicated) and threads `retries` into `client.mutate` as `maxAttempts`.
 
 ### Generated file shape
 
@@ -123,24 +128,24 @@ export type UpdateTodoBody = Partial<CreateTodoBody>;
 export const SYNC_COLLECTIONS = ["todos"] as const;
 
 export const {
-  useListQuery: useGetTodosQuery,
-  useReadQuery: useGetTodosByIdQuery,
-  useCreateMutation: usePostTodosMutation,
-  useUpdateMutation: usePatchTodosByIdMutation,
-  useDeleteMutation: useDeleteTodosByIdMutation,
+  useListQuery: useTodos,
+  useReadQuery: useTodo,
+  useCreateMutation: useCreateTodo,
+  useUpdateMutation: useUpdateTodo,
+  useDeleteMutation: useDeleteTodo,
 } = createCollectionHooks<Todo, CreateTodoBody, UpdateTodoBody>({collection: "todos"});
 ```
 
 Call-site comparison for migration:
 
 ```typescript
-// RTK                                              // syncdb (generated)
-const {data} = useGetTodosQuery({});                 const {data} = useGetTodosQuery();
-const {data} = useGetTodosByIdQuery({id});           const {data, isPending} = useGetTodosByIdQuery(id);
-const [createTodo] = usePostTodosMutation();         const [createTodo] = usePostTodosMutation();
-await createTodo({body}).unwrap();                   createTodo({data}); // sync, returns {mutationId, id}
-const [patchTodo] = usePatchTodosByIdMutation();     const [patchTodo] = usePatchTodosByIdMutation();
-const [deleteTodo] = useDeleteTodosByIdMutation();   const [deleteTodo] = useDeleteTodosByIdMutation();
+// RTK (openApiSdk)                         // syncdb (syncDbSdk — generated)
+const {data} = useGetTodosQuery({});        const {data} = useTodos();
+const {data} = useGetTodosByIdQuery({id});  const {data, isPending} = useTodo(id);
+const [createTodo] = usePostTodosMutation(); const [createTodo] = useCreateTodo();
+await createTodo({body}).unwrap();          createTodo({data}); // sync, returns {mutationId, id}
+const [patchTodo] = usePatchTodosByIdMutation(); const [patchTodo] = useUpdateTodo();
+const [deleteTodo] = useDeleteTodosByIdMutation(); const [deleteTodo] = useDeleteTodo();
 ```
 
 `SYNC_COLLECTIONS` replaces the hand-maintained list in `example-frontend/store/syncdb.ts`, closing the "client string must match backend route" gap.
@@ -177,22 +182,22 @@ None needed.
 
 ## UI
 
-No new screens. `example-frontend/components/SyncTodosScreen.tsx` swaps its hand-rolled `SyncTodo` interface and string-based hooks for the generated `useGetTodosQuery`/`usePostTodosMutation`/`usePatchTodosByIdMutation`/`useDeleteTodosByIdMutation`, and `store/syncdb.ts` imports `SYNC_COLLECTIONS` from the generated file. Behavior is unchanged; the existing syncdb Playwright e2e suite is the regression net.
+No new screens. `example-frontend/components/SyncTodosScreen.tsx` swaps its hand-rolled `SyncTodo` interface and string-based hooks for the generated `useTodos`/`useCreateTodo`/`useUpdateTodo`/`useDeleteTodo`/`useTodo`, and `store/syncdb.ts` imports `SYNC_COLLECTIONS` from the generated file. Behavior is unchanged; the existing syncdb Playwright e2e suite is the regression net.
 
 ## Phases
 
-Single PR is plausible but the work splits cleanly into four phases if review prefers smaller units:
+**Single PR** (approved). Implementation order inside the PR:
 
-1. **syncdb runtime** — `createCollectionHooks` + `maxAttempts` plumbing (mutate → outbox → replay coordinator), with unit tests. No consumer-visible breaking changes.
-2. **api spec extension** — `x-terreno-sync` on list operations, with an OpenAPI generation test asserting the extension appears for `example-backend`-style sync configs and is absent otherwise.
-3. **codegen package** — new `syncdb-codegen/` workspace package: arg parsing, spec loading, collection discovery, type emitter, file emitter, snapshot tests against a fixture spec captured from `example-backend`, `build:binary` script.
-4. **integration + docs** — `example-frontend` `sync-sdk` script and screen migration; README updates (`syncdb/README.md`, new `syncdb-codegen/README.md`, `docs/how-to/migrate-rtk-to-syncdb.md` note); root `package.json` convenience scripts.
+1. **syncdb runtime** — `createCollectionHooks` + `maxAttempts` plumbing (mutate → outbox → replay coordinator), with unit tests.
+2. **api spec extension** — `x-terreno-sync` on list operations (+ pass `routePath` into `listOpenApiMiddleware`), with an OpenAPI generation test.
+3. **codegen package** — new `syncdb-codegen/` workspace package: arg parsing, spec loading, collection discovery, type emitter, file emitter, snapshot tests, `build:binary`.
+4. **integration + docs + publish** — `example-frontend` `sync-sdk` script and screen migration; README updates; `publish-syncdb-codegen` job in `publish-on-tag.yml`; root convenience scripts.
 
 ## Feature Flags & Migrations
 
 - No new feature flags. The existing `use-syncdb` flag continues to gate the syncdb path in `example-frontend`.
 - No data migrations. The new `_outbox.maxAttempts` cell is optional and defaulted.
-- Publishing: not wired into `publish-on-tag.yml` in this IP (neither is `@terreno/syncdb` yet); tracked in Future Work so both are added together.
+- **Publishing:** add `publish-syncdb-codegen` to `.github/workflows/publish-on-tag.yml` (compile, test, `npm publish` on semver tag; wire into `update-version-on-master` and publish summary). `@terreno/syncdb` already publishes on tag — no change required there.
 
 ## Activity Log & User Updates
 
@@ -200,14 +205,14 @@ None — developer tooling only.
 
 ## Not Included / Future Work
 
-- Publishing `@terreno/syncdb` and `@terreno/syncdb-codegen` to npm (add `publish-syncdb` + `publish-syncdb-codegen` jobs to `publish-on-tag.yml`).
 - Per-platform prebuilt binaries as release artifacts.
 - Generated wrappers for `useSyncStatus`/`useConflicts` (no per-collection typing to add).
 - Server-driven filters/sorts in `useQuery` options (syncdb filters run client-side in JS; nothing for codegen to type beyond `TData`).
 - Zod/AJV runtime validation of mutation payloads against the OpenAPI schema.
-- Custom hook naming via config (`overrides.todos.hookPrefix`), for apps that need to avoid the intentional name overlap with RTK-generated hooks.
-- RTK-compatible async mutation state (`isLoading`, promise-returning triggers with `.unwrap()`), should a drop-in compatibility mode ever be wanted.
+- Optional RTK-compatible hook naming mode (`overrides.todos.naming: "rtk"`) for teams that want import-swap migration without renames.
+- RTK-compatible async mutation state (`isLoading`, promise-returning triggers with `.unwrap()`).
 - A `--watch` mode.
+- Generating `projects` hooks in example-frontend until a syncdb screen exists for that collection.
 
 ## Files to Create / Modify
 
@@ -232,9 +237,10 @@ None — developer tooling only.
 - `example-frontend/package.json` — `"sync-sdk": "terreno-syncdb-codegen --schema ... --out ./store/syncDbSdk.ts --config ./syncdb-codegen.json"` script; add `@terreno/syncdb-codegen` as a workspace dev dependency.
 - `example-frontend/store/syncDbSdk.ts` — generated output (checked in, like `openApiSdk.ts`).
 - `example-frontend/store/syncdb.ts` — import `SYNC_COLLECTIONS` from the generated file.
-- `example-frontend/components/SyncTodosScreen.tsx` — use generated hooks; delete the local `SyncTodo` interface.
+- `example-frontend/components/SyncTodosScreen.tsx` — use generated hooks (`useTodos`, `useTodo`, `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo`); delete the local `SyncTodo` interface.
 - Root `package.json` — workspace entry + `syncdb-codegen:compile` / `syncdb-codegen:test` scripts.
 - `syncdb/README.md`, `docs/how-to/migrate-rtk-to-syncdb.md` — codegen sections.
+- `.github/workflows/publish-on-tag.yml` — `publish-syncdb-codegen` job + summary/version-bump wiring.
 
 ## Task List
 
@@ -245,9 +251,10 @@ See [docs/tasks/syncdb-codegen.md](../tasks/syncdb-codegen.md).
 - [ ] `createCollectionHooks<Todo>({collection: "todos"})` returns the five per-operation hooks (`useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`) whose behavior matches direct `useQuery`/`useEntity`/`useMutate` calls; mutation hooks return `[trigger]` tuples so RTK-style destructuring compiles (unit tests in `syncdb/src/react/`).
 - [ ] `createCollectionHooks({collection: "todos", retries: false})` produces mutations whose outbox rows fail terminally after a single `error` nack; `retries: 3` fails after three attempts; omitted keeps the current 5-attempt backoff (replay coordinator tests).
 - [ ] `GET /openapi.json` from a backend with `sync: {scope: {type: "owner"}}` on `/todos` includes `x-terreno-sync: {collection: "todos", scope: "owner"}` on the list operation; non-synced routes have no extension (api test).
-- [ ] `terreno-syncdb-codegen --schema <fixture> --out out.ts` emits a file that type-checks under the example-frontend tsconfig and contains `SYNC_COLLECTIONS`, typed interfaces, and per synced collection the five RTK-named hooks (`useGetTodosQuery`, `useGetTodosByIdQuery`, `usePostTodosMutation`, `usePatchTodosByIdMutation`, `useDeleteTodosByIdMutation`) — names byte-identical to what `@rtk-query/codegen-openapi` derives for the same routes (snapshot test).
+- [ ] `terreno-syncdb-codegen --schema <fixture> --out out.ts` emits a file that type-checks under the example-frontend tsconfig and contains `SYNC_COLLECTIONS`, typed interfaces, and per synced collection the five friendly hooks (`useTodos`, `useTodo`, `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo` for the todos fixture — snapshot test).
 - [ ] `--collections todos` filters output to that collection; a spec without extensions and no `--collections` flag exits non-zero with an actionable message.
 - [ ] A config file with `{overrides: {todos: {retries: false}}}` produces `createCollectionHooks<...>({collection: "todos", retries: false})` in the output.
 - [ ] `bun run build:binary` in `syncdb-codegen/` produces a standalone executable that generates identical output to the bin entry.
 - [ ] `bun run sync-sdk` in `example-frontend` (backend running) regenerates `store/syncDbSdk.ts` with no diff when the backend is unchanged; SyncTodosScreen works against the generated hooks (existing syncdb e2e suite passes).
 - [ ] `bun run lint`, `bun run syncdb:test`, `bun run api:test`, and the new `syncdb-codegen:test` pass.
+- [ ] `publish-on-tag.yml` includes a `publish-syncdb-codegen` job that compiles, tests, and publishes `@terreno/syncdb-codegen` on semver tags.

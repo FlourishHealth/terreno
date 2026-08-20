@@ -336,6 +336,20 @@ describe("realtimeList", () => {
     expect(socket.emitted).toContainEqual({event: "unsubscribe:model", payload: "todos"});
   });
 
+  it("subscribes to the model room when the argument is not a filter object", async () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    const api = createCacheApi<MockListDraft>({data: [], total: 0});
+    const task = realtimeList("todos")(undefined, api);
+
+    await flushPromises();
+    api.remove();
+    await task;
+
+    expect(socket.emitted).toContainEqual({event: "subscribe:model", payload: "todos"});
+    expect(socket.emitted.some((item) => item.event === "subscribe:query")).toBe(false);
+  });
+
   it("correlates query subscription acknowledgements before using canonical queryId", async () => {
     const socket = createMockSocket();
     setRealtimeSocket(socket as unknown as Socket);
