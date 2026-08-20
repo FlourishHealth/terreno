@@ -1,5 +1,8 @@
 # Research: Serving Admin from a Terreno App (Opt-In, No Separate SPA Deploy)
 
+**Status:** Complete
+**Closed:** 2026-08-20 — Research incorporated into [admin-only.md](admin-only.md); shipped as `@terreno/admin-spa`.
+
 ## Summary
 
 Terreno already has the building blocks for an admin UI — `@terreno/admin-backend` mounts `/admin/*` API routes (config, per-model CRUD, search, scripts, version-config) and `@terreno/admin-frontend` ships React Native components designed to be embedded in a consumer's Expo Router app. The gap is the **deploy surface**: today consumers either bundle admin into their main Expo app (bloats user bundles, requires ~7 route files) or build a separate Expo Web app and host it on GCS/Netlify (one more pipeline to maintain).

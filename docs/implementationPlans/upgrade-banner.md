@@ -1,5 +1,8 @@
 # Implementation Plan: Upgrade Banner
 
+**Status:** Complete
+**Closed:** 2026-08-20 — Shipped via `VersionConfig` model, `VersionCheckPlugin` (`GET /version-check`), `AdminVersionConfig`, `useUpgradeCheck` (`@terreno/rtk`), and `UpgradeRequiredScreen` (`@terreno/ui`).
+
 *When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
 
 ## Models

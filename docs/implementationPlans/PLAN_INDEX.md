@@ -26,10 +26,18 @@ Umbrella plans that coordinate several IPs.
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [APIError redesign — standards-first extension of Error](apierror-standard-error-redesign.md) | Complete | 2026-07-28 | n/a |
+| [Admin-only — serve admin SPA from backend](admin-only.md) | Complete | 2026-05-11 | [tasks](../tasks/admin-only.md) (closed) |
+| [Admin-only research](admin-only-research.md) | Complete | — | n/a |
+| [Consent forms system](consent-forms.md) | Complete | — | [tasks](../tasks/consent-forms.md) (closed) |
+| [Upgrade banner](upgrade-banner.md) | Complete | — | [tasks](../tasks/upgrade-banner.md) (closed) |
 
 ## Deferred / Closed
 
-*(Plans parked or superseded.)*
+| Plan | Status | Closed | Notes |
+|------|--------|--------|-------|
+| [Offline mode](offline-mode.md) | Deferred | 2026-08-20 | Superseded by [syncdb](syncdb-local-first.md) |
+| [modelRouter actions](model-router-actions.md) | Deferred | 2026-08-20 | Custom `endpoints` remain supported |
+| [Feature flags (pre-OpenFeature)](feature-flags.md) | Deferred | 2026-08-20 | Superseded by [feature-flags-openfeature](feature-flags-openfeature.md) |
 
 ## Backlog
 
@@ -39,8 +47,6 @@ Umbrella plans that coordinate several IPs.
 |------|-------|
 | [Langfuse integration](terreno-langfuse-integration.md) | AI observability plugin |
 | [modelRouter MCP tools](model-router-mcp.md) | MCP surface for consumer app APIs |
-| [Offline mode](offline-mode.md) | Superseded in large part by [syncdb](syncdb-local-first.md) — confirm and close |
-| [modelRouter actions](model-router-actions.md) | — |
 | [B2B platform](b2b-platform-program.md) | Draft — decisions D1–D7 resolved | 2026-08-09 | 10 written (+ [rbac-permissions](rbac-permissions.md)); 30 roadmap items seeded |
 | [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
 | [SyncDB Local-First Data Layer](syncdb-local-first.md) | In progress ([PR #869](https://github.com/flourishhealth/terreno/pull/869)) | 2026-07-13 | [tasks](../tasks/syncdb-local-first.md) |

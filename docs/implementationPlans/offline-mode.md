@@ -1,6 +1,7 @@
 # Implementation Plan: Offline Mode
 
-**Status:** Approved for implementation tasking
+**Status:** Deferred
+**Closed:** 2026-08-20 — Superseded by [@terreno/syncdb](syncdb-local-first.md) local-first outbox and offline-capable sync.
 **Priority:** High
 **Effort:** Medium
 
