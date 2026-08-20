@@ -1,6 +1,6 @@
-import {deriveCreateBodyName, deriveUpdateBodyName} from "./discoverCollections";
 import {deriveFriendlyHookNames} from "./deriveHookNames";
-import {collectSchemaRefs, emitPartialType} from "./emitTypes";
+import {deriveCreateBodyName, deriveUpdateBodyName} from "./discoverCollections";
+import {emitInterface, emitPartialType} from "./emitTypes";
 import type {CodegenConfigFile, DiscoveredCollection, OpenApiDocument} from "./types";
 
 const GENERATED_HEADER =
@@ -42,35 +42,15 @@ export const emitSdk = ({
   config?: CodegenConfigFile;
 }): string => {
   const sdkImportPath = config?.sdkImportPath ?? "@terreno/syncdb/react";
-  const schemaNames = new Set<string>();
-
-  for (const collection of collections) {
-    schemaNames.add(collection.entitySchemaName);
-    const createBodyName = deriveCreateBodyName(collection.entitySchemaName);
-    schemaNames.add(createBodyName);
-    if (collection.createSchemaName) {
-      schemaNames.add(collection.createSchemaName);
-    }
-    if (collection.updateSchemaName) {
-      schemaNames.add(collection.updateSchemaName);
-    }
-  }
-
   const typeLines: string[] = [];
   for (const collection of collections) {
     const createBodyName = deriveCreateBodyName(collection.entitySchemaName);
     const updateBodyName = deriveUpdateBodyName(collection.entitySchemaName);
 
-    const entityLines = collectSchemaRefs([collection.entitySchemaName], doc);
-    typeLines.push(...entityLines);
+    typeLines.push(emitInterface(collection.entitySchemaName, collection.entitySchema, doc));
 
-    if (collection.createSchemaName) {
-      const createLines = collectSchemaRefs([collection.createSchemaName], doc);
-      if (createLines.length > 0) {
-        typeLines.push(createLines[0].replace(`interface ${collection.createSchemaName}`, `interface ${createBodyName}`));
-      } else {
-        typeLines.push(`export interface ${createBodyName} extends Record<string, unknown> {}`);
-      }
+    if (collection.createSchema) {
+      typeLines.push(emitInterface(createBodyName, collection.createSchema, doc));
     } else {
       typeLines.push(`export interface ${createBodyName} extends Record<string, unknown> {}`);
     }

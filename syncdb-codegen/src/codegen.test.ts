@@ -13,16 +13,135 @@ describe("discoverCollections", () => {
   it("discovers collections from x-terreno-sync extensions", async () => {
     const doc = await loadSpec(fixturePath);
     const collections = discoverCollections({doc});
-    expect(collections).toEqual([
-      {
-        collection: "todos",
-        createSchemaName: "CreateTodo",
-        entitySchemaName: "Todo",
-        listPath: "/todos",
-        scope: "owner",
-        updateSchemaName: "UpdateTodo",
+    expect(collections).toHaveLength(1);
+    expect(collections[0]).toMatchObject({
+      collection: "todos",
+      createSchemaName: "CreateTodo",
+      entitySchemaName: "Todo",
+      listPath: "/todos",
+      scope: "owner",
+      updateSchemaName: "UpdateTodo",
+    });
+  });
+
+  it("discovers inline list and body schemas without components.schemas $ref", () => {
+    const doc: OpenApiDocument = {
+      openapi: "3.0.0",
+      paths: {
+        "/todos": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {
+                        data: {
+                          items: {
+                            properties: {
+                              _id: {type: "string"},
+                              title: {type: "string"},
+                            },
+                            required: ["_id", "title"],
+                            type: "object",
+                          },
+                          type: "array",
+                        },
+                      },
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+            "x-terreno-sync": {collection: "todos", scope: "owner"},
+          },
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    properties: {
+                      title: {type: "string"},
+                    },
+                    required: ["title"],
+                    type: "object",
+                  },
+                },
+              },
+            },
+          },
+        },
+        "/todos/{id}": {
+          patch: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    properties: {
+                      title: {type: "string"},
+                    },
+                    type: "object",
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-    ]);
+    };
+
+    const collections = discoverCollections({doc});
+    expect(collections[0]?.entitySchemaName).toBe("Todo");
+    const output = emitSdk({collections, doc});
+    expect(output).toContain("export interface Todo {");
+    expect(output).toContain("export interface CreateTodoBody {");
+    expect(output).toContain("title: string");
+  });
+
+  it("fails closed when --collections matches no x-terreno-sync operations", async () => {
+    const doc = await loadSpec(fixturePath);
+    expect(() => discoverCollections({collectionsArg: ["nope"], doc})).toThrow(
+      /No collections matched the provided --collections filter/
+    );
+  });
+
+  it("uses --collections as a path fallback when the spec has no x-terreno-sync extensions", () => {
+    const doc: OpenApiDocument = {
+      openapi: "3.0.0",
+      paths: {
+        "/notes": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {
+                        data: {
+                          items: {
+                            properties: {_id: {type: "string"}},
+                            required: ["_id"],
+                            type: "object",
+                          },
+                          type: "array",
+                        },
+                      },
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const collections = discoverCollections({collectionsArg: ["notes"], doc});
+    expect(collections[0]?.collection).toBe("notes");
+    expect(collections[0]?.entitySchemaName).toBe("Note");
+    expect(collections[0]?.scope).toBe("unknown");
   });
 
   it("errors when no collections can be resolved", () => {

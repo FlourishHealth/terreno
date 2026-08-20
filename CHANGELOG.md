@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `@terreno/syncdb-codegen` CLI (`terreno-syncdb-codegen`) that emits typed
+  collection hooks from an OpenAPI spec with `x-terreno-sync` list operations.
+- `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
+  `maxAttempts` on syncdb writes.
 - `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /

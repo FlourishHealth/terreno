@@ -5,7 +5,11 @@ const refName = (ref: string): string => {
   return parts[parts.length - 1] ?? ref;
 };
 
-const resolveSchema = (schema: OpenApiSchema, doc: OpenApiDocument, stack: Set<string>): OpenApiSchema => {
+const resolveSchema = (
+  schema: OpenApiSchema,
+  doc: OpenApiDocument,
+  stack: Set<string>
+): OpenApiSchema => {
   if (schema.$ref) {
     const name = refName(schema.$ref);
     if (stack.has(name)) {
@@ -83,22 +87,3 @@ export const emitInterface = (
 
 export const emitPartialType = (name: string, baseName: string): string =>
   `export type ${name} = Partial<${baseName}>;`;
-
-export const collectSchemaRefs = (names: string[], doc: OpenApiDocument): string[] => {
-  const emitted = new Set<string>();
-  const lines: string[] = [];
-
-  for (const name of names) {
-    if (emitted.has(name)) {
-      continue;
-    }
-    const schema = doc.components?.schemas?.[name];
-    if (!schema) {
-      continue;
-    }
-    emitted.add(name);
-    lines.push(emitInterface(name, schema, doc));
-  }
-
-  return lines;
-};

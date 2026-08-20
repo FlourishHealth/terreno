@@ -1,6 +1,6 @@
 import type {FriendlyHookNames} from "./types";
 
-const toPascalCase = (value: string): string =>
+export const toPascalCase = (value: string): string =>
   value
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)

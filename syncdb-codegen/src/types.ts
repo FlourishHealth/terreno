@@ -66,8 +66,11 @@ export interface DiscoveredCollection {
   scope: string;
   listPath: string;
   entitySchemaName: string;
+  entitySchema: OpenApiSchema;
   createSchemaName?: string;
+  createSchema?: OpenApiSchema;
   updateSchemaName?: string;
+  updateSchema?: OpenApiSchema;
   retries?: boolean | number;
 }
 
