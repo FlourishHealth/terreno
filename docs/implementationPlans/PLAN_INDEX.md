@@ -16,6 +16,7 @@ Umbrella plans that coordinate several IPs.
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
 | [Admin improvements (post–v2 architecture)](admin-improvements.md) | Approved — decisions 2026-08-20 | 2026-06-01 | [tasks](../tasks/admin-improvements.md) |
+| [Pluggable database layer and SQLite adapter](pluggable-database-sqlite.md) | Approved — decisions 2026-08-20 | 2026-08-20 | [tasks](../tasks/pluggable-database-sqlite.md) |
 | [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — decisions recorded | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
 | [@terreno/syncdb-codegen](syncdb-codegen.md) | Approved | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
