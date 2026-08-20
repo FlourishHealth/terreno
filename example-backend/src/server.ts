@@ -39,7 +39,7 @@ import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
-import {addUserRoutes} from "./api/users";
+import {usersRouter} from "./api/users";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
@@ -185,7 +185,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
       .register(todoRouter)
       .register(projectRouter)
-      .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
+      .register(usersRouter)
       // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
       // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
       // resolve tenant streams (projects are scoped by the user's organizationIds).

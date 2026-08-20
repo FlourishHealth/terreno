@@ -166,7 +166,6 @@ export const collectRegisteredAdminModels = (terrenoApp?: TerrenoApp): ResolvedA
         admin: registration.options.admin,
         model: registration.model,
         populatePaths: registration.options.populatePaths,
-        queryFilter: registration.options.queryFilter,
         registrationPath: registration.path,
         routePath: registration.path,
         source: "registered",

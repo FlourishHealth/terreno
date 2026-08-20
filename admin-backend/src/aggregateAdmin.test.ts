@@ -135,3 +135,67 @@ describe("aggregateFromTerrenoApp", () => {
     expect(aggregated.models[0]?.routePath).toBe("/feature-flags");
   });
 });
+
+const anyPermissions = {
+  create: [Permissions.IsAny],
+  delete: [Permissions.IsAny],
+  list: [Permissions.IsAny],
+  read: [Permissions.IsAny],
+  update: [Permissions.IsAny],
+};
+
+describe("collectRegisteredAdminModels", () => {
+  it("does not copy the public queryFilter onto admin CRUD", () => {
+    const registered = collectRegisteredAdminModels({
+      getPlugins: () => [],
+      getRegistrations: () => [
+        modelRouter("/foods", FoodModel, {
+          admin: {displayName: "Foods", listFields: ["name"]},
+          permissions: anyPermissions,
+          queryFilter: () => ({ownerId: "public-owner"}),
+        }),
+      ],
+    } as never);
+
+    expect(registered).toHaveLength(1);
+    expect(registered[0]?.queryFilter).toBeUndefined();
+  });
+
+  it("maps only explicitly set adminPermissions verbs", () => {
+    const registered = collectRegisteredAdminModels({
+      getPlugins: () => [],
+      getRegistrations: () => [
+        modelRouter("/foods", FoodModel, {
+          admin: {
+            adminPermissions: {delete: []},
+            displayName: "Foods",
+            listFields: ["name"],
+          },
+          permissions: anyPermissions,
+        }),
+      ],
+    } as never);
+
+    expect(registered[0]?.permissions).toEqual({delete: false});
+  });
+
+  it("uses adminFilter instead of the public queryFilter", async () => {
+    const registered = collectRegisteredAdminModels({
+      getPlugins: () => [],
+      getRegistrations: () => [
+        modelRouter("/foods", FoodModel, {
+          admin: {
+            adminFilter: () => ({$or: [{name: "A"}, {name: "B"}]}),
+            displayName: "Foods",
+            listFields: ["name"],
+          },
+          permissions: anyPermissions,
+          queryFilter: () => ({ownerId: "public-owner"}),
+        }),
+      ],
+    } as never);
+
+    const scoped = await registered[0]?.queryFilter?.({} as never, {});
+    expect(scoped).toEqual({$or: [{name: "A"}, {name: "B"}]});
+  });
+});

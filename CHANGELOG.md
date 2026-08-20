@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Admin lists no longer inherit public `queryFilter` scoping, and `adminFilter` Mongo
+  operators are not rejected as client filters.
+- Admin create/update/bulk-patch strip `excludeFields`, and list/read responses always
+  run field scrubbing (including populated refs).
+
 ### Added
 
 - CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;

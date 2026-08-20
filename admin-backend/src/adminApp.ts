@@ -276,16 +276,8 @@ const buildAdminListQueryFilter = (
 ): NonNullable<ModelRouterOptions<unknown>["queryFilter"]> => {
   const base = config.queryFilter;
   return async (user, query) => {
-    let merged: Record<string, unknown> = {...(query ?? {})};
-    if (base) {
-      const baseResult = await base(user, merged);
-      if (baseResult === null) {
-        return null;
-      }
-      merged = {...baseResult};
-    }
-
-    const {consumedKeys, errors, filter} = parseAdminListFilters(merged, config.filters ?? []);
+    const clientQuery: Record<string, unknown> = {...(query ?? {})};
+    const {consumedKeys, errors, filter} = parseAdminListFilters(clientQuery, config.filters ?? []);
     if (Object.keys(errors).length > 0) {
       throw new APIError({
         detail: JSON.stringify(errors),
@@ -294,10 +286,52 @@ const buildAdminListQueryFilter = (
       });
     }
     for (const key of consumedKeys) {
-      delete merged[key];
+      delete clientQuery[key];
     }
-    return {...merged, ...filter};
+
+    let merged: Record<string, unknown> = {...clientQuery, ...filter};
+    if (base) {
+      const baseResult = await base(user, merged);
+      if (baseResult === null) {
+        return null;
+      }
+      merged = {...merged, ...baseResult};
+    }
+    return merged;
   };
+};
+
+const ADMIN_TIMESTAMP_SORT_FIELDS = ["created", "createdAt", "updated", "updatedAt"];
+
+const sortTokensToFields = (sort: string | string[] | undefined): string[] => {
+  if (!sort) {
+    return [];
+  }
+  const raw = Array.isArray(sort) ? sort.join(" ") : sort;
+  return raw
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/^-/, ""))
+    .filter((field) => field.length > 0);
+};
+
+const resolveAdminSortableFields = ({
+  defaultSort,
+  listDisplay,
+  sortableFields,
+}: {
+  defaultSort?: string | string[];
+  listDisplay: string[];
+  sortableFields?: string[];
+}): string[] => {
+  return [
+    ...new Set([
+      ...(sortableFields ?? listDisplay),
+      "_id",
+      ...ADMIN_TIMESTAMP_SORT_FIELDS,
+      ...sortTokensToFields(defaultSort),
+    ]),
+  ];
 };
 
 const validateAdminSortParam =
@@ -609,7 +643,11 @@ export class AdminApp {
       const listDisplay = config.listDisplay ?? listFields;
       const derivedSearchFields = listFields.filter((field) => fields[field]?.searchable);
       const searchFields = config.searchFields ?? derivedSearchFields;
-      const sortableFields = config.sortableFields ?? [...listDisplay, "_id"];
+      const sortableFields = resolveAdminSortableFields({
+        defaultSort: config.defaultSort,
+        listDisplay,
+        sortableFields: config.sortableFields,
+      });
       const schemaPathKeys = new Set(Object.keys(config.model.schema.paths));
       const bulkPatchAllowlist =
         config.bulkPatchAllowlist ??
@@ -980,6 +1018,7 @@ export class AdminApp {
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const readonlySet = new Set(config.readonlyFields ?? []);
+      const excludeFieldSet = new Set(config.excludeFields ?? []);
       const modelMeta = configModels.find((m) => m.name === config.model.modelName);
       const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
 
@@ -999,6 +1038,9 @@ export class AdminApp {
           delete next[key];
         }
         for (const key of hiddenFieldSet) {
+          delete next[key];
+        }
+        for (const key of excludeFieldSet) {
           delete next[key];
         }
         for (const key of SYSTEM_ADMIN_FIELDS) {
@@ -1107,11 +1149,8 @@ export class AdminApp {
           searchFields: config.searchFields,
         }),
         queryFilter: buildAdminListQueryFilter(config),
-        responseHandler:
-          hiddenFieldSet.size > 0 || (config.excludeFields?.length ?? 0) > 0
-            ? async (value, _method, _request, _options): Promise<JSONValue> =>
-                scrubAdminResponse(value, config, allModelAdmins) as JSONValue
-            : undefined,
+        responseHandler: async (value, _method, _request, _options): Promise<JSONValue> =>
+          scrubAdminResponse(value, config, allModelAdmins) as JSONValue,
         sort: config.defaultSort ?? "-created",
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...auditHooks,
