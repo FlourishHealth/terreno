@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Filter` and its composable select, boolean, accordion, and change-badge controls in
   `@terreno/ui` for desktop web filtering flows ([#972](https://github.com/FlourishHealth/terreno/pull/972))
+- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
+  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
+  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
+  `onSend`).
 
 ## [56.0.0-beta.2] - 2026-08-17
 
@@ -37,10 +41,6 @@ Second beta of the Expo SDK 56 line, cut from `master` after merging
   development providers, delivery logging, owner-scoped push-token routes, an admin delivery
   explorer, and generated RTK Query hooks
   ([#1037](https://github.com/FlourishHealth/terreno/pull/1037))
-- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
-  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
-  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
-  `onSend`).
 
 ### Changed
 
