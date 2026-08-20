@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
+  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
+  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
+  `onSend`).
+
 ## [57.0.0] - 2026-08-20
 
 First stable release of the Expo SDK 57 line, cut from `master` after

@@ -312,8 +312,12 @@ describe("CommsService", () => {
         startVerification: throwProviderError,
       },
     });
+    const mailResult = await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    assert.isFalse(mailResult.accepted);
+    assert.equal(mailResult.error, "Provider unavailable");
+    assert.equal(mailResult.errorClass, "transient");
+
     const operations = [
-      (): Promise<unknown> => service.sendMail({subject: "Welcome", to: "person@example.com"}),
       (): Promise<unknown> => service.sendSms({body: "Hello", to: "+15555550100"}),
       (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId}),
       (): Promise<unknown> => service.startVerification({channel: "sms", to: "+15555550100"}),
@@ -333,7 +337,8 @@ describe("CommsService", () => {
     assert.equal(
       await CommsMessage.countDocuments({
         channel: "mail",
-        error: "Provider send failed",
+        error: "Provider unavailable",
+        errorClass: "transient",
         provider: "throw-mail",
         status: "failed",
       }),
@@ -542,6 +547,106 @@ describe("CommsService", () => {
     for (const sensitiveValue of ["wrong-code", "missing-reason", "fallback@example.com"]) {
       assert.notInclude(serializedAuditRows, sensitiveValue);
     }
+  });
+
+  it("invokes onSend and onError hooks for every channel", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[hooks]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+
+    const onSendChannels: string[] = [];
+    const onErrorChannels: string[] = [];
+    const service = new CommsService({
+      mail: {
+        id: "hook-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      onError: async (context): Promise<void> => {
+        onErrorChannels.push(context.channel);
+      },
+      onSend: async (context): Promise<void> => {
+        onSendChannels.push(context.channel);
+      },
+      push: {
+        id: "hook-push",
+        sendPush: async (): Promise<SendResult[]> => [{accepted: true}],
+      },
+      sms: {
+        id: "hook-sms",
+        sendSms: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      verification: {
+        checkVerification: async (): Promise<{valid: boolean}> => ({error: "bad", valid: false}),
+        id: "hook-verification",
+        startVerification: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    await service.sendSms({body: "Hello", to: "+15555550100"});
+    await service.sendPushToUser({body: "Hello", title: "Title", userId});
+    await service.startVerification({channel: "sms", to: "+15555550100"});
+    await service.checkVerification({code: "123456", to: "+15555550100"});
+
+    assert.deepEqual(onSendChannels, ["mail", "sms", "push", "verification"]);
+    assert.deepEqual(onErrorChannels, ["verification"]);
+  });
+
+  it("invokes onError once when push provider throws for multiple tokens", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[hooks-a]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    await PushToken.upsert(
+      {token: "ExponentPushToken[hooks-b]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+
+    let onErrorCount = 0;
+    const service = new CommsService({
+      onError: async (): Promise<void> => {
+        onErrorCount += 1;
+      },
+      push: {
+        id: "throw-push",
+        sendPush: async (): Promise<never> => {
+          throw new Error("Provider unavailable");
+        },
+      },
+    });
+
+    const error = await captureError(
+      (): Promise<unknown> => service.sendPushToUser({body: "Hello", title: "Title", userId})
+    );
+    assert.instanceOf(error, Error);
+    assert.equal(onErrorCount, 1);
+    assert.equal(
+      await CommsMessage.countDocuments({
+        channel: "push",
+        error: "Provider send failed",
+        provider: "throw-push",
+        status: "failed",
+      }),
+      2
+    );
   });
 
   it("deactivates push tokens after permanent provider failures", async (): Promise<void> => {
