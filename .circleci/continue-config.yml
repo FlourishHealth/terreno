@@ -251,6 +251,7 @@ commands:
           environment:
             CI: "true"
             EXPO_NO_TELEMETRY: "1"
+            NODE_OPTIONS: "--max-old-space-size=4096"
           command: bun expo start --web --port 8082
       - run:
           name: Wait for Expo web
