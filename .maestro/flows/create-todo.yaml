@@ -1,25 +1,9 @@
-url: http://localhost:8082/login
+url: http://localhost:8082/
 ---
-# Login and create a todo
-# Prerequisites: backend running on port 4000, test data seeded, frontend running on port 8082
+# Create a todo after login flow (same Maestro session — user is already signed in)
+# Prerequisites: login.yaml ran first in executionOrder
 
 - launchApp
-
-- extendedWaitUntil:
-    visible:
-      id: "login-screen-email-input"
-    timeout: 60000
-
-- tapOn:
-    id: "login-screen-email-input"
-- inputText: "admin@example.com"
-
-- tapOn:
-    id: "login-screen-password-input"
-- inputText: "testpassword123"
-
-- tapOn:
-    id: "Log In"
 
 - extendedWaitUntil:
     visible:
