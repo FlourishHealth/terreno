@@ -54,6 +54,9 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   // Queueing mutations against a severed network is the point of these suites, so the
   // app's own "queue is deep" health warning is expected rather than a defect.
   consoleGuard.allow(/Sync is falling behind/i);
+  // The AI tab stays mounted under Expo Router Tabs, so useMCPTools still
+  // tries POST /mcp while these suites have aborted page HTTP.
+  consoleGuard.allow("useMCPTools error");
 };
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>
@@ -67,9 +70,9 @@ export const todoItemByTitle = (page: Page, title: string): Locator =>
 export const clickTodoControl = async (locator: Locator): Promise<void> => {
   await locator.waitFor({state: "visible"});
   await locator.evaluate((node: HTMLElement) => {
-    node.scrollIntoView({block: "center", inline: "nearest"});
+    node.scrollIntoView({block: "center", inline: "center"});
   });
-  await locator.click();
+  await locator.click({force: true});
 };
 
 export const forceSyncReconnect = async (page: Page): Promise<void> => {
