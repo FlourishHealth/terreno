@@ -364,7 +364,7 @@ jobs:
             echo "Starting iOS Appium attempt $attempt/$max_attempts"
             if CI=true \
               APPIUM_CI=true \
-              APPIUM_DEV_SERVER_URL="http://localhost:8085" \
+              APPIUM_DEV_SERVER_URL="http://127.0.0.1:8085" \
               NODE_ENV=production \
               IOS_APP_PATH="$IOS_APP_PATH" \
               IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
