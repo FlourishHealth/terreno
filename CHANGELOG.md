@@ -9,59 +9,13 @@ All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/) as one
+file per feature. `bun run changelog:assemble <version>` folds those files into a
+dated section below when cutting a release.
+
 ## [Unreleased]
 
-### Changed
-
-- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
-  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
-  `docs/how-to/circleci.md`.
-
-### Added
-
-### Added
-
-- `terreno-syncdb-codegen` CLI in `@terreno/syncdb` generates typed collection hooks
-  (`store/syncDbSdk.ts`) from OpenAPI `x-terreno-sync` list operations. The CLI is a
-  bin of `@terreno/syncdb`, not a separate `@terreno/syncdb-codegen` package.
-- `createCollectionHooks` factory on `@terreno/syncdb/react` for generated and custom
-  syncdb hooks
-- Optional per-mutation `maxAttempts` on `client.mutate` / outbox rows
-- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
-  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
-- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
-  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
-  (`docs/explanation/local-first-data.md`)
-- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
-  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
-- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
-  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
-  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
-  `onSend`).
-- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `recordDeliveryEvent` /
-  `recordOptOut`, attempt history on `CommsMessage`, payload retention
-  (`retainPayloadDays`, `redactPayload`), and channel-wide transient retry (SMS,
-  verification start, per-token push). `onRetry` stays `(context, result)` with
-  `context.attempt`. Push prune honors `errorClass: "permanent"` as well as
-  `isPermanentFailure`.
-
-### Fixed
-
-- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
-  row so `retries: false` stays fail-fast after keepMine.
-- Example todos Sync Lab panel starts collapsed so the first list row stays
-  above the tab bar on short web viewports.
-- `terreno-syncdb-codegen` rejects non-identifier collection/type names and
-  JSON-escapes generated strings so a remote OpenAPI document cannot inject
-  TypeScript.
-
-### Deprecated
-
-- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
-  through the current major line; will not ship in the next major. Migrate collection CRUD to
-  [`@terreno/syncdb`](docs/reference/syncdb.md) using
-  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
-  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
 ## [57.0.0] - 2026-08-20
 
