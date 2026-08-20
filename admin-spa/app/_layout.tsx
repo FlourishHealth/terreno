@@ -1,9 +1,21 @@
+import {AdminProvider} from "@terreno/admin-frontend";
 import {TerrenoProvider} from "@terreno/ui";
 import {Stack} from "expo-router";
 import React from "react";
 import {AdminGate} from "../components/AdminGate";
-import {AppConfigGate} from "../components/AppConfigGate";
+import {AppConfigGate, useAppConfig} from "../components/AppConfigGate";
 import {StoreProvider} from "../components/StoreProvider";
+import {terrenoApi} from "../store/sdk";
+
+const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) => {
+  const {appConfig} = useAppConfig();
+  const apiBase = appConfig.adminApiBasePath ?? "/admin";
+  return (
+    <AdminProvider api={terrenoApi} apiBase={apiBase} routeBase="">
+      {children}
+    </AdminProvider>
+  );
+};
 
 /**
  * Provider order:
@@ -19,7 +31,9 @@ const RootLayout: React.FC = () => {
       <StoreProvider>
         <TerrenoProvider>
           <AdminGate>
-            <Stack screenOptions={{headerShown: false}} />
+            <AdminProviderBridge>
+              <Stack screenOptions={{headerShown: false}} />
+            </AdminProviderBridge>
           </AdminGate>
         </TerrenoProvider>
       </StoreProvider>

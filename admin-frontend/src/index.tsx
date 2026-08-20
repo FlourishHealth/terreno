@@ -68,6 +68,10 @@ export {useConfigurationApi} from "./useConfigurationApi";
 export * from "./useConsentHistory";
 export {useDocumentStorageApi} from "./useDocumentStorageApi";
 export {
+  AI_ADMIN_WIDGETS,
+  AIRequestsScreenWidget,
+} from "./widgets/AIRequestsScreenWidget";
+export {
   BUILT_IN_FIELD_WIDGETS,
   BUILT_IN_HOME_WIDGETS,
   BUILT_IN_SCREEN_WIDGETS,
@@ -75,7 +79,15 @@ export {
   mergeWidgetRegistry,
 } from "./widgets/builtInWidgets";
 export {CustomScreensListWidget} from "./widgets/CustomScreensListWidget";
-export {FeatureFlagsOverridesWidget} from "./widgets/FeatureFlagsOverridesWidget";
+export {CONSENT_ADMIN_WIDGETS} from "./widgets/consentWidgets";
+export {
+  DOCUMENT_STORAGE_ADMIN_WIDGETS,
+  DocumentsScreenWidget,
+} from "./widgets/DocumentsScreenWidget";
+export {
+  FEATURE_FLAGS_ADMIN_WIDGETS,
+  FeatureFlagsOverridesWidget,
+} from "./widgets/FeatureFlagsOverridesWidget";
 export {ModelsGridWidget} from "./widgets/ModelsGridWidget";
 export {RecentActivityWidget} from "./widgets/RecentActivityWidget";
 export {ScriptRunnerWidget} from "./widgets/ScriptRunnerWidget";

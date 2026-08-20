@@ -21,6 +21,24 @@ export const addUserRoutes = (
     "/users",
     modelRouter(User as unknown as Model<UserDocument>, {
       ...options,
+      admin: {
+        defaultSort: "-created",
+        displayName: "Users",
+        fieldsets: [
+          {fields: ["email", "name"], title: "Profile"},
+          {fields: ["admin", "oauthProvider"], title: "Access"},
+        ],
+        filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
+        group: "Demo: shared app data",
+        hiddenFields: ["hash", "salt"],
+        listDisplayLinks: ["email"],
+        listFields: ["email", "name", "admin", "created"],
+        pageSize: 50,
+        readonlyFields: ["email"],
+        recordTitleField: "name",
+        searchFields: ["email", "name"],
+        sortableFields: ["email", "name", "admin", "created"],
+      },
       permissions: {
         create: [Permissions.IsAdmin],
         delete: [Permissions.IsAdmin],

@@ -78,6 +78,16 @@ const buildApp = (options: DocumentStorageOptions): express.Application => {
   return app;
 };
 
+describe("DocumentStorageApp admin contribution", () => {
+  it("contributes the documents custom screen", () => {
+    const contribution = new DocumentStorageApp({bucketName: "test-bucket"}).adminContribution();
+
+    expect(contribution).toEqual({
+      customScreens: [{displayName: "Documents", icon: "folder", name: "documents"}],
+    });
+  });
+});
+
 describe("DocumentStorageApp", () => {
   let app: express.Application;
   let adminAgent: TestAgent;

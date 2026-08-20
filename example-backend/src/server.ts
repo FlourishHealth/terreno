@@ -2,15 +2,12 @@ import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
-import {LangfuseApp} from "@terreno/ai";
+import {AIAdminApp, LangfuseApp} from "@terreno/ai";
 import {
   BetterAuthApp,
   ConsentApp,
-  ConsentForm,
-  ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
-  consentResponsePopulatePaths,
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
@@ -31,7 +28,7 @@ import {
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
 } from "@terreno/comms";
-import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
+import {FeatureFlagsApp} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
 import {adminScripts} from "./adminScripts";
@@ -47,7 +44,6 @@ import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
-import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
@@ -75,7 +71,7 @@ const createOpenApiAwareRouteRegistration = (
     __type: "modelRouter",
     _buildWithContext: ({openApi}) => buildRouter(openApi),
     model: {} as ModelRouterRegistration["model"],
-    options: {},
+    options: {} as ModelRouterRegistration["options"],
     path: "/",
     // Placeholder router; TerrenoApp uses _buildWithContext during registration.
     router: express.Router(),
@@ -274,10 +270,11 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new DocumentStorageApp({
-          basePath: "/admin/documents",
+          basePath: "/documents",
           bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
+      .register(new AIAdminApp())
       .register(
         new AdminApp({
           customScreens: [
@@ -285,6 +282,11 @@ export async function start(skipListen = false): Promise<express.Application> {
               description: "How this example wires Terreno admin UI v2",
               displayName: "Admin UI v2 map",
               name: "showcase",
+            },
+            {
+              description: "Stress-test the local-first sync layer",
+              displayName: "SyncDB Load Lab",
+              name: "sync-lab",
             },
           ],
           home: {
@@ -297,182 +299,6 @@ export async function start(skipListen = false): Promise<express.Application> {
             title: "Example administration",
           },
           models: [
-            {
-              ...featureFlagAdminConfig,
-              filters: [
-                {field: "enabled", kind: "boolean", label: "Enabled"},
-                {field: "archived", kind: "boolean", label: "Archived"},
-                {
-                  choices: [
-                    {label: "Boolean", value: "boolean"},
-                    {label: "Variant", value: "variant"},
-                  ],
-                  field: "type",
-                  kind: "choice",
-                  label: "Type",
-                },
-              ],
-              group: "Platform",
-              listDisplay: [
-                "key",
-                "name",
-                "type",
-                "enabled",
-                "archived",
-                "defaultVariant",
-                "created",
-              ],
-              pageSize: 50,
-              searchFields: ["key", "name", "description"],
-              sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
-            },
-            {
-              actions: [
-                {
-                  confirm: "Mark selected todos as completed?",
-                  id: "markComplete",
-                  label: "Mark completed",
-                  patchKeys: ["completed"],
-                },
-              ],
-              bulkPatchAllowlist: ["completed", "priority", "tags"],
-              defaultSort: "-created",
-              displayName: "Todos",
-              fieldsets: [
-                {fields: ["title", "tags", "priority", "completed"], title: "Task"},
-                {fields: ["ownerId"], title: "Ownership"},
-              ],
-              filters: [
-                {field: "completed", kind: "boolean", label: "Completed"},
-                {
-                  choices: [
-                    {label: "Low", value: "low"},
-                    {label: "Medium", value: "medium"},
-                    {label: "High", value: "high"},
-                  ],
-                  field: "priority",
-                  kind: "choice",
-                  label: "Priority",
-                },
-                {field: "created", kind: "dateRange", label: "Created"},
-                {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
-              ],
-              group: "Demo: shared app data",
-              listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
-              listDisplayLinks: ["title"],
-              listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
-              // noExplicitAny: String _id model mismatches Model<any> variance
-              // biome-ignore lint/suspicious/noExplicitAny: String _id model mismatches Model<any> variance
-              model: Todo as any,
-              pageSize: 25,
-              permissions: {delete: false},
-              readonlyFields: ["ownerId"],
-              realtime: true,
-              routePath: "/todos",
-              searchFields: ["title", "tags"],
-              sortableFields: ["title", "completed", "created", "priority"],
-            },
-            {
-              displayName: "Users",
-              fieldsets: [
-                {fields: ["email", "name"], title: "Profile"},
-                {fields: ["admin", "oauthProvider"], title: "Access"},
-              ],
-              filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
-              group: "Demo: shared app data",
-              hiddenFields: ["hash", "salt"],
-              listDisplayLinks: ["email"],
-              listFields: ["email", "name", "admin", "created"],
-              model: User as unknown as import("mongoose").Model<unknown>,
-              pageSize: 50,
-              readonlyFields: ["email"],
-              recordTitleField: "name",
-              routePath: "/users",
-              searchFields: ["email", "name"],
-              sortableFields: ["email", "name", "admin", "created"],
-            },
-            {
-              displayName: "Consent Forms",
-              fieldOrder: [
-                "title",
-                "slug",
-                "type",
-                "version",
-                "order",
-                "active",
-                "required",
-                "content",
-                "defaultLocale",
-                "requireScrollToBottom",
-                "captureSignature",
-                "agreeButtonText",
-                "allowDecline",
-                "declineButtonText",
-                "checkboxes",
-              ],
-              fieldOverrides: {
-                checkboxes: {widget: "checkbox-list"},
-                content: {widget: "locale-content"},
-                defaultLocale: {widget: "locale-default"},
-              },
-              fieldsets: [
-                {
-                  fields: ["title", "slug", "type", "version", "order", "active", "required"],
-                  title: "Basics",
-                },
-                {
-                  fields: ["content", "defaultLocale", "requireScrollToBottom", "checkboxes"],
-                  title: "Content",
-                },
-                {
-                  fields: [
-                    "captureSignature",
-                    "agreeButtonText",
-                    "allowDecline",
-                    "declineButtonText",
-                  ],
-                  title: "Actions",
-                },
-              ],
-              filters: [
-                {field: "active", kind: "boolean", label: "Active"},
-                {
-                  choices: [
-                    {label: "Agreement", value: "agreement"},
-                    {label: "Privacy", value: "privacy"},
-                    {label: "HIPAA", value: "hipaa"},
-                    {label: "Research", value: "research"},
-                    {label: "Terms", value: "terms"},
-                    {label: "Custom", value: "custom"},
-                  ],
-                  field: "type",
-                  kind: "choice",
-                  label: "Type",
-                },
-              ],
-              group: "Compliance",
-              listDisplay: ["title", "type", "version", "active", "order"],
-              listFields: ["title", "type", "version", "active", "order"],
-              model: ConsentForm,
-              routePath: "/consent-forms",
-              searchFields: ["title", "slug"],
-              sortableFields: ["title", "type", "version", "active", "order", "created"],
-            },
-            {
-              displayName: "Consent Responses",
-              filters: [
-                {field: "agreed", kind: "boolean", label: "Agreed"},
-                {field: "locale", kind: "text", label: "Locale"},
-              ],
-              group: "Compliance",
-              listFields: ["userId", "agreed", "locale", "agreedAt"],
-              model: ConsentResponse,
-              permissions: {delete: false},
-              populatePaths: consentResponsePopulatePaths,
-              routePath: "/consent-responses",
-              searchFields: ["locale"],
-              sortableFields: ["agreed", "locale", "agreedAt", "created"],
-            },
             {
               displayName: "Audit log",
               group: "Platform",

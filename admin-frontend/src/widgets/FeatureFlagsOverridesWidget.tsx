@@ -2,7 +2,7 @@ import {Box, Button, Card, Heading, Text} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminHomeWidgetProps} from "../types";
+import type {AdminHomeWidgetProps, HomeWidgetComponent} from "../types";
 
 export const FeatureFlagsOverridesWidget: React.FC<AdminHomeWidgetProps> = ({
   featureFlagModel,
@@ -41,4 +41,8 @@ export const FeatureFlagsOverridesWidget: React.FC<AdminHomeWidgetProps> = ({
       )}
     </Card>
   );
+};
+
+export const FEATURE_FLAGS_ADMIN_WIDGETS: Record<string, HomeWidgetComponent> = {
+  "feature-flags-overrides": FeatureFlagsOverridesWidget,
 };

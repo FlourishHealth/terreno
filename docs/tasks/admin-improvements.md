@@ -184,27 +184,27 @@
 
 ## Phase 5 — Pre-built admin migrations
 
-- [ ] **Task 5.1**: Document plugin widget location (`docs/explanation/admin-plugin-frontend.md`)  
+- [x] **Task 5.1**: Document plugin widget location (`docs/explanation/admin-plugin-frontend.md`)
   - Decision: widgets live in `admin-frontend/src/widgets/`  
   - Depends on: none
 
-- [ ] **Task 5.2**: `FeatureFlagsApp.adminContribution()` + deprecate `featureFlagAdminConfig`  
+- [x] **Task 5.2**: `FeatureFlagsApp.adminContribution()` + deprecate `featureFlagAdminConfig`
   - Files: `feature-flags/src/featureFlagsApp.ts`, tests  
   - Depends on: 1.4, 2.2
 
-- [ ] **Task 5.3**: `FeatureFlagOverridesWidget` in `admin-frontend/src/widgets/`  
+- [x] **Task 5.3**: `FeatureFlagOverridesWidget` in `admin-frontend/src/widgets/`
   - Files: `widgets/FeatureFlagOverridesWidget.tsx`, tests, exports  
   - Depends on: 3.1, 5.2
 
-- [ ] **Task 5.4**: `ConsentApp.adminContribution()` + consent field widgets registry  
+- [x] **Task 5.4**: `ConsentApp.adminContribution()` + consent field widgets registry
   - Files: consent app, `widgets/consentWidgets.ts`, tests  
   - Depends on: 1.4, 2.2, 3.6
 
-- [ ] **Task 5.5**: `DocumentStorageApp.adminContribution()` + `DocumentsScreenWidget`  
+- [x] **Task 5.5**: `DocumentStorageApp.adminContribution()` + `DocumentsScreenWidget`
   - Files: `documentStorageApp.ts`, `widgets/DocumentsScreenWidget.tsx`, tests  
   - Depends on: 1.4, 2.3, 3.3
 
-- [ ] **Task 5.6**: `AIAdminApp` plugin + `AIRequestsScreenWidget`  
+- [x] **Task 5.6**: `AIAdminApp` plugin + `AIRequestsScreenWidget`
   - Files: `ai/src/aiAdminApp.ts`, `widgets/AIRequestsScreenWidget.tsx`, tests  
   - Depends on: 1.4, 2.3
 
@@ -212,24 +212,24 @@
 
 ## Phase 6 — Examples, docs, E2E (single atomic PR)
 
-- [ ] **Task 6.1**: Audit consent custom screens — `docs/explanation/admin-consent-migration.md`  
+- [x] **Task 6.1**: Audit consent custom screens — `docs/explanation/admin-consent-migration.md`
   - Depends on: 5.4
 
-- [ ] **Task 6.2**: **Atomic** migrate `example-backend` — `admin:` on modelRouters, plugins only, one legacy `models[]` entry, `home.slots`  
+- [x] **Task 6.2**: **Atomic** migrate `example-backend` — `admin:` on modelRouters, plugins only, one legacy `models[]` entry, `home.slots`
   - Files: `example-backend/src/server.ts`, `api/todos.ts`, `api/users.ts`  
   - Depends on: 5.2, 5.4, 5.5, 5.6
 
-- [ ] **Task 6.3**: **Atomic** migrate `example-frontend` + `admin-spa` — `AdminProvider`, `AdminHome`, `AdminScreenRouter`  
+- [x] **Task 6.3**: **Atomic** migrate `example-frontend` + `admin-spa` — `AdminProvider`, `AdminHome`, `AdminScreenRouter`
   - Files: `example-frontend/app/admin/**`, `admin-spa/app/**`  
   - Depends on: 3.8, 5.3, 5.5, 5.6
 
-- [ ] **Task 6.4**: How-to: `admin-add-model.md`, `admin-custom-widget.md`, `admin-custom-home.md`, `admin-import-prebuilt.md`  
+- [x] **Task 6.4**: How-to: `admin-add-model.md`, `admin-custom-widget.md`, `admin-custom-home.md`, `admin-import-prebuilt.md`
   - Depends on: 6.2, 6.3
 
-- [ ] **Task 6.5**: Reference: `docs/reference/admin-config.md`  
+- [x] **Task 6.5**: Reference: `docs/reference/admin-config.md`
   - Depends on: 1.1
 
-- [ ] **Task 6.6**: Playwright E2E (split by feature file)  
+- [x] **Task 6.6**: Playwright E2E (split by feature file)
   - `admin-home.spec.ts`, `admin-table-search-filter.spec.ts`, `admin-table-bulk-actions.spec.ts`, `admin-form.spec.ts`, `admin-custom-screens.spec.ts`  
   - Depends on: 6.3
 

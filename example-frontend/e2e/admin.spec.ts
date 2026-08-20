@@ -26,9 +26,8 @@ test.describe("Admin Panel", () => {
   });
 
   test("admin panel shows custom screens", async ({page}) => {
-    await page.getByTestId("admin-custom-screen-card-ai-admin").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-custom-screen-card-ai-admin")).toBeVisible();
-    await expect(page.getByTestId("admin-custom-screen-card-showcase")).toBeVisible();
+    await expect(page.getByText("AI Requests").first()).toBeVisible();
+    await expect(page.getByText("Documents").first()).toBeVisible();
   });
 
   test("can navigate to model table", async ({page}) => {

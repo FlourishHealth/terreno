@@ -1,8 +1,9 @@
-import {AdminShellLayout} from "@terreno/admin-frontend";
+import {AdminProvider, AdminShellLayout} from "@terreno/admin-frontend";
 import {Stack} from "expo-router";
 import React from "react";
 import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "@/constants/adminConstants";
 import {terrenoApi} from "@/store/sdk";
+import SyncLabScreen from "./SyncLabScreen";
 
 /**
  * Admin UI v2 shell for the whole `/admin/**` stack: sidebar (models, tools, screens) + main
@@ -10,28 +11,35 @@ import {terrenoApi} from "@/store/sdk";
  */
 const AdminLayout: React.FC = () => {
   return (
-    <AdminShellLayout
+    <AdminProvider
       api={terrenoApi}
       apiBase={ADMIN_ROUTE}
-      configurationPath="/admin/configuration"
-      customScreens={ADMIN_CUSTOM_SCREENS}
       routeBase={ADMIN_ROUTE}
-      versionConfigPath="/version-config"
+      widgets={{screens: {"sync-lab": SyncLabScreen}}}
     >
-      <Stack
-        screenOptions={{
-          contentStyle: {flex: 1},
-          headerShown: false,
-        }}
+      <AdminShellLayout
+        api={terrenoApi}
+        apiBase={ADMIN_ROUTE}
+        configurationPath="/admin/configuration"
+        customScreens={ADMIN_CUSTOM_SCREENS}
+        routeBase={ADMIN_ROUTE}
+        versionConfigPath="/version-config"
       >
-        <Stack.Screen name="index" options={{title: "Admin"}} />
-        <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
-        <Stack.Screen name="configuration" options={{title: "Configuration"}} />
-        <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
-        <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
-        <Stack.Screen name="[model]" options={{title: "Model"}} />
-      </Stack>
-    </AdminShellLayout>
+        <Stack
+          screenOptions={{
+            contentStyle: {flex: 1},
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="index" options={{title: "Admin"}} />
+          <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
+          <Stack.Screen name="configuration" options={{title: "Configuration"}} />
+          <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
+          <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
+          <Stack.Screen name="[model]" options={{title: "Model"}} />
+        </Stack>
+      </AdminShellLayout>
+    </AdminProvider>
   );
 };
 

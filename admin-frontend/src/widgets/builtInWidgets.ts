@@ -4,14 +4,10 @@ import type {
   HomeWidgetComponent,
   ScreenWidgetComponent,
 } from "../types";
-import {
-  CheckboxListFieldWidget,
-  LocaleContentFieldWidget,
-  LocaleDefaultFieldWidget,
-  MarkdownFieldWidget,
-  TextareaFieldWidget,
-} from "./builtInFieldWidgets";
-import {CustomScreensListWidget} from "./CustomScreensListWidget";
+import {AI_ADMIN_WIDGETS} from "./AIRequestsScreenWidget";
+import {MarkdownFieldWidget, TextareaFieldWidget} from "./builtInFieldWidgets";
+import {CONSENT_ADMIN_WIDGETS} from "./consentWidgets";
+import {DOCUMENT_STORAGE_ADMIN_WIDGETS} from "./DocumentsScreenWidget";
 import {FeatureFlagsOverridesWidget} from "./FeatureFlagsOverridesWidget";
 import {ModelsGridWidget} from "./ModelsGridWidget";
 import {RecentActivityWidget} from "./RecentActivityWidget";
@@ -29,13 +25,13 @@ export const BUILT_IN_HOME_WIDGETS: Record<string, HomeWidgetComponent> = {
 };
 
 export const BUILT_IN_SCREEN_WIDGETS: Record<string, ScreenWidgetComponent> = {
+  ...AI_ADMIN_WIDGETS,
+  ...DOCUMENT_STORAGE_ADMIN_WIDGETS,
   "version-config": VersionConfigScreenWidget,
 };
 
 export const BUILT_IN_FIELD_WIDGETS: Record<string, FieldWidgetComponent> = {
-  "checkbox-list": CheckboxListFieldWidget,
-  "locale-content": LocaleContentFieldWidget,
-  "locale-default": LocaleDefaultFieldWidget,
+  ...CONSENT_ADMIN_WIDGETS,
   markdown: MarkdownFieldWidget,
   textarea: TextareaFieldWidget,
 };

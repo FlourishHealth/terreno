@@ -1,6 +1,13 @@
 import {pipeline} from "node:stream/promises";
 import {Storage} from "@google-cloud/storage";
-import {APIError, asyncHandler, authenticateMiddleware, logger} from "@terreno/api";
+import {
+  type AdminContribution,
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  logger,
+  type TerrenoPlugin,
+} from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
 import multer from "multer";
@@ -66,13 +73,19 @@ const isAdmin = (req: express.Request): boolean => {
   return user?.admin === true;
 };
 
-export class DocumentStorageApp {
+export class DocumentStorageApp implements TerrenoPlugin {
   private options: DocumentStorageOptions;
   private storage: Storage;
 
   constructor(options: DocumentStorageOptions) {
     this.options = options;
     this.storage = new Storage();
+  }
+
+  adminContribution(): AdminContribution {
+    return {
+      customScreens: [{displayName: "Documents", icon: "folder", name: "documents"}],
+    };
   }
 
   private get bucket() {
