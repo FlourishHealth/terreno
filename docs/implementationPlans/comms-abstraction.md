@@ -11,7 +11,7 @@
 **Depends on:** none (inbound-webhooks is needed only by adapter delivery-callback phases)
 **RTK deprecation flag:** None — backend-only package
 **Shipped:** Phases 2–3 and most of Phase 1 in #1037; SendGrid adapter in #1050 (separate IP)
-**Remaining:** Phase 1 gap-fill — tasks 1.2, 1.4, 1.5, 1.6, 1.7 (see task list)
+**Remaining:** none — Phase 1 gap-fill landed on this branch
 **Research:** [comms-abstraction-research.md](comms-abstraction-research.md)
 
 ## Goal
@@ -328,13 +328,13 @@ None in this IP. example-frontend gains a settings row that registers the Expo p
 
 1. **Package + contracts:** `@terreno/comms` package scaffold, `types.ts`, console
    adapters, `CommsMessage` + logging, `commsService`, unit tests.
-   **Shipped except** dashboard-ready fields, full hook set, payload retention, and
+   **Shipped** including dashboard-ready fields, hooks, payload retention, and
    channel-wide transient retry.
 2. **CommsApp + routes:** plugin registration, `PushToken` model + routes, admin explorer,
    OpenAPI, supertest coverage. **Shipped.**
 3. **Integration:** example-backend registers `CommsApp` (console adapters), seed docs,
    `docs/reference/comms.md`, catalog entries, publish wiring in `publish-on-tag.yml`.
-   **Shipped**; remaining roast updates the reference docs/rules for the gap-fill APIs.
+   **Shipped.**
 
 ## Feature Flags & Migrations
 
@@ -382,15 +382,15 @@ See [docs/tasks/comms-abstraction.md](../tasks/comms-abstraction.md).
 - [x] A Terreno app with only console adapters can call `sendMail`, `sendSms`,
       `sendPushToUser`, and `startVerification`/`checkVerification` in development, each
       producing a logger line and a `CommsMessage` row.
-- [ ] `beforeSend` can cancel and mutate; `onSend`/`onError` fire with the final
+- [x] `beforeSend` can cancel and mutate; `onSend`/`onError` fire with the final
       `SendResult`; `onRetry` fires on the inline transient retry with
       `context.attempt === 2` — and a hook that throws is logged without changing the send
       outcome (test per hook, including `onOptOut` / `onDeliveryEvent` via the record
       methods).
-- [ ] Failed sends record `errorCode` and `errorClass` on both the `SendResult` and the
+- [x] Failed sends record `errorCode` and `errorClass` on both the `SendResult` and the
       `CommsMessage` row; only `transient` failures trigger the inline retry; provider
       throws become transient and do not propagate.
-- [ ] `CommsMessage.attempts` holds one entry per attempt with per-attempt error data;
+- [x] `CommsMessage.attempts` holds one entry per attempt with per-attempt error data;
       `payload` is retained post-redaction and cleared after `retainPayloadDays`.
 - [x] `POST /comms/pushTokens` registers a device token for the authenticated user;
       re-posting the same token updates rather than duplicates; other users cannot list or
@@ -399,9 +399,9 @@ See [docs/tasks/comms-abstraction.md](../tasks/comms-abstraction.md).
 - [x] Production apps with an unconfigured channel get a 501 `APIError`, not a silent no-op.
 - [x] `@terreno/comms` core has zero provider SDKs in `dependencies`.
 - [x] All routes appear in `/openapi.json` and the generated SDK compiles.
-- [ ] Push retries re-send only transient-failed tokens; permanent failures deactivate
+- [x] Push retries re-send only transient-failed tokens; permanent failures deactivate
       tokens via `errorClass` or `isPermanentFailure`.
-- [ ] `recordDeliveryEvent` updates status by `providerMessageId`; `recordOptOut` fires
+- [x] `recordDeliveryEvent` updates status by `providerMessageId`; `recordOptOut` fires
       `onOptOut` without sending.
 
 ## Named assumptions (finish pass)

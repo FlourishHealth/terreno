@@ -22,7 +22,7 @@ Umbrella plans that coordinate several IPs.
 | [SyncDB local-first data layer (v2)](syncdb-local-first.md) | In progress — Phases 1–8 landed, Phase 9 follow-ups open | 2026-06-23 | [tasks](../tasks/syncdb-local-first.md) |
 | [SyncDB hardening (syncdb-2)](terreno-syncdb-2.md) | Implemented — Phases A–F landed; deviations carried into Phase 9 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8/9) |
 | [SyncDB Phase C design](syncdb-phase-c-design.md) | Implemented — design authority for C1–C8 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8) |
-| [Pluggable communications layer (@terreno/comms)](comms-abstraction.md) | Approved — remaining Phase 1 gap-fill | 2026-08-09 | [tasks](../tasks/comms-abstraction.md) |
+| [Pluggable communications layer (@terreno/comms)](comms-abstraction.md) | Approved — Phase 1 gap-fill implemented | 2026-08-09 | [tasks](../tasks/comms-abstraction.md) |
 
 ## Completed
 
@@ -73,7 +73,7 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 
 | Plan | Status | RTK flag | Tasks |
 |------|--------|----------|-------|
-| [Pluggable communications layer (@terreno/comms)](comms-abstraction.md) | Approved — remaining Phase 1 gap-fill | None | [tasks](../tasks/comms-abstraction.md) |
+| [Pluggable communications layer (@terreno/comms)](comms-abstraction.md) | Approved — Phase 1 gap-fill implemented | None | [tasks](../tasks/comms-abstraction.md) |
 | [Comms adapter — Expo push](comms-adapter-expo-push.md) | Draft | None | [tasks](../tasks/comms-adapter-expo-push.md) |
 | [Comms adapter — Twilio SMS](comms-adapter-twilio-sms.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-sms.md) |
 | [Comms adapter — Twilio Verify (OTP)](comms-adapter-twilio-verify.md) | Draft | None | [tasks](../tasks/comms-adapter-twilio-verify.md) |
