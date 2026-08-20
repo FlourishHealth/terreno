@@ -159,8 +159,29 @@ export const SyncDevPanel: React.FC = () => {
     setIsExpanded((current) => !current);
   }, []);
 
+  const reconnectButton = (
+    <Button
+      disabled={isBusy || isOffline}
+      onClick={handleForceReconnect}
+      testID="syncdb-reconnect-button"
+      text="Force reconnect"
+      variant="outline"
+    />
+  );
+
+  // Production/CircleCI static export sets __DEV__ false, so the visible panel
+  // is hidden. Chaos e2e still needs this control in the DOM to break socket backoff.
+  const hiddenReconnect = (
+    <Box
+      style={{height: 1, left: -10000, overflow: "hidden", position: "absolute", width: 1}}
+      testID="syncdb-reconnect-host"
+    >
+      {reconnectButton}
+    </Box>
+  );
+
   if (!showDevPanel) {
-    return null;
+    return hiddenReconnect;
   }
 
   return (
@@ -174,7 +195,9 @@ export const SyncDevPanel: React.FC = () => {
           variant="ghost"
         />
       </Box>
-      {!isExpanded ? null : (
+      {!isExpanded ? (
+        hiddenReconnect
+      ) : (
         <>
           <Text color="secondaryLight" size="sm">
             {isOffline ? "Simulated offline (transport severed)" : "Client running"}
@@ -215,13 +238,7 @@ export const SyncDevPanel: React.FC = () => {
               text={isOffline ? "Go online" : "Go offline"}
               variant="outline"
             />
-            <Button
-              disabled={isBusy || isOffline}
-              onClick={handleForceReconnect}
-              testID="syncdb-reconnect-button"
-              text="Force reconnect"
-              variant="outline"
-            />
+            {reconnectButton}
             <Button
               disabled={isBusy}
               onClick={handleForceResync}

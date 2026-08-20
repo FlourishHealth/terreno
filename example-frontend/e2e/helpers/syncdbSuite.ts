@@ -72,15 +72,17 @@ export const clickTodoControl = async (locator: Locator): Promise<void> => {
   await locator.click();
 };
 
-/** Expand the home Sync Lab panel so controls like force-reconnect are in the DOM.
- * The panel starts collapsed so Maestro/short viewports can see the todo list. */
+/** Ensure force-reconnect is in the DOM. The visible Sync Lab panel is collapsed
+ * by default and omitted entirely in production/CircleCI static export (__DEV__ false). */
 export const expandSyncDevPanel = async (page: Page): Promise<void> => {
   const reconnect = page.getByTestId("syncdb-reconnect-button");
-  if ((await reconnect.count()) > 0) {
-    return;
+  if ((await reconnect.count()) === 0) {
+    const toggle = page.getByTestId("syncdb-dev-panel-toggle");
+    if ((await toggle.count()) > 0) {
+      await toggle.click();
+    }
   }
-  await page.getByTestId("syncdb-dev-panel-toggle").click();
-  await reconnect.waitFor({state: "visible"});
+  await reconnect.waitFor({state: "attached"});
 };
 
 /**

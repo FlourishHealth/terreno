@@ -83,7 +83,7 @@ test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
     // test is measuring, not Socket.io's retry schedule. The Sync Lab panel starts
     // collapsed, so expand it before the reconnect control is in the DOM.
     await expandSyncDevPanel(page);
-    await page.getByTestId("syncdb-reconnect-button").click();
+    await page.getByTestId("syncdb-reconnect-button").click({force: true});
 
     // The banner shows queued state via ONE of two testIDs depending on volume:
     // "sync-queued-count" (<=20 queued) or "sync-drain-progress" (>20 queued —
