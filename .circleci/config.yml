@@ -5,11 +5,18 @@ version: 2.1
 
 setup: true
 
+parameters:
+  run-e2e-load:
+    type: boolean
+    default: false
+
 orbs:
+  continuation: circleci/continuation@1.0.0
   path-filtering: circleci/path-filtering@3.0.0
 
 workflows:
   setup:
+    unless: << pipeline.parameters.run-e2e-load >>
     jobs:
       - path-filtering/filter:
           name: check-updated-files
@@ -117,3 +124,13 @@ workflows:
             api-health/src/.* run-e2e true
             feature-flags/src/.* run-e2e true
             feature-flags/src/.* run-admin-spa-integration true
+
+  # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
+  # Path-filtering would drop unknown continuation-only params, so skip it and
+  # continue directly with run-e2e-load.
+  e2e-load-setup:
+    when: << pipeline.parameters.run-e2e-load >>
+    jobs:
+      - continuation/continue:
+          configuration_path: .circleci/continue-config.yml
+          parameters: '{"run-e2e-load":true}'
