@@ -4,6 +4,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 
 import {discoverCollections} from "./discoverCollections";
+import {emitInterface} from "./emitTypes";
 import {generateSyncDbSdk} from "./generate";
 import {friendlyHookNames} from "./hookNames";
 import {loadSpec} from "./loadSpec";
@@ -22,6 +23,21 @@ describe("friendlyHookNames", () => {
   });
 });
 
+describe("emitInterface", () => {
+  it("maps Mongoose ObjectId schemas to strings", () => {
+    expect(
+      emitInterface({
+        name: "Owned",
+        schema: {
+          properties: {ownerId: {type: "schemaobjectid"}},
+          required: ["ownerId"],
+          type: "object",
+        },
+      })
+    ).toContain("ownerId: string;");
+  });
+});
+
 describe("discoverCollections", () => {
   it("reads x-terreno-sync from the fixture spec", async () => {
     const spec = await loadSpec(fixturePath);
@@ -30,6 +46,21 @@ describe("discoverCollections", () => {
     expect(discovered[0]?.entityName).toBe("Todo");
     expect(discovered[0]?.createName).toBe("CreateTodoBody");
     expect(discovered[0]?.updateName).toBe("UpdateTodoBody");
+  });
+
+  it("finds item routes when the collection path has a trailing slash", async () => {
+    const spec = await loadSpec(fixturePath);
+    const todoPath = spec.paths?.["/todos"];
+    const todoItemPath = spec.paths?.["/todos/{id}"];
+    spec.paths = {
+      "/todos/": todoPath ?? {},
+      "/todos/{id}": todoItemPath ?? {},
+    };
+
+    const [discovered] = discoverCollections({spec});
+
+    expect(discovered?.updateName).toBe("UpdateTodoBody");
+    expect(discovered?.updateSchema.properties?.title?.type).toBe("string");
   });
 
   it("filters with --collections", async () => {
@@ -61,6 +92,7 @@ describe("generateSyncDbSdk", () => {
       expect(source).toContain("useUpdateMutation: useUpdateTodo");
       expect(source).toContain("useDeleteMutation: useDeleteTodo");
       expect(source).toContain("export interface Todo");
+      expect(source).toContain("title?: string;");
       expect(await readFile(out, "utf8")).toBe(source);
     } finally {
       await rm(dir, {force: true, recursive: true});

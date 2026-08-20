@@ -20,7 +20,7 @@ const tsTypeFromSchema = (schema: OpenApiSchema, indent: string): string => {
   if (schema.type === "boolean") {
     return "boolean";
   }
-  if (schema.type === "string") {
+  if (schema.type === "string" || schema.type === "schemaobjectid") {
     return "string";
   }
   return "unknown";
