@@ -1,4 +1,8 @@
-# @terreno/rtk
+# @terreno/rtk (legacy)
+
+> **Deprecated for data synchronization.** `@terreno/rtk` remains published through the **56.x** line (and the stable **0.x** line) with a deprecation notice. It will **not** be published in the next major Terreno release. For collection reads/writes, offline sync, and realtime convergence, use [`@terreno/syncdb`](../syncdb.md) and the [migration guide](../../how-to/migrate-rtk-to-syncdb.md).
+>
+> RTK Query is still the correct tool for **non-synced** endpoints: generated OpenAPI hooks (`/auth/me`, admin RPC, AI routes), Better Auth session Redux wiring, feature flags, and sockets.
 
 Redux Toolkit Query utilities for frontends using @terreno/api backends. JWT auth, token storage, SDK code generation from OpenAPI, and real-time WebSocket connections.
 
@@ -114,7 +118,7 @@ export const store = configureStore({
 }
 ``````
 
-**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
+**Learn more:** [Configure Better Auth](../../how-to/configure-better-auth.md)
 
 ## WebSocket Integration
 
@@ -439,8 +443,8 @@ EXPO_PUBLIC_API_URL=http://localhost:4000
 
 ## Related Documentation
 
-- [Authentication Architecture](../explanation/authentication.md) — Deep-dive into JWT + Passport system
-- [WebSocket Integration How-To](../how-to/websocket-integration.md) — Real-time connection setup
-- [Add GitHub OAuth](../how-to/add-github-oauth.md) — Step-by-step OAuth setup guide
-- [@terreno/api Reference](./api.md) — Backend API framework
-- [@terreno/ui Reference](./ui.md) — React Native components
+- [Authentication Architecture](../../explanation/authentication.md) — Deep-dive into JWT + Passport system
+- [WebSocket Integration How-To](../../how-to/websocket-integration.md) — Real-time connection setup
+- [Add GitHub OAuth](../../how-to/add-github-oauth.md) — Step-by-step OAuth setup guide
+- [@terreno/api Reference](../api.md) — Backend API framework
+- [@terreno/ui Reference](../ui.md) — React Native components

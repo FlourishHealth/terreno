@@ -6,7 +6,6 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 - [@terreno/api](api.md) — modelRouter, auth, permissions, setupServer
 - [@terreno/ui](ui.md) — Components, theming, layout
-- [@terreno/rtk](rtk.md) — Auth slice, SDK codegen, token handling
 - [@terreno/syncdb](syncdb.md) — Local-first data layer (reads, writes, offline sync)
 - [@terreno/ai](ai.md) — AI service, GPT routes, Langfuse integration
 - [@terreno/admin-backend](admin-backend.md) — Auto-generated admin CRUD endpoints
@@ -17,6 +16,10 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [@terreno/feature-flags](feature-flags.md) — Feature flags and A/B testing plugin
 - [@terreno/mcp](mcp-server.md) — AI coding assistant integration (MCP)
 - [@terreno/test](test.md) — Bun test helpers and in-memory MongoDB
+
+## Migrating from RTK
+
+`@terreno/rtk` is deprecated for **data synchronization**. New apps should use [`@terreno/syncdb`](syncdb.md). Existing RTK consumers: follow [Migrate from @terreno/rtk to @terreno/syncdb](../how-to/migrate-rtk-to-syncdb.md). Archived RTK reference: [legacy/rtk.md](legacy/rtk.md).
 
 ## Configuration
 
