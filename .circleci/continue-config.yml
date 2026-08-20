@@ -295,7 +295,7 @@ commands:
             # shellcheck disable=SC1090
             source "$BASH_ENV"
             bunx playwright test \
-              --config ../.circleci/example-frontend-playwright.config.ts \
+              --config playwright.circleci.config.ts \
               --reporter=list \
               --reporter=html \
               "<< parameters.spec >>.spec.ts"

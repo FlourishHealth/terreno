@@ -27,7 +27,7 @@ workflows:
           mapping: |
             \.circleci/config\.yml run-circleci-config true
             \.circleci/continue-config\.yml run-circleci-config true
-            \.circleci/example-frontend-playwright\.config\.ts run-circleci-config true
+            example-frontend/playwright\.circleci\.config\.ts run-circleci-config true
             \.circleci/.* run-repo-policies true
             scripts/check-circleci-parity/.* run-repo-policies true
             api/.* run-api true
