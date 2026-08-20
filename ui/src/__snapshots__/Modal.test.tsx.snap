@@ -384,6 +384,10 @@ exports[`Modal renders with both buttons 1`] = `
                           "disabled": false,
                         },
                         "disabled": false,
+                        "hitSlop": {
+                          "bottom": 2,
+                          "top": 2,
+                        },
                         "onPress": [Function: debounced],
                         "style": {
                           "alignItems": "center",
@@ -395,6 +399,7 @@ exports[`Modal renders with both buttons 1`] = `
                           "flexDirection": "column",
                           "height": undefined,
                           "justifyContent": "center",
+                          "minHeight": 44,
                           "paddingHorizontal": 20,
                           "paddingVertical": 8,
                           "width": "auto",
@@ -462,6 +467,10 @@ exports[`Modal renders with both buttons 1`] = `
                       "disabled": false,
                     },
                     "disabled": false,
+                    "hitSlop": {
+                      "bottom": 2,
+                      "top": 2,
+                    },
                     "onPress": [Function: debounced],
                     "style": {
                       "alignItems": "center",
@@ -473,6 +482,7 @@ exports[`Modal renders with both buttons 1`] = `
                       "flexDirection": "column",
                       "height": undefined,
                       "justifyContent": "center",
+                      "minHeight": 44,
                       "paddingHorizontal": 20,
                       "paddingVertical": 8,
                       "width": "auto",
@@ -716,6 +726,10 @@ exports[`Modal renders with disabled primary button 1`] = `
                       "disabled": true,
                     },
                     "disabled": true,
+                    "hitSlop": {
+                      "bottom": 2,
+                      "top": 2,
+                    },
                     "onPress": [Function: debounced],
                     "style": {
                       "alignItems": "center",
@@ -727,6 +741,7 @@ exports[`Modal renders with disabled primary button 1`] = `
                       "flexDirection": "column",
                       "height": undefined,
                       "justifyContent": "center",
+                      "minHeight": 44,
                       "paddingHorizontal": 20,
                       "paddingVertical": 8,
                       "width": "auto",

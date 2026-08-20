@@ -12,6 +12,7 @@ import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "rea
 
 import {Box} from "./Box";
 import type {ButtonPressAnimation, ButtonProps} from "./Common";
+import {CONTROL_MIN_HEIGHT, CONTROL_SM_MIN_HEIGHT, controlHitSlop} from "./ControlSizes";
 import {useCustomIcon} from "./IconRegistry";
 import {isMobileDevice} from "./MediaQuery";
 import {useTheme} from "./Theme";
@@ -137,6 +138,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{disabled: isPressDisabled}}
       {...pressableInteractionProps}
+      hitSlop={size === "sm" ? undefined : controlHitSlop(CONTROL_MIN_HEIGHT)}
       onPress={debouncedHandlePress}
       style={{
         alignItems: "center",
@@ -146,8 +148,9 @@ const ButtonComponent: React.FC<ButtonProps> = ({
         borderRadius: theme.radius.rounded,
         borderWidth,
         flexDirection: "column",
-        height: size === "sm" ? 28 : undefined,
+        height: size === "sm" ? CONTROL_SM_MIN_HEIGHT : undefined,
         justifyContent: "center",
+        minHeight: size === "sm" ? undefined : CONTROL_MIN_HEIGHT,
         paddingHorizontal: size === "sm" ? 16 : 20,
         paddingVertical: size === "sm" ? 0 : 8 - (borderWidth ?? 0),
         width: fullWidth ? "100%" : "auto",

@@ -81,6 +81,7 @@ exports[`UnifiedAddressAutoCompleteField renders plain TextField when no API key
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -88,6 +89,8 @@ exports[`UnifiedAddressAutoCompleteField renders plain TextField when no API key
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -189,6 +192,7 @@ exports[`UnifiedAddressAutoCompleteField renders plain TextField when API key is
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -196,6 +200,8 @@ exports[`UnifiedAddressAutoCompleteField renders plain TextField when API key is
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -297,6 +303,7 @@ exports[`UnifiedAddressAutoCompleteField renders WebAddressAutocomplete when val
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -304,6 +311,8 @@ exports[`UnifiedAddressAutoCompleteField renders WebAddressAutocomplete when val
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -405,6 +414,7 @@ exports[`UnifiedAddressAutoCompleteField renders disabled state 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#D9D9D9",
           "borderColor": "#4E4E4E",
@@ -412,6 +422,8 @@ exports[`UnifiedAddressAutoCompleteField renders disabled state 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -513,6 +525,7 @@ exports[`UnifiedAddressAutoCompleteField renders with input value 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -520,6 +533,8 @@ exports[`UnifiedAddressAutoCompleteField renders with input value 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -622,6 +637,7 @@ exports[`UnifiedAddressAutoCompleteField renders with testID 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -629,6 +645,8 @@ exports[`UnifiedAddressAutoCompleteField renders with testID 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,

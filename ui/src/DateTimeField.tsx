@@ -6,6 +6,7 @@ import {Pressable, TextInput, View} from "react-native";
 import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import type {DateTimeFieldProps} from "./Common";
+import {CONTROL_MIN_HEIGHT} from "./ControlSizes";
 import {DateTimeActionSheet} from "./DateTimeActionSheet";
 import {FieldError} from "./fieldElements/FieldError";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
@@ -70,7 +71,7 @@ const DateTimeSegment: FC<DateTimeSegmentProps> = ({
         borderColor: error ? theme.border.error : "transparent",
         flexDirection: "row",
         flexShrink: 1,
-        height: 40,
+        height: CONTROL_MIN_HEIGHT,
         overflow: "hidden",
         padding: 0,
         width: config.width,
@@ -225,7 +226,7 @@ const MobileTimeDisplay: FC<MobileTimeDisplayProps> = ({
         alignItems: "center",
         flexDirection: "row",
         gap: 10,
-        minHeight: 40,
+        minHeight: CONTROL_MIN_HEIGHT,
         paddingHorizontal: showBorder ? 12 : 10,
         paddingVertical: showBorder ? 8 : 4,
         ...(showBorder
@@ -993,7 +994,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
             borderWidth: 1,
             flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
             maxWidth: isMobileDatetime ? 250 : maximumWidth,
-            minHeight: 40,
+            minHeight: CONTROL_MIN_HEIGHT,
             minWidth: isMobileDatetime ? 200 : minimumWidth,
             paddingHorizontal: 6,
           }}

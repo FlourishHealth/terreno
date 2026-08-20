@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
-import {act, fireEvent, userEvent} from "@testing-library/react-native";
+import {act, fireEvent, render, userEvent} from "@testing-library/react-native";
 import {TextField} from "./TextField";
+import {ThemeProvider} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 
 describe("TextField", () => {
@@ -538,6 +539,85 @@ describe("TextField", () => {
       );
       fireEvent(getByDisplayValue(""), "focus");
       expect(mockOnFocus).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // The visible box is taller than the TextInput, so the padding around the input has to
+  // be part of the hit target for the field to reach Apple's 44pt guidance.
+  describe("hit target", () => {
+    interface ChromeProps {
+      onStartShouldSetResponder: () => boolean;
+      style?: Record<string, unknown>;
+    }
+
+    const findChrome = (root: ReturnType<typeof renderWithTheme>["UNSAFE_root"]): ChromeProps => {
+      const node = root.findAll((candidate) =>
+        Boolean((candidate.props as Partial<ChromeProps>)?.onStartShouldSetResponder)
+      )[0];
+      return node.props as ChromeProps;
+    };
+
+    // react-test-renderer hands host refs back as null unless a node mock is supplied, so
+    // the TextInput needs a stand-in instance for focus() to be observable.
+    const renderWithInputInstance = (
+      element: React.ReactElement
+    ): {
+      focusMock: ReturnType<typeof mock>;
+      root: ReturnType<typeof renderWithTheme>["UNSAFE_root"];
+    } => {
+      const focusMock = mock(() => {});
+      const {UNSAFE_root} = render(element, {
+        createNodeMock: () => ({focus: focusMock}),
+        wrapper: ThemeProvider,
+      });
+      return {focusMock, root: UNSAFE_root};
+    };
+
+    it("makes the visible box at least 44pt tall", () => {
+      const {UNSAFE_root} = renderWithTheme(<TextField onChange={mockOnChange} value="" />);
+      expect(findChrome(UNSAFE_root).style?.minHeight).toBe(44);
+    });
+
+    it("focuses the input when the surrounding chrome is pressed", () => {
+      const {focusMock, root} = renderWithInputInstance(
+        <TextField onChange={mockOnChange} value="" />
+      );
+
+      const shouldSetResponder = findChrome(root).onStartShouldSetResponder();
+
+      expect(focusMock).toHaveBeenCalledTimes(1);
+      // Returning false leaves the responder with whichever child was actually touched,
+      // so the trailing icon and text selection keep working.
+      expect(shouldSetResponder).toBe(false);
+    });
+
+    it("does not focus a disabled field when the chrome is pressed", () => {
+      const {focusMock, root} = renderWithInputInstance(
+        <TextField disabled onChange={mockOnChange} value="" />
+      );
+
+      findChrome(root).onStartShouldSetResponder();
+
+      expect(focusMock).not.toHaveBeenCalled();
+    });
+
+    it("still fires the trailing icon handler", () => {
+      const mockOnIconClick = mock(() => {});
+      const {UNSAFE_root} = renderWithTheme(
+        <TextField
+          iconName="calendar"
+          onChange={mockOnChange}
+          onIconClick={mockOnIconClick}
+          value=""
+        />
+      );
+
+      const iconPressable = UNSAFE_root.findAll(
+        (node) => (node.props as {"aria-role"?: string})?.["aria-role"] === "button"
+      )[0];
+      (iconPressable.props as {onPress: () => void}).onPress();
+
+      expect(mockOnIconClick).toHaveBeenCalledTimes(1);
     });
   });
 });

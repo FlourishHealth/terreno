@@ -7,6 +7,7 @@ import {
 
 import type {AddressAutocompleteProps} from "./Common";
 import {GOOGLE_PLACES_API_RESTRICTIONS} from "./Constants";
+import {CONTROL_MIN_HEIGHT} from "./ControlSizes";
 import {TextField} from "./TextField";
 import {useTheme} from "./Theme";
 import {processAddressComponents} from "./Utilities";
@@ -50,7 +51,7 @@ export const MobileAddressAutocomplete = ({
     color: theme.text.primary,
     fontFamily: "text",
     fontSize: (styles?.textInput as TextStyle)?.fontSize ?? 14,
-    height: 40,
+    height: CONTROL_MIN_HEIGHT,
     marginBottom: 0,
     paddingHorizontal: 0,
     paddingVertical: 4,

@@ -3,6 +3,7 @@ import {TouchableOpacity, View} from "react-native";
 
 import {CheckBox} from "./CheckBox";
 import type {MultiselectFieldProps} from "./Common";
+import {CONTROL_MIN_HEIGHT, controlHitSlop} from "./ControlSizes";
 import {FieldError} from "./fieldElements/FieldError";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {Heading} from "./Heading";
@@ -20,37 +21,35 @@ interface OptionProps {
 
 const Option: FC<OptionProps> = ({value, label, isDefault, selected, onSelect}) => {
   return (
-    <View
+    // The whole row is the press target so the small checkbox is not the only thing
+    // a user can hit. Expanding the checkbox's own hitSlop instead would overlap the
+    // adjacent rows.
+    <TouchableOpacity
+      accessibilityHint={`Select ${label ?? value} from list of options`}
+      aria-label={label ?? value}
+      aria-role="checkbox"
+      hitSlop={controlHitSlop(CONTROL_MIN_HEIGHT)}
+      onPress={onSelect}
       style={{
+        alignItems: "center",
         display: "flex",
         flexDirection: isDefault ? "row" : "row-reverse",
         justifyContent: "space-between",
+        minHeight: CONTROL_MIN_HEIGHT,
       }}
     >
       <View style={{flex: 1, flexWrap: "wrap"}}>
         <Text>{label ?? value}</Text>
       </View>
-      <TouchableOpacity
-        accessibilityHint={`Select ${label ?? value} from list of options`}
-        aria-label={label ?? value}
-        aria-role="checkbox"
-        hitSlop={{bottom: 10, left: 10, right: 10, top: 10}}
-        key={value}
-        onPress={onSelect}
+      <View
         style={{
-          justifyContent: "center",
+          paddingEnd: isDefault ? 0 : 8,
+          paddingStart: isDefault ? 8 : 0,
         }}
       >
-        <View
-          style={{
-            paddingEnd: isDefault ? 0 : 8,
-            paddingStart: isDefault ? 8 : 0,
-          }}
-        >
-          <CheckBox selected={selected} />
-        </View>
-      </TouchableOpacity>
-    </View>
+        <CheckBox selected={selected} />
+      </View>
+    </TouchableOpacity>
   );
 };
 

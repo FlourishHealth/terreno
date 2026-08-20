@@ -66,6 +66,7 @@ exports[`NumberField renders correctly with default props 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -73,6 +74,8 @@ exports[`NumberField renders correctly with default props 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,

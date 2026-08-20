@@ -133,6 +133,7 @@ exports[`MobileAddressAutocomplete renders TextField fallback without Google API
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -140,6 +141,8 @@ exports[`MobileAddressAutocomplete renders TextField fallback without Google API
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,

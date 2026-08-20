@@ -315,6 +315,10 @@ exports[`InfoModalIcon opens modal when pressed 1`] = `
                         "disabled": false,
                       },
                       "disabled": false,
+                      "hitSlop": {
+                        "bottom": 2,
+                        "top": 2,
+                      },
                       "onPress": [Function: debounced],
                       "style": {
                         "alignItems": "center",
@@ -326,6 +330,7 @@ exports[`InfoModalIcon opens modal when pressed 1`] = `
                         "flexDirection": "column",
                         "height": undefined,
                         "justifyContent": "center",
+                        "minHeight": 44,
                         "paddingHorizontal": 20,
                         "paddingVertical": 8,
                         "width": "auto",
