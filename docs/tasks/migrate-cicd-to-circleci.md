@@ -19,14 +19,16 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Files: `docs/how-to/circleci.md` (stub OK)
   - Depends on: none (human prerequisite)
   - Acceptance: a manual “hello” pipeline can be triggered from the project; dynamic config is enabled.
+  - Note: hello scaffold merged (#1052). Dynamic config + org slug still need maintainer confirmation.
 
 - [ ] **Task 0.2**: Create CircleCI Contexts (empty shells)
   - Description: Create contexts named in the IP (`terreno-npm`, `terreno-netlify`, `terreno-expo`, `terreno-gcp`, `terreno-e2e`, `terreno-release`, `terreno-agentic`, `terreno-github-api`). Document which GitHub secrets map into each. Do not paste secret values into the repo.
   - Files: `docs/how-to/circleci.md`
   - Depends on: Task 0.1
   - Acceptance: contexts exist; mapping table is complete; access restrictions noted for `terreno-release`.
+  - Note: mapping table documented in how-to; contexts themselves are still a human step.
 
-- [ ] **Task 0.3**: Inventory required GitHub checks
+- [x] **Task 0.3**: Inventory required GitHub checks
   - Description: List current branch-protection required checks and map each to the GHA job `name:` and the future CircleCI job name. Start from `docs/explanation/repository-settings.md` and live settings.
   - Files: `docs/how-to/circleci.md` or a short table in the IP
   - Depends on: none
@@ -34,43 +36,45 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 1: Foundation
 
-- [ ] **Task 1.1**: Add setup + continue config skeleton
+- [x] **Task 1.1**: Add setup + continue config skeleton
   - Description: Create `.circleci/config.yml` with `setup: true` using `circleci/path-filtering` (and `circleci/continuation`). Create `.circleci/continue-config.yml` with parameters for each package/area and a no-op `config-ok` job that always runs.
   - Files: `.circleci/config.yml`, `.circleci/continue-config.yml`
   - Depends on: Task 0.1
   - Acceptance: push triggers setup → continuation; `config-ok` is green.
 
-- [ ] **Task 1.2**: Shared Bun + cache commands
+- [x] **Task 1.2**: Shared Bun + cache commands
   - Description: Add reusable commands (inline or orb) for installing Bun via `circleci/node`, `bun install --frozen-lockfile`, and cache keys equivalent to today’s GHA bun cache. Pin Bun policy (`latest` vs pin) consistently with EAS jobs that need a pin.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 1.1
   - Acceptance: a sample job restores cache on second run; install is frozen-lockfile.
 
-- [ ] **Task 1.3**: Path-filter mapping
+- [x] **Task 1.3**: Path-filter mapping
   - Description: Encode path → parameter mapping for api, ai, ui, rtk, comms, mcp-server, admin-*, example-*, demo, docs/website, terraform, e2e-relevant sets, matching current workflow path filters.
   - Files: `.circleci/config.yml`
   - Depends on: Task 1.1
   - Acceptance: a docs-only change sets docs/deploy params without setting `run-api`.
+  - Note: deploy path params omitted until Phase 4+.
 
 ## Phase 2: Package CI + policy
 
-- [ ] **Task 2.1**: Port package CI jobs
+- [x] **Task 2.1**: Port package CI jobs
   - Description: Port api/ai/rtk/ui/ui-demo/comms/mcp-server/example-frontend/example-backend(+script)/admin-spa CI to CircleCI jobs gated by path params. Include Mongo service where GHA used it. Fix mcp branch filter to `master`.
   - Files: `.circleci/continue-config.yml`, possibly package scripts unchanged
   - Depends on: Task 1.2, Task 1.3
   - Acceptance: dual-run green for each package on a change that touches it; GHA still required.
 
-- [ ] **Task 2.2**: Port Docker build-only job
+- [x] **Task 2.2**: Port Docker build-only job
   - Description: Port `example-backend-docker.yml` to CircleCI remote Docker / machine with layer caching replacement for `type=gha`.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 2.1
   - Acceptance: PR touching `example-backend/**` builds the image without pushing.
 
-- [ ] **Task 2.3**: Port repo-policies + rulesync + DCO
+- [x] **Task 2.3**: Port repo-policies + rulesync + DCO
   - Description: Port `repo-policies.yml`, `rulesync-check.yml`, and fork DCO checks. DCO must use GitHub API via `terreno-github-api` context.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 0.2, Task 1.2
   - Acceptance: intentional barrel-import / dirty rulesync / missing DCO on a fork PR fails the CircleCI job.
+  - Note: DCO skips cleanly if `GITHUB_TOKEN` unset until context is created.
 
 - [ ] **Task 2.4**: Dual-run cutover for Phase 2
   - Description: Add CircleCI checks to branch protection; remove GHA package/policy workflows once trusted; delete corresponding `.github/workflows/*-ci.yml` and policy workflows.
@@ -80,7 +84,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 3: Playwright E2E
 
-- [ ] **Task 3.1**: Port `e2e-ci` and `admin-spa-integration`
+- [x] **Task 3.1**: Port `e2e-ci` and `admin-spa-integration`
   - Description: Mongo replica set, E2E secrets context, Playwright browsers, artifact store for reports. Skip Dependabot-equivalent if applicable.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 2.1, Task 0.2
