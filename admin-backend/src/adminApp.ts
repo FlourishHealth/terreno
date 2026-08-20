@@ -957,8 +957,9 @@ export class AdminApp {
         `${basePath}${config.routePath}/search`,
         authenticateMiddleware(),
         asyncHandler(async (req, res) => {
-          const user = req.user as {_id: unknown; admin?: boolean} | undefined;
-          if (!user?.admin) {
+          if (
+            !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+          ) {
             throw new APIError({
               disableExternalErrorTracking: true,
               status: 403,
@@ -996,12 +997,24 @@ export class AdminApp {
             q,
           });
           try {
-            const results = await config.model.find({$or: orConditions}).limit(20).lean();
+            const scoped = await buildAdminListQueryFilter(config)(
+              req.user as User | undefined,
+              {}
+            );
+            if (scoped === null) {
+              return res.json({data: []});
+            }
+            const results = await config.model
+              .find({$and: [scoped, {$or: orConditions}]})
+              .limit(20)
+              .lean();
             logger.debug("Admin search results", {
               count: results.length,
               model: config.model.modelName,
             });
-            return res.json({data: results});
+            return res.json({
+              data: results.map((doc) => scrubAdminResponse(doc, config, allModelAdmins)),
+            });
           } catch (err) {
             logger.error("Admin search failed", {
               error: err,

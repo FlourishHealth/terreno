@@ -477,7 +477,14 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
         for (const k of action.patchKeys) {
           patch[k] = true;
         }
-        await bulkPatch({ids, patch}).unwrap();
+        const result = (await bulkPatch({ids, patch}).unwrap()) as {
+          failures?: {id: string; title: string}[];
+          updated?: number;
+        };
+        if (Array.isArray(result.failures) && result.failures.length > 0) {
+          toast.error(`Updated ${result.updated ?? 0}; ${result.failures.length} failed`);
+          return;
+        }
         toast.success("Bulk update applied");
       } else {
         toast.warn("This action has no bulk handler configured.");

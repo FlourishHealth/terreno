@@ -7,3 +7,4 @@ category: Fixed
 - Admin mutations and responses consistently scrub excluded fields, including populated refs.
 - Plugin admin contributions forward `populatePaths`.
 - Document Storage clients use the contributed `/documents` API path.
+- Admin search applies the same `queryFilter`/`adminFilter` as list CRUD.
