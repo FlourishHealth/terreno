@@ -434,6 +434,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     ? createBetterAuth({
         config: betterAuthConfig,
         mongoClient: getMongoClientFromMongoose(),
+        // noExplicitAny: User model type mismatch
         // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
         userModel: User as any,
       })
@@ -447,6 +448,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       logRequests: !isDeployed,
     },
     skipListen,
+    // noExplicitAny: User model type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
     userModel: User as any,
   }).configure(AppConfiguration);
@@ -468,6 +470,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           {
             displayName: "Users",
             listFields: ["email", "name", "admin", "created"],
+            // noExplicitAny: User model type mismatch
             // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
             model: User as any,
             routePath: "/users",
@@ -481,10 +484,12 @@ export async function start(skipListen = false): Promise<express.Application> {
         betterAuth: betterAuthInstance
           ? {
               auth: betterAuthInstance,
+              // noExplicitAny: User model type mismatch
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               userModel: User as any,
             }
           : undefined,
+        // noExplicitAny: User model type mismatch
         // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
         userModel: User as any,
       })
