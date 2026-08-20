@@ -44,6 +44,7 @@ const rowToMutation = (mutationId: string, row: Partial<OutboxRow>): OutboxMutat
   createdAt: row.createdAt ?? "",
   entityId: row.entityId ?? "",
   errorNackCount: row.errorNackCount ?? 0,
+  maxAttempts: typeof row.maxAttempts === "number" ? row.maxAttempts : undefined,
   mutationId,
   operation: (row.operation ?? "update") as SyncMutationOperation,
   status: (row.status ?? "queued") as OutboxStatus,
@@ -62,6 +63,8 @@ export interface EnqueueArgs {
   userId: string;
   /** Optional explicit id (defaults to a generated UUID; useful in tests). */
   mutationId?: string;
+  /** Per-mutation error-nack budget; omitted → engine default in replay. */
+  maxAttempts?: number;
 }
 
 export interface RecoverStartupStateResult {
@@ -245,6 +248,9 @@ export const createOutbox = ({
     };
     if (args.baseVersion !== undefined) {
       row.baseVersion = args.baseVersion;
+    }
+    if (args.maxAttempts !== undefined) {
+      row.maxAttempts = args.maxAttempts;
     }
     store.raw.setRow(OUTBOX_TABLE, mutationId, row as unknown as Row);
     return rowToMutation(mutationId, row);
