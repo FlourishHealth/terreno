@@ -159,6 +159,43 @@ describe("realtimeAccess", () => {
     ).toBe(false);
   });
 
+  it("applies per-router access.scope on realtime document reads", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["reader"]});
+    const entry = makeEntry({
+      access: {
+        resource: "todo",
+        scope: {
+          check: ({doc}) => (doc as {ownerId?: string} | undefined)?.ownerId === user.id,
+        },
+      },
+      accessControl: access as AnyTerrenoAccess,
+    });
+
+    expect(await canReadDocumentRealtime(entry, user, {ownerId: user.id, title: "Mine"})).toBe(
+      true
+    );
+    expect(
+      await canReadDocumentRealtime(entry, user, {
+        ownerId: new mongoose.Types.ObjectId().toString(),
+        title: "Other",
+      })
+    ).toBe(false);
+  });
+
   it("masks realtime documents using field views", async () => {
     await setupDb();
     const access = createAccess({

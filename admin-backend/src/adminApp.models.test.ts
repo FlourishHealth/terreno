@@ -4,7 +4,9 @@ import {
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  createAccess,
   setupAuth,
+  terrenoStatements,
   type UserModel as UserModelType,
   VersionConfig,
 } from "@terreno/api";
@@ -790,5 +792,26 @@ describe("AdminApp per-model queryFilter", () => {
     const res = await agent.get("/admin/foods").expect(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].name).toBe("FilteredOnly");
+  });
+
+  it("fails closed on mutating CRUD when the model is missing from RBAC statements", async () => {
+    await setupDb();
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({permissions: {admin: ["access"]}}),
+          name: "admin-access",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp([foodModelConfig], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+
+    await agent.get("/admin/foods").expect(200);
+    await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
   });
 });

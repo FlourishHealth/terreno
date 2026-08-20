@@ -32,7 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and array mutations apply the same write mask as single-document writes.
 - AdminApp model CRUD requires resource actions in addition to `admin:access`. User
   `admin`/`roles` cannot be written through admin CRUD. The seeded `auditor` role no longer
-  receives `admin:access` via read-only expansion.
+  receives `admin:access` via read-only expansion. Mutating admin CRUD for a resource missing
+  from statements fails closed.
+- `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing
+  them. Create/list responses always apply the **read** field mask. Per-router `access.scope`
+  extra PermissionSets are evaluated on HTTP and realtime reads. Role assignment previews
+  invalidate cache after dry-run. Invalid permission sets use a stable `APIError.title`.
 
 ### Deprecated
 

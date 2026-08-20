@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import {type HydratedDocument, type Model, model, Schema} from "mongoose";
+import type {Request} from "express";
+import mongoose, {type HydratedDocument, type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {
@@ -9,12 +10,15 @@ import {
   createActionOpenApiMiddleware,
   defineCollectionAction,
   defineInstanceAction,
+  runActionPermissions,
 } from "./actions";
 import {modelRouter, type OpenApiMiddleware} from "./api";
 import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiUnauthorizedMiddleware} from "./errors";
 import {Permissions} from "./permissions";
 import {type IsDeleted, isDeletedPlugin} from "./plugins";
+import {createAccess} from "./rbac/access";
+import {terrenoStatements} from "./rbac/statements";
 import {
   authAsUser,
   type Food,
@@ -792,6 +796,51 @@ describe("modelRouter actions", () => {
         scope: "collection",
       });
       expect(mock.captured?.requestBody).toBeDefined();
+    });
+  });
+
+  describe("runActionPermissions", () => {
+    it("combines legacy action.permissions with RBAC access checks", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Reader",
+            name: "reader",
+            permissions: {todo: ["read"]},
+          },
+        ],
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const reader = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["reader"],
+      };
+      const req = {params: {}, user: reader} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {
+            access: {action: "create", resource: "todo"},
+            method: "POST",
+            permissions: [Permissions.IsAny],
+          },
+          "collection",
+          FoodModel,
+          req,
+          undefined,
+          access
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
     });
   });
 });

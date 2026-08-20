@@ -84,7 +84,32 @@ export const canReadDocumentRealtime = async (
       permissions: {[access.resource]: [action]},
       user,
     });
-    return result.allowed;
+    if (!result.allowed) {
+      return false;
+    }
+    if (access.scope?.check) {
+      if (!user) {
+        return false;
+      }
+      const scopeResult = await access.scope.check({
+        action,
+        doc,
+        user,
+      });
+      if (scopeResult === false) {
+        return false;
+      }
+      if (scopeResult && typeof scopeResult === "object") {
+        const extra = await accessControl.can({
+          context: {transport: "socket"},
+          doc,
+          permissions: scopeResult as never,
+          user,
+        });
+        return extra.allowed;
+      }
+    }
+    return true;
   }
 
   return checkPermissions("read", entry.options.permissions?.read ?? [], user, doc);
@@ -94,7 +119,7 @@ export const maskRealtimeDocument = async (
   entry: RealtimeAccessEntry,
   user: User | undefined,
   doc: unknown,
-  method: RESTMethod
+  _method: RESTMethod
 ): Promise<unknown> => {
   const access = entry.options.access;
   const accessControl = entry.options.accessControl;
@@ -102,7 +127,7 @@ export const maskRealtimeDocument = async (
     return doc;
   }
 
-  const phase = method === "create" ? "create" : "read";
+  const phase = "read";
   const mask = await accessControl.fieldMask({
     doc,
     phase,

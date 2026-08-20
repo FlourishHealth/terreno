@@ -266,7 +266,42 @@ describe("roleManager", () => {
           permissions: {unknown: ["read"]},
         },
       })
-    ).rejects.toMatchObject({status: 400});
+    ).rejects.toMatchObject({status: 400, title: "Invalid permissions"});
+  });
+
+  it("does not leave previewed assignment grants in the live permission cache", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+        {
+          displayName: "Writer",
+          name: "writer",
+          permissions: {todo: ["update"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const target = await UserModel.create({email: "cache-preview@example.com", roles: ["reader"]});
+    await access.roles.previewAssignment({
+      roleNames: ["reader", "writer"],
+      userId: target.id,
+    });
+
+    const live = await access.can({
+      permissions: {todo: ["update"]},
+      user: target as unknown as User,
+    });
+    expect(live.allowed).toBe(false);
   });
 
   it("rejects conflicting role assignments", async () => {

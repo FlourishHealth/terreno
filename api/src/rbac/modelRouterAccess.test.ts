@@ -221,6 +221,81 @@ describe("modelRouterAccess", () => {
     expect(masked).toEqual([{title: "One"}, {title: "Two"}]);
   });
 
+  it("masks create responses with the read phase, not createView", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Creator",
+          name: "creator",
+          permissions: {todo: ["create", "read"]},
+        },
+      ],
+      fieldViews: {
+        todo: {
+          createView: "deny",
+          select: () => "public",
+          views: {
+            public: {omit: [], read: ["title"], write: ["title"]},
+          },
+        },
+      },
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const handler = wrapAccessResponseHandler(
+      access as AnyTerrenoAccess,
+      {resource: "todo"},
+      (value) => value
+    );
+    const masked = await handler(
+      {secret: "hidden", title: "Created"},
+      "create",
+      {user: createTestUser(["creator"])} as never,
+      {}
+    );
+    expect(masked).toEqual({title: "Created"});
+  });
+
+  it("evaluates extra PermissionSets returned from per-router scope.check", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+        {
+          displayName: "Editor",
+          name: "editor",
+          permissions: {todo: ["read", "update"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const permissions = buildAccessPermissions(access as AnyTerrenoAccess, {
+      resource: "todo",
+      scope: {
+        check: () => ({todo: ["update"]}),
+      },
+    });
+    const doc = {title: "Scoped"};
+    const readerAllowed = await Promise.all(
+      permissions.read.map((check) => check("read", createTestUser(["reader"]), doc))
+    );
+    const editorAllowed = await Promise.all(
+      permissions.read.map((check) => check("read", createTestUser(["editor"]), doc))
+    );
+    expect(readerAllowed.every(Boolean)).toBe(false);
+    expect(editorAllowed.every(Boolean)).toBe(true);
+  });
+
   it("uses scope from resolveModelRouterAccess when access.scope is omitted", async () => {
     await setupDb();
     const access = createAccess({

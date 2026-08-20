@@ -88,7 +88,18 @@ export const buildAccessPermissions = <T>(
           doc: obj,
           user,
         });
-        return result !== false;
+        if (result === false) {
+          return false;
+        }
+        if (result && typeof result === "object") {
+          const extra = await accessControl.can({
+            doc: obj,
+            permissions: result as never,
+            user,
+          });
+          return extra.allowed;
+        }
+        return true;
       });
     }
     const also = access.also?.[method] ?? [];
@@ -167,14 +178,13 @@ export const wrapAccessResponseHandler = <T>(
     options: {access?: ModelRouterAccessOptions}
   ): Promise<unknown> => {
     const serialized = await baseHandler(value, method, request, options);
-    const phase = method === "create" ? "create" : "read";
     const docs = Array.isArray(serialized) ? serialized : [serialized];
 
     const masked = await Promise.all(
       docs.map(async (doc) => {
         const mask = await accessControl.fieldMask({
           doc,
-          phase,
+          phase: "read",
           resource: access.resource,
           user: request.user,
         });

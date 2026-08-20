@@ -40,7 +40,7 @@ const assertValidPermissionSet = (
     validatePermissionSet(permissions, statements);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid permissions";
-    throw new APIError({status: 400, title: message});
+    throw new APIError({detail: message, status: 400, title: "Invalid permissions"});
   }
 };
 
@@ -187,12 +187,16 @@ export const createRoleManager = (args: {
         roles: [...new Set(roleNames)],
       } as unknown as User;
       invalidateCache({userId});
-      const after = await getActorPermissions(previewUser);
-      const diff = diffPermissionSets(before, after);
-      return {
-        ...diff,
-        resulting: after,
-      };
+      try {
+        const after = await getActorPermissions(previewUser);
+        const diff = diffPermissionSets(before, after);
+        return {
+          ...diff,
+          resulting: after,
+        };
+      } finally {
+        invalidateCache({userId});
+      }
     },
     previewRoleChange: async ({roleName, permissions}) => {
       const existing = await rbacRoleModel.findExactlyOne({name: roleName});

@@ -86,9 +86,10 @@ export const runActionPermissions = async <T>(
   let permissions = action.permissions;
   if (action.access && accessControl) {
     const isPermitted = createIsPermitted({can: accessControl.can});
-    permissions = [
-      isPermitted({[action.access.resource]: [action.access.action]}) as PermissionMethod<unknown>,
-    ];
+    const rbacCheck = isPermitted({
+      [action.access.resource]: [action.access.action],
+    }) as PermissionMethod<unknown>;
+    permissions = [...(action.permissions ?? []), rbacCheck];
   }
   if (!permissions) {
     throw new APIError({status: 500, title: "Action missing permissions configuration"});

@@ -470,7 +470,10 @@ export class AdminApp {
     const resource = `${modelName.charAt(0).toLowerCase()}${modelName.slice(1)}`;
     const knownActions = accessControl.statements[resource];
     if (!knownActions) {
-      return shell;
+      if (action === "list" || action === "read") {
+        return shell;
+      }
+      return [];
     }
     return [...shell, accessControl.permission({[resource]: [action]})];
   }
