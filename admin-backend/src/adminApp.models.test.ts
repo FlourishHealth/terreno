@@ -4,7 +4,11 @@ import {
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  modelRouter,
+  Permissions,
   setupAuth,
+  type TerrenoApp,
+  type TerrenoPlugin,
   type UserModel as UserModelType,
   VersionConfig,
 } from "@terreno/api";
@@ -108,6 +112,62 @@ describe("AdminApp /admin/config", () => {
     expect(foodMeta.routePath).toBe("/admin/foods");
     expect(foodMeta.defaultSort).toBe("-created");
     expect(foodMeta.fieldOrder).toEqual(["name", "calories", "tags"]);
+    expect(res.body.capabilities).toEqual({
+      actions: true,
+      fieldsets: true,
+      filters: true,
+      realtime: false,
+    });
+    expect(res.body.widgetIds).toEqual([]);
+  });
+
+  it("exposes plugin widgetIds and aggregates models from TerrenoApp registrations", async () => {
+    const plugin: TerrenoPlugin = {
+      adminContribution: () => ({
+        homeWidgets: [{displayName: "Overrides", id: "feature-flags-overrides"}],
+        models: [
+          {
+            admin: {displayName: "Flags", listFields: ["key"]},
+            model: FoodModel,
+            routePath: "/feature-flags",
+          },
+        ],
+      }),
+      register() {},
+    };
+    const terrenoApp = {
+      getPlugins: () => [plugin],
+      getRegistrations: () => [
+        modelRouter("/foods", FoodModel, {
+          admin: {displayName: "Registered Foods", listFields: ["name"]},
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        }),
+      ],
+    } as unknown as TerrenoApp;
+
+    const appWithAggregation = getBaseServer();
+    setupAuth(appWithAggregation, UserModel as unknown as UserModelType);
+    addAuthRoutes(appWithAggregation, UserModel as unknown as UserModelType);
+    new AdminApp({basePath: "/admin"}).register(appWithAggregation, undefined, terrenoApp);
+    appWithAggregation.use(apiUnauthorizedMiddleware);
+    appWithAggregation.use(apiErrorMiddleware);
+
+    const agent = await authAsUser(appWithAggregation, "admin");
+    const res = await agent.get("/admin/config").expect(200);
+
+    expect(res.body.widgetIds).toEqual(["feature-flags-overrides"]);
+    expect(res.body.models.map((m: {routePath: string}) => m.routePath).sort()).toEqual([
+      "/admin/feature-flags",
+      "/admin/foods",
+    ]);
+    const foods = res.body.models.find((m: {routePath: string}) => m.routePath === "/admin/foods");
+    expect(foods?.displayName).toBe("Registered Foods");
   });
 
   it("includes recordTitleField in config when set on the model", async () => {

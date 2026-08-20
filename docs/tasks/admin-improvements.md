@@ -67,7 +67,7 @@
   - Files: `api/src/api.ts`, tests  
   - Depends on: 1.0, 1.2, 1.6
 
-- [ ] **Task 1.9**: Wire `scrubAdminFields` into admin response paths (populated refs)  
+- [x] **Task 1.9**: Wire `scrubAdminFields` into admin response paths (populated refs)  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 1.6, 2.2
 
@@ -75,42 +75,42 @@
 
 ## Phase 2 — Admin backend aggregation
 
-- [ ] **Task 2.1**: `legacy.ts` adapter + deprecation warnings  
+- [x] **Task 2.1**: `legacy.ts` adapter + deprecation warnings  
   - Files: `admin-backend/src/legacy.ts`, tests  
   - Depends on: 1.1
 
-- [ ] **Task 2.2**: Aggregate from modelRouter `admin:` + plugins + legacy `models`  
+- [x] **Task 2.2**: Aggregate from modelRouter `admin:` + plugins + legacy `models`  
   - Precedence: registered router > plugin > legacy; throw on duplicate registered `routePath`  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 1.3, 1.4, 2.1
 
-- [ ] **Task 2.3**: Merge `customScreens`, `homeWidgets` → `widgetIds`, plugin `scripts`  
+- [x] **Task 2.3**: Merge `customScreens`, `homeWidgets` → `widgetIds`, plugin `scripts`  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 2.2
 
-- [ ] **Task 2.4**: Add `widgetIds`, `capabilities` to `/admin/config` (additive; v2 fields unchanged)  
+- [x] **Task 2.4**: Add `widgetIds`, `capabilities` to `/admin/config` (additive; v2 fields unchanged)  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 2.2
 
-- [ ] **Task 2.5**: Static `permissions` flags on config (v2 behavior — **no per-user eval**)  
+- [x] **Task 2.5**: Static `permissions` flags on config (v2 behavior — **no per-user eval**)  
   - Verify/document: flags reflect `adminPermissions` config, not runtime user  
   - Files: `admin-backend/src/adminApp.ts` (docs/tests only if already correct)  
   - Depends on: 2.4
 
-- [ ] **Task 2.6**: `filterParser.ts` — strict per-type validation, injection hardening  
+- [x] **Task 2.6**: `filterParser.ts` — strict per-type validation, injection hardening  
   - Accept v2-compatible query shapes (`field`, `field_gte`/`field_lte` for dateRange, etc.)  
   - Files: `admin-backend/src/filterParser.ts`, tests (matrix from original IP)  
   - Depends on: 1.1
 
-- [ ] **Task 2.7**: Wire filterParser + `adminFilter` async + `sortableFields` enforcement  
+- [x] **Task 2.7**: Wire filterParser + `adminFilter` async + `sortableFields` enforcement  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 2.6
 
-- [ ] **Task 2.8**: `routePath` normalization + collision rules  
+- [x] **Task 2.8**: `routePath` normalization + collision rules  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 2.2
 
-- [ ] **Task 2.9**: Export types from `admin-backend/src/index.ts`  
+- [x] **Task 2.9**: Export types from `admin-backend/src/index.ts`  
   - Depends on: 2.2
 
 ---

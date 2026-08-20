@@ -1,0 +1,137 @@
+import {describe, expect, it} from "bun:test";
+import type {AdminConfig, AdminContribution, TerrenoPlugin} from "@terreno/api";
+import {modelRouter, Permissions} from "@terreno/api";
+import {FoodModel} from "@terreno/api/testing";
+
+import type {AdminModelConfig} from "./adminApp";
+import {
+  aggregateAdminContributions,
+  aggregateFromTerrenoApp,
+  collectRegisteredAdminModels,
+} from "./aggregateAdmin";
+import {resetLegacyDeprecationWarningsForTests} from "./legacy";
+import {normalizeAdminRoutePath} from "./routePath";
+
+const foodAdmin: AdminConfig = {
+  displayName: "Foods",
+  listFields: ["name"],
+};
+
+const legacyFood: AdminModelConfig = {
+  displayName: "Legacy Foods",
+  listFields: ["name"],
+  model: FoodModel,
+  routePath: "/foods",
+};
+
+describe("normalizeAdminRoutePath", () => {
+  it("normalizes trailing slashes and missing leading slash", () => {
+    expect(normalizeAdminRoutePath("users/")).toBe("/users");
+    expect(normalizeAdminRoutePath("/users/")).toBe("/users");
+    expect(normalizeAdminRoutePath("users")).toBe("/users");
+  });
+});
+
+describe("aggregateAdminContributions", () => {
+  it("merges legacy, plugin, and registered models with precedence", () => {
+    resetLegacyDeprecationWarningsForTests();
+    const pluginContribution: AdminContribution = {
+      homeWidgets: [{displayName: "Overrides", id: "feature-flags-overrides"}],
+      models: [
+        {
+          admin: {displayName: "Plugin Users", listFields: ["email"]},
+          model: FoodModel,
+          routePath: "/users",
+        },
+      ],
+    };
+
+    const registered = collectRegisteredAdminModels({
+      getPlugins: () => [],
+      getRegistrations: () => [
+        modelRouter("/users", FoodModel, {
+          admin: {displayName: "Registered Users", listFields: ["email"]},
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        }),
+      ],
+    } as never);
+
+    const aggregated = aggregateAdminContributions({
+      legacyModels: [legacyFood],
+      pluginContributions: [pluginContribution],
+      registeredModels: registered,
+    });
+
+    expect(aggregated.models).toHaveLength(2);
+    const users = aggregated.models.find((m) => m.routePath === "/users");
+    expect(users?.source).toBe("registered");
+    expect(users?.displayName).toBe("Registered Users");
+    expect(aggregated.widgetIds).toEqual(["feature-flags-overrides"]);
+  });
+
+  it("throws when two registered routers share a routePath", () => {
+    const registered = collectRegisteredAdminModels({
+      getPlugins: () => [],
+      getRegistrations: () => [
+        modelRouter("/dup", FoodModel, {
+          admin: foodAdmin,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        }),
+        modelRouter("/dup/", FoodModel, {
+          admin: {...foodAdmin, displayName: "Dup 2"},
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        }),
+      ],
+    } as never);
+
+    expect(() =>
+      aggregateAdminContributions({
+        registeredModels: registered,
+      })
+    ).toThrow(/Duplicate admin modelRouter routePath/);
+  });
+});
+
+describe("aggregateFromTerrenoApp", () => {
+  it("collects plugin adminContribution models", () => {
+    const plugin: TerrenoPlugin = {
+      adminContribution: () => ({
+        models: [
+          {
+            admin: {displayName: "Flags", listFields: ["key"]},
+            model: FoodModel,
+            routePath: "/feature-flags",
+          },
+        ],
+      }),
+      register() {},
+    };
+
+    const terrenoApp = {
+      getPlugins: () => [plugin],
+      getRegistrations: () => [],
+    };
+
+    const aggregated = aggregateFromTerrenoApp({terrenoApp: terrenoApp as never});
+    expect(aggregated.models).toHaveLength(1);
+    expect(aggregated.models[0]?.routePath).toBe("/feature-flags");
+  });
+});
