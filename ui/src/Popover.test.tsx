@@ -96,6 +96,20 @@ describe("Popover", () => {
     expect(queryByTestId("popover-retry")).toBeNull();
   });
 
+  it("lets a long title shrink so the close control stays in the card", () => {
+    const {getByTestId} = renderWithTheme(
+      <Popover
+        onClose={jest.fn()}
+        testID="popover"
+        title={"Very long document title ".repeat(20)}
+        width={240}
+      />
+    );
+    expect(getByTestId("popover-header-text").props.style).toEqual(
+      expect.objectContaining({flexGrow: 1, flexShrink: 1, minWidth: 0})
+    );
+  });
+
   it("lets the body fill the card instead of pinning its content height", () => {
     const {getByTestId} = renderWithTheme(
       <Popover
