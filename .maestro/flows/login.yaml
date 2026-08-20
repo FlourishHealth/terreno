@@ -12,7 +12,7 @@ url: http://localhost:8082/login
 
 - tapOn:
     id: "login-screen-email-input"
-- inputText: "admin@example.com"
+- inputText: "test@example.com"
 
 - tapOn:
     id: "login-screen-password-input"
