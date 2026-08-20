@@ -253,7 +253,7 @@ commands:
             EXPO_NO_TELEMETRY: "1"
             # Default ~2GB heap OOMs while bundling on cimg/node-browsers + mongo.
             NODE_OPTIONS: "--max-old-space-size=3072"
-          command: bun expo start --web --non-interactive --port 8082
+          command: bun expo start --web --port 8082
       - run:
           name: Wait for Expo web
           command: |
