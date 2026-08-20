@@ -63,7 +63,7 @@ jobs:
       # TypeScript) that a frozen install won't prune, which broke typedoc's TypeScript
       # resolution. A clean node_modules per run keeps the installed tree deterministic.
       - name: Cache bun download cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache

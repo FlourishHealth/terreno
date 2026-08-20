@@ -16,11 +16,22 @@ interface NavigationDiagnosticsOptions {
   stage: "deep-link-navigation" | "dev-launcher-bootstrap" | "fallback-navigation" | "preflight";
 }
 
+interface IosLoadTimeoutRecoveryOptions {
+  isIos: boolean;
+  reload: () => Promise<void>;
+}
+
 const DEV_LAUNCHER_MARKERS = [
   "development servers",
   "dev launcher",
   "expo-development-client",
   "open from clipboard",
+];
+
+const IOS_LOAD_TIMEOUT_MARKERS = [
+  "there was a problem loading the project",
+  "failed to load app from",
+  "request timed out",
 ];
 
 export const isAndroidDevMenuPageSource = (pageSource: string): boolean => {
@@ -33,6 +44,32 @@ export const isAndroidDevMenuPageSource = (pageSource: string): boolean => {
     normalizedPageSource.includes("go home") &&
     normalizedPageSource.includes("open react native dev menu");
   return hasLegacyMenuMarkers || hasSdk56MenuMarkers;
+};
+
+export const isIosDevClientLoadTimeoutPageSource = (pageSource: string): boolean => {
+  const normalizedPageSource = pageSource.toLowerCase();
+  return IOS_LOAD_TIMEOUT_MARKERS.every((marker) => normalizedPageSource.includes(marker));
+};
+
+export const createIosLoadTimeoutRecovery = ({
+  isIos,
+  reload,
+}: IosLoadTimeoutRecoveryOptions): ((pageSource: string) => Promise<boolean>) => {
+  let didReload = false;
+
+  return async (pageSource: string): Promise<boolean> => {
+    if (!isIos || didReload || !isIosDevClientLoadTimeoutPageSource(pageSource)) {
+      return false;
+    }
+
+    try {
+      await reload();
+      didReload = true;
+      return true;
+    } catch {
+      return false;
+    }
+  };
 };
 
 const isQuickLoop = process.env.APPIUM_QUICK_LOOP === "true";
@@ -48,6 +85,7 @@ const homeItemTimeoutMs = isQuickLoop ? 15000 : 30000;
 const itemInitialTimeoutMs = isQuickLoop ? 6000 : 10000;
 const itemPostScrollTimeoutMs = isQuickLoop ? 15000 : 30000;
 const overlayDismissTimeoutMs = isQuickLoop ? 15000 : 30000;
+const iosDevClientBootstrapTimeoutMs = 120000;
 
 const toDemoHomeTestId = (componentName: string): string =>
   `demo-home-${componentName.toLowerCase().replace(/\s+/g, "-")}`;
@@ -390,13 +428,40 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
     if (driver.isAndroid || !didSelectServer) {
       await openDevClientComponentUrl();
     }
+    const recoverIosLoadTimeout = createIosLoadTimeoutRecovery({
+      isIos: driver.isIOS,
+      reload: async (): Promise<void> => {
+        // CI prewarms the iOS bundle before Appium starts, so Reload uses the
+        // completed bundle after Expo's first native request times out.
+        console.info("Reloading iOS dev client once after project load timeout");
+        const reloadButton = await $("~Reload");
+        await reloadButton.click();
+      },
+    });
     await driver.waitUntil(
       async () => {
-        return !(await isDevLauncherVisible());
+        if (driver.isIOS) {
+          const pageSource = await driver.getPageSource().catch(() => "");
+          const isLoadTimeoutVisible = isIosDevClientLoadTimeoutPageSource(pageSource);
+          const didReloadAfterTimeout = await recoverIosLoadTimeout(pageSource);
+          if (didReloadAfterTimeout || isLoadTimeoutVisible) {
+            return false;
+          }
+        }
+
+        if (!(await isDevLauncherVisible())) {
+          return true;
+        }
+
+        return false;
       },
       {
         interval: 1000,
-        timeout: isQuickLoop ? 45000 : 90000,
+        timeout: driver.isIOS
+          ? iosDevClientBootstrapTimeoutMs
+          : isQuickLoop
+            ? 45000
+            : 90000,
         timeoutMsg: "Dev Launcher remained visible after opening APPIUM_DEV_SERVER_URL",
       }
     );
@@ -467,9 +532,9 @@ const waitForDeepLinkTarget = async (
       // Re-issue the deep link periodically: the first dev-client launch races the
       // Metro bundle load, so an early deep link is dropped before expo-router mounts.
       // Resending is idempotent once the app is interactive.
-      if (Date.now() - lastDeepLinkAt > 4000) {
+      if (DateTime.now().toMillis() - lastDeepLinkAt > 4000) {
         await issueDeepLink();
-        lastDeepLinkAt = Date.now();
+        lastDeepLinkAt = DateTime.now().toMillis();
       }
 
       const element = await $(selector);

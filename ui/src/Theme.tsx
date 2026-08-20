@@ -128,6 +128,8 @@ const defaultTheme: TerrenoThemeConfig = {
   },
   surface: {
     base: "neutral000",
+    baseAlternate: "neutral050",
+    baseHover: "secondary000",
     disabled: "neutral500",
     error: "error200",
     errorLight: "error000",
