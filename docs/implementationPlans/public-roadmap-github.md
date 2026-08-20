@@ -147,7 +147,7 @@ None beyond GitHub's own subscriptions. Announcements category posts should be t
 ## Phases
 
 1. **Discussions** — enable, create categories, seed each with a pinned intro post, add the RFC template.
-2. **Project board** — create the Project, fields, and views; backfill items from `PLAN_INDEX.md` and the IPs in this program.
+2. **Project board** — create the Project, fields, and views; backfill items from the IPs in this program.
 3. **Labels and triage** — create the label set, delete unused defaults, add `triage.yml`.
 4. **Roadmap generation** — `ROADMAP.md` + `roadmap-generate.yml`, link from README and docs site.
 5. **Linear bridge** — configure the integration, document the process in `CONTRIBUTING.md`, and record the rules in a maintainer doc.
@@ -195,7 +195,7 @@ See [`docs/tasks/public-roadmap-github.md`](../tasks/public-roadmap-github.md).
 
 - [ ] All seven Discussion categories exist with the specified formats and a pinned intro post each.
 - [ ] The **Terreno Roadmap** Project exists with the six fields and four views described above.
-- [ ] Every IP in `docs/implementationPlans/PLAN_INDEX.md` marked Approved or later has a tracking issue on the board with its `IP` field set to the IP slug.
+- [ ] Every IP whose `**Status:**` header is Approved or later has a tracking issue on the board with its `IP` field set to the IP slug.
 - [ ] The label set matches the taxonomy table; no unused GitHub default labels remain.
 - [ ] `bun run scripts/generate-roadmap.ts` produces `ROADMAP.md` grouped by `Target` then `Area`, and `roadmap-generate.yml` commits it only when changed.
 - [ ] Opening a new issue applies `status:needs-triage` and the correct `area:*` label automatically.
