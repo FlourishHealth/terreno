@@ -11,7 +11,11 @@ import {
   handleRead,
   handleUpdate,
 } from "./handlers";
-import {generateInputSchema, generateToolDescription} from "./schemaGenerator";
+import {
+  generateInputSchema,
+  generateToolDescription,
+  restWriteExcludeFields,
+} from "./schemaGenerator";
 import type {
   MCPMethod,
   MCPRegistryEntry,
@@ -136,12 +140,14 @@ export const generateToolsForEntry = (entry: MCPRegistryEntry): MCPToolDefinitio
       continue;
     }
 
+    const restExcludeFields = restWriteExcludeFields(method, entry.options.validation);
     const zodSchema = generateInputSchema(
       entry.model,
       method,
       entry.config,
       entry.options.queryFields,
-      entry.options.populatePaths
+      entry.options.populatePaths,
+      restExcludeFields
     );
 
     const inputSchema = toJSONSchema(zodSchema);
@@ -155,7 +161,8 @@ export const generateToolsForEntry = (entry: MCPRegistryEntry): MCPToolDefinitio
         method,
         entry.config,
         entry.options.queryFields,
-        entry.options.populatePaths
+        entry.options.populatePaths,
+        restExcludeFields
       ),
       handler: (args: MCPToolArgs, user?: User) =>
         executeTool({args, entry, handler, method, toolName, user}),

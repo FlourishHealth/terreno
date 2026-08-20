@@ -73,6 +73,13 @@ describe("generateInputSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("excludes REST excludeFromCreate fields from the create schema", () => {
+    const schema = generateInputSchema(model, "create", config, undefined, undefined, ["ownerId"]);
+    const jsonSchema = z.toJSONSchema(schema) as JSONSchemaWithProperties;
+    expect(jsonSchema.properties?.ownerId).toBeUndefined();
+    expect(jsonSchema.properties?.name).toBeDefined();
+  });
+
   it("excludes fields when excludeFields is set", () => {
     const configWithExcludes: MCPConfig = {excludeFields: ["secretField"]};
     const schema = generateInputSchema(model, "create", configWithExcludes);
@@ -115,6 +122,12 @@ describe("generateToolDescription", () => {
   it("includes enum values in create description", () => {
     const desc = generateToolDescription(model, "create", {});
     expect(desc).toContain("status (enum: active|inactive)");
+  });
+
+  it("omits REST excludeFromCreate fields from the create description", () => {
+    const desc = generateToolDescription(model, "create", {}, undefined, undefined, ["ownerId"]);
+    expect(desc).toContain("Create");
+    expect(desc).not.toContain("ownerId");
   });
 
   it("includes ref model name in create description", () => {

@@ -91,6 +91,31 @@ const isFieldExcluded = (fieldPath: string, excludeFields: string[]): boolean =>
   });
 };
 
+/**
+ * REST write denylist from `validation.excludeFromCreate` / `excludeFromUpdate`.
+ * MCP create/update must apply the same keys REST strips in `validateModelRequestBody`.
+ */
+export const restWriteExcludeFields = (method: MCPMethod, validation: unknown): string[] => {
+  if (typeof validation !== "object" || validation === null) {
+    return [];
+  }
+  const options = validation as {
+    excludeFromCreate?: string[];
+    excludeFromUpdate?: string[];
+  };
+  if (method === "create") {
+    return options.excludeFromCreate ?? [];
+  }
+  if (method === "update") {
+    return options.excludeFromUpdate ?? [];
+  }
+  return [];
+};
+
+const writeExcludeFields = (config: MCPConfig, restExcludeFields: string[]): string[] => {
+  return [...(config.excludeFields ?? []), ...restExcludeFields];
+};
+
 const getModelFields = (
   // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
@@ -127,9 +152,10 @@ export const generateInputSchema = (
   method: MCPMethod,
   config: MCPConfig,
   queryFields?: string[],
-  populatePaths?: PopulatePath[]
+  populatePaths?: PopulatePath[],
+  restExcludeFields: string[] = []
 ): ZodType => {
-  const excludeFields = config.excludeFields ?? [];
+  const excludeFields = writeExcludeFields(config, restExcludeFields);
   const populatable = (populatePaths ?? []).map((populatePath) => populatePath.path);
   // Only the model router's declared paths can be populated, so omit the parameter
   // entirely when there are none rather than inviting a request that must be refused.
@@ -261,7 +287,8 @@ export const generateToolDescription = (
   method: MCPMethod,
   config: MCPConfig,
   queryFields?: string[],
-  populatePaths?: PopulatePath[]
+  populatePaths?: PopulatePath[],
+  restExcludeFields: string[] = []
 ): string => {
   if (config.description) {
     const methodPrefix = `${method.charAt(0).toUpperCase()}${method.slice(1)}`;
@@ -269,7 +296,7 @@ export const generateToolDescription = (
   }
 
   const modelName = model.modelName;
-  const excludeFields = config.excludeFields ?? [];
+  const excludeFields = writeExcludeFields(config, restExcludeFields);
   const maxLimit = config.maxLimit ?? 50;
 
   switch (method) {

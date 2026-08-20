@@ -3,6 +3,7 @@ import type express from "express";
 import mongoose, {Schema} from "mongoose";
 
 import type {User} from "../auth";
+import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
 import {handleCreate, handleDelete, handleList, handleRead, handleUpdate} from "./handlers";
 import {clearMCPRegistry, registerMCPModel} from "./registry";
@@ -129,6 +130,26 @@ describe("MCP Integration", () => {
       expect(parsed.error).toBeDefined();
       expect(parsed.error).toContain("Permission denied");
     });
+
+    it("strips REST excludeFromCreate fields before persist", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          preCreate: undefined,
+          validation: {excludeFromCreate: ["ownerId"]},
+        },
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {ownerId: otherUser._id.toString(), title: "No owner hijack"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("No owner hijack");
+      expect(parsed.data.ownerId).toBeUndefined();
+    });
   });
 
   describe("handleList", () => {
@@ -146,6 +167,23 @@ describe("MCP Integration", () => {
 
       expect(parsed.data).toHaveLength(2);
       expect(parsed.total).toBe(2);
+    });
+
+    it("returns a structured error when queryFilter throws", async () => {
+      const throwingEntry: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          queryFilter: async () => {
+            throw new APIError({status: 400, title: "Invalid list filter"});
+          },
+        },
+      };
+      const result = await handleList(throwingEntry, {}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(result.isError).toBe(true);
+      expect(parsed.error).toBe("Invalid list filter");
     });
 
     it("admin can see all via query filter (returns admin's own items)", async () => {
@@ -293,6 +331,14 @@ describe("MCP Integration", () => {
       expect(parsed.error).toBeDefined();
       expect(parsed.error).toContain("not found");
     });
+
+    it("returns not found for a non-ObjectId id without throwing", async () => {
+      const result = await handleRead(entry, {id: "not-an-object-id"}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(result.isError).toBe(true);
+      expect(parsed.error).toContain("not found");
+    });
   });
 
   describe("handleUpdate", () => {
@@ -332,6 +378,38 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.title).toBe("Admin updated");
     });
+
+    it("returns not found for a non-ObjectId id without throwing", async () => {
+      const result = await handleUpdate(
+        entry,
+        {id: "not-an-object-id", title: "Nope"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(result.isError).toBe(true);
+      expect(parsed.error).toContain("not found");
+    });
+
+    it("strips REST excludeFromUpdate fields before persist", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Keep owner"});
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        options: {
+          ...entry.options,
+          validation: {excludeFromUpdate: ["ownerId"]},
+        },
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {id: doc._id.toString(), ownerId: otherUser._id.toString(), title: "Still mine"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Still mine");
+      expect(String(parsed.data.ownerId)).toBe(normalUser.id);
+    });
   });
 
   describe("handleDelete", () => {
@@ -345,6 +423,14 @@ describe("MCP Integration", () => {
       // Verify deleted
       const found = await TodoModel.findById(doc._id);
       expect(found).toBeNull();
+    });
+
+    it("returns not found for a non-ObjectId id without throwing", async () => {
+      const result = await handleDelete(entry, {id: "not-an-object-id"}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(result.isError).toBe(true);
+      expect(parsed.error).toContain("not found");
     });
 
     it("denies delete by non-owner", async () => {

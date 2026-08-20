@@ -36,6 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
 
+### Fixed
+
+- MCP create/update apply REST `validation.excludeFromCreate` /
+  `excludeFromUpdate` as a write denylist, matching HTTP body validation
+- MCP read/update/delete return a structured not-found error for invalid
+  ObjectIds instead of crashing on Mongoose `CastError`
+- MCP list returns a structured error when `queryFilter` throws, matching REST
+  400 handling
+
 ## [57.0.0] - 2026-08-20
 
 First stable release of the Expo SDK 57 line, cut from `master` after

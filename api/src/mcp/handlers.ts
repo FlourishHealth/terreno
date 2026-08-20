@@ -2,10 +2,13 @@ import type express from "express";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
 import type {User} from "../auth";
+import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
+import {isValidObjectId} from "../utils";
 import {buildListQuery} from "./query";
+import {restWriteExcludeFields} from "./schemaGenerator";
 import type {
   MCPDocument,
   MCPMethod,
@@ -159,6 +162,26 @@ const asOptionalString = (value: unknown): string | undefined => {
   return typeof value === "string" ? value : undefined;
 };
 
+/** Invalid or non-ObjectId IDs must not reach Mongoose findById (CastError). */
+const invalidDocumentIdResult = (id: unknown): MCPToolResult | undefined => {
+  const idStr = asOptionalString(id);
+  if (!idStr || !isValidObjectId(idStr)) {
+    return errorResult(`Document ${id} not found`);
+  }
+  return undefined;
+};
+
+const omitDeniedWriteFields = (body: MCPToolArgs, denied: string[]): MCPToolArgs => {
+  if (denied.length === 0) {
+    return body;
+  }
+  const next: MCPToolArgs = {...body};
+  for (const field of denied) {
+    delete next[field];
+  }
+  return next;
+};
+
 /** Mongoose's populated query result types don't narrow to a single document. */
 const asDocument = (result: unknown): MCPDocument | null => {
   return (result ?? null) as MCPDocument | null;
@@ -248,11 +271,18 @@ export const handleList = async (
 
   // Apply query filter
   if (options.queryFilter) {
-    const filtered = await options.queryFilter(user, query);
-    if (filtered === null) {
-      return textResult(JSON.stringify({data: [], more: false, page: 1, total: 0}));
+    try {
+      const filtered = await options.queryFilter(user, query);
+      if (filtered === null) {
+        return textResult(JSON.stringify({data: [], more: false, page: 1, total: 0}));
+      }
+      query = {...query, ...filtered};
+    } catch (error) {
+      if (isAPIError(error)) {
+        return errorResult(error.title, error);
+      }
+      return errorResult(`queryFilter failed: ${errorMessage(error)}`, error);
     }
-    query = {...query, ...filtered};
   }
 
   // Pagination
@@ -314,6 +344,10 @@ export const handleRead = async (
   if (populateError || !populatePaths) {
     return errorResult(populateError ?? "Could not resolve populate paths");
   }
+  const invalidId = invalidDocumentIdResult(args.id);
+  if (invalidId) {
+    return invalidId;
+  }
   const populatedQuery = addPopulateToQuery(model.findById(args.id), populatePaths);
   const data = await populatedQuery.exec();
 
@@ -345,9 +379,12 @@ export const handleCreate = async (
     return errorResult("Permission denied: cannot create");
   }
 
-  let body: MCPToolArgs | null;
+  let body: MCPToolArgs | null = omitDeniedWriteFields(
+    args,
+    restWriteExcludeFields("create", options.validation)
+  );
   try {
-    body = transform(options, args, "create", user) as MCPToolArgs;
+    body = transform(options, body, "create", user) as MCPToolArgs;
   } catch (error) {
     return errorResult(`Transform failed: ${errorMessage(error)}`, error);
   }
@@ -403,6 +440,11 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update");
   }
 
+  const invalidId = invalidDocumentIdResult(id);
+  if (invalidId) {
+    return invalidId;
+  }
+
   const builtQuery = addPopulateToQuery(model.findById(id), options.populatePaths);
   let doc = asDocument(await builtQuery.exec());
 
@@ -414,9 +456,12 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update this document");
   }
 
-  let body: MCPToolArgs | null;
+  let body: MCPToolArgs | null = omitDeniedWriteFields(
+    updateFields,
+    restWriteExcludeFields("update", options.validation)
+  );
   try {
-    body = transform(options, updateFields, "update", user) as MCPToolArgs;
+    body = transform(options, body, "update", user) as MCPToolArgs;
   } catch (error) {
     return errorResult(`Transform failed: ${errorMessage(error)}`, error);
   }
@@ -472,6 +517,11 @@ export const handleDelete = async (
 
   if (!(await checkPermissions("delete", options.permissions.delete, user))) {
     return errorResult("Permission denied: cannot delete");
+  }
+
+  const invalidId = invalidDocumentIdResult(id);
+  if (invalidId) {
+    return invalidId;
   }
 
   // Populate before the object-level permission check so custom permissions can inspect
