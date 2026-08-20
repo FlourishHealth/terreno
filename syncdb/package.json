@@ -2,7 +2,7 @@
   "dependencies": {
     "luxon": "catalog:",
     "socket.io-client": "catalog:",
-    "tinybase": "^8.5.0"
+    "tinybase": "^9.5.1"
   },
   "description": "Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence",
   "devDependencies": {
