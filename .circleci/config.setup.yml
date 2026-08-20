@@ -97,6 +97,9 @@ workflows:
             scripts/no-barrel-imports/.* run-repo-policies true
             scripts/check-explicit-any/.* run-repo-policies true
             scripts/check-license-coverage/.* run-repo-policies true
+            scripts/changelog/.* run-repo-policies true
+            changelog/.* run-repo-policies true
+            CHANGELOG.md run-repo-policies true
             docs/explanation/no-barrel-imports\.md run-repo-policies true
             docs/explanation/explicit-any-policy\.md run-repo-policies true
             example-frontend/app/.* run-e2e true

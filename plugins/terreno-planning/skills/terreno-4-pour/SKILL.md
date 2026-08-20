@@ -42,7 +42,7 @@ Stop and fix before committing if checks fail.
 - Commit with clear message.
 - No AI attribution/co-author text.
 - **DCO:** use `git commit -s` on every commit (see [CONTRIBUTING.md](../../CONTRIBUTING.md); enforced on external forks via `.github/workflows/dco.yml`).
-- **Changelog:** add user-facing bullets to `CHANGELOG.md` `## [Unreleased]` before opening the PR when the change is user-visible.
+- **Changelog:** add `changelog/unreleased/<feature>.md` with a YAML `category` header before opening the PR when the change is user-visible. Do not edit `CHANGELOG.md`.
 
 ### 3) Push branch
 

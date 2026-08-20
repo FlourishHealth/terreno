@@ -194,7 +194,7 @@ Do **not** commit here. `/submit` (next step) handles pre-commit checks, staging
 
 Invoke the `/submit` skill to handle pre-commit checks, commit (`git commit -s` for DCO), push, and PR updates. This will also launch the CI check-watcher in the background. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
 
-If the fix is user-facing, update `CHANGELOG.md` `## [Unreleased]` before or as part of the submit step.
+If the fix is user-facing, add or update `changelog/unreleased/<feature>.md` before or as part of the submit step. Do not edit `CHANGELOG.md`.
 
 ## Step 8: Resolve Addressed Threads
 
