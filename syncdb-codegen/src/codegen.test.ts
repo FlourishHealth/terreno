@@ -180,6 +180,87 @@ describe("emitSdk", () => {
     expect(output).toContain("retries: false");
   });
 
+  it("fails closed when a collection name is not a TypeScript identifier", () => {
+    const doc: OpenApiDocument = {
+      openapi: "3.0.0",
+      paths: {
+        "/todos": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {
+                        data: {
+                          items: {
+                            properties: {_id: {type: "string"}},
+                            required: ["_id"],
+                            type: "object",
+                          },
+                          type: "array",
+                        },
+                      },
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+            "x-terreno-sync": {
+              collection: 'todos"; process.exit(1); //',
+              scope: "owner",
+            },
+          },
+        },
+      },
+    };
+
+    expect(() => discoverCollections({doc})).toThrow(/not a TypeScript identifier/);
+  });
+
+  it("quotes non-identifier property keys instead of interpolating them raw", () => {
+    const doc: OpenApiDocument = {
+      openapi: "3.0.0",
+      paths: {
+        "/todos": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {
+                        data: {
+                          items: {
+                            properties: {
+                              _id: {type: "string"},
+                              'title"; evil': {type: "string"},
+                            },
+                            required: ["_id"],
+                            type: "object",
+                          },
+                          type: "array",
+                        },
+                      },
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+            "x-terreno-sync": {collection: "todos", scope: "owner"},
+          },
+        },
+      },
+    };
+
+    const collections = discoverCollections({doc});
+    const output = emitSdk({collections, doc});
+    expect(output).toContain('"title\\"; evil"?: string');
+    expect(output).not.toContain('title"; evil?:');
+  });
+
   it("matches snapshot for fixture spec", async () => {
     const doc = await loadSpec(fixturePath);
     const collections = discoverCollections({doc});

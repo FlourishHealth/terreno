@@ -1,3 +1,4 @@
+import {assertTsIdentifier, emitTsPropertyKey} from "./safeIdentifiers";
 import type {OpenApiDocument, OpenApiSchema} from "./types";
 
 const refName = (ref: string): string => {
@@ -28,7 +29,7 @@ const schemaToTs = (schema: OpenApiSchema, doc: OpenApiDocument, stack: Set<stri
   const resolved = resolveSchema(schema, doc, stack);
 
   if (resolved.$ref) {
-    return refName(resolved.$ref);
+    return assertTsIdentifier({label: "schema $ref", value: refName(resolved.$ref)});
   }
 
   if (resolved.enum && resolved.enum.length > 0) {
@@ -58,7 +59,7 @@ const schemaToTs = (schema: OpenApiSchema, doc: OpenApiDocument, stack: Set<stri
       const required = new Set(resolved.required ?? []);
       const lines = Object.entries(resolved.properties).map(([key, value]) => {
         const optional = required.has(key) ? "" : "?";
-        return `  ${key}${optional}: ${schemaToTs(value, doc, stack)};`;
+        return `  ${emitTsPropertyKey(key)}${optional}: ${schemaToTs(value, doc, stack)};`;
       });
       return `{\n${lines.join("\n")}\n}`;
     }
@@ -72,18 +73,22 @@ export const emitInterface = (
   schema: OpenApiSchema,
   doc: OpenApiDocument
 ): string => {
+  const typeName = assertTsIdentifier({label: "type name", value: name});
   const resolved = resolveSchema(schema, doc, new Set());
   if (!resolved.properties) {
-    return `export type ${name} = ${schemaToTs(resolved, doc, new Set())};`;
+    return `export type ${typeName} = ${schemaToTs(resolved, doc, new Set())};`;
   }
 
   const required = new Set(resolved.required ?? []);
   const lines = Object.entries(resolved.properties).map(([key, value]) => {
     const optional = required.has(key) ? "" : "?";
-    return `  ${key}${optional}: ${schemaToTs(value, doc, new Set())};`;
+    return `  ${emitTsPropertyKey(key)}${optional}: ${schemaToTs(value, doc, new Set())};`;
   });
-  return `export interface ${name} {\n${lines.join("\n")}\n}`;
+  return `export interface ${typeName} {\n${lines.join("\n")}\n}`;
 };
 
-export const emitPartialType = (name: string, baseName: string): string =>
-  `export type ${name} = Partial<${baseName}>;`;
+export const emitPartialType = (name: string, baseName: string): string => {
+  const typeName = assertTsIdentifier({label: "type name", value: name});
+  const baseTypeName = assertTsIdentifier({label: "type name", value: baseName});
+  return `export type ${typeName} = Partial<${baseTypeName}>;`;
+};

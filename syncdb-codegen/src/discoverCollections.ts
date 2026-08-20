@@ -1,4 +1,5 @@
 import {toPascalCase} from "./deriveHookNames";
+import {assertTsIdentifier} from "./safeIdentifiers";
 import type {
   CodegenConfigFile,
   DiscoveredCollection,
@@ -30,7 +31,7 @@ const resolveNamedSchema = (
     return undefined;
   }
   if (schema.$ref) {
-    const name = refName(schema.$ref);
+    const name = assertTsIdentifier({label: "schema $ref", value: refName(schema.$ref)});
     const resolved = doc.components?.schemas?.[name];
     if (!resolved) {
       throw new Error(`Unresolved schema reference: ${schema.$ref}`);
@@ -81,12 +82,13 @@ const buildCollection = (
   listPath: string,
   scope: string
 ): DiscoveredCollection => {
-  const entityFallback = deriveEntityName(collection);
+  const collectionName = assertTsIdentifier({label: "collection", value: collection});
+  const entityFallback = deriveEntityName(collectionName);
   const listItem = getListItemSchema(doc.paths[listPath]?.get ?? doc.paths[`${listPath}/`]?.get);
   const entity = resolveNamedSchema(listItem, doc, entityFallback);
   if (!entity) {
     throw new Error(
-      `List operation for "${collection}" is missing an inline or $ref item schema at ${listPath}`
+      `List operation for "${collectionName}" is missing an inline or $ref item schema at ${listPath}`
     );
   }
 
@@ -100,11 +102,11 @@ const buildCollection = (
   const update = resolveNamedSchema(getPatchBodySchema(doc, listPath), doc, updateFallback);
 
   return {
-    collection,
+    collection: collectionName,
     createSchema: create?.schema,
     createSchemaName: create?.name,
     entitySchema: entity.schema,
-    entitySchemaName: entity.name,
+    entitySchemaName: assertTsIdentifier({label: "entity schema name", value: entity.name}),
     listPath: normalizePath(listPath),
     scope,
     updateSchema: update?.schema,

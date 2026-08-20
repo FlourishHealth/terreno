@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   row so `retries: false` stays fail-fast after keepMine.
 - Example todos Sync Lab panel starts collapsed so the first list row stays
   above the tab bar on short web viewports.
+- `@terreno/syncdb-codegen` rejects non-identifier collection/type names and
+  JSON-escapes generated strings so a remote OpenAPI document cannot inject
+  TypeScript.
 
 ### Deprecated
 

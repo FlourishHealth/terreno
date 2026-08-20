@@ -1,6 +1,7 @@
 import {deriveFriendlyHookNames} from "./deriveHookNames";
 import {deriveCreateBodyName, deriveUpdateBodyName} from "./discoverCollections";
 import {emitInterface, emitPartialType} from "./emitTypes";
+import {assertTsIdentifier, emitTsString} from "./safeIdentifiers";
 import type {CodegenConfigFile, DiscoveredCollection, OpenApiDocument} from "./types";
 
 const GENERATED_HEADER =
@@ -14,22 +15,44 @@ const formatRetries = (retries: boolean | number | undefined): string => {
   if (typeof retries === "boolean") {
     return `, retries: ${retries}`;
   }
-  return `, retries: ${retries}`;
+  if (typeof retries === "number" && Number.isFinite(retries)) {
+    return `, retries: ${retries}`;
+  }
+  throw new Error(`Invalid retries override: ${JSON.stringify(retries)}`);
 };
 
 const emitCollectionBlock = (collection: DiscoveredCollection): string => {
-  const createBodyName = deriveCreateBodyName(collection.entitySchemaName);
-  const updateBodyName = deriveUpdateBodyName(collection.entitySchemaName);
-  const hooks = deriveFriendlyHookNames(collection.entitySchemaName, collection.collection);
+  const entitySchemaName = assertTsIdentifier({
+    label: "entity schema name",
+    value: collection.entitySchemaName,
+  });
+  const createBodyName = assertTsIdentifier({
+    label: "create body name",
+    value: deriveCreateBodyName(entitySchemaName),
+  });
+  const updateBodyName = assertTsIdentifier({
+    label: "update body name",
+    value: deriveUpdateBodyName(entitySchemaName),
+  });
+  const collectionName = assertTsIdentifier({
+    label: "collection",
+    value: collection.collection,
+  });
+  const hooks = deriveFriendlyHookNames(entitySchemaName, collectionName);
+  const list = assertTsIdentifier({label: "hook name", value: hooks.list});
+  const read = assertTsIdentifier({label: "hook name", value: hooks.read});
+  const create = assertTsIdentifier({label: "hook name", value: hooks.create});
+  const update = assertTsIdentifier({label: "hook name", value: hooks.update});
+  const deleteHook = assertTsIdentifier({label: "hook name", value: hooks.delete});
   const retries = formatRetries(collection.retries);
 
   return `export const {
-  useListQuery: ${hooks.list},
-  useReadQuery: ${hooks.read},
-  useCreateMutation: ${hooks.create},
-  useUpdateMutation: ${hooks.update},
-  useDeleteMutation: ${hooks.delete},
-} = createCollectionHooks<${collection.entitySchemaName}, ${createBodyName}, ${updateBodyName}>({collection: "${collection.collection}"${retries}});`;
+  useListQuery: ${list},
+  useReadQuery: ${read},
+  useCreateMutation: ${create},
+  useUpdateMutation: ${update},
+  useDeleteMutation: ${deleteHook},
+} = createCollectionHooks<${entitySchemaName}, ${createBodyName}, ${updateBodyName}>({collection: ${emitTsString(collectionName)}${retries}});`;
 };
 
 export const emitSdk = ({
@@ -59,12 +82,12 @@ export const emitSdk = ({
   }
 
   const uniqueTypes = [...new Set(typeLines)];
-  const collectionNames = collections.map((entry) => `"${entry.collection}"`).join(", ");
+  const collectionNames = collections.map((entry) => emitTsString(entry.collection)).join(", ");
   const blocks = collections.map(emitCollectionBlock).join("\n\n");
 
   return [
     GENERATED_HEADER,
-    `import {createCollectionHooks} from "${sdkImportPath}";`,
+    `import {createCollectionHooks} from ${emitTsString(sdkImportPath)};`,
     "",
     ...uniqueTypes,
     "",
