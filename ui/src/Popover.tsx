@@ -146,7 +146,7 @@ export const Popover: FC<PopoverProps> = ({
         paddingX={4}
         paddingY={4}
       >
-        <Box flex="grow">
+        <Box flex="grow" minWidth={0}>
           {status === "loaded" ? (
             <>
               {Boolean(title) && (
