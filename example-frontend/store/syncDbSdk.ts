@@ -7,21 +7,44 @@ import {createCollectionHooks} from "@terreno/syncdb/react";
 
 export interface Todo {
   _id: string;
-  title: string;
-  completed: boolean;
+  completed?: boolean;
   ownerId: string;
-  created: string;
+  priority?: "low" | "medium" | "high";
+  tags?: string[];
+  title: string;
   updated: string;
+  created: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
 }
 
 export interface CreateTodoBody {
-  title: string;
+  _id?: string;
   completed?: boolean;
+  ownerId?: string;
+  priority?: "low" | "medium" | "high";
+  tags?: string[];
+  title?: string;
+  updated?: string;
+  created?: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
 }
 
 export interface UpdateTodoBody {
-  title?: string;
+  _id?: string;
   completed?: boolean;
+  ownerId?: string;
+  priority?: "low" | "medium" | "high";
+  tags?: string[];
+  title?: string;
+  updated?: string;
+  created?: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
 }
 
 /** Collections with sync enabled on the backend; pass to createSyncDb. */
