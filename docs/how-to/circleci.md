@@ -111,10 +111,12 @@ its CircleCI parameter — otherwise the twin silently never runs. It runs as th
 
 ## Config-only changes
 
-`.circleci/config.yml` / `continue-config.yml` edits set `run-circleci-config`,
-which runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
-`no-barrel-imports`, `e2e` spec `login`) so config changes are actually exercised
-instead of only hitting the always-on smoke jobs.
+`.circleci/config.yml` / `continue-config.yml` / `example-frontend-playwright.config.ts`
+edits set `run-circleci-config`, which runs a representative slice (`api-ci`, `ui-ci`,
+`example-backend-ci`, `no-barrel-imports`, `e2e` spec `login`) so config changes are
+actually exercised instead of only hitting the always-on smoke jobs. CircleCI e2e
+pre-starts Expo web and reuses it (60s test timeout, `xlarge` executor) because the
+GHA `ubuntu-latest` Metro + Chromium mix OOMs/crashes on the Docker browser image.
 
 ## Nightly load test
 

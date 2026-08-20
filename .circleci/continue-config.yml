@@ -245,19 +245,49 @@ commands:
           working_directory: ~/project/example-frontend
           command: bunx playwright install --with-deps chromium
       - run:
+          name: Start Expo web
+          working_directory: ~/project/example-frontend
+          background: true
+          environment:
+            CI: "true"
+            EXPO_NO_TELEMETRY: "1"
+          command: bun expo start --web --port 8082
+      - run:
+          name: Wait for Expo web
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 90); do
+              if curl -sf --max-time 2 -o /dev/null http://localhost:8082; then
+                echo "expo web accepted HTTP after ${i} attempts"
+                # First bundle compile often finishes after the port is open.
+                sleep 15
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "expo web failed to become ready"
+            exit 1
+      - run:
           name: Playwright << parameters.spec >>
           working_directory: ~/project/example-frontend
+          no_output_timeout: 20m
           environment:
             AUTH_PROVIDER: better-auth
             BETTER_AUTH_URL: http://localhost:4000
             CI: "true"
+            EXPO_NO_TELEMETRY: "1"
             MONGO_URI: "mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0"
+            NODE_OPTIONS: "--max-old-space-size=8192"
             TOKEN_ISSUER: terreno-e2e
           command: |
             set -euo pipefail
             # shellcheck disable=SC1090
             source "$BASH_ENV"
-            bunx playwright test --reporter=list --reporter=html "auth.setup.ts" "<< parameters.spec >>.spec.ts"
+            bunx playwright test \
+              --config ../.circleci/example-frontend-playwright.config.ts \
+              --reporter=list \
+              --reporter=html \
+              "<< parameters.spec >>.spec.ts"
       - store_artifacts:
           path: example-frontend/playwright-report
           destination: playwright-report-<< parameters.spec >>
@@ -738,6 +768,7 @@ jobs:
 
   e2e:
     executor: node22_browsers_mongo_rs
+    resource_class: xlarge
     parameters:
       spec:
         type: string
@@ -751,6 +782,7 @@ jobs:
   # (mirrors GHA e2e-load-nightly).
   e2e-load:
     executor: node22_browsers_mongo_rs
+    resource_class: xlarge
     steps:
       - checkout
       - install_bun_and_deps
