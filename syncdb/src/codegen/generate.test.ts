@@ -65,7 +65,7 @@ describe("discoverCollections", () => {
 
   it("filters with --collections", async () => {
     const spec = await loadSpec(fixturePath);
-    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/matched/);
+    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/No OpenAPI path/);
   });
 
   it("errors when the spec has no extensions and no --collections", () => {
@@ -94,35 +94,57 @@ describe("discoverCollections", () => {
     ).toThrow(/No OpenAPI path for collection "notes"/);
   });
 
-  it("errors when the list 200 schema has no data.items", () => {
-    expect(() =>
-      discoverCollections({
-        spec: {
-          paths: {
-            "/todos": {
-              get: {
-                responses: {
-                  "200": {
-                    content: {
-                      "application/json": {
-                        schema: {
-                          properties: {
-                            data: {type: "object"},
-                            page: {type: "number"},
-                          },
-                          type: "object",
-                        },
-                      },
+  it("does not fail on a broken sibling collection when --collections allowlists a valid one", () => {
+    const spec = {
+      paths: {
+        "/notes": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {page: {type: "number"}},
+                      type: "object",
                     },
                   },
                 },
-                "x-terreno-sync": {collection: "todos", scope: "owner"},
               },
             },
+            "x-terreno-sync": {collection: "notes", scope: "owner"},
           },
         },
-      })
-    ).toThrow(/data.items schema/);
+        "/todos": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {
+                        data: {
+                          items: {
+                            properties: {title: {type: "string"}},
+                            type: "object",
+                          },
+                          type: "array",
+                        },
+                      },
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+            "x-terreno-sync": {collection: "todos", scope: "owner"},
+          },
+        },
+      },
+    };
+    expect(() => discoverCollections({spec})).toThrow(/data.items schema/);
+    const discovered = discoverCollections({collections: ["todos"], spec});
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]?.collection).toBe("todos");
   });
 });
 
