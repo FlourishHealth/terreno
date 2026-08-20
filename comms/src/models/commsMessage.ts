@@ -166,6 +166,7 @@ commsMessageSchema.statics = {
         logger.warn("[comms] Failed to append communication attempt");
         return null;
       }
+      await this.clearExpiredPayloads();
       message.attempts = [...(message.attempts ?? []), params.attempt];
       message.attemptCount = message.attempts.length;
       message.lastAttemptAt = params.attempt.at;
@@ -207,6 +208,7 @@ commsMessageSchema.statics = {
     params: LogSendParams
   ): Promise<CommsMessageDocument | null> {
     try {
+      await this.clearExpiredPayloads();
       return await this.create(params);
     } catch {
       logger.warn("[comms] Failed to record communication send");

@@ -811,4 +811,218 @@ describe("CommsService", () => {
     assert.isTrue((await PushToken.findExactlyOne({_id: retryToken._id})).active);
     assert.isFalse((await PushToken.findExactlyOne({_id: dead._id})).active);
   });
+
+  it("lets beforeSend mutate a message and cancel without calling the provider", async (): Promise<void> => {
+    let sendCalls = 0;
+    const service = new CommsService({
+      beforeSend: async (context) => {
+        if (context.channel === "sms") {
+          return {cancel: true};
+        }
+        return {
+          message: {
+            subject: "Mutated",
+            to: "person@example.com",
+          },
+        };
+      },
+      mail: {
+        id: "hook-mail",
+        sendMail: async (message: MailMessage): Promise<SendResult> => {
+          sendCalls += 1;
+          return {accepted: true, providerMessageId: message.subject};
+        },
+      },
+      sms: {
+        id: "hook-sms",
+        sendSms: async (): Promise<SendResult> => {
+          sendCalls += 1;
+          return {accepted: true};
+        },
+      },
+    });
+
+    const mailResult = await service.sendMail({subject: "Original", to: "person@example.com"});
+    const smsResult = await service.sendSms({body: "Hello", to: "+15555550100"});
+
+    assert.isTrue(mailResult.accepted);
+    assert.equal(mailResult.providerMessageId, "Mutated");
+    assert.isFalse(smsResult.accepted);
+    assert.equal(sendCalls, 1);
+    assert.equal(await CommsMessage.countDocuments({channel: "sms", status: "cancelled"}), 1);
+    assert.equal(await CommsMessage.countDocuments({channel: "mail", status: "sent"}), 1);
+  });
+
+  it("ignores a throwing beforeSend and still sends", async (): Promise<void> => {
+    const service = new CommsService({
+      beforeSend: async (): Promise<never> => {
+        throw new Error("beforeSend boom");
+      },
+      mail: {
+        id: "hook-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true, providerMessageId: "ok"}),
+      },
+    });
+
+    const result = await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    assert.isTrue(result.accepted);
+    assert.equal(await CommsMessage.countDocuments({status: "sent"}), 1);
+  });
+
+  it("does not change the send outcome when outcome hooks throw", async (): Promise<void> => {
+    let sendCalls = 0;
+    const service = new CommsService({
+      mail: {
+        id: "hook-mail",
+        sendMail: async (): Promise<SendResult> => {
+          sendCalls += 1;
+          if (sendCalls === 1) {
+            return {accepted: false, errorClass: "transient", errorCode: "429"};
+          }
+          return {accepted: true};
+        },
+      },
+      onError: async (): Promise<never> => {
+        throw new Error("onError boom");
+      },
+      onRetry: async (): Promise<never> => {
+        throw new Error("onRetry boom");
+      },
+      onSend: async (): Promise<never> => {
+        throw new Error("onSend boom");
+      },
+    });
+
+    const result = await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    assert.isTrue(result.accepted);
+    assert.equal(sendCalls, 2);
+  });
+
+  it("records delivery events and opt-outs without sending", async (): Promise<void> => {
+    const deliveryEvents: string[] = [];
+    const optOuts: string[] = [];
+    const service = new CommsService({
+      mail: {
+        id: "hook-mail",
+        sendMail: async (): Promise<SendResult> => ({
+          accepted: true,
+          providerMessageId: "mail-42",
+        }),
+      },
+      onDeliveryEvent: async (event): Promise<void> => {
+        deliveryEvents.push(event.status);
+      },
+      onOptOut: async (event): Promise<void> => {
+        optOuts.push(event.reason);
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    await service.recordDeliveryEvent({
+      channel: "mail",
+      errorClass: "permanent",
+      errorCode: "bounce",
+      providerMessageId: "mail-42",
+      status: "bounced",
+    });
+    await service.recordOptOut({
+      channel: "mail",
+      provider: "sendgrid",
+      reason: "unsubscribe",
+      to: "person@example.com",
+    });
+    await service.recordDeliveryEvent({
+      channel: "mail",
+      providerMessageId: "missing",
+      status: "delivered",
+    });
+
+    const row = await CommsMessage.findExactlyOne({providerMessageId: "mail-42"});
+    assert.equal(row.status, "bounced");
+    assert.equal(row.errorCode, "bounce");
+    assert.deepEqual(deliveryEvents, ["bounced", "delivered"]);
+    assert.deepEqual(optOuts, ["unsubscribe"]);
+  });
+
+  it("does not change send or event outcome when intake hooks throw", async (): Promise<void> => {
+    const service = new CommsService({
+      onDeliveryEvent: async (): Promise<never> => {
+        throw new Error("delivery boom");
+      },
+      onOptOut: async (): Promise<never> => {
+        throw new Error("optOut boom");
+      },
+    });
+
+    await service.recordDeliveryEvent({
+      channel: "sms",
+      providerMessageId: "none",
+      status: "delivered",
+    });
+    await service.recordOptOut({
+      channel: "sms",
+      provider: "twilio",
+      reason: "sms-stop",
+      to: "+15555550100",
+    });
+  });
+
+  it("retains redacted payloads and omits them when retention is disabled", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[payload]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    const retained = new CommsService({
+      mail: {
+        id: "payload-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      push: {
+        id: "payload-push",
+        sendPush: async (): Promise<SendResult[]> => [{accepted: true}],
+      },
+      redactPayload: (_context, payload): unknown => ({...(payload as object), redacted: true}),
+      retainPayloadDays: 30,
+      verification: {
+        checkVerification: async (): Promise<{valid: boolean}> => ({valid: true}),
+        id: "payload-verification",
+        startVerification: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+    const disabled = new CommsService({
+      mail: {
+        id: "disabled-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      retainPayloadDays: 0,
+    });
+
+    await retained.sendMail({
+      html: "<p>Hi</p>",
+      subject: "Welcome",
+      text: "Hi",
+      to: "person@example.com",
+    });
+    await retained.sendPushToUser({body: "Hello", title: "Title", userId});
+    await retained.startVerification({channel: "email", to: "person@example.com"});
+    await disabled.sendMail({subject: "Nope", to: "person@example.com"});
+
+    const mailRow = await CommsMessage.findExactlyOne({channel: "mail", provider: "payload-mail"});
+    const pushRow = await CommsMessage.findExactlyOne({channel: "push"});
+    const verificationRow = await CommsMessage.findExactlyOne({channel: "verification"});
+    const disabledRow = await CommsMessage.findExactlyOne({provider: "disabled-mail"});
+
+    assert.equal((mailRow.payload as {subject?: string}).subject, "Welcome");
+    assert.equal((mailRow.payload as {redacted?: boolean}).redacted, true);
+    assert.isUndefined((pushRow.payload as {tokens?: string[]}).tokens);
+    assert.equal((pushRow.payload as {title?: string}).title, "Title");
+    assert.deepEqual(verificationRow.payload, {channel: "email", redacted: true});
+    assert.isUndefined(disabledRow.payload);
+  });
 });

@@ -143,6 +143,11 @@ describe("CommsMessage", () => {
       status: "sent",
       to: "[redacted]",
     });
+    assert.isNotNull(expired);
+
+    const cleared = await CommsMessage.clearExpiredPayloads();
+    assert.equal(cleared, 1);
+
     const fresh = await CommsMessage.logSend({
       channel: "mail",
       payload: {subject: "new"},
@@ -151,11 +156,7 @@ describe("CommsMessage", () => {
       status: "sent",
       to: "[redacted]",
     });
-    assert.isNotNull(expired);
     assert.isNotNull(fresh);
-
-    const cleared = await CommsMessage.clearExpiredPayloads();
-    assert.equal(cleared, 1);
 
     const expiredRow = await CommsMessage.findExactlyOne({_id: expired?._id});
     const freshRow = await CommsMessage.findExactlyOne({_id: fresh?._id});

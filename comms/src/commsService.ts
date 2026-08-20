@@ -15,9 +15,12 @@ import type {
   CommsAttempt,
   CommsChannel,
   CommsHookContext,
+  CommsHookMessage,
   CommsOptions,
+  DeliveryEvent,
   MailMessage,
   MailProvider,
+  OptOutEvent,
   PushMessage,
   PushProvider,
   SendPushToUserMessage,
@@ -60,6 +63,8 @@ const toAttempt = (provider: string, result: SendResult): CommsAttempt => ({
   providerMessageId: result.providerMessageId,
 });
 
+const DEFAULT_RETAIN_PAYLOAD_DAYS = 30;
+
 export class CommsService {
   private readonly options: CommsOptions;
   private readonly consoleMail = new ConsoleMailProvider();
@@ -81,17 +86,23 @@ export class CommsService {
   private async logResult({
     channel,
     metadata,
+    payload,
+    payloadExpiresAt,
     provider,
     result,
     subject,
+    templateId,
     to,
     userId,
   }: {
     channel: CommsChannel;
     metadata?: Record<string, unknown>;
+    payload?: unknown;
+    payloadExpiresAt?: Date;
     provider: string;
     result: SendResult;
     subject?: string;
+    templateId?: string;
     to: string | string[];
     userId?: string;
   }): Promise<CommsMessageDocument | null> {
@@ -109,10 +120,13 @@ export class CommsService {
       errorCode: result.errorCode,
       lastAttemptAt: attempt.at,
       metadata: {...result.metadata, ...metadata},
+      payload,
+      payloadExpiresAt,
       provider,
       providerMessageId: result.providerMessageId,
       status: result.accepted ? "sent" : "failed",
       subject,
+      templateId,
       to: this.recipientForLog(to),
       userId,
     });
@@ -150,6 +164,119 @@ export class CommsService {
     } catch (error: unknown) {
       logger.error(`[comms] ${label} hook failed: ${String(error)}`);
     }
+  }
+
+  private async runBeforeSend(
+    context: CommsHookContext
+  ): Promise<{cancel: boolean; message: CommsHookMessage | undefined}> {
+    const original = context.message;
+    const beforeSend = this.options.beforeSend;
+    if (!beforeSend) {
+      return {cancel: false, message: original};
+    }
+    try {
+      const result = await beforeSend(context);
+      if (result?.cancel) {
+        return {cancel: true, message: result.message ?? original};
+      }
+      return {cancel: false, message: result?.message ?? original};
+    } catch (error: unknown) {
+      logger.error(`[comms] beforeSend hook failed: ${String(error)}`);
+      return {cancel: false, message: original};
+    }
+  }
+
+  private channelPayload(channel: CommsChannel, message: CommsHookMessage | undefined): unknown {
+    if (!message) {
+      return undefined;
+    }
+    if (channel === "mail") {
+      const mail = message as MailMessage;
+      return {
+        dynamicTemplateData: mail.dynamicTemplateData,
+        from: mail.from,
+        html: mail.html,
+        replyTo: mail.replyTo,
+        subject: mail.subject,
+        templateId: mail.templateId,
+        text: mail.text,
+        to: mail.to,
+      };
+    }
+    if (channel === "sms") {
+      const sms = message as SmsMessage;
+      return {body: sms.body, to: sms.to};
+    }
+    if (channel === "push") {
+      const push = message as PushMessage;
+      return {
+        badge: push.badge,
+        body: push.body,
+        data: push.data,
+        sound: push.sound,
+        title: push.title,
+      };
+    }
+    const verification = message as StartVerificationOptions;
+    return {channel: verification.channel};
+  }
+
+  private async retainedPayload(
+    context: CommsHookContext,
+    payload: unknown
+  ): Promise<{payload?: unknown; payloadExpiresAt?: Date}> {
+    const days = this.options.retainPayloadDays ?? DEFAULT_RETAIN_PAYLOAD_DAYS;
+    if (days <= 0 || payload === undefined) {
+      return {};
+    }
+    let stored: unknown = payload;
+    const redactPayload = this.options.redactPayload;
+    if (redactPayload) {
+      try {
+        stored = await redactPayload(context, payload);
+      } catch (error: unknown) {
+        logger.error(`[comms] redactPayload hook failed: ${String(error)}`);
+      }
+    }
+    return {
+      payload: stored,
+      payloadExpiresAt: DateTime.utc().plus({days}).toJSDate(),
+    };
+  }
+
+  private async logCancelled({
+    channel,
+    context,
+    message,
+    provider,
+    subject,
+    to,
+    userId,
+  }: {
+    channel: CommsChannel;
+    context: CommsHookContext;
+    message: CommsHookMessage | undefined;
+    provider: string;
+    subject?: string;
+    to: string | string[];
+    userId?: string;
+  }): Promise<SendResult> {
+    const stored = await this.retainedPayload(context, this.channelPayload(channel, message));
+    if (this.options.logMessages !== false) {
+      await CommsMessage.logSend({
+        attemptCount: 0,
+        attempts: [],
+        channel,
+        payload: stored.payload,
+        payloadExpiresAt: stored.payloadExpiresAt,
+        provider,
+        status: "cancelled",
+        subject,
+        to: this.recipientForLog(to),
+        userId,
+      });
+    }
+    return {accepted: false, error: "cancelled"};
   }
 
   private async notifyOutcomeHooks(context: CommsHookContext, result: SendResult): Promise<void> {
@@ -244,25 +371,48 @@ export class CommsService {
 
   async sendMail(message: MailMessage): Promise<SendResult> {
     const provider = this.mailProvider();
-    const resolvedMessage = {
+    let resolvedMessage: MailMessage = {
       ...message,
       from: message.from ?? this.options.defaultFrom,
     };
-    const send = (): Promise<SendResult> => provider.sendMail(resolvedMessage);
-    const context: CommsHookContext = {
+    let context: CommsHookContext = {
       attempt: 1,
       channel: "mail",
       isRetry: false,
       message: resolvedMessage,
       provider: provider.id,
     };
+    const shaped = await this.runBeforeSend(context);
+    if (shaped.cancel) {
+      return this.logCancelled({
+        channel: "mail",
+        context,
+        message: shaped.message,
+        provider: provider.id,
+        subject: (shaped.message as MailMessage | undefined)?.subject ?? resolvedMessage.subject,
+        to: (shaped.message as MailMessage | undefined)?.to ?? resolvedMessage.to,
+      });
+    }
+    resolvedMessage = {
+      ...(shaped.message as MailMessage),
+      from: (shaped.message as MailMessage).from ?? this.options.defaultFrom,
+    };
+    context = {...context, message: resolvedMessage};
+    const send = (): Promise<SendResult> => provider.sendMail(resolvedMessage);
     const firstResult = await this.sendOnce(send);
+    const stored = await this.retainedPayload(
+      context,
+      this.channelPayload("mail", resolvedMessage)
+    );
     const row = await this.logResult({
       channel: "mail",
+      payload: stored.payload,
+      payloadExpiresAt: stored.payloadExpiresAt,
       provider: provider.id,
       result: firstResult,
-      subject: message.subject,
-      to: message.to,
+      subject: resolvedMessage.subject,
+      templateId: resolvedMessage.templateId,
+      to: resolvedMessage.to,
     });
     const retried = await this.retryTransient({
       context: {...context, messageId: row?._id.toString()},
@@ -282,20 +432,36 @@ export class CommsService {
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
     const provider = this.smsProvider();
-    const send = (): Promise<SendResult> => provider.sendSms(message);
-    const context: CommsHookContext = {
+    let resolvedMessage = message;
+    let context: CommsHookContext = {
       attempt: 1,
       channel: "sms",
       isRetry: false,
-      message,
+      message: resolvedMessage,
       provider: provider.id,
     };
+    const shaped = await this.runBeforeSend(context);
+    if (shaped.cancel) {
+      return this.logCancelled({
+        channel: "sms",
+        context,
+        message: shaped.message,
+        provider: provider.id,
+        to: (shaped.message as SmsMessage | undefined)?.to ?? resolvedMessage.to,
+      });
+    }
+    resolvedMessage = shaped.message as SmsMessage;
+    context = {...context, message: resolvedMessage};
+    const send = (): Promise<SendResult> => provider.sendSms(resolvedMessage);
     const firstResult = await this.sendOnce(send);
+    const stored = await this.retainedPayload(context, this.channelPayload("sms", resolvedMessage));
     const row = await this.logResult({
       channel: "sms",
+      payload: stored.payload,
+      payloadExpiresAt: stored.payloadExpiresAt,
       provider: provider.id,
       result: firstResult,
-      to: message.to,
+      to: resolvedMessage.to,
     });
     const retried = await this.retryTransient({
       context: {...context, messageId: row?._id.toString()},
@@ -320,13 +486,49 @@ export class CommsService {
       return [];
     }
 
-    const sendFor = async (tokenValues: string[]): Promise<SendResult[]> => {
-      const providerMessage: PushMessage = {
+    const baseContext: CommsHookContext = {
+      attempt: 1,
+      channel: "push",
+      isRetry: false,
+      message: {
         badge: message.badge,
         body: message.body,
         data: message.data,
         sound: message.sound,
         title: message.title,
+        tokens: tokens.map((token) => token.token),
+      },
+      provider: provider.id,
+      userId: String(message.userId),
+    };
+    const shaped = await this.runBeforeSend(baseContext);
+    if (shaped.cancel) {
+      await this.logCancelled({
+        channel: "push",
+        context: baseContext,
+        message: shaped.message,
+        provider: provider.id,
+        subject: message.title,
+        to: String(message.userId),
+        userId: String(message.userId),
+      });
+      return [];
+    }
+    const resolvedPush =
+      (shaped.message as PushMessage | undefined) ?? (baseContext.message as PushMessage);
+    const sendContext = {...baseContext, message: resolvedPush};
+    const stored = await this.retainedPayload(
+      sendContext,
+      this.channelPayload("push", resolvedPush)
+    );
+
+    const sendFor = async (tokenValues: string[]): Promise<SendResult[]> => {
+      const providerMessage: PushMessage = {
+        badge: resolvedPush.badge,
+        body: resolvedPush.body,
+        data: resolvedPush.data,
+        sound: resolvedPush.sound,
+        title: resolvedPush.title,
         tokens: tokenValues,
       };
       try {
@@ -348,26 +550,10 @@ export class CommsService {
       .map((result, index): number => (isTransientFailure(result) ? index : -1))
       .filter((index) => index >= 0);
 
-    const baseContext: CommsHookContext = {
-      attempt: 1,
-      channel: "push",
-      isRetry: false,
-      message: {
-        badge: message.badge,
-        body: message.body,
-        data: message.data,
-        sound: message.sound,
-        title: message.title,
-        tokens: tokens.map((token) => token.token),
-      },
-      provider: provider.id,
-      userId: String(message.userId),
-    };
-
     const finalResults = [...firstResults];
     if (retryIndexes.length > 0) {
       const failedResult = firstResults[retryIndexes[0]] as SendResult;
-      const retryContext = {...baseContext, attempt: 2, isRetry: true};
+      const retryContext = {...sendContext, attempt: 2, isRetry: true};
       const onRetry = this.options.onRetry;
       await this.invokeHook(
         onRetry ? (): Promise<void> => onRetry(retryContext, failedResult) : undefined,
@@ -387,12 +573,14 @@ export class CommsService {
         const result = finalResults[index] as SendResult;
         const wasRetried = retryIndexes.includes(index);
         const tokenContext: CommsHookContext = {
-          ...baseContext,
+          ...sendContext,
           attempt: wasRetried ? 2 : 1,
           isRetry: wasRetried,
         };
         const row = await this.logResult({
           channel: "push",
+          payload: stored.payload,
+          payloadExpiresAt: stored.payloadExpiresAt,
           provider: provider.id,
           result: firstResult,
           to: token.token,
@@ -418,21 +606,40 @@ export class CommsService {
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
     const provider = this.verificationProvider();
-    const send = (): Promise<SendResult> => provider.startVerification(options);
-    const context: CommsHookContext = {
+    let resolved = options;
+    let context: CommsHookContext = {
       attempt: 1,
       channel: "verification",
       isRetry: false,
-      message: options,
+      message: resolved,
       provider: provider.id,
     };
+    const shaped = await this.runBeforeSend(context);
+    if (shaped.cancel) {
+      return this.logCancelled({
+        channel: "verification",
+        context,
+        message: shaped.message,
+        provider: provider.id,
+        to: resolved.to,
+      });
+    }
+    resolved = shaped.message as StartVerificationOptions;
+    context = {...context, message: resolved};
+    const send = (): Promise<SendResult> => provider.startVerification(resolved);
     const firstResult = await this.sendOnce(send);
+    const stored = await this.retainedPayload(
+      context,
+      this.channelPayload("verification", resolved)
+    );
     const row = await this.logResult({
       channel: "verification",
-      metadata: {verificationChannel: options.channel},
+      metadata: {verificationChannel: resolved.channel},
+      payload: stored.payload,
+      payloadExpiresAt: stored.payloadExpiresAt,
       provider: provider.id,
       result: firstResult,
-      to: options.to,
+      to: resolved.to,
     });
     const retried = await this.retryTransient({
       context: {...context, messageId: row?._id.toString()},
@@ -485,5 +692,30 @@ export class CommsService {
     });
     await this.notifyOutcomeHooks(context, loggedResult);
     return check;
+  }
+
+  async recordDeliveryEvent(event: DeliveryEvent): Promise<void> {
+    const row = await CommsMessage.findOneOrNone({providerMessageId: event.providerMessageId});
+    if (!row) {
+      logger.warn("[comms] No CommsMessage found for delivery event");
+    } else if (event.status !== "opened") {
+      row.status = event.status;
+      row.errorCode = event.errorCode;
+      row.errorClass = event.errorClass;
+      if (event.raw !== undefined) {
+        row.metadata = {...row.metadata, deliveryRaw: event.raw};
+      }
+      await row.save();
+    }
+    const onDeliveryEvent = this.options.onDeliveryEvent;
+    await this.invokeHook(
+      onDeliveryEvent ? (): Promise<void> => onDeliveryEvent(event) : undefined,
+      "onDeliveryEvent"
+    );
+  }
+
+  async recordOptOut(event: OptOutEvent): Promise<void> {
+    const onOptOut = this.options.onOptOut;
+    await this.invokeHook(onOptOut ? (): Promise<void> => onOptOut(event) : undefined, "onOptOut");
   }
 }
