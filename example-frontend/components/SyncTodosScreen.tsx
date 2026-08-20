@@ -14,7 +14,8 @@ import {
 } from "@terreno/ui";
 import {DateTime} from "luxon";
 import type React from "react";
-import {memo, useCallback, useMemo, useState} from "react";
+import {memo, useCallback, useEffect, useMemo, useState} from "react";
+import {agentDebugLog} from "@/lib/agentDebugLog";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
@@ -272,6 +273,20 @@ const SyncTodosScreen: React.FC = () => {
   });
   const totalCount = incompleteIds.length + completedIds.length;
 
+  // Log list membership changes so we can correlate store updates with UI render.
+  useEffect(() => {
+    agentDebugLog({
+      data: {
+        completedIds,
+        incompleteIds,
+        totalCount,
+      },
+      hypothesisId: "H3",
+      location: "SyncTodosScreen.tsx:membership",
+      message: "todo list membership changed",
+    });
+  }, [completedIds, incompleteIds, totalCount]);
+
   const listData = useMemo((): TodoListRow[] => {
     if (totalCount === 0) {
       return [];
@@ -399,10 +414,22 @@ const SyncTodosScreen: React.FC = () => {
           totalThisDrain={syncStatus.totalThisDrain}
         />
         <SyncDevPanel />
+        <Box marginBottom={6}>
+          <Heading size="xl">My Todos</Heading>
+          <Text color="secondaryLight" size="sm">
+            Local-first via @terreno/syncdb
+          </Text>
+          <Text color="secondaryLight" size="sm" testID="todos-count">
+            {totalCount}
+          </Text>
+        </Box>
+        <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       </Box>
     ),
     [
       handleAuthRequired,
+      handleCreate,
+      isSyncDbReady,
       openConflictSheet,
       syncStatus.conflictCount,
       syncStatus.draining,
@@ -412,6 +439,7 @@ const SyncTodosScreen: React.FC = () => {
       syncStatus.queuedCount,
       syncStatus.sentThisDrain,
       syncStatus.totalThisDrain,
+      totalCount,
     ]
   );
 
@@ -434,24 +462,16 @@ const SyncTodosScreen: React.FC = () => {
       testID="todos-screen"
       width="100%"
     >
-      {listHeader}
-      <Box marginBottom={6}>
-        <Heading size="xl">My Todos</Heading>
-        <Text color="secondaryLight" size="sm">
-          Local-first via @terreno/syncdb
-        </Text>
-        <Text color="secondaryLight" size="sm" testID="todos-count">
-          {totalCount}
-        </Text>
-      </Box>
-      <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       <FlashList
         contentInsetAdjustmentBehavior="automatic"
         data={listData}
+        estimatedItemSize={96}
+        extraData={totalCount}
         getItemType={getItemType}
         keyboardShouldPersistTaps="handled"
         keyExtractor={keyExtractor}
         ListEmptyComponent={listEmpty}
+        ListHeaderComponent={listHeader}
         renderItem={renderItem}
         style={{flex: 1}}
       />
