@@ -9,6 +9,7 @@ import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
+  clickTodoControl,
   createTodoViaUi,
   openSecondSession,
   openSyncTodos,
@@ -77,7 +78,7 @@ test.describe("SyncDB live delta sync (AC-8)", () => {
       const itemInB = todoItemByTitle(pageB, "From the other tab");
       const testId = (await itemInB.getAttribute("data-testid")) ?? "";
       const id = testId.replace("todo-item-", "");
-      await pageB.getByTestId(`todo-delete-${id}`).click();
+      await clickTodoControl(pageB.getByTestId(`todo-delete-${id}`));
       await expect(todoItemByTitle(pageB, "From the other tab")).toBeHidden();
       await expect(todoItemByTitle(page, "From the other tab")).toBeHidden({
         timeout: CONVERGE_TIMEOUT,

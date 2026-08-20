@@ -24,5 +24,5 @@
 - [ ] `bun run lint` passes
 - [ ] `bun run compile` passes (if TypeScript changed)
 - [ ] Docs updated (if user-facing behavior changed)
-- [ ] `CHANGELOG.md` `## [Unreleased]` updated for user-facing changes
+- [ ] `changelog/unreleased/<feature>.md` added for user-facing changes
 - [ ] DCO signed off (`git commit -s`) on every commit

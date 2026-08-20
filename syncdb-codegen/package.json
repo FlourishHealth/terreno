@@ -1,0 +1,34 @@
+{
+  "bin": {
+    "terreno-syncdb-codegen": "./dist/cli.js"
+  },
+  "description": "OpenAPI codegen for typed @terreno/syncdb collection hooks",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/cli.js",
+  "name": "@terreno/syncdb-codegen",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build:binary": "bun build --compile src/cli.ts --outfile dist/terreno-syncdb-codegen",
+    "compile": "tsc",
+    "compile:watch": "tsc -w",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "bun test src/",
+    "test:ci": "bun test src/"
+  },
+  "type": "module",
+  "types": "dist/cli.d.ts",
+  "version": "0.1.0"
+}
