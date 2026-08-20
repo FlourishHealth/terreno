@@ -431,6 +431,16 @@ Stream seqs are **not** contiguous from any one client's perspective — permiss
 
 Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), safe under concurrent writes because a doc's seq only ever increases.
 
+## Codegen (`terreno-syncdb-codegen`)
+
+For apps using OpenAPI-backed backends, generate typed collection hooks instead of hand-writing entity interfaces and collection strings:
+
+```bash
+cd example-frontend && bun run sync-sdk
+```
+
+This writes `store/syncDbSdk.ts` with `SYNC_COLLECTIONS`, entity types, and hooks (`useTodos`, `useCreateTodo`, …). Sync-enabled list routes must expose `x-terreno-sync` on `/openapi.json` (emitted by `@terreno/api` when `modelRouter` sets `sync`).
+
 ## Known limitations
 
 - **Synced models need a String `_id`** (or clients must mint ObjectId-format ids): offline clients generate entity ids (UUIDs) locally and the mutation channel writes them through as `_id`. A default ObjectId `_id` would cast-fail every client-side create. Declare `_id: {type: String, ...}` on synced schemas.

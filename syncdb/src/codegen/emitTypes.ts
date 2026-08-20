@@ -1,3 +1,4 @@
+import {assertTsIdentifier, emitTsPropertyKey} from "./safeIdentifiers";
 import type {OpenApiSchema} from "./types";
 
 const tsTypeFromSchema = (schema: OpenApiSchema, indent: string): string => {
@@ -31,14 +32,15 @@ const emitInterfaceBody = (schema: OpenApiSchema, indent: string): string => {
   const lines = Object.entries(schema.properties ?? {}).map(([key, property]) => {
     const optional = required.has(key) ? "" : "?";
     const type = tsTypeFromSchema(property, `${indent}  `);
-    return `${indent}  ${key}${optional}: ${type};`;
+    return `${indent}  ${emitTsPropertyKey(key)}${optional}: ${type};`;
   });
   return `{\n${lines.join("\n")}\n${indent}}`;
 };
 
 export const emitInterface = ({name, schema}: {name: string; schema: OpenApiSchema}): string => {
+  const typeName = assertTsIdentifier({label: "type name", value: name});
   if (schema.type === "object" || schema.properties) {
-    return `export interface ${name} ${emitInterfaceBody(schema, "")}`;
+    return `export interface ${typeName} ${emitInterfaceBody(schema, "")}`;
   }
-  return `export type ${name} = ${tsTypeFromSchema(schema, "")};`;
+  return `export type ${typeName} = ${tsTypeFromSchema(schema, "")};`;
 };

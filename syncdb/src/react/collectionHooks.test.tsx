@@ -5,6 +5,7 @@ import React from "react";
 import {createSyncDb, type SyncDb} from "../client";
 import {retriesToMaxAttempts} from "../maxAttempts";
 import {memoryPersisterFactory} from "../persisters/memoryPersister";
+import {OUTBOX_TABLE} from "../storage/types";
 import {createFakeTransport} from "../testing/fakeTransport";
 import type {AuthProvider} from "../types";
 import {createCollectionHooks} from "./collectionHooks";
@@ -40,10 +41,12 @@ const makeAuthProvider = (userId: string): AuthProvider => {
   };
 };
 
-const setup = async (): Promise<{
+interface Harness {
   client: SyncDb;
   wrapper: React.FC<{children: React.ReactNode}>;
-}> => {
+}
+
+const setup = async (): Promise<Harness> => {
   const transport = createFakeTransport();
   const client = createSyncDb({
     authProvider: makeAuthProvider("u1"),
@@ -61,6 +64,10 @@ const setup = async (): Promise<{
   );
   return {client, wrapper};
 };
+
+const todoHooks = createCollectionHooks<TodoData, CreateTodo, Partial<CreateTodo>>({
+  collection: "todos",
+});
 
 describe("retriesToMaxAttempts", () => {
   it("maps false to a single attempt", () => {
@@ -121,6 +128,44 @@ describe("createCollectionHooks", () => {
     });
   });
 
+  it("useListQuery returns list data matching useQuery", async () => {
+    const {client, wrapper} = await setup();
+    client.mutate({collection: "todos", data: {title: "A"}, operation: "create"});
+    const {result} = renderHook(() => todoHooks.useListQuery(), {wrapper});
+    expect(result.current.data).toHaveLength(1);
+    expect(result.current.data[0]?.title).toBe("A");
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useReadQuery returns entity data for an id", async () => {
+    const {client, wrapper} = await setup();
+    const {id} = client.mutate({
+      collection: "todos",
+      data: {title: "Read me"},
+      operation: "create",
+    });
+    const {result} = renderHook(() => todoHooks.useReadQuery(id), {wrapper});
+    expect(result.current.data?.title).toBe("Read me");
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
+  it("useCreateMutation returns a one-element trigger tuple", async () => {
+    const {client, wrapper} = await setup();
+    const {result} = renderHook(() => todoHooks.useCreateMutation(), {wrapper});
+    expect(result.current).toHaveLength(1);
+    const [createTodo] = result.current;
+    const created = createTodo({data: {title: "New"}});
+    expect(created.id.length).toBeGreaterThan(0);
+    expect(created.mutationId.length).toBeGreaterThan(0);
+    await act(async () => {
+      await client.stop();
+    });
+  });
+
   it("threads retries: false onto the outbox row as maxAttempts: 1", async () => {
     const {client, wrapper} = await setup();
     const hooks = createCollectionHooks<TodoData, CreateTodo>({
@@ -134,6 +179,8 @@ describe("createCollectionHooks", () => {
       mutationId = create({data: {title: "once"}}).mutationId;
     });
     expect(client.outbox.getMutation({mutationId})?.maxAttempts).toBe(1);
+    const row = client.store.raw.getRow(OUTBOX_TABLE, mutationId) as {maxAttempts?: number};
+    expect(row.maxAttempts).toBe(1);
     unmount();
     await act(async () => {
       await client.stop();

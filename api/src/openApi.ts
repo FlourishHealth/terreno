@@ -7,6 +7,7 @@ import m2s from "mongoose-to-swagger";
 import type {ModelRouterOptions, OpenApiMiddleware} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
+import type {SyncConfig, SyncScope} from "./sync/types";
 
 const noop = (_a: unknown, _b: unknown, next: () => void) => next();
 
@@ -160,6 +161,34 @@ export const getOpenApiMiddleware = <T>(
   );
 };
 
+const resolveSyncScopeLabel = (scope: SyncScope): "owner" | "tenant" | "broadcast" | "custom" => {
+  if (typeof scope === "function") {
+    return "custom";
+  }
+  return scope.type;
+};
+
+const buildTerrenoSyncExtension = (
+  sync: SyncConfig | undefined,
+  routePath: string | undefined,
+  fallbackCollection?: string
+): Record<string, unknown> => {
+  if (!sync) {
+    return {};
+  }
+  const rawPath = routePath ?? (fallbackCollection ? `/${fallbackCollection}` : undefined);
+  if (!rawPath) {
+    return {};
+  }
+  const collection = rawPath.replace(/^\//, "");
+  return {
+    "x-terreno-sync": {
+      collection,
+      scope: resolveSyncScopeLabel(sync.scope),
+    },
+  };
+};
+
 export const listOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>,
@@ -259,6 +288,7 @@ export const listOpenApiMiddleware = <T>(
   return options.openApi.path(
     merge(
       {
+        ...buildTerrenoSyncExtension(options.sync, routePath, model.collection.collectionName),
         parameters: [
           ...defaultQueryParams,
           ...(modelQueryParams ?? []),
@@ -321,15 +351,6 @@ export const listOpenApiMiddleware = <T>(
           ...defaultOpenApiErrorResponses,
         },
         tags: [model.collection.collectionName],
-        ...(options.sync
-          ? {
-              "x-terreno-sync": {
-                collection: (routePath ?? `/${model.collection.collectionName}`).replace(/^\//, ""),
-                scope:
-                  typeof options.sync.scope === "function" ? "custom" : options.sync.scope.type,
-              },
-            }
-          : {}),
       },
       options.openApiOverwrite?.list ?? {}
     )

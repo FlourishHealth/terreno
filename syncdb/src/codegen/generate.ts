@@ -21,7 +21,7 @@ export const generateSyncDbSdk = async (args: GenerateArgs): Promise<string> => 
     collections: discovered,
     overrides: args.config?.overrides,
   });
-  const source = emitSdk({collections: withOverrides});
+  const source = emitSdk({collections: withOverrides, config: args.config});
   await mkdir(dirname(args.out), {recursive: true});
   await writeFile(args.out, source, "utf8");
   if (args.format) {

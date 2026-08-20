@@ -11,13 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
+  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
+  `docs/how-to/circleci.md`.
+
+### Added
+
 ### Added
 
 - `terreno-syncdb-codegen` CLI in `@terreno/syncdb` generates typed collection hooks
-  (`store/syncDbSdk.ts`) from OpenAPI `x-terreno-sync` list operations
+  (`store/syncDbSdk.ts`) from OpenAPI `x-terreno-sync` list operations. The CLI is a
+  bin of `@terreno/syncdb`, not a separate `@terreno/syncdb-codegen` package.
 - `createCollectionHooks` factory on `@terreno/syncdb/react` for generated and custom
   syncdb hooks
 - Optional per-mutation `maxAttempts` on `client.mutate` / outbox rows
+- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
+  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
 - `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
   (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
   (`docs/explanation/local-first-data.md`)
@@ -27,6 +38,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
   deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
   `onSend`).
+- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `recordDeliveryEvent` /
+  `recordOptOut`, attempt history on `CommsMessage`, payload retention
+  (`retainPayloadDays`, `redactPayload`), and channel-wide transient retry (SMS,
+  verification start, per-token push). `onRetry` stays `(context, result)` with
+  `context.attempt`. Push prune honors `errorClass: "permanent"` as well as
+  `isPermanentFailure`.
+
+### Fixed
+
+- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
+  row so `retries: false` stays fail-fast after keepMine.
+- Example todos Sync Lab panel starts collapsed so the first list row stays
+  above the tab bar on short web viewports.
+- `terreno-syncdb-codegen` rejects non-identifier collection/type names and
+  JSON-escapes generated strings so a remote OpenAPI document cannot inject
+  TypeScript.
 
 ### Deprecated
 

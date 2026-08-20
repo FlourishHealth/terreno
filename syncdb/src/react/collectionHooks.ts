@@ -5,12 +5,11 @@
  * returned hooks to friendly collection-specific names.
  */
 
-import {useCallback} from "react";
+import {useCallback, useMemo} from "react";
 
 import {retriesToMaxAttempts} from "../maxAttempts";
 import type {UseEntityResult, UseQueryOptions} from "./hooks";
-import {useEntity, useQuery} from "./hooks";
-import {useSyncDbClient} from "./provider";
+import {useEntity, useMutate, useQuery} from "./hooks";
 
 export interface CollectionHooksConfig {
   collection: string;
@@ -50,55 +49,48 @@ export const createCollectionHooks = <
     return {data};
   };
 
-  const useReadQuery = (id: string): UseEntityResult<TData> => {
-    return useEntity<TData>(config.collection, id);
-  };
+  const useReadQuery = (id: string): UseEntityResult<TData> =>
+    useEntity<TData>(config.collection, id);
 
   const useCreateMutation = (): [MutationTrigger<{data: TCreate; id?: string}>] => {
-    const client = useSyncDbClient();
+    const {create} = useMutate(config.collection);
     const trigger = useCallback(
       (args: {data: TCreate; id?: string}): {mutationId: string; id: string} =>
-        client.mutate({
-          collection: config.collection,
-          data: args.data as Record<string, unknown>,
+        create({
+          data: args.data as unknown as Record<string, unknown>,
           ...(args.id !== undefined ? {id: args.id} : {}),
           ...(maxAttempts !== undefined ? {maxAttempts} : {}),
-          operation: "create",
         }),
-      [client]
+      [create]
     );
-    return [trigger];
+    return useMemo(() => [trigger], [trigger]);
   };
 
   const useUpdateMutation = (): [MutationTrigger<{id: string; data: TUpdate}>] => {
-    const client = useSyncDbClient();
+    const {update} = useMutate(config.collection);
     const trigger = useCallback(
       (args: {id: string; data: TUpdate}): {mutationId: string; id: string} =>
-        client.mutate({
-          collection: config.collection,
-          data: args.data as Record<string, unknown>,
+        update({
+          data: args.data as unknown as Record<string, unknown>,
           id: args.id,
           ...(maxAttempts !== undefined ? {maxAttempts} : {}),
-          operation: "update",
         }),
-      [client]
+      [maxAttempts, update]
     );
-    return [trigger];
+    return useMemo(() => [trigger], [trigger]);
   };
 
   const useDeleteMutation = (): [MutationTrigger<{id: string}>] => {
-    const client = useSyncDbClient();
+    const {remove} = useMutate(config.collection);
     const trigger = useCallback(
       (args: {id: string}): {mutationId: string; id: string} =>
-        client.mutate({
-          collection: config.collection,
+        remove({
           id: args.id,
           ...(maxAttempts !== undefined ? {maxAttempts} : {}),
-          operation: "delete",
         }),
-      [client]
+      [maxAttempts, remove]
     );
-    return [trigger];
+    return useMemo(() => [trigger], [trigger]);
   };
 
   return {

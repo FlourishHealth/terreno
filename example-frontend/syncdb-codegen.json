@@ -1,5 +1,7 @@
 {
   "overrides": {
-    "todos": {}
+    "todos": {
+      "retries": false
+    }
   }
 }

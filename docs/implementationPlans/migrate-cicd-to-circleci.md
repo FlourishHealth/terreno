@@ -1,6 +1,6 @@
 # Implementation Plan: Migrate CI/CD to CircleCI
 
-**Status:** Draft — decisions recorded; awaiting Approval  
+**Status:** In progress — Phase 1–3 CI config landed (deploys deferred per request)  
 **Discussion:** _(none)_  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Linear:** _(none)_  

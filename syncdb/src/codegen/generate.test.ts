@@ -4,6 +4,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 
 import {discoverCollections} from "./discoverCollections";
+import {emitSdk} from "./emitSdk";
 import {emitInterface} from "./emitTypes";
 import {generateSyncDbSdk} from "./generate";
 import {friendlyHookNames} from "./hookNames";
@@ -114,5 +115,24 @@ describe("generateSyncDbSdk", () => {
     } finally {
       await rm(dir, {force: true, recursive: true});
     }
+  });
+
+  it("rejects collection names that are not TypeScript identifiers", async () => {
+    const spec = await loadSpec(fixturePath);
+    const discovered = discoverCollections({spec});
+    const first = discovered[0];
+    if (!first) {
+      throw new Error("expected todos fixture collection");
+    }
+    expect(() =>
+      emitSdk({
+        collections: [
+          {
+            ...first,
+            collection: 'todos"; process.exit(1); //',
+          },
+        ],
+      })
+    ).toThrow(/not a TypeScript identifier/);
   });
 });

@@ -6,6 +6,7 @@
 **Owner:**
 **Created:** 2026-07-08
 **Approved:** 2026-08-20
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1110
 **Research:** [syncdb-codegen-research.md](./syncdb-codegen-research.md)
 
 ## Goal

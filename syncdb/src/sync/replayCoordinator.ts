@@ -702,10 +702,11 @@ export const createReplayCoordinator = ({
   };
 
   const applyErrorNack = (mutation: OutboxMutation): OutcomeDecision => {
-    const beforeCount = outbox.getMutation({mutationId: mutation.mutationId})?.errorNackCount ?? 0;
+    const stored = outbox.getMutation({mutationId: mutation.mutationId});
+    const maxAttempts = stored?.maxAttempts ?? MAX_ERROR_NACK_ATTEMPTS;
+    const beforeCount = stored?.errorNackCount ?? 0;
     const attempts = beforeCount + 1;
-    const budget = mutation.maxAttempts ?? MAX_ERROR_NACK_ATTEMPTS;
-    if (attempts >= budget) {
+    if (attempts >= maxAttempts) {
       handleTerminalFailure(mutation, "error");
       return {authPaused: false, haltDrain: false, progressed: false};
     }
