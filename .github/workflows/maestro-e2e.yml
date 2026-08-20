@@ -49,9 +49,42 @@ jobs:
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: "6.0"
+          mongodb-image: mirror.gcr.io/library/mongo
+          # Replica set is required for MongoDB change streams (configuration + sync).
+          mongodb-replica-set: rs0
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Resolve Maestro E2E auth secrets
+        run: |
+          set -euo pipefail
+          missing=()
+          resolve_secret() {
+            local name="$1"
+            local value="$2"
+            local fallback="$3"
+            if [ -n "$value" ]; then
+              echo "$name=$value" >> "$GITHUB_ENV"
+            elif [ "$GITHUB_ACTOR" = "dependabot[bot]" ]; then
+              echo "::warning::Using CI fallback for $name (Dependabot PRs cannot access repository secrets)"
+              echo "$name=$fallback" >> "$GITHUB_ENV"
+            else
+              missing+=("$name")
+            fi
+          }
+          resolve_secret "BETTER_AUTH_SECRET" "$INPUT_SESSION_SECRET" "ci-maestro-session-secret"
+          resolve_secret "TOKEN_SECRET" "$INPUT_TOKEN_SECRET" "ci-maestro-token-secret"
+          resolve_secret "REFRESH_TOKEN_SECRET" "$INPUT_REFRESH_TOKEN_SECRET" "ci-maestro-refresh-secret"
+          resolve_secret "SESSION_SECRET" "$INPUT_SESSION_SECRET" "ci-maestro-session-secret"
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          INPUT_TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          INPUT_REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          INPUT_SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
 
       - name: Build API dependency
         run: bun run compile
@@ -87,20 +120,44 @@ jobs:
         run: bun run seed
         working-directory: example-backend
         env:
-          TOKEN_SECRET: ci-token-secret
-          REFRESH_TOKEN_SECRET: ci-refresh-secret
-          TOKEN_ISSUER: terreno-example
-          SESSION_SECRET: ci-session-secret
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://localhost:4000
+          MONGO_URI: mongodb://127.0.0.1/terreno-maestro-e2e?replicaSet=rs0
+          TOKEN_SECRET: ${{ env.TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-maestro-e2e
+          REFRESH_TOKEN_SECRET: ${{ env.REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ env.SESSION_SECRET }}
 
       - name: Start backend
-        run: bun run dev &
+        run: |
+          bun run dev &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4000/health | grep -q '"healthy":true'; then
+              echo "Backend ready after ${i}×2s"
+              exit 0
+            fi
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "::error::Backend process exited unexpectedly"
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Backend did not become ready within 60s"
+          exit 1
         working-directory: example-backend
         env:
-          PORT: 4000
-          TOKEN_SECRET: ci-token-secret
-          REFRESH_TOKEN_SECRET: ci-refresh-secret
-          TOKEN_ISSUER: terreno-example
-          SESSION_SECRET: ci-session-secret
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://localhost:4000
+          PORT: "4000"
+          MONGO_URI: mongodb://127.0.0.1/terreno-maestro-e2e?replicaSet=rs0
+          TOKEN_SECRET: ${{ env.TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-maestro-e2e
+          REFRESH_TOKEN_SECRET: ${{ env.REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ env.SESSION_SECRET }}
           TOKEN_EXPIRES_IN: 15m
           REFRESH_TOKEN_EXPIRES_IN: 30d
 
@@ -109,14 +166,6 @@ jobs:
 
       - name: Serve demo static build
         run: bunx serve demo/dist -l 8085 &
-
-      - name: Wait for backend
-        run: |
-          for i in $(seq 1 30); do
-            curl -s http://localhost:4000/openapi.json > /dev/null && exit 0
-            sleep 2
-          done
-          echo "Backend failed to start" && exit 1
 
       - name: Wait for example frontend
         run: |
@@ -150,7 +199,7 @@ jobs:
 
       - name: Verify login API works
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/auth/login \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/api/auth/sign-in/email \
             -H "Content-Type: application/json" \
             -d '{"email":"admin@example.com","password":"testpassword123"}')
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
