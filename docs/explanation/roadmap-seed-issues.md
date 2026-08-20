@@ -885,3 +885,42 @@ ad-hoc backfill scripts.
 - **Tasks:** *(not yet written)*
 - **RTK flag:** None
 - **Depends on:** —
+
+---
+
+# Shipped, umbrella, and declined IPs
+
+Tracking issues created for IPs that previously lacked a `**Roadmap issue:**` header.
+Add each to the **Terreno Roadmap** project with the `IP` field set to the slug below.
+
+| IP slug | GitHub issue | Status |
+|---------|--------------|--------|
+| `admin-only` | https://github.com/FlourishHealth/terreno/issues/1075 | Shipped |
+| `admin-ui-v2-django-parity` | https://github.com/FlourishHealth/terreno/issues/1076 | Shipped |
+| `admin-script-runner` | https://github.com/FlourishHealth/terreno/issues/1077 | Shipped |
+| `consent-forms` | https://github.com/FlourishHealth/terreno/issues/1078 | Shipped |
+| `upgrade-banner` | https://github.com/FlourishHealth/terreno/issues/1079 | Shipped |
+| `apierror-standard-error-redesign` | https://github.com/FlourishHealth/terreno/issues/1080 | Shipped |
+| `syncdb-local-first` | https://github.com/FlourishHealth/terreno/issues/1081 | Shipped |
+| `feature-flags-openfeature` | https://github.com/FlourishHealth/terreno/issues/1082 | Shipped |
+| `design-blend-skill` | https://github.com/FlourishHealth/terreno/issues/1083 | Shipped |
+| `ModularAPI` | https://github.com/FlourishHealth/terreno/issues/1084 | Shipped |
+| `mcp-boost-parity` | https://github.com/FlourishHealth/terreno/issues/1085 | In progress |
+| `docs-site-and-versioning` | https://github.com/FlourishHealth/terreno/issues/1086 | Planned |
+| `syncdb-codegen` | https://github.com/FlourishHealth/terreno/issues/1087 | Planned |
+| `migrate-cicd-to-circleci` | https://github.com/FlourishHealth/terreno/issues/1088 | Planned |
+| `rbac-permissions` | https://github.com/FlourishHealth/terreno/issues/1089 | Planned |
+| `infra-mcp` | https://github.com/FlourishHealth/terreno/issues/1090 | Planned (blocked) |
+| `comms-admin-dashboard` | https://github.com/FlourishHealth/terreno/issues/1091 | Planned |
+| `model-router-mcp` | https://github.com/FlourishHealth/terreno/issues/1092 | Planned |
+| `terreno-langfuse-integration` | https://github.com/FlourishHealth/terreno/issues/1093 | Future |
+| `oss-launch-program` | https://github.com/FlourishHealth/terreno/issues/1094 | In progress |
+| `b2b-platform-program` | https://github.com/FlourishHealth/terreno/issues/1095 | Planned |
+| `offline-mode` | https://github.com/FlourishHealth/terreno/issues/1096 | Declined |
+| `model-router-actions` | https://github.com/FlourishHealth/terreno/issues/1097 | Declined |
+| `feature-flags` | https://github.com/FlourishHealth/terreno/issues/1098 | Declined |
+| `admin-improvements` | https://github.com/FlourishHealth/terreno/issues/1099 | Declined |
+
+Research and design sub-documents share the parent IP's issue: `admin-only-research` →
+#1075; `infra-mcp-research` → #1090; `migrate-cicd-to-circleci-research` → #1088;
+`syncdb-phase-c-design`, `terreno-syncdb-2`, and `syncdb-api-inventory` → #1081.

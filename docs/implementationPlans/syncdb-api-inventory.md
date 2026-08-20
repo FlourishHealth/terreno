@@ -1,5 +1,6 @@
 # @terreno/syncdb API inventory (temporary)
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1081
 Working document for the RTK → syncdb migration. Lists every public export from the three package entry points, with source locations verified against `syncdb/src/`.
 
 ## M5 — Does `bun run sdk` still work?

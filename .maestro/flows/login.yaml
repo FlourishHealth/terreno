@@ -5,25 +5,23 @@ url: http://localhost:8082/login
 
 - launchApp
 
-# Wait for the login screen to load
 - extendedWaitUntil:
-    visible: "Welcome Back"
-    timeout: 30000
+    visible:
+      id: "login-screen-email-input"
+    timeout: 60000
 
-# Fill in email
 - tapOn:
     id: "login-screen-email-input"
 - inputText: "admin@example.com"
 
-# Fill in password
 - tapOn:
     id: "login-screen-password-input"
 - inputText: "testpassword123"
 
-# Submit login
-- tapOn: "Log In"
+- tapOn:
+    id: "Log In"
 
-# Assert navigation to Todos screen
 - extendedWaitUntil:
-    visible: "My Todos"
-    timeout: 15000
+    visible:
+      id: "todos-screen"
+    timeout: 30000

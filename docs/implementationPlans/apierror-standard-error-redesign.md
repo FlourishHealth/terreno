@@ -1,6 +1,7 @@
 # APIError redesign — standards-first extension of Error
 
 **Status:** Complete
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1080
 **Branch:** cursor/apierror-standard-error-redesign-e24a
 **Owner:** TBD
 **Created:** 2026-07-28

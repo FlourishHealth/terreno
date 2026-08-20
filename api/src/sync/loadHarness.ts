@@ -1,5 +1,3 @@
-// noExplicitAny: the harness bridges generic model/router/client types, mirroring integration.test.ts
-// biome-ignore-all lint/suspicious/noExplicitAny: the harness bridges generic model/router/client types, mirroring integration.test.ts
 /**
  * This is a manual load-generation script — NOT run by `bun test`. Invoke via
  * `bun run api:load` (see root package.json) or directly:
@@ -42,7 +40,7 @@ import mongoose, {model, Schema} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
 import {modelRouter} from "../api";
-import {addAuthRoutes, generateTokens, setupAuth} from "../auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, generateTokens, setupAuth} from "../auth";
 import {logger} from "../logger";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
@@ -254,13 +252,16 @@ const buildRig = async (
 
   const app = express();
   app.use(express.json());
-  setupAuth(app as any, UserModel as any);
-  addAuthRoutes(app as any, UserModel as any);
-  new SyncApp({}).register(app as any);
+  // passport-local-mongoose adds createStrategy/serializeUser at runtime, so the compiled
+  // model's static type does not carry them — bridge to the auth package's UserModel shape.
+  const authUserModel = UserModel as unknown as AuthUserModel;
+  setupAuth(app, authUserModel);
+  addAuthRoutes(app, authUserModel);
+  new SyncApp({}).register(app);
   app.use(registration.path, registration.router);
 
   const realtimeApp = new RealtimeApp({});
-  realtimeApp.register(app as any);
+  realtimeApp.register(app);
 
   const httpServer = createServer(app);
   await new Promise<void>((resolve) => {

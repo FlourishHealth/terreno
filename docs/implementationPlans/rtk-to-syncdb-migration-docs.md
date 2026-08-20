@@ -1,6 +1,7 @@
 # Implementation Plan: RTK Deprecation and SyncDB Migration Docs
 
 **Status:** In progress — syncdb available on `release-56.0.0`; reference + migration guide drafted
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1007
 **Priority:** Critical (gates most of Wave 1)
 **Effort:** Big batch
 **Owner:** unassigned
