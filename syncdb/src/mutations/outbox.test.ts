@@ -76,6 +76,27 @@ describe("enqueue / getMutation", () => {
     expect(outbox.getMutation({mutationId: "m1"})?.baseVersion).toBeUndefined();
   });
 
+  it("stores maxAttempts when provided", () => {
+    const outbox = makeOutbox();
+    const mutation = outbox.enqueue({
+      args: {title: "Buy milk"},
+      collection: "todos",
+      entityId: "t1",
+      maxAttempts: 1,
+      mutationId: "m1",
+      operation: "update",
+      userId: "user-1",
+    });
+    expect(mutation.maxAttempts).toBe(1);
+    expect(outbox.getMutation({mutationId: "m1"})?.maxAttempts).toBe(1);
+  });
+
+  it("leaves maxAttempts undefined when not provided", () => {
+    const outbox = makeOutbox();
+    const mutation = enqueueDefault(outbox, {mutationId: "m1"});
+    expect(mutation.maxAttempts).toBeUndefined();
+  });
+
   it("returns undefined for a missing mutation", () => {
     const outbox = makeOutbox();
     expect(outbox.getMutation({mutationId: "nope"})).toBeUndefined();
@@ -243,6 +264,24 @@ describe("state machine transitions", () => {
     outbox.markConflicted({mutationId: "m1"});
     const retry = outbox.requeue({mutationId: "m1"});
     expect(outbox.getMutation({mutationId: retry.mutationId})?.baseVersion).toBe(3);
+  });
+
+  it("requeue copies maxAttempts onto the cloned row", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({
+      args: {title: "Buy milk"},
+      collection: "todos",
+      entityId: "t1",
+      maxAttempts: 1,
+      mutationId: "m1",
+      operation: "update",
+      userId: "user-1",
+    });
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markConflicted({mutationId: "m1"});
+    const retry = outbox.requeue({mutationId: "m1"});
+    expect(retry.maxAttempts).toBe(1);
+    expect(outbox.getMutation({mutationId: retry.mutationId})?.maxAttempts).toBe(1);
   });
 
   it("requeue preserves the original FIFO position", () => {

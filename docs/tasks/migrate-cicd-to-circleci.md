@@ -213,7 +213,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Acceptance: `rg -n "GitHub Actions" docs/explanation/repository-settings.md` and deploy docs reflect CircleCI as source of truth.
 
 - [ ] **Task 10.2**: Final GHA workflow purge + IP close
-  - Description: Ensure `.github/workflows` has no CI/CD yml left (except intentionally empty dir or README). Update `PLAN_INDEX.md`; archive IP when Complete.
-  - Files: `.github/workflows/`, `docs/implementationPlans/PLAN_INDEX.md`
+  - Description: Ensure `.github/workflows` has no CI/CD yml left (except intentionally empty dir or README). Set the IP `**Status:**` to Complete and archive the IP.
+  - Files: `.github/workflows/`, `docs/implementationPlans/migrate-cicd-to-circleci.md`
   - Depends on: Task 9.3, Task 10.1, Task 8.2
   - Acceptance: `ls .github/workflows/*.yml` is empty (or only an agreed stub); IP status Complete.
