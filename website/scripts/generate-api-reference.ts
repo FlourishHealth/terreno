@@ -1,5 +1,6 @@
 import {spawnSync} from "node:child_process";
 import {existsSync, mkdirSync, rmSync, writeFileSync} from "node:fs";
+import {createRequire} from "node:module";
 import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 
@@ -7,6 +8,14 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const WEBSITE_ROOT = resolve(SCRIPT_DIR, "..");
 const REPO_ROOT = resolve(WEBSITE_ROOT, "..");
 const OUTPUT_ROOT = join(REPO_ROOT, "docs/reference/generated");
+
+// Resolve the workspace-installed typedoc binary explicitly rather than relying on `bunx`,
+// which can resolve a fresh dependency tree (and an older TypeScript peer) that rejects the
+// `ignoreDeprecations: "6.0"` set in the package tsconfigs. Running the installed typedoc
+// guarantees it uses the single workspace TypeScript (6.x). typedoc's `exports` map blocks
+// resolving the bin subpath directly, so derive it from the resolvable package.json.
+const require = createRequire(import.meta.url);
+const TYPEDOC_BIN = join(dirname(require.resolve("typedoc/package.json")), "bin/typedoc");
 
 interface PackageTarget {
   id: string;
@@ -31,11 +40,22 @@ const runTypedoc = (target: PackageTarget): void => {
   const typedocTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.typedoc.json");
   const defaultTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.json");
   const tsconfigPath = existsSync(typedocTsconfigPath) ? typedocTsconfigPath : defaultTsconfigPath;
+  const packageDir = join(REPO_ROOT, target.packageDir);
+
+  const compileDependenciesResult = spawnSync(
+    "node",
+    [join(REPO_ROOT, ".github/scripts/compile-workspace-deps.js")],
+    {cwd: packageDir, env: process.env, stdio: "inherit"}
+  );
+  if (compileDependenciesResult.status !== 0) {
+    console.error(`Workspace dependency compilation failed for ${target.title}`);
+    process.exit(compileDependenciesResult.status ?? 1);
+  }
 
   const result = spawnSync(
-    "bunx",
+    "bun",
     [
-      "typedoc",
+      TYPEDOC_BIN,
       entryPath,
       "--tsconfig",
       tsconfigPath,

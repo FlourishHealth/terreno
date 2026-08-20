@@ -15,11 +15,12 @@ Umbrella plans that coordinate several IPs.
 
 | Plan | Status | Created | Tasks |
 |------|--------|---------|-------|
+| [Migrate CI/CD to CircleCI](migrate-cicd-to-circleci.md) | Draft — decisions recorded | 2026-08-17 | [tasks](../tasks/migrate-cicd-to-circleci.md) |
 | [Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md) | Approved | 2026-06-15 | [tasks](../tasks/admin-ui-v2-django-parity.md) |
-| [RBAC Permissions](rbac-permissions.md) | Draft (API design) | 2026-07-08 | TBD |
-| [SyncDB Local-First Data Layer](syncdb-local-first.md) | In progress ([PR #869](https://github.com/flourishhealth/terreno/pull/869)) | 2026-07-13 | [tasks](../tasks/syncdb-local-first.md) |
-| [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) | 2026-06-21 | TBD |
-| [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) | 2026-08-09 | [tasks](../tasks/infra-mcp.md) |
+| [@terreno/syncdb-codegen](syncdb-codegen.md) | Draft | 2026-07-08 | [tasks](../tasks/syncdb-codegen.md) |
+| [SyncDB local-first data layer (v2)](syncdb-local-first.md) | In progress — Phases 1–8 landed, Phase 9 follow-ups open | 2026-06-23 | [tasks](../tasks/syncdb-local-first.md) |
+| [SyncDB hardening (syncdb-2)](terreno-syncdb-2.md) | Implemented — Phases A–F landed; deviations carried into Phase 9 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8/9) |
+| [SyncDB Phase C design](syncdb-phase-c-design.md) | Implemented — design authority for C1–C8 | 2026-07-11 | [tasks](../tasks/syncdb-local-first.md) (Phase 8) |
 
 ## Open source launch IPs
 
@@ -94,3 +95,6 @@ full program (including items whose IPs are pending decisions D1–D4) are seede
 | [modelRouter MCP tools](model-router-mcp.md) | MCP surface for consumer app APIs |
 | [Offline mode](offline-mode.md) | Superseded in large part by [syncdb](syncdb-local-first.md) — confirm and close |
 | [modelRouter actions](model-router-actions.md) | — |
+| [RBAC Permissions](rbac-permissions.md) | Draft (API design) |
+| [MCP Boost parity](mcp-boost-parity.md) | In progress ([PR #802](https://github.com/flourishhealth/terreno/pull/802)) |
+| [Infrastructure MCP server](infra-mcp.md) | Draft — blocked on [RBAC](rbac-permissions.md) |

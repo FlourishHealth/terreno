@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "example-backend - Express backend demonstrating @terreno/api usage"
 globs: ["**/*"]
 ---

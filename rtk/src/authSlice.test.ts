@@ -25,6 +25,9 @@ import type {RootState} from "./constants";
 // Force IsWeb=true regardless of load order with the native test files.
 mock.module("./platform", () => ({IsWeb: true}));
 
+// Force IsWeb=true regardless of load order with the native test files.
+mock.module("./platform", () => ({IsWeb: true}));
+
 // Create a real RTK Query API with the endpoints that generateAuthSlice expects
 const api = createApi({
   baseQuery: fetchBaseQuery({baseUrl: "/"}),

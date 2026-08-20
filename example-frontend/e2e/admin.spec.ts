@@ -15,7 +15,6 @@ test.describe("Admin Panel", () => {
   test.beforeEach(async ({page}) => {
     await loginAsAdmin(page);
     await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
   });
 
   test("admin panel renders model list", async ({page}) => {
@@ -67,7 +66,6 @@ test.describe("Admin Panel", () => {
     const todoEntry = adminModelEntry(page, "Todo");
     await todoEntry.first().waitFor({state: "visible"});
     await todoEntry.first().click();
-    await page.waitForLoadState("networkidle");
 
     // Verify the todo appears in the admin table. Other screens (e.g. the
     // consumer todos tab) may still be mounted in the background and receive
@@ -88,7 +86,6 @@ test.describe("Admin Access Control", () => {
   test("non-admin user cannot see admin button in profile", async ({page}) => {
     await loginAs(page);
     await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
     await page.getByTestId("profile-name-input").first().waitFor({state: "visible"});
     await expect(page.getByTestId("profile-admin-button")).not.toBeVisible();
   });

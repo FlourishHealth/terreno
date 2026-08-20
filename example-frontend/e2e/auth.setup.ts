@@ -1,66 +1,44 @@
-import {test as setup} from "@playwright/test";
-import {ADMIN_USER, SECOND_USER, TEST_USER} from "./fixtures/testUsers";
+import {type APIRequestContext, test as setup} from "@playwright/test";
+import {ADMIN_USER, ALL_E2E_USERS, SYNCDB_LOADLAB_USER} from "./fixtures/testUsers";
 import {setUserAdmin} from "./helpers/adminAuth";
+import {signUpOrSignInBetterAuth} from "./helpers/betterAuthSession";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
-setup("create test user", async ({request}) => {
-  // Create the regular test user
-  await createUser(request, TEST_USER);
-  await acceptPendingConsentForms(request, TEST_USER);
-
-  // Create a second non-admin user used by realtime isolation tests
-  await createUser(request, SECOND_USER);
-  await acceptPendingConsentForms(request, SECOND_USER);
-
-  // Create the admin user and promote
-  await createUser(request, ADMIN_USER);
-  await setUserAdmin(ADMIN_USER.email);
-  await acceptPendingConsentForms(request, ADMIN_USER);
+setup("create test users", async ({request}) => {
+  for (const user of ALL_E2E_USERS) {
+    await createUser(request, user);
+    if (user.email === ADMIN_USER.email) {
+      await setUserAdmin(ADMIN_USER.email);
+    }
+    if (user.email === SYNCDB_LOADLAB_USER.email) {
+      await setUserAdmin(SYNCDB_LOADLAB_USER.email);
+    }
+    await acceptPendingConsentForms(request, user);
+  }
 });
 
 const createUser = async (
-  request: Parameters<Parameters<typeof setup>[1]>[0]["request"],
+  request: APIRequestContext,
   user: {email: string; name: string; password: string}
 ): Promise<void> => {
-  const response = await request.post(`${API_URL}/auth/signup`, {
-    data: {
-      email: user.email,
-      name: user.name,
-      password: user.password,
-    },
-  });
-
-  const status = response.status();
-  if (status >= 200 && status < 300) {
-    return;
+  try {
+    await signUpOrSignInBetterAuth(request, user);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("already")) {
+      return;
+    }
+    throw error;
   }
-  const body = await response.text();
-  // Backend returns 500 for duplicate user — acceptable on reruns
-  if (body.includes("already registered")) {
-    return;
-  }
-  throw new Error(`Failed to create user ${user.email}: ${status} ${body}`);
 };
 
 const acceptPendingConsentForms = async (
-  request: Parameters<Parameters<typeof setup>[1]>[0]["request"],
-  user: {email: string; password: string}
+  request: APIRequestContext,
+  user: {email: string; name: string; password: string}
 ): Promise<void> => {
-  // Login to get a token
-  const loginRes = await request.post(`${API_URL}/auth/login`, {
-    data: {email: user.email, password: user.password},
-  });
-  if (!loginRes.ok()) {
-    return;
-  }
-  const loginData = await loginRes.json();
-  const token: string = loginData?.data?.token ?? loginData?.token ?? "";
-  if (!token) {
-    return;
-  }
+  const token = await signUpOrSignInBetterAuth(request, user);
 
-  // Fetch pending consent forms
   const pendingRes = await request.get(`${API_URL}/consents/pending`, {
     headers: {authorization: `Bearer ${token}`},
   });
@@ -70,7 +48,6 @@ const acceptPendingConsentForms = async (
   const pendingData = await pendingRes.json();
   const forms: Array<{_id: string; captureSignature?: boolean}> = pendingData?.data ?? [];
 
-  // Submit a response for each pending form
   for (const form of forms) {
     await request.post(`${API_URL}/consents/respond`, {
       data: {

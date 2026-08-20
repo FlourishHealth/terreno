@@ -1,6 +1,5 @@
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
-import {appendFileSync} from "node:fs";
 
 export const configDir = dirname(fileURLToPath(import.meta.url));
 export const isCi = process.env.CI === "true";
@@ -41,29 +40,6 @@ const resolvedConnectionRetryTimeout = isQuickLoop
 const resolvedConnectionRetryCount = isQuickLoop ? 1 : isCi ? 2 : 3;
 const resolvedAppiumStartupTimeout = isCi ? 600000 : undefined;
 
-try {
-  // #region agent log
-  appendFileSync(
-    "/opt/cursor/logs/debug.log",
-    `${JSON.stringify({
-      hypothesisId: "H1",
-      location: "demo/appium/wdio.shared.conf.ts:35",
-      message: "Resolved WDIO shared timeouts",
-      data: {
-        isCi,
-        isIosRun,
-        isQuickLoop,
-        resolvedAppiumStartupTimeout,
-        resolvedConnectionRetryCount,
-        resolvedConnectionRetryTimeout,
-        specFileRetries,
-      },
-      timestamp: Date.now(),
-    })}\n`
-  );
-  // #endregion
-} catch {}
-
 export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   runner: "local",
   specs: resolvedSpecs,
@@ -92,6 +68,6 @@ export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   reporters: ["spec"],
   mochaOpts: {
     ui: "bdd",
-    timeout: isQuickLoop ? 180000 : isCi ? 300000 : 120000,
+    timeout: isIosRun ? 420000 : isQuickLoop ? 300000 : isCi ? 300000 : 120000,
   },
 };

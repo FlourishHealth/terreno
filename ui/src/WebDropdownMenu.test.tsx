@@ -5,7 +5,12 @@ import type {ComponentProps} from "react";
 import {Dimensions} from "react-native";
 
 import {renderWithTheme} from "./test-utils";
-import {scheduleAfterPaint, useWebDropdownAnchor, WebDropdownMenu} from "./WebDropdownMenu";
+import {
+  resolveDocumentBodyPortalTarget,
+  scheduleAfterPaint,
+  useWebDropdownAnchor,
+  WebDropdownMenu,
+} from "./WebDropdownMenu";
 
 describe("WebDropdownMenu", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
@@ -506,6 +511,20 @@ describe("WebDropdownMenu keepTriggerFocus portal overlay", () => {
     );
   };
 
+  it("resolves document.body as the portal target when it is an HTMLElement", () => {
+    ensureWebDocument();
+    const body = new (globalThis as {HTMLElement: typeof HTMLElement}).HTMLElement();
+    Object.defineProperty((globalThis as {document: Document}).document, "body", {
+      configurable: true,
+      value: body,
+    });
+    try {
+      assert.strictEqual(resolveDocumentBodyPortalTarget(), body);
+    } finally {
+      restoreWebDocument();
+    }
+  });
+
   it("renders fixed-position overlay instead of Modal when keepTriggerFocus is true on web", () => {
     ensureWebDocument();
     savedOS = PlatformModule.OS;
@@ -525,6 +544,25 @@ describe("WebDropdownMenu keepTriggerFocus portal overlay", () => {
 
       const modals = root.findAll((node) => node.type === "Modal");
       expect(modals.length).toBe(0);
+    } finally {
+      PlatformModule.OS = savedOS;
+      restoreWebDocument();
+    }
+  });
+
+  it("renders in the body portal without requiring trigger focus retention", () => {
+    ensureWebDocument();
+    savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "web";
+      const {getByTestId, queryByTestId, root} = renderKeepFocusMenu({
+        keepTriggerFocus: false,
+        renderInBodyPortal: true,
+      });
+
+      assert.isOk(getByTestId("web_dropdown_menu"));
+      assert.isNull(queryByTestId("web_dropdown_modal"));
+      assert.equal(root.findAll((node) => node.type === "Modal").length, 0);
     } finally {
       PlatformModule.OS = savedOS;
       restoreWebDocument();
@@ -642,6 +680,53 @@ describe("useWebDropdownAnchor", () => {
     expect(onMeasured).toHaveBeenCalledTimes(1);
     expect(onMeasured.mock.calls[0][0]).toEqual({height: 40, width: 100, x: 10, y: 20});
     expect(result.current.anchor).toEqual({height: 40, width: 100, x: 10, y: 20});
+  });
+
+  it("ignores an older measurement that completes after a newer request", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    const callbacks: Array<(x: number, y: number, width: number, height: number) => void> = [];
+    const measureInWindow = mock(
+      (callback: (x: number, y: number, width: number, height: number) => void): void => {
+        callbacks.push(callback);
+      }
+    );
+    (result.current.triggerRef as {current: unknown}).current = {measureInWindow};
+    const onFirstMeasured = mock(() => {});
+    const onSecondMeasured = mock(() => {});
+
+    act(() => {
+      result.current.measure(onFirstMeasured);
+      result.current.measure(onSecondMeasured);
+    });
+    act(() => {
+      callbacks[1](20, 30, 120, 50);
+      callbacks[0](10, 15, 100, 40);
+    });
+
+    assert.deepEqual(result.current.anchor, {height: 50, width: 120, x: 20, y: 30});
+    assert.equal(onFirstMeasured.mock.calls.length, 0);
+    assert.equal(onSecondMeasured.mock.calls.length, 1);
+  });
+
+  it("ignores a pending measurement after cancellation", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    let completeMeasurement = (_x: number, _y: number, _width: number, _height: number): void => {};
+    const measureInWindow = mock(
+      (callback: (x: number, y: number, width: number, height: number) => void): void => {
+        completeMeasurement = callback;
+      }
+    );
+    (result.current.triggerRef as {current: unknown}).current = {measureInWindow};
+    const onMeasured = mock(() => {});
+
+    act(() => {
+      result.current.measure(onMeasured);
+      result.current.cancelPendingMeasurement();
+      completeMeasurement(10, 20, 100, 40);
+    });
+
+    assert.deepEqual(result.current.anchor, {height: 0, width: 0, x: 0, y: 0});
+    assert.equal(onMeasured.mock.calls.length, 0);
   });
 
   it("exercises the Pressable style callback for hover/pressed states", () => {

@@ -104,12 +104,15 @@
   "overrides": [
     {
       // Internal barrel index files are banned. Package public entries
-      // (src/index.ts[x]) and Expo Router route files (app/**) are exempt.
+      // (src/index.ts[x] plus the subpaths declared in a package's "exports")
+      // and Expo Router route files (app/**) are exempt.
       "includes": [
         "**/index.ts",
         "**/index.tsx",
         "!src/index.ts",
         "!src/index.tsx",
+        "!src/react/index.ts",
+        "!src/testing/index.ts",
         "!app/**",
         "!**/app/**"
       ],

@@ -51,6 +51,12 @@ export class EnvSecretProvider implements SecretProvider {
 export interface GcpSecretProviderOptions {
   /** GCP project ID. Required for short secret names. */
   projectId: string;
+  /**
+   * Loads the optional `@google-cloud/secret-manager` peer. Overridable so tests can exercise
+   * the "peer not installed" path without depending on whether the install layout happens to
+   * expose the package.
+   */
+  loadModule?: () => Promise<SecretManagerModule>;
 }
 
 /**
@@ -70,18 +76,24 @@ export class GcpSecretProvider implements SecretProvider {
   name = "gcp";
   private projectId: string;
   private client: SecretManagerClient | null = null;
+  private loadModule: () => Promise<SecretManagerModule>;
 
   constructor(options: GcpSecretProviderOptions) {
     this.projectId = options.projectId;
+    this.loadModule =
+      options.loadModule ??
+      (() => {
+        // Dynamic import — @google-cloud/secret-manager is an optional peer dependency
+        const moduleName = "@google-cloud/secret-manager";
+        return import(/* webpackIgnore: true */ moduleName);
+      });
   }
 
   private async getClient(): Promise<SecretManagerClient> {
     if (!this.client) {
       let mod: SecretManagerModule;
       try {
-        // Dynamic import — @google-cloud/secret-manager is an optional peer dependency
-        const moduleName = "@google-cloud/secret-manager";
-        mod = await import(/* webpackIgnore: true */ moduleName);
+        mod = await this.loadModule();
       } catch {
         throw new APIError({
           status: 500,
