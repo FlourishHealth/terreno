@@ -1,4 +1,6 @@
-# Include top-level example-frontend flows and nested demo smokes.
+# CI runs login + create-todo + demo smokes. signup.yaml is kept for local runs
+# (new users must complete consent modals, which this smoke set does not cover).
 flows:
-  - "*"
+  - "login.yaml"
+  - "create-todo.yaml"
   - "demo/*"

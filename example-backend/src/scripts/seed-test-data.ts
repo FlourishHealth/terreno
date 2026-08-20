@@ -4,7 +4,8 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {ConsentForm, type ConsentFormType, logger} from "@terreno/api";
+import {ConsentForm, type ConsentFormType, ConsentResponse, logger} from "@terreno/api";
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
 // real _syncSeq stamped instead of arriving to clients as legacy seq-0 documents.
@@ -270,6 +271,44 @@ const seedTodos = async (owner: UserDocument): Promise<void> => {
   }
 };
 
+/** Accept active consent forms so Maestro/Playwright logins land on the app shell. */
+const acceptPendingConsentsForUser = async (user: UserDocument): Promise<void> => {
+  const activeForms = await ConsentForm.find({active: true}).sort({order: 1});
+  const existingResponses = await ConsentResponse.find({userId: user._id});
+
+  const pendingForms = activeForms.filter((form) => {
+    const formId = form._id.toString();
+    const matchingResponses = existingResponses.filter(
+      (response) => response.consentFormId.toString() === formId
+    );
+    if (matchingResponses.length === 0) {
+      return true;
+    }
+    return !matchingResponses.some(
+      (response) => response.formVersionSnapshot === form.version
+    );
+  });
+
+  if (pendingForms.length === 0) {
+    logger.info(`All consent forms already accepted for ${user.email}`);
+    return;
+  }
+
+  const agreedAt = DateTime.now().toJSDate();
+  for (const form of pendingForms) {
+    await ConsentResponse.create({
+      agreed: true,
+      agreedAt,
+      consentFormId: form._id,
+      formVersionSnapshot: form.version,
+      locale: "en",
+      userId: user._id,
+      ...(form.captureSignature ? {signature: "E2E Seed", signedAt: agreedAt} : {}),
+    });
+    logger.info(`Accepted consent ${form.slug} for ${user.email}`);
+  }
+};
+
 const seedConsentForms = async (): Promise<void> => {
   const slugs = CONSENT_FORMS.map((f) => f.slug);
   const existing = await ConsentForm.find({slug: {$in: slugs}});
@@ -302,6 +341,10 @@ export const seedDefaultData = async (): Promise<void> => {
   }
 
   await seedConsentForms();
+
+  for (const user of seededUsers) {
+    await acceptPendingConsentsForUser(user);
+  }
 };
 
 const main = async (): Promise<void> => {

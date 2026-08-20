@@ -28,7 +28,7 @@ url: http://localhost:8082/login
 
 # Create a new todo
 - tapOn:
-    id: "todo-new-input"
+    id: "todos-title-input"
 - inputText: "Buy groceries"
 
 - tapOn: "Add Todo"

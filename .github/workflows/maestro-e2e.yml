@@ -93,12 +93,6 @@ jobs:
         run: bun run types
         working-directory: ui
 
-      - name: Export example frontend for web
-        run: bun run export
-        working-directory: example-frontend
-        env:
-          EXPO_PUBLIC_API_URL: http://localhost:4000
-
       - name: Export demo for web
         run: bun run export
         working-directory: demo
@@ -148,16 +142,22 @@ jobs:
           TOKEN_EXPIRES_IN: 15m
           REFRESH_TOKEN_EXPIRES_IN: 30d
 
-      - name: Serve example frontend static build
-        run: bunx serve -s example-frontend/dist -l 8082 &
+      - name: Start example frontend dev server
+        run: bun expo start --web --port 8082 &
+        working-directory: example-frontend
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:4000
 
       - name: Serve demo static build
         run: bunx serve demo/dist -l 8085 &
 
       - name: Wait for example frontend
         run: |
-          for i in $(seq 1 30); do
-            curl -s http://localhost:8082 > /dev/null && exit 0
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8082/login > /dev/null; then
+              echo "Example frontend ready after ${i}×2s"
+              exit 0
+            fi
             sleep 2
           done
           echo "Example frontend failed to start" && exit 1
