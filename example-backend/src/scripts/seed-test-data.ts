@@ -320,8 +320,12 @@ const main = async (): Promise<void> => {
 };
 
 if (import.meta.main) {
-  main().catch((error: unknown) => {
-    logger.error(`Unhandled error: ${error}`);
-    process.exit(1);
-  });
+  main()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((error: unknown) => {
+      logger.error(`Unhandled error: ${error}`);
+      process.exit(1);
+    });
 }
