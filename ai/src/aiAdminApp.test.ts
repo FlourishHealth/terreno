@@ -1,24 +1,19 @@
-import {describe, expect, it, mock} from "bun:test";
-import type express from "express";
-
-const addAiRequestsExplorerRoutes = mock(() => {});
-
-mock.module("./routes/aiRequestsExplorer", () => ({
-  addAiRequestsExplorerRoutes,
-}));
+import {describe, expect, it} from "bun:test";
+import express from "express";
 
 import {AIAdminApp} from "./aiAdminApp";
 
 describe("AIAdminApp", () => {
   it("registers explorer routes and contributes the AI Requests screen", () => {
-    const app = {} as express.Application;
+    const app = express();
     const plugin = new AIAdminApp({openApiOptions: {title: "Admin"}});
 
     plugin.register(app);
 
-    expect(addAiRequestsExplorerRoutes).toHaveBeenCalledWith(app, {
-      openApiOptions: {title: "Admin"},
-    });
+    const routePaths = (app.router.stack as Array<{route?: {path?: string}}>).flatMap((layer) =>
+      layer.route?.path ? [layer.route.path] : []
+    );
+    expect(routePaths).toContain("/aiRequestsExplorer");
     expect(plugin.adminContribution()).toEqual({
       customScreens: [{displayName: "AI Requests", icon: "robot", name: "ai-requests"}],
     });

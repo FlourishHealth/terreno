@@ -1,11 +1,11 @@
-import {createServer} from "node:http";
 import {EventEmitter} from "node:events";
+import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
-import type {ModelRouterRegistration} from "./api";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
+import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {
@@ -400,7 +400,11 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        const router = registration._buildWithContext({openApi: oapi, routePath: registration.path, terrenoApp: this});
+        const router = registration._buildWithContext({
+          openApi: oapi,
+          routePath: registration.path,
+          terrenoApp: this,
+        });
         app.use(registration.path, router);
       } else {
         registration.register(app, oapi, this);

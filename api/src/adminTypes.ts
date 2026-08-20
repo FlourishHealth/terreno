@@ -103,7 +103,9 @@ export interface AdminConfig {
     read: PermissionMethod<unknown>[];
     update: PermissionMethod<unknown>[];
   }>;
-  adminFilter?: (req: express.Request) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  adminFilter?: (
+    req: express.Request
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>;
   actions?: AdminAction[];
   /** When true, scrubbed `admin:model.changed` events fire after mutations (no socket transport). */
   realtime?: boolean;

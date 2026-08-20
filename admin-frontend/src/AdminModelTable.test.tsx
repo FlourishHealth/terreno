@@ -463,7 +463,10 @@ describe("AdminModelTable", () => {
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
-    const cols = (tables[0] as ReactTestInstance).props.columns as {sortable?: boolean; title: string}[];
+    const cols = (tables[0] as ReactTestInstance).props.columns as {
+      sortable?: boolean;
+      title: string;
+    }[];
     const emailCol = cols.find((c) => c.title === "Email");
     const activeCol = cols.find((c) => c.title === "Active");
     expect(emailCol?.sortable).toBe(true);
@@ -485,7 +488,9 @@ describe("AdminModelTable", () => {
     const {UNSAFE_root} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => typeof n.props?.totalPages === "number");
+    const tables = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => typeof n.props?.totalPages === "number"
+    );
     expect((tables[0] as ReactTestInstance).props.totalPages).toBe(2);
   });
 });

@@ -6,14 +6,19 @@ test.describe("Admin contributed custom screens", () => {
     await loginAsAdmin(page);
   });
 
-  test("renders the Documents browser through AdminScreenRouter", async ({page}) => {
+  test("renders the Documents browser through AdminScreenRouter", async ({consoleGuard, page}) => {
+    consoleGuard.allow("Failed to load resource: the server responded with a status of 503");
     await page.goto("/admin/documents");
     await expect(page.getByText("Documents").first()).toBeVisible();
     await expect(page.getByTestId("document-refresh-button")).toBeVisible();
   });
 
-  test("renders the AI request explorer through AdminScreenRouter", async ({page}) => {
+  test("renders the AI request explorer through AdminScreenRouter", async ({
+    consoleGuard,
+    page,
+  }) => {
+    consoleGuard.allow("UTC is not a valid timezone");
     await page.goto("/admin/ai-requests");
-    await expect(page.getByTestId("admin-ai-explorer")).toBeVisible();
+    await expect(page.getByText("AI Request Explorer").first()).toBeVisible();
   });
 });

@@ -423,10 +423,9 @@ describe("TerrenoApp", () => {
       expect(events).toHaveLength(1);
       expect(events[0]?.type).toBe("create");
       expect(events[0]?.routePath).toBe("/food");
-      expect(events[0]?.document).toEqual(
-        expect.objectContaining({name: "Apple", calories: 10})
-      );
-      expect((events[0]?.document as Record<string, unknown>).tags).toBeUndefined();
+      expect(events[0]?.document).toEqual(expect.objectContaining({calories: 10, name: "Apple"}));
+      const emittedDocument = events[0]?.document as Record<string, unknown> | undefined;
+      expect(emittedDocument?.tags).toBeUndefined();
     });
   });
 

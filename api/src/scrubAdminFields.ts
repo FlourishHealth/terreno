@@ -97,10 +97,7 @@ export interface ScrubAdminFieldsParams {
  * Populated refs are scrubbed using the referenced model's admin config when present
  * in `allModelAdmins` (keyed by Mongoose model name).
  */
-export const scrubAdminFields = (
-  value: unknown,
-  params: ScrubAdminFieldsParams
-): unknown => {
+export const scrubAdminFields = (value: unknown, params: ScrubAdminFieldsParams): unknown => {
   if (value == null) {
     return value;
   }

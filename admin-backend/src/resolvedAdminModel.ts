@@ -23,13 +23,16 @@ const adminPermissionsToModelPermissions = (
   if (!permissions) {
     return undefined;
   }
-  const has = (methods: typeof permissions.create): boolean => {
-    return methods != null && methods.length > 0;
+  const enabled = (methods: typeof permissions.create): boolean => {
+    if (methods === undefined) {
+      return true;
+    }
+    return methods.length > 0;
   };
   return {
-    create: has(permissions.create),
-    delete: has(permissions.delete),
-    update: has(permissions.update),
+    create: enabled(permissions.create),
+    delete: enabled(permissions.delete),
+    update: enabled(permissions.update),
   };
 };
 

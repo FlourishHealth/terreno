@@ -96,8 +96,8 @@ export type {
   RealtimeEvent,
 } from "./realtime/types";
 export * from "./requestContext";
-export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./scriptRunner";
+export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
 export * from "./sync/executors";
 export * from "./sync/models";

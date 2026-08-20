@@ -651,7 +651,7 @@ export function modelRouter<T>(
       _buildWithContext: (context: ModelRouterBuildContext) =>
         _buildModelRouter(
           model,
-          enrichModelRouterOptions(model, {...options, openApi: context.openApi}, context),
+          enrichModelRouterOptions(model, {...options, openApi: context.openApi}, context)
         ),
       model,
       options,

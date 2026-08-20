@@ -79,6 +79,54 @@ export const enrichModelRouterOptions = <T>(
   return {
     ...options,
     openApi,
+    postCreate: async (value, request) => {
+      if (userPostCreate) {
+        await userPostCreate(value, request);
+      }
+      if (admin.realtime && terrenoApp && routePath) {
+        emitAdminModelChanged({
+          admin,
+          doc: value as Document<unknown, unknown, unknown> & T,
+          model,
+          req: request,
+          routePath,
+          terrenoApp,
+          type: "create",
+        });
+      }
+    },
+    postDelete: async (request, value) => {
+      if (userPostDelete) {
+        await userPostDelete(request, value);
+      }
+      if (admin.realtime && terrenoApp && routePath) {
+        emitAdminModelChanged({
+          admin,
+          doc: value as Document<unknown, unknown, unknown> & T,
+          model,
+          req: request,
+          routePath,
+          terrenoApp,
+          type: "delete",
+        });
+      }
+    },
+    postUpdate: async (value, cleanedBody, request, prevValue) => {
+      if (userPostUpdate) {
+        await userPostUpdate(value, cleanedBody, request, prevValue);
+      }
+      if (admin.realtime && terrenoApp && routePath) {
+        emitAdminModelChanged({
+          admin,
+          doc: value as Document<unknown, unknown, unknown> & T,
+          model,
+          req: request,
+          routePath,
+          terrenoApp,
+          type: "update",
+        });
+      }
+    },
     preCreate: async (value, request) => {
       let body = stripAdminBodyFields(
         value as Record<string, unknown> | Record<string, unknown>[] | null | undefined,
@@ -99,54 +147,6 @@ export const enrichModelRouterOptions = <T>(
         body = next;
       }
       return body;
-    },
-    postCreate: async (value, request) => {
-      if (userPostCreate) {
-        await userPostCreate(value, request);
-      }
-      if (admin.realtime && terrenoApp && routePath) {
-        emitAdminModelChanged({
-          admin,
-          doc: value as Document<unknown, unknown, unknown> & T,
-          model,
-          req: request,
-          routePath,
-          terrenoApp,
-          type: "create",
-        });
-      }
-    },
-    postUpdate: async (value, cleanedBody, request, prevValue) => {
-      if (userPostUpdate) {
-        await userPostUpdate(value, cleanedBody, request, prevValue);
-      }
-      if (admin.realtime && terrenoApp && routePath) {
-        emitAdminModelChanged({
-          admin,
-          doc: value as Document<unknown, unknown, unknown> & T,
-          model,
-          req: request,
-          routePath,
-          terrenoApp,
-          type: "update",
-        });
-      }
-    },
-    postDelete: async (request, value) => {
-      if (userPostDelete) {
-        await userPostDelete(request, value);
-      }
-      if (admin.realtime && terrenoApp && routePath) {
-        emitAdminModelChanged({
-          admin,
-          doc: value as Document<unknown, unknown, unknown> & T,
-          model,
-          req: request,
-          routePath,
-          terrenoApp,
-          type: "delete",
-        });
-      }
     },
   } as ModelRouterOptions<T>;
 };

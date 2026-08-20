@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import {Schema, model} from "mongoose";
+import {model, Schema} from "mongoose";
 
 import type {AdminConfig} from "./adminTypes";
 import {scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
@@ -36,7 +36,7 @@ describe("scrubAdminFields", () => {
 
   it("strips exclude and hidden fields at the top level", () => {
     const result = scrubAdminFields(
-      {title: "Buy milk", secret: "x", internalNote: "n"},
+      {internalNote: "n", secret: "x", title: "Buy milk"},
       {admin: todoAdmin}
     );
     expect(result).toEqual({title: "Buy milk"});
@@ -44,7 +44,10 @@ describe("scrubAdminFields", () => {
 
   it("scrubs nested arrays", () => {
     const result = scrubAdminFields(
-      [{title: "a", secret: "1"}, {title: "b", internalNote: "2"}],
+      [
+        {secret: "1", title: "a"},
+        {internalNote: "2", title: "b"},
+      ],
       {admin: todoAdmin}
     );
     expect(result).toEqual([{title: "a"}, {title: "b"}]);
@@ -102,7 +105,7 @@ describe("stripAdminBodyFields", () => {
 
   it("removes readonly, exclude, and hidden keys from objects", () => {
     const result = stripAdminBodyFields(
-      {title: "x", slug: "fixed", role: "admin", internal: "n"},
+      {internal: "n", role: "admin", slug: "fixed", title: "x"},
       admin
     );
     expect(result).toEqual({title: "x"});

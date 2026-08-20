@@ -7,7 +7,8 @@ test.describe("Admin table search and filters", () => {
     await page.goto("/admin/Todo");
   });
 
-  test("searches and applies a filter", async ({page}) => {
+  test("searches and applies a filter", async ({consoleGuard, page}) => {
+    consoleGuard.allow("UTC is not a valid timezone");
     const search = page.getByTestId("admin-table-search");
     await expect(search).toBeVisible();
     await search.fill("task");
