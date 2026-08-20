@@ -114,6 +114,7 @@ export const aggregateAdminContributions = ({
       const resolved = resolvedModelFromAdminConfig({
         admin: modelContribution.admin,
         model: modelContribution.model,
+        populatePaths: modelContribution.populatePaths,
         queryFilter: undefined,
         routePath: path,
         source: "plugin",

@@ -2,6 +2,7 @@ import type express from "express";
 import type {Model} from "mongoose";
 
 import type {PermissionMethod, RESTPermissions} from "./permissions";
+import type {PopulatePath} from "./populate";
 import type {ScriptArgDef, ScriptRunner} from "./scriptRunner";
 
 /** Server-side cap on bulk action id lists (v2 bulk-patch). */
@@ -103,7 +104,9 @@ export interface AdminConfig {
     read: PermissionMethod<unknown>[];
     update: PermissionMethod<unknown>[];
   }>;
-  adminFilter?: (req: express.Request) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  adminFilter?: (
+    req: express.Request
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>;
   actions?: AdminAction[];
   /** When true, scrubbed `admin:model.changed` events fire after mutations (no socket transport). */
   realtime?: boolean;
@@ -152,6 +155,7 @@ export interface AdminModelContribution<T = unknown> {
   admin: AdminConfig;
   model: Model<T>;
   permissions?: RESTPermissions<T>;
+  populatePaths?: PopulatePath[];
   routePath: string;
 }
 

@@ -38,6 +38,10 @@ describe("ConsentApp", () => {
       delete: [],
       update: [],
     });
+    expect(contribution.models?.[1]?.populatePaths).toEqual([
+      {fields: ["title", "slug", "version", "type"], path: "consentFormId"},
+      {fields: ["name", "email"], path: "userId"},
+    ]);
   });
 
   let admin: HydratedDocument<User>;

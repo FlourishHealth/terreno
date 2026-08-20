@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   operators are not rejected as client filters.
 - Admin create/update/bulk-patch strip `excludeFields`, and list/read responses always
   run field scrubbing (including populated refs).
+- Plugin admin contributions can forward `populatePaths` (Consent Responses populate user
+  and form in the generic admin list).
+- Example Files tab calls DocumentStorageApp at `/documents` (not `/admin/documents`).
 
 ### Changed
 
