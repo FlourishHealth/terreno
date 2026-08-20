@@ -102,7 +102,7 @@ gh pr create --title "<title>" --body "$(cat <<'EOF'
 - [ ] `bun run lint` passes
 - [ ] `bun run compile` passes (if TypeScript changed)
 - [ ] Docs updated (if user-facing behavior changed)
-- [ ] `CHANGELOG.md` `## [Unreleased]` updated for user-facing changes
+- [ ] `changelog/unreleased/<feature>.md` added for user-facing changes
 - [ ] DCO signed off (`git commit -s`) on every commit
 EOF
 )" --draft
@@ -110,7 +110,7 @@ EOF
 
 Append an `## Evidence` section after **Testing performed** when run evidence exists (see "Include run evidence" above).
 
-**User-facing changes:** add a bullet under `CHANGELOG.md` `## [Unreleased]` before opening the PR (required by the release skill and PR checklist).
+**User-facing changes:** add `changelog/unreleased/<feature>.md` with a `category` header before opening the PR. Do not edit `CHANGELOG.md` `## [Unreleased]`.
 
 ### If a PR already exists
 
@@ -129,7 +129,7 @@ git diff $(gh pr view --json baseRefName -q .baseRefName)...HEAD --stat
 - Preserve the standard sections from [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md): **Summary**, **Related IP or issue**, **Type of change**, **Testing performed**, **Checklist**. Legacy sections (**Human Testing Steps**, **Changes**, **Automated Tests**) may remain — fold stale content into **Testing performed** / **Summary** when you refresh, but do not delete unrelated reviewer context.
 - Prefer **additive** updates: extend **Summary** with a brief "Update:" line when scope grows; tick or add **Checklist** items as work completes.
 - Refresh **Testing performed** when verification needs changed; add or adjust bullets rather than wiping the section unless an item is now false.
-- Update `CHANGELOG.md` `## [Unreleased]` when new user-facing work lands on the branch.
+- Add or update `changelog/unreleased/<feature>.md` when new user-facing work lands on the branch. Do not edit `CHANGELOG.md`.
 - If new work does not fit existing headings, add a **new section at the end** instead of removing unrelated content.
 - If this run produced new evidence (screenshots/videos), add it under the existing `## Evidence` section, or create that section if missing — keep any evidence already in the body.
 - Change the PR **title** only when the overall branch goal changed; otherwise keep the existing title.

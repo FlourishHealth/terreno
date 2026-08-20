@@ -11,10 +11,11 @@ import {
   type SyncDb,
 } from "@terreno/syncdb";
 import {betterAuthClient} from "@/lib/betterAuth";
+import {SYNC_COLLECTIONS} from "@/store/syncDbSdk";
 
 export const SYNC_DB_NAME = "terreno-example";
 
-export const SYNC_COLLECTIONS = ["todos"];
+export {SYNC_COLLECTIONS};
 
 /**
  * The Better Auth *react* client delivers session changes through a nanostore atom
@@ -50,7 +51,7 @@ const authProvider = betterAuthAdapter(syncAuthClient, {pollIntervalMs: 60_000})
 export const syncDb: SyncDb = createSyncDb({
   authProvider,
   baseUrl,
-  collections: SYNC_COLLECTIONS,
+  collections: [...SYNC_COLLECTIONS],
   debug: __DEV__ ? {capacity: 1000} : false,
   // haltQueueOnConflict: true — the example app is a template other apps grow
   // from, and it's common to add cross-collection references (e.g. a todo

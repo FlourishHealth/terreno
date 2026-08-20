@@ -25,27 +25,11 @@ export interface MailMessage {
 }
 
 export type CommsChannel = "mail" | "push" | "sms" | "verification";
-export type CommsMessageStatus = "bounced" | "delivered" | "failed" | "sent";
-
-export interface CommsHookContext {
-  channel: CommsChannel;
-  isRetry?: boolean;
-  provider: string;
-}
-
-export interface MailProvider {
-  readonly id: string;
-  sendMail(message: MailMessage): Promise<SendResult>;
-}
+export type CommsMessageStatus = "bounced" | "cancelled" | "delivered" | "failed" | "sent";
 
 export interface SmsMessage {
   body: string;
   to: string;
-}
-
-export interface SmsProvider {
-  readonly id: string;
-  sendSms(message: SmsMessage): Promise<SendResult>;
 }
 
 export interface PushMessage {
@@ -55,6 +39,28 @@ export interface PushMessage {
   sound?: string | null;
   title: string;
   tokens: string[];
+}
+
+export type CommsHookMessage = MailMessage | PushMessage | SmsMessage | StartVerificationOptions;
+
+export interface CommsHookContext {
+  attempt: number;
+  channel: CommsChannel;
+  isRetry: boolean;
+  message?: CommsHookMessage;
+  messageId?: string;
+  provider: string;
+  userId?: string;
+}
+
+export interface MailProvider {
+  readonly id: string;
+  sendMail(message: MailMessage): Promise<SendResult>;
+}
+
+export interface SmsProvider {
+  readonly id: string;
+  sendSms(message: SmsMessage): Promise<SendResult>;
 }
 
 export interface PushProvider {
@@ -85,21 +91,46 @@ export interface VerificationProvider {
 
 export interface DeliveryEvent {
   channel: "mail" | "push" | "sms";
+  errorClass?: CommsErrorClass;
+  errorCode?: string;
   providerMessageId: string;
   raw?: unknown;
   status: "bounced" | "delivered" | "failed" | "opened";
 }
 
+export interface OptOutEvent {
+  channel: "mail" | "sms";
+  provider: string;
+  raw?: unknown;
+  reason: string;
+  to: string;
+}
+
+export interface CommsAttempt {
+  at: Date;
+  error?: string;
+  errorClass?: CommsErrorClass;
+  errorCode?: string;
+  provider: string;
+  providerMessageId?: string;
+}
+
 export interface CommsOptions {
+  beforeSend?: (
+    context: CommsHookContext
+  ) => Promise<{cancel?: boolean; message?: CommsHookMessage} | undefined>;
   defaultFrom?: string;
   logMessages?: boolean;
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
   onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onOptOut?: (event: OptOutEvent) => Promise<void>;
   onRetry?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   push?: PushProvider;
+  redactPayload?: (context: CommsHookContext, payload: unknown) => unknown;
   redactRecipients?: boolean;
+  retainPayloadDays?: number;
   sms?: SmsProvider;
   verification?: VerificationProvider;
 }

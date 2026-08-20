@@ -219,8 +219,8 @@ repo and is absent otherwise.
 
 1. Skip every roadmap step above — there is no board, no Discussions, and no
    `roadmap-item` skill to call.
-2. The IP + task list plus `docs/implementationPlans/PLAN_INDEX.md` are the source of
-   truth. Track sprint execution in Linear and record it on the IP header `Linear:`
+2. The IP + task list are the source of truth (status on each IP's `**Status:**` header).
+   Track sprint execution in Linear and record it on the IP header `Linear:`
    line; never copy the design into the tracker.
 3. Do not fabricate roadmap labels, fields, or issues. If a maintainer later adds the
    roadmap system, re-run this handoff.
@@ -235,8 +235,8 @@ Support the existing lifecycle commands from legacy `/ip`:
 - `Init` (tracking files, template, conventions)
 - `Explore` (parallel context gathering)
 - `Deep Analysis` (multi-angle investigation + synthesis)
-- `Status` (index/task progression view)
-- `Close` (archive/update index/commit housekeeping)
+- `Status` (IP-header/task progression view)
+- `Close` (archive/commit housekeeping)
 
 ### Lifecycle: Init
 
@@ -246,7 +246,7 @@ Initialize IP tracking in the current project root.
 2. Create the standard structure:
    - `docs/implementationPlans/archive/`
    - `docs/tasks/`
-3. Ensure `docs/implementationPlans/PLAN_INDEX.md` exists with sections for Active, Completed, Deferred/Closed, and Backlog.
+3. Do **not** create `docs/implementationPlans/PLAN_INDEX.md`. If a leftover index exists, delete it. Status lives on each IP's `**Status:**` header.
 4. Ensure `docs/implementationPlans/IP_TEMPLATE.md` exists with the full legacy IP section layout and task-list scaffold.
 5. Ensure project `CLAUDE.md` includes IP lifecycle conventions (statuses, numbering, archive rules, `%%` annotation behavior).
 6. Print an init summary listing created/updated files and next actions.
@@ -257,7 +257,7 @@ Run parallel context gathering and synthesize one briefing.
 
 1. Launch three parallel explore passes:
    - Project overview (docs, layout, stack, gotchas)
-   - IP history (`PLAN_INDEX.md`, active IPs, archive, tasks, recent `IP-` commits)
+   - IP history (each IP's `**Status:**` header, archive, tasks, recent `IP-` commits)
    - Recent activity (recent commits, changed files, branch state, uncommitted work)
 2. Merge the outputs into a single briefing containing:
    - Project overview
@@ -281,25 +281,21 @@ Run a multi-angle deep analysis and produce a verified synthesis.
 
 Report current IP state with optional grooming.
 
-1. Fast path (when state is known-fresh): read active index entries and active IP files, then print the status table.
+1. Fast path (when state is known-fresh): read each IP file's `**Status:**` header (skip `README.md` and `IP_TEMPLATE.md`), then print the status table.
 2. Full grooming (when state may be stale):
-   - Sync each active row to the IP file `**Status:**` value (file is source of truth).
+   - Treat each IP file's `**Status:**` as the source of truth.
    - Archive non-archived IPs already marked Complete/Deferred/Closed.
-   - Detect index/file orphans.
    - Compute task progress (`completed/total`) from corresponding `docs/tasks/` files.
 3. Output a concise Active Plans table and totals.
 
 ### Lifecycle: Close
 
-Close a single IP and keep files/index consistent.
+Close a single IP and keep files consistent.
 
 1. Resolve the target IP from explicit argument or clear conversation context.
 2. Update the IP file status to one of `Complete`, `Closed`, or `Deferred` and add completion/closed date metadata.
-3. Update `PLAN_INDEX.md`:
-   - Remove from Active.
-   - Add to Completed or Deferred/Closed as appropriate.
-4. Archive the IP file under `docs/implementationPlans/archive/` (and associated task file when applicable).
-5. Produce a close summary with disposition, file moves, and index updates.
+3. Archive the IP file under `docs/implementationPlans/archive/` (and associated task file when applicable).
+4. Produce a close summary with disposition and file moves. Do not maintain `PLAN_INDEX.md`.
 
 ## Conventions
 
