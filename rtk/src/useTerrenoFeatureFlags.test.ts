@@ -30,8 +30,18 @@ const boolDef = (variant: "on" | "off") => ({
   variants: {off: false, on: true},
 });
 
+interface FlagQueryDefinition {
+  providesTags: (
+    result: TerrenoFlagConfiguration | undefined,
+    error: unknown,
+    arg: {cacheKey: string}
+  ) => {id: string; type: string}[];
+  query: () => {method: string; url: string};
+}
+
 const buildApi = (queryResult: QueryResult) => {
   const refetch = mock(() => {});
+  let queryDefinition: FlagQueryDefinition | null = null;
   const useTerrenoFlagConfigurationQuery = mock(() => {
     const hasData = Boolean(queryResult.data);
     return {
@@ -47,7 +57,8 @@ const buildApi = (queryResult: QueryResult) => {
   const api = {
     injectEndpoints: mock((opts: {endpoints: (builder: unknown) => void}) => {
       const builder = {
-        query: (def: {query: () => {method: string; url: string}}) => {
+        query: (def: FlagQueryDefinition) => {
+          queryDefinition = def;
           def.query();
           return {useQuery: useTerrenoFlagConfigurationQuery};
         },
@@ -56,7 +67,17 @@ const buildApi = (queryResult: QueryResult) => {
       return {useTerrenoFlagConfigurationQuery};
     }),
   };
-  return {api, refetch, useTerrenoFlagConfigurationQuery};
+  return {
+    api,
+    getQueryDefinition: (): FlagQueryDefinition => {
+      if (!queryDefinition) {
+        throw new Error("The flag configuration endpoint was never injected");
+      }
+      return queryDefinition;
+    },
+    refetch,
+    useTerrenoFlagConfigurationQuery,
+  };
 };
 
 describe("useTerrenoFeatureFlags", () => {
@@ -80,6 +101,19 @@ describe("useTerrenoFeatureFlags", () => {
     });
     expect(result.current.client.getBooleanValue("alpha", false)).toBe(true);
     expect(result.current.flags.alpha?.defaultVariant).toBe("on");
+  });
+
+  it("tags the cached flag configuration per user so a user switch invalidates it", async () => {
+    const {api, getQueryDefinition} = buildApi({data: {alpha: boolDef("on")}});
+    const {result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(getQueryDefinition().providesTags(undefined, undefined, {cacheKey: "u1"})).toEqual([
+      {id: "u1", type: "feature-flags"},
+    ]);
   });
 
   it("does not leave loading stuck when skip is true", () => {
@@ -156,6 +190,23 @@ describe("useTerrenoFeatureFlags", () => {
     });
     socket.emit("featureFlagsChanged");
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it("refetches the flag configuration through the returned refetch", async () => {
+    const {api, refetch} = buildApi({data: {alpha: boolDef("on")}});
+    const {rerender, result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    const firstRefetch = result.current.refetch;
+    firstRefetch();
+    expect(refetch).toHaveBeenCalled();
+    rerender(undefined);
+    // The callback is stable across renders so consumers can depend on it without
+    // re-running effects.
+    expect(result.current.refetch).toBe(firstRefetch);
   });
 
   it("survives React StrictMode double-mount without throwing", async () => {

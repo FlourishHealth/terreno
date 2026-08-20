@@ -2,6 +2,14 @@
 
 Problem-oriented, practical steps. Use these when you know what you want to do.
 
+## Deployment
+
+- [Deployment baseline](../explanation/deployment-baseline.md) — seven requirements every host must satisfy
+- [Build for web](build-for-web.md) — export static web bundle with correct API URL
+- [Deploy to Google Cloud Platform](deploy-to-gcp.md) — index for GCP guides
+- [Deploy backend to Cloud Run](deploy-backend-to-cloud-run.md) — container + Secret Manager + Cloud Run
+- [Deploy web to GCS + CDN](deploy-web-to-gcs-cdn.md) — static hosting with SPA routing
+
 ## Contents
 
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
@@ -11,6 +19,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Expose Model Context Protocol tools](expose-mcp-tools.md) — Turn `modelRouter` models into MCP tools an LLM can call
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Deploy to Google Cloud Platform](deploy-to-gcp.md) — Deploy demo and example apps to GCS with CDN
+- [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
 
 ## Coming Soon
 

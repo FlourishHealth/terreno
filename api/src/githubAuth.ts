@@ -90,9 +90,7 @@ export const setupGitHubAuth = (
 
   passport.use(
     "github",
-    // noExplicitAny: passport-github2's typed constructor overloads don't match passReqToCallback variant
-    // biome-ignore lint/suspicious/noExplicitAny: passport-github2's typed constructor overloads don't match passReqToCallback variant
-    new (GitHubStrategy as any)(
+    new GitHubStrategy(
       {
         callbackURL: githubOptions.callbackURL,
         clientID: githubOptions.clientId,

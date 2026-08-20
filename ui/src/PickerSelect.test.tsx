@@ -1,11 +1,22 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import type {ReactTestInstance} from "react-test-renderer";
 
 import {RNPickerSelect} from "./PickerSelect";
 import {renderWithTheme} from "./test-utils";
+import {WebDropdownMenu} from "./WebDropdownMenu";
+
+/** Minimal element stub used to fake `document.activeElement` on web. */
+interface MockElement {
+  blur: () => void;
+}
+
+/** Globals the web rendering tests stub out. */
+const globalScope = globalThis as unknown as {
+  document?: unknown;
+  HTMLElement?: new () => MockElement;
+};
 
 // Note: @react-native-picker/picker is mocked globally in bunSetup.ts
 
@@ -166,22 +177,24 @@ describe("PickerSelect", () => {
 
   describe("web rendering (Platform.OS === 'web')", () => {
     const PlatformModule = require("react-native").Platform;
-    let savedOS: any;
+    let savedOS: unknown;
 
     let hadDocument = false;
-    let savedDocument: any;
+    let savedDocument: unknown;
 
     const searchEnabledWebProps = {...defaultProps, disableSearch: false};
 
     const ensureDocument = () => {
       hadDocument = "document" in globalThis;
-      savedDocument = (globalThis as any).document;
-      if (typeof (globalThis as any).HTMLElement === "undefined") {
-        (globalThis as any).HTMLElement = class HTMLElement {};
+      savedDocument = globalScope.document;
+      if (globalScope.HTMLElement === undefined) {
+        globalScope.HTMLElement = class HTMLElement {
+          blur = (): void => {};
+        };
       }
-      const el = new (globalThis as any).HTMLElement();
+      const el = new globalScope.HTMLElement();
       el.blur = () => {};
-      (globalThis as any).document = {
+      globalScope.document = {
         activeElement: el,
         addEventListener: () => {},
         body: {
@@ -194,9 +207,9 @@ describe("PickerSelect", () => {
 
     const restoreDocument = () => {
       if (hadDocument) {
-        (globalThis as any).document = savedDocument;
+        globalScope.document = savedDocument;
       } else {
-        delete (globalThis as any).document;
+        delete globalScope.document;
       }
     };
 
@@ -215,6 +228,24 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="2" />);
         expect(getByTestId("text_input")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("requests body-portal rendering independently of trigger focus", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {root} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} renderMenuInBodyPortal value="2" />
+        );
+        const menu = root.findByType(WebDropdownMenu);
+
+        assert.isTrue(menu.props.renderInBodyPortal);
+        assert.isFalse(menu.props.keepTriggerFocus);
       } finally {
         PlatformModule.OS = savedOS;
         restoreDocument();
@@ -517,7 +548,7 @@ describe("PickerSelect", () => {
 
   describe("android rendering", () => {
     const PlatformModule = require("react-native").Platform;
-    let savedOS: any;
+    let savedOS: unknown;
 
     it("renders android headless when useNativeAndroidPickerStyle is false", () => {
       savedOS = PlatformModule.OS;

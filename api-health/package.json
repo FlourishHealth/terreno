@@ -44,5 +44,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.30.0"
+  "version": "57.0.0"
 }

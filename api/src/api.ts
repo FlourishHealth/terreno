@@ -18,15 +18,13 @@ import {
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
-  type APIErrorOptions,
   apiErrorMiddleware,
   BadRequestError,
   errorDetail,
   ForbiddenError,
-  getDisableExternalErrorTracking,
-  isAPIError,
-  mongooseErrorToAPIError,
   NotFoundError,
+  passthroughOrWrap,
+  passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
 import {registerMCPModel} from "./mcp/registry";
@@ -49,6 +47,15 @@ import type {PopulatePath} from "./populate";
 import {registerRealtime} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
+  type ExecutorConcurrencyCheck,
+  executeCreate,
+  executeDelete,
+  executeUpdate,
+  isExecutorConflictError,
+} from "./sync/executors";
+import {registerSync} from "./sync/registry";
+import type {SyncConfig} from "./sync/types";
+import {
   defaultResponseHandler,
   serialize,
   type TerrenoTransformer,
@@ -56,45 +63,16 @@ import {
 } from "./transformers";
 import {isValidObjectId} from "./utils";
 
+// noExplicitAny: Framework routers accept consumer models with arbitrary query helpers, methods, virtuals, and hydrated document types
+// biome-ignore lint/suspicious/noExplicitAny: Framework routers accept consumer models with arbitrary query helpers, methods, virtuals, and hydrated document types
+type ModelLike<T> = Model<T, any, any, any, any, any>;
+
 export type JSONPrimitive = string | number | boolean | null;
 export interface JSONArray extends Array<JSONValue> {}
 export interface JSONObject {
   [member: string]: JSONValue;
 }
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
-
-/**
- * Picks the error to throw for something caught in a hook, transformer, or Mongoose middleware.
- * An `APIError` is passed through untouched so its status, code, detail, and meta reach the client;
- * anything else is wrapped in the given framework error. `wrapper` may override any field,
- * including `detail`, which defaults to the caught error's text.
- */
-const passthroughOrWrap = (error: unknown, wrapper: APIErrorOptions): APIError => {
-  if (isAPIError(error)) {
-    return error;
-  }
-  return new APIError({
-    cause: error,
-    detail: errorDetail(error),
-    disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-    ...wrapper,
-  });
-};
-
-/**
- * `passthroughOrWrap` for write paths (`model.create`, `doc.save`). Mongoose validation and cast
- * errors are converted first so their per-field messages survive as `meta.fields` instead of being
- * flattened into the wrapper's `detail`.
- */
-const passthroughOrWrapWrite = (error: unknown, wrapper: APIErrorOptions): APIError => {
-  if (!isAPIError(error) && error instanceof Error) {
-    const converted = mongooseErrorToAPIError(error);
-    if (converted) {
-      return converted;
-    }
-  }
-  return passthroughOrWrap(error, wrapper);
-};
 
 export const addPopulateToQuery = (
   // noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
@@ -399,6 +377,15 @@ export interface ModelRouterOptions<T> {
    * Requires the RealtimeApp plugin to be registered with TerrenoApp.
    */
   realtime?: RealtimeConfig;
+  /**
+   * Enable local-first sync (@terreno/syncdb) for this model. Documents are scoped
+   * into streams (owner/tenant/broadcast/custom) with monotonic per-stream cursors.
+   *
+   * Requires the schema to use `isDeletedPlugin` (soft delete tombstones) and
+   * `syncPlugin` (per-stream `_syncSeq` stamping) — validated at registration.
+   * Only works with the three-argument form: modelRouter('/path', Model, options).
+   */
+  sync?: SyncConfig;
 }
 
 /**
@@ -424,7 +411,7 @@ const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
  * so admin changelist date-range filters map to valid Mongoose range queries.
  */
 const mergeDateRangeQueryParams = <T>(
-  model: Model<T>,
+  model: ModelLike<T>,
   query: Record<string, unknown>
 ): Record<string, unknown> => {
   const schema = model.schema;
@@ -547,7 +534,7 @@ const shouldValidate = <T>(
 
 // Get body validation middleware if validation is enabled
 const getBodyValidationMiddleware = <T>(
-  model: Model<T>,
+  model: ModelLike<T>,
   options: ModelRouterOptions<T>,
   operation: "create" | "update"
 ): ((req: Request, res: Response, next: NextFunction) => void) => {
@@ -577,7 +564,7 @@ const getBodyValidationMiddleware = <T>(
 
 // Get query validation middleware if validation is enabled
 const getQueryValidationMiddleware = <T>(
-  model: Model<T>,
+  model: ModelLike<T>,
   options: ModelRouterOptions<T>
 ): ((req: Request, res: Response, next: NextFunction) => void) => {
   const querySchema = buildQuerySchemaFromFields(model, options.queryFields);
@@ -628,22 +615,22 @@ export interface ModelRouterRegistration {
  */
 export function modelRouter<T>(
   path: string,
-  model: Model<T>,
+  model: ModelLike<T>,
   options: ModelRouterOptions<T>
 ): ModelRouterRegistration;
-export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router;
+export function modelRouter<T>(model: ModelLike<T>, options: ModelRouterOptions<T>): express.Router;
 export function modelRouter<T>(
-  pathOrModel: string | Model<T>,
-  modelOrOptions: Model<T> | ModelRouterOptions<T>,
+  pathOrModel: string | ModelLike<T>,
+  modelOrOptions: ModelLike<T> | ModelRouterOptions<T>,
   maybeOptions?: ModelRouterOptions<T>
 ): express.Router | ModelRouterRegistration {
-  let model: Model<T>;
+  let model: ModelLike<T>;
   let options: ModelRouterOptions<T>;
   let path: string | undefined;
 
   if (typeof pathOrModel === "string") {
     path = pathOrModel;
-    model = modelOrOptions as Model<T>;
+    model = modelOrOptions as ModelLike<T>;
     options = maybeOptions as ModelRouterOptions<T>;
   } else {
     model = pathOrModel;
@@ -668,6 +655,10 @@ export function modelRouter<T>(
         routePath: path,
       });
     }
+    // Register for local-first sync if configured (validates the schema contract)
+    if (options.sync) {
+      registerSync({config: options.sync, model, options, routePath: path});
+    }
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
@@ -683,11 +674,20 @@ export function modelRouter<T>(
         "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
     );
   }
+  if (options.sync) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has sync config but was called without a path. ` +
+        "Local-first sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
 
   return router;
 }
 
-const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router => {
+const _buildModelRouter = <T>(
+  model: ModelLike<T>,
+  options: ModelRouterOptions<T>
+): express.Router => {
   const router = express.Router();
 
   assertNoActionCollisions(model, options);
@@ -714,88 +714,15 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
       createValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
+      const {doc} = await executeCreate<T>({
+        body: req.body,
+        model,
+        options,
+        req,
+        user: req.user,
+      });
       try {
-        body = transform<T>(options, req.body, "create", req.user);
-      } catch (error: unknown) {
-        throw passthroughOrWrap(error, {
-          code: "transform-error",
-          status: 400,
-          title: "Transform error",
-        });
-      }
-      if (options.preCreate) {
-        try {
-          body = await options.preCreate(body, req);
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "pre-create-hook-error",
-            status: 400,
-            title: "preCreate hook error",
-          });
-        }
-        if (body === undefined) {
-          throw new ForbiddenError({
-            code: "create-not-allowed",
-            detail: "A body must be returned from preCreate",
-            title: "Create not allowed",
-          });
-        }
-        if (body === null) {
-          throw new ForbiddenError({
-            code: "create-not-allowed",
-            detail: "preCreate hook returned null",
-            title: "Create not allowed",
-          });
-        }
-      }
-      if (body === undefined) {
-        throw new BadRequestError({
-          code: "invalid-request-body",
-          detail: "Body is undefined",
-          title: "Invalid request body",
-        });
-      }
-      let data: Document<unknown, unknown, unknown> & T;
-      try {
-        data = (await model.create(body as T)) as Document<unknown, unknown, unknown> & T;
-      } catch (error: unknown) {
-        throw passthroughOrWrapWrite(error, {
-          code: "create-error",
-          status: 400,
-          title: "Create error",
-        });
-      }
-
-      if (options.populatePaths) {
-        try {
-          // noExplicitAny: mongoose Query type varies based on populatePaths
-          // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-          let populateQuery: any = model.findById(data._id);
-          populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-          data = await populateQuery.exec();
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "populate-error",
-            status: 400,
-            title: "Populate error",
-          });
-        }
-      }
-
-      if (options.postCreate) {
-        try {
-          await options.postCreate(data, req);
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "post-create-hook-error",
-            status: 400,
-            title: "postCreate hook error",
-          });
-        }
-      }
-      try {
-        const serialized = await responseHandler(data, "create", req, options);
+        const serialized = await responseHandler(doc, "create", req, options);
         return res.status(201).json({data: serialized});
       } catch (error: unknown) {
         throw passthroughOrWrap(error, {
@@ -1004,57 +931,12 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
       updateValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let doc: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T}).obj;
+      const existingDoc: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T})
+        .obj;
 
-      let body: Partial<T> | T | null | undefined;
-
-      try {
-        body = transform<T>(options, req.body, "update", req.user) as Partial<T>;
-      } catch (error: unknown) {
-        throw passthroughOrWrap(error, {
-          code: "transform-error",
-          detail: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorDetail(error)}`,
-          status: 403,
-          title: "PATCH failed",
-        });
-      }
-
-      // Remove _updatedAt from body before preUpdate processes it
+      // Read `_updatedAt` before the executor strips it from the body; the executor's
+      // conflict detection still runs after preUpdate, matching the previous inline order.
       const bodyUpdatedAt = req.body._updatedAt;
-      delete req.body._updatedAt;
-      if (body && typeof body === "object") {
-        delete (body as Record<string, unknown>)._updatedAt;
-      }
-
-      if (options.preUpdate) {
-        try {
-          body = await options.preUpdate(body, req);
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "pre-update-hook-error",
-            detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
-            status: 400,
-            title: "preUpdate hook error",
-          });
-        }
-        if (body === undefined) {
-          throw new ForbiddenError({
-            code: "update-not-allowed",
-            detail: "A body must be returned from preUpdate",
-            title: "Update not allowed",
-          });
-        }
-        if (body === null) {
-          throw new ForbiddenError({
-            code: "update-not-allowed",
-            detail: `preUpdate hook on ${req.params.id} returned null`,
-            title: "Update not allowed",
-          });
-        }
-      }
-
-      // Conflict detection runs after preUpdate so that unauthorized mutations
-      // are rejected before we leak document data in a 409 response.
       const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
       const httpUnmodifiedSince = req.headers["if-unmodified-since"];
       const timestampValue = Array.isArray(preciseUnmodifiedSince)
@@ -1063,6 +945,8 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
       const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
         ? httpUnmodifiedSince[0]
         : httpUnmodifiedSince;
+
+      let concurrencyCheck: ExecutorConcurrencyCheck | undefined;
       if (timestampValue || httpTimestampValue || bodyUpdatedAt) {
         const usingPreciseHeader = Boolean(timestampValue);
         const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
@@ -1071,82 +955,47 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
           : httpTimestampValue
             ? DateTime.fromHTTP(httpTimestampValue)
             : DateTime.fromISO(bodyUpdatedAt);
+        concurrencyCheck = {
+          // An unparseable value round-trips as an invalid Date; the executor turns it into
+          // the 400 "Invalid conflict-detection timestamp" error after preUpdate has run.
+          ifUnmodifiedSince: clientTimestamp.toJSDate(),
+          invalidTimestampDetail: usingPreciseHeader
+            ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
+            : usingHttpHeader
+              ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+              : "_updatedAt body field could not be parsed as an ISO date",
+          type: "timestamp",
+        };
+      }
 
-        if (!clientTimestamp.isValid) {
-          throw new BadRequestError({
-            code: "invalid-conflict-detection-timestamp",
-            detail: usingPreciseHeader
-              ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
-              : usingHttpHeader
-                ? "If-Unmodified-Since header could not be parsed as an HTTP date"
-                : "_updatedAt body field could not be parsed as an ISO date",
-            title: "Invalid conflict-detection timestamp",
-          });
-        }
-
-        const docRecord = doc as {created?: Date | string; updated?: Date | string};
-        let serverTimestamp: DateTime | null = null;
-        const serverTimestampValue = docRecord.updated ?? docRecord.created;
-        if (serverTimestampValue instanceof Date) {
-          serverTimestamp = DateTime.fromJSDate(serverTimestampValue);
-        } else if (typeof serverTimestampValue === "string") {
-          serverTimestamp = DateTime.fromISO(serverTimestampValue);
-        }
-
-        if (serverTimestamp && !serverTimestamp.isValid) {
-          throw new BadRequestError({
-            code: "invalid-server-timestamp",
-            detail: "Document timestamp could not be parsed as a date",
-            title: "Invalid server timestamp",
-          });
-        }
-
-        if (serverTimestamp && clientTimestamp < serverTimestamp) {
-          const serialized = await responseHandler(doc, "update", req, options);
+      let doc: Document<unknown, unknown, unknown> & T;
+      try {
+        ({doc} = await executeUpdate<T>({
+          body: req.body,
+          concurrencyCheck,
+          existingDoc,
+          id: req.params.id as string,
+          model,
+          options,
+          req,
+          user: req.user,
+        }));
+      } catch (error: unknown) {
+        // Duck-typed: `instanceof` breaks for Error subclasses in the compiled ES5 dist.
+        if (isExecutorConflictError(error)) {
+          const serialized = await responseHandler(
+            error.doc as Document<unknown, unknown, unknown> & T,
+            "update",
+            req,
+            options
+          );
           return res.status(409).json({
             data: serialized,
             error: "Conflict",
             message: "Document was modified since your last read",
           });
         }
-      }
-
-      // Make a copy for passing pre-saved values to hooks.
-      const prevDoc = cloneDeep(doc);
-
-      // Using .save here runs the risk of a versioning error if you try to make two simultaneous
-      // updates. We won't wind up with corrupted data, just an API error.
-      try {
-        doc.set(body);
-        await doc.save();
-      } catch (error: unknown) {
-        throw passthroughOrWrapWrite(error, {
-          code: "update-save-error",
-          detail: `preUpdate hook save error on ${req.params.id}: ${errorDetail(error)}`,
-          status: 400,
-          title: "preUpdate hook save error",
-        });
-      }
-
-      if (options.populatePaths) {
-        // noExplicitAny: mongoose Query type varies based on populatePaths
-        // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-        let populateQuery: any = model.findById(doc._id);
-        populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-        doc = await populateQuery.exec();
-      }
-
-      if (options.postUpdate) {
-        try {
-          await options.postUpdate(doc, body, req, prevDoc);
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "post-update-hook-error",
-            detail: `postUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
-            status: 400,
-            title: "postUpdate hook error",
-          });
-        }
+        throw error;
       }
 
       try {
@@ -1169,69 +1018,18 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
       permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const doc: mongoose.Document & T & {deleted?: boolean} = (
+      const existingDoc: mongoose.Document & T & {deleted?: boolean} = (
         req as Request & {obj: mongoose.Document & T & {deleted?: boolean}}
       ).obj;
 
-      if (options.preDelete) {
-        let body: T | null | undefined;
-        try {
-          body = await options.preDelete(doc, req);
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "pre-delete-hook-error",
-            detail: `preDelete hook error on ${req.params.id}: ${errorDetail(error)}`,
-            status: 403,
-            title: "preDelete hook error",
-          });
-        }
-        if (body === undefined) {
-          throw new ForbiddenError({
-            code: "delete-not-allowed",
-            detail: "A body must be returned from preDelete",
-            title: "Delete not allowed",
-          });
-        }
-        if (body === null) {
-          throw new ForbiddenError({
-            code: "delete-not-allowed",
-            detail: `preDelete hook for ${req.params.id} returned null`,
-            title: "Delete not allowed",
-          });
-        }
-      }
-
-      // Support .deleted from isDeleted plugin
-      if (
-        Object.keys(model.schema.paths).includes("deleted") &&
-        model.schema.paths.deleted.instance === "Boolean"
-      ) {
-        doc.deleted = true;
-        await doc.save();
-      } else {
-        // For models without the isDeleted plugin
-        try {
-          await doc.deleteOne();
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "delete-error",
-            status: 400,
-            title: "Delete error",
-          });
-        }
-      }
-
-      if (options.postDelete) {
-        try {
-          await options.postDelete(req, doc);
-        } catch (error: unknown) {
-          throw passthroughOrWrap(error, {
-            code: "post-delete-hook-error",
-            status: 400,
-            title: "postDelete hook error",
-          });
-        }
-      }
+      await executeDelete<T>({
+        existingDoc,
+        id: req.params.id as string,
+        model,
+        options,
+        req,
+        user: req.user,
+      });
 
       return res.status(204).json({});
     })
@@ -1415,7 +1213,11 @@ const _buildModelRouter = <T>(model: Model<T>, options: ModelRouterOptions<T>): 
     return arrayOperation(req, res, "DELETE");
   };
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(model.schema.paths).find((config) => config.instance === "Array")) {
+  if (
+    (Object.values(model.schema.paths) as mongoose.SchemaType[]).find(
+      (config) => config.instance === "Array"
+    )
+  ) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),

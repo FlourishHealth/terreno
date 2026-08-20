@@ -262,7 +262,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@terreno/admin-backend": "latest",
         "@terreno/api": "latest",
         luxon: "^3.7.2",
-        mongoose: "^8.18.1",
+        mongoose: "^9.7.4",
         "passport-local-mongoose": "^9.0.1",
       },
       devDependencies: {
@@ -270,7 +270,6 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@types/bun": "^1.2.4",
         "@types/express": "^4.17.21",
         "@types/luxon": "^3.7.1",
-        "@types/passport-local-mongoose": "^6.1.5",
         typescript: "~5.9.2",
       },
       name: `@${appName}/backend`,
@@ -656,19 +655,20 @@ const generateBackendTypesModels = (): string => {
 };
 
 const generateBackendUserTypes = (): string => {
-  return `/// <reference types="passport-local-mongoose" />
-import type {APIErrorConstructor} from "@terreno/api";
+  return `import type {APIErrorConstructor} from "@terreno/api";
 import type mongoose from "mongoose";
-import type {Document, FilterQuery, Model} from "mongoose";
+import type {Document, Model} from "mongoose";
+
+type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
 
 export interface DefaultStatics<T> {
   findOneOrNone(
-    query: FilterQuery<T>,
+    query: ModelQuery<T>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & T) | null>;
 
   findExactlyOne(
-    query: FilterQuery<T>,
+    query: ModelQuery<T>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & T>;
 }
@@ -712,23 +712,22 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       dependencies: {
-        "@react-navigation/native": "^7.1.8",
         "@sentry/react": "^10.29.0",
         "@terreno/admin-frontend": "latest",
         "@terreno/rtk": "latest",
         "@terreno/ui": "latest",
-        expo: "~54.0.29",
-        react: "19.1.0",
-        "react-dom": "19.1.0",
-        "react-native": "0.81.5",
+        expo: "~57.0.14",
+        "expo-router": "~57.0.14",
+        react: "19.2.3",
+        "react-dom": "19.2.3",
+        "react-native": "0.86.2",
         "react-redux": "^9.2.0",
       },
       devDependencies: {
         "@biomejs/biome": "^2.3.6",
         "@playwright/test": "^1.58.2",
-        "@types/react": "~19.1.10",
-        "expo-mcp": "^0.2.4",
-        typescript: "~5.9.2",
+        "@types/react": "~19.2.14",
+        typescript: "~6.0.3",
       },
       main: "expo-router/entry",
       name: `@${appName}/frontend`,
@@ -770,7 +769,6 @@ const generateFrontendAppJson = (args: BootstrapArgs): string => {
           supportsTablet: true,
         },
         name: appDisplayName,
-        newArchEnabled: true,
         orientation: "portrait",
         plugins: ["expo-router"],
         scheme: appName,
@@ -1005,7 +1003,7 @@ exec(command, (error, _stdout, stderr) => {
 
 const generateFrontendRootLayout = (_args: BootstrapArgs): string => {
   return `import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {DefaultTheme, ThemeProvider} from "@react-navigation/native";
+import {DefaultTheme, ThemeProvider} from "expo-router/react-navigation";
 import {useFonts} from "expo-font";
 import {Stack} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";

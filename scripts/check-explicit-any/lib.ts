@@ -14,6 +14,7 @@ export const SCAN_ROOTS = [
   "ai/src",
   "api/src",
   "api-health/src",
+  "comms/src",
   "demo",
   "example-backend/src",
   "example-frontend",
@@ -21,6 +22,7 @@ export const SCAN_ROOTS = [
   "mcp-server/src",
   "rtk/src",
   "scripts",
+  "syncdb/src",
   "test/src",
   "ui/src",
 ] as const;
@@ -42,7 +44,7 @@ const BIOME_IGNORE_LINE_PATTERN =
   /biome-ignore(?:-all)?\s+lint\/suspicious\/noExplicitAny/;
 const NO_EXPLICIT_ANY_PATTERN = /\/\/\s*noExplicitAny:/;
 
-const DEFAULT_EXCLUDED_FILE_NAMES = new Set(["openApiSdk.ts"]);
+const DEFAULT_EXCLUDED_FILE_NAMES = new Set(["commsOpenApiSdk.ts", "openApiSdk.ts"]);
 
 const DEFAULT_EXCLUDED_FILE_PATTERNS = [
   /\.template\.tsx?$/,

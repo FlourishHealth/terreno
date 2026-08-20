@@ -216,10 +216,6 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
           action.meta?.arg?.endpointName === "googleLogin")
       ) {
         if (!IsWeb) {
-          if (!action.payload.token) {
-            console.error("No token found in app login response.", action.payload);
-            return;
-          }
           try {
             await SecureStore.setItemAsync("AUTH_TOKEN", action.payload.token);
             await SecureStore.setItemAsync("REFRESH_TOKEN", action.payload.refreshToken ?? "");
@@ -229,10 +225,6 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
             throw error;
           }
         } else {
-          if (!action.payload.token) {
-            console.error("No token found in web login response.", action.payload);
-            return;
-          }
           // On web, we don't have secure storage, and cookie support is not in Expo yet,
           // so this is what we're left with. This can be vulnerable to XSS attacks.
           try {

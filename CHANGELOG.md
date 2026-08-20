@@ -3,8 +3,8 @@
 All notable changes to this project are documented in this file.
 
 All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
-`admin-frontend`, `admin-spa`, `ai`, `api-health`, `feature-flags`, `mcp`) are
-versioned in lockstep and published at the same version.
+`admin-frontend`, `admin-spa`, `ai`, `api-health`, `comms`, `feature-flags`, `mcp`,
+`syncdb`) are versioned in lockstep and published at the same version.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -31,6 +31,175 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated model tools emit structured success/refusal/failure logs with
   request correlation, duration, stable MCP labels, and Sentry exception
   capture for internal failures
+- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
+  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
+  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
+  `onSend`).
+
+## [57.0.0] - 2026-08-20
+
+First stable release of the Expo SDK 57 line, cut from `master` after
+[`#1065`](https://github.com/FlourishHealth/terreno/pull/1065). Publishes to the npm
+`latest` dist-tag. Apps on `0.x` should stay pinned until they upgrade Expo.
+
+### Added
+
+- `Filter` and its composable select, boolean, accordion, and change-badge controls in
+  `@terreno/ui` for desktop web filtering flows
+  ([#972](https://github.com/FlourishHealth/terreno/pull/972))
+
+### Changed
+
+- Terreno's version major now tracks Expo SDK 57 (`57.x.y`). `npm install @terreno/ui`
+  resolves to this line; pin `0.x` if the app has not upgraded Expo yet
+  ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+- Frontend peer/catalog stack moves to Expo SDK 57 / React Native 0.86.2
+  (`expo ~57.0.14`, matching React Native DevTools and Hermes V1 fixes from
+  `expo@57.0.9+`). React stays at `19.2.3`. Consuming apps should run
+  `npx expo install expo@latest --fix` then rebuild native binaries
+  ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+- `@terreno/syncdb` bumps `tinybase` to `^9.5.1` for Expo SDK 57 /
+  `expo-sqlite` type compatibility ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+
+## [57.0.0-beta.1] - 2026-08-20
+
+First beta of the Expo SDK 57 line, cut from `master` after merging
+[`#1065`](https://github.com/FlourishHealth/terreno/pull/1065). Publishes under the npm
+`beta` dist-tag; `npm install @terreno/ui` still resolves to the stable `0.x` line.
+
+### Added
+
+- `Filter` and its composable select, boolean, accordion, and change-badge controls in
+  `@terreno/ui` for desktop web filtering flows
+  ([#972](https://github.com/FlourishHealth/terreno/pull/972))
+
+### Changed
+
+- Terreno's version major now tracks Expo SDK 57 (`57.x.y`). The stable `0.x` packages are
+  unaffected; this beta does not move `latest`
+  ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+- Frontend peer/catalog stack moves to Expo SDK 57 / React Native 0.86.2
+  (`expo ~57.0.14`, matching React Native DevTools and Hermes V1 fixes from
+  `expo@57.0.9+`). React stays at `19.2.3`. Consuming apps should run
+  `npx expo install expo@latest --fix` then rebuild native binaries
+  ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+- `@terreno/syncdb` bumps `tinybase` to `^9.5.1` for Expo SDK 57 /
+  `expo-sqlite` type compatibility ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
+
+## [56.0.0-beta.2] - 2026-08-17
+
+Second beta of the Expo SDK 56 line, cut from `master` after merging
+[`#976`](https://github.com/FlourishHealth/terreno/pull/976). Publishes under the npm
+`beta` dist-tag; `npm install @terreno/ui` still resolves to the stable `0.x` line.
+
+### Added
+
+- Expo SDK 56 target for frontend packages: `expo ~56.0.12`, `react-native 0.85.3`,
+  `react 19.2.3`, TypeScript 6
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- `@terreno/syncdb` local-first data layer (TinyBase MergeableStore, durable outbox,
+  websocket delta sync, encrypted web persistence) plus `SyncApp` / sync protocol support
+  in `@terreno/api`
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- `SyncStatusBanner` and `ConflictSheet` in `@terreno/ui` for sync UX
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- `@terreno/comms` with pluggable mail, SMS, push, and verification contracts, console
+  development providers, delivery logging, owner-scoped push-token routes, an admin delivery
+  explorer, and generated RTK Query hooks
+  ([#1037](https://github.com/FlourishHealth/terreno/pull/1037))
+
+### Changed
+
+- Terreno's version major now tracks the Expo SDK major it targets (`56.x.y` for Expo 56).
+  The stable `0.x` packages are unaffected; this beta does not move `latest`
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- Frontend peer/catalog stack moves to Expo 56 / React Native 0.85 / React 19.2 /
+  TypeScript 6 — consuming apps must upgrade Expo before installing this beta
+  ([#976](https://github.com/FlourishHealth/terreno/pull/976))
+- `excludeArchivedPlugin` now filters `findOne` the same way as `find`, matching
+  `isDeletedPlugin`
+- Sync/REST CRUD executors preserve kebab-case error `code` values
+  (`create-not-allowed`, `update-not-allowed`, `delete-not-allowed`,
+  `invalid-request-body`) and status-specific error names on hook-rejection paths
+- Publish workflow pins `@terreno/ui` to the release version for prerelease
+  `admin-frontend` / `admin-spa` publishes (same as `ui` / `rtk`)
+- Catalog `@shopify/react-native-skia` bumped to `2.6.5` (drops the postinstall that
+  could hang `bun install --frozen-lockfile`); removed unused payment/native deps from
+  `example-frontend`
+- The `terreno-5-dialin` plugin skill now owns merge conflicts that appear after the
+  Pour handoff: it checks PR mergeability each cycle, resolves conflicts by merging the
+  base branch without rewriting pushed history, re-runs checks and frontend
+  verification, and treats a conflicted PR as broken rather than mergeable
+  ([#1039](https://github.com/FlourishHealth/terreno/pull/1039))
+
+### Fixed
+
+- `generateTokens` in `@terreno/api` now logs and falls back to its default expiration when
+  `TOKEN_EXPIRES_IN` or `REFRESH_TOKEN_EXPIRES_IN` is not a valid duration, instead of throwing
+  from `jwt.sign`
+- Sync seq claims under Mongoose 9: `claimSyncSeqs` passes `updatePipeline: true` for
+  its aggregation-pipeline `findOneAndUpdate` (required after the master mongoose 9 merge)
+- `RealtimeApp` accepts injectable `SocketServer` / `startChangeStreamWatcher` so setup
+  tests no longer use process-wide `mock.module` (which broke socketAuth + sync integration)
+- Mongoose 9 `insertMany` probe in `syncFrontier.test.ts` no longer calls removed `next()`
+- Sync save error middleware: `throw` instead of `next(error)` under Mongoose 9/Kareem 3,
+  and release pending seq claims on any failed claimed save (not only VersionError)
+- Drop orphaned `ui` consent-history PDF test left after the move to `admin-frontend`
+
+## [0.31.0] - 2026-08-11
+
+### Added
+
+- `EditableCard` in `@terreno/ui`: a summary card with an optional icon, badge,
+  description, helper text, edit button, and attention state
+  ([#981](https://github.com/FlourishHealth/terreno/pull/981))
+- MIT `LICENSE` file in every published package, plus contribution guide, changelog,
+  and GitHub issue/PR templates ([#985](https://github.com/FlourishHealth/terreno/pull/985))
+- Public roadmap generated from `docs/` into GitHub, with `roadmap:generate` /
+  `roadmap:check` scripts and roadmap discussion setup
+  ([#986](https://github.com/FlourishHealth/terreno/pull/986), [#991](https://github.com/FlourishHealth/terreno/pull/991))
+- `check:upgrade-docs` release gate that fails a tagged publish when a release
+  documents breaking, changed, deprecated, or removed behavior without an
+  `mcp-server/src/docs/upgrades/<version>.md` note ([#987](https://github.com/FlourishHealth/terreno/pull/987))
+- Deployment foundation for GCP, deploy guides, and agentic SDLC plugin phase 1
+  ([#988](https://github.com/FlourishHealth/terreno/pull/988))
+- Reference documentation for `@terreno/ai`, `@terreno/admin-spa`, and `@terreno/test`,
+  plus full READMEs for `admin-backend`, `admin-frontend`, `ai`, and `api-health`
+  ([#995](https://github.com/FlourishHealth/terreno/pull/995))
+
+### Changed
+
+- Mongoose 9 support: the workspace runs on Mongoose 9.7.4 and every published
+  package widens its `mongoose` peer dependency to `^8.0.0 || ^9.0.0`, so Mongoose 8
+  consumers keep working ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- All published packages are MIT licensed; they were previously Apache-2.0
+  ([#985](https://github.com/FlourishHealth/terreno/pull/985))
+- `modelRouter` accepts a wider Mongoose model generic, so models carrying custom
+  query helpers, methods, or virtuals no longer need a cast ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- `findOneOrNoneFor` takes `ModelQuery<T>` instead of Mongoose's `FilterQuery<T>`
+  ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- `@terreno/admin-backend` reads array field metadata through Mongoose's public
+  `getEmbeddedSchemaType()` (falling back to the Mongoose 8 `caster`) and only emits
+  `itemEnum` when the embedded enum is an array ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- Local development requires Node >= 20.19.0 ([#984](https://github.com/FlourishHealth/terreno/pull/984))
+- Positioning copy blocks and an honest framework comparison table
+  ([#993](https://github.com/FlourishHealth/terreno/pull/993))
+- Implementation plans and program docs for the infrastructure MCP server, the B2B
+  platform program, the IP + roadmap flow, and the RTK-to-syncdb migration strategy,
+  with merged plans linked to their roadmap tracking issues
+  ([#990](https://github.com/FlourishHealth/terreno/pull/990), [#996](https://github.com/FlourishHealth/terreno/pull/996), [#998](https://github.com/FlourishHealth/terreno/pull/998), [#999](https://github.com/FlourishHealth/terreno/pull/999), [#1028](https://github.com/FlourishHealth/terreno/pull/1028))
+- Test coverage, rule alignment, and explicit-any remediation across `api`, `ui`, and `rtk`
+  ([#946](https://github.com/FlourishHealth/terreno/pull/946), [#977](https://github.com/FlourishHealth/terreno/pull/977), [#978](https://github.com/FlourishHealth/terreno/pull/978), [#979](https://github.com/FlourishHealth/terreno/pull/979), [#980](https://github.com/FlourishHealth/terreno/pull/980), [#982](https://github.com/FlourishHealth/terreno/pull/982), [#983](https://github.com/FlourishHealth/terreno/pull/983), [#1000](https://github.com/FlourishHealth/terreno/pull/1000), [#1001](https://github.com/FlourishHealth/terreno/pull/1001), [#1002](https://github.com/FlourishHealth/terreno/pull/1002))
+
+### Fixed
+
+- CI queues `terreno-example` EAS native builds only for new fingerprints
+  ([#965](https://github.com/FlourishHealth/terreno/pull/965))
+- Keep the Dial In PR loop active through slow or pending CI, and only return
+  broken checks when no autonomous action can advance them or user direction is
+  required ([#1027](https://github.com/FlourishHealth/terreno/pull/1027))
+- Dial In preserves existing PR descriptions instead of overwriting them
+  ([#1030](https://github.com/FlourishHealth/terreno/pull/1030))
 
 ## [0.30.0] - 2026-08-03
 
@@ -340,6 +509,9 @@ Historical `@terreno/api` release notes preserved from the former
 - Legacy `GET …/evaluate` feature-flag endpoint (sends `Deprecation`/`Sunset` headers)
   ([#761](https://github.com/FlourishHealth/terreno/pull/761))
 
+[57.0.0]: https://github.com/FlourishHealth/terreno/releases/tag/57.0.0
+[57.0.0-beta.1]: https://github.com/FlourishHealth/terreno/releases/tag/57.0.0-beta.1
+[56.0.0-beta.2]: https://github.com/FlourishHealth/terreno/releases/tag/56.0.0-beta.2
 [0.30.0]: https://github.com/FlourishHealth/terreno/releases/tag/0.30.0
 [0.29.0]: https://github.com/FlourishHealth/terreno/releases/tag/0.29.0
 [0.28.0]: https://github.com/FlourishHealth/terreno/releases/tag/0.28.0

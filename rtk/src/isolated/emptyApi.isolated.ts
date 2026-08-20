@@ -406,6 +406,22 @@ describe("staggeredBaseQuery", () => {
     expect(dispatchedTypes()).toContain("auth/logout");
   });
 
+  it("logs out on an axios refresh error that is neither a network error nor a 401", async () => {
+    setTokens({auth: 30, refresh: 3600});
+    axiosPostError = {
+      code: "ERR_BAD_RESPONSE",
+      isAxiosError: true,
+      message: "server exploded",
+      status: 500,
+    };
+
+    const result = await runQuery("/todos");
+
+    expect(result.error).toMatchObject({status: "FETCH_ERROR"});
+    expect((result.error as {error: string}).error).toContain("Failed to refresh token");
+    expect(dispatchedTypes()).toContain("auth/logout");
+  });
+
   it("logs out when refreshing fails for any other reason", async () => {
     setTokens({auth: 30, refresh: 3600});
     axiosPostError = new Error("boom");

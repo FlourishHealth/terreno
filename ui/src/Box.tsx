@@ -60,6 +60,32 @@ const isValidWidthHeight = (value: number | string): boolean => {
   return typeof value === "number" || !Number.isNaN(Number(value)) || isValidPercentage(value);
 };
 
+/**
+ * Box props that describe behavior rather than layout. Unknown props fall through
+ * to the style object, so these have to be named explicitly: a callback or ref
+ * object reaching a native view's style crashes on Fabric, which serializes style
+ * (a ref holding a host instance is a cyclical structure) and freezes it in dev,
+ * so React then throws detaching the frozen `ref.current` on unmount.
+ */
+const NON_STYLE_BOX_PROPS = new Set<string>([
+  "accessibilityHint",
+  "accessibilityLabel",
+  "accessibilityRole",
+  "avoidKeyboard",
+  "children",
+  "dangerouslySetInlineStyle",
+  "keyboardOffset",
+  "onClick",
+  "onHoverEnd",
+  "onHoverStart",
+  "onLayout",
+  "onScroll",
+  "scroll",
+  "scrollRef",
+  "testID",
+  "testIDs",
+]);
+
 export const Box = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
   const resolvedTestID = props.testID;
@@ -261,7 +287,14 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         return {width: value};
       }
     },
-    wrap: (value) => ({alignItems: "flex-start", flexWrap: value ? "wrap" : "nowrap"}),
+    // Defaults to alignItems: "flex-start" so wrapped lines size to their content instead of
+    // stretching, but never overrides an explicit alignItems (prop order would decide the winner).
+    wrap: (value, allProps) => ({
+      alignItems: allProps.alignItems
+        ? ALIGN_ITEMS[allProps.alignItems as AlignItems]
+        : "flex-start",
+      flexWrap: value ? "wrap" : "nowrap",
+    }),
     zIndex: (value) => ({zIndex: value ? value : undefined}),
   };
 
@@ -277,14 +310,10 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
       const value = props[prop];
       if (BOX_STYLE_MAP[prop]) {
         Object.assign(style, BOX_STYLE_MAP[prop](value, props));
-      } else if (prop !== "children" && prop !== "onClick") {
+      } else if (!NON_STYLE_BOX_PROPS.has(prop as string)) {
         style[prop] = value;
         // console.warn(`Box: unknown property ${prop}`);
       }
-    }
-
-    if (props.wrap && props.alignItems && Platform.OS !== "web") {
-      console.warn("React Native doesn't support wrap and alignItems together.");
     }
 
     // Finally, dangerously set overrides.
@@ -306,11 +335,17 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   let box: React.ReactElement;
 
   // Adding the accessibilityRole of button throws a warning in React Native since we nest buttons
-  // within Box and RN does not support nested buttons
+  // within Box and RN does not support nested buttons — so this stays on `aria-role` (which RN
+  // itself translates to accessibilityRole under the hood) by default; an explicit
+  // `accessibilityRole` prop is only forwarded literally when the caller opts in.
   if (props.onClick) {
+    const explicitAccessibilityRole = (props as AccessibilityProps).accessibilityRole;
     box = (
       <Pressable
         accessibilityHint={(props as AccessibilityProps).accessibilityHint}
+        {...(explicitAccessibilityRole
+          ? {accessibilityRole: explicitAccessibilityRole as never}
+          : {})}
         aria-label={(props as AccessibilityProps).accessibilityLabel}
         aria-role="button"
         onLayout={props.onLayout}
@@ -327,8 +362,12 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
       </Pressable>
     );
   } else {
+    const accessibilityHint = (props as AccessibilityProps).accessibilityHint;
+    const accessibilityLabel = (props as AccessibilityProps).accessibilityLabel;
     box = (
       <View
+        {...(accessibilityHint ? {accessibilityHint} : {})}
+        {...(accessibilityLabel ? {accessibilityLabel} : {})}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         style={propsToStyle()}

@@ -20,6 +20,19 @@ type EasingFn = (t: number) => number;
 type MockColor = string | number | null | undefined;
 type MockAssetSource = {height?: number; uri?: string; width?: number} | null | undefined;
 
+// Expo SDK 56 vendors react-navigation's elements into expo-router, and those modules import
+// PNG icon assets directly. Metro resolves images to asset descriptors, but the bun test runner
+// tries to parse them as source, so serve a Metro-shaped descriptor instead.
+Bun.plugin({
+  name: "image-asset-stub",
+  setup(build) {
+    build.onLoad({filter: /\.(png|jpe?g|gif|webp|svg|ttf|otf)$/}, () => ({
+      exports: {default: {height: 1, uri: "test-asset", width: 1}},
+      loader: "object",
+    }));
+  },
+});
+
 // Set environment variables
 process.env.TZ = "America/New_York";
 process.env.EXPO_OS = "ios";
@@ -227,6 +240,10 @@ mock.module("react-native", () => {
     addChangeListener: mock(() => ({remove: mock(() => {})})),
     getColorScheme: mock(() => "light"),
   };
+  const AppState = {
+    addEventListener: mock(() => ({remove: mock(() => {})})),
+    currentState: "active",
+  };
   const Vibration = {
     cancel: mock(() => {}),
     vibrate: mock(() => {}),
@@ -303,9 +320,12 @@ mock.module("react-native", () => {
   };
   const UIManager = {
     getViewManagerConfig: mock(() => ({})),
+    measure: mock(() => {}),
     setLayoutAnimationEnabledExperimental: mock(() => {}),
   };
-  const findNodeHandle = mock(() => null);
+  // Node handles are opaque numbers in React Native; pass them through so code that
+  // measures the currently focused field can be exercised in tests.
+  const findNodeHandle = mock((node: unknown) => (typeof node === "number" ? node : null));
   const requireNativeComponent = mock((name: string) => name);
   const TurboModuleRegistry = {
     get: mock(() => null),
@@ -359,6 +379,7 @@ mock.module("react-native", () => {
     Alert,
     Animated,
     Appearance,
+    AppState,
     BackHandler,
     Dimensions,
     default: {
@@ -367,6 +388,7 @@ mock.module("react-native", () => {
       Alert,
       Animated,
       Appearance,
+      AppState,
       BackHandler,
       Dimensions,
       Easing,
@@ -1117,12 +1139,13 @@ mock.module("react-native/Libraries/LayoutAnimation/LayoutAnimation", () => ({
 mock.module("react-native/Libraries/ReactNative/UIManager", () => ({
   default: {
     getViewManagerConfig: mock(() => ({})),
+    measure: mock(() => {}),
     setLayoutAnimationEnabledExperimental: mock(() => {}),
   },
 }));
 
 mock.module("react-native/Libraries/Renderer/shims/ReactNative", () => ({
-  findNodeHandle: mock(() => null),
+  findNodeHandle: mock((node: unknown) => (typeof node === "number" ? node : null)),
 }));
 
 mock.module("react-native/Libraries/Components/StatusBar/StatusBar", () => ({

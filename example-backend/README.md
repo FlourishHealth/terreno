@@ -15,11 +15,15 @@ cp .env.example .env
 ```
 
    **Required variables** (must be set):
-   - `TOKEN_SECRET` - JWT signing secret
+   - `MONGO_URI` - MongoDB connection string (replica set required for realtime; default: `mongodb://127.0.0.1:27017/terreno-example?replicaSet=rs0`)
+   - `BETTER_AUTH_SECRET` - Better Auth session encryption secret (min 32 chars)
+   - `BETTER_AUTH_URL` - Better Auth base URL (default: `http://localhost:4000`)
+   - `TOKEN_SECRET` - Legacy JWT secret (still used by RealtimeApp socket fallback)
    - `TOKEN_ISSUER` - JWT issuer claim
    - `REFRESH_TOKEN_SECRET` - Refresh token secret
    - `SESSION_SECRET` - Express session secret
-   - `MONGO_URI` - MongoDB connection string (default: `mongodb://localhost:27017/terreno-example`)
+
+   The example app defaults to `AUTH_PROVIDER=better-auth`. Set `AUTH_PROVIDER=jwt` to use legacy Passport/JWT auth instead.
 
    See `.env.example` for all available configuration options.
 

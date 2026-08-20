@@ -10,9 +10,11 @@ A monorepo containing shared packages for building full-stack applications with 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
+- **syncdb/** - Local-first data layer (TinyBase store, durable outbox, delta sync) for @terreno/api backends (`@terreno/syncdb`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
+- **comms/** - Pluggable transactional communications (`@terreno/comms`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -40,6 +42,8 @@ bun run test             # Run tests in api and ui
 ```bash
 bun run api:test         # Test API package
 bun run ui:test          # Test UI package
+bun run syncdb:compile   # Compile syncdb package
+bun run syncdb:test      # Test syncdb package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
 bun run backend:dev      # Start backend example
@@ -47,6 +51,8 @@ bun run mcp:build        # Build MCP server
 bun run mcp:start        # Start MCP server
 bun run admin-backend:compile   # Compile admin backend
 bun run admin-frontend:compile  # Compile admin frontend
+bun run comms:compile           # Compile communications package
+bun run comms:test              # Test communications package
 ```
 
 ## How the Packages Work Together

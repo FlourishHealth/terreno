@@ -1,7 +1,5 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it} from "bun:test";
-import type {NextFunction} from "express";
+import type {NextFunction, Request, Response} from "express";
 import mongoose from "mongoose";
 
 import {
@@ -122,47 +120,58 @@ describe("errors module", () => {
   });
 
   describe("apiUnauthorizedMiddleware", () => {
-    it("returns 401 for Unauthorized errors", () => {
-      const err = new Error("Unauthorized");
-      const res = {
-        json: function (data: any) {
-          (this as any).body = data;
-          return this;
+    interface MockResponse {
+      body?: {status: number; title: string};
+      statusCode?: number;
+      json: (data: {status: number; title: string}) => MockResponse;
+      send: () => MockResponse;
+      status: (code: number) => MockResponse;
+    }
+
+    const createMockResponse = (): MockResponse => {
+      const res: MockResponse = {
+        json: (data) => {
+          res.body = data;
+          return res;
         },
-        send: function () {
-          return this;
-        },
-        status: function (code: number) {
-          (this as any).statusCode = code;
-          return this;
+        send: () => res,
+        status: (code) => {
+          res.statusCode = code;
+          return res;
         },
       };
-      const next = () => {};
+      return res;
+    };
 
-      apiUnauthorizedMiddleware(err, {} as any, res as any, next);
-      expect((res as any).statusCode).toBe(401);
-      expect((res as any).body.title).toBe("Unauthorized");
+    it("returns 401 for Unauthorized errors", () => {
+      const err = new Error("Unauthorized");
+      const res = createMockResponse();
+      const next: NextFunction = () => {};
+
+      apiUnauthorizedMiddleware(err, {} as Request, res as unknown as Response, next);
+      expect(res.statusCode).toBe(401);
+      expect(res.body?.title).toBe("Unauthorized");
     });
 
     it("calls next for non-Unauthorized errors", () => {
       const err = new Error("Some other error");
       let nextCalled = false;
-      const next = () => {
+      const next: NextFunction = () => {
         nextCalled = true;
       };
 
-      apiUnauthorizedMiddleware(err, {} as any, {} as any, next);
+      apiUnauthorizedMiddleware(err, {} as Request, {} as Response, next);
       expect(nextCalled).toBe(true);
     });
 
     it("calls next for an APIError whose title is Unauthorized", () => {
       const err = new APIError({code: "not-a-member", status: 403, title: "Unauthorized"});
       let nextArg: unknown;
-      const next = (error?: unknown) => {
+      const next: NextFunction = (error) => {
         nextArg = error;
       };
 
-      apiUnauthorizedMiddleware(err, {} as any, {} as any, next as unknown as NextFunction);
+      apiUnauthorizedMiddleware(err, {} as Request, {} as Response, next);
       expect(nextArg).toBe(err);
     });
   });

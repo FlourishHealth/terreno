@@ -1,4 +1,4 @@
-import type {Middleware} from "@reduxjs/toolkit";
+import type {Middleware, UnknownAction} from "@reduxjs/toolkit";
 import * as Sentry from "@sentry/react";
 import {useToast} from "@terreno/ui";
 import {captureException, captureMessage} from "@/utils/sentry";
@@ -24,9 +24,7 @@ const ignoredErrors = [
  * Log a warning and send error from RTKQuery to Sentry.
  */
 
-// noExplicitAny: Generic
-// biome-ignore lint/suspicious/noExplicitAny: Generic
-export const rtkQueryErrorMiddleware: Middleware = () => (next) => (action: any) => {
+export const rtkQueryErrorMiddleware: Middleware = () => (next) => (action: UnknownAction) => {
   // RTK Query uses `createAsyncThunk` from redux-toolkit under the hood,
   // so we're able to utilize these matchers!
   if (action?.error && action?.payload) {

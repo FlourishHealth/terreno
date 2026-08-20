@@ -4,34 +4,72 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {ConsentForm, logger} from "@terreno/api";
+import {ConsentForm, type ConsentFormType, ConsentResponse, logger} from "@terreno/api";
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
+// Importing the routers registers the sync configs, so seeded todos/projects get a
+// real _syncSeq stamped instead of arriving to clients as legacy seq-0 documents.
+import "../api/projects";
+import "../api/todos";
 import {Configuration} from "../models/configuration";
+import {Project} from "../models/project";
+import {Todo} from "../models/todo";
 import {User} from "../models/user";
+import type {UserDocument} from "../types/models/userTypes";
+import {getAuthProvider} from "../utils/betterAuthConfig";
+import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
 
 interface SeedUser {
   admin?: boolean;
   email: string;
   name: string;
+  organizationIds: string[];
   password: string;
 }
+
+interface SeedConsentForm {
+  active: boolean;
+  agreeButtonText?: string;
+  allowDecline?: boolean;
+  captureSignature?: boolean;
+  content: Map<string, string>;
+  order: number;
+  required: boolean;
+  requireScrollToBottom?: boolean;
+  slug: string;
+  title: string;
+  type: ConsentFormType;
+  version: number;
+}
+
+// Shared organization so both seeded users demonstrate tenant-scoped project sync.
+const EXAMPLE_ORGANIZATION_ID = "org-example";
 
 const TEST_USERS: SeedUser[] = [
   {
     email: "test@example.com",
     name: "Test User",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
   {
     admin: true,
     email: "admin@example.com",
     name: "Admin User",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
 ];
 
-const CONSENT_FORMS = [
+const SEED_PROJECTS = [
+  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Example Project"},
+  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Sync Rollout"},
+];
+
+const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
+
+const CONSENT_FORMS: SeedConsentForm[] = [
   {
     active: true,
     agreeButtonText: "I Accept the Terms",
@@ -136,21 +174,137 @@ This consent is optional. You can decline without affecting your use of the appl
   },
 ];
 
-const seedUser = async (testUser: SeedUser): Promise<void> => {
+/** Ensure the Mongoose user doc reflects the seed's admin flag and organizations. */
+const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
+  const user = await User.findByEmail(testUser.email);
+  if (!user) {
+    throw new Error(`User ${testUser.email} was not synced to Mongoose`);
+  }
+  let changed = false;
+  if (testUser.admin && !user.admin) {
+    user.admin = true;
+    changed = true;
+  }
+  if ((user.organizationIds ?? []).length === 0) {
+    user.organizationIds = testUser.organizationIds;
+    changed = true;
+  }
+  if (changed) {
+    await user.save();
+  }
+  return user;
+};
+
+const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
+  if (getAuthProvider() === "better-auth") {
+    // Idempotent credential provisioning: creates the Better Auth account when missing
+    // (sign-up), otherwise verifies it (sign-in), and syncs/links the Mongoose user by
+    // email. Runs even when a legacy Mongoose user already exists (e.g. seeded under the
+    // old passport/JWT flow) — otherwise that user would have no Better Auth password and
+    // every sign-in would 401.
+    await seedBetterAuthUserInProcess({
+      email: testUser.email,
+      name: testUser.name,
+      password: testUser.password,
+    });
+    const user = await reconcileMongooseUser(testUser);
+    logger.info(`Better Auth user ready: ${user.email} (id: ${user._id})`);
+    return user;
+  }
+
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
     logger.info(`Test user already exists: ${testUser.email}`);
-    return;
+    if ((existingUser.organizationIds ?? []).length === 0) {
+      existingUser.organizationIds = testUser.organizationIds;
+      await existingUser.save();
+      logger.info(`Backfilled organizationIds for ${testUser.email}`);
+    }
+    if (testUser.admin && !existingUser.admin) {
+      existingUser.admin = true;
+      await existingUser.save();
+      logger.info(`Promoted ${testUser.email} to admin`);
+    }
+    return existingUser;
   }
 
   // noExplicitAny: passport-local-mongoose register is not typed on the model
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
   const user = await (User as any).register(
-    {admin: testUser.admin ?? false, email: testUser.email, name: testUser.name},
+    {
+      admin: testUser.admin ?? false,
+      email: testUser.email,
+      name: testUser.name,
+      organizationIds: testUser.organizationIds,
+    },
     testUser.password
   );
 
   logger.info(`Test user created: ${user.email} (id: ${user._id})`);
+  return user as UserDocument;
+};
+
+const seedProjects = async (): Promise<void> => {
+  for (const project of SEED_PROJECTS) {
+    const existing = await Project.findOneOrNone({
+      organizationId: project.organizationId,
+      title: project.title,
+    });
+    if (existing) {
+      logger.info(`Project already exists: ${project.title}`);
+      continue;
+    }
+    const created = await Project.create(project);
+    logger.info(`Project created: ${created.title} (id: ${created._id})`);
+  }
+};
+
+const seedTodos = async (owner: UserDocument): Promise<void> => {
+  for (const title of SEED_TODOS) {
+    const existing = await Todo.findOneOrNone({ownerId: owner._id, title});
+    if (existing) {
+      logger.info(`Todo already exists: ${title}`);
+      continue;
+    }
+    const created = await Todo.create({ownerId: owner._id, title});
+    logger.info(`Todo created: ${created.title} (id: ${created._id})`);
+  }
+};
+
+/** Accept active consent forms so Maestro/Playwright logins land on the app shell. */
+const acceptPendingConsentsForUser = async (user: UserDocument): Promise<void> => {
+  const activeForms = await ConsentForm.find({active: true}).sort({order: 1});
+  const existingResponses = await ConsentResponse.find({userId: user._id});
+
+  const pendingForms = activeForms.filter((form) => {
+    const formId = form._id.toString();
+    const matchingResponses = existingResponses.filter(
+      (response) => response.consentFormId.toString() === formId
+    );
+    if (matchingResponses.length === 0) {
+      return true;
+    }
+    return !matchingResponses.some((response) => response.formVersionSnapshot === form.version);
+  });
+
+  if (pendingForms.length === 0) {
+    logger.info(`All consent forms already accepted for ${user.email}`);
+    return;
+  }
+
+  const agreedAt = DateTime.now().toJSDate();
+  for (const form of pendingForms) {
+    await ConsentResponse.create({
+      agreed: true,
+      agreedAt,
+      consentFormId: form._id,
+      formVersionSnapshot: form.version,
+      locale: "en",
+      userId: user._id,
+      ...(form.captureSignature ? {signature: "E2E Seed", signedAt: agreedAt} : {}),
+    });
+    logger.info(`Accepted consent ${form.slug} for ${user.email}`);
+  }
 };
 
 const seedConsentForms = async (): Promise<void> => {
@@ -171,16 +325,31 @@ const seedConsentForms = async (): Promise<void> => {
   );
 };
 
+/** Seed the idempotent example users and records into the active MongoDB database. */
+export const seedDefaultData = async (): Promise<void> => {
+  const seededUsers: UserDocument[] = [];
+  for (const testUser of TEST_USERS) {
+    seededUsers.push(await seedUser(testUser));
+  }
+
+  await seedProjects();
+  // A couple of todos for the non-admin test user (owner-scoped sync stream).
+  if (seededUsers[0]) {
+    await seedTodos(seededUsers[0]);
+  }
+
+  await seedConsentForms();
+
+  for (const user of seededUsers) {
+    await acceptPendingConsentsForUser(user);
+  }
+};
+
 const main = async (): Promise<void> => {
   try {
     logger.info("Connecting to MongoDB...");
     await connectToMongoDB();
-
-    for (const testUser of TEST_USERS) {
-      await seedUser(testUser);
-    }
-
-    await seedConsentForms();
+    await seedDefaultData();
 
     await Configuration.shutdown();
     await mongoose.disconnect();
@@ -191,7 +360,13 @@ const main = async (): Promise<void> => {
   }
 };
 
-main().catch((error: unknown) => {
-  logger.error(`Unhandled error: ${error}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((error: unknown) => {
+      logger.error(`Unhandled error: ${error}`);
+      process.exit(1);
+    });
+}

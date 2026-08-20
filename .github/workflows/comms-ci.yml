@@ -1,0 +1,55 @@
+name: Comms CI
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - "comms/**"
+      - "test/**"
+      - "bun.lock"
+      - "package.json"
+      - ".github/workflows/comms-ci.yml"
+
+defaults:
+  run:
+    working-directory: comms
+
+jobs:
+  test:
+    name: Lint, compile, and test communications
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        working-directory: .
+        run: bun install --frozen-lockfile
+
+      - name: Build API dependency
+        working-directory: api
+        run: bun run compile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Test
+        run: bun run test
+        env:
+          CI: true

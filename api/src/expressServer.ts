@@ -7,6 +7,7 @@ import cloneDeep from "lodash/cloneDeep";
 import onFinished from "on-finished";
 import passport from "passport";
 import type {ModelRouterOptions} from "./api";
+import {APIError} from "./errors";
 import {type LoggingOptions, logger} from "./logger";
 import {sendToSlack} from "./notifiers/slackNotifier";
 
@@ -16,16 +17,16 @@ const IS_JEST = process.env.JEST_WORKER_ID !== undefined;
 
 export const setupEnvironment = (): void => {
   if (!process.env.TOKEN_ISSUER) {
-    throw new Error("TOKEN_ISSUER must be set in env.");
+    throw new APIError({status: 500, title: "TOKEN_ISSUER must be set in env."});
   }
   if (!process.env.TOKEN_SECRET) {
-    throw new Error("TOKEN_SECRET must be set.");
+    throw new APIError({status: 500, title: "TOKEN_SECRET must be set."});
   }
   if (!process.env.REFRESH_TOKEN_SECRET) {
-    throw new Error("REFRESH_TOKEN_SECRET must be set.");
+    throw new APIError({status: 500, title: "REFRESH_TOKEN_SECRET must be set."});
   }
   if (!process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET must be set.");
+    throw new APIError({status: 500, title: "SESSION_SECRET must be set."});
   }
   if (!process.env.TOKEN_EXPIRES_IN && !IS_JEST) {
     logger.warn("TOKEN_EXPIRES_IN is not set so using default.");
@@ -190,7 +191,12 @@ export const cronjob = (
   try {
     new cron.CronJob(cronSchedule, callback, null, true, "America/Chicago");
   } catch (error) {
-    throw new Error(`Failed to create cronjob: ${error}`);
+    throw new APIError({
+      cause: error,
+      detail: `Failed to create cronjob ${name} with schedule ${cronSchedule}: ${error}`,
+      status: 500,
+      title: "Failed to create cronjob",
+    });
   }
 };
 

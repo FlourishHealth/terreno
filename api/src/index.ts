@@ -47,6 +47,9 @@ export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
 export {
+  type AuthorizedEmitEntry,
+  emitPayloadToAuthorizedRoom,
+  emitSyncDeltaForChange,
   startChangeStreamWatcher,
   stopChangeStreamWatcher,
 } from "./realtime/changeStreamWatcher";
@@ -75,6 +78,32 @@ export {
   type RealtimeRegistryEntry,
   registerRealtime,
 } from "./realtime/registry";
+export {
+  DEFAULT_SESSION_REVALIDATION_INTERVAL_MS,
+  loadFullUserForSocket,
+  type RevalidatableSocket,
+  type RevalidationOutcome,
+  reresolveSyncRoomsForSocket,
+  revalidateSocketSession,
+  runSessionRevalidationSweep,
+  type SessionRevalidationHandle,
+  type SessionRevalidationOptions,
+  startSessionRevalidationSweep,
+} from "./realtime/sessionRevalidation";
+export {
+  type AuthenticatableSocket,
+  type BetterAuthSocketOptions,
+  createBetterAuthValidator,
+  createLegacyJwtValidator,
+  createSocketAuthMiddleware,
+  type SocketAuthValidator,
+} from "./realtime/socketAuth";
+export {
+  type DecodedRealtimeToken,
+  getSocketUser,
+  type SocketDataBag,
+  type SocketWithDecodedToken,
+} from "./realtime/socketUser";
 export type {
   ChangeStreamConfig,
   DocumentSubscription,
@@ -86,6 +115,19 @@ export type {
 export * from "./requestContext";
 export * from "./scriptRunner";
 export * from "./secretProviders";
+export * from "./sync/executors";
+export * from "./sync/models";
+export * from "./sync/mutationHandler";
+export * from "./sync/registry";
+export * from "./sync/routes";
+export * from "./sync/scripts/compactTombstones";
+export * from "./sync/serialize";
+export * from "./sync/socketHandlers";
+export * from "./sync/streams";
+export * from "./sync/syncApp";
+export * from "./sync/syncBatch";
+export * from "./sync/syncSeqPlugin";
+export * from "./sync/types";
 export * from "./syncConsents";
 export * from "./terrenoApp";
 export * from "./terrenoPlugin";

@@ -2,19 +2,19 @@
   "name": "terreno",
   "displayName": "Terreno",
   "owner": {
-    "name": "Flourish Health",
-    "email": "josh@flourish.health"
+    "name": "Terreno",
+    "email": "terreno@flourish.health"
   },
   "metadata": {
-    "description": "Team marketplace for Terreno: SDLC planning and execution plugins.",
-    "version": "1.0.0",
+    "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
+    "version": "1.1.1",
     "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Plugins for planning and executing plans for the whole SDLC"
+      "description": "Five-stage pipeline from feature request to mergeable PR"
     }
   ]
 }
