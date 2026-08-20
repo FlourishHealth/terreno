@@ -43,7 +43,10 @@ describe("discoverCollections", () => {
 describe("emitSdk", () => {
   it("emits friendly hook names and SYNC_COLLECTIONS", async () => {
     const doc = await loadSpec(fixturePath);
-    const collections = discoverCollections({doc});
+    const collections = discoverCollections({
+      config: {overrides: {todos: {retries: false}}},
+      doc,
+    });
     const output = emitSdk({collections, doc});
 
     expect(output).toContain('export const SYNC_COLLECTIONS = ["todos"] as const;');
@@ -51,7 +54,11 @@ describe("emitSdk", () => {
     expect(output).toContain("useReadQuery: useTodo");
     expect(output).toContain("useCreateMutation: useCreateTodo");
     expect(output).toContain("useUpdateMutation: useUpdateTodo");
-    expect(output).toContain('retries: false');
+    expect(output).toContain("useDeleteMutation: useDeleteTodo");
+    expect(output).toContain("export interface Todo {");
+    expect(output).toContain("export interface CreateTodoBody {");
+    expect(output).toContain("export type UpdateTodoBody = Partial<CreateTodoBody>;");
+    expect(output).toContain("retries: false");
   });
 
   it("matches snapshot for fixture spec", async () => {
