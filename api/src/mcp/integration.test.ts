@@ -189,6 +189,34 @@ describe("MCP Integration", () => {
       const stored = await TodoModel.findOne({title: "No hidden write"}).lean();
       expect(stored?.ownerId).toBeUndefined();
     });
+
+    it("strips nested excludeFields from the create persist payload", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["secret", "metadata.items.token"]},
+        options: {...entry.options, preCreate: undefined},
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {
+          metadata: {
+            items: [{name: "one", token: "t1"}],
+            nested: {secret: "hidden", visible: "shown"},
+            secret: "hidden",
+          },
+          title: "Nested deny",
+        },
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Nested deny");
+      const stored = await TodoModel.findOne({title: "Nested deny"}).lean();
+      expect(stored?.metadata).toEqual({
+        items: [{name: "one"}],
+        nested: {visible: "shown"},
+      });
+    });
   });
 
   describe("handleList", () => {
@@ -500,6 +528,32 @@ describe("MCP Integration", () => {
       expect(parsed.data.ownerId).toBeUndefined();
       const stored = await TodoModel.findById(doc._id).lean();
       expect(String(stored?.ownerId)).toBe(normalUser.id);
+    });
+
+    it("strips nested excludeFields from the update persist payload", async () => {
+      const doc = await TodoModel.create({
+        metadata: {items: [{name: "one", token: "keep-me"}]},
+        ownerId: normalUser._id,
+        title: "Nested update",
+      });
+      const writeEntry: MCPRegistryEntry = {
+        ...entry,
+        config: {...entry.config, excludeFields: ["metadata.items.token", "secret"]},
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {
+          id: doc._id.toString(),
+          metadata: {items: [{name: "one", token: "stolen"}], secret: "nope", visible: "ok"},
+          title: "Nested updated",
+        },
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(parsed.data.title).toBe("Nested updated");
+      const stored = await TodoModel.findById(doc._id).lean();
+      expect(stored?.metadata).toEqual({items: [{name: "one"}], visible: "ok"});
     });
   });
 

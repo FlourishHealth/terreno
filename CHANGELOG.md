@@ -58,8 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - MCP create/update apply REST `validation.excludeFromCreate` /
   `excludeFromUpdate` and MCP `excludeFields` as a write denylist on both the
-  persist payload and the fake request body passed to lifecycle hooks, matching
-  HTTP body validation and the fields hidden from tool schemas
+  persist payload and the fake request body passed to lifecycle hooks, including
+  nested/dot paths, matching HTTP body validation and the fields hidden from
+  tool schemas
 - MCP read/update/delete return a structured not-found error for invalid
   ObjectIds instead of crashing on Mongoose `CastError`, while still accepting
   mixed-case 24-hex ids the way REST `findById` does

@@ -162,15 +162,18 @@ const asOptionalString = (value: unknown): string | undefined => {
   return typeof value === "string" ? value : undefined;
 };
 
+/**
+ * Remove denylisted keys from an MCP create/update body.
+ *
+ * Matches response redaction: a bare name is deleted at every depth (including
+ * Mixed/embedded objects and arrays), and a dotted path is deleted at that
+ * location only. The incoming args object is not mutated.
+ */
 const omitDeniedWriteFields = (body: MCPToolArgs, denied: string[]): MCPToolArgs => {
   if (denied.length === 0) {
     return body;
   }
-  const next: MCPToolArgs = {...body};
-  for (const field of denied) {
-    delete next[field];
-  }
-  return next;
+  return stripExcludedFields(body, denied) as MCPToolArgs;
 };
 
 /** Mongoose's populated query result types don't narrow to a single document. */
