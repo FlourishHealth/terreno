@@ -3,8 +3,8 @@ import {clearTodos} from "./helpers/clearTodos";
 import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
-  clickTodoToggle,
   CONVERGE_TIMEOUT,
+  clickTodoToggle,
   createTodoViaUi,
   openSyncTodos,
   todoItemByTitle,

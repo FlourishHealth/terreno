@@ -9,8 +9,8 @@ import {SYNCDB_OFFLINE_USER} from "./fixtures/testUsers";
 import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
-  clickTodoToggle,
   CONVERGE_TIMEOUT,
+  clickTodoToggle,
   goSyncOffline,
   goSyncOnline,
   installOfflineControl,
