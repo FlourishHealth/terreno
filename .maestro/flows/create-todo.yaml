@@ -5,32 +5,34 @@ url: http://localhost:8082/login
 
 - launchApp
 
-# Wait for the login screen
 - extendedWaitUntil:
-    visible: "Log In"
+    visible:
+      id: "login-screen-email-input"
     timeout: 60000
 
-# Login first
-- tapOn: "Email"
+- tapOn:
+    id: "login-screen-email-input"
 - inputText: "admin@example.com"
 
-- tapOn: "Password"
+- tapOn:
+    id: "login-screen-password-input"
 - inputText: "testpassword123"
 
-- tapOn: "Log In"
+- tapOn:
+    id: "login-screen-submit-button"
 
-# Wait for Todos screen
 - extendedWaitUntil:
-    visible: "My Todos"
+    visible:
+      id: "todos-screen"
     timeout: 30000
 
-# Create a new todo
-- tapOn: "What needs to be done?"
+- tapOn:
+    id: "todos-title-input"
 - inputText: "Buy groceries"
 
-- tapOn: "Add Todo"
+- tapOn:
+    id: "todos-create-button"
 
-# Assert the todo appears in the list
 - extendedWaitUntil:
     visible: "Buy groceries"
     timeout: 10000
