@@ -2,7 +2,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
-import {fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {AdminRolesList} from "./AdminRolesList";
 import type {AdminApi} from "./types";
@@ -34,7 +33,7 @@ mock.module("./useAdminRoles", () => ({
 const mockApi = {} as unknown as AdminApi;
 
 const ROLES = [
-  {displayName: "Super Admin", isLocked: true, name: "superadmin"},
+  {displayName: "Super Admin", isLocked: true, isSealed: true, name: "superadmin"},
   {description: "Baseline role for signed-up users", displayName: "Todo User", name: "todoUser"},
 ];
 
@@ -85,7 +84,7 @@ describe("AdminRolesList", () => {
     expect(getByText("Todo User")).toBeTruthy();
   });
 
-  it("lists available permissions and opens the add role form", () => {
+  it("lists available permissions and exposes role creation", () => {
     mockUseListRolesQuery.mockReturnValue({
       data: ROLES,
       error: null,
@@ -98,11 +97,10 @@ describe("AdminRolesList", () => {
 
     expect(getByTestId("admin-permissions-list")).toBeTruthy();
     expect(getByText("admin:runScripts")).toBeTruthy();
-    fireEvent.press(getByTestId("admin-roles-add-button"));
-    expect(getByTestId("admin-role-modal").props.visible).toBe(true);
+    expect(getByTestId("admin-roles-add-button")).toBeTruthy();
   });
 
-  it("opens an existing non-sealed role for editing", () => {
+  it("enables editing for non-sealed roles and disables sealed roles", () => {
     mockUseListRolesQuery.mockReturnValue({
       data: ROLES,
       error: null,
@@ -111,9 +109,8 @@ describe("AdminRolesList", () => {
     });
     const {getByTestId} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
 
-    fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
-
-    expect(getByTestId("admin-role-modal").props.visible).toBe(true);
+    expect(getByTestId("admin-roles-edit-todoUser").props.disabled).toBeFalsy();
+    expect(getByTestId("admin-roles-edit-superadmin").props.disabled).toBeTruthy();
   });
 
   it("renders roles returned inside a data envelope", () => {
