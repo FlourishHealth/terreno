@@ -1288,6 +1288,33 @@ export class AdminApp {
           }
         : {};
 
+      const assertCanWriteUserAdminFlag = async (
+        body: Record<string, unknown>,
+        request: express.Request
+      ): Promise<void> => {
+        if (config.model.modelName !== "User" || !("admin" in body)) {
+          return;
+        }
+        const accessControl = this.options.accessControl;
+        if (!accessControl) {
+          return;
+        }
+        const actor = request.user as User | undefined;
+        if (!actor) {
+          throw new APIError({status: 401, title: "Unauthorized"});
+        }
+        const result = await accessControl.can({
+          permissions: {rbac: ["assignRoles"]},
+          user: actor,
+        });
+        if (!result.allowed) {
+          throw new APIError({
+            status: 403,
+            title: "Missing rbac:assignRoles permission",
+          });
+        }
+      };
+
       // noExplicitAny: matches the Model<any> from AdminModelConfig above.
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
@@ -1305,14 +1332,18 @@ export class AdminApp {
           if (!body || typeof body !== "object") {
             return body;
           }
-          takePendingUserRoles(body as Record<string, unknown>, req);
+          const record = body as Record<string, unknown>;
+          takePendingUserRoles(record, req);
+          await assertCanWriteUserAdminFlag(record, req);
           return stripProtectedFromBody(body) as typeof body;
         },
         preUpdate: async (body, req) => {
           if (!body || typeof body !== "object") {
             return body;
           }
-          takePendingUserRoles(body as Record<string, unknown>, req);
+          const record = body as Record<string, unknown>;
+          takePendingUserRoles(record, req);
+          await assertCanWriteUserAdminFlag(record, req);
           return stripProtectedFromBody(body) as typeof body;
         },
         postCreate: async (value, request) => {
@@ -1374,6 +1405,7 @@ export class AdminApp {
             });
           }
           const rawPatch = body.patch as Record<string, unknown>;
+          await assertCanWriteUserAdminFlag(rawPatch, req);
           const unknownKeys = Object.keys(rawPatch).filter((key) => !allowlist.has(key));
           if (unknownKeys.length > 0) {
             throw new APIError({

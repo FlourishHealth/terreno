@@ -1040,6 +1040,47 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect(after?.admin).toBe(true);
   });
 
+  it("requires rbac:assignRoles to set User admin when accessControl is enabled", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-without-assign",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+    expect(target?.admin).toBe(false);
+
+    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: true}).expect(403);
+
+    const afterDenied = await UserModel.findById(target?._id);
+    expect(afterDenied?.admin).toBe(false);
+  });
+
   it("checks each bulk-patch target document against RBAC scopes", async () => {
     const foodStatements = {
       ...terrenoStatements,
