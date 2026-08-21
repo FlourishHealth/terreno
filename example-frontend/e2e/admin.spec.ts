@@ -100,6 +100,35 @@ test.describe("Admin Panel", () => {
     await expect(page.getByText("Dry run completed cleanly.")).toBeVisible({timeout: 15_000});
     await expect(page.getByText(/Dry run: would reset \d+ record/)).toBeVisible();
   });
+
+  test("can create and edit a role with attached permissions", async ({page, request}) => {
+    const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+    const token = await getAdminToken(request);
+    const roleName = "e2eRoleEditor";
+    await request.delete(`${API_URL}/rbac/roles/${roleName}`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+
+    await page.goto("/admin/roles");
+    await expect(page.getByTestId("admin-permissions-list")).toContainText("todo:update");
+    await page.getByTestId("admin-roles-add-button").click();
+    await page.getByTestId("admin-role-name").fill(roleName);
+    await page.getByTestId("admin-role-display-name").fill("E2E Role Editor");
+    await page.getByTestId("admin-role-description").fill("Created by Playwright");
+    await page.getByTestId("admin-role-permission-todo-read").click();
+    await page.getByTestId("admin-role-save-button").click();
+
+    const roleItem = page.getByTestId(`admin-roles-item-${roleName}`);
+    await expect(roleItem).toContainText("todo:read");
+    await page.getByTestId(`admin-roles-edit-${roleName}`).click();
+    await page.getByTestId("admin-role-permission-todo-update").click();
+    await page.getByTestId("admin-role-save-button").click();
+    await expect(roleItem).toContainText("todo:update");
+
+    await request.delete(`${API_URL}/rbac/roles/${roleName}`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+  });
 });
 
 test.describe("Admin Access Control", () => {
