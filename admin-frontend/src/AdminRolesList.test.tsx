@@ -43,6 +43,7 @@ describe("AdminRolesList", () => {
     mockCreateRole.mockClear();
     mockUpdateRole.mockClear();
     mockUseListStatementsQuery.mockClear();
+    mockUseListStatementsQuery.mockClear();
     mockUseListRolesQuery.mockReturnValue({
       data: undefined,
       error: null,

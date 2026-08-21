@@ -223,11 +223,20 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
           : null}
       </Box>
 
-      <Modal onDismiss={handleDismiss} size="lg" testID="admin-role-modal" visible={isFormVisible}>
-        <Box gap={4} padding={2} testID="admin-role-form">
-          <Heading size="md">
-            {editingRole ? `Edit ${editingRole.displayName}` : "Add role"}
-          </Heading>
+      <Modal
+        onDismiss={handleDismiss}
+        primaryButtonDisabled={isSaving}
+        primaryButtonOnClick={handleSave}
+        primaryButtonText={editingRole ? "Save role" : "Create role"}
+        secondaryButtonOnClick={handleDismiss}
+        secondaryButtonText="Cancel"
+        size="lg"
+        testID="admin-role-modal"
+        testIDs={{primaryButton: "admin-role-save-button"}}
+        title={editingRole ? `Edit ${editingRole.displayName}` : "Add role"}
+        visible={isFormVisible}
+      >
+        <Box gap={4} maxHeight={360} overflow="scroll" padding={2} testID="admin-role-form">
           <TextField
             disabled={Boolean(editingRole)}
             onChange={(value) => handleFieldChange("name", value)}
@@ -247,7 +256,7 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
             title="Description"
             value={form.description}
           />
-          <Box gap={2}>
+          <Box gap={2} testID="admin-role-permissions">
             <Heading size="sm">Permissions</Heading>
             {resources.map((resource) => (
               <Box gap={1} key={resource}>
@@ -280,15 +289,6 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
               {saveError}
             </Text>
           ) : null}
-          <Box direction="row" gap={2} justifyContent="end">
-            <Button onClick={handleDismiss} text="Cancel" variant="muted" />
-            <Button
-              loading={isSaving}
-              onClick={handleSave}
-              testID="admin-role-save-button"
-              text={editingRole ? "Save role" : "Create role"}
-            />
-          </Box>
         </Box>
       </Modal>
     </Box>

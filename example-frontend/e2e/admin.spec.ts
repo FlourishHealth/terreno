@@ -132,13 +132,16 @@ test.describe("Admin Panel", () => {
     await page.getByTestId("admin-role-display-name").fill("E2E Role Editor");
     await page.getByTestId("admin-role-description").fill("Created by Playwright");
     await permissionControl(page, "todo", "read").click();
-    await page.getByTestId("admin-role-save-button").click();
+    const saveButton = page.getByTestId("admin-role-save-button");
+    await saveButton.scrollIntoViewIfNeeded();
+    await saveButton.click();
 
     const roleItem = page.getByTestId(`admin-roles-item-${roleName}`);
     await expect(roleItem).toContainText("todo:read");
     await page.getByTestId(`admin-roles-edit-${roleName}`).click();
     await permissionControl(page, "todo", "update").click();
-    await page.getByTestId("admin-role-save-button").click();
+    await saveButton.scrollIntoViewIfNeeded();
+    await saveButton.click();
     await expect(roleItem).toContainText("todo:update");
 
     await request.delete(`${API_URL}/rbac/roles/${roleName}`, {
