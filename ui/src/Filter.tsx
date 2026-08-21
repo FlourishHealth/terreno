@@ -7,6 +7,7 @@ import {createWebPortal} from "./createWebPortal";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveTestID} from "./testing/resolveTestId";
+import {createBoxShadow} from "./Utilities";
 import {useWebDropdownAnchor} from "./WebDropdownMenu";
 
 const DEFAULT_WIDTH = 320;
@@ -111,10 +112,12 @@ export const Filter: FC<FilterProps> = ({
     borderColor: theme.border.default,
     borderRadius: theme.radius.default,
     borderWidth: 1,
-    shadowColor: theme.primitives.neutral900,
-    shadowOffset: {height: 4, width: 0},
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    boxShadow: createBoxShadow({
+      blurRadius: 12,
+      color: theme.primitives.neutral900,
+      offsetY: 4,
+      opacity: 0.15,
+    }),
     width,
   };
 

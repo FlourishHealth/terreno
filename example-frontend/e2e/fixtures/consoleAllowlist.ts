@@ -4,11 +4,6 @@
 // entries are matched with .test().
 
 export const GLOBAL_CONSOLE_ALLOWLIST: ReadonlyArray<string | RegExp> = [
-  // React Native Web deprecation: shadow* style props.
-  // Source: @terreno/ui (WebDropdownMenu, DraggableList) and Box's shadow prop.
-  // TODO(ui): migrate shadow* styles to boxShadow.
-  '"shadow*" style props are deprecated. Use "boxShadow".',
-
   // React Native Web deprecation: pointerEvents prop.
   // Source: @terreno/ui (ToastNotifications, DateTimeField, SidebarNavigation).
   // TODO(ui): migrate pointerEvents prop to style.pointerEvents.

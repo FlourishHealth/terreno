@@ -1,0 +1,17 @@
+diff --git a/dist/src/utils.js b/dist/src/utils.js
+index 97ed959e1a48614f1fc4eac086db480d72ba8c1d..d76f46f416273fcdef0beb8afd7abe41d4cc12e9 100644
+--- a/dist/src/utils.js
++++ b/dist/src/utils.js
+@@ -11,11 +11,8 @@ export function getDeviceHeight(statusBarTranslucent, height) {
+ }
+ export var getElevation = function (elevation) {
+     return {
++        boxShadow: (0.3 * elevation) + "px " + (0.5 * elevation) + "px " + (0.7 * elevation) + "px rgba(0, 0, 0, 0.2)",
+         elevation: elevation,
+-        shadowColor: 'black',
+-        shadowOffset: { width: 0.3 * elevation, height: 0.5 * elevation },
+-        shadowOpacity: 0.2,
+-        shadowRadius: 0.7 * elevation,
+     };
+ };
+ export var SUPPORTED_ORIENTATIONS = [

@@ -1,0 +1,16 @@
+diff --git a/lib/styles.js b/lib/styles.js
+index 89507e90fd97d8626f680c2858c058d06e71477c..83e00a7fa925d0fb5e67f1c8f3f054d3cd1c836d 100644
+--- a/lib/styles.js
++++ b/lib/styles.js
+@@ -21,10 +21,7 @@ exports.default = react_native_1.StyleSheet.create({
+         backgroundColor: '#fff',
+         borderTopLeftRadius: 12,
+         borderTopRightRadius: 12,
+-        shadowColor: '#000',
+-        shadowOffset: { width: 0, height: 10 },
+-        shadowOpacity: 0.1,
+-        shadowRadius: 12,
++        boxShadow: '0px 10px 12px rgba(0, 0, 0, 0.1)',
+         elevation: 4,
+     },
+     handle: {

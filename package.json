@@ -282,5 +282,9 @@
     "test",
     "ui",
     "website"
-  ]
+  ],
+  "patchedDependencies": {
+    "react-native-modalize@2.1.1": "patches/react-native-modalize@2.1.1.patch",
+    "react-native-actions-sheet@0.9.8": "patches/react-native-actions-sheet@0.9.8.patch"
+  }
 }

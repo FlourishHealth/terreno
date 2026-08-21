@@ -15,6 +15,7 @@ import {
 
 import {createWebPortal} from "./createWebPortal";
 import {useTheme} from "./Theme";
+import {createBoxShadow} from "./Utilities";
 
 export const scheduleAfterPaint = (callback: () => void): void => {
   if (typeof requestAnimationFrame === "function") {
@@ -244,14 +245,11 @@ export const WebDropdownMenu = ({
     borderColor: theme.border.dark,
     borderRadius: 4,
     borderWidth: 1,
+    boxShadow: createBoxShadow({blurRadius: 8, offsetY: 2, opacity: 0.15}),
     left: anchor.x,
     maxHeight: clampedMaxHeight,
     minWidth,
     overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: {height: 2, width: 0},
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
     ...(isOpenAbove ? {bottom: menuBottom} : {top: menuTop}),
     width: width ?? anchor.width,
     zIndex: 2,
@@ -260,14 +258,11 @@ export const WebDropdownMenu = ({
   const centeredMenuLayoutStyle = {
     backgroundColor: theme.surface.base,
     borderRadius: 8,
+    boxShadow: createBoxShadow({blurRadius: 12, offsetY: 4, opacity: 0.25}),
     elevation: 8,
     maxHeight: clampedMaxHeight,
     maxWidth: Math.min(400, windowWidth - 48),
     overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: {height: 4, width: 0},
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
     width: Math.min(400, windowWidth - 48),
   };
 

@@ -2,8 +2,10 @@ import {describe, expect, it} from "bun:test";
 
 import type {APIError, BaseProfile} from "./Common";
 import {
+  applyColorOpacity,
   bind,
   concat,
+  createBoxShadow,
   findAddressComponent,
   formattedCountyCode,
   fromClassName,
@@ -423,6 +425,51 @@ describe("Utilities", () => {
     it("prints title when detail is missing", () => {
       const error = {data: {title: "Not Found"}};
       expect(printAPIError(error as unknown as APIError, true)).toBe("Not Found");
+    });
+  });
+
+  describe("applyColorOpacity", () => {
+    it("converts six digit hex colors", () => {
+      expect(applyColorOpacity({color: "#1C1C1C", opacity: 0.15})).toBe("rgba(28, 28, 28, 0.15)");
+    });
+
+    it("expands shorthand hex colors", () => {
+      expect(applyColorOpacity({color: "#abc", opacity: 1})).toBe("rgba(170, 187, 204, 1)");
+    });
+
+    it("multiplies an existing alpha channel by the opacity", () => {
+      expect(applyColorOpacity({color: "#00000080", opacity: 0.5})).toBe("rgba(0, 0, 0, 0.251)");
+    });
+
+    it("converts rgb and rgba colors", () => {
+      expect(applyColorOpacity({color: "rgb(10, 20, 30)", opacity: 0.4})).toBe(
+        "rgba(10, 20, 30, 0.4)"
+      );
+      expect(applyColorOpacity({color: "rgba(10, 20, 30, 0.5)", opacity: 0.5})).toBe(
+        "rgba(10, 20, 30, 0.25)"
+      );
+    });
+
+    it("clamps opacity to the 0-1 range", () => {
+      expect(applyColorOpacity({color: "#000000", opacity: 5})).toBe("rgba(0, 0, 0, 1)");
+      expect(applyColorOpacity({color: "#000000", opacity: -1})).toBe("rgba(0, 0, 0, 0)");
+    });
+
+    it("returns unparseable colors unchanged", () => {
+      expect(applyColorOpacity({color: "papayawhip", opacity: 0.5})).toBe("papayawhip");
+      expect(applyColorOpacity({color: "#12345", opacity: 0.5})).toBe("#12345");
+    });
+  });
+
+  describe("createBoxShadow", () => {
+    it("builds a box shadow value with defaults", () => {
+      expect(createBoxShadow({blurRadius: 8})).toBe("0px 0px 8px rgba(0, 0, 0, 1)");
+    });
+
+    it("applies offsets, color, and opacity", () => {
+      expect(
+        createBoxShadow({blurRadius: 12, color: "#1C1C1C", offsetX: 1, offsetY: 4, opacity: 0.15})
+      ).toBe("1px 4px 12px rgba(28, 28, 28, 0.15)");
     });
   });
 });
