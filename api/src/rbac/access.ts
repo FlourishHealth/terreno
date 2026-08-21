@@ -109,7 +109,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
 
   const queryFilter = async (args: {
     user?: User;
-    resource: keyof S & string;
+    resource: string;
     action: string;
     context?: Record<string, unknown>;
   }): Promise<Record<string, unknown> | null> => {
@@ -141,7 +141,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
 
   const fieldMask = async (args: {
     user?: User;
-    resource: keyof S & string;
+    resource: string;
     doc?: unknown;
     phase?: "read" | "write" | "create";
   }): Promise<FieldMask> => {

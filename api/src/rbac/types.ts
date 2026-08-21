@@ -10,8 +10,9 @@ import type {PermissionSet, Statements} from "./statements";
 
 /**
  * Non-generic TerrenoAccess for runtime wiring (modelRouter, rbacRouter, TerrenoApp).
- * `Statements` is the open index shape, so concrete `TerrenoAccess<AppStatements>`
- * still assigns without an `any` statements parameter.
+ * `queryFilter` / `fieldMask` take `resource: string` so a concrete
+ * `TerrenoAccess<AppStatements>` remains assignable (function parameters are
+ * contravariant; a keyof-S union would not accept `string`).
  */
 export type AnyTerrenoAccess = TerrenoAccess<Statements>;
 
@@ -159,13 +160,13 @@ export interface TerrenoAccess<S extends Statements> {
   getPermissions: (args: {user: User}) => Promise<PermissionSet>;
   queryFilter: (args: {
     user?: User;
-    resource: keyof S & string;
+    resource: string;
     action: string;
     context?: Record<string, unknown>;
   }) => Promise<Record<string, unknown> | null>;
   fieldMask: (args: {
     user?: User;
-    resource: keyof S & string;
+    resource: string;
     doc?: unknown;
     phase?: "read" | "write" | "create";
   }) => Promise<FieldMask>;
