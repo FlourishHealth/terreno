@@ -248,7 +248,7 @@ describe("registerSync validation", () => {
 
   it("updateSyncRegistryOptions replaces options on an existing entry", () => {
     registerStuff();
-    const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<any>;
+    const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<unknown>;
     updateSyncRegistryOptions("/syncStuff", updatedOptions);
     expect(getSyncRegistry()[0]?.options).toBe(updatedOptions);
   });
@@ -256,7 +256,7 @@ describe("registerSync validation", () => {
   it("updateSyncRegistryOptions no-ops when the route path is not registered", () => {
     registerStuff();
     const originalOptions = getSyncRegistry()[0]?.options;
-    updateSyncRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<any>);
+    updateSyncRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<unknown>);
     expect(getSyncRegistry()[0]?.options).toBe(originalOptions);
   });
 
@@ -313,7 +313,7 @@ describe("modelRouter sync option", () => {
   });
 
   it("refreshes sync registry options when rebuilt with accessControl", () => {
-    const registration = modelRouter("/syncStuff", SyncStuffModel as any, {
+    const registration = modelRouter("/syncStuff", SyncStuffModel, {
       access: {resource: "syncStuff"},
       permissions: {
         create: [Permissions.IsAny],
