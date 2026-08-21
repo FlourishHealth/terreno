@@ -79,7 +79,7 @@ git push origin HEAD
 Create or update the PR as a draft unless the user has explicitly requested otherwise.
 
 - Match [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) for section structure (**Summary**, **Related IP or issue**, **Type of change**, **Testing performed**, **Checklist**). Add `## Evidence` for frontend verification media.
-- Update `CHANGELOG.md` `## [Unreleased]` for user-facing changes before opening or updating the PR.
+- Add `changelog/unreleased/<feature>.md` with a `category` header for user-facing changes before opening or updating the PR. Do not edit `CHANGELOG.md`.
 - When updating an existing PR, **merge** into the current `body` from `gh pr view`: keep prior sections and reviewer context; append or revise only what is stale for the branch (same merge policy as `/submit` Step 4). Do not replace the entire description with a fresh template.
 - Ensure the merged PR body still reflects **all** commits on the branch, not only the latest push.
 

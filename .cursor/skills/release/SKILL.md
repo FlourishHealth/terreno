@@ -11,7 +11,7 @@ Cut a new Terreno release end-to-end: gather commits, write organized release no
 
 - Pushing a tag matching `X.Y.Z` (no `v` prefix, e.g. `0.18.0`) triggers `.github/workflows/publish-on-tag.yml`.
 - That workflow publishes **twelve packages, all at the same version**: `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/comms`, `@terreno/feature-flags`, `@terreno/mcp`. (`demo` and the example apps are not published.)
-- Every publish job waits on `breaking-change-documentation`, which runs `bun run check:upgrade-docs "<tag>"` against the tagged commit. That job fails the whole release when the tag's `CHANGELOG.md` has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` section for the version but `mcp-server/src/docs/upgrades/<version>.md` is missing — so the changelog and upgrade note must be on master *before* tagging.
+- Every publish job waits on `breaking-change-documentation`, which runs `bun run check:upgrade-docs "<tag>"` against the tagged commit. That job fails the whole release when the tag's `CHANGELOG.md` has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` section for the version but `mcp-server/src/docs/upgrades/<version>.md` is missing — so assembled changelog entries and the upgrade note must be on master *before* tagging.
 - Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, `comms`, `feature-flags`, and `mcp` depend on `publish-api` and `publish-test`; `admin-spa` also waits on `publish-rtk` and `publish-admin-frontend`. `api`, `test`, and `ui` publish independently. A `ui`, `api`, or `test` failure cascades.
 - After the master version bump, the workflow dispatches `demo-deploy.yml` against the release tag, and for `X.Y.0` tags also cuts the versioned docs.
 - After successful publishes, the workflow commits `chore: bump package versions to X.Y.Z` back to master and sends a Zoom notification. Prerelease tags (`-beta`, `-alpha`) skip the master bump.
@@ -101,17 +101,17 @@ Rules:
 - Merge commits that belong to one feature (e.g. an IP/plan commit plus its implementation) into a single bullet.
 - Describe user-facing impact, not implementation detail. Keep `(#123)` PR references — GitHub autolinks them.
 
-## Step 5b: Update `CHANGELOG.md` (required)
+## Step 5b: Assemble `CHANGELOG.md` from fragments (required)
+
+PRs do not edit `CHANGELOG.md`. User-facing work lands as one file per feature in [`changelog/unreleased/`](../../changelog/unreleased/) with a YAML `category` header (`Breaking`, `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`).
 
 Before creating the tag:
 
-1. Open root [`CHANGELOG.md`](../../CHANGELOG.md).
-2. Move everything under `## [Unreleased]` into a new `## [X.Y.Z] - YYYY-MM-DD` section. Use today's date in ISO format (Luxon: `DateTime.now().toISODate()`).
-3. Confirm the new version section is **non-empty**. If there is nothing user-facing to document, stop — do not cut an empty release (see Step 2).
-4. Leave `## [Unreleased]` empty at the top for the next cycle.
-5. Group entries under `### Added`, `### Changed`, `### Fixed`, `### Deprecated`, and `### Removed` per [Keep a Changelog](https://keepachangelog.com/).
-6. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` in the same commit — the tag-time `breaking-change-documentation` job fails the release without it. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
-7. Commit the changelog and the upgrade note on `master` before tagging. When `master` requires a PR, merge that PR first and only then create the release, so the tagged commit contains both files.
+1. Preview pending notes: `bun run changelog:preview`. If there are no fragments, stop — do not cut an empty release (see Step 2).
+2. Run `bun run changelog:assemble X.Y.Z`. That command uses today's ISO date via Luxon (`DateTime.now().toISODate()`), folds fragments into a new `## [X.Y.Z] - YYYY-MM-DD` section in [`CHANGELOG.md`](../../CHANGELOG.md), leaves `## [Unreleased]` as a pointer at `changelog/unreleased/`, and deletes the assembled fragment files.
+3. Confirm the new version section is **non-empty** and grouped under Keep a Changelog headings.
+4. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` in the same commit — the tag-time `breaking-change-documentation` job fails the release without it. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
+5. Commit the assembled changelog, deleted fragments, and the upgrade note on `master` before tagging. When `master` requires a PR, merge that PR first and only then create the release, so the tagged commit contains both files.
 
 ## Step 6: Create the release
 
