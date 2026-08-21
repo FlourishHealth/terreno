@@ -38,6 +38,29 @@ describe("rbac role model", () => {
     expect(roles).toHaveLength(terrenoDefaultRoles.length);
   });
 
+  it("does not overwrite customized unsealed roles on re-seed", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({statements: terrenoStatements});
+    await RbacRole.updateOne({name: "admin"}, {$set: {permissions: {user: ["read"]}}});
+    await RbacRole.seedDefaults({statements: terrenoStatements});
+
+    const admin = await RbacRole.findExactlyOne({name: "admin"});
+    expect(admin.permissions.user).toEqual(["read"]);
+  });
+
+  it("refreshes sealed default roles on re-seed", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({statements: terrenoStatements});
+    await RbacRole.updateOne({name: "superadmin"}, {$set: {permissions: {user: ["read"]}}});
+    await RbacRole.seedDefaults({statements: terrenoStatements});
+
+    const superadmin = await RbacRole.findExactlyOne({name: "superadmin"});
+    expect(superadmin.permissions.admin).toContain("access");
+    expect(superadmin.permissions.user).toContain("delete");
+  });
+
   it("expands read-only sentinel at seed time", () => {
     const auditor = terrenoDefaultRoles.find((role) => role.name === "auditor");
     expect(auditor?.permissions).toBe(READ_ONLY_ROLE_PERMISSIONS);

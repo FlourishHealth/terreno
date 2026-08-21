@@ -16,7 +16,7 @@ export interface RbacStatements {
 }
 
 export interface RoleInput {
-  description?: string;
+  description?: string | null;
   displayName: string;
   name: string;
   permissions: Record<string, string[]>;

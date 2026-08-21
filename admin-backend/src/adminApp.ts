@@ -18,7 +18,6 @@ import {
   type PermissionMethod,
   Permissions,
   type PopulatePath,
-  PRIVILEGED_USER_FIELDS,
   type ScriptArgDef,
   type ScriptArgValue,
   type ScriptContext,
@@ -1136,6 +1135,8 @@ export class AdminApp {
         return this.resourceActionPermissions(config.model.modelName, action);
       };
 
+      const updatePermissions = this.resourceActionPermissions(config.model.modelName, "update");
+
       const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
         if (!body || typeof body !== "object" || Array.isArray(body)) {
           return {};
@@ -1153,12 +1154,55 @@ export class AdminApp {
         for (const key of SYSTEM_ADMIN_FIELDS) {
           delete next[key];
         }
-        if (config.model.modelName === "User") {
-          for (const key of PRIVILEGED_USER_FIELDS) {
-            delete next[key];
-          }
+        // Self-service never writes these fields. Admin CRUD may set `admin`.
+        // When RBAC is enabled, `roles` must go through RoleManager.assign.
+        if (config.model.modelName === "User" && this.options.accessControl) {
+          delete next.roles;
         }
         return next;
+      };
+
+      const parseRoleNames = (value: unknown): string[] => {
+        if (!Array.isArray(value) || value.some((roleName) => typeof roleName !== "string")) {
+          throw new APIError({status: 400, title: "roles must be an array of strings"});
+        }
+        return value as string[];
+      };
+
+      const takePendingUserRoles = (
+        body: Record<string, unknown>,
+        request: express.Request
+      ): void => {
+        if (config.model.modelName !== "User" || !this.options.accessControl) {
+          return;
+        }
+        if (!("roles" in body)) {
+          return;
+        }
+        (request as express.Request & {terrenoPendingUserRoles?: string[]}).terrenoPendingUserRoles =
+          parseRoleNames(body.roles);
+      };
+
+      const applyPendingUserRoles = async (
+        value: unknown,
+        request: express.Request
+      ): Promise<void> => {
+        const pending = (request as express.Request & {terrenoPendingUserRoles?: string[]})
+          .terrenoPendingUserRoles;
+        if (!pending) {
+          return;
+        }
+        const actor = request.user as User | undefined;
+        const accessControl = this.options.accessControl;
+        if (!actor || !accessControl) {
+          throw new APIError({status: 401, title: "Unauthorized"});
+        }
+        const record = value as {_id?: unknown; id?: string};
+        const userId = record.id ?? (record._id != null ? String(record._id) : undefined);
+        if (!userId) {
+          throw new APIError({status: 500, title: "User id missing after write"});
+        }
+        await accessControl.roles.assign({actor, roleNames: pending, userId});
       };
 
       const bulkPatchOpenApi = openApiMw
@@ -1242,17 +1286,27 @@ export class AdminApp {
           read: adminPermission(true, "read"),
           update: adminPermission(config.permissions?.update, "update"),
         },
-        preCreate: async (body, _req) => {
+        preCreate: async (body, req) => {
           if (!body || typeof body !== "object") {
             return body;
           }
+          takePendingUserRoles(body as Record<string, unknown>, req);
           return stripProtectedFromBody(body) as typeof body;
         },
-        preUpdate: async (body, _req) => {
+        preUpdate: async (body, req) => {
           if (!body || typeof body !== "object") {
             return body;
           }
+          takePendingUserRoles(body as Record<string, unknown>, req);
           return stripProtectedFromBody(body) as typeof body;
+        },
+        postCreate: async (value, request) => {
+          await applyPendingUserRoles(value, request);
+          await auditHooks.postCreate?.(value, request);
+        },
+        postUpdate: async (value, cleanedBody, request, prev) => {
+          await applyPendingUserRoles(value, request);
+          await auditHooks.postUpdate?.(value, cleanedBody, request, prev);
         },
         queryFields: buildAdminModelQueryFields({
           filters: config.filters,
@@ -1265,7 +1319,7 @@ export class AdminApp {
           scrubAdminResponse(value, config, allModelAdmins) as JSONValue,
         sort: config.defaultSort ?? "-created",
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
-        ...auditHooks,
+        ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
 
       const modelBase = express.Router();
@@ -1278,7 +1332,7 @@ export class AdminApp {
           if (
             !(await checkPermissions(
               "update",
-              this.resourceActionPermissions(config.model.modelName, "update"),
+              updatePermissions,
               req.user as User | undefined
             ))
           ) {
@@ -1314,7 +1368,11 @@ export class AdminApp {
             });
           }
           const patch = stripProtectedFromBody(rawPatch);
-          if (Object.keys(patch).length === 0) {
+          let pendingRoles: string[] | undefined;
+          if (config.model.modelName === "User" && this.options.accessControl && "roles" in rawPatch) {
+            pendingRoles = parseRoleNames(rawPatch.roles);
+          }
+          if (Object.keys(patch).length === 0 && pendingRoles === undefined) {
             throw new APIError({
               status: 400,
               title: "Patch must include at least one writable field",
@@ -1322,18 +1380,37 @@ export class AdminApp {
           }
           let updated = 0;
           const failures: {id: string; title: string}[] = [];
+          const actor = req.user as User | undefined;
           for (const id of ids) {
             if (!mongoose.isValidObjectId(id)) {
               failures.push({id, title: "Invalid id"});
               continue;
             }
             try {
-              const resUpdate = await config.model.updateOne({_id: id}, {$set: patch});
-              if (resUpdate.matchedCount === 0) {
+              const doc = await config.model.findById(id);
+              if (!doc) {
                 failures.push({id, title: "Not found"});
-              } else {
-                updated += 1;
+                continue;
               }
+              if (!(await checkPermissions("update", updatePermissions, actor, doc))) {
+                failures.push({id, title: "Forbidden"});
+                continue;
+              }
+              if (Object.keys(patch).length > 0) {
+                await doc.updateOne({$set: patch});
+              }
+              if (pendingRoles) {
+                if (!actor) {
+                  failures.push({id, title: "Forbidden"});
+                  continue;
+                }
+                await this.options.accessControl?.roles.assign({
+                  actor,
+                  roleNames: pendingRoles,
+                  userId: id,
+                });
+              }
+              updated += 1;
             } catch (err: unknown) {
               const message = err instanceof Error ? err.message : String(err);
               failures.push({id, title: message});

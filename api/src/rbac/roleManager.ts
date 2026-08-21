@@ -4,10 +4,10 @@ import {logger} from "../logger";
 import {diffPermissionSets, isPermissionSubset, validatePermissionSet} from "./permissionUtils";
 import {
   createRbacRoleModel,
-  expandRolePermissions,
   type RbacRoleDocument,
   type RoleDefinition,
   terrenoDefaultRoles,
+  upsertSeededRole,
 } from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
 import type {RoleManager} from "./types";
@@ -96,21 +96,7 @@ export const createRoleManager = (args: {
       if (terrenoDefaultRoles.some((defaultRole) => defaultRole.name === role.name)) {
         continue;
       }
-      const permissions = expandRolePermissions(role.permissions, statements);
-      await rbacRoleModel.findOneAndUpdate(
-        {name: role.name},
-        {
-          $set: {
-            description: role.description,
-            displayName: role.displayName,
-            excludesRoles: role.excludesRoles ?? [],
-            isLocked: role.isLocked ?? false,
-            isSealed: role.isSealed ?? false,
-            permissions,
-          },
-        },
-        {upsert: true}
-      );
+      await upsertSeededRole(rbacRoleModel, role, statements);
     }
   };
 

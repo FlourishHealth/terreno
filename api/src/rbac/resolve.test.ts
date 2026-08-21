@@ -233,4 +233,28 @@ describe("createPermissionResolver", () => {
     const permissions = await resolver.resolvePermissionsForUser(user);
     expect(permissions.todo).toBeUndefined();
   });
+
+  it("evicts the oldest permission cache entry when over maxCacheEntries", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({statements: appStatements});
+
+    const resolver = createPermissionResolver({
+      cacheTtlMs: 60_000,
+      maxCacheEntries: 2,
+      rbacRoleModel: RbacRole,
+      statements: appStatements,
+    });
+
+    const userA = createTestUser({roles: ["member"]});
+    const userB = createTestUser({roles: ["member"]});
+    const userC = createTestUser({roles: ["member"]});
+    await resolver.resolvePermissionsForUser(userA);
+    await resolver.resolvePermissionsForUser(userB);
+    await resolver.resolvePermissionsForUser(userC);
+
+    userA.roles = ["admin"];
+    const refreshed = await resolver.resolvePermissionsForUser(userA);
+    expect(refreshed.admin).toEqual(expect.arrayContaining(["access"]));
+  });
 });

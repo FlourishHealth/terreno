@@ -1010,3 +1010,98 @@ describe("AdminApp per-model queryFilter", () => {
     expect(after?.calories).toBe(12);
   });
 });
+
+describe("AdminApp user elevation and scoped bulk-patch", () => {
+  beforeEach(async () => {
+    await setupDb();
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+    await VersionConfig.deleteMany({});
+  });
+
+  it("allows admin CRUD to set the User admin flag", async () => {
+    const localApp = buildApp([
+      {
+        displayName: "Users",
+        listFields: ["email", "admin"],
+        model: UserModel,
+        routePath: "/users",
+      },
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+
+    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: true}).expect(200);
+
+    const after = await UserModel.findById(target?._id);
+    expect(after?.admin).toBe(true);
+  });
+
+  it("checks each bulk-patch target document against RBAC scopes", async () => {
+    const foodStatements = {
+      ...terrenoStatements,
+      food: ["create", "list", "read", "update", "delete"],
+    } as const;
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      scopes: {
+        "food.update": {
+          check: ({doc, user}) => {
+            if (!doc) {
+              return true;
+            }
+            const ownerId = (doc as {ownerId?: unknown}).ownerId;
+            return String(ownerId) === String(user.id);
+          },
+        },
+      },
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {admin: ["access"], food: ["list", "read", "update"]},
+          }),
+          name: "scoped-food-update",
+        },
+      ],
+      statements: foodStatements,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [{...foodModelConfig, bulkPatchAllowlist: ["calories", "name"]}],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const actor = await UserModel.findOne({email: "admin@example.com"});
+    const other = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(actor).toBeTruthy();
+    expect(other).toBeTruthy();
+
+    const owned = await FoodModel.create({
+      calories: 1,
+      name: "Owned",
+      ownerId: actor?._id,
+    });
+    const foreign = await FoodModel.create({
+      calories: 2,
+      name: "Foreign",
+      ownerId: other?._id,
+    });
+
+    const res = await agent
+      .post("/admin/foods/bulk-patch")
+      .send({
+        ids: [String(owned._id), String(foreign._id)],
+        patch: {calories: 50},
+      })
+      .expect(200);
+
+    expect(res.body.updated).toBe(1);
+    expect(res.body.failures).toEqual([{id: String(foreign._id), title: "Forbidden"}]);
+    expect((await FoodModel.findById(owned._id).lean())?.calories).toBe(50);
+    expect((await FoodModel.findById(foreign._id).lean())?.calories).toBe(2);
+  });
+});

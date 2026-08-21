@@ -70,7 +70,7 @@ export interface UserPermissionDiff {
 export interface RoleInput {
   name: string;
   displayName: string;
-  description?: string;
+  description?: string | null;
   permissions: PermissionSet;
   excludesRoles?: string[];
   isLocked?: boolean;

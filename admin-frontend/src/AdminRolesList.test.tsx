@@ -1,5 +1,6 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
+import {act, fireEvent} from "@testing-library/react-native";
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
@@ -127,6 +128,31 @@ describe("AdminRolesList", () => {
     const {getByText} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
 
     expect(getByText("No roles found.")).toBeTruthy();
+  });
+
+  it("sends null description when clearing the field on update", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
+
+    fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+    fireEvent.changeText(getByTestId("admin-role-description"), "");
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+
+    expect(mockUpdateRole).toHaveBeenCalledWith({
+      changes: {
+        description: null,
+        displayName: "Todo User",
+        permissions: {},
+      },
+      roleName: "todoUser",
+    });
   });
 });
 

@@ -18,6 +18,7 @@ interface SourceCacheEntry {
 }
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
+const DEFAULT_MAX_CACHE_ENTRIES = 10_000;
 
 const getUserRoles = (user: User): string[] => {
   const withRoles = user as User & {roles?: string[]};
@@ -29,6 +30,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
   rbacRoleModel: RbacRoleModel;
   sources?: PermissionSource[];
   cacheTtlMs?: number;
+  maxCacheEntries?: number;
   resolvePermissions?: (args: {user: User}) => Promise<PermissionSet | null>;
 }) => {
   const {
@@ -36,12 +38,37 @@ export const createPermissionResolver = <S extends Statements>(args: {
     rbacRoleModel,
     sources = [],
     cacheTtlMs = DEFAULT_CACHE_TTL_MS,
+    maxCacheEntries = DEFAULT_MAX_CACHE_ENTRIES,
     resolvePermissions,
   } = args;
 
   const ac = createAccessControl(statements);
   const permissionCache = new Map<string, CacheEntry>();
   const sourceCache = new Map<string, Map<string, SourceCacheEntry>>();
+
+  const enforceCacheBound = (): void => {
+    const now = Date.now();
+    for (const [userId, entry] of permissionCache) {
+      if (entry.expiresAt <= now) {
+        permissionCache.delete(userId);
+        sourceCache.delete(userId);
+      }
+    }
+    while (permissionCache.size >= maxCacheEntries) {
+      const oldestUserId = permissionCache.keys().next().value;
+      if (oldestUserId === undefined) {
+        break;
+      }
+      permissionCache.delete(oldestUserId);
+      sourceCache.delete(oldestUserId);
+    }
+  };
+
+  const rememberPermissions = (userId: string, entry: CacheEntry): void => {
+    permissionCache.delete(userId);
+    permissionCache.set(userId, entry);
+    enforceCacheBound();
+  };
 
   const invalidateCache = (invalidateArgs?: {userId?: string}): void => {
     if (invalidateArgs?.userId) {
@@ -124,6 +151,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
   const resolvePermissionsForUser = async (user: User): Promise<PermissionSet> => {
     const cached = permissionCache.get(user.id);
     if (cached && cached.expiresAt > Date.now()) {
+      rememberPermissions(user.id, cached);
       return cached.permissions;
     }
 
@@ -164,7 +192,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
       }
     }
 
-    permissionCache.set(user.id, {
+    rememberPermissions(user.id, {
       expiresAt: Date.now() + cacheTtlMs,
       permissions,
     });

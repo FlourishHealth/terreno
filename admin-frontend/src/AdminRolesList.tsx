@@ -111,7 +111,7 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
       if (editingRole) {
         await updateRole({
           changes: {
-            description: form.description.trim() || undefined,
+            description: form.description.trim() === "" ? null : form.description.trim(),
             displayName,
             permissions: form.permissions,
           },

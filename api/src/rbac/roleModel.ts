@@ -48,6 +48,41 @@ export type RbacRoleModel = Model<RbacRoleDocument> & {
 
 export {READ_ONLY_ROLE_PERMISSIONS} from "./statements";
 
+/**
+ * Insert missing default roles. Existing unsealed roles are left unchanged so admin
+ * customizations survive process restarts. Sealed roles are refreshed from code.
+ */
+export const upsertSeededRole = async (
+  model: RbacRoleModel,
+  role: RoleDefinition,
+  statements: Statements
+): Promise<void> => {
+  const permissions = expandRolePermissions(role.permissions, statements);
+  const existing = await model.findOneOrNone({name: role.name});
+  if (existing) {
+    if (!existing.isSealed) {
+      return;
+    }
+    existing.description = role.description;
+    existing.displayName = role.displayName;
+    existing.excludesRoles = role.excludesRoles ?? [];
+    existing.isLocked = role.isLocked ?? false;
+    existing.isSealed = true;
+    existing.permissions = permissions;
+    await existing.save();
+    return;
+  }
+  await model.create({
+    description: role.description,
+    displayName: role.displayName,
+    excludesRoles: role.excludesRoles ?? [],
+    isLocked: role.isLocked ?? false,
+    isSealed: role.isSealed ?? false,
+    name: role.name,
+    permissions,
+  });
+};
+
 export const expandRolePermissions = (
   spec: RolePermissionSpec,
   statements: Statements,
@@ -138,21 +173,7 @@ rbacRoleSchema.statics = {
   ...rbacRoleSchema.statics,
   async seedDefaults(this: RbacRoleModel, {statements}: {statements: Statements}): Promise<void> {
     for (const role of terrenoDefaultRoles) {
-      const permissions = expandRolePermissions(role.permissions, statements);
-      await this.findOneAndUpdate(
-        {name: role.name},
-        {
-          $set: {
-            description: role.description,
-            displayName: role.displayName,
-            excludesRoles: role.excludesRoles ?? [],
-            isLocked: role.isLocked ?? false,
-            isSealed: role.isSealed ?? false,
-            permissions,
-          },
-        },
-        {upsert: true}
-      );
+      await upsertSeededRole(this, role, statements);
     }
   },
 };

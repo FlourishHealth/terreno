@@ -66,6 +66,29 @@ describe("roleManager", () => {
     expect(customRole.permissions.todo).toEqual(expect.arrayContaining(["read", "update"]));
   });
 
+  it("does not overwrite customized custom default roles on re-seed", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Custom Editor",
+          name: "custom-editor",
+          permissions: {todo: ["read", "update"]},
+        },
+      ],
+      statements: appStatements,
+    });
+
+    await access.roles.seedDefaults();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.updateOne({name: "custom-editor"}, {$set: {permissions: {todo: ["read"]}}});
+    await access.roles.seedDefaults();
+
+    const customRole = await RbacRole.findExactlyOne({name: "custom-editor"});
+    expect(customRole.permissions.todo).toEqual(["read"]);
+  });
+
   it("creates, lists, updates, and removes roles", async () => {
     await setupDb();
     const access = createAccess({
@@ -94,6 +117,13 @@ describe("roleManager", () => {
       roleName: "todo-reader",
     });
     expect(updated.displayName).toBe("Todo Reader Updated");
+
+    const cleared = await access.roles.update({
+      actor,
+      changes: {description: null},
+      roleName: "todo-reader",
+    });
+    expect(cleared.description == null).toBe(true);
 
     await access.roles.remove({actor, roleName: "todo-reader"});
     const remaining = await access.roles.list();
