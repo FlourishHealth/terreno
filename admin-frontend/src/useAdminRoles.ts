@@ -26,10 +26,7 @@ interface RoleMutationResult {
   unwrap: () => Promise<unknown>;
 }
 
-type CreateRoleMutation = [
-  (input: RoleInput) => RoleMutationResult,
-  {isLoading: boolean},
-];
+type CreateRoleMutation = [(input: RoleInput) => RoleMutationResult, {isLoading: boolean}];
 
 type UpdateRoleMutation = [
   (input: {changes: Omit<RoleInput, "name">; roleName: string}) => RoleMutationResult,
@@ -90,9 +87,7 @@ const EMPTY_UPDATE_MUTATION_HOOK = (): UpdateRoleMutation => [
   {isLoading: false},
 ];
 
-export const normalizeStatements = (
-  data: StatementsQueryResult["data"]
-): RbacStatements => {
+export const normalizeStatements = (data: StatementsQueryResult["data"]): RbacStatements => {
   return data?.statements ?? data?.data?.statements ?? {};
 };
 
@@ -125,13 +120,7 @@ export const useAdminRoles = (api: AdminApi, apiBase: string) => {
           query: () => ({method: "GET", url: `${resolveRbacBase(apiBase)}/rbac/statements`}),
         }),
         adminUpdateRbacRole: build.mutation({
-          query: ({
-            changes,
-            roleName,
-          }: {
-            changes: Omit<RoleInput, "name">;
-            roleName: string;
-          }) => ({
+          query: ({changes, roleName}: {changes: Omit<RoleInput, "name">; roleName: string}) => ({
             body: changes,
             method: "PATCH",
             url: `${resolveRbacBase(apiBase)}/rbac/roles/${encodeURIComponent(roleName)}`,

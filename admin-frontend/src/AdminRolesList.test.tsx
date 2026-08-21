@@ -6,11 +6,7 @@ import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {AdminRolesList} from "./AdminRolesList";
 import type {AdminApi} from "./types";
-import {
-  normalizeRoles,
-  normalizeStatements,
-  type RolesQueryResult,
-} from "./useAdminRoles";
+import {normalizeRoles, normalizeStatements, type RolesQueryResult} from "./useAdminRoles";
 
 const mockUseListRolesQuery = mock(
   (): RolesQueryResult => ({data: undefined, error: null, isLoading: false})

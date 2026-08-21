@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Box,
-  Button,
-  CheckBox,
-  Heading,
-  Modal,
-  Spinner,
-  Text,
-  TextField,
-} from "@terreno/ui";
+import {Badge, Box, Button, CheckBox, Heading, Modal, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
 
 import type {AdminScreenProps} from "./types";
@@ -34,9 +24,7 @@ const EMPTY_ROLE_FORM: RoleFormState = {
   permissions: {},
 };
 
-const clonePermissions = (
-  permissions?: Record<string, string[]>
-): Record<string, string[]> => {
+const clonePermissions = (permissions?: Record<string, string[]>): Record<string, string[]> => {
   return Object.fromEntries(
     Object.entries(permissions ?? {}).map(([resource, actions]) => [resource, [...actions]])
   );
@@ -44,12 +32,8 @@ const clonePermissions = (
 
 export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUrl}) => {
   const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl});
-  const {
-    useCreateRoleMutation,
-    useListRolesQuery,
-    useListStatementsQuery,
-    useUpdateRoleMutation,
-  } = useAdminRoles(api, resolvedApiBase);
+  const {useCreateRoleMutation, useListRolesQuery, useListStatementsQuery, useUpdateRoleMutation} =
+    useAdminRoles(api, resolvedApiBase);
   const {data, error, isLoading, refetch} = useListRolesQuery();
   const {
     data: statementsData,
@@ -241,7 +225,9 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
 
       <Modal onDismiss={handleDismiss} size="lg" visible={isFormVisible}>
         <Box gap={4} padding={2} testID="admin-role-form">
-          <Heading size="md">{editingRole ? `Edit ${editingRole.displayName}` : "Add role"}</Heading>
+          <Heading size="md">
+            {editingRole ? `Edit ${editingRole.displayName}` : "Add role"}
+          </Heading>
           <TextField
             disabled={Boolean(editingRole)}
             onChange={(value) => handleFieldChange("name", value)}
