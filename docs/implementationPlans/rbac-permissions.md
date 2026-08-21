@@ -409,7 +409,11 @@ export interface RoleManager {
 
   // Diff previews for the admin UI (see 4.11)
   previewRoleChange(args: {roleName: string; permissions: PermissionSet}): Promise<RoleDiff>;
-  previewAssignment(args: {userId: string; roleNames: string[]}): Promise<UserPermissionDiff>;
+  previewAssignment(args: {
+    actor: User;
+    userId: string;
+    roleNames: string[];
+  }): Promise<UserPermissionDiff>;
 }
 
 export interface RoleDiff {
@@ -436,6 +440,10 @@ Guardrails baked into `RoleManager` (borrowed from Better Auth's dynamic access 
   `actorPermissions ⊇ permissionsBeingGranted`, evaluated against the actor's effective set.
 - **Vocabulary validation**: every `resource:action` in `permissions` must exist in
   `access.statements` — writes with unknown pairs are 400s.
+- **Preview assignment** takes the same `actor` as assign: it requires `rbac:assignRoles`,
+  the target-user privilege-subset check, and `assertNoEscalation` for every previewed role.
+  The before/after diff uses uncached permission resolution on both sides so a warm cache
+  cannot invent gained/lost grants, and the preview cannot write live permission caches.
 - **Managing roles requires** `rbac:manageRoles`; assigning requires `rbac:assignRoles`. These
   gate *access* to the operation and are additive to (not a substitute for) the no-escalation
   subset check above.
@@ -891,7 +899,8 @@ New screens in `admin-frontend` / `admin-spa`, driven entirely by the 4.9 endpoi
   212 users."
 - **User role assignment** (embedded in the admin user detail): multi-select of roles with
   exclusion conflicts surfaced inline; confirmation modal shows `UserPermissionDiff` (total
-  permissions gained/lost after union with their remaining roles).
+  permissions gained/lost after union with their remaining roles). The preview endpoint
+  requires an actor with `rbac:assignRoles` and rejects roles the actor cannot grant.
 - **Effective permissions inspector**: per user, each permission annotated with its source
   ("via PatientGuide", "via healthie").
 

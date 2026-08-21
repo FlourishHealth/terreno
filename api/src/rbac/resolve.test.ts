@@ -143,6 +143,44 @@ describe("createPermissionResolver", () => {
     expect(denied.error).toBeDefined();
   });
 
+  it("honors staleOnFailure during uncached resolution without writing caches", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({statements: appStatements});
+
+    let shouldFail = false;
+    const source: PermissionSource = {
+      getGrants: async () => {
+        if (shouldFail) {
+          throw new Error("source unavailable");
+        }
+        return {permissions: {todo: ["read"]}};
+      },
+      name: "uncached-flaky-source",
+      staleOnFailure: "use-stale",
+    };
+
+    const resolver = createPermissionResolver({
+      cacheTtlMs: 60_000,
+      rbacRoleModel: RbacRole,
+      sources: [source],
+      statements: appStatements,
+    });
+
+    const user = createTestUser();
+    const fresh = await resolver.resolvePermissionsForUser(user);
+    expect(fresh.todo).toEqual(["read"]);
+
+    shouldFail = true;
+    user.roles = ["member"];
+    const preview = await resolver.resolvePermissionsForUserUncached(user);
+    expect(preview.todo).toEqual(expect.arrayContaining(["read"]));
+
+    user.roles = [];
+    const live = await resolver.resolvePermissionsForUser(user);
+    expect(live.todo).toEqual(["read"]);
+  });
+
   it("returns stale grants when a source fails with use-stale policy", async () => {
     await setupDb();
     const RbacRole = createRbacRoleModel(mongoose.connection);

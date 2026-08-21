@@ -33,9 +33,11 @@ category: Changed
   `bulkComplete` / `markComplete` set `access: {resource: "todo", action: "update"}`
   so they cannot bypass `todo:update`. Empty action permissions and inherited CRUD actions
   mapped to `null` remain disabled. Assignment previews use uncached permission resolution
-  and reject role permissions the actor does not already hold. The admin role editor keeps Create/Save in the
+  on both the current and proposed sets, honor source `staleOnFailure` without writing
+  caches, and reject role permissions the actor does not already hold. The admin role
+  editor keeps Create/Save in the
   modal footer and scrolls the permission grid so a larger statement vocabulary cannot
   hide the save control. Create/list responses always apply the **read** field
   mask. Per-router `access.scope`
-  extra PermissionSets are evaluated on HTTP and realtime reads. Role assignment previews
-  invalidate cache after dry-run. Invalid permission sets use a stable `APIError.title`.
+  extra PermissionSets are evaluated on HTTP and realtime reads. Invalid permission sets
+  use a stable `APIError.title`.

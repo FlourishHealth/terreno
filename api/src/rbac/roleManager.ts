@@ -204,7 +204,7 @@ export const createRoleManager = (args: {
         await assertNoEscalation(actor, role.permissions ?? {}, getActorPermissions);
       }
 
-      const before = await getActorPermissions(targetUser);
+      const before = await getPreviewPermissions(targetUser);
       const previewUser = {
         ...(typeof (targetUser as {toObject?: () => Record<string, unknown>}).toObject ===
         "function"

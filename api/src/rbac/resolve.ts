@@ -111,20 +111,45 @@ export const createPermissionResolver = <S extends Statements>(args: {
     return result;
   };
 
+  const grantsFromStaleCache = (
+    source: PermissionSource,
+    cached: SourceCacheEntry | undefined,
+    now: number
+  ): PermissionSourceGrants | null => {
+    if (
+      source.staleOnFailure === "use-stale-bounded" &&
+      cached &&
+      source.staleMaxAgeMs &&
+      now - cached.fetchedAt < source.staleMaxAgeMs
+    ) {
+      return cached.grants;
+    }
+
+    if (source.staleOnFailure === "use-stale" && cached) {
+      return cached.grants;
+    }
+
+    return null;
+  };
+
   const fetchSourceGrants = async (
     user: User,
     source: PermissionSource,
     shouldCache = true
   ): Promise<PermissionSourceGrants | null> => {
+    const now = Date.now();
+    const cached = sourceCache.get(user.id)?.get(source.name);
+
     if (!shouldCache) {
       try {
         return await source.getGrants({user});
       } catch (error) {
         logger.warn("Permission source refresh failed during uncached resolution", {
           error: error instanceof Error ? error.message : String(error),
+          policy: source.staleOnFailure ?? "deny",
           source: source.name,
         });
-        return null;
+        return grantsFromStaleCache(source, cached, now);
       }
     }
 
@@ -132,12 +157,11 @@ export const createPermissionResolver = <S extends Statements>(args: {
     sourceCache.delete(user.id);
     sourceCache.set(user.id, userSources);
 
-    const cached = userSources.get(source.name);
     const ttlMs = source.ttlMs ?? cacheTtlMs;
-    const now = Date.now();
+    const cachedAfterTouch = userSources.get(source.name);
 
-    if (cached && now - cached.fetchedAt < ttlMs) {
-      return cached.grants;
+    if (cachedAfterTouch && now - cachedAfterTouch.fetchedAt < ttlMs) {
+      return cachedAfterTouch.grants;
     }
 
     try {
@@ -150,21 +174,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
         policy: source.staleOnFailure ?? "deny",
         source: source.name,
       });
-
-      if (
-        source.staleOnFailure === "use-stale-bounded" &&
-        cached &&
-        source.staleMaxAgeMs &&
-        now - cached.fetchedAt < source.staleMaxAgeMs
-      ) {
-        return cached.grants;
-      }
-
-      if (source.staleOnFailure === "use-stale" && cached) {
-        return cached.grants;
-      }
-
-      return null;
+      return grantsFromStaleCache(source, cachedAfterTouch, now);
     }
   };
 

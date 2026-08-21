@@ -6,6 +6,7 @@ import {setupDb} from "../tests";
 import {createAccess} from "./access";
 import {createRbacRoleModel} from "./roleModel";
 import {terrenoStatements} from "./statements";
+import type {PermissionSource} from "./types";
 
 const appStatements = {
   ...terrenoStatements,
@@ -457,6 +458,70 @@ describe("roleManager", () => {
       roleNames: ["reader", "writer"],
       userId: target.id,
     });
+
+    const live = await access.can({
+      permissions: {todo: ["update"]},
+      user: target as unknown as User,
+    });
+    expect(live.allowed).toBe(false);
+  });
+
+  it("diffs preview assignment against uncached current grants", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    let shouldFail = false;
+    const source: PermissionSource = {
+      getGrants: async () => {
+        if (shouldFail) {
+          throw new Error("source unavailable");
+        }
+        return {permissions: {todo: ["list"]}};
+      },
+      name: "preview-source",
+      staleOnFailure: "use-stale",
+    };
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+        {
+          displayName: "Writer",
+          name: "writer",
+          permissions: {todo: ["update"]},
+        },
+      ],
+      sources: [source],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const target = await UserModel.create({
+      email: "preview-source@example.com",
+      roles: ["reader"],
+    });
+    const warmed = await access.can({
+      permissions: {todo: ["list"]},
+      user: target as unknown as User,
+    });
+    expect(warmed.allowed).toBe(true);
+
+    shouldFail = true;
+    const assignmentPreview = await access.roles.previewAssignment({
+      actor: createTestUser({roles: ["superadmin"]}),
+      roleNames: ["reader", "writer"],
+      userId: target.id,
+    });
+
+    expect(assignmentPreview.lost.todo ?? []).not.toEqual(expect.arrayContaining(["list"]));
+    expect(assignmentPreview.gained.todo).toEqual(expect.arrayContaining(["update"]));
+    expect(assignmentPreview.resulting.todo).toEqual(
+      expect.arrayContaining(["list", "read", "update"])
+    );
 
     const live = await access.can({
       permissions: {todo: ["update"]},
