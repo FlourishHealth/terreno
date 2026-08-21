@@ -34,7 +34,7 @@ Blend always produces the same two artifacts, in every repo:
 
 These two files are the source of truth for the plan. External trackers (a GitHub
 roadmap issue, a Linear issue, a discussion thread) are **links from the IP header**,
-never a replacement for it. See [`docs/implementationPlans/README.md`](../../../docs/implementationPlans/README.md).
+never a replacement for it. See [`docs/implementationPlans/README.md`](../../../../docs/implementationPlans/README.md).
 
 ## Project Registry
 

@@ -63,6 +63,7 @@
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "test": "bun test",
+    "test:agent": "bun test --only-failures",
     "test:ci": "bun test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },

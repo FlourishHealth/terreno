@@ -63,7 +63,7 @@ Fix every material finding in the implementation context, rerun affected checks 
 - Stage only relevant files.
 - Commit with clear message.
 - No AI attribution/co-author text.
-- **DCO:** use `git commit -s` on every commit (see [CONTRIBUTING.md](../../CONTRIBUTING.md); enforced on external forks via `.github/workflows/dco.yml`).
+- **DCO:** use `git commit -s` on every commit (see [CONTRIBUTING.md](../../../../CONTRIBUTING.md); enforced on external forks via `.github/workflows/dco.yml`).
 - **Changelog:** add `changelog/unreleased/<feature>.md` with a YAML `category` header before opening the PR when the change is user-visible. Do not edit `CHANGELOG.md`.
 
 ### 4) Push branch
@@ -74,7 +74,7 @@ Fix every material finding in the implementation context, rerun affected checks 
 ### 5) PR setup
 
 - Reuse existing PR if present; otherwise create draft PR.
-- Read and apply [`.github/PULL_REQUEST_TEMPLATE.md`](../../../.github/PULL_REQUEST_TEMPLATE.md) — GitHub pre-fills it on web PRs; match the same sections when using `gh pr create` or the PR management tool:
+- Read and apply [`.github/PULL_REQUEST_TEMPLATE.md`](../../../../.github/PULL_REQUEST_TEMPLATE.md) — GitHub pre-fills it on web PRs; match the same sections when using `gh pr create` or the PR management tool:
   - **Summary**, **Related IP or issue** (link IP or `#issue`), **Type of change** (checkboxes), **Testing performed**, **Checklist** (lint, compile, tests, docs, changelog, DCO).
 - Under **Testing performed**, record `bun run test:agent` and its pass/fail summary.
 - Under **Checklist**, mark docs complete only after Step 1 identifies the updated files or records why documentation is not applicable.

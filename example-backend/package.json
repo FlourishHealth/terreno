@@ -67,6 +67,7 @@
     "start:prod": "bun run dist/index.js",
     "sync-consents": "bun run src/scripts/syncConsents.ts",
     "test": "bun test",
+    "test:agent": "bun test --only-failures",
     "test:ci": "bun test",
     "test:coverage": "bun test --coverage",
     "test:watch": "bun test --watch"
