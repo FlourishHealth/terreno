@@ -29,7 +29,7 @@ import {
   passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
-import {registerMCPModel} from "./mcp/registry";
+import {registerMCPModel, updateMCPRegistryOptions} from "./mcp/registry";
 import type {MCPConfig} from "./mcp/types";
 import {
   createOpenApiMiddleware,
@@ -752,6 +752,9 @@ const _buildModelRouter = <T>(
       options.responseHandler ??
       defaultResponseHandler) as ModelRouterOptions<T>["responseHandler"],
   };
+  if (options.mcp) {
+    updateMCPRegistryOptions(model.modelName, options);
+  }
 
   assertNoActionCollisions(model, options);
   registerActionRoutes(router, model, options);

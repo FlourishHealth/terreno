@@ -9,3 +9,4 @@ category: Fixed
 - Clearing a role description in the admin UI sends `null` so PATCH removes the field.
 - Admin User create rolls back the new row if `RoleManager.assign` fails after insert.
 - `assign` / `unassign` refuse to change a user whose current permissions the actor does not hold.
+- MCP model tools pick up TerrenoApp-injected `accessControl` (permissions, query filters, write masks) instead of keeping the pre-build legacy checks.
