@@ -139,6 +139,7 @@ const omitRolesFromObject = (item: unknown): unknown => {
   }
   const next = {...(item as Record<string, unknown>)};
   delete next.roles;
+  logger.warn("Ignored User roles on a modelRouter write; assign roles through RoleManager");
   return next;
 };
 
