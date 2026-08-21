@@ -3,6 +3,7 @@ category: Fixed
 ---
 
 - `seedDefaults` no longer overwrites customized unsealed roles on restart; sealed defaults still refresh from code.
+  API tests clear `RbacRole` / `RbacAudit` in `setupDb` so leftover unsealed names cannot leak across cases.
 - Admin `/bulk-patch` authorizes each target document, so scoped `update` cannot patch out-of-scope ids.
 - Admin User CRUD can set the `admin` flag when RBAC is off. With RBAC, changing `admin` requires `rbac:assignRoles`; echoed unchanged `admin` values on create/update do not.
 - Permission resolver caches evict expired and overflow entries so distinct identities cannot grow unbounded.
