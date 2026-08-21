@@ -223,7 +223,12 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
           : null}
       </Box>
 
-      <Modal onDismiss={handleDismiss} size="lg" visible={isFormVisible}>
+      <Modal
+        onDismiss={handleDismiss}
+        size="lg"
+        testID="admin-role-modal"
+        visible={isFormVisible}
+      >
         <Box gap={4} padding={2} testID="admin-role-form">
           <Heading size="md">
             {editingRole ? `Edit ${editingRole.displayName}` : "Add role"}

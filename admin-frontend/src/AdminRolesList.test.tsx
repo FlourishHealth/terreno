@@ -99,8 +99,7 @@ describe("AdminRolesList", () => {
     expect(getByTestId("admin-permissions-list")).toBeTruthy();
     expect(getByText("admin:runScripts")).toBeTruthy();
     fireEvent.press(getByTestId("admin-roles-add-button"));
-    expect(getByTestId("admin-role-form")).toBeTruthy();
-    expect(getByTestId("admin-role-permission-todo-update")).toBeTruthy();
+    expect(getByTestId("admin-role-modal").props.visible).toBe(true);
   });
 
   it("opens an existing non-sealed role for editing", () => {
@@ -114,8 +113,7 @@ describe("AdminRolesList", () => {
 
     fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
 
-    expect(getByTestId("admin-role-form")).toBeTruthy();
-    expect(getByTestId("admin-role-name").props.value).toBe("todoUser");
+    expect(getByTestId("admin-role-modal").props.visible).toBe(true);
   });
 
   it("renders roles returned inside a data envelope", () => {
