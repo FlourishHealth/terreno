@@ -11,19 +11,19 @@ agent runs them only when you invoke them.
 
 | # | Stage (skill) | Does | Reads / writes |
 | - | ------------- | ---- | -------------- |
-| — | **Grind** (`terreno-grind`) | One feature: research, grill, task list, one TDD sub-agent per task, then Pour | Writes `docs/tasks/<slug>.md` (`**Grind:** true`); no full IP |
-| 1 | **Blend** (`terreno-1-blend`) | Grill in rounds, then write the IP + task list; end with a 15-line verify table | Writes `docs/implementationPlans/<slug>.md` + `docs/tasks/<slug>.md` |
-| 2 | **Roast** (`terreno-2-roast`) | Implement vertical slices via strict TDD with boundary-only fakes and independent review | Reads the approved IP/tasks |
-| 3 | **Cupping** (`terreno-3-cupping`) | Independently verify against the IP with evidence | Reads the IP; produces evidence |
-| 4 | **Pour** (`terreno-4-pour`) | Run all Bun tests quietly, verify docs, spawn standards/spec review, then open/update the draft PR | The PR links its IP |
-| 5 | **Dial In** (`terreno-5-dialin`) | Drive CI and the review loop until mergeable | Post-PR |
+| — | **Grind** (`terreno-grind`) | One feature: research, grill, task list, one TDD sub-agent per task, then Brew | Writes `docs/tasks/<slug>.md` (`**Grind:** true`); no full IP |
+| 1 | **Grow** (`terreno-1-grow`) | Grill in rounds, then write the IP + task list; end with a 15-line verify table | Writes `docs/implementationPlans/<slug>.md` + `docs/tasks/<slug>.md` |
+| 2 | **Pick** (`terreno-2-pick`) | Implement vertical slices via strict TDD with boundary-only fakes and independent review | Reads the approved IP/tasks |
+| 3 | **Roast** (`terreno-3-roast`) | Independently verify against the IP with evidence | Reads the IP; produces evidence |
+| 4 | **Brew** (`terreno-4-brew`) | Run all Bun tests quietly, verify docs, spawn standards/spec review, then open/update the draft PR | The PR links its IP |
+| 5 | **Taste** (`terreno-5-taste`) | Drive CI and the review loop until mergeable | Post-PR |
 
 The pipeline runs the same way in every Terreno repo. Its permanent artifacts are always
-the files Blend (or Grind) writes; external trackers link to them and never replace them. See
+the files Grow (or Grind) writes; external trackers link to them and never replace them. See
 [`docs/implementationPlans/README.md`](../docs/implementationPlans/README.md) and
 [`docs/tasks/README.md`](../docs/tasks/README.md).
 
-`terreno-code-review` is the read-only review procedure Pour runs in a fresh sub-agent. It
+`terreno-code-review` is the read-only review procedure Brew runs in a fresh sub-agent. It
 keeps repository-standard findings separate from IP/spec findings.
 
 ### Roadmap handoff is conditional
@@ -32,24 +32,22 @@ Some repos run a public roadmap (GitHub Discussions + a roadmap Project + tracki
 others (Flourish, most consumer apps) do not. The same plugin serves both:
 
 - **Roadmap-enabled repo** (detected by `.github/roadmap-fields.yml` plus a `roadmap-item`
-  skill): when an IP reaches **Approved**, Blend hands off to `roadmap-item` to create or
+  skill): when an IP reaches **Approved**, Grow hands off to `roadmap-item` to create or
   update the public tracking issue, and the IP header records the `Discussion:` and
   `Roadmap issue:` links. The `roadmap-*` maintainer skills own the public board; see
   [`docs/explanation/roadmap-process.md`](../docs/explanation/roadmap-process.md).
-- **No-roadmap repo:** Blend detects the roadmap system is absent and **skips the handoff**.
+- **No-roadmap repo:** Grow detects the roadmap system is absent and **skips the handoff**.
   The IP + task list are the source of truth (status on each IP's `**Status:**` header),
   and execution is tracked in Linear via the IP header `Linear:` link.
 
-Blend never mutates GitHub itself — it hands off to `roadmap-item`, which stops for
+Grow never mutates GitHub itself — it hands off to `roadmap-item`, which stops for
 maintainer approval.
 
-> **Planned rename:** the stages are being renamed to **grow → harvest → roast → brew →
-> taste** with aliases for the current names; see
-> [`docs/implementationPlans/agentic-sdlc-plugin.md`](../docs/implementationPlans/agentic-sdlc-plugin.md).
-> Until that ships, the stage names above are current.
+The canonical workflow is **Grow → Pick → Roast → Brew → Taste**. The former prose names
+Blend, implementation-Roast, Cupping, Pour, and Dial In are deprecated.
 
 ## Installing
 
 The plugins are declared in [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json).
 Install `terreno-planning` from that marketplace, then invoke a stage by name (for example
-`/terreno-1-blend` or `/terreno-grind`).
+`/terreno-1-grow` or `/terreno-grind`).

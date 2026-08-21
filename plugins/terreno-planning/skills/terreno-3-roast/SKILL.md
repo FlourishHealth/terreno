@@ -1,9 +1,10 @@
 ---
-name: terreno-3-cupping
+name: terreno-3-roast
 description: Independently verify a completed implementation against the IP/spec with concrete evidence. Use ONLY when implementation already exists — not for writing feature code, planning the IP, or running the PR submission/review loop.
+disable-model-invocation: true
 ---
 
-# Cupping
+# Roast
 
 Independent verification of completed implementation against IP/spec, runnable even when the verifier did not author the PR.
 
@@ -14,7 +15,7 @@ Independent verification of completed implementation against IP/spec, runnable e
 
 ## Standalone Entry
 
-Cupping can run on:
+Roast can run on:
 
 - Local branch changes, or
 - An existing PR owned by someone else (resolve PR, checkout/worktree as needed).
@@ -61,7 +62,7 @@ For UI-facing changes, manual verification with login + feature exercise is **ma
 
 - Save artifacts in `/opt/cursor/artifacts`.
 - Include command outputs and media references needed for reviewer confidence.
-- Post media to the PR `## Evidence` or `## UI verification` section when cupping precedes or accompanies Pour.
+- Post media to the PR `## Evidence` or `## UI verification` section when Roast precedes or accompanies Brew.
 - Report mismatches explicitly; do not mask failures.
 
 ## Output Structure

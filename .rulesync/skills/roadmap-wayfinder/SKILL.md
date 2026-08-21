@@ -54,11 +54,11 @@ Research or prototype only enough to make the decision. Record the resolution on
 
 Run one complete pipeline loop:
 
-1. **Blend**: approve the slice IP and dependency-aware task list.
+1. **Grow**: approve the slice IP and dependency-aware task list.
 2. **Roast**: implement vertical slices with red → green Bun tests.
-3. **Cupping**: independently verify the IP with evidence.
-4. **Pour**: run full agent-quiet tests, docs gate, and code review; open/update the draft PR.
-5. **Dial In**: finish CI and review.
+3. **Roast**: independently verify the IP with evidence.
+4. **Brew**: run full agent-quiet tests, docs gate, and code review; open/update the draft PR.
+5. **Taste**: finish CI and review.
 
 Close the ticket only when its acceptance evidence and merged PR are linked.
 

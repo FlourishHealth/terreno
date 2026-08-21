@@ -21,14 +21,14 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
   - Acceptance: every hit is categorized with a proposed replacement; the table covers all five skills plus both JSON files.
 
 - [x] **Task 1.2**: Generalize sensitive-data handling
-  - Description: Per IP question AP2, replace PHI/HIPAA-specific language with generalized sensitive-data language across `terreno-1-blend`, `terreno-4-pour`, and `terreno-5-dialin`. The rule must survive the rewrite: PR text, review replies, and attached evidence media must not contain sensitive data (PHI, PII, credentials, customer data). Keep it concrete — a vague "be careful with data" is not a usable instruction for an agent.
-  - Files: `plugins/terreno-planning/skills/terreno-1-blend/SKILL.md`, `terreno-4-pour/SKILL.md`, `terreno-5-dialin/SKILL.md`
+  - Description: Per IP question AP2, replace PHI/HIPAA-specific language with generalized sensitive-data language across `terreno-1-grow`, `terreno-4-brew`, and `terreno-5-taste`. The rule must survive the rewrite: PR text, review replies, and attached evidence media must not contain sensitive data (PHI, PII, credentials, customer data). Keep it concrete — a vague "be careful with data" is not a usable instruction for an agent.
+  - Files: `plugins/terreno-planning/skills/terreno-1-grow/SKILL.md`, `terreno-4-brew/SKILL.md`, `terreno-5-taste/SKILL.md`
   - Depends on: Task 1.1
   - Acceptance: `rg -n -i "phi|hipaa" plugins/` returns nothing; each rewritten rule names the specific artifacts it applies to (PR body, comments, screenshots, recordings) and the data categories.
 
 - [x] **Task 1.3**: Fix the hardcoded branch suffix
-  - Description: `terreno-4-pour` documents the branch convention as `cursor/<descriptive-name>-dcb3`. The suffix is per-agent-run, not a fixed literal, so this will produce wrong branch names. Replace it with a description of the convention (a `cursor/` prefix plus the run-specific suffix the agent was given) and instruct the agent to use the suffix from its own run instructions rather than any literal in the skill.
-  - Files: `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`
+  - Description: `terreno-4-brew` documents the branch convention as `cursor/<descriptive-name>-dcb3`. The suffix is per-agent-run, not a fixed literal, so this will produce wrong branch names. Replace it with a description of the convention (a `cursor/` prefix plus the run-specific suffix the agent was given) and instruct the agent to use the suffix from its own run instructions rather than any literal in the skill.
+  - Files: `plugins/terreno-planning/skills/terreno-4-brew/SKILL.md`
   - Depends on: Task 1.1
   - Acceptance: no literal run suffix appears anywhere in `plugins/`; the convention is described such that an agent in any run produces a correctly-suffixed branch.
 
@@ -41,8 +41,8 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
 ## Phase 2: Portability
 
 - [ ] **Task 2.1**: Remove repo-root-relative sibling-skill paths
-  - Description: `terreno-4-pour` step 6 instructs reading `plugins/terreno-planning/skills/terreno-5-dialin/SKILL.md` "from the repository root", and `terreno-5-dialin` does the same for Pour. That path only resolves when the workspace happens to be this repository — an installed plugin lives in the agent's plugin cache. Replace with guidance that resolves in both cases: reference the sibling skill relative to the current skill's own location, and keep the existing note that Cursor may not resolve plugin skill names alone. Verify the replacement actually works by running Pour's handoff from a workspace that is not this repo.
-  - Files: `plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`, `terreno-5-dialin/SKILL.md`
+  - Description: `terreno-4-brew` step 6 instructs reading `plugins/terreno-planning/skills/terreno-5-taste/SKILL.md` "from the repository root", and `terreno-5-taste` does the same for Brew. That path only resolves when the workspace happens to be this repository — an installed plugin lives in the agent's plugin cache. Replace with guidance that resolves in both cases: reference the sibling skill relative to the current skill's own location, and keep the existing note that Cursor may not resolve plugin skill names alone. Verify the replacement actually works by running Brew's handoff from a workspace that is not this repo.
+  - Files: `plugins/terreno-planning/skills/terreno-4-brew/SKILL.md`, `terreno-5-taste/SKILL.md`
   - Depends on: Task 1.3
   - Acceptance: the handoff resolves both inside this repo and in a consumer app; no absolute or repo-root-relative path to a sibling skill remains; the fix was exercised in a non-Terreno workspace.
 
@@ -53,16 +53,16 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
   - Acceptance: a consumer app that installed only the plugin can execute the frontend-verification step; the resolution is documented in `plugins/README.md`; no stage references a skill the user cannot obtain.
 
 - [ ] **Task 2.3**: `[RTK]` Derive frontend paths from project layout
-  - Description: The frontend gates in Roast, Pour, and Dial In hardcode Terreno monorepo package names (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, `rtk/`). Replace with layout detection: describe how to identify frontend paths in the two shapes that matter — this monorepo, and a bootstrapped consumer app (which uses `frontend/`/`backend/`) — and instruct the agent to determine the set rather than assume it. Update the path list to name `syncdb/` instead of `rtk/` per PR #869, keeping `rtk/` for the deprecation window.
-  - Files: `plugins/terreno-planning/skills/terreno-2-roast/SKILL.md`, `terreno-4-pour/SKILL.md`, `terreno-5-dialin/SKILL.md`
+  - Description: The frontend gates in Roast, Brew, and Taste hardcode Terreno monorepo package names (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, `rtk/`). Replace with layout detection: describe how to identify frontend paths in the two shapes that matter — this monorepo, and a bootstrapped consumer app (which uses `frontend/`/`backend/`) — and instruct the agent to determine the set rather than assume it. Update the path list to name `syncdb/` instead of `rtk/` per PR #869, keeping `rtk/` for the deprecation window.
+  - Files: `plugins/terreno-planning/skills/terreno-2-pick/SKILL.md`, `terreno-4-brew/SKILL.md`, `terreno-5-taste/SKILL.md`
   - Depends on: Task 2.2, PR #869 merged
   - Acceptance: the gates fire correctly in both a bootstrapped consumer app and this monorepo, verified by running Roast on a frontend change in each; `syncdb/` is included and `rtk/` retained.
 
-- [ ] **Task 2.4**: Make Blend's conventions portable
-  - Description: `terreno-1-blend` assumes `docs/implementationPlans/` and `docs/tasks/`, a project registry containing only `flourishhealth/terreno`, and this repo's `bun run` command set. Generalize: describe where planning artifacts go with a documented default and a way to detect an existing convention, replace the hardcoded registry with a resolution procedure, and describe the command set as "the project's lint/compile/test commands" discovered from `package.json`. Keep the question-first behavior exactly as it is — that is the stage's most valuable property.
-  - Files: `plugins/terreno-planning/skills/terreno-1-blend/SKILL.md`
+- [ ] **Task 2.4**: Make Grow's conventions portable
+  - Description: `terreno-1-grow` assumes `docs/implementationPlans/` and `docs/tasks/`, a project registry containing only `flourishhealth/terreno`, and this repo's `bun run` command set. Generalize: describe where planning artifacts go with a documented default and a way to detect an existing convention, replace the hardcoded registry with a resolution procedure, and describe the command set as "the project's lint/compile/test commands" discovered from `package.json`. Keep the question-first behavior exactly as it is — that is the stage's most valuable property.
+  - Files: `plugins/terreno-planning/skills/terreno-1-grow/SKILL.md`
   - Depends on: Task 2.1
-  - Acceptance: Blend produces an IP in a consumer app with no Terreno-specific directory assumptions; the question-first clarification gate is unchanged; the registry is a procedure rather than a fixed list.
+  - Acceptance: Grow produces an IP in a consumer app with no Terreno-specific directory assumptions; the question-first clarification gate is unchanged; the registry is a procedure rather than a fixed list.
 
 - [ ] **Task 2.5**: Verify the pipeline in a consumer app
   - Description: Scaffold an app with `terreno_bootstrap_app`, install the plugin, and take one small feature from request to open PR through all five stages. Record every place the pipeline assumed something untrue about the project. Fix each. This task is the actual acceptance test for Phase 2 — the previous tasks are hypotheses until this passes.
@@ -105,7 +105,7 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
   - Acceptance: no commands; all six design rationales explained; a limits section naming at least three things the pipeline will not do; linked from the explanation index.
 
 - [ ] **Task 4.3**: Write `docs/how-to/use-the-terreno-plugin.md`
-  - Description: Task-focused: install the plugin, take a small feature from request to merged PR through all five stages, with the real output of each stage. Include what to do when a stage stops and asks a question (Blend's clarification gate), when Roast's review sub-agent flags something, and when Dial In reports blocked. Include a "using one stage on its own" section — most people will start with Pour or Dial In on existing work rather than adopting the whole pipeline at once.
+  - Description: Task-focused: install the plugin, take a small feature from request to merged PR through all five stages, with the real output of each stage. Include what to do when a stage stops and asks a question (Grow's clarification gate), when Roast's review sub-agent flags something, and when Taste reports blocked. Include a "using one stage on its own" section — most people will start with Brew or Taste on existing work rather than adopting the whole pipeline at once.
   - Files: `docs/how-to/use-the-terreno-plugin.md` (new), `docs/how-to/README.md`
   - Depends on: Task 4.2
   - Acceptance: the walkthrough was performed and the outputs shown are real; all three interruption cases documented; the single-stage section is present; listed in the how-to index.

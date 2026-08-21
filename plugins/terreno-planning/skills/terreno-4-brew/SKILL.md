@@ -1,26 +1,26 @@
 ---
-name: terreno-4-pour
-description: Commit, push, and set up the PR, then hand off by loading plugins/terreno-planning/skills/terreno-5-dialin/SKILL.md (Cursor does not reliably invoke sibling plugin skills by name alone). Use ONLY when code is ready to enter review — not for implementation work, independent verification, or waiting on CI/comments after the PR is open.
+name: terreno-4-brew
+description: Commit, push, and set up the PR, then hand off by loading plugins/terreno-planning/skills/terreno-5-taste/SKILL.md (Cursor does not reliably invoke sibling plugin skills by name alone). Use ONLY when code is ready to enter review — not for implementation work, independent verification, or waiting on CI/comments after the PR is open.
 disable-model-invocation: true
 ---
 
-# Pour
+# Brew
 
-Get work into review, then immediately hand ownership to **Dial In** by loading the dialin skill from disk (see Handoff).
+Get work into review, then immediately hand ownership to **Taste** by loading the taste skill from disk (see Handoff).
 
 ## Scope Boundary
 
-Pour owns only pre-review-open and review-open actions:
+Brew owns only pre-review-open and review-open actions:
 
 1. Final pre-submit checks.
 2. Independent code review.
 3. Commit and push.
 4. Create/update draft PR.
-5. Resolve merge conflicts required to get PR updated; conflicts that appear after the handoff belong to Dial In.
+5. Resolve merge conflicts required to get PR updated; conflicts that appear after the handoff belong to Taste.
 6. Ensure CI is triggered on the first push.
-7. Immediately hand off to Dial In using the path in Handoff (do not rely on skill-name-only invocation).
+7. Immediately hand off to Taste using the path in Handoff (do not rely on skill-name-only invocation).
 
-Pour must never block on CI completion or review comments.
+Brew must never block on CI completion or review comments.
 
 ## Procedure
 
@@ -98,11 +98,11 @@ As soon as PR is open/updated and CI has been triggered on first push:
 
 **Cursor / plugin caveat:** Skills inside `plugins/terreno-planning/skills/` are not always registered as separately invocable skills. Treat the markdown file as the source of truth.
 
-1. Read `plugins/terreno-planning/skills/terreno-5-dialin/SKILL.md` from the repository root (same path on disk as this pour skill).
-2. Execute the **Dial In** procedure from that file immediately — same turn if possible — without waiting for CI to finish.
-3. Exit pour’s scope without blocking; Dial In owns the reactive loop from here.
+1. Read `plugins/terreno-planning/skills/terreno-5-taste/SKILL.md` from the repository root (same path on disk as this Brew skill).
+2. Execute the **Taste** procedure from that file immediately — same turn if possible — without waiting for CI to finish.
+3. Exit Brew’s scope without blocking; Taste owns the reactive loop from here.
 
-Optional: if your Cursor/plugin setup exposes a `/terreno-5-dialin` slash command and it successfully loads that skill, you may use it **instead of** step 1–2 only when you have confirmed it resolves to the same `terreno-5-dialin/SKILL.md` content.
+Optional: if your Cursor/plugin setup exposes a `/terreno-5-taste` slash command and it successfully loads that skill, you may use it **instead of** step 1–2 only when you have confirmed it resolves to the same `terreno-5-taste/SKILL.md` content.
 
 ## Branch/Repo Conventions
 

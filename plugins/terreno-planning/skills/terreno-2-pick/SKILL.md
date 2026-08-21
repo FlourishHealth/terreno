@@ -1,9 +1,10 @@
 ---
-name: terreno-2-roast
+name: terreno-2-pick
 description: Implement an approved IP or Grind task in code via strict TDD with independent review checkpoints and drift detection. Use ONLY when an approved IP or Grind task file exists — not for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
+disable-model-invocation: true
 ---
 
-# Roast
+# Pick
 
 Implement from an IP (or a Grind task file) using strict vertical-slice TDD, with independent review checkpoints and drift detection at every commit. Load [`references/testing.md`](references/testing.md) before choosing test seams and [`references/mocking.md`](references/mocking.md) whenever a test double is considered.
 
@@ -117,13 +118,13 @@ If backend API shape changes, regenerate SDK via the established workflow:
 
 When implementation touches frontend packages (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or app-integrated `rtk/`):
 
-1. Before marking roast complete and handing to Pour, invoke the `verify-ui-changes` skill.
+1. Before marking Pick complete and handing to Roast, invoke the `verify-ui-changes` skill.
 2. Launch the correct app for the package that changed.
 3. Log in with seeded credentials when the app requires authentication.
 4. Attempt to use each implemented user-facing feature — navigate to the affected screen and exercise the primary flow.
-5. Save screenshots and videos under `/opt/cursor/artifacts/` for Pour to attach to the PR.
+5. Save screenshots and videos under `/opt/cursor/artifacts/` for Brew to attach to the PR.
 
-Do not hand off to Pour without this evidence when frontend paths changed, unless environment setup is genuinely blocked (document the blocker and commands attempted).
+Do not hand off to Roast without this evidence when frontend paths changed, unless environment setup is genuinely blocked (document the blocker and commands attempted).
 
 ## Per-Commit Verification Checklist
 
@@ -136,11 +137,11 @@ For every commit:
 5. Run independent test-quality sub-agent.
 6. Proceed only if alignment + quality checks pass.
 
-## Done Criteria for Roast
+## Done Criteria for Pick
 
 - All planned implementation tasks for the scoped slice are complete.
 - Tests prove behavior through public seams and comply with [`references/testing.md`](references/testing.md).
 - Test doubles comply with [`references/mocking.md`](references/mocking.md); no leaky module-level mocks were introduced.
 - Frontend paths have app login + feature verification evidence saved to `/opt/cursor/artifacts/` when applicable.
 - No unresolved review findings remain from independent sub-agents.
-- Work is ready for **Pour** (`plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`).
+- Work is ready for independent **Roast** verification (`plugins/terreno-planning/skills/terreno-3-roast/SKILL.md`).

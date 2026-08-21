@@ -32,7 +32,7 @@ whose blockers are complete.
 
 Wide mechanical refactors that cannot land green as vertical slices use
 **expand → migrate batches → contract**. The contract task is blocked by every migration
-batch. Blend-style runs may append a **Plan vs Actual** log after each task.
+batch. Grow-style runs may append a **Plan vs Actual** log after each task.
 
 ## What lives here vs elsewhere
 

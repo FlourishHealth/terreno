@@ -1,8 +1,8 @@
 {
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
-  "description": "Agentic SDLC: Blend/Grind plan, Roast TDD, Pour review+PR, Dial In CI. Grind is the single-feature short path.",
-  "version": "1.3.0",
+  "description": "Agentic SDLC: Grow plans, Pick implements with TDD, Roast verifies, Brew opens the PR, and Taste drives CI. Grind is the single-feature short path.",
+  "version": "1.4.0",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"

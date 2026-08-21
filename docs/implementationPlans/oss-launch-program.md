@@ -79,7 +79,7 @@ Combined with the already-shipped hosted tools (`terreno_search_docs`, `terreno_
 
 ## The `/terreno-*` SDLC pipeline
 
-The repo already ships the process half of the AI story and **has never documented it**: `.cursor-plugin/marketplace.json` plus `plugins/terreno-planning/` define an installable five-stage pipeline — **`/terreno-1-grow`** (plan), **`/terreno-2-harvest`** (implement), **`/terreno-3-roast`** (verify), **`/terreno-4-brew`** (submit), **`/terreno-5-taste`** (review loop until mergeable). Legacy names (`blend`, `cupping`, `pour`, `dialin`) remain as aliases during the rename — see [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md).
+The repo already ships the process half of the AI story and **has never documented it**: `.cursor-plugin/marketplace.json` plus `plugins/terreno-planning/` define an installable five-stage pipeline — **`/terreno-1-grow`** (plan), **`/terreno-2-pick`** (implement), **`/terreno-3-roast`** (verify), **`/terreno-4-brew`** (submit), **`/terreno-5-taste`** (review loop until mergeable). Legacy names (`blend`, `cupping`, `pour`, `dialin`) remain as aliases during the rename — see [`agentic-sdlc-plugin.md`](agentic-sdlc-plugin.md).
 
 It encodes real judgment rather than automation: a question-first planning gate that refuses to commit to decisions before they are answered, independent review and test-quality sub-agents spawned in **fresh contexts** after every commit, drift detection against the plan, anti-mocking rules, a hard frontend-evidence gate, and a refusal to push speculative fixes for flaky CI.
 

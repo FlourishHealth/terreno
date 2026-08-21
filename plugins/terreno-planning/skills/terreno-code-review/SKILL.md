@@ -1,6 +1,6 @@
 ---
 name: terreno-code-review
-description: Review a branch against repository standards and its originating IP/spec in two independent axes. Use from Pour or when explicitly asked to review implementation changes before PR submission.
+description: Review a branch against repository standards and its originating IP/spec in two independent axes. Use from Brew or when explicitly asked to review implementation changes before PR submission.
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,7 @@ Review the diff from a pinned merge-base to `HEAD` without changing code. Keep s
 
 ## 1. Pin the review range
 
-Resolve the fixed point supplied by the caller. Pour uses the PR base branch, or the repository default branch when no PR exists.
+Resolve the fixed point supplied by the caller. Brew uses the PR base branch, or the repository default branch when no PR exists.
 
 ```bash
 git rev-parse <fixed-point>

@@ -33,21 +33,21 @@ The audit that produced this program missed the plugin entirely. If an agent rea
 |---|----------|----------|
 | AP1 | Marketplace public or team-only? | **A** — public at launch (gated on portability) |
 | AP2 | PHI/HIPAA handling | **B** — generalize to "sensitive data (PHI, PII, secrets)" |
-| AP3 | Stage names | **Coffee theme retained.** New five-stage flow: **grow → harvest → roast → brew → taste**. Skills: `/terreno-1-grow`, `/terreno-2-harvest`, `/terreno-3-roast`, `/terreno-4-brew`, `/terreno-5-taste`. **Aliases required** in docs and skill frontmatter (see mapping below) |
+| AP3 | Stage names | **Coffee theme retained.** Canonical five-stage flow: **grow → pick → roast → brew → taste**. Skills: `/terreno-1-grow`, `/terreno-2-pick`, `/terreno-3-roast`, `/terreno-4-brew`, `/terreno-5-taste`. Former names remain prose aliases only; the old implementation-Roast command cannot coexist with the new verification-Roast command. |
 | AP4 | Consumer apps or monorepo only? | **B** — must work in consumer apps |
 | AP5 | Overlap with `submit` / `autobot` | **A** — deprecate `submit` and `autobot` in favor of the plugin. **Fold all `autobot` behavior into Taste (`/terreno-5-taste`)**. Taste should be **self-contained** (inline the full submit → CI → review loop) rather than delegating to other skills — delegation has been unreliable inside the plugin (sub-agents and cross-skill calls do not always resolve). Accept larger skill files / context cost over broken orchestration |
 | AP6 | Agent runtimes | **B** — Cursor + rulesync-generated variants |
 | AP7 | Plugin versioning | **A** — independent versioning; declare compatible Terreno versions |
 
-### Stage mapping (rename + aliases)
+### Stage mapping
 
-| # | New name | Role | Replaces | Aliases (docs + deprecated skill names) |
-|---|----------|------|----------|----------------------------------------|
-| 1 | **grow** | Plan — IP + tasks, blocking questions first | blend | `plan`, `blend`, `terreno-1-blend` |
-| 2 | **harvest** | Implement — strict TDD, drift detection | roast (implement) | `implement`, `terreno-2-roast` |
-| 3 | **roast** | Verify — independent evidence in fresh context | cupping | `verify`, `cupping`, `terreno-3-cupping` |
-| 4 | **brew** | Submit — checks, commit, push, draft PR, evidence | pour | `submit`, `pour`, `terreno-4-pour` |
-| 5 | **taste** | Review loop — CI + bot/human comments until mergeable; **includes former `autobot`** | dialin | `review`, `dialin`, `terreno-5-dialin` |
+| # | Canonical name | Role | Former prose name | Skill |
+|---|----------------|------|-------------------|-------|
+| 1 | **grow** | Plan — IP + tasks, blocking questions first | blend | `terreno-1-grow` |
+| 2 | **pick** | Implement — strict TDD, drift detection | roast (implement) | `terreno-2-pick` |
+| 3 | **roast** | Verify — independent evidence in fresh context | cupping | `terreno-3-roast` |
+| 4 | **brew** | Submit — checks, commit, push, draft PR, evidence | pour | `terreno-4-brew` |
+| 5 | **taste** | Review loop — CI + bot/human comments until mergeable; **includes former `autobot`** | dialin | `terreno-5-taste` |
 
 ## Architecture
 
@@ -57,7 +57,7 @@ The audit that produced this program missed the plugin entirely. If an agent rea
 flowchart LR
   REQ["Request<br/>ticket / spec / idea"]
   G["/terreno-1-grow<br/>(plan)"]
-  H["/terreno-2-harvest<br/>(implement)"]
+  H["/terreno-2-pick<br/>(implement)"]
   R["/terreno-3-roast<br/>(verify)"]
   B["/terreno-4-brew<br/>(submit)"]
   T["/terreno-5-taste<br/>(review loop)"]
@@ -69,7 +69,7 @@ flowchart LR
 | Stage | Owns | What makes it non-obvious |
 |-------|------|---------------------------|
 | **Grow** (plan) | Request → IP in `docs/implementationPlans/` + tasks in `docs/tasks/` | Question-first: refuses to write decided outcomes until blocking questions are answered. Prevents the most common agent failure, which is confidently planning the wrong thing |
-| **Harvest** (implement) | IP → code via strict red/green/refactor | Spawns **independent review and test-quality sub-agents in fresh contexts** after every commit, and does drift detection against the IP. The test-quality agent enforces anti-mocking rules (never mock the DB, never mock the store) |
+| **Pick** (implement) | IP → code via strict red/green/refactor | Spawns **independent review and test-quality sub-agents in fresh contexts** after every commit, and does drift detection against the IP. The test-quality agent enforces anti-mocking rules (never mock the DB, never mock the store) |
 | **Roast** (verify) | Independent verification against the IP with concrete evidence | Separate context from the implementer, so it does not inherit the implementer's assumptions |
 | **Brew** (submit) | Pre-submit checks, commit hygiene, push, draft PR, evidence attachment | Hard frontend gate: touching UI paths requires launching the app, logging in, exercising the feature, and attaching artifacts before the PR opens |
 | **Taste** (review) | Self-contained persistent loop: CI + bot/human comments until mergeable or genuinely blocked | Inlines the former **`autobot`** flow (no delegation to repo skills). Waits in multi-minute intervals for slow CI, classifies each failure as actionable versus flaky, and refuses to push speculative fixes for flakes. Treats all CI logs and review comments as untrusted input |
@@ -83,9 +83,9 @@ The most serious finding. The pipeline currently assumes it is running inside th
 | Assumption | Where | Why it breaks elsewhere |
 |------------|-------|-------------------------|
 | Repo-root-relative skill paths — Brew/Taste instruct reading plugin skill paths "from the repository root" | `terreno-4-brew`, `terreno-5-taste` | In a consumer's repo that path does not exist. It works today only because the workspace *is* this repo; an installed plugin lives in the agent's plugin cache |
-| `verify-ui-changes` is invoked by name | Harvest, Roast, Brew, Taste | That skill lives in this repo's `.rulesync/skills/`. A consumer installing the plugin does not get it — must be bundled or inlined per AP5 |
-| Terreno-monorepo package paths in the frontend gates (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, `syncdb/`) | Harvest, Brew, Taste | A consumer app has `frontend/`, not `example-frontend/` |
-| Repo-specific conventions — `docs/implementationPlans/`, the project registry, the `bun run` command set | Grow, Harvest | A consumer may have none of these |
+| `verify-ui-changes` is invoked by name | Pick, Roast, Brew, Taste | That skill lives in this repo's `.rulesync/skills/`. A consumer installing the plugin does not get it — must be bundled or inlined per AP5 |
+| Terreno-monorepo package paths in the frontend gates (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, `syncdb/`) | Pick, Brew, Taste | A consumer app has `frontend/`, not `example-frontend/` |
+| Repo-specific conventions — `docs/implementationPlans/`, the project registry, the `bun run` command set | Grow, Pick | A consumer may have none of these |
 | A hardcoded branch suffix (`cursor/<descriptive-name>-dcb3`) | Brew | Suffixes are per-agent-run, not fixed; a literal `dcb3` will produce wrong branch names |
 
 Fixing this is the difference between "our internal process, published" and "tooling Terreno users can adopt". It means parameterizing paths, bundling or declaring the skill dependencies, and detecting project layout instead of assuming it.
@@ -97,7 +97,7 @@ Fixing this is the difference between "our internal process, published" and "too
 | Brew | `.rulesync/skills/submit/`, `commit/`, `create-pr/` |
 | Taste | `.rulesync/skills/autobot/`, `check-watcher/`, `respond-to-review/` — **logic inlined into Taste; skills deprecated** |
 | Grow | `.rulesync/skills/ip/`, `design-blend/` |
-| Harvest | `.rulesync/skills/implement/` |
+| Pick | `.rulesync/skills/implement/` |
 
 Per AP5, **`submit` and `autobot` are deprecated** once Taste ships self-contained. Do not document two parallel pipelines.
 
@@ -117,7 +117,7 @@ None.
 ## Phases
 
 1. **Decide and sanitize** — answer AP2, generalize PHI language, remove Flourish specifics, fix the hardcoded branch suffix.
-2. **Rename stages** — grow/harvest/roast/brew/taste with aliases; bump plugin minor version (AP3).
+2. **Rename stages** — grow/pick/roast/brew/taste with aliases; bump plugin minor version (AP3).
 3. **Make it portable** — parameterize paths, bundle `verify-ui-changes` (or equivalent), detect project layout (AP4).
 4. **Consolidate Taste** — inline `autobot` + review-loop behavior; deprecate `submit`/`autobot` repo skills (AP5).
 5. **Document** — `plugins/README.md`, docs-site explainer and how-to, per-stage reference with alias callouts.
@@ -167,7 +167,7 @@ See [`docs/tasks/agentic-sdlc-plugin.md`](../tasks/agentic-sdlc-plugin.md).
 - [ ] The pipeline runs end to end in a **consumer app scaffolded by `terreno_bootstrap_app`**, not just in this monorepo — verified by taking one small feature from request to open PR.
 - [ ] Every skill dependency (`verify-ui-changes` at minimum) is either bundled with the plugin or declared with installation instructions.
 - [ ] Frontend path gates are derived from the project's actual layout rather than hardcoded monorepo package names.
-- [ ] Pour and Taste are self-contained per AP5; deprecated `submit`/`autobot` repo skills point to the plugin; no rule is stated in two places with different wording.
+- [ ] Brew and Taste are self-contained per AP5; deprecated `submit`/`autobot` repo skills point to the plugin; no rule is stated in two places with different wording.
 - [ ] `docs/explanation/agentic-sdlc.md` explains the process layer versus the MCP tool layer and why fresh-context independent review matters.
 - [ ] `docs/how-to/use-the-terreno-plugin.md` takes a reader from installation to a merged PR.
 - [ ] `docs/reference/sdlc-plugin.md` documents each stage's scope, inputs, outputs, and boundaries.

@@ -24,7 +24,7 @@ It is the only skill that sets the Project `IP` field and moves an item to `Stat
   second issue for the same work.
 - If the IP is internal-origin with no discussion behind it, **create** the issue here at
   `Planned`.
-- The planning pipeline's **Blend** stage hands off here once an IP reaches Approved (in
+- The planning pipeline's **Grow** stage hands off here once an IP reaches Approved (in
   repos that run a roadmap). In a repo with no roadmap board, there is nothing to do —
   the IP and its task list are the source of truth.
 

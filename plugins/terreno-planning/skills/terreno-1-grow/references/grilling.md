@@ -1,6 +1,6 @@
 # Grilling — interactive design interview
 
-Use this during Blend (and Grind) instead of dumping every unknown in one list.
+Use this during Grow (and Grind) instead of dumping every unknown in one list.
 
 Goal: shared understanding with the user, then write. Do not write the IP, task list, or
 code until the user confirms the last round left no open questions.
