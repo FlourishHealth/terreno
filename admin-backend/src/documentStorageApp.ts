@@ -236,50 +236,27 @@ export class DocumentStorageApp implements TerrenoPlugin {
         const gcsPath = `${this.prefix}${filePath}`;
         const gcsFile = this.bucket.file(gcsPath);
 
-        console.info("[documentStorage] download attempt", {filePath, gcsPath});
-
         let metadata: Record<string, unknown>;
         try {
           const [meta] = await gcsFile.getMetadata();
           metadata = meta as Record<string, unknown>;
-          console.info("[documentStorage] getMetadata success", {
-            contentType: metadata.contentType,
-            etag: metadata.etag,
-            size: metadata.size,
-          });
         } catch (err: unknown) {
           const storageErr = err as {
             code?: number;
-            message?: string;
-            stack?: string;
-            errors?: unknown[];
-            response?: unknown;
             status?: number;
           };
           if (storageErr?.code === 404) {
             throw new APIError({
-              detail: filePath,
               disableExternalErrorTracking: true,
               status: 404,
               title: "File not found",
             });
           }
-          console.error("[documentStorage] getMetadata error", {
-            code: storageErr?.code,
-            errors: storageErr?.errors,
-            message: storageErr?.message,
-            response: storageErr?.response,
-            stack: storageErr?.stack,
-            status: storageErr?.status,
-          });
-          logger.error("[documentStorage] getMetadata error", {
-            code: storageErr?.code,
-            errors: storageErr?.errors,
-            message: storageErr?.message,
-            status: storageErr?.status,
+          logger.error("Document download metadata failed", {
+            status: storageErr?.code ?? storageErr?.status,
           });
           throw new APIError({
-            detail: storageErr?.message ?? String(err),
+            disableExternalErrorTracking: true,
             status: 500,
             title: "Failed to access file",
           });
@@ -298,20 +275,13 @@ export class DocumentStorageApp implements TerrenoPlugin {
         try {
           await pipeline(gcsFile.createReadStream(), res);
         } catch (err: unknown) {
-          const pipelineErr = err as {code?: number; message?: string; stack?: string};
-          console.error("[documentStorage] pipeline error", {
-            code: pipelineErr?.code,
-            message: pipelineErr?.message,
-            stack: pipelineErr?.stack,
-          });
-          logger.error("[documentStorage] pipeline error", {
-            code: pipelineErr?.code,
-            message: pipelineErr?.message,
-            stack: pipelineErr?.stack,
+          const pipelineErr = err as {code?: number};
+          logger.error("Document download stream failed", {
+            status: pipelineErr?.code,
           });
           if (!res.headersSent) {
             throw new APIError({
-              detail: pipelineErr?.message ?? String(err),
+              disableExternalErrorTracking: true,
               status: 500,
               title: "Failed to stream file",
             });

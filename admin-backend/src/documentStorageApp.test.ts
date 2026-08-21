@@ -324,6 +324,7 @@ describe("DocumentStorageApp", () => {
 
       const res = await adminAgent.get("/documents/download/boom.pdf").expect(500);
       expect(res.body.title).toInclude("Failed to access file");
+      expect(JSON.stringify(res.body)).not.toInclude("broken");
     });
 
     it("logs and swallows stream errors once headers have been flushed", async () => {

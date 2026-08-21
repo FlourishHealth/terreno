@@ -13,3 +13,4 @@ category: Fixed
 - The filter drawer can clear all filters and disables Apply when the draft is unchanged.
 - Admin config `name` is unique when the same Mongoose model is mounted at more than one
   `routePath`, and list search/bulk-patch metadata is looked up by path.
+- Document download failures log a status code only — not storage paths or provider payloads.
