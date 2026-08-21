@@ -169,6 +169,65 @@ describe("roleManager", () => {
     expect(unassigned?.roles).toEqual([]);
   });
 
+  it("rejects assign and unassign when the actor lacks the target user's permissions", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Assigner",
+          name: "assigner",
+          permissions: {rbac: ["assignRoles"], todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["assigner"]});
+    const privileged = await UserModel.create({
+      email: "privileged@example.com",
+      roles: ["superadmin"],
+    });
+    const unprivileged = await UserModel.create({
+      email: "unprivileged@example.com",
+      roles: [],
+    });
+
+    await expect(
+      access.roles.assign({
+        actor,
+        roleNames: ["member"],
+        userId: privileged.id,
+      })
+    ).rejects.toMatchObject({
+      status: 403,
+      title: "Cannot modify a user with permissions you do not hold",
+    });
+    expect((await UserModel.findById(privileged.id))?.roles).toEqual(["superadmin"]);
+
+    await expect(
+      access.roles.unassign({
+        actor,
+        roleNames: ["superadmin"],
+        userId: privileged.id,
+      })
+    ).rejects.toMatchObject({
+      status: 403,
+      title: "Cannot modify a user with permissions you do not hold",
+    });
+    expect((await UserModel.findById(privileged.id))?.roles).toEqual(["superadmin"]);
+
+    await access.roles.assign({
+      actor,
+      roleNames: ["member"],
+      userId: unprivileged.id,
+    });
+    expect((await UserModel.findById(unprivileged.id))?.roles).toEqual(["member"]);
+  });
+
   it("previews assignment and role permission changes", async () => {
     await setupDb();
     const UserModel = getRbacTestUserModel();

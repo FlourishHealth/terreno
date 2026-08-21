@@ -1104,4 +1104,43 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect((await FoodModel.findById(owned._id).lean())?.calories).toBe(50);
     expect((await FoodModel.findById(foreign._id).lean())?.calories).toBe(2);
   });
+
+  it("deletes a newly created User when role assignment fails", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-create",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const email = "rollback-roles@example.com";
+
+    const res = await agent.post("/admin/users").send({email, roles: ["does-not-exist"]});
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(await UserModel.findOne({email})).toBeNull();
+  });
 });

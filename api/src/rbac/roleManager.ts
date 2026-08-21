@@ -71,6 +71,25 @@ const assertNoEscalation = async (
   }
 };
 
+const assertCanModifyTargetUser = async (
+  actor: User,
+  target: User,
+  getActorPermissions: (user: User) => Promise<PermissionSet>
+): Promise<void> => {
+  const actorPermissions = await getActorPermissions(actor);
+  const targetPermissions = await getActorPermissions(target);
+  if (!isPermissionSubset(actorPermissions, targetPermissions)) {
+    logger.warn("RBAC privileged-user mutation denied", {
+      actorId: actor.id,
+      targetId: target.id,
+    });
+    throw new APIError({
+      status: 403,
+      title: "Cannot modify a user with permissions you do not hold",
+    });
+  }
+};
+
 export const createRoleManager = (args: {
   connection: Parameters<typeof createRbacRoleModel>[0];
   statements: Statements;
@@ -111,6 +130,7 @@ export const createRoleManager = (args: {
       if (!targetUser) {
         throw new APIError({status: 404, title: "User not found"});
       }
+      await assertCanModifyTargetUser(actor, targetUser, getActorPermissions);
       const uniqueRoleNames = [...new Set(roleNames)];
       for (let i = 0; i < uniqueRoleNames.length; i++) {
         for (let j = i + 1; j < uniqueRoleNames.length; j++) {
@@ -213,6 +233,7 @@ export const createRoleManager = (args: {
       if (!targetUser) {
         throw new APIError({status: 404, title: "User not found"});
       }
+      await assertCanModifyTargetUser(actor, targetUser, getActorPermissions);
       assertUserSaveAvailable(targetUser);
       const rbacUser = targetUser as unknown as User & {roles: string[]};
       rbacUser.roles = rbacUser.roles.filter((role) => !roleNames.includes(role));

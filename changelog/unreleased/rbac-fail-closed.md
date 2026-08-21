@@ -7,7 +7,8 @@ category: Changed
   and array mutations apply the same write mask as single-document writes.
 - AdminApp model CRUD requires resource actions in addition to `admin:access`. Self-service
   still cannot write User `admin`/`roles`; admin CRUD may set `admin`, and RBAC `roles`
-  go through `RoleManager.assign`. The seeded `auditor` role no longer receives
+  go through `RoleManager.assign`. Assign and unassign also require the actor to
+  already hold the target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Mutating admin CRUD for a resource missing
   from statements fails closed.
 - `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing

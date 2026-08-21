@@ -1185,7 +1185,8 @@ export class AdminApp {
 
       const applyPendingUserRoles = async (
         value: unknown,
-        request: express.Request
+        request: express.Request,
+        rollbackOnFailure = false
       ): Promise<void> => {
         const pending = (request as express.Request & {terrenoPendingUserRoles?: string[]})
           .terrenoPendingUserRoles;
@@ -1202,7 +1203,21 @@ export class AdminApp {
         if (!userId) {
           throw new APIError({status: 500, title: "User id missing after write"});
         }
-        await accessControl.roles.assign({actor, roleNames: pending, userId});
+        try {
+          await accessControl.roles.assign({actor, roleNames: pending, userId});
+        } catch (error) {
+          if (rollbackOnFailure) {
+            try {
+              await config.model.deleteOne({_id: userId});
+            } catch (rollbackError) {
+              logger.error("Failed to roll back user after role assignment failure", {
+                error: rollbackError,
+                userId,
+              });
+            }
+          }
+          throw error;
+        }
       };
 
       const bulkPatchOpenApi = openApiMw
@@ -1301,7 +1316,7 @@ export class AdminApp {
           return stripProtectedFromBody(body) as typeof body;
         },
         postCreate: async (value, request) => {
-          await applyPendingUserRoles(value, request);
+          await applyPendingUserRoles(value, request, true);
           await auditHooks.postCreate?.(value, request);
         },
         postUpdate: async (value, cleanedBody, request, prev) => {

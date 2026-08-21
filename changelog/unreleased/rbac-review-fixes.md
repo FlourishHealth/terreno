@@ -7,3 +7,5 @@ category: Fixed
 - Admin User CRUD can set the `admin` flag. With RBAC enabled, `roles` go through `RoleManager.assign` instead of a raw mongoose write.
 - Permission resolver caches evict expired and overflow entries so distinct identities cannot grow unbounded.
 - Clearing a role description in the admin UI sends `null` so PATCH removes the field.
+- Admin User create rolls back the new row if `RoleManager.assign` fails after insert.
+- `assign` / `unassign` refuse to change a user whose current permissions the actor does not hold.
