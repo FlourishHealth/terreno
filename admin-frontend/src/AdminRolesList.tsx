@@ -236,59 +236,61 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
         title={editingRole ? `Edit ${editingRole.displayName}` : "Add role"}
         visible={isFormVisible}
       >
-        <Box gap={4} maxHeight={360} overflow="scroll" padding={2} testID="admin-role-form">
-          <TextField
-            disabled={Boolean(editingRole)}
-            onChange={(value) => handleFieldChange("name", value)}
-            testID="admin-role-name"
-            title="Name"
-            value={form.name}
-          />
-          <TextField
-            onChange={(value) => handleFieldChange("displayName", value)}
-            testID="admin-role-display-name"
-            title="Display name"
-            value={form.displayName}
-          />
-          <TextField
-            onChange={(value) => handleFieldChange("description", value)}
-            testID="admin-role-description"
-            title="Description"
-            value={form.description}
-          />
-          <Box gap={2} testID="admin-role-permissions">
-            <Heading size="sm">Permissions</Heading>
-            {resources.map((resource) => (
-              <Box gap={1} key={resource}>
-                <Text bold>{resource}</Text>
-                <Box direction="row" gap={3} wrap>
-                  {statements[resource].map((action) => {
-                    const isSelected = form.permissions[resource]?.includes(action) ?? false;
-                    return (
-                      <Box
-                        accessibilityHint={`Toggles the ${action} permission for ${resource}`}
-                        accessibilityLabel={`${resource} ${action}`}
-                        alignItems="center"
-                        direction="row"
-                        gap={1}
-                        key={`${resource}:${action}`}
-                        onClick={() => handlePermissionToggle(resource, action)}
-                        testID={`admin-role-permission-${resource}-${action}`}
-                      >
-                        <CheckBox selected={isSelected} />
-                        <Text>{action}</Text>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Box>
-            ))}
-          </Box>
+        <Box gap={3} testID="admin-role-form">
           {saveError ? (
             <Text color="error" testID="admin-role-save-error">
               {saveError}
             </Text>
           ) : null}
+          <Box gap={4} maxHeight={360} overflow="scroll" padding={2}>
+            <TextField
+              disabled={Boolean(editingRole)}
+              onChange={(value) => handleFieldChange("name", value)}
+              testID="admin-role-name"
+              title="Name"
+              value={form.name}
+            />
+            <TextField
+              onChange={(value) => handleFieldChange("displayName", value)}
+              testID="admin-role-display-name"
+              title="Display name"
+              value={form.displayName}
+            />
+            <TextField
+              onChange={(value) => handleFieldChange("description", value)}
+              testID="admin-role-description"
+              title="Description"
+              value={form.description}
+            />
+            <Box gap={2} testID="admin-role-permissions">
+              <Heading size="sm">Permissions</Heading>
+              {resources.map((resource) => (
+                <Box gap={1} key={resource}>
+                  <Text bold>{resource}</Text>
+                  <Box direction="row" gap={3} wrap>
+                    {statements[resource].map((action) => {
+                      const isSelected = form.permissions[resource]?.includes(action) ?? false;
+                      return (
+                        <Box
+                          accessibilityHint={`Toggles the ${action} permission for ${resource}`}
+                          accessibilityLabel={`${resource} ${action}`}
+                          alignItems="center"
+                          direction="row"
+                          gap={1}
+                          key={`${resource}:${action}`}
+                          onClick={() => handlePermissionToggle(resource, action)}
+                          testID={`admin-role-permission-${resource}-${action}`}
+                        >
+                          <CheckBox selected={isSelected} />
+                          <Text>{action}</Text>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
         </Box>
       </Modal>
     </Box>
