@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
 import {DateTime} from "luxon";
-import type {Model, ObjectId} from "mongoose";
+import type {Model, ObjectId, Query} from "mongoose";
 import ms, {type StringValue} from "ms";
 import passport from "passport";
 import {Strategy as AnonymousStrategy} from "passport-anonymous";
@@ -41,18 +41,14 @@ export interface UserModel extends Model<User> {
   // Allows additional setup during signup. This will be passed the rest of req.body from the signup
   postCreate?: (body: Record<string, unknown>) => Promise<void>;
 
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  createStrategy(): any;
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  serializeUser(): any;
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  deserializeUser(): any;
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  findByUsername(username: string, findOpts: any): any;
+  // Provided by passport-local-mongoose:
+  createStrategy(): passport.Strategy;
+  serializeUser(): (user: User, cb: (err: unknown, id?: unknown) => void) => void;
+  deserializeUser(): (username: string, cb: (err: unknown, user?: User | null) => void) => void;
+  findByUsername(
+    username: string,
+    findOpts: boolean | {selectHashSaltFields?: boolean}
+  ): Query<User | null, User>;
 }
 
 export interface GenerateTokensOptions {
@@ -111,9 +107,18 @@ export const signupUser = async (
   const {email: _email, password: _password, ...bodyRest} = body ?? {};
 
   try {
-    // noExplicitAny: passport-local-mongoose's register() is untyped
-    // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's register() is untyped
-    const user = await (userModel as any).register({email, ...bodyRest}, password);
+    const registrableModel = userModel as UserModel & {
+      register(
+        user: Record<string, unknown>,
+        password: string
+      ): Promise<
+        User & {
+          postCreate?: (body: Record<string, unknown>) => Promise<void>;
+          save: () => Promise<unknown>;
+        }
+      >;
+    };
+    const user = await registrableModel.register({email, ...bodyRest}, password);
 
     if (user.postCreate) {
       try {
@@ -465,9 +470,8 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     return next();
   };
   app.use(decodeJWTMiddleware);
-  // noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
-  // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
-  app.use(express.urlencoded({extended: false}) as any);
+  // express 5's urlencoded() handler type doesn't match RequestHandler directly
+  app.use(express.urlencoded({extended: false}) as unknown as express.RequestHandler);
 };
 
 export const addAuthRoutes = (
