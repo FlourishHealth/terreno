@@ -14,7 +14,7 @@ category: Changed
   values are allowed. assign/unassign require the actor to already hold the
   target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Admin CRUD for a resource missing
-  from statements fails closed for list/read and writes. Framework statements now
+  from statements fails closed for list/read, search, and writes. Framework statements now
   include `featureFlag`, `consentForm`, and `consentResponse` so superadmin `*`
   can list those admin models; example-backend adds `adminAuditLog` list/read.
   `POST /admin/background-tasks`

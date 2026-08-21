@@ -984,6 +984,7 @@ describe("AdminApp per-model queryFilter", () => {
     const agent = await authAsUser(localApp, "admin");
 
     await agent.get("/admin/foods").expect(405);
+    await agent.get("/admin/foods/search?q=x").expect(403);
     await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
   });
 

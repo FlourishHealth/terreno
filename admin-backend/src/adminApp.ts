@@ -1062,7 +1062,11 @@ export class AdminApp {
         authenticateMiddleware(),
         asyncHandler(async (req, res) => {
           if (
-            !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+            !(await checkPermissions(
+              "list",
+              this.resourceActionPermissions(config.model.modelName, "list"),
+              req.user as User | undefined
+            ))
           ) {
             throw new APIError({
               disableExternalErrorTracking: true,
