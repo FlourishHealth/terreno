@@ -14,6 +14,8 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:
 import express from "express";
 import mongoose from "mongoose";
 
+import type {ModelRouterOptions} from "../api";
+
 import {
   emitToAuthorizedRoom,
   emitToDocumentAndQueryRooms,
@@ -591,7 +593,7 @@ describe("realtimeRegistry", () => {
   describe("updateRealtimeRegistryOptions", () => {
     it("replaces options on an existing entry by route path", () => {
       registerRealtime(makeEntry({routePath: "/todos"}));
-      const updatedOptions = {permissions: {list: []}} as any;
+      const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<unknown>;
       updateRealtimeRegistryOptions("/todos", updatedOptions);
 
       expect(getRealtimeRegistry()[0]?.options).toBe(updatedOptions);
@@ -600,7 +602,7 @@ describe("realtimeRegistry", () => {
     it("no-ops when the route path is not registered", () => {
       registerRealtime(makeEntry({routePath: "/todos"}));
       const originalOptions = getRealtimeRegistry()[0]?.options;
-      updateRealtimeRegistryOptions("/missing", {permissions: {}} as any);
+      updateRealtimeRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<unknown>);
 
       expect(getRealtimeRegistry()[0]?.options).toBe(originalOptions);
     });

@@ -10,12 +10,10 @@ import type {PermissionSet, Statements} from "./statements";
 
 /**
  * Non-generic TerrenoAccess for runtime wiring (modelRouter, rbacRouter, TerrenoApp).
- * Uses `any` statements so concrete `TerrenoAccess<AppStatements>` assigns without casts —
- * method params are contravariant and cannot otherwise widen resource unions to `string`.
+ * `Statements` is the open index shape, so concrete `TerrenoAccess<AppStatements>`
+ * still assigns without an `any` statements parameter.
  */
-// noExplicitAny: variance escape hatch for heterogeneous app statements across consumers
-// biome-ignore lint/suspicious/noExplicitAny: variance escape hatch for heterogeneous app statements across consumers
-export type AnyTerrenoAccess = TerrenoAccess<any>;
+export type AnyTerrenoAccess = TerrenoAccess<Statements>;
 
 /** @deprecated Prefer typed TerrenoAccess; AnyTerrenoAccess uses TerrenoAccess<any>. */
 export type LoosePermissionRequest = {

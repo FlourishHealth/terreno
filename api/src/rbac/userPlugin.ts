@@ -13,9 +13,7 @@ export interface RbacUserPluginOptions {
 }
 
 export const rbacUserPlugin = (
-  // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-  // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-  schema: Schema<any, any, any, any>,
+  schema: Schema,
   options?: RbacUserPluginOptions
 ): void => {
   const defaultRoles = [...(options?.defaultRoles ?? [])];
