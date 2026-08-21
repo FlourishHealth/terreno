@@ -151,6 +151,21 @@ export const registerSync = <T>({
 };
 
 /**
+ * Replace options on an existing sync registry entry after TerrenoApp injects
+ * accessControl and modelRouter resolves RBAC permissions.
+ */
+export const updateSyncRegistryOptions = (
+  routePath: string,
+  options: ModelRouterOptions<unknown>
+): void => {
+  const existing = syncRegistry.find((entry) => entry.routePath === routePath);
+  if (!existing) {
+    return;
+  }
+  existing.options = options;
+};
+
+/**
  * C8: await every enqueued sync index creation — per-model snapshot indexes from
  * `registerSync` plus the bookkeeping-model indexes from `SyncApp.register` — throwing on
  * the first failure. Called at server startup by `TerrenoApp.start()` (after all models

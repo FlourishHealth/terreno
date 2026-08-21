@@ -8,13 +8,16 @@ category: Changed
 - AdminApp model CRUD requires resource actions in addition to `admin:access`. Self-service
   still cannot write User `admin`/`roles`. Without RBAC, admin CRUD may set `admin`.
   With RBAC, `roles` go through `RoleManager.assign`. Changing `admin` requires
-  `rbac:assignRoles`, and granting `admin: true` also requires `rbac:manageRoles`
-  unless the actor already has the legacy admin flag. Unchanged echoed `admin`
+  `rbac:assignRoles`, and granting or revoking `admin` also requires
+  `rbac:manageRoles` unless the actor already has the legacy admin flag, plus
+  the same privilege-subset check as role assign. Unchanged echoed `admin`
   values are allowed. assign/unassign require the actor to already hold the
   target user's current permissions. The seeded `auditor` role no longer receives
-  `admin:access` via read-only expansion. Mutating admin CRUD for a resource missing
-  from statements fails closed.
-- MCP model tools use resolved RBAC options (TerrenoApp-injected and the
+  `admin:access` via read-only expansion. Admin CRUD for a resource missing
+  from statements fails closed for list/read and writes. `POST /admin/background-tasks`
+  requires `admin:runScripts`; version-config GET/PUT require `configuration:read` /
+  `configuration:update`.
+- MCP and SyncDB registries use resolved RBAC options (TerrenoApp-injected and the
   documented `access` + `accessControl` path, including pathless `modelRouter`)
   instead of the pre-build legacy permission arrays. Create/update also apply
   `validateAccessWritePayload` (field views / `createView: "deny"`).

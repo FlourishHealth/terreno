@@ -88,6 +88,7 @@ export interface RoleManager {
   remove: (args: {actor: User; roleName: string}) => Promise<void>;
   assign: (args: {actor: User; userId: string; roleNames: string[]}) => Promise<void>;
   unassign: (args: {actor: User; userId: string; roleNames: string[]}) => Promise<void>;
+  assertCanModifyUser: (args: {actor: User; userId: string}) => Promise<void>;
   previewRoleChange: (args: {roleName: string; permissions: PermissionSet}) => Promise<RoleDiff>;
   previewAssignment: (args: {userId: string; roleNames: string[]}) => Promise<UserPermissionDiff>;
 }

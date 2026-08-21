@@ -228,6 +228,42 @@ describe("roleManager", () => {
     expect((await UserModel.findById(unprivileged.id))?.roles).toEqual(["member"]);
   });
 
+  it("assertCanModifyUser rejects when the actor lacks the target user's permissions", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Assigner",
+          name: "assigner",
+          permissions: {rbac: ["assignRoles"], todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["assigner"]});
+    const privileged = await UserModel.create({
+      email: "assert-privileged@example.com",
+      roles: ["superadmin"],
+    });
+    const unprivileged = await UserModel.create({
+      email: "assert-unprivileged@example.com",
+      roles: [],
+    });
+
+    await expect(
+      access.roles.assertCanModifyUser({actor, userId: privileged.id})
+    ).rejects.toMatchObject({
+      status: 403,
+      title: "Cannot modify a user with permissions you do not hold",
+    });
+    await access.roles.assertCanModifyUser({actor, userId: unprivileged.id});
+  });
+
   it("previews assignment and role permission changes", async () => {
     await setupDb();
     const UserModel = getRbacTestUserModel();

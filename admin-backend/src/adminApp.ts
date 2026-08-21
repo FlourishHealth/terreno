@@ -598,6 +598,20 @@ export class AdminApp {
     return result.allowed;
   }
 
+  private async hasConfigurationPermission(
+    user: User | undefined,
+    action: "read" | "update"
+  ): Promise<boolean> {
+    if (!this.options.accessControl) {
+      return Boolean(user?.admin);
+    }
+    const result = await this.options.accessControl.can({
+      permissions: {configuration: [action]},
+      user,
+    });
+    return result.allowed;
+  }
+
   private resourceActionPermissions(
     modelName: string,
     action: "list" | "read" | "create" | "update" | "delete"
@@ -610,9 +624,6 @@ export class AdminApp {
     const resource = `${modelName.charAt(0).toLowerCase()}${modelName.slice(1)}`;
     const knownActions = accessControl.statements[resource];
     if (!knownActions) {
-      if (action === "list" || action === "read") {
-        return shell;
-      }
       return [];
     }
     return [...shell, accessControl.permission({[resource]: [action]})];
@@ -907,16 +918,11 @@ export class AdminApp {
       authenticateMiddleware(),
       ...asMiddlewareList(backgroundTasksOpenApi),
       asyncHandler(async (req, res) => {
-        if (
-          !(await checkPermissions(
-            "update",
-            this.adminAccessPermissions(),
-            req.user as User | undefined
-          ))
-        ) {
+        const actor = req.user as User | undefined;
+        if (!actor || !(await this.hasScriptPermission(actor, "runScripts"))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
-        const user = req.user as {_id: unknown} | undefined;
+        const user = actor as {_id: unknown};
         const raw = req.body as {
           ids?: unknown;
           kind?: unknown;
@@ -971,13 +977,7 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (
-          !(await checkPermissions(
-            "read",
-            this.adminAccessPermissions(),
-            req.user as User | undefined
-          ))
-        ) {
+        if (!(await this.hasConfigurationPermission(req.user as User | undefined, "read"))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const config = await VersionConfig.findOneOrNone({_singleton: "config"});
@@ -997,13 +997,7 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (
-          !(await checkPermissions(
-            "update",
-            this.adminAccessPermissions(),
-            req.user as User | undefined
-          ))
-        ) {
+        if (!(await this.hasConfigurationPermission(req.user as User | undefined, "update"))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const raw = req.body as Record<string, unknown>;
@@ -1310,7 +1304,8 @@ export class AdminApp {
       const assertCanWriteUserAdminFlag = async (
         body: Record<string, unknown>,
         request: express.Request,
-        currentAdmin = false
+        currentAdmin = false,
+        targetUserId?: string
       ): Promise<void> => {
         if (config.model.modelName !== "User" || !("admin" in body)) {
           return;
@@ -1336,10 +1331,12 @@ export class AdminApp {
             title: "Missing rbac:assignRoles permission",
           });
         }
-        const isGrantingAdmin = coerceAdminFlag(body.admin) === true && !currentAdmin;
-        // assignRoles is not enough to mint the legacy admin plane (IsAdmin, password
-        // reset). Require manageRoles, or an actor who already holds admin.
-        if (isGrantingAdmin && !actor.admin) {
+        const nextAdmin = coerceAdminFlag(body.admin);
+        const isGrantingAdmin = nextAdmin === true && !currentAdmin;
+        const isRevokingAdmin = nextAdmin === false && currentAdmin;
+        // assignRoles is not enough to mint or strip the legacy admin plane (IsAdmin,
+        // password reset). Require manageRoles, or an actor who already holds admin.
+        if ((isGrantingAdmin || isRevokingAdmin) && !actor.admin) {
           const manage = await accessControl.can({
             permissions: {rbac: ["manageRoles"]},
             user: actor,
@@ -1347,9 +1344,15 @@ export class AdminApp {
           if (!manage.allowed) {
             throw new APIError({
               status: 403,
-              title: "Cannot grant the legacy admin flag without rbac:manageRoles",
+              title: isGrantingAdmin
+                ? "Cannot grant the legacy admin flag without rbac:manageRoles"
+                : "Cannot revoke the legacy admin flag without rbac:manageRoles",
             });
           }
+        }
+        const targetId = targetUserId ?? request.params?.id;
+        if (targetId) {
+          await accessControl.roles.assertCanModifyUser({actor, userId: String(targetId)});
         }
       };
 
@@ -1492,7 +1495,8 @@ export class AdminApp {
               await assertCanWriteUserAdminFlag(
                 rawPatch,
                 req,
-                Boolean((doc as {admin?: boolean}).admin)
+                Boolean((doc as {admin?: boolean}).admin),
+                id
               );
               if (Object.keys(patch).length > 0) {
                 await doc.updateOne({$set: patch});

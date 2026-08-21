@@ -57,7 +57,7 @@ import {
   executeUpdate,
   isExecutorConflictError,
 } from "./sync/executors";
-import {registerSync} from "./sync/registry";
+import {registerSync, updateSyncRegistryOptions} from "./sync/registry";
 import type {SyncConfig} from "./sync/types";
 import {
   defaultResponseHandler,
@@ -670,10 +670,10 @@ export function modelRouter<T>(
   }
 
   const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
-  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
 
   if (path !== undefined) {
-    // Register for real-time sync if configured
+    // Register before building so _buildModelRouter can replace options with
+    // RBAC-resolved permissions (same contract as MCP).
     if (options.realtime) {
       registerRealtime({
         collectionName: model.collection.collectionName,
@@ -683,10 +683,14 @@ export function modelRouter<T>(
         routePath: path,
       });
     }
-    // Register for local-first sync if configured (validates the schema contract)
     if (options.sync) {
       registerSync({config: options.sync, model, options, routePath: path});
     }
+  }
+
+  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
+
+  if (path !== undefined) {
     return {
       __type: "modelRouter",
       _buildWithContext: (context: ModelRouterBuildContext) => {
@@ -755,6 +759,9 @@ const _buildModelRouter = <T>(
   };
   if (options.mcp) {
     updateMCPRegistryOptions(model.modelName, options as unknown as ModelRouterOptions<unknown>);
+  }
+  if (options.sync && routePath) {
+    updateSyncRegistryOptions(routePath, options as unknown as ModelRouterOptions<unknown>);
   }
 
   assertNoActionCollisions(model, options);

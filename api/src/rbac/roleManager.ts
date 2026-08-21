@@ -120,6 +120,16 @@ export const createRoleManager = (args: {
   };
 
   const roleManager: RoleManager = {
+    assertCanModifyUser: async ({actor, userId}) => {
+      if (!userModel) {
+        throw new APIError({status: 500, title: "User model not configured for role assignment"});
+      }
+      const targetUser = await userModel.findById(userId);
+      if (!targetUser) {
+        throw new APIError({status: 404, title: "User not found"});
+      }
+      await assertCanModifyTargetUser(actor, targetUser, getActorPermissions);
+    },
     assign: async ({actor, userId, roleNames}) => {
       await assertCanAssignRoles(actor, getActorPermissions);
       if (!userModel) {

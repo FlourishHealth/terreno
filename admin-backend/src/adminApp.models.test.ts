@@ -517,6 +517,47 @@ describe("AdminApp /admin/version-config", () => {
     await notAdminAgent.put("/admin/version-config").send({}).expect(403);
   });
 
+  it("requires configuration:update to PUT version-config when accessControl is set", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({permissions: {admin: ["access"]}}),
+          name: "admin-access-only",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    await agent.get("/admin/version-config").expect(403);
+    await agent.put("/admin/version-config").send({mobileRequiredVersion: 3}).expect(403);
+  });
+
+  it("allows configuration:update to PUT version-config", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {admin: ["access"], configuration: ["read", "update"]},
+          }),
+          name: "config-admin",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent
+      .put("/admin/version-config")
+      .send({mobileRequiredVersion: 3})
+      .expect(200);
+    expect(res.body.mobileRequiredVersion).toBe(3);
+  });
+
   it("returns 401 for unauthenticated users", async () => {
     await supertest(app).get("/admin/version-config").expect(401);
   });
@@ -717,6 +758,42 @@ describe("AdminApp admin UI v2 routes", () => {
     await notAdminAgent.post("/admin/background-tasks").send({kind: "x"}).expect(403);
   });
 
+  it("requires admin:runScripts to enqueue background tasks when accessControl is set", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({permissions: {admin: ["access"]}}),
+          name: "admin-access-only",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([foodModelConfig], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    await agent.post("/admin/background-tasks").send({kind: "reindex-search"}).expect(403);
+  });
+
+  it("allows admin:runScripts to enqueue background tasks", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {admin: ["access", "runScripts"]},
+          }),
+          name: "admin-run-scripts",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([foodModelConfig], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    await agent.post("/admin/background-tasks").send({kind: "reindex-search"}).expect(201);
+  });
+
   it("strips readonly fields from PATCH updates", async () => {
     app = buildApp([
       {
@@ -889,7 +966,7 @@ describe("AdminApp per-model queryFilter", () => {
     expect(res.body.data[0].name).toBe("FilteredOnly");
   });
 
-  it("fails closed on mutating CRUD when the model is missing from RBAC statements", async () => {
+  it("fails closed on list and mutating CRUD when the model is missing from RBAC statements", async () => {
     await setupDb();
     const accessControl = createAccess({
       connection: mongoose.connection,
@@ -906,7 +983,7 @@ describe("AdminApp per-model queryFilter", () => {
     const localApp = buildApp([foodModelConfig], {accessControl});
     const agent = await authAsUser(localApp, "admin");
 
-    await agent.get("/admin/foods").expect(200);
+    await agent.get("/admin/foods").expect(405);
     await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
   });
 
@@ -1149,6 +1226,48 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
       .send({admin: true})
       .expect(403);
     expect((await UserModel.findById(target?._id))?.admin).toBe(false);
+  });
+
+  it("does not let assignRoles revoke the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "assigner-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "admin@example.com"});
+    expect(target?.admin).toBe(true);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: false})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(true);
   });
 
   it("checks each bulk-patch target document against RBAC scopes", async () => {
