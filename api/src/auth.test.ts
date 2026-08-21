@@ -860,7 +860,7 @@ describe("addAuthRoutes /refresh_token error paths", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
