@@ -236,9 +236,9 @@ is the variable the generator reads.
 
 ## Maintainer skills
 
-Four agent skills cover the recurring roadmap work. Each one researches, proposes, and then
+Five agent skills cover the recurring roadmap work. Each one researches, proposes, and then
 **stops for a maintainer to approve** before touching GitHub — roadmap decisions are the most
-human part of the process, so none of them mutate state on their own. All four are
+human part of the process, so none of them mutate state on their own. All five are
 `disable-model-invocation`, meaning an agent will not start them on its own initiative;
 you invoke them explicitly.
 
@@ -248,6 +248,19 @@ you invoke them explicitly.
 | `roadmap-promote` | Maintainers accepted an Ideas or RFC discussion and it needs a tracked issue that links back to the thread |
 | `roadmap-item` | An approved IP needs its public tracking issue, or an existing entry's scope changed |
 | `roadmap-review` | Recurring hygiene: status drift, stale items, untriaged backlog, promotion candidates, then regenerate `ROADMAP.md` |
+| `roadmap-wayfinder` | A destination is too large or uncertain for one IP/context and needs a map, a small unblocked frontier, and repeated Blend → Dial In delivery loops |
+
+### Huge features: wayfinder maps
+
+A wayfinder map is one low-resolution roadmap issue with an observable destination,
+resolved-decision index, current frontier, fog, and explicit out-of-scope boundary. Child
+tickets hold the detail and native blocking relationships. Work only the **frontier**:
+open, unblocked, unclaimed tickets.
+
+Decision tickets resolve one question. Delivery tickets link one approved IP/task pair and
+run the complete planning pipeline. After each ticket, update the map, graduate clarified
+fog into precise tickets, and return to the frontier with a fresh agent context. The map
+closes only when the destination is reached and no in-scope fog or open child tickets remain.
 
 Sources live in `.rulesync/skills/`; run `bun run rules` after editing to regenerate the
 per-agent mirrors.

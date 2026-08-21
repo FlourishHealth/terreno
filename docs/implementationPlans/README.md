@@ -7,7 +7,7 @@ An implementation plan (IP) is one half of a two-file pair:
 
 | File | Holds | Path |
 | ---- | ----- | ---- |
-| **IP** | Design goals, architecture, models/APIs, phases, acceptance criteria | `docs/implementationPlans/<slug>.md` |
+| **IP** | Design goals, architecture, models/APIs, testing decisions, phases, acceptance criteria | `docs/implementationPlans/<slug>.md` |
 | **Task list** | The bot-consumable execution checklist for that IP | `docs/tasks/<slug>.md` |
 
 The IP is the source of truth for *what and why*; the task list is the source of truth
@@ -38,7 +38,7 @@ Substantial work is planned before coding. Quick rule (full table in
 
 The [`terreno-planning` plugin](../../plugins/README.md) drives the pipeline:
 
-1. **Blend** (`terreno-1-blend`) — write the IP + task list, questions first.
+1. **Blend** (`terreno-1-blend`) — write the IP + dependency-aware tracer-bullet task list, questions first.
 2. **Roast** (`terreno-2-roast`) — implement via TDD from the approved IP.
 3. **Cupping** (`terreno-3-cupping`) — independently verify against the IP.
 4. **Pour** (`terreno-4-pour`) — commit, push, open the PR.

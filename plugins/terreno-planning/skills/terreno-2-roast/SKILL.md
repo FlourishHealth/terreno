@@ -5,7 +5,7 @@ description: Implement an approved IP in code via strict TDD with independent re
 
 # Roast
 
-Implement from an IP using strict TDD, with independent review checkpoints and drift detection at every commit.
+Implement from an IP using strict vertical-slice TDD, with independent review checkpoints and drift detection at every commit. Load [`references/testing.md`](references/testing.md) before choosing test seams and [`references/mocking.md`](references/mocking.md) whenever a test double is considered.
 
 ## Preconditions
 
@@ -14,7 +14,9 @@ Implement from an IP using strict TDD, with independent review checkpoints and d
 
 ## Execution Model
 
-- Follow red -> green -> refactor (`Specify -> Encode -> Fulfill -> Clean the Kitchen`) for each behavior.
+- Follow red -> green (`Specify -> Encode -> Fulfill`) one behavior at a time.
+- Use tracer-bullet vertical slices. Each cycle proves a narrow complete behavior through its public seam; never write all tests first and implementation later.
+- Refactor only after the coherent slice is green and independently reviewed.
 - Keep commits small and behavior-scoped.
 - After each commit, verify the branch still matches the IP. If drift is found, stop and surface mismatch before continuing.
 
@@ -31,30 +33,39 @@ If either sub-agent flags issues, fix and rerun review before continuing.
 
 The test-quality sub-agent must enforce all of these:
 
-- Avoid global mocks; keep mocks scoped to the test needing them.
-- Do not over-mock; mock only at external boundaries.
+- Test caller-visible behavior through public seams, not private methods or internal call order.
+- Derive expected values from the IP or a worked literal, not the production algorithm.
+- Prefer injected typed fakes at external boundaries.
+- Treat `mock.module` as process-global and leaky. Do not use module-level mocks in normal suites.
+- When an unchangeable dynamic import requires `mock.module`, isolate the file in its own Bun process and document why injection is impossible.
+- Keep spies and fakes scoped to the test or a fresh harness factory.
 - Never mock the database on the backend.
-- Never mock the store on the frontend unless there is genuinely no way around it.
+- Use real frontend stores/reducers/providers; inject only network, storage, clock, or other external adapters.
 
 ## TDD Cycle
 
 ### 1) Specify
 
-Define one behavior in plain language.
+Define one caller-visible behavior in plain language. Record the highest existing public seam that proves it.
 
 ### 2) Encode
 
-Write exactly one failing test for that behavior; verify failure reason is correct.
+Write exactly one failing test for that behavior. Run the closest Bun command with `--only-failures` and verify it is red for the expected product reason, not syntax, setup, or an unrelated failure.
 
 ### 3) Fulfill
 
 Implement the minimum code required to pass that test.
 
-### 4) Clean the Kitchen
+Repeat Specify → Encode → Fulfill for the next learned behavior. Do not prewrite a horizontal batch of tests.
 
-Refactor safely, remove dead/debug code, improve naming, and keep lint/type checks clean.
+### 4) Review and Clean the Kitchen
 
-Repeat until scoped behavior is complete.
+After a coherent vertical slice is green:
+
+1. Run the independent correctness and test-quality reviews.
+2. Refactor safely, remove dead/debug code, and improve names without adding behavior.
+3. Rerun the slice tests in agent-quiet mode.
+4. Commit only when the reviewed slice stays green and matches the IP.
 
 ## Before Coding a Slice
 
@@ -65,7 +76,7 @@ Repeat until scoped behavior is complete.
 
 ### General
 
-- Use Bun workflows (`bun run lint`, `bun run compile`, targeted tests).
+- Use Bun workflows (`bun run lint`, `bun run compile`, targeted `bun test --only-failures ...`).
 - Prefer real integrations over heavy mocking.
 - Preserve repo coding conventions (TypeScript patterns, error handling, logging rules, Luxon requirement where relevant).
 
@@ -118,7 +129,7 @@ Do not hand off to Pour without this evidence when frontend paths changed, unles
 For every commit:
 
 1. Confirm changed behavior maps to IP tasks/criteria.
-2. Run targeted tests and required lint/compile checks.
+2. Run targeted tests with Bun `--only-failures` and required lint/compile checks.
 3. When the commit touches frontend paths, run `verify-ui-changes` (launch app, login, exercise feature, save screenshots/videos).
 4. Run independent code review sub-agent.
 5. Run independent test-quality sub-agent.
@@ -127,7 +138,8 @@ For every commit:
 ## Done Criteria for Roast
 
 - All planned implementation tasks for the scoped slice are complete.
-- Tests are credible under anti-mocking rules.
+- Tests prove behavior through public seams and comply with [`references/testing.md`](references/testing.md).
+- Test doubles comply with [`references/mocking.md`](references/mocking.md); no leaky module-level mocks were introduced.
 - Frontend paths have app login + feature verification evidence saved to `/opt/cursor/artifacts/` when applicable.
 - No unresolved review findings remain from independent sub-agents.
 - Work is ready for **Pour** (`plugins/terreno-planning/skills/terreno-4-pour/SKILL.md`).

@@ -13,6 +13,7 @@ Turn a raw request into an Implementation Plan (IP) using the existing `/ip` str
 - Output is the IP document (plus optional acceptance criteria and optional E2E test scaffolding when requested).
 - Keep scope bounded and explicit.
 - Preserve existing project conventions, tool usage, and repository patterns.
+- Prefer existing public test seams. Record the chosen seams and codebase test examples in the IP before task generation.
 - **Question-first:** do not write the IP (or any section that commits product or architecture decisions) until blocking questions are asked and the user has answered. Present options as questions or labeled alternatives (A/B/C), not as a finalized plan.
 - **Post-attack questions:** when the Attack and adjust phase (Step 10) runs, always follow with a dedicated question pass (Step 11) and user answers before treating the plan as implementation-ready.
 
@@ -69,8 +70,9 @@ Produce a complete research artifact before any committed plan shape:
 2. Deep codebase read (models/routes/screens/components/tests/docs/rules).
 3. External research for APIs/libraries/best practices.
 4. Findings document with summary, **candidate options with tradeoffs** (do not pick a single “chosen” architecture as fact), **open questions**, references. Avoid a narrative that reads like a finished implementation decision.
-5. Save draft research; **stop** for user input on factual gaps or repo-specific ambiguities if needed.
-6. Save final research as `research.md`.
+5. Identify prior-art tests for the same seams and any architecture friction that would make the change hard. Apply the deletion test: propose prefactoring only when removing a shallow wrapper would concentrate complexity rather than move it.
+6. Save draft research; **stop** for user input on factual gaps or repo-specific ambiguities if needed.
+7. Save final research as `research.md`.
 
 ### Step 3: Clarification pass (mandatory — blocks Steps 4–6)
 
@@ -103,6 +105,7 @@ Define:
 - Delivery phases.
 - Risks and mitigations.
 - Explicit not-included scope.
+- Testing decisions: public seams, observable behaviors, prior-art test files, and external boundaries that may use injected fakes.
 
 Ground every decision in the user’s answers; call out any residual ambiguity as a follow-up question before generating the IP.
 
@@ -130,8 +133,9 @@ Write the final IP with the same structure used by legacy `/ip`:
 - Phases
 - Feature flags & migrations
 - Activity log & user updates
+- Testing decisions
 - Not included / future work
-- Task list grouped by phase
+- Task list of tracer-bullet vertical slices
 
 Persist planning artifacts in the standard repo paths:
 
@@ -147,11 +151,34 @@ leave them out when they do not apply:
 
 These are pointers. The IP body, not the tracker, holds the design.
 
+### Task-list contract
+
+Build `docs/tasks/<slug>.md` as dependency-aware tracer bullets:
+
+1. Each task delivers a narrow, complete, demoable or independently verifiable behavior through every required layer.
+2. Each task fits one fresh agent context and declares `Blocked by` edges. Work the frontier: tasks with no open blockers.
+3. Put enabling prefactors first only when they make the behavior change materially easier.
+4. Avoid horizontal tasks such as “add all models” or “write all tests.” The task owns its red → green tests and implementation together.
+5. For a wide mechanical refactor that cannot land green as vertical slices, use expand → migrate batches → contract. The contract task is blocked by every migration batch.
+
+Use this shape:
+
+```markdown
+- [ ] **Task 1.1**: Caller-visible outcome
+  - Delivers: the end-to-end behavior that becomes usable
+  - Files: expected areas, when known
+  - Blocked by: none | task IDs
+  - Acceptance: observable proof, including the focused Bun test
+```
+
+Before finalizing, present the numbered task graph and confirm granularity and blocking edges with the user. Do not duplicate the full design from the IP into tasks.
+
 ### Step 7: Acceptance criteria (optional)
 
 - Parse the IP into testable outcomes.
 - Add criteria covering happy path, edge/error paths, auth/permissions, data integrity, and regressions.
 - Ensure testIDs required by criteria are explicitly called out.
+- Keep criteria at public seams and describe observable behavior rather than internal calls.
 
 ### Step 8: E2E test planning/generation (optional)
 

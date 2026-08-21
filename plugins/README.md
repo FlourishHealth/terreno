@@ -11,15 +11,18 @@ Each stage is a skill under [`terreno-planning/skills/`](terreno-planning/skills
 | # | Stage (skill) | Does | Reads / writes |
 | - | ------------- | ---- | -------------- |
 | 1 | **Blend** (`terreno-1-blend`) | Plan — questions first, then write the IP + task list | Writes `docs/implementationPlans/<slug>.md` + `docs/tasks/<slug>.md` |
-| 2 | **Roast** (`terreno-2-roast`) | Implement via strict TDD with drift detection and independent review | Reads the approved IP/tasks |
+| 2 | **Roast** (`terreno-2-roast`) | Implement vertical slices via strict TDD with boundary-only fakes and independent review | Reads the approved IP/tasks |
 | 3 | **Cupping** (`terreno-3-cupping`) | Independently verify against the IP with evidence | Reads the IP; produces evidence |
-| 4 | **Pour** (`terreno-4-pour`) | Commit, push, open/update the draft PR with evidence | The PR links its IP |
+| 4 | **Pour** (`terreno-4-pour`) | Run all Bun tests quietly, verify docs, spawn standards/spec review, then open/update the draft PR | The PR links its IP |
 | 5 | **Dial In** (`terreno-5-dialin`) | Drive CI and the review loop until mergeable | Post-PR |
 
 The pipeline runs the same way in every Terreno repo. Its permanent artifacts are always
 the two files Blend writes; external trackers link to them and never replace them. See
 [`docs/implementationPlans/README.md`](../docs/implementationPlans/README.md) and
 [`docs/tasks/README.md`](../docs/tasks/README.md).
+
+`terreno-code-review` is the read-only review procedure Pour runs in a fresh sub-agent. It
+keeps repository-standard findings separate from IP/spec findings.
 
 ### Roadmap handoff is conditional
 

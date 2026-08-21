@@ -67,6 +67,7 @@ gh api graphql -f query='
 | Inbox backlog | `status:needs-triage` older than a week |
 | Promotion candidates | High-upvote Ideas with no tracking issue |
 | Blocked items | `status:blocked` whose blocker has since merged |
+| Wayfinder maps | Frontier contains blocked/closed/claimed work, resolved decisions are not indexed, or fog has become precise enough to ticket |
 
 Validate any label or field change you intend to propose:
 
@@ -83,6 +84,8 @@ Group findings by **what the maintainer must decide**, not by issue number:
 3. **Needs a human call** — stale items, retargeting, anything to decline
 4. **Mechanical fixes** — missing labels, area/label mismatches
 5. **Promotion candidates** — discussions worth tracking, with upvote counts
+
+For each active wayfinder map, report the destination, current unblocked frontier, stale claims, and whether the map can close. Refer to child tickets by linked title rather than bare issue number.
 
 Cap each group at the items that matter. A 60-line audit nobody reads is worse than 10 items that get fixed.
 

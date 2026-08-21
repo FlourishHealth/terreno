@@ -75,6 +75,7 @@ Run these from the repository root:
 | `bun run api:test` | Run `@terreno/api` tests |
 | `bun run ui:test` | Run `@terreno/ui` tests |
 | `bun run test` | Run all package test suites |
+| `bun run test:agent` | Run all package tests with passing cases suppressed (failures and summaries remain visible) |
 | `bun run check:no-barrel-imports` | Enforce no internal barrel imports |
 | `bun run check:changelog` | Validate `changelog/unreleased/` fragment files |
 | `bun run changelog:preview` | Preview assembled unreleased notes |

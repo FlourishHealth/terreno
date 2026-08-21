@@ -11,19 +11,25 @@ The filename slug matches the IP it belongs to.
 
 ## Task shape
 
-Each task is a checkbox with four fields so it can be picked up and verified independently:
+Each task is a tracer-bullet vertical slice with explicit blocking edges:
 
 ```markdown
 - [ ] **Task 1.1**: Short title
-  - Description: what to implement
+  - Delivers: the narrow end-to-end behavior this makes usable
   - Files: expected files to create or modify
-  - Depends on: none | other task IDs
-  - Acceptance: how to verify it is done
+  - Blocked by: none | other task IDs
+  - Acceptance: observable proof, including focused Bun tests
 ```
 
-Group tasks by phase (`### Phase 1: …`). Order them by dependency — models first, then
-APIs, then UI. Blend-style runs may append a **Plan vs Actual** log to the same file after
-each task.
+Group tasks by phase (`### Phase 1: …`) and order them by dependency. Every normal task
+cuts through the required data, API, UI, documentation, and test layers rather than
+batching one layer across the whole feature. A completed task is demoable or independently
+verifiable and small enough for one fresh agent context. Work the **frontier**: any task
+whose blockers are complete.
+
+Wide mechanical refactors that cannot land green as vertical slices use
+**expand → migrate batches → contract**. The contract task is blocked by every migration
+batch. Blend-style runs may append a **Plan vs Actual** log after each task.
 
 ## What lives here vs elsewhere
 

@@ -251,6 +251,7 @@
     "syncdb:lint": "bun run --filter '@terreno/syncdb' lint",
     "syncdb:test": "bun run --filter '@terreno/syncdb' test:ci",
     "test": "bun run --filter '*' test:ci",
+    "test:agent": "bun run --filter '*' test:ci -- --only-failures",
     "test:compile": "bun run --filter '@terreno/test' compile",
     "test:lint": "bun run --filter '@terreno/test' lint",
     "test:test": "bun run --filter '@terreno/test' test:ci",
