@@ -1,4 +1,4 @@
-import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import type {Tool} from "@modelcontextprotocol/server";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
 import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
 import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";

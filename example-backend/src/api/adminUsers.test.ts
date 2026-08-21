@@ -1,5 +1,3 @@
-// noExplicitAny: test server/model bridging mirrors loadtest.test.ts
-// biome-ignore-all lint/suspicious/noExplicitAny: test server/model bridging mirrors loadtest.test.ts
 import {beforeEach, describe, expect, it} from "bun:test";
 import {
   generateTokens,
@@ -51,7 +49,7 @@ describe("admin user password route", () => {
         }),
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as never,
     })
       .register(
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
@@ -64,7 +62,7 @@ describe("admin user password route", () => {
     admin: boolean
   ): Promise<{_id: UserDocument["_id"]; admin: boolean}> => {
     return UserModel.register(
-      {admin, email, name: email} as any,
+      {admin, email, name: email} as never,
       "password12345"
     ) as unknown as Promise<{
       _id: UserDocument["_id"];
@@ -73,7 +71,7 @@ describe("admin user password route", () => {
   };
 
   const tokenFor = async (user: {_id: UserDocument["_id"]; admin: boolean}): Promise<string> => {
-    const {token} = await generateTokens(user as any);
+    const {token} = await generateTokens(user as never);
     if (!token) {
       throw new Error("Failed to generate a token for test user");
     }

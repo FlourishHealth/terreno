@@ -5,6 +5,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Table of Contents
 
 - [Server Setup](#server-setup)
+- [MCP tools](#mcp-tools)
 - [Authentication](#authentication)
 - [Model Schema Conventions](#model-schema-conventions)
 - [Mongoose Plugins](#mongoose-plugins)
@@ -20,6 +21,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
+- `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
@@ -83,6 +85,22 @@ setupServer({
 ``````
 
 Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+
+## MCP tools
+
+Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.
+
+```typescript
+const todoRouter = modelRouter("/todos", Todo, {
+  mcp: {
+    excludeFields: ["ownerId"],
+    methods: ["list", "read", "create", "update", "delete"],
+  },
+  permissions: { /* same as REST */ },
+});
+```
+
+Cross-model tools use `registerMCPTool` (see the example backend's `users_todo_statuses`). How-to: [Expose MCP tools](../how-to/expose-mcp-tools.md). In-process Vercel AI SDK wrappers: `getMCPTools` from `@terreno/ai`.
 
 ## Authentication
 

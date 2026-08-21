@@ -1,9 +1,10 @@
-import {baseUrl, selectBetterAuthUserId} from "@terreno/rtk";
+import {baseUrl, selectBetterAuthUserId, useMCPTools} from "@terreno/rtk";
 import {
   Box,
   GPTChat,
   type GPTChatHistory,
   type GPTChatMessage,
+  type MCPToolDetail,
   type MessageContentPart,
   type SelectedFile,
   Spinner,
@@ -105,6 +106,11 @@ const AiScreen: React.FC = () => {
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery(gptHistoriesListQueryArgs, {
     skip: !userId,
   });
+  const {tools: mcpToolsRaw} = useMCPTools();
+  const mcpTools: MCPToolDetail[] = useMemo(
+    () => mcpToolsRaw.map((t) => ({description: t.description, name: t.name})),
+    [mcpToolsRaw]
+  );
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 
@@ -436,6 +442,7 @@ const AiScreen: React.FC = () => {
       geminiApiKey={geminiApiKey}
       histories={histories}
       isStreaming={isStreaming}
+      mcpTools={mcpTools}
       onAttachFiles={handleAttachFiles}
       onCreateHistory={handleCreateHistory}
       onDeleteHistory={handleDeleteHistory}
