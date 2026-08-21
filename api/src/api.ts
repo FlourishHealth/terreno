@@ -754,7 +754,7 @@ const _buildModelRouter = <T>(
       defaultResponseHandler) as ModelRouterOptions<T>["responseHandler"],
   };
   if (options.mcp) {
-    updateMCPRegistryOptions(model.modelName, options);
+    updateMCPRegistryOptions(model.modelName, options as unknown as ModelRouterOptions<unknown>);
   }
 
   assertNoActionCollisions(model, options);

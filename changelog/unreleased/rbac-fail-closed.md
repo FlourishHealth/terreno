@@ -12,8 +12,9 @@ category: Changed
   target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Mutating admin CRUD for a resource missing
   from statements fails closed.
-- MCP model tools use TerrenoApp-injected RBAC instead of the pre-build legacy
-  permission arrays.
+- MCP model tools use resolved RBAC options (TerrenoApp-injected and the
+  documented `access` + `accessControl` path, including pathless `modelRouter`)
+  instead of the pre-build legacy permission arrays.
 - `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing
   them. Create/list responses always apply the **read** field mask. Per-router `access.scope`
   extra PermissionSets are evaluated on HTTP and realtime reads. Role assignment previews

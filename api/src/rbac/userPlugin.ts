@@ -12,10 +12,7 @@ export interface RbacUserPluginOptions {
   defaultRoles?: string[];
 }
 
-export const rbacUserPlugin = (
-  schema: Schema,
-  options?: RbacUserPluginOptions
-): void => {
+export const rbacUserPlugin = (schema: Schema, options?: RbacUserPluginOptions): void => {
   const defaultRoles = [...(options?.defaultRoles ?? [])];
   schema.add({
     roles: {

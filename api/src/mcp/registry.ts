@@ -38,15 +38,13 @@ export const registerMCPModel = (
  */
 export const updateMCPRegistryOptions = (
   modelName: string,
-  // noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  options: ModelRouterOptions<any>
+  options: ModelRouterOptions<unknown>
 ): void => {
   const existing = mcpRegistry.find((entry) => entry.modelName === modelName);
   if (!existing) {
     return;
   }
-  existing.options = options;
+  existing.options = options as MCPRegistryEntry["options"];
 };
 
 export const registerMCPTool = (tool: MCPCustomTool): void => {

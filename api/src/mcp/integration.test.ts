@@ -6,7 +6,12 @@ import type {User} from "../auth";
 import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
 import {handleCreate, handleDelete, handleList, handleRead, handleUpdate} from "./handlers";
-import {clearMCPRegistry, getMCPRegistry, registerMCPModel, updateMCPRegistryOptions} from "./registry";
+import {
+  clearMCPRegistry,
+  getMCPRegistry,
+  registerMCPModel,
+  updateMCPRegistryOptions,
+} from "./registry";
 import {generateAllTools} from "./toolGenerator";
 import type {MCPRegistryEntry, MCPRequest} from "./types";
 
@@ -1290,11 +1295,7 @@ describe("MCP Integration", () => {
       const doc = await TodoModel.create({ownerId: normalUser._id, title: "Locked"});
       const registered = getMCPRegistry()[0];
       expect(registered).toBeDefined();
-      const result = await handleDelete(
-        registered,
-        {id: doc._id.toString()},
-        asUser(normalUser)
-      );
+      const result = await handleDelete(registered, {id: doc._id.toString()}, asUser(normalUser));
       const parsed = parseResult(result);
 
       expect(parsed.error).toContain("cannot delete");
