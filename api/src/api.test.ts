@@ -2170,6 +2170,35 @@ describe("@terreno/api", () => {
       expect(after?.options.permissions.list).not.toBe(before);
     });
 
+    it("resolves MCP permissions when accessControl is passed to modelRouter", () => {
+      clearMCPRegistry();
+      const accessControl = {
+        can: async (): Promise<{allowed: boolean}> => ({allowed: true}),
+        fieldMask: async (): Promise<{omit: string[]; read: "*"; write: "*"}> => ({
+          omit: [],
+          read: "*",
+          write: "*",
+        }),
+        queryFilter: async (): Promise<Record<string, unknown>> => ({}),
+        statements: {food: ["list", "read", "create", "update", "delete"]},
+      };
+      modelRouter(FoodModel, {
+        access: {resource: "food"},
+        accessControl: accessControl as never,
+        mcp: {methods: ["list"]},
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+      const registered = getMCPRegistry()[0];
+      expect(registered?.options.accessControl).toBe(accessControl);
+      expect(registered?.options.permissions.list).not.toEqual([Permissions.IsAny]);
+    });
+
     it("logs a warning when realtime config is used without the path form", () => {
       const router = modelRouter(FoodModel, {
         permissions: {

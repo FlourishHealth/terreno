@@ -663,13 +663,14 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
-  const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
-  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
-
-  // Register MCP tools if configured
+  // Register MCP before building so _buildModelRouter can replace options
+  // with RBAC-resolved permissions (access+accessControl is not deferred).
   if (options.mcp) {
     registerMCPModel(model, options.mcp, options);
   }
+
+  const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
+  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
 
   if (path !== undefined) {
     // Register for real-time sync if configured
