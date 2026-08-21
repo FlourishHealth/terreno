@@ -10,7 +10,7 @@ import {APIError, ForbiddenError, ValidationError} from "./errors";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {checkPermissions, type PermissionMethod} from "./permissions";
 import {createIsPermitted} from "./rbac/middleware";
-import type {AnyTerrenoAccess} from "./rbac/types";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
 
 // At least two characters: leading letter plus one or more alphanumeric/_/- chars.
 export const ACTION_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]+$/;
@@ -74,20 +74,38 @@ const mapActionToCrudMethod = (scope: ActionScope, httpMethod: "GET" | "POST"): 
   return httpMethod === "GET" ? "list" : "create";
 };
 
+const resolveActionAccess = (
+  action: BaseActionConfig<unknown, unknown, unknown>,
+  scope: ActionScope,
+  routerAccess?: ModelRouterAccessOptions
+): {action: string; resource: string} | undefined => {
+  if (action.access) {
+    return action.access;
+  }
+  if (!routerAccess?.resource) {
+    return undefined;
+  }
+  const crud = mapActionToCrudMethod(scope, action.method);
+  const mapped = routerAccess.actions?.[crud];
+  return {action: mapped ?? crud, resource: routerAccess.resource};
+};
+
 export const runActionPermissions = async <T>(
   action: BaseActionConfig<unknown, unknown, unknown>,
   scope: ActionScope,
   model: Model<T>,
   req: Request,
   doc?: T,
-  accessControl?: AnyTerrenoAccess
+  accessControl?: AnyTerrenoAccess,
+  routerAccess?: ModelRouterAccessOptions
 ): Promise<void> => {
   const method = mapActionToCrudMethod(scope, action.method);
   let permissions = action.permissions;
-  if (action.access && accessControl) {
+  const rbacAccess = resolveActionAccess(action, scope, routerAccess);
+  if (rbacAccess && accessControl) {
     const isPermitted = createIsPermitted({can: accessControl.can});
     const rbacCheck = isPermitted({
-      [action.access.resource]: [action.access.action],
+      [rbacAccess.resource]: [rbacAccess.action],
     }) as PermissionMethod<unknown>;
     permissions = [...(action.permissions ?? []), rbacCheck];
   }
@@ -371,7 +389,15 @@ const buildActionMiddleware = <T>(
 
   const preDocPermissions = async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      await runActionPermissions(action, scope, model, req, undefined, options.accessControl);
+      await runActionPermissions(
+        action,
+        scope,
+        model,
+        req,
+        undefined,
+        options.accessControl,
+        options.access
+      );
       return next();
     } catch (error) {
       return next(error);
@@ -388,7 +414,15 @@ const buildActionMiddleware = <T>(
               options.populatePaths
             );
             (req as Request & {obj?: T}).obj = doc;
-            await runActionPermissions(action, scope, model, req, doc, options.accessControl);
+            await runActionPermissions(
+              action,
+              scope,
+              model,
+              req,
+              doc,
+              options.accessControl,
+              options.access
+            );
             return next();
           } catch (error) {
             return next(error);

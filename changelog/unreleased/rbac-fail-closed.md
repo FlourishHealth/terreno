@@ -28,6 +28,10 @@ category: Changed
   `accessControl` is set.
   Example-backend `backfillAdmins` is dry-run unless `RBAC_BACKFILL_ADMINS=true`.
 - `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing
-  them. Create/list responses always apply the **read** field mask. Per-router `access.scope`
+  them. Actions without `access` inherit the router's `access.resource` and the mapped CRUD
+  verb (`instance` POST → `update`, `collection` POST → `create`). Example todo
+  `bulkComplete` / `markComplete` set `access: {resource: "todo", action: "update"}`
+  so they cannot bypass `todo:update`. Create/list responses always apply the **read** field
+  mask. Per-router `access.scope`
   extra PermissionSets are evaluated on HTTP and realtime reads. Role assignment previews
   invalidate cache after dry-run. Invalid permission sets use a stable `APIError.title`.
