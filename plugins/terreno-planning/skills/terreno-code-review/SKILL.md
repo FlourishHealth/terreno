@@ -1,6 +1,7 @@
 ---
 name: terreno-code-review
 description: Review a branch against repository standards and its originating IP/spec in two independent axes. Use from Pour or when explicitly asked to review implementation changes before PR submission.
+disable-model-invocation: true
 ---
 
 # Terreno code review
