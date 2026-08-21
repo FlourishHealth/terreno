@@ -1290,13 +1290,17 @@ export class AdminApp {
 
       const assertCanWriteUserAdminFlag = async (
         body: Record<string, unknown>,
-        request: express.Request
+        request: express.Request,
+        currentAdmin = false
       ): Promise<void> => {
         if (config.model.modelName !== "User" || !("admin" in body)) {
           return;
         }
         const accessControl = this.options.accessControl;
         if (!accessControl) {
+          return;
+        }
+        if (Boolean(body.admin) === Boolean(currentAdmin)) {
           return;
         }
         const actor = request.user as User | undefined;
@@ -1313,6 +1317,15 @@ export class AdminApp {
             title: "Missing rbac:assignRoles permission",
           });
         }
+      };
+
+      const currentUserAdminFlag = async (request: express.Request): Promise<boolean> => {
+        const id = request.params?.id;
+        if (!id) {
+          return false;
+        }
+        const existing = await config.model.findById(id).select("admin").lean();
+        return Boolean((existing as {admin?: boolean} | null)?.admin);
       };
 
       // noExplicitAny: matches the Model<any> from AdminModelConfig above.
@@ -1343,7 +1356,7 @@ export class AdminApp {
           }
           const record = body as Record<string, unknown>;
           takePendingUserRoles(record, req);
-          await assertCanWriteUserAdminFlag(record, req);
+          await assertCanWriteUserAdminFlag(record, req, await currentUserAdminFlag(req));
           return stripProtectedFromBody(body) as typeof body;
         },
         postCreate: async (value, request) => {
@@ -1405,7 +1418,6 @@ export class AdminApp {
             });
           }
           const rawPatch = body.patch as Record<string, unknown>;
-          await assertCanWriteUserAdminFlag(rawPatch, req);
           const unknownKeys = Object.keys(rawPatch).filter((key) => !allowlist.has(key));
           if (unknownKeys.length > 0) {
             throw new APIError({
@@ -1443,6 +1455,11 @@ export class AdminApp {
                 failures.push({id, title: "Forbidden"});
                 continue;
               }
+              await assertCanWriteUserAdminFlag(
+                rawPatch,
+                req,
+                Boolean((doc as {admin?: boolean}).admin)
+              );
               if (Object.keys(patch).length > 0) {
                 await doc.updateOne({$set: patch});
               }

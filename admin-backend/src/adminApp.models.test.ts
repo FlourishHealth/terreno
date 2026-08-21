@@ -1079,6 +1079,18 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
 
     const afterDenied = await UserModel.findById(target?._id);
     expect(afterDenied?.admin).toBe(false);
+
+    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: false, name: "Kept"}).expect(200);
+    const afterEcho = await UserModel.findById(target?._id);
+    expect(afterEcho?.admin).toBe(false);
+    expect(afterEcho?.name).toBe("Kept");
+
+    const created = await agent
+      .post("/admin/users")
+      .send({admin: false, email: "form-echo-admin@example.com"})
+      .expect(201);
+    expect(created.body.data.admin).toBe(false);
+    expect(await UserModel.findOne({email: "form-echo-admin@example.com"})).toBeTruthy();
   });
 
   it("checks each bulk-patch target document against RBAC scopes", async () => {

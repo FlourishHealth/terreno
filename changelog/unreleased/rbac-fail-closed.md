@@ -7,8 +7,8 @@ category: Changed
   and array mutations apply the same write mask as single-document writes.
 - AdminApp model CRUD requires resource actions in addition to `admin:access`. Self-service
   still cannot write User `admin`/`roles`. Without RBAC, admin CRUD may set `admin`.
-  With RBAC, `roles` go through `RoleManager.assign`, writing `admin` requires
-  `rbac:assignRoles`, and assign/unassign require the actor to already hold the
+  With RBAC, `roles` go through `RoleManager.assign`, changing `admin` requires
+  `rbac:assignRoles` (unchanged echoed values are allowed), and assign/unassign require the actor to already hold the
   target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Mutating admin CRUD for a resource missing
   from statements fails closed.
