@@ -1454,106 +1454,13 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/syncdb@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
-  publish-syncdb-codegen:
-    needs: [check-changes]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: syncdb-codegen
-    steps:
-      - uses: actions/checkout@v6.0.3
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-
-      - name: Validate required secrets
-        run: |
-          missing=()
-          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
-          if [ ${#missing[@]} -ne 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
-            exit 1
-          fi
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Update version
-        run: |
-          VERSION="${{ needs.check-changes.outputs.version }}"
-          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
-
-      - name: Replace catalog and workspace references
-        run: |
-          node -e "
-          const fs = require('fs');
-          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
-          const catalog = rootPkg.catalog || {};
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const version = process.env.VERSION;
-          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
-            if (!pkg[depType]) continue;
-            for (const [key, value] of Object.entries(pkg[depType])) {
-              if (value === 'catalog:') {
-                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
-                pkg[depType][key] = catalog[key];
-              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
-                pkg[depType][key] = version;
-              }
-            }
-          }
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-        env:
-          VERSION: ${{ needs.check-changes.outputs.version }}
-
-      - name: Install dependencies after replacement
-        run: bun install
-
-      - name: Compile workspace dependencies
-        run: node ../.github/scripts/compile-workspace-deps.js
-
-      - name: Compile
-        run: bun run compile
-
-      - name: Run tests
-        run: bun run test
-
-      - name: Publish to npm
-        run: npm publish --tag "${{ needs.check-changes.outputs.npmTag }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Summary
-        run: echo "Published @terreno/syncdb-codegen@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-
   update-version-on-master:
-    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-comms, publish-feature-flags, publish-mcp, publish-syncdb, publish-syncdb-codegen]
+    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-comms, publish-feature-flags, publish-mcp, publish-syncdb]
     # Run if any package was published and this is not a prerelease tag
     if: |
       always() &&
       needs.check-changes.outputs.isPrerelease != 'true' &&
-      (needs.publish-api.result == 'success' || needs.publish-test.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-admin-spa.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-comms.result == 'success' || needs.publish-feature-flags.result == 'success' || needs.publish-mcp.result == 'success' || needs.publish-syncdb.result == 'success' || needs.publish-syncdb-codegen.result == 'success')
+      (needs.publish-api.result == 'success' || needs.publish-test.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-admin-spa.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-comms.result == 'success' || needs.publish-feature-flags.result == 'success' || needs.publish-mcp.result == 'success' || needs.publish-syncdb.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1610,7 +1517,6 @@ jobs:
           update_version feature-flags "${{ needs.publish-feature-flags.result }}"
           update_version mcp-server "${{ needs.publish-mcp.result }}"
           update_version syncdb "${{ needs.publish-syncdb.result }}"
-          update_version syncdb-codegen "${{ needs.publish-syncdb-codegen.result }}"
 
       - name: Commit and push to master
         run: |
@@ -1722,7 +1628,7 @@ jobs:
           fi
 
   notify:
-    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-comms, publish-feature-flags, publish-mcp, publish-syncdb, publish-syncdb-codegen]
+    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-comms, publish-feature-flags, publish-mcp, publish-syncdb]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -1770,7 +1676,6 @@ jobs:
           add_status "@terreno/feature-flags" "${{ needs.publish-feature-flags.result }}"
           add_status "@terreno/mcp" "${{ needs.publish-mcp.result }}"
           add_status "@terreno/syncdb" "${{ needs.publish-syncdb.result }}"
-          add_status "@terreno/syncdb-codegen" "${{ needs.publish-syncdb-codegen.result }}"
           echo "message=$MESSAGE" >> $GITHUB_OUTPUT
 
       - name: Zoom Chat Notification

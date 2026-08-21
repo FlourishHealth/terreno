@@ -39,6 +39,29 @@ Install `expo-sqlite` in the **app**, not only in a library that depends on `@te
 
 React bindings live on the `@terreno/syncdb/react` subpath so the main entry stays importable without react.
 
+## Codegen
+
+`terreno-syncdb-codegen` lives in this package (not a separate npm package). It reads a backend OpenAPI spec and writes typed collection hooks.
+
+```bash
+terreno-syncdb-codegen \
+  --schema http://localhost:4000/openapi.json \
+  --out ./store/syncDbSdk.ts \
+  --config ./syncdb-codegen.json
+```
+
+| Flag | Required | Meaning |
+|------|----------|---------|
+| `--schema` | yes | OpenAPI URL or JSON file |
+| `--out` | yes | Output `.ts` path |
+| `--collections a,b` | no | Allowlist when `x-terreno-sync` exists; otherwise reads GET `/name` (or `/name/`) list schemas. Missing path or missing `data.items` is an error. |
+| `--config` | no | JSON `{overrides: {todos: {retries: false}}}` |
+| `--no-format` | no | Skip biome formatting |
+
+List operations for `modelRouter` collections with `sync: {...}` include `"x-terreno-sync": {collection, scope}` so the CLI can discover them. Generated files call `createCollectionHooks` from `@terreno/syncdb/react` and rename the factory keys to friendly names (`useTodos`, `useTodo`, `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo` for collection `todos`). Do not edit the output; add custom collections in a sibling file with the same factory.
+
+`bun run build:binary` compiles a standalone `dist/terreno-syncdb-codegen` binary.
+
 ## Quick start
 
 ### Backend
@@ -408,7 +431,7 @@ Stream seqs are **not** contiguous from any one client's perspective — permiss
 
 Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), safe under concurrent writes because a doc's seq only ever increases.
 
-## Codegen (`@terreno/syncdb-codegen`)
+## Codegen (`terreno-syncdb-codegen`)
 
 For apps using OpenAPI-backed backends, generate typed collection hooks instead of hand-writing entity interfaces and collection strings:
 
@@ -416,7 +439,7 @@ For apps using OpenAPI-backed backends, generate typed collection hooks instead 
 cd example-frontend && bun run sync-sdk
 ```
 
-This writes `store/syncDbSdk.ts` with `SYNC_COLLECTIONS`, entity types, and hooks (`useTodos`, `useCreateTodo`, …). Sync-enabled list routes must expose `x-terreno-sync` on `/openapi.json` (emitted by `@terreno/api` when `modelRouter` sets `sync`). See `syncdb-codegen/README.md`.
+This writes `store/syncDbSdk.ts` with `SYNC_COLLECTIONS`, entity types, and hooks (`useTodos`, `useCreateTodo`, …). Sync-enabled list routes must expose `x-terreno-sync` on `/openapi.json` (emitted by `@terreno/api` when `modelRouter` sets `sync`).
 
 ## Known limitations
 

@@ -454,12 +454,32 @@ describe("openApi middleware no-op paths", () => {
         },
         sync: {scope: {type: "owner"}},
       },
-      "/todos"
+      "/food"
     );
-    expect(captured?.["x-terreno-sync"]).toEqual({collection: "todos", scope: "owner"});
+    expect(captured?.["x-terreno-sync"]).toEqual({collection: "food", scope: "owner"});
   });
 
-  it("listOpenApiMiddleware omits x-terreno-sync without routePath", () => {
+  it("listOpenApiMiddleware omits x-terreno-sync when sync is not configured", () => {
+    let captured: Record<string, unknown> | undefined;
+    listOpenApiMiddleware(FoodModel as any, {
+      openApi: {
+        path: (spec: Record<string, unknown>) => {
+          captured = spec;
+          return (() => {}) as express.RequestHandler;
+        },
+      } as any,
+      permissions: {
+        create: [Permissions.IsAny],
+        delete: [Permissions.IsAny],
+        list: [Permissions.IsAny],
+        read: [Permissions.IsAny],
+        update: [Permissions.IsAny],
+      },
+    });
+    expect(captured?.["x-terreno-sync"]).toBeUndefined();
+  });
+
+  it("listOpenApiMiddleware falls back to the model collection name without routePath", () => {
     let captured: Record<string, unknown> | undefined;
     listOpenApiMiddleware(FoodModel as any, {
       openApi: {
@@ -477,7 +497,10 @@ describe("openApi middleware no-op paths", () => {
       },
       sync: {scope: {type: "owner"}},
     });
-    expect(captured?.["x-terreno-sync"]).toBeUndefined();
+    expect(captured?.["x-terreno-sync"]).toEqual({
+      collection: FoodModel.collection.collectionName,
+      scope: "owner",
+    });
   });
 
   it("listOpenApiMiddleware maps tenant and custom sync scopes", () => {

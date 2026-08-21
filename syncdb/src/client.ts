@@ -186,7 +186,10 @@ export interface MutateArgs {
   id?: string;
   /** Fields to write (create/update). */
   data?: Record<string, unknown>;
-  /** Per-mutation error-nack budget; omitted → engine default in replay. */
+  /**
+   * Optional error-nack retry budget. `1` fails after a single error nack.
+   * Omitted uses the engine default (`MAX_ERROR_NACK_ATTEMPTS`).
+   */
   maxAttempts?: number;
 }
 
@@ -1563,7 +1566,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       baseVersion: existing?.seq,
       collection,
       entityId,
-      maxAttempts,
+      ...(maxAttempts !== undefined ? {maxAttempts} : {}),
       mutationId,
       operation,
       userId: currentUserId,

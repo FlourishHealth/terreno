@@ -1,4 +1,7 @@
 {
+  "bin": {
+    "terreno-syncdb-codegen": "./src/codegen/cli.ts"
+  },
   "dependencies": {
     "luxon": "catalog:",
     "socket.io-client": "catalog:",
@@ -56,6 +59,7 @@
     "access": "public"
   },
   "scripts": {
+    "build:binary": "bun build --compile src/codegen/cli.ts --outfile dist/terreno-syncdb-codegen",
     "compile": "tsc",
     "compile:watch": "tsc -w",
     "dev": "tsc -w",

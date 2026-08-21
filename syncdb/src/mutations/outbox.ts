@@ -59,12 +59,15 @@ export interface EnqueueArgs {
   args: Record<string, unknown>;
   /** The seq the client last saw for the entity (LWW conflict detection). */
   baseVersion?: number;
+  /**
+   * Optional error-nack retry budget. Missing cell keeps the engine default
+   * (`MAX_ERROR_NACK_ATTEMPTS`). `1` fails after a single error nack.
+   */
+  maxAttempts?: number;
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   /** Optional explicit id (defaults to a generated UUID; useful in tests). */
   mutationId?: string;
-  /** Per-mutation error-nack budget; omitted → engine default in replay. */
-  maxAttempts?: number;
 }
 
 export interface RecoverStartupStateResult {
