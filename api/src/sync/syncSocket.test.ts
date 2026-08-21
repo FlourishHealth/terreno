@@ -997,17 +997,11 @@ describe("emitSyncDeltaForChange", () => {
   });
 
   it("emits a delta when the REST responseHandler serializes a BSON post-image", async () => {
-    clearSyncRegistry();
-    registerSync({
-      config: {scope: {type: "owner"}},
-      model: SockStuffModel as any,
-      options: {
-        ...ownerReadOptions,
-        responseHandler: defaultResponseHandler as never,
-      },
-      routePath: "/sockStuff",
-    });
-    const entry = findSyncEntryByCollectionTag("sockStuff") as SyncRegistryEntry;
+    const entry = ownerEntry();
+    entry.options = {
+      ...ownerReadOptions,
+      responseHandler: defaultResponseHandler as never,
+    };
     const io = makeTrackedIo();
     io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
 
@@ -1022,7 +1016,7 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((emission) => emission.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     expect((deltas[0].payload as SyncDelta).data as {name?: string}).toMatchObject({
       name: "from-change-stream",
