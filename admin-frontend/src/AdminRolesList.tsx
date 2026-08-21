@@ -257,6 +257,8 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
                     const isSelected = form.permissions[resource]?.includes(action) ?? false;
                     return (
                       <Box
+                        accessibilityHint={`Toggles the ${action} permission for ${resource}`}
+                        accessibilityLabel={`${resource} ${action}`}
                         alignItems="center"
                         direction="row"
                         gap={1}
