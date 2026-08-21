@@ -41,7 +41,8 @@ Minimum tree for a Terreno plan:
 2. In / out of scope
 3. Public seam for the tracer bullet (route, model, hook, CLI, screen)
 4. Packages touched
-5. Test seam and double style (see Pick `references/mocking.md` — inject at boundaries)
+5. Test seam and double style (see Pick
+   [`references/mocking.md`](../terreno-2-pick/references/mocking.md) — inject at boundaries)
 6. Auth, permissions, sync vs OpenAPI, if relevant
 7. Rollout / flags / breaking changes, if relevant
 8. Tracker (Linear / none). Never invent a Linear issue.
@@ -89,7 +90,7 @@ No restating the full IP.
 | Tests | <file or seam → fake/fixture> |
 
 Decisions: <Q#=choice, Q#=choice>
-Confirm by reading the table. Next: invoke Pick on the frontier tasks.
+Confirm by reading the table. Next: invoke Pick (`terreno-2-pick`) on the frontier tasks.
 ```
 
 Hard cap: **15 lines**. If a cell needs a paragraph, the IP is the paragraph; the table

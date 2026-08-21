@@ -72,3 +72,9 @@ For UI-facing changes, manual verification with login + feature exercise is **ma
 - Requirement-by-requirement outcome.
 - Evidence references.
 - Open defects/gaps (if any) with severity.
+
+## Handoff
+
+When every requirement passes and evidence is ready, invoke **Brew**
+(`terreno-4-brew`) to run pre-submit checks, review the branch, and open or update the
+draft PR.

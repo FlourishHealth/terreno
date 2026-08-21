@@ -1,7 +1,7 @@
 ---
 description: "Mandatory frontend feature verification — launch app, login, exercise feature, capture evidence, attach to PR"
 globs: ["ui/**", "demo/**", "example-frontend/**", "admin-frontend/**", "admin-spa/**", "rtk/**"]
-targets: ["cursor", "devin", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 ---
 
 # Frontend Feature Verification (Mandatory)
