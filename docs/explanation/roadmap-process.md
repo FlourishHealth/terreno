@@ -248,11 +248,11 @@ you invoke them explicitly.
 | `roadmap-promote` | Maintainers accepted an Ideas or RFC discussion and it needs a tracked issue that links back to the thread |
 | `roadmap-item` | An approved IP needs its public tracking issue, or an existing entry's scope changed |
 | `roadmap-review` | Recurring hygiene: status drift, stale items, untriaged backlog, promotion candidates, then regenerate `ROADMAP.md` |
-| `roadmap-wayfinder` | A destination is too large or uncertain for one IP/context and needs a map, a small unblocked frontier, and repeated Grow → Taste delivery loops |
+| `roadmap-frontier` | A destination is too large or uncertain for one IP/context and needs a map, a small unblocked frontier, and repeated Grow → Taste delivery loops |
 
-### Huge features: wayfinder maps
+### Huge features: frontier maps
 
-A wayfinder map is one low-resolution roadmap issue with an observable destination,
+A frontier map is one low-resolution roadmap issue with an observable destination,
 resolved-decision index, current frontier, fog, and explicit out-of-scope boundary. Child
 tickets hold the detail and native blocking relationships. Work only the **frontier**:
 open, unblocked, unclaimed tickets.

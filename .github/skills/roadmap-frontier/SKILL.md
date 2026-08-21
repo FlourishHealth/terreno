@@ -1,11 +1,11 @@
 ---
-name: roadmap-wayfinder
-description: Chart and execute a feature too large for one agent context as a roadmap map with a small unblocked frontier, explicit decision tickets, and tracer-bullet delivery loops.
-disable-model-invocation: true
-targets: ['*']
+name: roadmap-frontier
+description: >-
+  Chart and execute a feature too large for one agent context as a roadmap map
+  with a small unblocked frontier, explicit decision tickets, and tracer-bullet
+  delivery loops.
 ---
-
-# Roadmap wayfinder
+# Roadmap frontier
 
 Use for a destination too large or uncertain for one IP and one agent context. The map keeps a low-resolution route; linked tickets hold each decision or delivery slice.
 
@@ -55,7 +55,7 @@ Research or prototype only enough to make the decision. Record the resolution on
 Run one complete pipeline loop:
 
 1. **Grow**: approve the slice IP and dependency-aware task list.
-2. **Roast**: implement vertical slices with red → green Bun tests.
+2. **Pick**: implement vertical slices with red → green Bun tests.
 3. **Roast**: independently verify the IP with evidence.
 4. **Brew**: run full agent-quiet tests, docs gate, and code review; open/update the draft PR.
 5. **Taste**: finish CI and review.
