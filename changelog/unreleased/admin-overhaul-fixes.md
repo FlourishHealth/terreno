@@ -11,3 +11,5 @@ category: Fixed
 - AI Request Explorer multi-type filters use `$in` instead of dropping the filter.
 - Admin list search (`q`) is a case-insensitive partial match across `searchFields`.
 - The filter drawer can clear all filters and disables Apply when the draft is unchanged.
+- Admin config `name` is unique when the same Mongoose model is mounted at more than one
+  `routePath`, and list search/bulk-patch metadata is looked up by path.

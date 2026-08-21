@@ -31,6 +31,7 @@ import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
+import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
 import {
   ADMIN_LIST_SEARCH_PARAM,
   andMongoFilters,
@@ -597,7 +598,14 @@ export class AdminApp {
     };
 
     // Build config response with field metadata from Mongoose schemas
-    const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
+    const configNames = assignUniqueAdminConfigNames(
+      modelConfigs.map((config) => ({
+        modelName: config.model.modelName,
+        routePath: config.routePath,
+        source: config.source,
+      }))
+    );
+    const configModels: AdminModelMeta[] = modelConfigs.map((config, configIndex) => {
       const {properties, required} = getOpenApiSpecForModel(config.model) as {
         properties: Record<string, OpenApiProperty>;
         required: string[];
@@ -691,7 +699,7 @@ export class AdminApp {
         listDisplay,
         listDisplayLinks: config.listDisplayLinks ?? [],
         listFields,
-        name: config.model.modelName,
+        name: configNames[configIndex] ?? config.model.modelName,
         pageSize: config.pageSize,
         permissions: {
           create: config.permissions?.create !== false,
@@ -960,7 +968,10 @@ export class AdminApp {
       // not the OpenAPI type (which reports ObjectId as "string")
       const searchableFields: string[] = [];
       const objectIdFields: string[] = [];
-      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const modelMeta = findAdminModelMetaByRoutePath(
+        configModels,
+        `${basePath}${config.routePath}`
+      );
       if (modelMeta) {
         for (const key of Object.keys(modelMeta.fields)) {
           const schemaPath = config.model.schema.path(key);
@@ -1046,7 +1057,10 @@ export class AdminApp {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const readonlySet = new Set(config.readonlyFields ?? []);
       const excludeFieldSet = new Set(config.excludeFields ?? []);
-      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const modelMeta = findAdminModelMetaByRoutePath(
+        configModels,
+        `${basePath}${config.routePath}`
+      );
       const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
 
       const adminPermission = (allowed: boolean | undefined): (typeof Permissions.IsAdmin)[] => {

@@ -168,6 +168,40 @@ describe("AdminApp /admin/config", () => {
     ]);
     const foods = res.body.models.find((m: {routePath: string}) => m.routePath === "/admin/foods");
     expect(foods?.displayName).toBe("Registered Foods");
+    expect(foods?.name).toBe("Food");
+    const flags = res.body.models.find(
+      (m: {routePath: string}) => m.routePath === "/admin/feature-flags"
+    );
+    expect(flags?.name).toBe("Food-feature-flags");
+  });
+
+  it("gives each mounted path unique config names and per-path searchFields", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        searchFields: ["name"],
+      },
+      {
+        displayName: "Archived Foods",
+        listFields: ["name", "calories"],
+        model: FoodModel,
+        routePath: "/archived-foods",
+        searchFields: [],
+      },
+    ]);
+    await FoodModel.create({calories: 100, name: "GreenApple"});
+    await FoodModel.create({calories: 2, name: "Banana"});
+    const agent = await authAsUser(localApp, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    const names = config.body.models.map((m: {name: string}) => m.name).sort();
+    expect(names).toEqual(["Food", "Food-archived-foods"]);
+
+    const byName = await agent.get("/admin/foods?q=apple").expect(200);
+    expect(byName.body.data).toHaveLength(1);
+    expect(byName.body.data[0].name).toBe("GreenApple");
+
+    const archivedIgnoresNameSearch = await agent.get("/admin/archived-foods?q=apple").expect(200);
+    expect(archivedIgnoresNameSearch.body.data).toHaveLength(2);
   });
 
   it("includes recordTitleField in config when set on the model", async () => {
