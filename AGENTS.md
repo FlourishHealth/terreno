@@ -31,7 +31,8 @@ bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
-bun run test             # Run tests in api and ui
+bun run test             # Run all workspace test suites
+bun run test:agent       # Run all tests with passing cases suppressed
 ```
 
 - **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
@@ -130,7 +131,9 @@ bun run frontend:web
 - Use multiline syntax with curly braces for all conditionals
 
 ### Testing
-- Use bun test with expect for testing
+- Use Bun for tests.
+- Agents should use `bun run test:agent` for the full suite. It preserves failures and the final summary while suppressing passing test cases.
+- Use the closest package or file-level `bun test --only-failures <path>` command during red/green cycles.
 
 ### Logging
 - Frontend: Use `console.info`, `console.debug`, `console.warn`, or `console.error` for permanent logs
