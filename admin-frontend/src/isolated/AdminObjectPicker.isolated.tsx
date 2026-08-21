@@ -4,7 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
-import {AdminObjectPicker} from "../AdminObjectPicker";
+import {AdminObjectPicker as BaseAdminObjectPicker} from "../AdminObjectPicker";
 import type {AdminApi} from "../types";
 
 interface ApiState {
@@ -18,6 +18,11 @@ const apiState: ApiState = {
   searchData: undefined,
   selectedItem: undefined,
 };
+
+// This suite exercises the search-as-you-type contract explicitly.
+const AdminObjectPicker: React.FC<React.ComponentProps<typeof BaseAdminObjectPicker>> = (
+  props
+): React.ReactElement => <BaseAdminObjectPicker {...props} autocomplete />;
 
 const querySpecs: unknown[] = [];
 const makeApi = () => ({
