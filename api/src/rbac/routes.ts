@@ -1,7 +1,7 @@
 import express from "express";
 
 import {asyncHandler} from "../api";
-import {authenticateMiddleware, type UserModel} from "../auth";
+import {authenticateMiddleware, type User, type UserModel} from "../auth";
 import {APIError} from "../errors";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {createRbacAuditModel} from "./auditModel";
@@ -196,7 +196,9 @@ export const rbacRouter = ({
           if (!Array.isArray(req.body.roleNames)) {
             throw new APIError({status: 400, title: "roleNames is required"});
           }
+          const actor = req.user as User;
           const diff = await access.roles.previewAssignment({
+            actor,
             roleNames: req.body.roleNames,
             userId: req.params.id,
           });

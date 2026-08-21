@@ -31,7 +31,9 @@ category: Changed
   them. Actions without `access` inherit the router's `access.resource` and the mapped CRUD
   verb (`instance` POST → `update`, `collection` POST → `create`). Example todo
   `bulkComplete` / `markComplete` set `access: {resource: "todo", action: "update"}`
-  so they cannot bypass `todo:update`. The admin role editor keeps Create/Save in the
+  so they cannot bypass `todo:update`. Empty action permissions and inherited CRUD actions
+  mapped to `null` remain disabled. Assignment previews use uncached permission resolution
+  and reject role permissions the actor does not already hold. The admin role editor keeps Create/Save in the
   modal footer and scrolls the permission grid so a larger statement vocabulary cannot
   hide the save control. Create/list responses always apply the **read** field
   mask. Per-router `access.scope`

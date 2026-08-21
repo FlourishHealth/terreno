@@ -287,7 +287,9 @@ describe("roleManager", () => {
     await access.roles.seedDefaults();
 
     const target = await UserModel.create({email: "preview@example.com", roles: ["reader"]});
+    const actor = createTestUser({roles: ["superadmin"]});
     const assignmentPreview = await access.roles.previewAssignment({
+      actor,
       roleNames: ["reader", "writer"],
       userId: target.id,
     });
@@ -300,6 +302,38 @@ describe("roleManager", () => {
     });
     expect(rolePreview.gained.todo).toEqual(expect.arrayContaining(["list"]));
     expect(rolePreview.affectedUserCount).toBe(0);
+  });
+
+  it("rejects previewing roles whose permissions the actor does not hold", async () => {
+    await setupDb();
+    const UserModel = getRbacTestUserModel();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Assigner",
+          name: "assigner",
+          permissions: {rbac: ["assignRoles"], todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+      userModel: UserModel as unknown as UserModel,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["assigner"]});
+    const target = await UserModel.create({email: "preview-escalation@example.com", roles: []});
+
+    await expect(
+      access.roles.previewAssignment({
+        actor,
+        roleNames: ["superadmin"],
+        userId: target.id,
+      })
+    ).rejects.toMatchObject({
+      status: 403,
+      title: "Cannot grant permissions you do not hold",
+    });
   });
 
   it("rejects role management without manageRoles permission", async () => {
@@ -417,7 +451,9 @@ describe("roleManager", () => {
     await access.roles.seedDefaults();
 
     const target = await UserModel.create({email: "cache-preview@example.com", roles: ["reader"]});
+    const actor = createTestUser({roles: ["superadmin"]});
     await access.roles.previewAssignment({
+      actor,
       roleNames: ["reader", "writer"],
       userId: target.id,
     });
@@ -524,7 +560,7 @@ describe("roleManager", () => {
     );
 
     await expect(
-      access.roles.previewAssignment({roleNames: ["member"], userId})
+      access.roles.previewAssignment({actor, roleNames: ["member"], userId})
     ).rejects.toMatchObject({status: 500, title: "User model not configured for role assignment"});
   });
 

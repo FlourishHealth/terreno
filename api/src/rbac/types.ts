@@ -90,7 +90,11 @@ export interface RoleManager {
   unassign: (args: {actor: User; userId: string; roleNames: string[]}) => Promise<void>;
   assertCanModifyUser: (args: {actor: User; userId: string}) => Promise<void>;
   previewRoleChange: (args: {roleName: string; permissions: PermissionSet}) => Promise<RoleDiff>;
-  previewAssignment: (args: {userId: string; roleNames: string[]}) => Promise<UserPermissionDiff>;
+  previewAssignment: (args: {
+    actor: User;
+    userId: string;
+    roleNames: string[];
+  }) => Promise<UserPermissionDiff>;
 }
 
 export type StaleOnFailurePolicy = "deny" | "use-stale" | "use-stale-bounded";

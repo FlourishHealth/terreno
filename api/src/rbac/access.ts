@@ -42,6 +42,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
     connection: options.connection,
     defaultRoles: options.defaultRoles,
     getActorPermissions: (user) => resolver.resolvePermissionsForUser(user),
+    getPreviewPermissions: (user) => resolver.resolvePermissionsForUserUncached(user),
     invalidateCache: resolver.invalidateCache,
     statements: mergedStatements,
     userModel: options.userModel,

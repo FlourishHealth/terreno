@@ -78,7 +78,7 @@ const resolveActionAccess = (
   action: BaseActionConfig<unknown, unknown, unknown>,
   scope: ActionScope,
   routerAccess?: ModelRouterAccessOptions
-): {action: string; resource: string} | undefined => {
+): {action: string; resource: string} | null | undefined => {
   if (action.access) {
     return action.access;
   }
@@ -87,6 +87,9 @@ const resolveActionAccess = (
   }
   const crud = mapActionToCrudMethod(scope, action.method);
   const mapped = routerAccess.actions?.[crud];
+  if (mapped === null) {
+    return null;
+  }
   return {action: mapped ?? crud, resource: routerAccess.resource};
 };
 
@@ -102,7 +105,9 @@ export const runActionPermissions = async <T>(
   const method = mapActionToCrudMethod(scope, action.method);
   let permissions = action.permissions;
   const rbacAccess = resolveActionAccess(action, scope, routerAccess);
-  if (rbacAccess && accessControl) {
+  if (rbacAccess === null || permissions?.length === 0) {
+    permissions = [];
+  } else if (rbacAccess && accessControl) {
     const isPermitted = createIsPermitted({can: accessControl.can});
     const rbacCheck = isPermitted({
       [rbacAccess.resource]: [rbacAccess.action],

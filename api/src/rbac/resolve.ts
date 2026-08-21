@@ -113,8 +113,21 @@ export const createPermissionResolver = <S extends Statements>(args: {
 
   const fetchSourceGrants = async (
     user: User,
-    source: PermissionSource
+    source: PermissionSource,
+    shouldCache = true
   ): Promise<PermissionSourceGrants | null> => {
+    if (!shouldCache) {
+      try {
+        return await source.getGrants({user});
+      } catch (error) {
+        logger.warn("Permission source refresh failed during uncached resolution", {
+          error: error instanceof Error ? error.message : String(error),
+          source: source.name,
+        });
+        return null;
+      }
+    }
+
     const userSources = sourceCache.get(user.id) ?? new Map<string, SourceCacheEntry>();
     sourceCache.delete(user.id);
     sourceCache.set(user.id, userSources);
@@ -155,11 +168,16 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
   };
 
-  const resolvePermissionsForUser = async (user: User): Promise<PermissionSet> => {
-    const cached = permissionCache.get(user.id);
-    if (cached && cached.expiresAt > Date.now()) {
-      rememberPermissions(user.id, cached);
-      return cached.permissions;
+  const resolveEffectivePermissions = async (
+    user: User,
+    shouldCache: boolean
+  ): Promise<PermissionSet> => {
+    if (shouldCache) {
+      const cached = permissionCache.get(user.id);
+      if (cached && cached.expiresAt > Date.now()) {
+        rememberPermissions(user.id, cached);
+        return cached.permissions;
+      }
     }
 
     const roleNames = [...getUserRoles(user)];
@@ -167,7 +185,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     const sourceResults = new Map<string, PermissionSourceGrants | null>();
 
     for (const source of sources) {
-      const grants = await fetchSourceGrants(user, source);
+      const grants = await fetchSourceGrants(user, source, shouldCache);
       sourceResults.set(source.name, grants);
       if (!grants) {
         continue;
@@ -199,12 +217,22 @@ export const createPermissionResolver = <S extends Statements>(args: {
       }
     }
 
-    rememberPermissions(user.id, {
-      expiresAt: Date.now() + cacheTtlMs,
-      permissions,
-    });
+    if (shouldCache) {
+      rememberPermissions(user.id, {
+        expiresAt: Date.now() + cacheTtlMs,
+        permissions,
+      });
+    }
 
     return permissions;
+  };
+
+  const resolvePermissionsForUser = async (user: User): Promise<PermissionSet> => {
+    return resolveEffectivePermissions(user, true);
+  };
+
+  const resolvePermissionsForUserUncached = async (user: User): Promise<PermissionSet> => {
+    return resolveEffectivePermissions(user, false);
   };
 
   const authorizePermissions = (
@@ -220,5 +248,6 @@ export const createPermissionResolver = <S extends Statements>(args: {
     authorizePermissions,
     invalidateCache,
     resolvePermissionsForUser,
+    resolvePermissionsForUserUncached,
   };
 };

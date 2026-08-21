@@ -920,5 +920,71 @@ describe("modelRouter actions", () => {
         )
       ).rejects.toMatchObject({status: 405, title: "Access denied"});
     });
+
+    it("keeps empty action permissions disabled when inheriting router access", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const superadmin = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["superadmin"],
+      };
+      const req = {params: {}, user: superadmin} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {method: "POST", permissions: []},
+          "instance",
+          FoodModel,
+          req,
+          undefined,
+          access,
+          {resource: "todo"}
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
+    });
+
+    it("keeps actions disabled when the inherited CRUD action maps to null", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const superadmin = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["superadmin"],
+      };
+      const req = {params: {}, user: superadmin} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {method: "POST", permissions: [Permissions.IsAny]},
+          "instance",
+          FoodModel,
+          req,
+          undefined,
+          access,
+          {actions: {update: null}, resource: "todo"}
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
+    });
   });
 });

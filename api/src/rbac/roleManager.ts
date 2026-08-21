@@ -95,6 +95,7 @@ export const createRoleManager = (args: {
   statements: Statements;
   defaultRoles?: RoleDefinition[];
   getActorPermissions: (user: User) => Promise<PermissionSet>;
+  getPreviewPermissions: (user: User) => Promise<PermissionSet>;
   invalidateCache: (invalidateArgs?: {userId?: string}) => void;
   userModel?: UserModel;
 }): {roleManager: RoleManager} => {
@@ -103,6 +104,7 @@ export const createRoleManager = (args: {
     statements,
     defaultRoles = terrenoDefaultRoles,
     getActorPermissions,
+    getPreviewPermissions,
     invalidateCache,
     userModel,
   } = args;
@@ -185,7 +187,8 @@ export const createRoleManager = (args: {
       return created;
     },
     list: async () => rbacRoleModel.find({}).sort({name: 1}),
-    previewAssignment: async ({userId, roleNames}) => {
+    previewAssignment: async ({actor, userId, roleNames}) => {
+      await assertCanAssignRoles(actor, getActorPermissions);
       if (!userModel) {
         throw new APIError({status: 500, title: "User model not configured for role assignment"});
       }
@@ -194,6 +197,13 @@ export const createRoleManager = (args: {
       if (!targetUser) {
         throw new APIError({status: 404, title: "User not found"});
       }
+      await assertCanModifyTargetUser(actor, targetUser, getActorPermissions);
+      const uniqueRoleNames = [...new Set(roleNames)];
+      for (const roleName of uniqueRoleNames) {
+        const role = await rbacRoleModel.findExactlyOne({name: roleName});
+        await assertNoEscalation(actor, role.permissions ?? {}, getActorPermissions);
+      }
+
       const before = await getActorPermissions(targetUser);
       const previewUser = {
         ...(typeof (targetUser as {toObject?: () => Record<string, unknown>}).toObject ===
@@ -201,19 +211,14 @@ export const createRoleManager = (args: {
           ? (targetUser as {toObject: () => Record<string, unknown>}).toObject()
           : targetUser),
         id: targetUser.id,
-        roles: [...new Set(roleNames)],
+        roles: uniqueRoleNames,
       } as unknown as User;
-      invalidateCache({userId});
-      try {
-        const after = await getActorPermissions(previewUser);
-        const diff = diffPermissionSets(before, after);
-        return {
-          ...diff,
-          resulting: after,
-        };
-      } finally {
-        invalidateCache({userId});
-      }
+      const after = await getPreviewPermissions(previewUser);
+      const diff = diffPermissionSets(before, after);
+      return {
+        ...diff,
+        resulting: after,
+      };
     },
     previewRoleChange: async ({roleName, permissions}) => {
       const existing = await rbacRoleModel.findExactlyOne({name: roleName});
