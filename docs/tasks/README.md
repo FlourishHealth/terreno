@@ -1,13 +1,16 @@
 # Task lists
 
-Bot-consumable execution checklists, one per implementation plan (IP). A task file is
-the second half of the pair described in
-[`docs/implementationPlans/README.md`](../implementationPlans/README.md):
+Bot-consumable execution checklists. Most files pair with an implementation plan (IP)
+as described in [`docs/implementationPlans/README.md`](../implementationPlans/README.md):
 
 - **IP** (`docs/implementationPlans/<slug>.md`) — the design: what and why.
 - **Task list** (`docs/tasks/<slug>.md`) — the steps: the concrete, ordered work.
 
 The filename slug matches the IP it belongs to.
+
+**Grind** writes a task file with `**Grind:** true` and no IP. The destination, tracer,
+and test seam live in that file's header so a fresh sub-agent can implement one task
+without a design doc.
 
 ## Task shape
 

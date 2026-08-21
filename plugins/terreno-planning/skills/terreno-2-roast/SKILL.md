@@ -1,16 +1,17 @@
 ---
 name: terreno-2-roast
-description: Implement an approved IP in code via strict TDD with independent review checkpoints and drift detection. Use ONLY when an approved IP exists — not for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
+description: Implement an approved IP or Grind task in code via strict TDD with independent review checkpoints and drift detection. Use ONLY when an approved IP or Grind task file exists — not for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
 ---
 
 # Roast
 
-Implement from an IP using strict vertical-slice TDD, with independent review checkpoints and drift detection at every commit. Load [`references/testing.md`](references/testing.md) before choosing test seams and [`references/mocking.md`](references/mocking.md) whenever a test double is considered.
+Implement from an IP (or a Grind task file) using strict vertical-slice TDD, with independent review checkpoints and drift detection at every commit. Load [`references/testing.md`](references/testing.md) before choosing test seams and [`references/mocking.md`](references/mocking.md) whenever a test double is considered.
 
 ## Preconditions
 
-- An approved IP/spec exists.
+- An approved IP exists, **or** a Grind task file (`docs/tasks/<slug>.md` with `**Grind:** true`) exists.
 - Scope is implementation, not planning or PR operations.
+- Grind sub-agents implement **one task id** per spawn. The parent Grind agent owns dispatch.
 
 ## Execution Model
 

@@ -75,7 +75,7 @@ Fix every material finding in the implementation context, rerun affected checks 
 
 - Reuse existing PR if present; otherwise create draft PR.
 - Read and apply [`.github/PULL_REQUEST_TEMPLATE.md`](../../../../.github/PULL_REQUEST_TEMPLATE.md) — GitHub pre-fills it on web PRs; match the same sections when using `gh pr create` or the PR management tool:
-  - **Summary**, **Related IP or issue** (link IP or `#issue`), **Type of change** (checkboxes), **Testing performed**, **Checklist** (lint, compile, tests, docs, changelog, DCO).
+  - **Summary**, **Related IP or issue** (link IP, Grind task file, or `#issue`), **Type of change** (checkboxes), **Testing performed**, **Checklist** (lint, compile, tests, docs, changelog, DCO).
 - Under **Testing performed**, record `bun run test:agent` and its pass/fail summary.
 - Under **Checklist**, mark docs complete only after Step 1 identifies the updated files or records why documentation is not applicable.
 - Keep PR title/body accurate and concise.

@@ -36,13 +36,25 @@ Substantial work is planned before coding. Quick rule (full table in
 
 ## How a plan gets written and built
 
-The [`terreno-planning` plugin](../../plugins/README.md) drives the pipeline:
+The [`terreno-planning` plugin](../../plugins/README.md) drives the pipeline.
 
-1. **Blend** (`terreno-1-blend`) — write the IP + dependency-aware tracer-bullet task list, questions first.
-2. **Roast** (`terreno-2-roast`) — implement via TDD from the approved IP.
-3. **Cupping** (`terreno-3-cupping`) — independently verify against the IP.
+**Blend** interviews in grilling rounds (one frontier of decisions per message, recommended
+answers, then wait). After the user confirms shared understanding it writes the two files
+and ends with a **15-line verify table** — destination, in/out, tracer, task graph, test
+seam — so a human can check the plan without rereading the IP.
+
+**Grind** (`terreno-grind`) is the short path for one feature: research, grill, task file
+only (`**Grind:** true`), then one fresh TDD sub-agent per task. Escalate to Blend when
+the slice is actually an IP (new public API, cross-package, breaking).
+
+1. **Blend** (`terreno-1-blend`) — grill, then write the IP + tracer-bullet task list; end with the 15-line verify table.
+2. **Roast** (`terreno-2-roast`) — implement via TDD from the approved IP (or one Grind task).
+3. **Cupping** (`terreno-3-cupping`) — independently verify against the IP (skip on Grind unless asked).
 4. **Pour** (`terreno-4-pour`) — commit, push, open the PR.
 5. **Dial In** (`terreno-5-dialin`) — drive CI and review until mergeable.
+
+**Grind** (`terreno-grind`) replaces steps 1–3 for a single feature: grill, task file only,
+one TDD sub-agent per task, then Pour.
 
 You can also author an IP directly with the `ip` skill; both produce the same two files.
 
