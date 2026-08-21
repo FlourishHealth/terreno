@@ -15,4 +15,6 @@ TypeScript SDK v2 (`2026-07-28`) with a how-to guide and structured tool-call
 logs. Lifecycle hooks and REST `responseHandler` receive a stub Express-shaped
 request from `createMCPRequest` (authenticated user, tool args as `body`, empty
 `headers`/`query`/`params`, `isMCPRequest: true`) rather than forwarded HTTP
-headers.
+headers. `registerMCPTool` adds custom tools alongside modelRouter CRUD. The
+example backend exposes `users_todo_statuses` (admin-only: every user and their
+todo completed flags).

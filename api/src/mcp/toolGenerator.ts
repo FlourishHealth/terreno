@@ -11,6 +11,7 @@ import {
   handleRead,
   handleUpdate,
 } from "./handlers";
+import {getMCPCustomTools, getMCPRegistry} from "./registry";
 import {
   generateInputSchema,
   generateToolDescription,
@@ -181,4 +182,18 @@ export const generateAllTools = (entries: MCPRegistryEntry[]): MCPToolDefinition
     tools.push(...generateToolsForEntry(entry));
   }
   return tools;
+};
+
+/** Model-router tools plus any custom tools registered with `registerMCPTool`. */
+export const getAllMCPTools = (): MCPToolDefinition[] => {
+  const customTools: MCPToolDefinition[] = getMCPCustomTools().map((tool) => {
+    return {
+      description: tool.description,
+      handler: tool.handler,
+      inputSchema: toJSONSchema(tool.zodSchema) as MCPToolInputSchema,
+      name: tool.name,
+      zodSchema: tool.zodSchema,
+    };
+  });
+  return [...generateAllTools(getMCPRegistry()), ...customTools];
 };

@@ -1,4 +1,4 @@
-import {generateAllTools, getMCPRegistry, type User} from "@terreno/api";
+import {getAllMCPTools, type User} from "@terreno/api";
 import {type Tool, tool} from "ai";
 
 /**
@@ -6,7 +6,7 @@ import {type Tool, tool} from "ai";
  * Pass the authenticated user so tool handlers can enforce permissions.
  */
 export const getMCPTools = (user?: User): Record<string, Tool> => {
-  const toolDefs = generateAllTools(getMCPRegistry());
+  const toolDefs = getAllMCPTools();
   const result: Record<string, Tool> = {};
 
   for (const toolDef of toolDefs) {

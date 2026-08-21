@@ -165,3 +165,30 @@ Unexpected exceptions and caught internal causes are also captured with
 `Sentry.captureException`, preserving their original stack. The client still
 receives the stable MCP error text — internal exceptions and stack traces stay
 server-side. Tool arguments are not logged.
+
+## Custom tools
+
+CRUD tools cover one model at a time. For a query that spans models, register a custom tool with `registerMCPTool`. It shows up on `POST /mcp` and in `getMCPTools` next to the generated CRUD tools:
+
+```typescript
+import {registerMCPTool} from "@terreno/api";
+import {z} from "zod";
+
+registerMCPTool({
+  name: "users_todo_statuses",
+  description: "List every user with each of their todos and completed status. Admin only.",
+  zodSchema: z.object({}).strict(),
+  handler: async (_args, user) => {
+    if (!user?.admin) {
+      return {
+        content: [{type: "text", text: JSON.stringify({error: "Permission denied: admin required"})}],
+        isError: true,
+      };
+    }
+    // load users + todos and return JSON text
+    return {content: [{type: "text", text: JSON.stringify({users: []})}]};
+  },
+});
+```
+
+The example backend registers this as `users_todo_statuses` from `example-backend/src/api/usersTodoStatus.ts`.

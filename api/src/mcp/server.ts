@@ -7,8 +7,7 @@ import type {BetterAuthInstance} from "../betterAuthSetup";
 import {logger} from "../logger";
 import {setRequestContext} from "../requestContext";
 import {extractUserFromHeaders, type MCPAuthContext} from "./auth";
-import {getMCPRegistry} from "./registry";
-import {generateAllTools, type MCPToolDefinition} from "./toolGenerator";
+import {getAllMCPTools, type MCPToolDefinition} from "./toolGenerator";
 
 export interface MCPServerOptions {
   userModel: UserModel;
@@ -16,12 +15,10 @@ export interface MCPServerOptions {
 }
 
 export const mountMCPServer = (app: Application, options: MCPServerOptions): void => {
-  const registry = getMCPRegistry();
-  if (registry.length === 0) {
+  const tools = getAllMCPTools();
+  if (tools.length === 0) {
     return;
   }
-
-  const tools = generateAllTools(registry);
   const authContext: MCPAuthContext = {
     betterAuth: options.betterAuth,
     userModel: options.userModel,

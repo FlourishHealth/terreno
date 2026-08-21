@@ -17,7 +17,6 @@ import {
 import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
-import {getMCPRegistry} from "./mcp/registry";
 import {mountMCPServer} from "./mcp/server";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
@@ -419,20 +418,16 @@ export class TerrenoApp {
       }
     }
 
-    // Mount MCP server if any models have mcp config
-    if (getMCPRegistry().length > 0) {
-      // Find Better Auth instance from registered plugins if available. MCP falls back to
-      // JWT when no Better Auth plugin is registered (see extractUserFromHeaders).
-      const betterAuthPlugin = this.registrations.find(
-        (registration) =>
-          "getAuth" in registration &&
-          typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
-      ) as BetterAuthProvider | undefined;
-      mountMCPServer(app, {
-        betterAuth: betterAuthPlugin?.getAuth(),
-        userModel: options.userModel,
-      });
-    }
+    // Mount MCP at POST /mcp when any model opted in or a custom tool was registered.
+    const betterAuthPlugin = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    mountMCPServer(app, {
+      betterAuth: betterAuthPlugin?.getAuth(),
+      userModel: options.userModel,
+    });
 
     if (options.configureApp) {
       options.configureApp(app, {openApi: oapi});
