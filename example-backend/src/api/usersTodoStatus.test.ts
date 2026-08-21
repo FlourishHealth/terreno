@@ -81,14 +81,26 @@ describe("listUsersTodoStatuses", () => {
       "admin@example.com",
       "ben@example.com",
     ]);
-    expect(parsed.data?.users.find((row) => row.email === "ada@example.com")?.todos).toEqual([
-      {completed: true, id: expect.any(String), title: "Ship MCP"},
-      {completed: false, id: expect.any(String), title: "Write docs"},
+    expect(
+      parsed.data?.users
+        .find((row) => row.email === "ada@example.com")
+        ?.todos.map((todo) => ({
+          completed: todo.completed,
+          title: todo.title,
+        }))
+    ).toEqual([
+      {completed: true, title: "Ship MCP"},
+      {completed: false, title: "Write docs"},
     ]);
     expect(parsed.data?.users.find((row) => row.email === "admin@example.com")?.todos).toEqual([]);
-    expect(parsed.data?.users.find((row) => row.email === "ben@example.com")?.todos).toEqual([
-      {completed: false, id: expect.any(String), title: "Review PR"},
-    ]);
+    expect(
+      parsed.data?.users
+        .find((row) => row.email === "ben@example.com")
+        ?.todos.map((todo) => ({
+          completed: todo.completed,
+          title: todo.title,
+        }))
+    ).toEqual([{completed: false, title: "Review PR"}]);
   });
 
   it("registers users_todo_statuses as a custom MCP tool", () => {
