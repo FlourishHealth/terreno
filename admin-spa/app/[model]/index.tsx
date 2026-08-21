@@ -1,10 +1,4 @@
-import {
-  AdminModelTable,
-  AdminScriptList,
-  AdminShellLayout,
-  AdminVersionConfig,
-  useAdminConfig,
-} from "@terreno/admin-frontend";
+import {AdminScreenRouter, AdminShellLayout, useAdminConfig} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import React, {useMemo} from "react";
 import {useAppConfig} from "../../components/AppConfigGate";
@@ -31,18 +25,6 @@ const ModelTableScreen: React.FC = () => {
     return trail;
   }, [config?.models, model]);
 
-  const inner = (() => {
-    if (model === "__scripts") {
-      return <AdminScriptList api={terrenoApi} apiBase={apiBase} isAdmin routeBase="" />;
-    }
-
-    if (model === "version-config") {
-      return <AdminVersionConfig api={terrenoApi} apiBase={apiBase} routeBase="" />;
-    }
-
-    return <AdminModelTable api={terrenoApi} apiBase={apiBase} modelName={model} routeBase="" />;
-  })();
-
   return (
     <AdminShellLayout
       api={terrenoApi}
@@ -52,7 +34,7 @@ const ModelTableScreen: React.FC = () => {
       rolesPath="/roles"
       routeBase=""
     >
-      {inner}
+      <AdminScreenRouter api={terrenoApi} apiBase={apiBase} name={model} routeBase="" />
     </AdminShellLayout>
   );
 };

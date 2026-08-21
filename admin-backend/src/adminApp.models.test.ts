@@ -5,8 +5,12 @@ import {
   apiUnauthorizedMiddleware,
   BackgroundTask,
   createAccess,
+  modelRouter,
+  Permissions,
   setupAuth,
   terrenoStatements,
+  type TerrenoApp,
+  type TerrenoPlugin,
   type UserModel as UserModelType,
   VersionConfig,
 } from "@terreno/api";
@@ -110,6 +114,96 @@ describe("AdminApp /admin/config", () => {
     expect(foodMeta.routePath).toBe("/admin/foods");
     expect(foodMeta.defaultSort).toBe("-created");
     expect(foodMeta.fieldOrder).toEqual(["name", "calories", "tags"]);
+    expect(res.body.capabilities).toEqual({
+      actions: true,
+      fieldsets: true,
+      filters: true,
+      realtime: false,
+    });
+    expect(res.body.widgetIds).toEqual([]);
+  });
+
+  it("exposes plugin widgetIds and aggregates models from TerrenoApp registrations", async () => {
+    const plugin: TerrenoPlugin = {
+      adminContribution: () => ({
+        homeWidgets: [{displayName: "Overrides", id: "feature-flags-overrides"}],
+        models: [
+          {
+            admin: {displayName: "Flags", listFields: ["key"]},
+            model: FoodModel,
+            routePath: "/feature-flags",
+          },
+        ],
+      }),
+      register() {},
+    };
+    const terrenoApp = {
+      getPlugins: () => [plugin],
+      getRegistrations: () => [
+        modelRouter("/foods", FoodModel, {
+          admin: {displayName: "Registered Foods", listFields: ["name"]},
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        }),
+      ],
+    } as unknown as TerrenoApp;
+
+    const appWithAggregation = getBaseServer();
+    setupAuth(appWithAggregation, UserModel as unknown as UserModelType);
+    addAuthRoutes(appWithAggregation, UserModel as unknown as UserModelType);
+    new AdminApp({basePath: "/admin"}).register(appWithAggregation, undefined, terrenoApp);
+    appWithAggregation.use(apiUnauthorizedMiddleware);
+    appWithAggregation.use(apiErrorMiddleware);
+
+    const agent = await authAsUser(appWithAggregation, "admin");
+    const res = await agent.get("/admin/config").expect(200);
+
+    expect(res.body.widgetIds).toEqual(["feature-flags-overrides"]);
+    expect(res.body.models.map((m: {routePath: string}) => m.routePath).sort()).toEqual([
+      "/admin/feature-flags",
+      "/admin/foods",
+    ]);
+    const foods = res.body.models.find((m: {routePath: string}) => m.routePath === "/admin/foods");
+    expect(foods?.displayName).toBe("Registered Foods");
+    expect(foods?.name).toBe("Food");
+    const flags = res.body.models.find(
+      (m: {routePath: string}) => m.routePath === "/admin/feature-flags"
+    );
+    expect(flags?.name).toBe("Food-feature-flags");
+  });
+
+  it("gives each mounted path unique config names and per-path searchFields", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        searchFields: ["name"],
+      },
+      {
+        displayName: "Archived Foods",
+        listFields: ["name", "calories"],
+        model: FoodModel,
+        routePath: "/archived-foods",
+        searchFields: [],
+      },
+    ]);
+    await FoodModel.create({calories: 100, name: "GreenApple"});
+    await FoodModel.create({calories: 2, name: "Banana"});
+    const agent = await authAsUser(localApp, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    const names = config.body.models.map((m: {name: string}) => m.name).sort();
+    expect(names).toEqual(["Food", "Food-archived-foods"]);
+
+    const byName = await agent.get("/admin/foods?q=apple").expect(200);
+    expect(byName.body.data).toHaveLength(1);
+    expect(byName.body.data[0].name).toBe("GreenApple");
+
+    const archivedIgnoresNameSearch = await agent.get("/admin/archived-foods?q=apple").expect(200);
+    expect(archivedIgnoresNameSearch.body.data).toHaveLength(2);
   });
 
   it("includes recordTitleField in config when set on the model", async () => {
@@ -309,11 +403,12 @@ describe("AdminApp model CRUD routes", () => {
     expect([401, 403, 405]).toContain(res.status);
   });
 
-  it("supports models without hiddenFields (no responseHandler installed)", async () => {
+  it("scrubs responses even when the parent model has no hidden or exclude fields", async () => {
     app = buildApp([foodModelConfig]);
     const agent = await authAsUser(app, "admin");
     await FoodModel.create({calories: 120, hidden: true, name: "Apple"});
     const res = await agent.get("/admin/foods").expect(200);
+    expect(res.body.data[0].name).toBe("Apple");
     expect(res.body.data[0].hidden).toBe(true);
   });
 
@@ -813,5 +908,105 @@ describe("AdminApp per-model queryFilter", () => {
 
     await agent.get("/admin/foods").expect(200);
     await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
+  });
+
+  it("applies queryFilter to admin search so autocomplete cannot leak out-of-scope rows", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        queryFilter: (_user, query): Record<string, unknown> => ({
+          ...(query ?? {}),
+          name: "FilteredOnly",
+        }),
+      },
+    ]);
+    await FoodModel.create({calories: 1, name: "OtherApple"});
+    await FoodModel.create({calories: 2, name: "FilteredOnly"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods/search?q=e").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("FilteredOnly");
+  });
+
+  it("accepts Mongo operators from queryFilter without treating them as client filters", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        queryFilter: (): Record<string, unknown> => ({
+          $or: [{name: "Alpha"}, {name: "Beta"}],
+        }),
+      },
+    ]);
+    await FoodModel.create({calories: 1, name: "Alpha"});
+    await FoodModel.create({calories: 2, name: "Other"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Alpha");
+  });
+
+  it("applies q against searchFields derived from listFields when none are configured", async () => {
+    const localApp = buildApp([foodModelConfig]);
+    await FoodModel.create({calories: 1, name: "GreenApple"});
+    await FoodModel.create({calories: 2, name: "Banana"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods?q=apple").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("GreenApple");
+  });
+
+  it("applies q as a case-insensitive partial match across searchFields", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        searchFields: ["name"],
+      },
+    ]);
+    await FoodModel.create({calories: 1, name: "GreenApple"});
+    await FoodModel.create({calories: 2, name: "Banana"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods?q=apple").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("GreenApple");
+  });
+
+  it("allows default -created sort even when created is not in listDisplay", async () => {
+    const localApp = buildApp([
+      {
+        displayName: "Foods",
+        listFields: ["name"],
+        model: FoodModel,
+        routePath: "/foods",
+      },
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+    await agent.get("/admin/foods?sort=-created").expect(200);
+  });
+
+  it("strips excludeFields from admin create and update bodies", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        excludeFields: ["calories"],
+      },
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+    const created = await agent
+      .post("/admin/foods")
+      .send({calories: 999, name: "Stripped"})
+      .expect(201);
+    expect(created.body.data.calories).toBeUndefined();
+    const createdId = created.body.data._id as string;
+    const stored = await FoodModel.findById(createdId).lean();
+    expect(stored?.calories).toBeUndefined();
+
+    await FoodModel.updateOne({_id: createdId}, {calories: 12});
+    const patched = await agent
+      .patch(`/admin/foods/${createdId}`)
+      .send({calories: 50, name: "Renamed"})
+      .expect(200);
+    expect(patched.body.data.name).toBe("Renamed");
+    const after = await FoodModel.findById(createdId).lean();
+    expect(after?.calories).toBe(12);
   });
 });

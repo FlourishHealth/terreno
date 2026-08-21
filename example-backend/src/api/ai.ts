@@ -1,6 +1,5 @@
 import {
   AIService,
-  addAiRequestsExplorerRoutes,
   addFileRoutes,
   addGptHistoryRoutes,
   addGptRoutes,
@@ -740,8 +739,6 @@ export const addAiRoutes = (
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     tools: getDemoTools() as any,
   });
-  addAiRequestsExplorerRoutes(router, {openApiOptions: options});
-
   if (fileStorageService) {
     addFileRoutes(router, {
       fileStorageService,

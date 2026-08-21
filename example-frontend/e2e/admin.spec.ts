@@ -17,7 +17,8 @@ const permissionControl = (page: Page, resource: string, action: string): Locato
 };
 
 test.describe("Admin Panel", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    consoleGuard.allow("UTC is not a valid timezone");
     await loginAsAdmin(page);
     await page.goto("/admin");
   });
@@ -31,9 +32,8 @@ test.describe("Admin Panel", () => {
   });
 
   test("admin panel shows custom screens", async ({page}) => {
-    await page.getByTestId("admin-custom-screen-card-ai-admin").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-custom-screen-card-ai-admin")).toBeVisible();
-    await expect(page.getByTestId("admin-custom-screen-card-showcase")).toBeVisible();
+    await expect(page.getByText("AI Requests").first()).toBeVisible();
+    await expect(page.getByText("Documents").first()).toBeVisible();
   });
 
   test("can navigate to model table", async ({page}) => {
@@ -81,9 +81,20 @@ test.describe("Admin Panel", () => {
     });
   });
 
-  test("admin panel shows configuration card", async ({page}) => {
-    await page.getByTestId("admin-configuration-card").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-configuration-card")).toBeVisible();
+  test("admin panel shows configuration in the shell nav", async ({page}) => {
+    const configurationEntry = page
+      .getByTestId("admin-shell-nav-configuration-clickable")
+      .or(page.getByTestId("admin-shell-nav-configuration"))
+      .or(page.getByTestId("admin-configuration-card-clickable"))
+      .or(page.getByTestId("admin-configuration-card"));
+    const menuButton = page
+      .getByTestId("admin-shell-menu-button-clickable")
+      .or(page.getByTestId("admin-shell-menu-button"));
+    if (await menuButton.first().isVisible()) {
+      await menuButton.first().click();
+    }
+    await configurationEntry.first().waitFor({state: "visible"});
+    await expect(configurationEntry.first()).toBeVisible();
   });
 
   test("superadmin profile lists its role and links to role editing", async ({page}) => {

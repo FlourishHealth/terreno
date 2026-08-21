@@ -2,6 +2,7 @@ import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
+import {useDeprecatedCustomScreensProp} from "./AdminProvider";
 import {
   type AdminApi,
   type AdminCustomScreen,
@@ -20,7 +21,8 @@ interface AdminModelListProps {
   api: AdminApi;
   /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
   configurationPath?: string;
-  /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
+  /** Additional custom screens to display as cards. Merged with any custom screens from the backend config.
+   * @deprecated When using {@link AdminProvider}, register screens via `widgets.screens` instead. */
   customScreens?: AdminCustomScreen[];
   /** When true, omits the outer {@link Page} wrapper for composition under a parent screen. */
   embedded?: boolean;
@@ -146,6 +148,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
     routeBase,
   });
   const {config, isLoading, error} = useAdminConfig(api, resolvedApiBase);
+  useDeprecatedCustomScreensProp(propCustomScreens);
 
   const handlePress = useCallback(
     (modelName: string) => {

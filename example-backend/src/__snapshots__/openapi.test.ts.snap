@@ -92,6 +92,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "verb",
             "schema": {
               "oneOf": [
@@ -746,6 +764,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "application/json": {
                 "schema": {
                   "properties": {
+                    "capabilities": {
+                      "properties": {
+                        "actions": {
+                          "type": "boolean",
+                        },
+                        "fieldsets": {
+                          "type": "boolean",
+                        },
+                        "filters": {
+                          "type": "boolean",
+                        },
+                        "realtime": {
+                          "type": "boolean",
+                        },
+                      },
+                      "type": "object",
+                    },
                     "customScreens": {
                       "items": {
                         "properties": {
@@ -786,6 +821,12 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                         },
                         "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "widgetIds": {
+                      "items": {
+                        "type": "string",
                       },
                       "type": "array",
                     },
@@ -862,6 +903,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -1577,6 +1636,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "userId",
             "schema": {
               "oneOf": [
@@ -2210,6 +2287,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "key",
             "schema": {
               "oneOf": [
@@ -2385,30 +2480,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
-            "name": "description",
-            "schema": {
-              "oneOf": [
-                {
-                  "default": "",
-                  "description": "Explanation of what this flag controls",
-                  "type": "string",
-                },
-                {
-                  "properties": {
-                    "$in": {
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                   },
                   "type": "object",
@@ -2954,6 +3025,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -3959,6 +4048,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -5153,139 +5260,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "summary": "List selectable AI chat models",
         "tags": [
           "ai",
-        ],
-      },
-    },
-    "/aiRequestsExplorer": {
-      "get": {
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "number",
-            },
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "type": "number",
-            },
-          },
-          {
-            "in": "query",
-            "name": "requestType",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "model",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                    "limit": {
-                      "type": "number",
-                    },
-                    "more": {
-                      "type": "boolean",
-                    },
-                    "page": {
-                      "type": "number",
-                    },
-                    "total": {
-                      "type": "number",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Success",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "summary": "List AI requests (admin only)",
-        "tags": [
-          "admin",
         ],
       },
     },

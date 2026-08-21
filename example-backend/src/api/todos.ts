@@ -11,6 +11,48 @@ const bulkCompleteBodySchema = z
 
 export const todoRouter = modelRouter("/todos", Todo, {
   access: {resource: "todo"},
+  admin: {
+    actions: [
+      {
+        confirm: "Mark selected todos as completed?",
+        id: "markComplete",
+        label: "Mark completed",
+        patchKeys: ["completed"],
+      },
+    ],
+    adminPermissions: {delete: []},
+    bulkPatchAllowlist: ["completed", "priority", "tags"],
+    defaultSort: "-created",
+    displayName: "Todos",
+    fieldsets: [
+      {fields: ["title", "tags", "priority", "completed"], title: "Task"},
+      {fields: ["ownerId"], title: "Ownership"},
+    ],
+    filters: [
+      {field: "completed", kind: "boolean", label: "Completed"},
+      {
+        choices: [
+          {label: "Low", value: "low"},
+          {label: "Medium", value: "medium"},
+          {label: "High", value: "high"},
+        ],
+        field: "priority",
+        kind: "choice",
+        label: "Priority",
+      },
+      {field: "created", kind: "dateRange", label: "Created"},
+      {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
+    ],
+    group: "Demo: shared app data",
+    listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
+    listDisplayLinks: ["title"],
+    listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
+    pageSize: 25,
+    readonlyFields: ["ownerId"],
+    realtime: true,
+    searchFields: ["title", "tags"],
+    sortableFields: ["title", "completed", "created", "priority"],
+  },
   collectionActions: {
     bulkComplete: {
       body: bulkCompleteBodySchema,

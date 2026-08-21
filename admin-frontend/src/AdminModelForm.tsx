@@ -598,6 +598,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
                     <AdminFieldRenderer
                       api={api}
                       apiBase={resolvedApiBase}
+                      autocompleteFields={modelConfig.autocompleteFields}
                       errorText={errors[fieldKey]}
                       fieldConfig={fieldConfig}
                       fieldKey={fieldKey}
@@ -618,6 +619,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
               <AdminFieldRenderer
                 api={api}
                 apiBase={resolvedApiBase}
+                autocompleteFields={modelConfig.autocompleteFields}
                 errorText={errors[fieldKey]}
                 fieldConfig={fieldConfig}
                 fieldKey={fieldKey}

@@ -20,6 +20,30 @@ const buildApp = (consentAppOptions: ConsentAppOptions = {}): express.Applicatio
     .build();
 
 describe("ConsentApp", () => {
+  it("contributes consent form and response admin metadata", () => {
+    const contribution = new ConsentApp().adminContribution();
+
+    expect(contribution.models).toHaveLength(2);
+    expect(contribution.models?.map((item) => item.routePath)).toEqual([
+      "/consent-forms",
+      "/consent-responses",
+    ]);
+    expect(contribution.models?.[0]?.admin.fieldOverrides).toEqual({
+      checkboxes: {widget: "checkbox-list"},
+      content: {widget: "locale-content"},
+      defaultLocale: {widget: "locale-default"},
+    });
+    expect(contribution.models?.[1]?.admin.adminPermissions).toEqual({
+      create: [],
+      delete: [],
+      update: [],
+    });
+    expect(contribution.models?.[1]?.populatePaths).toEqual([
+      {fields: ["title", "slug", "version", "type"], path: "consentFormId"},
+      {fields: ["name", "email"], path: "userId"},
+    ]);
+  });
+
   let admin: HydratedDocument<User>;
   let notAdmin: HydratedDocument<User>;
   let adminAgent: TestAgent;
