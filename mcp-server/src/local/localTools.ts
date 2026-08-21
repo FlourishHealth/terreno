@@ -1,4 +1,4 @@
-import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import type {Tool} from "@modelcontextprotocol/server";
 
 import {applicationInfo} from "./tools/applicationInfo.js";
 import {databaseQuery} from "./tools/databaseQuery.js";

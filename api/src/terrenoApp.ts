@@ -7,6 +7,7 @@ import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import type {BetterAuthInstance} from "./betterAuthSetup";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {
   apiErrorMiddleware,
@@ -16,6 +17,7 @@ import {
 import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {mountMCPServer} from "./mcp/server";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -29,6 +31,11 @@ import {
 import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+
+/** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
+interface BetterAuthProvider {
+  getAuth: () => BetterAuthInstance | undefined;
+}
 
 type CorsOrigin =
   | string
@@ -415,6 +422,17 @@ export class TerrenoApp {
         registration.register(app, oapi, this);
       }
     }
+
+    // Mount MCP at POST /mcp when any model opted in or a custom tool was registered.
+    const betterAuthPlugin = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    mountMCPServer(app, {
+      betterAuth: betterAuthPlugin?.getAuth(),
+      userModel: options.userModel,
+    });
 
     if (options.configureApp) {
       options.configureApp(app, {openApi: oapi});

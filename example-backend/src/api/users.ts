@@ -31,6 +31,10 @@ export const usersRouter = modelRouter("/users", User as unknown as Model<UserDo
     searchFields: ["email", "name"],
     sortableFields: ["email", "name", "admin", "created"],
   },
+  mcp: {
+    excludeFields: ["hash", "salt", "attempts", "last"],
+    methods: ["list", "read"],
+  },
   permissions: {
     create: [Permissions.IsAdmin],
     delete: [Permissions.IsAdmin],

@@ -29,6 +29,8 @@ import {
   passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
+import {registerMCPModel} from "./mcp/registry";
+import type {MCPConfig} from "./mcp/types";
 import {
   createOpenApiMiddleware,
   deleteOpenApiMiddleware,
@@ -362,6 +364,25 @@ export interface ModelRouterOptions<T> {
    */
   validation?: boolean | ModelRouterValidationOptions;
   /**
+   * MCP (Model Context Protocol) configuration. When provided, registers this model's
+   * CRUD operations as MCP tools that can be called by LLMs.
+   *
+   * Tools are auto-generated based on the methods specified (default: ['list', 'read']).
+   * Auth, permissions, population, and filtering all work the same as REST.
+   *
+   * @example
+   * ```typescript
+   * modelRouter("/todos", Todo, {
+   *   mcp: {
+   *     methods: ['list', 'read', 'create'],
+   *     excludeFields: ['internalNote'],
+   *     maxLimit: 25,
+   *   },
+   * });
+   * ```
+   */
+  mcp?: MCPConfig;
+  /**
    * Enable real-time sync for this model via WebSocket events.
    * When configured, CRUD operations will emit events to connected clients
    * through the RealtimeApp plugin's change stream watcher.
@@ -644,6 +665,11 @@ export function modelRouter<T>(
 
   const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
   const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
+
+  // Register MCP tools if configured
+  if (options.mcp) {
+    registerMCPModel(model, options.mcp, options);
+  }
 
   if (path !== undefined) {
     // Register for real-time sync if configured

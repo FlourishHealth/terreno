@@ -15,6 +15,25 @@ export * from "./expressServer";
 export * from "./githubAuth";
 export * from "./httpClient";
 export * from "./logger";
+export {extractUserFromHeaders, type MCPAuthContext} from "./mcp/auth";
+export type {MCPCustomTool} from "./mcp/registry";
+export {clearMCPRegistry, getMCPRegistry, registerMCPModel, registerMCPTool} from "./mcp/registry";
+export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";
+export {type MCPServerOptions, mountMCPServer} from "./mcp/server";
+export {
+  generateAllTools,
+  generateToolsForEntry,
+  getAllMCPTools,
+  type MCPToolDefinition,
+} from "./mcp/toolGenerator";
+export type {
+  MCPConfig,
+  MCPMethod,
+  MCPRegistryEntry,
+  MCPRequest,
+  MCPToolArgs,
+  MCPToolResult,
+} from "./mcp/types";
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";

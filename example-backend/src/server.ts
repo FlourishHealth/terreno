@@ -43,6 +43,7 @@ import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
+import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
@@ -173,6 +174,8 @@ export async function start(skipListen = false): Promise<express.Application> {
       skipListen,
       userModel: User as unknown as TerrenoAuthUserModel,
     }).configure(AppConfiguration);
+
+    registerUsersTodoStatusTool();
 
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)

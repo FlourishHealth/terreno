@@ -6,6 +6,7 @@ import {
   addMcpRoutes,
   createVertexProvider,
   FileStorageService,
+  getMCPTools,
   listEnabledVertexModels,
   listGeminiApiModels,
   MCPService,
@@ -14,7 +15,7 @@ import {
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
-import type {ModelRouterOptions} from "@terreno/api";
+import type {ModelRouterOptions, User} from "@terreno/api";
 import {
   APIError,
   asyncHandler,
@@ -562,12 +563,14 @@ const createImageTool = (apiKey?: string): Tool => {
 };
 
 const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  const tools: Record<string, Tool> = {...getMCPTools(req.user as User | undefined)};
+
   const apiKey = req.headers["x-ai-api-key"] as string | undefined;
-  if (!apiKey) {
-    return {};
+  if (apiKey) {
+    tools.generate_image = createImageTool(apiKey);
   }
 
-  return {generate_image: createImageTool(apiKey)};
+  return tools;
 };
 
 const pdfTool = tool({

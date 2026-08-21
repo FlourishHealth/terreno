@@ -72,6 +72,7 @@ src/
   service/
     aiService.ts           # Provider-agnostic AI service
     fileStorage.ts         # GCS upload helper
+    getMCPTools.ts         # modelRouter MCP tools as Vercel AI SDK tools
     mcpService.ts          # MCP client connections
     parseAiJson.ts         # LLM JSON normalization/parsing
     prompts.ts             # System prompt constants
@@ -84,7 +85,8 @@ src/
 ## Key exports
 
 - **Plugins:** `AiApp`, `LangfuseApp`
-- **Service:** `AIService`, `TemperaturePresets`, `FileStorageService`, `MCPService`
+- **Service:** `AIService`, `TemperaturePresets`, `FileStorageService`, `MCPService`,
+  `getMCPTools`
 - **Models:** `AIRequest`, `GptHistory`, `FileAttachment`, `Project`
 - **Routes:** `addGptRoutes`, `addGptHistoryRoutes`, `addAiRequestsExplorerRoutes`, `addFileRoutes`, `addProjectRoutes`, `addMcpRoutes`
 - **Structured output:** `parseAiJson`, `normalizeLlmJsonTextForStructuredOutput`, re-exported `Output`, `jsonSchema`, `JSONValue`, `FlexibleSchema` from `ai`
@@ -391,6 +393,18 @@ const storage = new FileStorageService({
 await storage.upload({buffer, filename, mimeType, userId});
 await storage.getSignedUrl(gcsKey);  // 1-hour v4 signed URL
 await storage.delete(gcsKey);        // GCS delete + soft-delete FileAttachment
+```
+
+## getMCPTools
+
+Wraps registered `modelRouter` MCP tools as Vercel AI SDK `Tool` objects for
+in-process `streamText` / `generateText`. HTTP MCP clients still use `POST /mcp`
+from `@terreno/api`; this helper is the chat-route path.
+
+```typescript
+import {getMCPTools} from "@terreno/ai";
+
+const tools = getMCPTools(req.user);
 ```
 
 ## MCPService

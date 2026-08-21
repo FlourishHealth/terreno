@@ -105,6 +105,11 @@ export const todoRouter = modelRouter("/todos", Todo, {
       summary: "Mark a single todo as complete",
     },
   },
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read", "create", "update", "delete"],
+  },
   permissions: {
     create: [Permissions.IsAuthenticated],
     delete: [Permissions.IsOwner],
