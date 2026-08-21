@@ -91,7 +91,7 @@ export async function start(skipListen = false): Promise<express.Application> {
   await backfillAdmins({
     access,
     userModel: User as unknown as TerrenoAuthUserModel,
-    wetRun: true,
+    wetRun: process.env.RBAC_BACKFILL_ADMINS === "true",
   });
 
   if (process.env.SEED_DEFAULTS === "true") {

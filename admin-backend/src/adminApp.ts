@@ -1197,8 +1197,9 @@ export class AdminApp {
         if (!("roles" in body)) {
           return;
         }
-        (request as express.Request & {terrenoPendingUserRoles?: string[]}).terrenoPendingUserRoles =
-          parseRoleNames(body.roles);
+        (
+          request as express.Request & {terrenoPendingUserRoles?: string[]}
+        ).terrenoPendingUserRoles = parseRoleNames(body.roles);
       };
 
       const applyPendingUserRoles = async (
@@ -1335,6 +1336,21 @@ export class AdminApp {
             title: "Missing rbac:assignRoles permission",
           });
         }
+        const isGrantingAdmin = coerceAdminFlag(body.admin) === true && !currentAdmin;
+        // assignRoles is not enough to mint the legacy admin plane (IsAdmin, password
+        // reset). Require manageRoles, or an actor who already holds admin.
+        if (isGrantingAdmin && !actor.admin) {
+          const manage = await accessControl.can({
+            permissions: {rbac: ["manageRoles"]},
+            user: actor,
+          });
+          if (!manage.allowed) {
+            throw new APIError({
+              status: 403,
+              title: "Cannot grant the legacy admin flag without rbac:manageRoles",
+            });
+          }
+        }
       };
 
       const currentUserAdminFlag = async (request: express.Request): Promise<boolean> => {
@@ -1359,6 +1375,14 @@ export class AdminApp {
           read: adminPermission(true, "read"),
           update: adminPermission(config.permissions?.update, "update"),
         },
+        postCreate: async (value, request) => {
+          await applyPendingUserRoles(value, request, true);
+          await auditHooks.postCreate?.(value, request);
+        },
+        postUpdate: async (value, cleanedBody, request, prev) => {
+          await applyPendingUserRoles(value, request);
+          await auditHooks.postUpdate?.(value, cleanedBody, request, prev);
+        },
         preCreate: async (body, req) => {
           if (!body || typeof body !== "object") {
             return body;
@@ -1376,14 +1400,6 @@ export class AdminApp {
           takePendingUserRoles(record, req);
           await assertCanWriteUserAdminFlag(record, req, await currentUserAdminFlag(req));
           return stripProtectedFromBody(body) as typeof body;
-        },
-        postCreate: async (value, request) => {
-          await applyPendingUserRoles(value, request, true);
-          await auditHooks.postCreate?.(value, request);
-        },
-        postUpdate: async (value, cleanedBody, request, prev) => {
-          await applyPendingUserRoles(value, request);
-          await auditHooks.postUpdate?.(value, cleanedBody, request, prev);
         },
         queryFields: buildAdminModelQueryFields({
           filters: config.filters,
@@ -1407,11 +1423,7 @@ export class AdminApp {
         ...asMiddlewareList(bulkPatchOpenApi),
         asyncHandler(async (req, res) => {
           if (
-            !(await checkPermissions(
-              "update",
-              updatePermissions,
-              req.user as User | undefined
-            ))
+            !(await checkPermissions("update", updatePermissions, req.user as User | undefined))
           ) {
             throw new APIError({status: 403, title: "Admin access required"});
           }
@@ -1446,7 +1458,11 @@ export class AdminApp {
           }
           const patch = stripProtectedFromBody(rawPatch);
           let pendingRoles: string[] | undefined;
-          if (config.model.modelName === "User" && this.options.accessControl && "roles" in rawPatch) {
+          if (
+            config.model.modelName === "User" &&
+            this.options.accessControl &&
+            "roles" in rawPatch
+          ) {
             pendingRoles = parseRoleNames(rawPatch.roles);
           }
           if (Object.keys(patch).length === 0 && pendingRoles === undefined) {

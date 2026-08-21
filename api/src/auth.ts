@@ -130,6 +130,37 @@ export const stripPrivilegedUserFields = (
   return sanitized;
 };
 
+const omitRolesFromObject = (item: unknown): unknown => {
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    return item;
+  }
+  if (!("roles" in item)) {
+    return item;
+  }
+  const next = {...(item as Record<string, unknown>)};
+  delete next.roles;
+  return next;
+};
+
+/**
+ * When RBAC is enabled, User `roles` must go through RoleManager.assign — not mongoose
+ * create/update on `/users` or other modelRouters. AdminApp copies `roles` off the body
+ * before this runs.
+ */
+export const omitUserRolesFromWriteBody = (
+  modelName: string,
+  accessControl: unknown,
+  body: unknown
+): unknown => {
+  if (modelName !== "User" || !accessControl || body == null) {
+    return body;
+  }
+  if (Array.isArray(body)) {
+    return body.map(omitRolesFromObject);
+  }
+  return omitRolesFromObject(body);
+};
+
 export const signupUser = async (
   userModel: UserModel,
   email: string,

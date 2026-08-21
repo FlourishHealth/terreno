@@ -1034,7 +1034,10 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     const target = await UserModel.findOne({email: "notAdmin@example.com"});
     expect(target).toBeTruthy();
 
-    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: true}).expect(200);
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(200);
 
     const after = await UserModel.findById(target?._id);
     expect(after?.admin).toBe(true);
@@ -1075,12 +1078,18 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect(target).toBeTruthy();
     expect(target?.admin).toBe(false);
 
-    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: true}).expect(403);
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(403);
 
     const afterDenied = await UserModel.findById(target?._id);
     expect(afterDenied?.admin).toBe(false);
 
-    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: false, name: "Kept"}).expect(200);
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: false, name: "Kept"})
+      .expect(200);
     const afterEcho = await UserModel.findById(target?._id);
     expect(afterEcho?.admin).toBe(false);
     expect(afterEcho?.name).toBe("Kept");
@@ -1093,8 +1102,53 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect(await UserModel.findOne({email: "form-echo-admin@example.com"})).toBeTruthy();
 
     await UserModel.updateOne({_id: target?._id}, {admin: true});
-    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: "false"}).expect(403);
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: "false"})
+      .expect(403);
     expect((await UserModel.findById(target?._id))?.admin).toBe(true);
+  });
+
+  it("does not let assignRoles grant the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "assigner-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target?.admin).toBe(false);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(false);
   });
 
   it("checks each bulk-patch target document against RBAC scopes", async () => {
@@ -1127,10 +1181,9 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     });
     await accessControl.roles.seedDefaults();
 
-    const localApp = buildApp(
-      [{...foodModelConfig, bulkPatchAllowlist: ["calories", "name"]}],
-      {accessControl}
-    );
+    const localApp = buildApp([{...foodModelConfig, bulkPatchAllowlist: ["calories", "name"]}], {
+      accessControl,
+    });
     const agent = await authAsUser(localApp, "admin");
     const actor = await UserModel.findOne({email: "admin@example.com"});
     const other = await UserModel.findOne({email: "notAdmin@example.com"});

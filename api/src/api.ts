@@ -17,7 +17,7 @@ import {
 } from "./actions";
 import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
 import type {AdminConfig} from "./adminTypes";
-import {authenticateMiddleware, type User} from "./auth";
+import {authenticateMiddleware, omitUserRolesFromWriteBody, type User} from "./auth";
 import {
   APIError,
   apiErrorMiddleware,
@@ -1231,6 +1231,8 @@ const _buildModelRouter = <T>(
         });
       }
     }
+
+    body = omitUserRolesFromWriteBody(model.modelName, options.accessControl, body) as typeof body;
 
     if (options.access && options.accessControl && body && typeof body === "object") {
       await validateAccessWriteBody({

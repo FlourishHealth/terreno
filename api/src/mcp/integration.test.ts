@@ -5,6 +5,9 @@ import mongoose, {Schema} from "mongoose";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
+import {createAccess} from "../rbac/access";
+import {terrenoStatements} from "../rbac/statements";
+import {setupDb} from "../tests";
 import {handleCreate, handleDelete, handleList, handleRead, handleUpdate} from "./handlers";
 import {
   clearMCPRegistry,
@@ -152,6 +155,51 @@ describe("MCP Integration", () => {
 
       expect(parsed.error).toBeDefined();
       expect(parsed.error).toContain("Permission denied");
+    });
+
+    it("rejects create fields outside the RBAC write mask", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Writer",
+            name: "mcp-writer",
+            permissions: {todo: ["create", "read", "update", "list"]},
+          },
+        ],
+        fieldViews: {
+          todo: {
+            createView: "deny",
+            select: async () => "public",
+            views: {
+              public: {omit: [], read: "*", write: ["title"]},
+            },
+          },
+        },
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+      const writer = {...normalUser, roles: ["mcp-writer"]};
+      const result = await handleCreate(
+        {
+          ...entry,
+          options: {
+            ...entry.options,
+            access: {resource: "todo"},
+            accessControl: access as never,
+            preCreate: undefined,
+          },
+        },
+        {completed: true, title: "Secret"},
+        asUser(writer)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.error).toContain("Validation failed");
+      expect(await TodoModel.countDocuments()).toBe(0);
     });
 
     it("strips REST excludeFromCreate fields before persist", async () => {
@@ -555,6 +603,54 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.title).toBe("Still mine");
       expect(String(parsed.data.ownerId)).toBe(normalUser.id);
+    });
+
+    it("rejects update fields outside the RBAC write mask", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Writer",
+            name: "mcp-updater",
+            permissions: {todo: ["create", "read", "update", "list"]},
+          },
+        ],
+        fieldViews: {
+          todo: {
+            select: async () => "public",
+            views: {
+              public: {omit: [], read: "*", write: ["title"]},
+            },
+          },
+        },
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+      const writer = {...normalUser, roles: ["mcp-updater"]};
+      const doc = await TodoModel.create({
+        completed: false,
+        ownerId: normalUser._id,
+        title: "Keep owner",
+      });
+      const result = await handleUpdate(
+        {
+          ...entry,
+          options: {
+            ...entry.options,
+            access: {resource: "todo"},
+            accessControl: access as never,
+          },
+        },
+        {completed: true, id: doc._id.toString(), title: "Still mine"},
+        asUser(writer)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.error).toContain("Validation failed");
+      expect((await TodoModel.findById(doc._id))?.completed).toBe(false);
     });
 
     it("strips MCP excludeFields from the update persist payload", async () => {

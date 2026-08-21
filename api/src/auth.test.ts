@@ -15,6 +15,7 @@ import {
   generateTokens,
   type HasSetPassword,
   MAX_PASSWORD_LENGTH,
+  omitUserRolesFromWriteBody,
   PRIVILEGED_USER_FIELDS,
   setPasswordForUser,
   setupAuth,
@@ -1021,6 +1022,21 @@ describe("privileged user fields", () => {
 
   it("lists admin and roles as privileged", () => {
     expect([...PRIVILEGED_USER_FIELDS]).toEqual(["admin", "roles"]);
+  });
+
+  it("omits User roles from write bodies when RBAC accessControl is set", () => {
+    expect(
+      omitUserRolesFromWriteBody("User", {}, {email: "a@example.com", roles: ["superadmin"]})
+    ).toEqual({email: "a@example.com"});
+    expect(
+      omitUserRolesFromWriteBody("User", {}, [{email: "a@example.com", roles: ["superadmin"]}])
+    ).toEqual([{email: "a@example.com"}]);
+    expect(omitUserRolesFromWriteBody("Todo", {}, {roles: ["superadmin"]})).toEqual({
+      roles: ["superadmin"],
+    });
+    expect(omitUserRolesFromWriteBody("User", undefined, {roles: ["superadmin"]})).toEqual({
+      roles: ["superadmin"],
+    });
   });
 
   it("does not let anonymous signup self-assign admin", async () => {

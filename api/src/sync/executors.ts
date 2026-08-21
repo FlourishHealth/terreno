@@ -20,7 +20,7 @@ import {DateTime} from "luxon";
 import type {Document, Model} from "mongoose";
 
 import {addPopulateToQuery, type ModelRouterOptions} from "../api";
-import type {User} from "../auth";
+import {omitUserRolesFromWriteBody, type User} from "../auth";
 import {loadDocOr404} from "../docLoader";
 import {
   APIError,
@@ -244,6 +244,11 @@ export const executeCreate = async <T>({
       });
     }
   }
+  cleanedBody = omitUserRolesFromWriteBody(
+    model.modelName,
+    options.accessControl,
+    cleanedBody
+  ) as typeof cleanedBody;
   if (cleanedBody === undefined) {
     throw new BadRequestError({
       code: "invalid-request-body",
@@ -419,6 +424,12 @@ export const executeUpdate = async <T>({
       });
     }
   }
+
+  cleanedBody = omitUserRolesFromWriteBody(
+    model.modelName,
+    options.accessControl,
+    cleanedBody
+  ) as typeof cleanedBody;
 
   await validateAccessWritePayload({
     body: cleanedBody,
