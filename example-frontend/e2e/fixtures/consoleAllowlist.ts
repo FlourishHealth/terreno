@@ -9,11 +9,6 @@ export const GLOBAL_CONSOLE_ALLOWLIST: ReadonlyArray<string | RegExp> = [
   // TODO(ui): migrate shadow* styles to boxShadow.
   '"shadow*" style props are deprecated. Use "boxShadow".',
 
-  // React Native Web deprecation: pointerEvents prop.
-  // Source: @terreno/ui (ToastNotifications, DateTimeField, SidebarNavigation).
-  // TODO(ui): migrate pointerEvents prop to style.pointerEvents.
-  "props.pointerEvents is deprecated. Use style.pointerEvents",
-
   // react-redux memoization warning. Some selectors in the dependency tree
   // return new array/object references each call. TODO(rtk/example-frontend):
   // audit selectors and wrap with createSelector where appropriate.
