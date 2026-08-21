@@ -63,8 +63,8 @@ const TEST_USERS: SeedUser[] = [
   },
   {
     admin: true,
-    email: "superuser@example.com",
-    name: "Super User",
+    email: "superadmin@example.com",
+    name: "Super Admin",
     organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },

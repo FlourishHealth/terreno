@@ -54,9 +54,9 @@ describe("resetDatabase admin script", () => {
     );
     assert.equal(await ConsentForm.countDocuments(), 3);
     assert.equal(await FeatureFlag.countDocuments(), 5);
-    const superuser = await User.findByEmail("superuser@example.com");
-    assert.exists(superuser);
-    assert.isTrue(superuser?.admin);
-    assert.include(superuser?.roles ?? [], "superadmin");
+    const superadmin = await User.findByEmail("superadmin@example.com");
+    assert.exists(superadmin);
+    assert.isTrue(superadmin?.admin);
+    assert.include(superadmin?.roles ?? [], "superadmin");
   });
 });

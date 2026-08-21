@@ -12,22 +12,22 @@ describe("seedDefaultData", () => {
     await seedDefaultData();
 
     const admin = await User.findByEmail("admin@example.com");
-    const superuser = await User.findByEmail("superuser@example.com");
+    const superadmin = await User.findByEmail("superadmin@example.com");
     const user = await User.findByEmail("test@example.com");
 
     assert.exists(admin);
-    assert.exists(superuser);
+    assert.exists(superadmin);
     assert.exists(user);
-    if (!admin || !superuser || !user) {
+    if (!admin || !superadmin || !user) {
       assert.fail("Default users were not seeded");
     }
 
     assert.isTrue(admin.admin);
-    assert.isTrue(superuser.admin);
-    assert.include(superuser.roles, "superadmin");
+    assert.isTrue(superadmin.admin);
+    assert.include(superadmin.roles, "superadmin");
     assert.deepEqual(admin.organizationIds, ["org-example"]);
     assert.equal(
-      await User.countDocuments({email: {$in: [admin.email, superuser.email, user.email]}}),
+      await User.countDocuments({email: {$in: [admin.email, superadmin.email, user.email]}}),
       3
     );
     assert.equal(await Project.countDocuments({organizationId: "org-example"}), 2);

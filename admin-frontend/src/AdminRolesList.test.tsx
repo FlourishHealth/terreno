@@ -1,19 +1,38 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {AdminRolesList} from "./AdminRolesList";
 import type {AdminApi} from "./types";
-import {normalizeRoles, type RolesQueryResult} from "./useAdminRoles";
+import {
+  normalizeRoles,
+  normalizeStatements,
+  type RolesQueryResult,
+} from "./useAdminRoles";
 
 const mockUseListRolesQuery = mock(
   (): RolesQueryResult => ({data: undefined, error: null, isLoading: false})
 );
+const mockRefetch = mock(() => {});
+const mockCreateRole = mock(() => ({unwrap: async () => ({})}));
+const mockUpdateRole = mock(() => ({unwrap: async () => ({})}));
+const mockUseListStatementsQuery = mock(() => ({
+  data: {statements: {admin: ["access", "runScripts"], todo: ["read", "update"]}},
+  error: null,
+  isLoading: false,
+}));
 
 mock.module("./useAdminRoles", () => ({
   normalizeRoles,
-  useAdminRoles: () => ({useListRolesQuery: mockUseListRolesQuery}),
+  normalizeStatements,
+  useAdminRoles: () => ({
+    useCreateRoleMutation: () => [mockCreateRole, {isLoading: false}],
+    useListRolesQuery: mockUseListRolesQuery,
+    useListStatementsQuery: mockUseListStatementsQuery,
+    useUpdateRoleMutation: () => [mockUpdateRole, {isLoading: false}],
+  }),
 }));
 
 const mockApi = {} as unknown as AdminApi;
@@ -26,6 +45,15 @@ const ROLES = [
 describe("AdminRolesList", () => {
   beforeEach(() => {
     mockUseListRolesQuery.mockClear();
+    mockCreateRole.mockClear();
+    mockUpdateRole.mockClear();
+    mockUseListStatementsQuery.mockClear();
+    mockUseListRolesQuery.mockReturnValue({
+      data: undefined,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
   });
 
   it("renders a spinner while loading", () => {
@@ -61,6 +89,39 @@ describe("AdminRolesList", () => {
     expect(getByText("Todo User")).toBeTruthy();
   });
 
+  it("lists available permissions and opens the add role form", () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    expect(getByTestId("admin-permissions-list")).toBeTruthy();
+    expect(getByText("admin:runScripts")).toBeTruthy();
+    fireEvent.press(getByTestId("admin-roles-add-button"));
+    expect(getByTestId("admin-role-form")).toBeTruthy();
+    expect(getByTestId("admin-role-permission-todo-update")).toBeTruthy();
+  });
+
+  it("opens an existing non-sealed role for editing", () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
+
+    fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+
+    expect(getByTestId("admin-role-form")).toBeTruthy();
+    expect(getByTestId("admin-role-name").props.value).toBe("todoUser");
+  });
+
   it("renders roles returned inside a data envelope", () => {
     mockUseListRolesQuery.mockReturnValue({data: {data: ROLES}, error: null, isLoading: false});
 
@@ -90,5 +151,14 @@ describe("normalizeRoles", () => {
   it("falls back to an empty array", () => {
     expect(normalizeRoles(undefined)).toEqual([]);
     expect(normalizeRoles({})).toEqual([]);
+  });
+});
+
+describe("normalizeStatements", () => {
+  it("normalizes direct and enveloped statement responses", () => {
+    const statements = {todo: ["read", "update"]};
+    expect(normalizeStatements({statements})).toEqual(statements);
+    expect(normalizeStatements({data: {statements}})).toEqual(statements);
+    expect(normalizeStatements(undefined)).toEqual({});
   });
 });
