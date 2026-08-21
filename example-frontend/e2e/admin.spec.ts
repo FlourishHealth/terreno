@@ -1,4 +1,4 @@
-import type {Page} from "@playwright/test";
+import type {Locator, Page} from "@playwright/test";
 import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {loginAs} from "./helpers/login";
@@ -10,6 +10,11 @@ const adminModelEntry = (page: Page, modelName: string) =>
     .or(page.getByTestId(`admin-model-card-${modelName}-clickable`))
     .or(page.getByTestId(`admin-home-models-grid-${modelName}`))
     .or(page.getByTestId(`admin-model-card-${modelName}`));
+
+const permissionControl = (page: Page, resource: string, action: string): Locator => {
+  const testID = `admin-role-permission-${resource}-${action}`;
+  return page.getByTestId(`${testID}-clickable`).or(page.getByTestId(testID));
+};
 
 test.describe("Admin Panel", () => {
   test.beforeEach(async ({page}) => {
@@ -115,13 +120,13 @@ test.describe("Admin Panel", () => {
     await page.getByTestId("admin-role-name").fill(roleName);
     await page.getByTestId("admin-role-display-name").fill("E2E Role Editor");
     await page.getByTestId("admin-role-description").fill("Created by Playwright");
-    await page.getByTestId("admin-role-permission-todo-read").click();
+    await permissionControl(page, "todo", "read").click();
     await page.getByTestId("admin-role-save-button").click();
 
     const roleItem = page.getByTestId(`admin-roles-item-${roleName}`);
     await expect(roleItem).toContainText("todo:read");
     await page.getByTestId(`admin-roles-edit-${roleName}`).click();
-    await page.getByTestId("admin-role-permission-todo-update").click();
+    await permissionControl(page, "todo", "update").click();
     await page.getByTestId("admin-role-save-button").click();
     await expect(roleItem).toContainText("todo:update");
 
