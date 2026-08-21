@@ -1091,6 +1091,10 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
       .expect(201);
     expect(created.body.data.admin).toBe(false);
     expect(await UserModel.findOne({email: "form-echo-admin@example.com"})).toBeTruthy();
+
+    await UserModel.updateOne({_id: target?._id}, {admin: true});
+    await agent.patch(`/admin/users/${String(target?._id)}`).send({admin: "false"}).expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(true);
   });
 
   it("checks each bulk-patch target document against RBAC scopes", async () => {

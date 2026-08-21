@@ -408,6 +408,24 @@ const auditLabelFromListFields = (
   return id != null ? String(id) : undefined;
 };
 
+const coerceAdminFlag = (value: unknown): boolean => {
+  if (value === true || value === 1 || value === "1" || value === "true" || value === "yes") {
+    return true;
+  }
+  if (
+    value === false ||
+    value === 0 ||
+    value === "0" ||
+    value === "false" ||
+    value === "no" ||
+    value === "" ||
+    value == null
+  ) {
+    return false;
+  }
+  throw new APIError({status: 400, title: "admin must be a boolean"});
+};
+
 const auditActorId = (request: express.Request): string | undefined => {
   const user = request.user as {_id?: unknown} | undefined;
   if (!user || user._id == null) {
@@ -1300,7 +1318,7 @@ export class AdminApp {
         if (!accessControl) {
           return;
         }
-        if (Boolean(body.admin) === Boolean(currentAdmin)) {
+        if (coerceAdminFlag(body.admin) === Boolean(currentAdmin)) {
           return;
         }
         const actor = request.user as User | undefined;
