@@ -9,6 +9,7 @@
 import {type Application, Router} from "express";
 import {DateTime} from "luxon";
 import type {CollectionActionConfig} from "./actions";
+import type {AdminContribution} from "./adminTypes";
 import {asyncHandler, modelRouter} from "./api";
 import type {User} from "./auth";
 import {authenticateMiddleware} from "./auth";
@@ -65,6 +66,105 @@ export class ConsentApp implements TerrenoPlugin {
 
   constructor(options: ConsentAppOptions = {}) {
     this.options = options;
+  }
+
+  adminContribution(): AdminContribution {
+    return {
+      models: [
+        {
+          admin: {
+            defaultSort: "order",
+            displayName: "Consent Forms",
+            fieldOrder: [
+              "title",
+              "slug",
+              "type",
+              "version",
+              "order",
+              "active",
+              "required",
+              "content",
+              "defaultLocale",
+              "requireScrollToBottom",
+              "captureSignature",
+              "agreeButtonText",
+              "allowDecline",
+              "declineButtonText",
+              "checkboxes",
+            ],
+            fieldOverrides: {
+              checkboxes: {widget: "checkbox-list"},
+              content: {widget: "locale-content"},
+              defaultLocale: {widget: "locale-default"},
+            },
+            fieldsets: [
+              {
+                fields: ["title", "slug", "type", "version", "order", "active", "required"],
+                title: "Basics",
+              },
+              {
+                fields: ["content", "defaultLocale", "requireScrollToBottom", "checkboxes"],
+                title: "Content",
+              },
+              {
+                fields: [
+                  "captureSignature",
+                  "agreeButtonText",
+                  "allowDecline",
+                  "declineButtonText",
+                ],
+                title: "Actions",
+              },
+            ],
+            filters: [
+              {field: "active", kind: "boolean", label: "Active"},
+              {
+                choices: [
+                  {label: "Agreement", value: "agreement"},
+                  {label: "Privacy", value: "privacy"},
+                  {label: "HIPAA", value: "hipaa"},
+                  {label: "Research", value: "research"},
+                  {label: "Terms", value: "terms"},
+                  {label: "Custom", value: "custom"},
+                ],
+                field: "type",
+                kind: "choice",
+                label: "Type",
+              },
+            ],
+            group: "Compliance",
+            listDisplay: ["title", "type", "version", "active", "order"],
+            listFields: ["title", "type", "version", "active", "order"],
+            searchFields: ["title", "slug"],
+            sortableFields: ["title", "type", "version", "active", "order", "created"],
+          },
+          model: ConsentForm as unknown as import("mongoose").Model<unknown>,
+          routePath: "/consent-forms",
+        },
+        {
+          admin: {
+            adminPermissions: {
+              create: [],
+              delete: [],
+              update: [],
+            },
+            defaultSort: "-agreedAt",
+            displayName: "Consent Responses",
+            filters: [
+              {field: "agreed", kind: "boolean", label: "Agreed"},
+              {field: "locale", kind: "text", label: "Locale"},
+            ],
+            group: "Compliance",
+            listFields: ["userId", "agreed", "locale", "agreedAt"],
+            searchFields: ["locale"],
+            sortableFields: ["agreed", "locale", "agreedAt", "created"],
+          },
+          model: ConsentResponse as unknown as import("mongoose").Model<unknown>,
+          populatePaths: consentResponsePopulatePaths,
+          routePath: "/consent-responses",
+        },
+      ],
+    };
   }
 
   register(app: Application): void {

@@ -1,6 +1,9 @@
 import type http from "node:http";
 import type express from "express";
 
+import type {AdminContribution} from "./adminTypes";
+import type {TerrenoApp} from "./terrenoApp";
+
 /**
  * Interface for plugins that can be registered with TerrenoApp.
  *
@@ -36,7 +39,7 @@ export interface TerrenoPlugin {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application, openApi?: unknown): void;
+  register(app: express.Application, openApi?: unknown, terrenoApp?: TerrenoApp): void;
 
   /**
    * Called after the HTTP server is created but before it starts listening.
@@ -48,4 +51,10 @@ export interface TerrenoPlugin {
    * @param server - The Node.js HTTP server instance
    */
   onServerCreated?(server: http.Server): void;
+
+  /**
+   * Optional admin metadata for {@link AdminApp} aggregation.
+   * Called during admin plugin registration to collect models, screens, widgets, and scripts.
+   */
+  adminContribution?(): AdminContribution;
 }

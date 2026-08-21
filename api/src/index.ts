@@ -1,4 +1,5 @@
 export * from "./actions";
+export * from "./adminTypes";
 export * from "./api";
 export * from "./auth";
 export * from "./betterAuth";
@@ -96,6 +97,7 @@ export type {
 } from "./realtime/types";
 export * from "./requestContext";
 export * from "./scriptRunner";
+export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
 export * from "./sync/executors";
 export * from "./sync/models";

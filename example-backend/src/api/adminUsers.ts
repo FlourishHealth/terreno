@@ -4,6 +4,7 @@ import {
   asyncHandler,
   authenticateMiddleware,
   createOpenApiBuilder,
+  NotFoundError,
   requireAdminMiddleware,
   setPasswordForUser,
 } from "@terreno/api";
@@ -50,9 +51,9 @@ export const addAdminUserRoutes = (
         throw new APIError({status: 400, title: "Password must be at least 8 characters"});
       }
 
-      const user = await User.findById(req.params.id);
+      const user = await User.findOneOrNone({_id: req.params.id});
       if (!user) {
-        throw new APIError({status: 404, title: "User not found"});
+        throw new NotFoundError({title: "User not found"});
       }
 
       const admin = req.user as {_id?: unknown; id?: string} | undefined;

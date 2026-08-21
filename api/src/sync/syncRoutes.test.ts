@@ -413,10 +413,13 @@ describe("sync routes", () => {
 
       const loaded = await RouteProjectModel.findById(legacyId);
       expect(loaded?.title).toBe("legacy row");
+      if (!loaded) {
+        throw new Error("Expected legacy row to load");
+      }
 
       // Writing it, however, is still refused until the tenant field is supplied.
-      loaded!.title = "renamed";
-      await expect(loaded!.save()).rejects.toThrow(/missing tenant scope field "orgId"/);
+      loaded.title = "renamed";
+      await expect(loaded.save()).rejects.toThrow(/missing tenant scope field "orgId"/);
     });
 
     // A query-write can strip the tenant field off a document that already has one. The
