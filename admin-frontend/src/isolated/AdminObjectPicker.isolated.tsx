@@ -36,6 +36,7 @@ const makeApi = () => ({
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     const searchKey = keys.find((k) => k.startsWith("adminSearch_"));
     const readKey = keys.find((k) => k.startsWith("adminSearchRead_"));
+    const listKey = keys.find((k) => k.startsWith("adminPickerList_"));
     const enhanced: Record<string, unknown> = {};
     if (searchKey) {
       enhanced[`use${cap(searchKey)}Query`] = (_q: string, opts: Record<string, unknown>) => {
@@ -52,6 +53,9 @@ const makeApi = () => ({
         }
         return {data: apiState.selectedItem};
       };
+    }
+    if (listKey) {
+      enhanced[`use${cap(listKey)}Query`] = () => ({data: undefined, isFetching: false});
     }
     return enhanced;
   },
