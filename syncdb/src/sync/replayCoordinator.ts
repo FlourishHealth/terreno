@@ -252,6 +252,10 @@ export const createReplayCoordinator = ({
   shouldDrain = () => true,
 }: CreateReplayCoordinatorArgs): ReplayCoordinator => {
   const inFlightReplays = new Map<string, Promise<ReplayResult>>();
+  // Every reset is a lifecycle boundary (stop, sign-out, or user switch). A
+  // send that settles after one must never apply its old outcome to the
+  // current store/outbox, even if its mutation row was restored to queued.
+  let lifecycleEpoch = 0;
   /**
    * Set when a `replay()` call coalesces into an already-running drain whose
    * final pass may have already observed the queue as empty (a narrow race:
@@ -846,7 +850,11 @@ export const createReplayCoordinator = ({
    * batching is marked unsupported for this connection, or a chunk's only
    * eligible mutation count is 1).
    */
-  const sendSingle = async (userId: string, mutation: OutboxMutation): Promise<OutcomeDecision> => {
+  const sendSingle = async (
+    userId: string,
+    mutation: OutboxMutation,
+    replayEpoch: number
+  ): Promise<OutcomeDecision> => {
     outbox.markInFlight({mutationId: mutation.mutationId});
     debug?.record({
       collection: mutation.collection,
@@ -862,9 +870,15 @@ export const createReplayCoordinator = ({
     try {
       result = await sendMutation(buildRequest(mutation));
     } catch (error) {
+      if (replayEpoch !== lifecycleEpoch) {
+        return {authPaused: false, haltDrain: true, progressed: false};
+      }
       const decision = applyTransportError(mutation, error);
       reportProgress(userId, 1);
       return decision;
+    }
+    if (replayEpoch !== lifecycleEpoch) {
+      return {authPaused: false, haltDrain: true, progressed: false};
     }
     const decision = applyResult(mutation, result);
     reportProgress(userId, 1);
@@ -945,13 +959,16 @@ export const createReplayCoordinator = ({
   /** Send one chunk as a batch; returns the per-mutation outcome decisions and any halt reached. */
   const sendChunk = async (
     userId: string,
-    chunk: OutboxMutation[]
+    chunk: OutboxMutation[],
+    replayEpoch: number
   ): Promise<{
     decisions: Map<string, OutcomeDecision>;
     unsupported: boolean;
     haltedAt?: number;
     /** True when the server returned fewer results than mutations sent. */
     shortResponse: boolean;
+    /** True when a reset invalidated this request while it was awaiting a response. */
+    superseded: boolean;
   }> => {
     const decisions = new Map<string, OutcomeDecision>();
     for (const mutation of chunk) {
@@ -973,6 +990,9 @@ export const createReplayCoordinator = ({
       // biome-ignore lint/style/noNonNullAssertion: caller only invokes sendChunk when sendMutationBatch is defined and batching is not marked unsupported.
       response = await sendMutationBatch!(request);
     } catch (error) {
+      if (replayEpoch !== lifecycleEpoch) {
+        return {decisions, shortResponse: false, superseded: true, unsupported: false};
+      }
       // Transport failure for the WHOLE chunk: every mutation in it goes back
       // to queued via the same transport-error handling as a single send, and
       // the drain halts (INV-3 — resending the whole chunk is safe).
@@ -986,7 +1006,10 @@ export const createReplayCoordinator = ({
         }
       }
       reportProgress(userId, chunk.length);
-      return {decisions, haltedAt, shortResponse: false, unsupported: false};
+      return {decisions, haltedAt, shortResponse: false, superseded: false, unsupported: false};
+    }
+    if (replayEpoch !== lifecycleEpoch) {
+      return {decisions, shortResponse: false, superseded: true, unsupported: false};
     }
     if (response.type === "unsupported") {
       // The chunk was marked inFlight before sending (for diagnostics/debug
@@ -996,7 +1019,7 @@ export const createReplayCoordinator = ({
       for (const mutation of chunk) {
         outbox.markQueued({mutationId: mutation.mutationId});
       }
-      return {decisions, shortResponse: false, unsupported: true};
+      return {decisions, shortResponse: false, superseded: false, unsupported: true};
     }
     // Walk results in order (INV-1), applying the same per-outcome handlers as
     // the single-send path, then the B4 stop-the-line policy. Per B2, the
@@ -1039,10 +1062,10 @@ export const createReplayCoordinator = ({
       }
     }
     reportProgress(userId, processed);
-    return {decisions, haltedAt, shortResponse, unsupported: false};
+    return {decisions, haltedAt, shortResponse, superseded: false, unsupported: false};
   };
 
-  const drainOnce = async (userId: string): Promise<DrainPassResult> => {
+  const drainOnce = async (userId: string, replayEpoch: number): Promise<DrainPassResult> => {
     let progressed = false;
     let nextWakeAt: number | undefined;
 
@@ -1076,7 +1099,7 @@ export const createReplayCoordinator = ({
           if (blockedKeys.has(entityKey(mutation.collection, mutation.entityId))) {
             continue;
           }
-          const decision = await sendSingle(userId, mutation);
+          const decision = await sendSingle(userId, mutation, replayEpoch);
           sentAny = true;
           progressed = progressed || decision.progressed;
           if (decision.authPaused) {
@@ -1135,7 +1158,7 @@ export const createReplayCoordinator = ({
         // A lone eligible mutation: sending it as a "batch of one" adds no
         // value and costs an extra round-trip on unsupported servers — reuse
         // the single-send path directly (still counts as this pass's send).
-        const decision = await sendSingle(userId, chunk[0]);
+        const decision = await sendSingle(userId, chunk[0], replayEpoch);
         progressed = progressed || decision.progressed;
         if (decision.authPaused) {
           return {authPaused: true, progressed};
@@ -1157,7 +1180,14 @@ export const createReplayCoordinator = ({
         continue;
       }
 
-      const {decisions, unsupported, haltedAt, shortResponse} = await sendChunk(userId, chunk);
+      const {decisions, unsupported, haltedAt, shortResponse, superseded} = await sendChunk(
+        userId,
+        chunk,
+        replayEpoch
+      );
+      if (superseded) {
+        return {authPaused: false, progressed, stopReplayCall: true};
+      }
       if (unsupported) {
         // FIX 5: only latch after BATCH_UNSUPPORTED_LATCH_THRESHOLD
         // consecutive unsupported results — a single slow-but-supported
@@ -1229,6 +1259,7 @@ export const createReplayCoordinator = ({
     // A fresh replay call supersedes any pending timed wake-up — it is about
     // to drain right now.
     clearWakeTimer(userId);
+    const replayEpoch = lifecycleEpoch;
     // B5: (re)start this call's progress counters. `total` is a lower bound —
     // snapshotted once at entry — since more may enqueue mid-drain; onProgress
     // still reports every attempt made.
@@ -1243,10 +1274,10 @@ export const createReplayCoordinator = ({
       // the host may have gone offline or paused — an internally-scheduled
       // continuation must never race past that.
       for (;;) {
-        if (!shouldDrain()) {
+        if (replayEpoch !== lifecycleEpoch || !shouldDrain()) {
           break;
         }
-        const pass = await drainOnce(userId);
+        const pass = await drainOnce(userId, replayEpoch);
         if (pass.progressed) {
           onDrainPass?.({userId});
         }
@@ -1299,6 +1330,7 @@ export const createReplayCoordinator = ({
 
   /** FIX 3: full lifecycle reset — see the `ReplayCoordinator.reset` doc comment. */
   const reset = (): void => {
+    lifecycleEpoch += 1;
     for (const userId of [...wakeTimers.keys()]) {
       clearWakeTimer(userId);
     }
