@@ -8,9 +8,9 @@ import {
   modelRouter,
   Permissions,
   setupAuth,
-  terrenoStatements,
   type TerrenoApp,
   type TerrenoPlugin,
+  terrenoStatements,
   type UserModel as UserModelType,
   VersionConfig,
 } from "@terreno/api";
