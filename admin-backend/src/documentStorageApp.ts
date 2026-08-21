@@ -256,7 +256,6 @@ export class DocumentStorageApp implements TerrenoPlugin {
             status: storageErr?.code ?? storageErr?.status,
           });
           throw new APIError({
-            disableExternalErrorTracking: true,
             status: 500,
             title: "Failed to access file",
           });
@@ -281,7 +280,6 @@ export class DocumentStorageApp implements TerrenoPlugin {
           });
           if (!res.headersSent) {
             throw new APIError({
-              disableExternalErrorTracking: true,
               status: 500,
               title: "Failed to stream file",
             });
