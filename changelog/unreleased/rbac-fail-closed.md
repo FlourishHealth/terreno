@@ -39,5 +39,7 @@ category: Changed
   modal footer and scrolls the permission grid so a larger statement vocabulary cannot
   hide the save control. Create/list responses always apply the **read** field
   mask. Per-router `access.scope`
-  extra PermissionSets are evaluated on HTTP and realtime reads. Invalid permission sets
+  extra PermissionSets are evaluated on HTTP and realtime reads. Sync and realtime
+  serializers accept change-stream BSON post-images (no Mongoose `toObject`) so
+  `sync:delta` is not dropped after RBAC wraps `defaultResponseHandler`. Invalid permission sets
   use a stable `APIError.title`.

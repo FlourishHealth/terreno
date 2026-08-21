@@ -22,6 +22,7 @@ import {
 } from "../realtime/changeStreamWatcher";
 import {clearRealtimeRegistry, registerRealtime} from "../realtime/registry";
 import {setupDb} from "../tests";
+import {defaultResponseHandler} from "../transformers";
 import {SyncCounter, SyncMutation, SyncScopeMove} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {
@@ -993,6 +994,39 @@ describe("emitSyncDeltaForChange", () => {
     expect(delta.collection).toBe("sockStuff");
     expect((delta.data as any).name).toBe("hello");
     expect((delta.data as any).id).toBe("doc-1");
+  });
+
+  it("emits a delta when the REST responseHandler serializes a BSON post-image", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: SockStuffModel as any,
+      options: {
+        ...ownerReadOptions,
+        responseHandler: defaultResponseHandler as never,
+      },
+      routePath: "/sockStuff",
+    });
+    const entry = findSyncEntryByCollectionTag("sockStuff") as SyncRegistryEntry;
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-bson", _syncSeq: 4, name: "from-change-stream", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-bson",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    expect(deltas).toHaveLength(1);
+    expect((deltas[0].payload as SyncDelta).data as {name?: string}).toMatchObject({
+      name: "from-change-stream",
+    });
   });
 
   it("does not emit to sockets whose read permission fails (owner isolation)", async () => {

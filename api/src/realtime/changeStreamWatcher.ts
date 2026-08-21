@@ -19,7 +19,7 @@ import type {SyncDelta, SyncMutationOperation, SyncResyncHint} from "../sync/typ
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
-import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
+import {awaitSocketFullUser, type SocketWithDecodedToken} from "./socketUser";
 import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
 /**
@@ -352,7 +352,7 @@ export const emitPayloadToAuthorizedRoom = async ({
 }): Promise<void> => {
   const sockets = getSocketsInRoom(io, room);
   for (const socket of sockets) {
-    const user = getSocketUser(socket);
+    const user = await awaitSocketFullUser(socket);
     try {
       // Hard deletes have no document context; use an empty object so object-scoped
       // permission helpers fail closed instead of treating the check as preflight.

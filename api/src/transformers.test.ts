@@ -225,6 +225,18 @@ describe("transform (deprecated helper)", () => {
 });
 
 describe("defaultResponseHandler", () => {
+  it("serializes change-stream BSON documents that have no toObject", async () => {
+    const options = {permissions: {}} as ModelRouterOptions<Food>;
+    const req = {} as express.Request;
+    const bsonDoc = {_id: "abc", name: "Pear"} as unknown as Document<unknown, unknown, unknown> &
+      Food;
+    const result = (await defaultResponseHandler(bsonDoc, "read", req, options)) as Food & {
+      id: string;
+    };
+    expect(result.name).toBe("Pear");
+    expect(result.id).toBe("abc");
+  });
+
   it("returns null when doc is null", async () => {
     const options = {permissions: {}} as ModelRouterOptions<Food>;
     const req = {} as express.Request;
