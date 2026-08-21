@@ -377,6 +377,29 @@ describe("useSyncConnection", () => {
     expect(invalidateTags).toHaveBeenCalledWith(["todos"]);
   });
 
+  it("invalidates tags on update when reading the store state throws", () => {
+    const socket = createFakeSocket(true);
+    const {store, api, invalidateTags} = createApi({});
+    let shouldThrow = false;
+    const throwingStore = {
+      ...store,
+      getState: () => {
+        if (shouldThrow) {
+          throw new Error("state unavailable");
+        }
+        return store.getState();
+      },
+    } as unknown as ReturnType<typeof configureStore>;
+    renderSync(socket, api, throwingStore);
+    shouldThrow = true;
+
+    act(() => {
+      socket.trigger("sync", syncEvent({data: {name: "new"}, method: "update"}));
+    });
+
+    expect(invalidateTags).toHaveBeenCalledWith(["todos"]);
+  });
+
   it("does not log sync details when debug is disabled", () => {
     const socket = createFakeSocket(true);
     const {store, api, invalidateTags} = createApi({});
