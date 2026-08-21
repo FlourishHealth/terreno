@@ -1,6 +1,11 @@
+const MODEL_CRUD = ["create", "list", "read", "update", "delete"] as const;
+
 export const terrenoStatements = {
   admin: ["access", "runScripts", "viewBackgroundTasks"],
   configuration: ["read", "update"],
+  consentForm: MODEL_CRUD,
+  consentResponse: ["list", "read"],
+  featureFlag: MODEL_CRUD,
   rbac: ["read", "manageRoles", "assignRoles"],
   user: ["create", "list", "read", "update", "delete", "impersonate", "setPassword"],
 } as const;

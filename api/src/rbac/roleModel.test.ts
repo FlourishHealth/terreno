@@ -21,6 +21,9 @@ describe("rbac role model", () => {
     expect(superadmin.isSealed).toBe(true);
     expect(superadmin.permissions.admin).toContain("access");
     expect(superadmin.permissions.user).toContain("delete");
+    expect(superadmin.permissions.featureFlag).toContain("list");
+    expect(superadmin.permissions.consentForm).toContain("list");
+    expect(superadmin.permissions.consentResponse).toEqual(["list", "read"]);
 
     const auditor = await RbacRole.findExactlyOne({name: "auditor"});
     expect(auditor.permissions.user).toEqual(["list", "read"]);

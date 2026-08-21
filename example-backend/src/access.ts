@@ -6,6 +6,7 @@ import {appDefaultRoles} from "./rbacRoles";
 
 export const appStatements = {
   ...terrenoStatements,
+  adminAuditLog: ["list", "read"],
   todo: ["create", "read", "update", "delete", "list"],
 } as const;
 
