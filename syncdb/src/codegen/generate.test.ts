@@ -1,0 +1,216 @@
+import {describe, expect, it} from "bun:test";
+import {mkdtemp, readFile, rm} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+
+import {discoverCollections} from "./discoverCollections";
+import {emitSdk} from "./emitSdk";
+import {emitInterface} from "./emitTypes";
+import {generateSyncDbSdk} from "./generate";
+import {friendlyHookNames} from "./hookNames";
+import {loadSpec} from "./loadSpec";
+
+const fixturePath = join(import.meta.dir, "fixtures", "openapi.example.json");
+
+describe("friendlyHookNames", () => {
+  it("uses entity-centric names for todos", () => {
+    expect(friendlyHookNames({collection: "todos", entityName: "Todo"})).toEqual({
+      create: "useCreateTodo",
+      list: "useTodos",
+      read: "useTodo",
+      remove: "useDeleteTodo",
+      update: "useUpdateTodo",
+    });
+  });
+});
+
+describe("emitInterface", () => {
+  it("maps Mongoose ObjectId schemas to strings", () => {
+    expect(
+      emitInterface({
+        name: "Owned",
+        schema: {
+          properties: {ownerId: {type: "schemaobjectid"}},
+          required: ["ownerId"],
+          type: "object",
+        },
+      })
+    ).toContain("ownerId: string;");
+  });
+});
+
+describe("discoverCollections", () => {
+  it("reads x-terreno-sync from the fixture spec", async () => {
+    const spec = await loadSpec(fixturePath);
+    const discovered = discoverCollections({spec});
+    expect(discovered.map((entry) => entry.collection)).toEqual(["todos"]);
+    expect(discovered[0]?.entityName).toBe("Todo");
+    expect(discovered[0]?.createName).toBe("CreateTodoBody");
+    expect(discovered[0]?.updateName).toBe("UpdateTodoBody");
+  });
+
+  it("finds item routes when the collection path has a trailing slash", async () => {
+    const spec = await loadSpec(fixturePath);
+    const todoPath = spec.paths?.["/todos"];
+    const todoItemPath = spec.paths?.["/todos/{id}"];
+    spec.paths = {"/todos/": todoPath ?? {}};
+    spec.paths["/todos/{id}/complete"] = {patch: {}};
+    spec.paths["/todos/{id}"] = todoItemPath ?? {};
+
+    const [discovered] = discoverCollections({spec});
+
+    expect(discovered?.updateName).toBe("UpdateTodoBody");
+    expect(discovered?.updateSchema.properties?.title?.type).toBe("string");
+  });
+
+  it("filters with --collections", async () => {
+    const spec = await loadSpec(fixturePath);
+    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/matched/);
+  });
+
+  it("errors when the spec has no extensions and no --collections", () => {
+    expect(() => discoverCollections({spec: {paths: {"/health": {get: {}}}}})).toThrow(
+      /No synced collections found/
+    );
+  });
+
+  it("reads list/create/patch schemas from /{name} when --collections is the fallback", async () => {
+    const spec = await loadSpec(fixturePath);
+    if (spec.paths?.["/todos"]?.get) {
+      delete spec.paths["/todos"].get["x-terreno-sync"];
+    }
+    const [discovered] = discoverCollections({collections: ["todos"], spec});
+    expect(discovered?.entityName).toBe("Todo");
+    expect(discovered?.createName).toBe("CreateTodoBody");
+    expect(discovered?.updateSchema.properties?.title?.type).toBe("string");
+  });
+
+  it("errors when --collections names a path that is missing", () => {
+    expect(() =>
+      discoverCollections({
+        collections: ["notes"],
+        spec: {paths: {"/health": {get: {}}}},
+      })
+    ).toThrow(/No OpenAPI path for collection "notes"/);
+  });
+
+  it("does not fail on a broken sibling collection when --collections allowlists a valid one", () => {
+    const spec = {
+      paths: {
+        "/notes": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {page: {type: "number"}},
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+            "x-terreno-sync": {collection: "notes", scope: "owner"},
+          },
+        },
+        "/todos": {
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: {
+                      properties: {
+                        data: {
+                          items: {
+                            properties: {title: {type: "string"}},
+                            type: "object",
+                          },
+                          type: "array",
+                        },
+                      },
+                      type: "object",
+                    },
+                  },
+                },
+              },
+            },
+            "x-terreno-sync": {collection: "todos", scope: "owner"},
+          },
+        },
+      },
+    };
+    expect(() => discoverCollections({spec})).toThrow(/data.items schema/);
+    const discovered = discoverCollections({collections: ["todos"], spec});
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]?.collection).toBe("todos");
+  });
+
+  it("does not path-fallback --collections when the spec already has x-terreno-sync", async () => {
+    const spec = await loadSpec(fixturePath);
+    expect(() => discoverCollections({collections: ["notes"], spec})).toThrow(/matched/);
+  });
+});
+
+describe("generateSyncDbSdk", () => {
+  it("emits SYNC_COLLECTIONS and friendly hooks", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "syncdb-codegen-"));
+    const out = join(dir, "syncDbSdk.ts");
+    try {
+      const source = await generateSyncDbSdk({
+        format: false,
+        out,
+        schema: fixturePath,
+      });
+      expect(source).toContain('export const SYNC_COLLECTIONS = ["todos"] as const;');
+      expect(source).toContain("useListQuery: useTodos");
+      expect(source).toContain("useReadQuery: useTodo");
+      expect(source).toContain("useCreateMutation: useCreateTodo");
+      expect(source).toContain("useUpdateMutation: useUpdateTodo");
+      expect(source).toContain("useDeleteMutation: useDeleteTodo");
+      expect(source).toContain("export interface Todo");
+      expect(source).toContain("title?: string;");
+      expect(await readFile(out, "utf8")).toBe(source);
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
+  it("applies retries: false from config overrides", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "syncdb-codegen-"));
+    const out = join(dir, "syncDbSdk.ts");
+    try {
+      const source = await generateSyncDbSdk({
+        config: {overrides: {todos: {retries: false}}},
+        format: false,
+        out,
+        schema: fixturePath,
+      });
+      expect(source).toContain(
+        'createCollectionHooks<Todo, CreateTodoBody, UpdateTodoBody>({collection: "todos", retries: false})'
+      );
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
+  it("rejects collection names that are not TypeScript identifiers", async () => {
+    const spec = await loadSpec(fixturePath);
+    const discovered = discoverCollections({spec});
+    const first = discovered[0];
+    if (!first) {
+      throw new Error("expected todos fixture collection");
+    }
+    expect(() =>
+      emitSdk({
+        collections: [
+          {
+            ...first,
+            collection: 'todos"; process.exit(1); //',
+          },
+        ],
+      })
+    ).toThrow(/not a TypeScript identifier/);
+  });
+});

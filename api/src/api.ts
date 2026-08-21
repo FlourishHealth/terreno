@@ -15,6 +15,8 @@ import {
   type InstanceActionConfig,
   registerActionRoutes,
 } from "./actions";
+import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
+import type {AdminConfig} from "./adminTypes";
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
@@ -386,6 +388,11 @@ export interface ModelRouterOptions<T> {
    * Only works with the three-argument form: modelRouter('/path', Model, options).
    */
   sync?: SyncConfig;
+  /**
+   * Optional admin panel metadata for this model. Consumed by {@link AdminApp} when aggregating
+   * `/admin/config` and for server-side field scrubbing / realtime change events.
+   */
+  admin?: AdminConfig;
 }
 
 /**
@@ -595,8 +602,16 @@ export interface ModelRouterRegistration {
   path: string;
   /** The Express router containing CRUD endpoints */
   router: express.Router;
-  /** @internal Rebuilds the router with the openApi instance injected into options */
-  _buildWithOpenApi: (openApi: OpenApiMiddleware) => express.Router;
+  /** The Mongoose model this router serves */
+  // noExplicitAny: registration stores arbitrary document models
+  // biome-ignore lint/suspicious/noExplicitAny: registration stores arbitrary document models
+  model: ModelLike<any>;
+  /** Options passed to modelRouter (includes optional admin config) */
+  // noExplicitAny: registration stores arbitrary document models
+  // biome-ignore lint/suspicious/noExplicitAny: registration stores arbitrary document models
+  options: ModelRouterOptions<any>;
+  /** @internal Rebuilds the router with OpenAPI and TerrenoApp context injected */
+  _buildWithContext: (context: ModelRouterBuildContext) => express.Router;
 }
 
 /**
@@ -661,8 +676,14 @@ export function modelRouter<T>(
     }
     return {
       __type: "modelRouter",
-      _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
-        _buildModelRouter(model, {...options, openApi}, path),
+      _buildWithContext: (context: ModelRouterBuildContext) =>
+        _buildModelRouter(
+          model,
+          enrichModelRouterOptions(model, {...options, openApi: context.openApi}, context),
+          path
+        ),
+      model,
+      options,
       path,
       router,
     };
@@ -1359,3 +1380,4 @@ export const asyncHandler = (fn: AsyncHandlerFn, options?: AsyncHandlerOptions) 
 // For backwards compatibility with the old names.
 export const gooseRestRouter = modelRouter;
 export type GooseRESTOptions<T> = ModelRouterOptions<T>;
+export type {ModelRouterBuildContext} from "./adminModelRouter";

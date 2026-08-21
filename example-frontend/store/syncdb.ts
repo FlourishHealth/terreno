@@ -15,8 +15,6 @@ import {SYNC_COLLECTIONS} from "@/store/syncDbSdk";
 
 export const SYNC_DB_NAME = "terreno-example";
 
-export {SYNC_COLLECTIONS};
-
 /**
  * The Better Auth *react* client delivers session changes through a nanostore atom
  * (`$store.atoms.session`), but its `useSession` is a React hook without `.subscribe`.

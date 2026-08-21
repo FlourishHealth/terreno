@@ -1,6 +1,6 @@
 import {FlashList, type ListRenderItemInfo} from "@shopify/flash-list";
 import {generateMutationId} from "@terreno/syncdb";
-import {useEntity, useEntityIds, useSyncStatus} from "@terreno/syncdb/react";
+import {useEntityIds, useSyncStatus} from "@terreno/syncdb/react";
 import {
   Box,
   Button,
@@ -20,7 +20,14 @@ import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {logout, useAppDispatch} from "@/store/index";
-import {type Todo, useCreateTodo, useDeleteTodo, useUpdateTodo} from "@/store/syncDbSdk";
+import {
+  type CreateTodoBody,
+  type Todo,
+  useCreateTodo,
+  useDeleteTodo,
+  useTodo,
+  useUpdateTodo,
+} from "@/store/syncDbSdk";
 
 /**
  * Virtualized row: either a section heading or a todo id.
@@ -64,7 +71,7 @@ const SyncTodoItem: React.FC<{
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
 }> = memo(({id, onToggle, onRename, onDelete}) => {
-  const {data} = useEntity<Todo>("todos", id);
+  const {data} = useTodo(id);
   const completed = Boolean(data?.completed);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [draftTitle, setDraftTitle] = useState<string>("");
@@ -242,12 +249,12 @@ SectionHeader.displayName = "SectionHeader";
  *
  * Performance: a single FlashList virtualizes rows so Sync Lab volumes stay scrollable
  * on native. The list container still only re-renders when id membership/order changes
- * (`useEntityIds`); each row subscribes to its own entity via `useEntity`.
+ * (`useEntityIds`); each row subscribes to its own entity via generated `useTodo`.
  */
 const SyncTodosScreen: React.FC = () => {
   const isSyncDbReady = useSyncDbReady();
   const [createTodo] = useCreateTodo();
-  const [updateTodo] = useUpdateTodo();
+  const [patchTodo] = useUpdateTodo();
   const [deleteTodo] = useDeleteTodo();
   const syncStatus = useSyncStatus();
   // The app mounts exactly one ConflictSheet (owned by SyncHealthToast in _layout.tsx);
@@ -299,7 +306,13 @@ const SyncTodosScreen: React.FC = () => {
       // `created` is stamped locally too (the server overwrites it on save) so the row
       // sorts newest-first immediately instead of tying with every other unacked create.
       const id = generateMutationId();
-      createTodo({data: {_id: id, completed: false, created: DateTime.now().toISO(), title}});
+      const data: CreateTodoBody & {_id: string; created: string} = {
+        _id: id,
+        completed: false,
+        created: DateTime.now().toISO(),
+        title,
+      };
+      createTodo({data, id});
       return true;
     },
     [createTodo, isSyncDbReady]
@@ -310,9 +323,9 @@ const SyncTodosScreen: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      updateTodo({data: {completed: !completed}, id});
+      patchTodo({data: {completed: !completed}, id});
     },
-    [isSyncDbReady, updateTodo]
+    [isSyncDbReady, patchTodo]
   );
 
   const handleRenameTodo = useCallback(
@@ -320,9 +333,9 @@ const SyncTodosScreen: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      updateTodo({data: {title}, id});
+      patchTodo({data: {title}, id});
     },
-    [isSyncDbReady, updateTodo]
+    [isSyncDbReady, patchTodo]
   );
 
   const handleDeleteTodo = useCallback(
@@ -332,7 +345,7 @@ const SyncTodosScreen: React.FC = () => {
       }
       deleteTodo({id});
     },
-    [deleteTodo, isSyncDbReady]
+    [isSyncDbReady, deleteTodo]
   );
 
   const openConflictSheet = useCallback((): void => {

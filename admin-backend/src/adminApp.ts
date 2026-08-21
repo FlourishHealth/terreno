@@ -1,4 +1,5 @@
 import {
+  type AdminModelAdminMap,
   APIError,
   asyncHandler,
   authenticateMiddleware,
@@ -20,7 +21,9 @@ import {
   type ScriptContext,
   type ScriptResult,
   type ScriptRunner,
+  scrubAdminFields,
   TaskCancelledError,
+  type TerrenoApp,
   type User,
   VersionConfig,
 } from "@terreno/api";
@@ -28,7 +31,12 @@ import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
-
+import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
+import {
+  ADMIN_LIST_SEARCH_PARAM,
+  andMongoFilters,
+  buildAdminPartialSearchFilter,
+} from "./adminTextSearch";
 import {
   ADMIN_SCHEMA_VERSION,
   type AdminActionInput,
@@ -42,6 +50,9 @@ import {
   normalizeAdminHome,
   SYSTEM_ADMIN_FIELDS,
 } from "./adminUiV2";
+import {aggregateFromTerrenoApp} from "./aggregateAdmin";
+import {parseAdminListFilters} from "./filterParser";
+import type {ResolvedAdminModel} from "./resolvedAdminModel";
 import {RESERVED_SCRIPT_FLAGS} from "./scriptCli";
 
 /**
@@ -163,8 +174,8 @@ export interface AdminCustomScreenConfig {
  * Configuration options for the AdminApp plugin.
  */
 export interface AdminOptions {
-  /** Array of model configurations to expose in the admin panel */
-  models: AdminModelConfig[];
+  /** Legacy model configurations (deprecated — prefer modelRouter `admin:` or plugin contributions). */
+  models?: AdminModelConfig[];
   /** Array of scripts that can be run from the admin panel */
   scripts?: AdminScriptConfig[];
   /** Base path for all admin routes. Defaults to "/admin". */
@@ -231,41 +242,139 @@ interface AdminScriptMeta {
 }
 
 interface AdminConfigResponse {
+  capabilities: {
+    actions: boolean;
+    fieldsets: boolean;
+    filters: boolean;
+    realtime: boolean;
+  };
   customScreens?: AdminCustomScreenConfig[];
   home: ReturnType<typeof normalizeAdminHome>;
   models: AdminModelMeta[];
   schemaVersion: number;
   scripts: AdminScriptMeta[];
+  widgetIds: string[];
 }
 
-const toPlainObject = (value: unknown): Record<string, unknown> => {
-  if (
-    value &&
-    typeof value === "object" &&
-    "toObject" in value &&
-    typeof value.toObject === "function"
-  ) {
-    return (value as {toObject: () => Record<string, unknown>}).toObject();
+const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
+  const map: AdminModelAdminMap = {};
+  for (const config of models) {
+    map[config.model.modelName] = config.admin;
   }
-  return value as Record<string, unknown>;
+  return map;
 };
 
-const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknown => {
-  if (Array.isArray(value)) {
-    return value.map((item) => removeHiddenFields(item, hiddenFieldSet));
-  }
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-  const plainValue = toPlainObject(value);
-  const nextValue: Record<string, unknown> = {};
-  for (const [key, fieldValue] of Object.entries(plainValue)) {
-    if (!hiddenFieldSet.has(key)) {
-      nextValue[key] = fieldValue;
-    }
-  }
-  return nextValue;
+const scrubAdminResponse = (
+  value: unknown,
+  config: ResolvedAdminModel,
+  allModelAdmins: AdminModelAdminMap
+): unknown => {
+  return scrubAdminFields(value, {
+    admin: config.admin,
+    allModelAdmins,
+    schema: config.model.schema,
+  });
 };
+
+const buildAdminListQueryFilter = (
+  config: ResolvedAdminModel,
+  /** Resolved (possibly derived) search fields from `/admin/config`, not just explicit config. */
+  resolvedSearchFields?: string[]
+): NonNullable<ModelRouterOptions<unknown>["queryFilter"]> => {
+  const base = config.queryFilter;
+  const searchFields = resolvedSearchFields ?? config.searchFields ?? [];
+  return async (user, query) => {
+    const clientQuery: Record<string, unknown> = {...(query ?? {})};
+    const {consumedKeys, errors, filter} = parseAdminListFilters(clientQuery, config.filters ?? []);
+    if (Object.keys(errors).length > 0) {
+      throw new APIError({
+        detail: JSON.stringify(errors),
+        status: 400,
+        title: "Invalid filter",
+      });
+    }
+    for (const key of consumedKeys) {
+      delete clientQuery[key];
+    }
+
+    const rawSearch = clientQuery[ADMIN_LIST_SEARCH_PARAM];
+    delete clientQuery[ADMIN_LIST_SEARCH_PARAM];
+    const searchClause =
+      typeof rawSearch === "string"
+        ? buildAdminPartialSearchFilter({
+            model: config.model,
+            q: rawSearch,
+            searchFields,
+          })
+        : undefined;
+
+    let merged: Record<string, unknown> = {...clientQuery, ...filter};
+    if (base) {
+      const baseResult = await base(user, merged);
+      if (baseResult === null) {
+        return null;
+      }
+      merged = {...merged, ...baseResult};
+    }
+    const result = andMongoFilters(merged, searchClause);
+    return {...result, [ADMIN_LIST_SEARCH_PARAM]: undefined};
+  };
+};
+
+const ADMIN_TIMESTAMP_SORT_FIELDS = ["created", "createdAt", "updated", "updatedAt"];
+
+const sortTokensToFields = (sort: string | string[] | undefined): string[] => {
+  if (!sort) {
+    return [];
+  }
+  const raw = Array.isArray(sort) ? sort.join(" ") : sort;
+  return raw
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/^-/, ""))
+    .filter((field) => field.length > 0);
+};
+
+const resolveAdminSortableFields = ({
+  defaultSort,
+  listDisplay,
+  sortableFields,
+}: {
+  defaultSort?: string | string[];
+  listDisplay: string[];
+  sortableFields?: string[];
+}): string[] => {
+  return [
+    ...new Set([
+      ...(sortableFields ?? listDisplay),
+      "_id",
+      ...ADMIN_TIMESTAMP_SORT_FIELDS,
+      ...sortTokensToFields(defaultSort),
+    ]),
+  ];
+};
+
+const validateAdminSortParam =
+  (sortableFields: string[]): express.RequestHandler =>
+  (req, _res, next) => {
+    const sort = req.query.sort;
+    if (typeof sort !== "string" || !sort.trim()) {
+      next();
+      return;
+    }
+    const tokens = sort.trim().split(/\s+/);
+    for (const token of tokens) {
+      const field = token.replace(/^-/, "");
+      if (!sortableFields.includes(field)) {
+        throw new APIError({
+          detail: field,
+          status: 400,
+          title: "Invalid sort field",
+        });
+      }
+    }
+    next();
+  };
 
 const auditDocumentToPlain = (value: unknown): Record<string, unknown> => {
   if (
@@ -461,10 +570,15 @@ export class AdminApp {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application, openApi?: unknown): void {
+  register(app: express.Application, openApi?: unknown, terrenoApp?: TerrenoApp): void {
     const basePath = this.options.basePath ?? "/admin";
     const openApiMw = openApi as OpenApiMiddleware | undefined;
-    const modelConfigs = this.options.models;
+    const aggregated = aggregateFromTerrenoApp({
+      legacyModels: this.options.models ?? [],
+      terrenoApp,
+    });
+    const modelConfigs = aggregated.models;
+    const allModelAdmins = buildAllModelAdminsMap(modelConfigs);
     const onAdminAudit = this.options.onAdminAudit;
 
     /** Audit is best-effort: failures must not change HTTP outcomes after mutations succeed. */
@@ -484,7 +598,14 @@ export class AdminApp {
     };
 
     // Build config response with field metadata from Mongoose schemas
-    const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
+    const configNames = assignUniqueAdminConfigNames(
+      modelConfigs.map((config) => ({
+        modelName: config.model.modelName,
+        routePath: config.routePath,
+        source: config.source,
+      }))
+    );
+    const configModels: AdminModelMeta[] = modelConfigs.map((config, configIndex) => {
       const {properties, required} = getOpenApiSpecForModel(config.model) as {
         properties: Record<string, OpenApiProperty>;
         required: string[];
@@ -549,7 +670,11 @@ export class AdminApp {
       const listDisplay = config.listDisplay ?? listFields;
       const derivedSearchFields = listFields.filter((field) => fields[field]?.searchable);
       const searchFields = config.searchFields ?? derivedSearchFields;
-      const sortableFields = config.sortableFields ?? [...listDisplay, "_id"];
+      const sortableFields = resolveAdminSortableFields({
+        defaultSort: config.defaultSort,
+        listDisplay,
+        sortableFields: config.sortableFields,
+      });
       const schemaPathKeys = new Set(Object.keys(config.model.schema.paths));
       const bulkPatchAllowlist =
         config.bulkPatchAllowlist ??
@@ -574,7 +699,7 @@ export class AdminApp {
         listDisplay,
         listDisplayLinks: config.listDisplayLinks ?? [],
         listFields,
-        name: config.model.modelName,
+        name: configNames[configIndex] ?? config.model.modelName,
         pageSize: config.pageSize,
         permissions: {
           create: config.permissions?.create !== false,
@@ -591,7 +716,7 @@ export class AdminApp {
     });
 
     // Build script metadata for config response
-    const scriptConfigs = this.options.scripts ?? [];
+    const scriptConfigs = [...(this.options.scripts ?? []), ...aggregated.scripts];
     const configScripts: AdminScriptMeta[] = scriptConfigs.map((script) => ({
       args: script.args ?? [],
       description: script.description,
@@ -599,14 +724,25 @@ export class AdminApp {
     }));
 
     const defaultScreens = [{displayName: "Version Config", name: "version-config"}];
-    const mergedScreens = [...defaultScreens, ...(this.options.customScreens ?? [])];
+    const mergedScreens = [
+      ...defaultScreens,
+      ...aggregated.customScreens,
+      ...(this.options.customScreens ?? []),
+    ];
 
     const configResponse: AdminConfigResponse = {
+      capabilities: {
+        actions: true,
+        fieldsets: true,
+        filters: true,
+        realtime: modelConfigs.some((config) => config.realtime === true),
+      },
       customScreens: mergedScreens,
       home: normalizeAdminHome(this.options.home),
       models: configModels,
       schemaVersion: ADMIN_SCHEMA_VERSION,
       scripts: configScripts,
+      widgetIds: aggregated.widgetIds,
     };
 
     const adminConfigOpenApi = openApiMw
@@ -614,6 +750,15 @@ export class AdminApp {
           .withTags(["admin"])
           .withSummary("Admin panel configuration")
           .withResponse(200, {
+            capabilities: {
+              properties: {
+                actions: {type: "boolean"},
+                fieldsets: {type: "boolean"},
+                filters: {type: "boolean"},
+                realtime: {type: "boolean"},
+              },
+              type: "object",
+            },
             customScreens: {
               items: {
                 properties: {
@@ -639,6 +784,7 @@ export class AdminApp {
               },
               type: "array",
             },
+            widgetIds: {items: {type: "string"}, type: "array"},
           })
           .build()
       : undefined;
@@ -822,7 +968,10 @@ export class AdminApp {
       // not the OpenAPI type (which reports ObjectId as "string")
       const searchableFields: string[] = [];
       const objectIdFields: string[] = [];
-      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const modelMeta = findAdminModelMetaByRoutePath(
+        configModels,
+        `${basePath}${config.routePath}`
+      );
       if (modelMeta) {
         for (const key of Object.keys(modelMeta.fields)) {
           const schemaPath = config.model.schema.path(key);
@@ -838,8 +987,9 @@ export class AdminApp {
         `${basePath}${config.routePath}/search`,
         authenticateMiddleware(),
         asyncHandler(async (req, res) => {
-          const user = req.user as {_id: unknown; admin?: boolean} | undefined;
-          if (!user?.admin) {
+          if (
+            !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+          ) {
             throw new APIError({
               disableExternalErrorTracking: true,
               status: 403,
@@ -851,24 +1001,19 @@ export class AdminApp {
             return res.json({data: []});
           }
 
-          const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const regex = new RegExp(escapedQ, "i");
-
           const fields =
             typeof req.query.fields === "string"
               ? req.query.fields.split(",").filter((f: string) => searchableFields.includes(f))
               : searchableFields;
 
-          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+          const searchClause = buildAdminPartialSearchFilter({
+            extraObjectIdFields: objectIdFields,
+            model: config.model,
+            q,
+            searchFields: fields,
+          });
 
-          // If the query is a valid ObjectId, also match against ObjectId fields
-          if (mongoose.isValidObjectId(q)) {
-            for (const field of objectIdFields) {
-              orConditions.push({[field]: new mongoose.Types.ObjectId(q)});
-            }
-          }
-
-          if (orConditions.length === 0) {
+          if (!searchClause) {
             return res.json({data: []});
           }
           logger.debug("Admin search query", {
@@ -877,12 +1022,24 @@ export class AdminApp {
             q,
           });
           try {
-            const results = await config.model.find({$or: orConditions}).limit(20).lean();
+            const scoped = await buildAdminListQueryFilter(config, modelMeta?.searchFields)(
+              req.user as User | undefined,
+              {}
+            );
+            if (scoped === null) {
+              return res.json({data: []});
+            }
+            const results = await config.model
+              .find({$and: [scoped, searchClause]})
+              .limit(20)
+              .lean();
             logger.debug("Admin search results", {
               count: results.length,
               model: config.model.modelName,
             });
-            return res.json({data: results});
+            return res.json({
+              data: results.map((doc) => scrubAdminResponse(doc, config, allModelAdmins)),
+            });
           } catch (err) {
             logger.error("Admin search failed", {
               error: err,
@@ -899,7 +1056,11 @@ export class AdminApp {
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const readonlySet = new Set(config.readonlyFields ?? []);
-      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const excludeFieldSet = new Set(config.excludeFields ?? []);
+      const modelMeta = findAdminModelMetaByRoutePath(
+        configModels,
+        `${basePath}${config.routePath}`
+      );
       const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
 
       const adminPermission = (allowed: boolean | undefined): (typeof Permissions.IsAdmin)[] => {
@@ -918,6 +1079,9 @@ export class AdminApp {
           delete next[key];
         }
         for (const key of hiddenFieldSet) {
+          delete next[key];
+        }
+        for (const key of excludeFieldSet) {
           delete next[key];
         }
         for (const key of SYSTEM_ADMIN_FIELDS) {
@@ -1007,13 +1171,6 @@ export class AdminApp {
           read: [Permissions.IsAdmin],
           update: adminPermission(config.permissions?.update),
         },
-        queryFields: buildAdminModelQueryFields({
-          filters: config.filters,
-          listDisplay: config.listDisplay,
-          listFields: config.listFields,
-          searchFields: config.searchFields,
-        }),
-        ...(config.queryFilter ? {queryFilter: config.queryFilter} : {}),
         preCreate: async (body, _req) => {
           if (!body || typeof body !== "object") {
             return body;
@@ -1026,17 +1183,22 @@ export class AdminApp {
           }
           return stripProtectedFromBody(body) as typeof body;
         },
-        responseHandler:
-          hiddenFieldSet.size > 0
-            ? async (value, _method, _request, _options): Promise<JSONValue> =>
-                removeHiddenFields(value, hiddenFieldSet) as JSONValue
-            : undefined,
+        queryFields: buildAdminModelQueryFields({
+          filters: config.filters,
+          listDisplay: config.listDisplay,
+          listFields: config.listFields,
+          searchFields: modelMeta?.searchFields ?? config.searchFields,
+        }),
+        queryFilter: buildAdminListQueryFilter(config, modelMeta?.searchFields),
+        responseHandler: async (value, _method, _request, _options): Promise<JSONValue> =>
+          scrubAdminResponse(value, config, allModelAdmins) as JSONValue,
         sort: config.defaultSort ?? "-created",
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...auditHooks,
       };
 
       const modelBase = express.Router();
+      modelBase.use(validateAdminSortParam(modelMeta?.sortableFields ?? []));
       modelBase.post(
         "/bulk-patch",
         authenticateMiddleware(),

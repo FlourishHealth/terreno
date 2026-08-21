@@ -10,6 +10,7 @@ Local-first data layer for Terreno frontends. A TinyBase `MergeableStore` on dev
 - [createSyncDb configuration](#createsyncdb-configuration)
 - [SyncDb client methods](#syncdb-client-methods)
 - [React hooks](#react-hooks)
+- [Codegen](#codegen)
 - [Conflict API](#conflict-api)
 - [Sync status API](#sync-status-api)
 - [Stream scoping](#stream-scoping)
@@ -24,7 +25,8 @@ Local-first data layer for Terreno frontends. A TinyBase `MergeableStore` on dev
 - `createSyncDb`, `SyncDb`, `SyncDbConfig`, `MutateArgs`
 - `betterAuthAdapter`, `AuthProvider`
 - `listConflicts`, `wipeLocalData`, `generateMutationId`
-- React (`@terreno/syncdb/react`): `SyncDbProvider`, `useEntity`, `useQuery`, `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`
+- React (`@terreno/syncdb/react`): `SyncDbProvider`, `useEntity`, `useQuery`, `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`, `createCollectionHooks`
+- CLI: `terreno-syncdb-codegen` (generates `SYNC_COLLECTIONS` + friendly hooks from OpenAPI)
 - Testing (`@terreno/syncdb/testing`): `createFakeTransport`
 
 ## Installation
@@ -199,6 +201,7 @@ Import from `@terreno/syncdb/react`:
 
 ```typescript
 import {
+  createCollectionHooks,
   SyncDbProvider,
   useConflicts,
   useEntity,
@@ -288,6 +291,30 @@ Available when the client was created with `debug: true`. `log?.snapshot()` retu
 ### `useSyncDbClient()`
 
 Returns the `SyncDb` instance from context (escape hatch for imperative calls like `forceResync()`).
+
+### `createCollectionHooks`
+
+Factory used by `terreno-syncdb-codegen` and by hand-written custom collections. Returns five operation hooks (`useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`). Generated SDKs rename them to friendly names (`useTodos`, `useTodo`, `useCreateTodo`, …). Mutation hooks return `[trigger]`; triggers apply locally and return `{mutationId, id}` synchronously. Optional `retries` maps to `maxAttempts` (`false` → 1, a number → that many, omitted → engine default).
+
+```typescript
+export const {useListQuery: useNotes, useCreateMutation: useCreateNote} =
+  createCollectionHooks<Note, CreateNoteBody, UpdateNoteBody>({
+    collection: "notes",
+  });
+```
+
+## Codegen
+
+`terreno-syncdb-codegen` is a bin of `@terreno/syncdb`. It reads OpenAPI, discovers list operations with `x-terreno-sync`, and writes typed hooks plus `SYNC_COLLECTIONS`.
+
+```bash
+terreno-syncdb-codegen \
+  --schema http://localhost:4000/openapi.json \
+  --out ./store/syncDbSdk.ts \
+  --config ./syncdb-codegen.json
+```
+
+Do not edit the generated file. `--collections` filters when extensions exist. When they do not, it reads list/create/patch schemas from `GET /{name}` (or `/{name}/`). A missing path, a list response without `data.items`, a spec with no extensions and no `--collections` all exit non-zero.
 
 ## Conflict API
 

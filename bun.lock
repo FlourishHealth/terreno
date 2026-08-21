@@ -459,7 +459,6 @@
         "@biomejs/biome": "catalog:",
         "@playwright/test": "catalog:",
         "@rtk-query/codegen-openapi": "^2.2.0",
-        "@terreno/syncdb-codegen": "workspace:*",
         "@types/lodash": "catalog:",
         "@types/luxon": "catalog:",
         "@types/react": "catalog:",
@@ -569,6 +568,9 @@
     "syncdb": {
       "name": "@terreno/syncdb",
       "version": "0.23.1",
+      "bin": {
+        "terreno-syncdb-codegen": "./src/codegen/cli.ts",
+      },
       "dependencies": {
         "luxon": "catalog:",
         "socket.io-client": "catalog:",
@@ -596,19 +598,6 @@
         "expo-sqlite",
         "react",
       ],
-    },
-    "syncdb-codegen": {
-      "name": "@terreno/syncdb-codegen",
-      "version": "0.1.0",
-      "bin": {
-        "terreno-syncdb-codegen": "./dist/cli.js",
-      },
-      "devDependencies": {
-        "@biomejs/biome": "catalog:",
-        "@types/bun": "catalog:",
-        "@types/node": "catalog:",
-        "typescript": "catalog:",
-      },
     },
     "test": {
       "name": "@terreno/test",
@@ -2178,8 +2167,6 @@
     "@terreno/rtk": ["@terreno/rtk@workspace:rtk"],
 
     "@terreno/syncdb": ["@terreno/syncdb@workspace:syncdb"],
-
-    "@terreno/syncdb-codegen": ["@terreno/syncdb-codegen@workspace:syncdb-codegen"],
 
     "@terreno/test": ["@terreno/test@workspace:test"],
 

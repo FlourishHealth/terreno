@@ -252,21 +252,17 @@ export const useEntityIds = <TData = Record<string, unknown>>(
 
 export interface UseMutateResult {
   /** Optimistically create an entity; returns the generated ids. */
-  create: (args: {
-    data: Record<string, unknown>;
-    maxAttempts?: number;
-  }) => {mutationId: string; id: string};
+  create: (args: {data: Record<string, unknown>; id?: string; maxAttempts?: number}) => {
+    mutationId: string;
+    id: string;
+  };
   /** Optimistically merge fields into an existing entity. */
-  update: (args: {
+  update: (args: {id: string; data: Record<string, unknown>; maxAttempts?: number}) => {
+    mutationId: string;
     id: string;
-    data: Record<string, unknown>;
-    maxAttempts?: number;
-  }) => {mutationId: string; id: string};
+  };
   /** Optimistically soft-delete an entity. */
-  remove: (args: {
-    id: string;
-    maxAttempts?: number;
-  }) => {mutationId: string; id: string};
+  remove: (args: {id: string; maxAttempts?: number}) => {mutationId: string; id: string};
 }
 
 /**
@@ -279,12 +275,14 @@ export const useMutate = (collection: string): UseMutateResult => {
   const create = useCallback(
     (args: {
       data: Record<string, unknown>;
+      id?: string;
       maxAttempts?: number;
     }): {mutationId: string; id: string} =>
       client.mutate({
         collection,
         data: args.data,
-        maxAttempts: args.maxAttempts,
+        ...(args.id !== undefined ? {id: args.id} : {}),
+        ...(args.maxAttempts !== undefined ? {maxAttempts: args.maxAttempts} : {}),
         operation: "create",
       }),
     [client, collection]

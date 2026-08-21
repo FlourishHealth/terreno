@@ -9,47 +9,11 @@ import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
 import type {
-  AppendAttemptParams,
   CommsMessageDocument,
   CommsMessageModel,
   CommsMessageSchema,
   LogSendParams,
 } from "../modelTypes";
-
-const EXPIRED_PAYLOAD_BATCH_SIZE = 50;
-
-const attemptSubSchema = new mongoose.Schema(
-  {
-    at: {
-      description: "When this provider attempt ran",
-      required: true,
-      type: Date,
-    },
-    error: {
-      description: "Provider error message for this attempt",
-      type: String,
-    },
-    errorClass: {
-      description: "Failure class for this attempt",
-      enum: ["config", "permanent", "transient"],
-      type: String,
-    },
-    errorCode: {
-      description: "Provider-native error code for this attempt",
-      type: String,
-    },
-    provider: {
-      description: "Provider identifier used for this attempt",
-      required: true,
-      type: String,
-    },
-    providerMessageId: {
-      description: "Provider-assigned identifier returned by this attempt",
-      type: String,
-    },
-  },
-  {_id: false}
-);
 
 const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
   CommsMessageDocument,
@@ -58,13 +22,44 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
   {
     attemptCount: {
       default: 0,
-      description: "Number of provider attempts recorded on this row",
+      description: "Number of facade send attempts recorded on this row",
       type: Number,
     },
     attempts: {
       default: [],
-      description: "Per-attempt history including the inline transient retry",
-      type: [attemptSubSchema],
+      description: "Per-attempt provider results including the inline retry",
+      type: [
+        {
+          _id: false,
+          at: {
+            description: "When this send attempt ran",
+            required: true,
+            type: Date,
+          },
+          error: {
+            description: "Provider error message for this attempt",
+            type: String,
+          },
+          errorClass: {
+            description: "Classified failure category for this attempt",
+            enum: ["config", "permanent", "transient"],
+            type: String,
+          },
+          errorCode: {
+            description: "Provider-native error code for this attempt",
+            type: String,
+          },
+          provider: {
+            description: "Provider identifier used for this attempt",
+            required: true,
+            type: String,
+          },
+          providerMessageId: {
+            description: "Provider-assigned identifier returned by this attempt",
+            type: String,
+          },
+        },
+      ],
     },
     channel: {
       description: "Communication channel used for the send attempt",
@@ -87,7 +82,7 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
       type: String,
     },
     lastAttemptAt: {
-      description: "Timestamp of the most recent provider attempt",
+      description: "Timestamp of the most recent send attempt",
       type: Date,
     },
     metadata: {
@@ -95,11 +90,12 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
       type: mongoose.Schema.Types.Mixed,
     },
     payload: {
-      description: "Redacted rendered payload retained for admin retry",
+      description: "Redacted rendered message retained for admin retry",
       type: mongoose.Schema.Types.Mixed,
     },
     payloadExpiresAt: {
       description: "When the retained payload should be cleared",
+      index: true,
       type: Date,
     },
     provider: {
@@ -114,12 +110,12 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
       type: String,
     },
     retriedById: {
-      description: "Admin retry row created from this message",
+      description: "Admin-dashboard retry that was created from this row",
       ref: "CommsMessage",
       type: mongoose.Schema.Types.ObjectId,
     },
     retriedFromId: {
-      description: "Original message this admin retry was created from",
+      description: "Original CommsMessage this admin retry was created from",
       ref: "CommsMessage",
       type: mongoose.Schema.Types.ObjectId,
     },
@@ -134,7 +130,7 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
       type: String,
     },
     templateId: {
-      description: "Optional template identifier used to render the message",
+      description: "Provider or app template identifier used to render the message",
       type: String,
     },
     to: {
@@ -154,52 +150,67 @@ const commsMessageSchema: CommsMessageSchema = new mongoose.Schema<
 commsMessageSchema.statics = {
   async appendAttempt(
     this: CommsMessageModel,
-    params: AppendAttemptParams
-  ): Promise<CommsMessageDocument | null> {
-    if (!params.messageId) {
-      logger.warn("[comms] Failed to append communication attempt");
-      return null;
+    params: {
+      attempt: CommsMessageDocument["attempts"][number];
+      error?: string;
+      errorClass?: CommsMessageDocument["errorClass"];
+      errorCode?: string;
+      id: mongoose.Types.ObjectId | string;
+      metadata?: Record<string, unknown>;
+      payload?: unknown;
+      payloadExpiresAt?: Date;
+      providerMessageId?: string;
+      status: CommsMessageDocument["status"];
     }
+  ): Promise<CommsMessageDocument | null> {
+    let document: CommsMessageDocument | null;
     try {
-      const message = await this.findOneOrNone({_id: params.messageId});
-      if (!message) {
-        logger.warn("[comms] Failed to append communication attempt");
+      document = await this.findOneOrNone({_id: params.id});
+      if (!document) {
         return null;
       }
-      await this.clearExpiredPayloads();
-      message.attempts = [...(message.attempts ?? []), params.attempt];
-      message.attemptCount = message.attempts.length;
-      message.lastAttemptAt = params.attempt.at;
-      message.status = params.status;
-      message.error = params.error;
-      message.errorClass = params.errorClass;
-      message.errorCode = params.errorCode;
-      message.providerMessageId = params.providerMessageId;
-      await message.save();
-      return message;
+      document.attempts = [...document.attempts, params.attempt];
+      document.attemptCount = document.attempts.length;
+      document.error = params.error;
+      document.errorClass = params.errorClass;
+      document.errorCode = params.errorCode;
+      document.lastAttemptAt = params.attempt.at;
+      document.providerMessageId = params.providerMessageId;
+      document.status = params.status;
+      if (params.metadata) {
+        document.metadata = {...document.metadata, ...params.metadata};
+        document.markModified("metadata");
+      }
+      if (params.payload !== undefined) {
+        document.payload = params.payload;
+        document.payloadExpiresAt = params.payloadExpiresAt;
+      }
+      await document.save();
     } catch {
       logger.warn("[comms] Failed to append communication attempt");
       return null;
     }
+    await this.clearExpiredPayloads();
+    return document;
   },
   async clearExpiredPayloads(this: CommsMessageModel): Promise<number> {
     try {
       const expired = await this.find({
-        payload: {$exists: true, $ne: null},
+        payload: {$exists: true},
         payloadExpiresAt: {$lte: DateTime.utc().toJSDate()},
       })
         .select("_id")
-        .limit(EXPIRED_PAYLOAD_BATCH_SIZE);
+        .limit(50);
       if (expired.length === 0) {
         return 0;
       }
       const result = await this.updateMany(
         {_id: {$in: expired.map((row) => row._id)}},
-        {$unset: {payload: 1}}
+        {$unset: {payload: 1, payloadExpiresAt: 1}}
       );
       return result.modifiedCount;
-    } catch {
-      logger.warn("[comms] Failed to clear expired communication payloads");
+    } catch (error: unknown) {
+      logger.warn(`[comms] Failed to clear expired payloads: ${String(error)}`);
       return 0;
     }
   },
@@ -207,13 +218,15 @@ commsMessageSchema.statics = {
     this: CommsMessageModel,
     params: LogSendParams
   ): Promise<CommsMessageDocument | null> {
+    let created: CommsMessageDocument;
     try {
-      await this.clearExpiredPayloads();
-      return await this.create(params);
+      created = await this.create(params);
     } catch {
       logger.warn("[comms] Failed to record communication send");
       return null;
     }
+    await this.clearExpiredPayloads();
+    return created;
   },
 };
 
@@ -225,7 +238,6 @@ commsMessageSchema.plugin(findExactlyOne);
 commsMessageSchema.index({channel: 1, created: -1});
 commsMessageSchema.index({created: -1, status: 1});
 commsMessageSchema.index({created: -1, userId: 1});
-commsMessageSchema.index({payloadExpiresAt: 1});
 
 export const CommsMessage = mongoose.model<CommsMessageDocument, CommsMessageModel>(
   "CommsMessage",

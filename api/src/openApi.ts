@@ -170,12 +170,17 @@ const resolveSyncScopeLabel = (scope: SyncScope): "owner" | "tenant" | "broadcas
 
 const buildTerrenoSyncExtension = (
   sync: SyncConfig | undefined,
-  routePath: string | undefined
+  routePath: string | undefined,
+  fallbackCollection?: string
 ): Record<string, unknown> => {
-  if (!sync || !routePath) {
+  if (!sync) {
     return {};
   }
-  const collection = routePath.replace(/^\//, "");
+  const rawPath = routePath ?? (fallbackCollection ? `/${fallbackCollection}` : undefined);
+  if (!rawPath) {
+    return {};
+  }
+  const collection = rawPath.replace(/^\//, "");
   return {
     "x-terreno-sync": {
       collection,
@@ -283,7 +288,7 @@ export const listOpenApiMiddleware = <T>(
   return options.openApi.path(
     merge(
       {
-        ...buildTerrenoSyncExtension(options.sync, routePath),
+        ...buildTerrenoSyncExtension(options.sync, routePath, model.collection.collectionName),
         parameters: [
           ...defaultQueryParams,
           ...(modelQueryParams ?? []),
