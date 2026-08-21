@@ -48,6 +48,11 @@ interface TestDocFields {
 
 const TodoModel = getOrCreateModel("MCPTodo", todoSchema);
 const OwnerModel = getOrCreateModel("MCPOwner", ownerSchema);
+const userWriteSchema = new Schema({
+  email: {type: String},
+  roles: {default: [], type: [String]},
+});
+const UserWriteModel = getOrCreateModel("MCPUserWrite", userWriteSchema);
 
 interface TestUser {
   _id: mongoose.Types.ObjectId;
@@ -128,6 +133,7 @@ describe("MCP Integration", () => {
   beforeEach(async () => {
     await TodoModel.deleteMany({});
     await OwnerModel.deleteMany({});
+    await UserWriteModel.deleteMany({});
     clearMCPRegistry();
     entry = createEntry();
   });
@@ -200,6 +206,34 @@ describe("MCP Integration", () => {
       const parsed = parseResult(result);
       expect(parsed.error).toContain("Validation failed");
       expect(await TodoModel.countDocuments()).toBe(0);
+    });
+
+    it("drops User roles on MCP create when accessControl is set", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        config: {methods: ["create"]},
+        model: UserWriteModel,
+        modelName: "User",
+        options: {
+          accessControl: {} as never,
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [],
+            list: [],
+            read: [],
+            update: [],
+          },
+        },
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {email: "mcp-roles@example.com", roles: ["superadmin"]},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.data.email).toBe("mcp-roles@example.com");
+      expect(parsed.data.roles ?? []).toEqual([]);
+      const stored = await UserWriteModel.findOne({email: "mcp-roles@example.com"}).lean();
+      expect(stored?.roles ?? []).toEqual([]);
     });
 
     it("strips REST excludeFromCreate fields before persist", async () => {
@@ -651,6 +685,34 @@ describe("MCP Integration", () => {
       const parsed = parseResult(result);
       expect(parsed.error).toContain("Validation failed");
       expect((await TodoModel.findById(doc._id))?.completed).toBe(false);
+    });
+
+    it("drops User roles on MCP update when accessControl is set", async () => {
+      const doc = await UserWriteModel.create({email: "mcp-roles-update@example.com", roles: []});
+      const writeEntry: MCPRegistryEntry = {
+        config: {methods: ["update"]},
+        model: UserWriteModel,
+        modelName: "User",
+        options: {
+          accessControl: {} as never,
+          permissions: {
+            create: [],
+            delete: [],
+            list: [],
+            read: [],
+            update: [Permissions.IsAuthenticated],
+          },
+        },
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {email: "mcp-roles-update@example.com", id: doc._id.toString(), roles: ["superadmin"]},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.data.email).toBe("mcp-roles-update@example.com");
+      expect(parsed.data.roles ?? []).toEqual([]);
+      expect((await UserWriteModel.findById(doc._id).lean())?.roles ?? []).toEqual([]);
     });
 
     it("strips MCP excludeFields from the update persist payload", async () => {

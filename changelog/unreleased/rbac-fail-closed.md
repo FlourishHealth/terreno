@@ -18,7 +18,8 @@ category: Changed
   documented `access` + `accessControl` path, including pathless `modelRouter`)
   instead of the pre-build legacy permission arrays. Create/update also apply
   `validateAccessWritePayload` (field views / `createView: "deny"`).
-  User `roles` on modelRouter writes are dropped when `accessControl` is set.
+  User `roles` on modelRouter writes (HTTP, sync, and MCP) are dropped when
+  `accessControl` is set.
   Example-backend `backfillAdmins` is dry-run unless `RBAC_BACKFILL_ADMINS=true`.
 - `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing
   them. Create/list responses always apply the **read** field mask. Per-router `access.scope`

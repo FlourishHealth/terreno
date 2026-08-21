@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
-import type {User} from "../auth";
+import {omitUserRolesFromWriteBody, type User} from "../auth";
 import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
@@ -404,6 +404,8 @@ export const handleCreate = async (
     }
   }
 
+  body = omitUserRolesFromWriteBody(entry.modelName, options.accessControl, body) as MCPToolArgs;
+
   try {
     await validateAccessWritePayload({
       body,
@@ -498,6 +500,8 @@ export const handleUpdate = async (
       return hookFailureResult("preUpdate hook failed", error);
     }
   }
+
+  body = omitUserRolesFromWriteBody(entry.modelName, options.accessControl, body) as MCPToolArgs;
 
   try {
     await validateAccessWritePayload({
