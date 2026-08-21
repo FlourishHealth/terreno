@@ -130,7 +130,7 @@ export const createRoleManager = (args: {
 
       for (const roleName of uniqueRoleNames) {
         const role = await rbacRoleModel.findExactlyOne({name: roleName});
-        const permissions = role.permissions;
+        const permissions = role.permissions ?? {};
         await assertNoEscalation(actor, permissions, getActorPermissions);
       }
 
@@ -147,6 +147,7 @@ export const createRoleManager = (args: {
 
       const created = await rbacRoleModel.create({
         ...role,
+        description: role.description ?? undefined,
         excludesRoles: role.excludesRoles ?? [],
         isLocked: role.isLocked ?? false,
         isSealed: role.isSealed ?? false,
@@ -263,10 +264,14 @@ export const createRoleManager = (args: {
       const allowedChanges: Record<string, unknown> = {};
       for (const key of ["description", "displayName", "permissions", "excludesRoles", "name"]) {
         if (key in changes) {
-          allowedChanges[key] = (changes as Record<string, unknown>)[key];
+          const value = (changes as Record<string, unknown>)[key];
+          allowedChanges[key] = value === null ? undefined : value;
         }
       }
       Object.assign(existing, allowedChanges);
+      if (changes.description === null) {
+        existing.set("description", undefined);
+      }
       await existing.save();
       invalidateCache();
       return existing;

@@ -253,8 +253,19 @@ describe("createPermissionResolver", () => {
     await resolver.resolvePermissionsForUser(userB);
     await resolver.resolvePermissionsForUser(userC);
 
-    userA.roles = ["admin"];
+    await RbacRole.findOneAndUpdate(
+      {name: "cache-evict-reader"},
+      {
+        $set: {
+          displayName: "Cache Evict Reader",
+          name: "cache-evict-reader",
+          permissions: {todo: ["read"]},
+        },
+      },
+      {upsert: true}
+    );
+    userA.roles = ["cache-evict-reader"];
     const refreshed = await resolver.resolvePermissionsForUser(userA);
-    expect(refreshed.admin).toEqual(expect.arrayContaining(["access"]));
+    expect(refreshed.todo).toEqual(["read"]);
   });
 });

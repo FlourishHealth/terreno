@@ -51,15 +51,21 @@ export const createPermissionResolver = <S extends Statements>(args: {
     for (const [userId, entry] of permissionCache) {
       if (entry.expiresAt <= now) {
         permissionCache.delete(userId);
-        sourceCache.delete(userId);
       }
     }
-    while (permissionCache.size >= maxCacheEntries) {
+    while (permissionCache.size > maxCacheEntries) {
       const oldestUserId = permissionCache.keys().next().value;
       if (oldestUserId === undefined) {
         break;
       }
       permissionCache.delete(oldestUserId);
+      sourceCache.delete(oldestUserId);
+    }
+    while (sourceCache.size > maxCacheEntries) {
+      const oldestUserId = sourceCache.keys().next().value;
+      if (oldestUserId === undefined) {
+        break;
+      }
       sourceCache.delete(oldestUserId);
     }
   };
@@ -86,7 +92,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
 
     const roleDocs = await rbacRoleModel.find({name: {$in: roleNames}});
-    return roleDocs.map((roleDoc) => roleDoc.permissions);
+    return roleDocs.map((roleDoc) => roleDoc.permissions ?? {});
   };
 
   const applyDenyGrants = (permissions: PermissionSet, deny?: PermissionSet): PermissionSet => {
@@ -110,6 +116,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     source: PermissionSource
   ): Promise<PermissionSourceGrants | null> => {
     const userSources = sourceCache.get(user.id) ?? new Map<string, SourceCacheEntry>();
+    sourceCache.delete(user.id);
     sourceCache.set(user.id, userSources);
 
     const cached = userSources.get(source.name);

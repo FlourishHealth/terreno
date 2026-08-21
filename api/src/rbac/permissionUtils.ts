@@ -4,6 +4,9 @@ export const unionPermissionSets = (...sets: PermissionSet[]): PermissionSet => 
   const merged: Record<string, Set<string>> = {};
 
   for (const set of sets) {
+    if (!set) {
+      continue;
+    }
     for (const [resource, actions] of Object.entries(set)) {
       if (!merged[resource]) {
         merged[resource] = new Set();
@@ -25,7 +28,7 @@ export const isPermissionSubset = (
   actorPermissions: PermissionSet,
   requestedPermissions: PermissionSet
 ): boolean => {
-  for (const [resource, actions] of Object.entries(requestedPermissions)) {
+  for (const [resource, actions] of Object.entries(requestedPermissions ?? {})) {
     const actorActions = actorPermissions[resource] ?? [];
     for (const action of actions) {
       if (!actorActions.includes(action)) {
