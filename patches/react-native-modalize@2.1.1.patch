@@ -1,8 +1,11 @@
+diff --git a/node_modules/react-native-modalize/.bun-tag-4e6ee1be15fff072 b/.bun-tag-4e6ee1be15fff072
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/lib/styles.js b/lib/styles.js
-index 89507e90fd97d8626f680c2858c058d06e71477c..83e00a7fa925d0fb5e67f1c8f3f054d3cd1c836d 100644
+index 89507e90fd97d8626f680c2858c058d06e71477c..ba343431c37b7a338426ae48c8abe7a0b0741334 100644
 --- a/lib/styles.js
 +++ b/lib/styles.js
-@@ -21,10 +21,7 @@ exports.default = react_native_1.StyleSheet.create({
+@@ -21,11 +21,9 @@ exports.default = react_native_1.StyleSheet.create({
          backgroundColor: '#fff',
          borderTopLeftRadius: 12,
          borderTopRightRadius: 12,
@@ -10,7 +13,10 @@ index 89507e90fd97d8626f680c2858c058d06e71477c..83e00a7fa925d0fb5e67f1c8f3f054d3
 -        shadowOffset: { width: 0, height: 10 },
 -        shadowOpacity: 0.1,
 -        shadowRadius: 12,
-+        boxShadow: '0px 10px 12px rgba(0, 0, 0, 0.1)',
-         elevation: 4,
+-        elevation: 4,
++        ...(react_native_1.Platform.OS === 'android'
++            ? { elevation: 4 }
++            : { boxShadow: '0px 10px 12px rgba(0, 0, 0, 0.1)' }),
      },
      handle: {
+         position: 'absolute',
