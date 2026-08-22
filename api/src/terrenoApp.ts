@@ -1,10 +1,13 @@
+import {EventEmitter} from "node:events";
 import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
+import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import type {BetterAuthInstance} from "./betterAuthSetup";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {
   apiErrorMiddleware,
@@ -14,6 +17,7 @@ import {
 import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {mountMCPServer} from "./mcp/server";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -24,8 +28,14 @@ import {
   requestContextMiddleware,
   updateRequestContextFromRequest,
 } from "./requestContext";
+import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+
+/** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
+interface BetterAuthProvider {
+  getAuth: () => BetterAuthInstance | undefined;
+}
 
 type CorsOrigin =
   | string
@@ -148,6 +158,7 @@ export class TerrenoApp {
   private registrations: (ModelRouterRegistration | TerrenoPlugin)[] = [];
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
   private configurationApp: ConfigurationApp | null = null;
+  private readonly adminEvents = new EventEmitter();
 
   /**
    * Create a new TerrenoApp builder.
@@ -156,6 +167,7 @@ export class TerrenoApp {
    */
   constructor(options: TerrenoAppOptions) {
     this.options = options;
+    this.adminEvents.setMaxListeners(50);
   }
 
   /**
@@ -181,6 +193,37 @@ export class TerrenoApp {
   register(registration: ModelRouterRegistration | TerrenoPlugin): this {
     this.registrations.push(registration);
     return this;
+  }
+
+  /**
+   * Returns registered model routers and plugins in mount order.
+   */
+  getRegistrations(): readonly (ModelRouterRegistration | TerrenoPlugin)[] {
+    return this.registrations;
+  }
+
+  /**
+   * Returns only TerrenoPlugin registrations (excludes model routers).
+   */
+  getPlugins(): TerrenoPlugin[] {
+    return this.registrations.filter(
+      (registration): registration is TerrenoPlugin => !this.isModelRouterRegistration(registration)
+    );
+  }
+
+  on(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.on(event, listener);
+    return this;
+  }
+
+  off(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.off(event, listener);
+    return this;
+  }
+
+  /** @internal Emits scrubbed admin model change events from modelRouter hooks. */
+  emitAdminModelChanged(payload: AdminChangeEvent): void {
+    this.adminEvents.emit("admin:model.changed", payload);
   }
 
   /**
@@ -364,12 +407,27 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        const router = registration._buildWithOpenApi(oapi);
+        const router = registration._buildWithContext({
+          openApi: oapi,
+          routePath: registration.path,
+          terrenoApp: this,
+        });
         app.use(registration.path, router);
       } else {
-        registration.register(app, oapi);
+        registration.register(app, oapi, this);
       }
     }
+
+    // Mount MCP at POST /mcp when any model opted in or a custom tool was registered.
+    const betterAuthPlugin = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    mountMCPServer(app, {
+      betterAuth: betterAuthPlugin?.getAuth(),
+      userModel: options.userModel,
+    });
 
     if (options.configureApp) {
       options.configureApp(app, {openApi: oapi});
@@ -419,7 +477,16 @@ export class TerrenoApp {
       if (!hasRealtimePlugin) {
         const realtimeConfig =
           typeof this.options.realtime === "object" ? this.options.realtime : {};
-        this.register(new RealtimeApp(realtimeConfig));
+        this.register(
+          new RealtimeApp({
+            ...realtimeConfig,
+            // Task 9.21 (D2): default the socket full-user load to this app's own user
+            // model. Without it socket authorization falls back to the synthetic
+            // JWT-claim user, which trusts the token's `admin` over the database and
+            // carries no membership fields for tenant-scoped sync.
+            userModel: realtimeConfig.userModel ?? (this.options.userModel as never),
+          })
+        );
       }
     }
 
@@ -427,24 +494,34 @@ export class TerrenoApp {
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
-      try {
-        const server = createServer(app);
+      // Await sync index creation before listening: the per-model snapshot indexes (a
+      // failed createIndex degrades the snapshot/catch-up query to a table scan) and the
+      // bookkeeping-model indexes enqueued by SyncApp (the unique mutationId index is what
+      // makes duplicate mutation deliveries idempotent, and the unique stream index is what
+      // keeps the counter upsert race from minting duplicate seqs). Either failure is a
+      // loud startup error rather than a silent correctness cliff. No-op when no sync
+      // models or SyncApp are registered. Detached because start() returns synchronously.
+      void (async (): Promise<void> => {
+        try {
+          await ensureSyncIndexes();
+          const server = createServer(app);
 
-        // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
-        for (const reg of this.registrations) {
-          if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-            reg.onServerCreated(server);
+          // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
+          for (const reg of this.registrations) {
+            if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+              reg.onServerCreated(server);
+            }
           }
-        }
 
-        server.listen(port, () => {
-          logger.info(`Listening on port ${port}`);
-        });
-      } catch (error) {
-        const stack = error instanceof Error ? error.stack : String(error);
-        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-        process.exit(1);
-      }
+          server.listen(port, () => {
+            logger.info(`Listening on port ${port}`);
+          });
+        } catch (error) {
+          const stack = error instanceof Error ? error.stack : String(error);
+          logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
+          process.exit(1);
+        }
+      })();
     }
 
     return app;

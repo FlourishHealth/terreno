@@ -29,6 +29,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   parentFormState,
   refRenderers,
   readOnly,
+  autocompleteFields,
 }) => {
   if (fieldConfig.type === "array" && fieldConfig.items) {
     return (
@@ -55,6 +56,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     <AdminFieldRendererCore
       api={api}
       apiBase={apiBase}
+      autocompleteFields={autocompleteFields}
       baseUrl={baseUrl}
       errorText={errorText}
       fieldConfig={fieldConfig}

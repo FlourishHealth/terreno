@@ -1,4 +1,4 @@
-import {AdminModelForm} from "@terreno/admin-frontend";
+import {type AdminFieldValue, AdminModelForm} from "@terreno/admin-frontend";
 import {Box, Card, Text, TextField, useToast} from "@terreno/ui";
 import {useLocalSearchParams} from "expo-router";
 import React, {useCallback, useMemo, useState} from "react";
@@ -99,13 +99,12 @@ const AdminCreateScreen: React.FC = () => {
   );
 
   const onSaveSuccess = useCallback(
-    // noExplicitAny: result type comes from AdminModelForm library
-    // biome-ignore lint/suspicious/noExplicitAny: result type comes from AdminModelForm library
-    async ({result}: {result: any}): Promise<void> => {
+    async ({result}: {result: AdminFieldValue}): Promise<void> => {
       if (!isUserModel || !passwordState.password) {
         return;
       }
-      const userId = result?.data?._id;
+      const createdUser = result as {_id?: string; data?: {_id?: string}};
+      const userId = createdUser.data?._id ?? createdUser._id;
       if (!userId) {
         throw new Error("User created but missing ID for password setup");
       }

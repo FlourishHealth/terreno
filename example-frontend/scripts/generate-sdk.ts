@@ -64,6 +64,11 @@ execFile(
     if (existsSync(sdkPath)) {
       let content = readFileSync(sdkPath, "utf8");
       content = content.replace(/^export const \{\} = injectedRtkApi;\n?/m, "");
+      if (!content.startsWith("// biome-ignore-all lint/suspicious/noExplicitAny")) {
+        content =
+          "// biome-ignore-all lint/suspicious/noExplicitAny: types are generated from backend OpenAPI schemas\n" +
+          content;
+      }
       writeFileSync(sdkPath, content, "utf8");
     }
 

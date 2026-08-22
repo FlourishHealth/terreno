@@ -38,10 +38,29 @@ await getCommsService().sendMail({
   `channel: "sms"` and `channel: "email"`.
 - Invalid verification results may include an `error` reason; start attempts log the selected
   verification channel in metadata without storing the destination.
-- Permanent push failures set `isPermanentFailure: true`; only those failures deactivate tokens.
+- Permanent push failures set `errorClass: "permanent"` and/or `isPermanentFailure: true`;
+  either one deactivates the token.
+- `beforeSend` may mutate or cancel; throwing hooks are logged and never change the send.
+- `recordDeliveryEvent` / `recordOptOut` are the adapter intake for callbacks (no HTTP in core).
+- Transient `errorClass` retries once on mail, SMS, verification start, and failed push tokens.
+- `checkVerification` does not retry. Provider throws become `errorCode: "provider-throw"`.
+- Payloads are retained `retainPayloadDays` (default 30) after `redactPayload`; `0` stores none.
 
 Concrete providers belong in adapter subpath exports with optional peer dependencies. Never add a
 provider SDK to core `dependencies`.
+
+### SendGrid (`@terreno/comms/adapters/sendgrid`)
+
+```typescript
+import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+
+new CommsApp({
+  mail: new SendGridMailProvider({fromEmail: "noreply@example.com"}),
+});
+```
+
+Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
+fast when the key is missing. Errors return classified `SendResult` values and never throw.
 
 ## Runtime behavior
 
@@ -49,6 +68,7 @@ provider SDK to core `dependencies`.
 - Unconfigured production channels throw a 501 `APIError`.
 - Every provider attempt creates a `CommsMessage`; logging failure never breaks the send.
 - Recipients are redacted at rest by default.
+- `CommsMessage.attempts` records each facade attempt; expired payloads are unset, not TTL-deleted.
 - Console logs contain counts and lengths only, never content, addresses, phone numbers, tokens, or
   verification codes.
 

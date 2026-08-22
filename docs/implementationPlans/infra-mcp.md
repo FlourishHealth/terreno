@@ -1,6 +1,7 @@
 # Implementation Plan: Infrastructure MCP server (`@terreno/infra-mcp`)
 
 **Status:** Draft — blocked on the RBAC module ([rbac-permissions.md](rbac-permissions.md)) landing in `@terreno/api`
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1090
 **Branch:** TBD
 **Owner:** TBD
 **Created:** 2026-08-09
@@ -249,7 +250,6 @@ No new frontend package. Admin surfaces reuse `@terreno/admin-backend` + `@terre
 - `package.json` (root) — workspace entry, catalog: zod 4, `@modelcontextprotocol/server`, `@better-auth/oauth-provider`, `@better-auth/mcp`, Google API clients.
 - `terraform/main.tf`, `variables.tf`, `outputs.tf` — `infra_mcp_service` module instance + runtime SA IAM.
 - `.cursor/rules/infra-mcp/00-infra-mcp.mdc`, `AGENTS.md`/`CLAUDE.md` package lists, docs site page.
-- `docs/implementationPlans/PLAN_INDEX.md` — register this IP.
 - `ROADMAP.md` + `docs/explanation/roadmap-seed-issues.md` — roadmap entry and ready-to-paste tracking issue (done); `scripts/issueAreaLabels.ts` + bug-report package dropdown when the package lands.
 
 ## Task List

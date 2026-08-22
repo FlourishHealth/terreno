@@ -12,11 +12,15 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Contents
 
+- [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
+- [Expose Model Context Protocol tools](expose-mcp-tools.md) — Turn `modelRouter` models into MCP tools an LLM can call
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
+- [Deploy to Google Cloud Platform](deploy-to-gcp.md) — Deploy demo and example apps to GCS with CDN
+- [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
 
 ## Coming Soon
 

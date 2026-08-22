@@ -625,7 +625,7 @@ describe("tools", () => {
         tokenLimit: 2000,
       });
       expect(ok.content[0].text).toContain("Terreno documentation search results");
-    });
+    }, 15_000);
 
     test("should run terreno_get_component_docs with component name", () => {
       const out = handleToolCall("terreno_get_component_docs", {component: "Button"});

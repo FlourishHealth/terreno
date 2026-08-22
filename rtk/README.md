@@ -2,6 +2,12 @@
 
 Redux Toolkit Query utilities for @terreno/api backends with React Native / Expo support.
 
+> **Deprecation notice (56.0.0):** `@terreno/rtk` is **deprecated for data synchronization** as of version **56.0.0**. It remains published with a deprecation notice through the **current major line** (56.x beta and stable 0.x) and will **not** be published in the **next major** Terreno release. Superseded by [`@terreno/syncdb`](../syncdb/README.md) for collection reads/writes, offline sync, and realtime convergence.
+>
+> **Still use @terreno/rtk for:** generated OpenAPI SDK hooks (`bun run sdk`) on non-synced routes, Better Auth session Redux, feature flags, sockets, and legacy JWT auth during migration. See the [migration guide](../docs/how-to/migrate-rtk-to-syncdb.md).
+
+> **Historical note:** the offline mutation queue (`createOfflineMiddleware`, `offlineSlice`, `configureOfflineMutationEndpoints`) and realtime cache patching (`realtimeList`, `realtimeDocument`) were superseded by `@terreno/syncdb` before this deprecation window.
+
 ## Features
 
 - Authentication slice with JWT token management

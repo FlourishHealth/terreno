@@ -14,8 +14,13 @@ on:
       - "scripts/no-barrel-imports/**"
       - "scripts/check-explicit-any/**"
       - "scripts/check-license-coverage/**"
+      - "scripts/changelog/**"
+      - "changelog/**"
+      - "CHANGELOG.md"
+      - "scripts/check-circleci-parity/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
+      - ".circleci/**"
       - ".github/workflows/repo-policies.yml"
   pull_request:
     paths:
@@ -28,8 +33,13 @@ on:
       - "scripts/no-barrel-imports/**"
       - "scripts/check-explicit-any/**"
       - "scripts/check-license-coverage/**"
+      - "scripts/changelog/**"
+      - "changelog/**"
+      - "CHANGELOG.md"
+      - "scripts/check-circleci-parity/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
+      - ".circleci/**"
       - ".github/workflows/repo-policies.yml"
 
 jobs:
@@ -86,10 +96,32 @@ jobs:
 
       - name: Upload explicit any inventory
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: explicit-any-inventory
           path: explicit-any-inventory.json
+
+  circleci-parity:
+    name: CircleCI path-filter parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Check CircleCI path filters match GHA twins
+        run: bun run check:circleci-parity
 
   license-coverage:
     name: License coverage
@@ -112,3 +144,31 @@ jobs:
 
       - name: Check published package license coverage
         run: bun run check:licenses
+
+  changelog-fragments:
+    name: Changelog fragments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Check changelog fragments
+        run: bun run check:changelog
+
+      - name: Test changelog assemble
+        run: bun test scripts/changelog/lib.test.ts

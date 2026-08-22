@@ -10,6 +10,48 @@ const bulkCompleteBodySchema = z
   .strict();
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  admin: {
+    actions: [
+      {
+        confirm: "Mark selected todos as completed?",
+        id: "markComplete",
+        label: "Mark completed",
+        patchKeys: ["completed"],
+      },
+    ],
+    adminPermissions: {delete: []},
+    bulkPatchAllowlist: ["completed", "priority", "tags"],
+    defaultSort: "-created",
+    displayName: "Todos",
+    fieldsets: [
+      {fields: ["title", "tags", "priority", "completed"], title: "Task"},
+      {fields: ["ownerId"], title: "Ownership"},
+    ],
+    filters: [
+      {field: "completed", kind: "boolean", label: "Completed"},
+      {
+        choices: [
+          {label: "Low", value: "low"},
+          {label: "Medium", value: "medium"},
+          {label: "High", value: "high"},
+        ],
+        field: "priority",
+        kind: "choice",
+        label: "Priority",
+      },
+      {field: "created", kind: "dateRange", label: "Created"},
+      {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
+    ],
+    group: "Demo: shared app data",
+    listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
+    listDisplayLinks: ["title"],
+    listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
+    pageSize: 25,
+    readonlyFields: ["ownerId"],
+    realtime: true,
+    searchFields: ["title", "tags"],
+    sortableFields: ["title", "completed", "created", "priority"],
+  },
   collectionActions: {
     bulkComplete: {
       body: bulkCompleteBodySchema,
@@ -20,9 +62,20 @@ export const todoRouter = modelRouter("/todos", Todo, {
         }
 
         const {ids} = body as z.infer<typeof bulkCompleteBodySchema>;
-        const result = await Todo.updateMany({_id: {$in: ids}, ownerId}, {completed: true});
+        // Per-doc loop instead of Todo.updateMany: updateMany throws on synced models
+        // because multi-document writes cannot stamp a per-document _syncSeq.
+        const todos = await Todo.find({_id: {$in: ids}, ownerId});
+        let modified = 0;
+        for (const todo of todos) {
+          if (todo.completed) {
+            continue;
+          }
+          todo.completed = true;
+          await todo.save();
+          modified += 1;
+        }
 
-        return {matched: result.matchedCount, modified: result.modifiedCount};
+        return {matched: todos.length, modified};
       },
       method: "POST",
       permissions: [Permissions.IsAuthenticated],
@@ -51,6 +104,11 @@ export const todoRouter = modelRouter("/todos", Todo, {
       summary: "Mark a single todo as complete",
     },
   },
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read", "create", "update", "delete"],
+  },
   permissions: {
     create: [Permissions.IsAuthenticated],
     delete: [Permissions.IsOwner],
@@ -71,6 +129,8 @@ export const todoRouter = modelRouter("/todos", Todo, {
     roomStrategy: "owner",
   },
   sort: "-created",
+  // Local-first sync (@terreno/syncdb): stream = todos|owner:{ownerId}.
+  sync: {scope: {type: "owner"}},
   validation: {
     excludeFromCreate: ["ownerId"],
     excludeFromUpdate: ["ownerId"],

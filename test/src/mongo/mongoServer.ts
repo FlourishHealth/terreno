@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
 import {testLogger} from "../logging/testLogger";
@@ -69,7 +70,7 @@ export const initializeModels = async (): Promise<{modelCount: number; modelInit
     return {modelCount: models.length, modelInitMs: 0};
   }
 
-  const startTime = Date.now();
+  const startTime = DateTime.now().toMillis();
   const initPromises = newModels.map(async (modelName) => {
     await mongoose.models[modelName].init();
   });
@@ -79,7 +80,7 @@ export const initializeModels = async (): Promise<{modelCount: number; modelInit
     initializedModelNames.add(modelName);
   }
 
-  return {modelCount: models.length, modelInitMs: Date.now() - startTime};
+  return {modelCount: models.length, modelInitMs: DateTime.now().toMillis() - startTime};
 };
 
 const shouldUseReplSet = (options: MongoServerOptions): boolean => {
@@ -119,7 +120,7 @@ export const startMongoServer = async (options: MongoServerOptions = {}): Promis
   }
 
   const merged = {...DEFAULT_OPTIONS, ...options};
-  const startTime = Date.now();
+  const startTime = DateTime.now().toMillis();
   const externalUri = process.env[merged.externalUriEnvVar]?.trim();
   let uri: string;
 
@@ -149,7 +150,7 @@ export const startMongoServer = async (options: MongoServerOptions = {}): Promis
 
   if (process.env.DEBUG_MONGO_PRELOAD === "true") {
     testLogger.debug(
-      `[mongoServer] Initialized ${modelCount} models in ${modelInitMs}ms, connected in ${Date.now() - startTime}ms`
+      `[mongoServer] Initialized ${modelCount} models in ${modelInitMs}ms, connected in ${DateTime.now().toMillis() - startTime}ms`
     );
   }
 
@@ -159,7 +160,7 @@ export const startMongoServer = async (options: MongoServerOptions = {}): Promis
 /** Force-restarts the in-memory MongoDB server and reconnects mongoose. */
 export const restartMongoServer = async (options: MongoServerOptions = {}): Promise<void> => {
   const merged = {...DEFAULT_OPTIONS, ...options};
-  const startTime = Date.now();
+  const startTime = DateTime.now().toMillis();
   testLogger.warn("[mongoServer] Force-restarting MongoDB server...");
 
   try {
@@ -199,7 +200,9 @@ export const restartMongoServer = async (options: MongoServerOptions = {}): Prom
   initializedModelNames.clear();
   await initializeModels();
 
-  testLogger.warn(`[mongoServer] MongoDB server restarted in ${Date.now() - startTime}ms`);
+  testLogger.warn(
+    `[mongoServer] MongoDB server restarted in ${DateTime.now().toMillis() - startTime}ms`
+  );
 };
 
 export const stopMongoServer = async (): Promise<void> => {

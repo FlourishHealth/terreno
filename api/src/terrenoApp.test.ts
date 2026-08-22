@@ -329,6 +329,106 @@ describe("TerrenoApp", () => {
     });
   });
 
+  describe("plugin register context", () => {
+    it("passes TerrenoApp as the third register argument", async () => {
+      let receivedTerrenoApp: TerrenoApp | undefined;
+      const plugin: TerrenoPlugin = {
+        register(_app, _openApi, terrenoApp) {
+          receivedTerrenoApp = terrenoApp;
+        },
+      };
+
+      const terrenoApp = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      }).register(plugin);
+
+      terrenoApp.build();
+      expect(receivedTerrenoApp).toBe(terrenoApp);
+    });
+
+    it("exposes registrations and plugins", () => {
+      const plugin: TerrenoPlugin = {
+        register() {},
+      };
+      const foodRegistration = modelRouter("/food", FoodModel, {
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+
+      const terrenoApp = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      })
+        .register(foodRegistration)
+        .register(plugin);
+
+      expect(terrenoApp.getRegistrations()).toHaveLength(2);
+      expect(terrenoApp.getPlugins()).toEqual([plugin]);
+    });
+  });
+
+  describe("admin model change events", () => {
+    beforeEach(async () => {
+      await setupDb();
+    });
+
+    it("emits admin:model.changed when admin.realtime is enabled", async () => {
+      const [admin] = await setupDb();
+      const events: import("./adminTypes").AdminChangeEvent[] = [];
+      const terrenoApp = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      });
+
+      terrenoApp.on("admin:model.changed", (event) => {
+        events.push(event);
+      });
+
+      const foodRegistration = modelRouter("/food", FoodModel, {
+        admin: {
+          displayName: "Food",
+          hiddenFields: ["tags"],
+          listFields: ["name"],
+          realtime: true,
+        },
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+
+      const app = terrenoApp.register(foodRegistration).build();
+      const agent = await authAsUser(app, "admin");
+
+      await agent
+        .post("/food")
+        .send({
+          calories: 10,
+          likesIds: [],
+          name: "Apple",
+          ownerId: admin._id,
+          tags: ["fruit"],
+        })
+        .expect(201);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]?.type).toBe("create");
+      expect(events[0]?.routePath).toBe("/food");
+      expect(events[0]?.document).toEqual(expect.objectContaining({calories: 10, name: "Apple"}));
+      const emittedDocument = events[0]?.document as Record<string, unknown> | undefined;
+      expect(emittedDocument?.tags).toBeUndefined();
+    });
+  });
+
   describe("modelRouter overload", () => {
     it("returns ModelRouterRegistration when path is provided", () => {
       const result = modelRouter("/food", FoodModel, {

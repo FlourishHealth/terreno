@@ -1,6 +1,6 @@
 # Implementation Plan: Comms adapter — transactional email (SendGrid)
 
-**Status:** Draft
+**Status:** In progress — Phase 1 send path implemented; Phase 2 gated on inbound-webhooks
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1022
 **Priority:** High
 **Effort:** Small batch
@@ -135,22 +135,22 @@ See [docs/tasks/comms-adapter-sendgrid.md](../tasks/comms-adapter-sendgrid.md).
 
 ## Acceptance Criteria
 
-- [ ] `sendMail` delivers text/html mail with from-address fallback chain (provider option
+- [x] `sendMail` delivers text/html mail with from-address fallback chain (provider option
       → `CommsApp.defaultFrom`), and passes `templateId`/`dynamicTemplateData` through when
       given.
-- [ ] Sandbox mode is on by default under test and produces accepted results without real
+- [x] Sandbox mode is on by default under test and produces accepted results without real
       sends.
-- [ ] SendGrid errors surface as `accepted: false` with the SendGrid error message and a
+- [x] SendGrid errors surface as `accepted: false` with the SendGrid error message and a
       correct `errorCode`/`errorClass` per the classification table; nothing throws
       through the facade.
-- [ ] 401/403 classify as `config` and `logger.error` at send time; 429/5xx classify as
+- [x] 401/403 classify as `config` and `logger.error` at send time; 429/5xx classify as
       `transient` and retry once; other 4xx are `permanent` and never retried.
-- [ ] Each accepted send captures the `x-message-id` and stores a `metadata.consoleUrl`
+- [x] Each accepted send captures the `x-message-id` and stores a `metadata.consoleUrl`
       Email Activity deep link.
-- [ ] Consumer `onError` fires with the classified `SendResult` on every failed send
+- [x] Consumer `onError` fires with the classified `SendResult` on every failed send
       (mocked-client test).
-- [ ] Missing API key fails fast at `CommsApp` registration with a clear error.
-- [ ] Apps not using the adapter do not install `@sendgrid/mail`.
+- [x] Missing API key fails fast at `CommsApp` registration with a clear error.
+- [x] Apps not using the adapter do not install `@sendgrid/mail`.
 - [ ] (Phase 2) Event webhook updates `CommsMessage.status` per the mapping table only
       for signature-verified payloads; bounce/dropped reasons land as `errorCode`.
 - [ ] (Phase 2) `spamreport`/`unsubscribe` events fire `onOptOut`; later sends to the

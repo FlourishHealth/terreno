@@ -1,12 +1,25 @@
 name: Maestro E2E Tests
 
+# Maestro runs against exported web builds in Chrome (xvfb). Replaces the former
+# demo-appium-ci workflow for demo smoke coverage; example-frontend flows remain.
+
 on:
+  push:
+    paths:
+      - "ui/**"
+      - "demo/**"
+      - "example-frontend/**"
+      - "example-backend/**"
+      - "rtk/**"
+      - ".maestro/**"
+      - ".github/workflows/maestro-e2e.yml"
   workflow_dispatch:
 
 jobs:
   e2e:
     name: Maestro E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6.0.3
 
@@ -22,13 +35,12 @@ jobs:
           java-version: 17
 
       - name: Cache Bun dependencies
-        id: cache
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
             node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -37,67 +49,136 @@ jobs:
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: "6.0"
+          mongodb-image: mirror.gcr.io/library/mongo
+          # Replica set is required for MongoDB change streams (configuration + sync).
+          mongodb-replica-set: rs0
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build API dependency
-        run: bun run compile
-        working-directory: api
+      - name: Resolve Maestro E2E auth secrets
+        run: |
+          set -euo pipefail
+          missing=()
+          resolve_secret() {
+            local name="$1"
+            local value="$2"
+            local fallback="$3"
+            if [ -n "$value" ]; then
+              echo "$name=$value" >> "$GITHUB_ENV"
+            elif [ "$GITHUB_ACTOR" = "dependabot[bot]" ]; then
+              echo "::warning::Using CI fallback for $name (Dependabot PRs cannot access repository secrets)"
+              echo "$name=$fallback" >> "$GITHUB_ENV"
+            else
+              missing+=("$name")
+            fi
+          }
+          resolve_secret "BETTER_AUTH_SECRET" "$INPUT_SESSION_SECRET" "ci-maestro-session-secret"
+          resolve_secret "TOKEN_SECRET" "$INPUT_TOKEN_SECRET" "ci-maestro-token-secret"
+          resolve_secret "REFRESH_TOKEN_SECRET" "$INPUT_REFRESH_TOKEN_SECRET" "ci-maestro-refresh-secret"
+          resolve_secret "SESSION_SECRET" "$INPUT_SESSION_SECRET" "ci-maestro-session-secret"
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          INPUT_TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          INPUT_REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          INPUT_SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
 
-      - name: Build UI dependency
+      - name: Compile workspace packages
         run: bun run compile
+
+      - name: Generate UI type documentation
+        run: bun run types
         working-directory: ui
 
-      - name: Build RTK dependency
-        run: bun run compile
-        working-directory: rtk
-
-      - name: Export frontend for web
+      - name: Export demo for web
         run: bun run export
-        working-directory: example-frontend
-        env:
-          EXPO_PUBLIC_API_URL: http://localhost:4000
+        working-directory: demo
 
       - name: Seed test data
         run: bun run seed
         working-directory: example-backend
         env:
-          TOKEN_SECRET: ci-token-secret
-          REFRESH_TOKEN_SECRET: ci-refresh-secret
-          TOKEN_ISSUER: terreno-example
-          SESSION_SECRET: ci-session-secret
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://localhost:4000
+          MONGO_URI: mongodb://127.0.0.1/terreno-maestro-e2e?replicaSet=rs0
+          TOKEN_SECRET: ${{ env.TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-maestro-e2e
+          REFRESH_TOKEN_SECRET: ${{ env.REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ env.SESSION_SECRET }}
 
       - name: Start backend
-        run: bun run dev &
+        run: |
+          bun run dev &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4000/health | grep -q '"healthy":true'; then
+              echo "Backend ready after ${i}×2s"
+              exit 0
+            fi
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "::error::Backend process exited unexpectedly"
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Backend did not become ready within 60s"
+          exit 1
         working-directory: example-backend
         env:
-          PORT: 4000
-          TOKEN_SECRET: ci-token-secret
-          REFRESH_TOKEN_SECRET: ci-refresh-secret
-          TOKEN_ISSUER: terreno-example
-          SESSION_SECRET: ci-session-secret
+          AUTH_PROVIDER: better-auth
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://localhost:4000
+          PORT: "4000"
+          MONGO_URI: mongodb://127.0.0.1/terreno-maestro-e2e?replicaSet=rs0
+          TOKEN_SECRET: ${{ env.TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-maestro-e2e
+          REFRESH_TOKEN_SECRET: ${{ env.REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ env.SESSION_SECRET }}
           TOKEN_EXPIRES_IN: 15m
           REFRESH_TOKEN_EXPIRES_IN: 30d
 
-      - name: Serve frontend static build
-        run: bunx serve -s example-frontend/dist -l 8082 &
+      - name: Start example frontend dev server
+        run: |
+          bun expo start --web --port 8082 &
+          EXPO_PID=$!
+          echo "Expo PID: $EXPO_PID"
+          for i in $(seq 1 90); do
+            if ! kill -0 $EXPO_PID 2>/dev/null; then
+              echo "::error::Expo process exited unexpectedly"
+              exit 1
+            fi
+            if curl -sf http://localhost:8082 > /dev/null; then
+              curl -sf "http://localhost:8082/login" > /tmp/login.html 2>/dev/null || true
+              SIZE=$(wc -c < /tmp/login.html)
+              echo "Metro warm-up ${i}×3s — login HTML ${SIZE} bytes"
+              if [ "$SIZE" -gt 10000 ]; then
+                echo "Example frontend bundle ready after ${i}×3s"
+                exit 0
+              fi
+            fi
+            sleep 3
+          done
+          echo "::error::Example frontend bundle did not become ready within 270s"
+          exit 1
+        working-directory: example-frontend
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:4000
 
-      - name: Wait for backend
+      - name: Serve demo static build
+        run: bunx serve demo/dist -l 8085 &
+
+      - name: Wait for demo
         run: |
           for i in $(seq 1 30); do
-            curl -s http://localhost:4000/openapi.json > /dev/null && exit 0
+            curl -s http://localhost:8085/demo > /dev/null && exit 0
             sleep 2
           done
-          echo "Backend failed to start" && exit 1
-
-      - name: Wait for frontend
-        run: |
-          for i in $(seq 1 30); do
-            curl -s http://localhost:8082 > /dev/null && exit 0
-            sleep 2
-          done
-          echo "Frontend failed to start" && exit 1
+          echo "Demo failed to start" && exit 1
 
       - name: Install Maestro
         run: curl -fsSL "https://get.maestro.mobile.dev" | bash
@@ -115,7 +196,7 @@ jobs:
 
       - name: Verify login API works
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/auth/login \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/api/auth/sign-in/email \
             -H "Content-Type: application/json" \
             -d '{"email":"admin@example.com","password":"testpassword123"}')
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)

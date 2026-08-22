@@ -1,0 +1,22 @@
+# CircleCI is disabled. GitHub Actions is the CI of record.
+# Jobs and path-filtering live in `config.setup.yml` + `continue-config.yml`.
+# Re-enable: copy `.circleci/config.setup.yml` over this file.
+version: 2.1
+
+jobs:
+  circleci-disabled:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: CircleCI disabled
+          command: |
+            echo "CircleCI is disabled. GitHub Actions is the CI of record."
+            echo "Re-enable by copying .circleci/config.setup.yml to .circleci/config.yml"
+
+workflows:
+  disabled:
+    when: false
+    jobs:
+      - circleci-disabled

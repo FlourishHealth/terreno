@@ -1,85 +1,19 @@
 import type {ModelRouterOptions} from "@terreno/api";
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  NotFoundError,
+  requireAdminMiddleware,
+  setPasswordForUser,
+} from "@terreno/api";
 import type express from "express";
 import {User} from "../models/user";
 
 interface SetUserPasswordRequest {
   password?: string;
 }
-
-const PASSWORD_SET_TIMEOUT_MS = 15_000;
-
-const setUserPassword = async (
-  user: {
-    setPassword: (
-      password: string,
-      callback?: (error?: unknown) => void
-    ) => Promise<unknown> | unknown;
-  },
-  password: string
-): Promise<void> => {
-  await new Promise<void>((resolve, reject) => {
-    let isSettled = false;
-    const timeout = setTimeout(() => {
-      if (isSettled) {
-        return;
-      }
-      isSettled = true;
-      reject(new Error("Timed out while setting password"));
-    }, PASSWORD_SET_TIMEOUT_MS);
-
-    const resolveOnce = (): void => {
-      if (isSettled) {
-        return;
-      }
-      isSettled = true;
-      clearTimeout(timeout);
-      resolve();
-    };
-
-    const rejectOnce = (error: unknown): void => {
-      if (isSettled) {
-        return;
-      }
-      isSettled = true;
-      clearTimeout(timeout);
-      reject(error);
-    };
-
-    try {
-      const maybePromise = user.setPassword(password, (error?: unknown) => {
-        if (error) {
-          rejectOnce(error);
-          return;
-        }
-        resolveOnce();
-      });
-
-      if (
-        typeof maybePromise === "object" &&
-        maybePromise !== null &&
-        "then" in maybePromise &&
-        typeof maybePromise.then === "function"
-      ) {
-        void Promise.resolve(maybePromise).then(resolveOnce).catch(rejectOnce);
-      }
-    } catch (error) {
-      rejectOnce(error);
-    }
-  });
-};
-
-const adminGuard = (
-  req: express.Request,
-  _res: express.Response,
-  next: express.NextFunction
-): void => {
-  const user = req.user as {admin?: boolean} | undefined;
-  if (!user?.admin) {
-    throw new APIError({status: 403, title: "Admin access required"});
-  }
-  next();
-};
 
 export const addAdminUserRoutes = (
   router: express.Application,
@@ -89,7 +23,7 @@ export const addAdminUserRoutes = (
     "/admin/users/:id/password",
     [
       authenticateMiddleware(),
-      adminGuard,
+      requireAdminMiddleware,
       createOpenApiBuilder(options ?? {})
         .withTags(["admin-users"])
         .withSummary("Set a user's password as an admin")
@@ -117,12 +51,13 @@ export const addAdminUserRoutes = (
         throw new APIError({status: 400, title: "Password must be at least 8 characters"});
       }
 
-      const user = await User.findById(req.params.id);
+      const user = await User.findOneOrNone({_id: req.params.id});
       if (!user) {
-        throw new APIError({status: 404, title: "User not found"});
+        throw new NotFoundError({title: "User not found"});
       }
 
-      await setUserPassword(user, password);
+      const admin = req.user as {_id?: unknown; id?: string} | undefined;
+      await setPasswordForUser(user, password, undefined, {adminId: admin?._id ?? admin?.id});
       await user.save();
 
       return res.json({data: {_id: user._id.toString(), message: "Password updated"}});

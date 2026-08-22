@@ -40,8 +40,29 @@ describe("Badge", () => {
     expect(getByTestId("number-badge")).toHaveStyle({minWidth: 20});
   });
 
+  it("renders the status variant as an 8px dot", () => {
+    const {getByTestId} = renderWithTheme(
+      <Badge color="bold" status="active" testID="dot" variant="status" />
+    );
+    const dot = getByTestId("dot");
+    expect(dot).toHaveStyle({height: 8, width: 8});
+    expect(dot).toHaveStyle({backgroundColor: expect.any(String)});
+  });
+
+  it("uses distinct bold and subtle tones for the status dot", () => {
+    const bold = renderWithTheme(
+      <Badge color="bold" status="active" testID="dot" variant="status" />
+    ).getByTestId("dot");
+    const subtle = renderWithTheme(
+      <Badge color="subtle" status="active" testID="dot" variant="status" />
+    ).getByTestId("dot");
+    const boldBg = bold.props.style.backgroundColor;
+    const subtleBg = subtle.props.style.backgroundColor;
+    expect(boldBg).not.toBe(subtleBg);
+  });
+
   it("applies correct status colors", () => {
-    const statuses = ["error", "warning", "info", "success", "neutral"] as const;
+    const statuses = ["error", "warning", "info", "success", "neutral", "active"] as const;
 
     statuses.forEach((status) => {
       let {getByTestId} = renderWithTheme(

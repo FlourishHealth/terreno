@@ -1,5 +1,6 @@
 # Implementation Plan: modelRouter MCP Tools
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1092
 *When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
 
 ## Overview
@@ -17,7 +18,8 @@ This makes every Terreno app instantly AI-native: any model becomes callable by 
 - Auth-agnostic: works with both JWT and Better Auth
 - Tool naming: `{prefix}_list`, `{prefix}_read`, `{prefix}_create`, `{prefix}_update`, `{prefix}_delete`
 - Populate is an option on the read tool, not a separate tool
-- Also exports `getMCPTools()` returning Vercel `ai` SDK `CoreTool` objects for direct in-process use
+- Also exports `getMCPTools()` from `@terreno/ai` returning Vercel `ai` SDK `CoreTool` objects for direct in-process use
+- Custom tools via `registerMCPTool` (example: `users_todo_statuses`)
 
 **Related work:** The `ai-multimodal-tools-mcp` branch has `MCPService` (MCP client) and `AIService` in `@terreno/ai` — that's the consumer of what this plan builds.
 
@@ -112,7 +114,7 @@ Generated from model name, field names/types, and `queryFields`. Example:
 
 ### CoreTool Export
 
-`getMCPTools()` exported from `@terreno/api` returns all registered MCP tools as `Record<string, CoreTool>` for direct use with the Vercel `ai` SDK's `streamText()` / `generateText()`.
+`getMCPTools()` exported from `@terreno/ai` returns all registered MCP tools as `Record<string, CoreTool>` for direct use with the Vercel `ai` SDK's `streamText()` / `generateText()`.
 
 ## Notifications
 
@@ -175,8 +177,7 @@ No activity logging specific to this feature. MCP tool calls go through the same
 ## Not Included / Future Work
 
 - **Rate limiting** — structured for future hooks but not implemented
-- **MCP resources/prompts** — only tools generated from modelRouter
-- **Custom MCP tools** — use modelRouter's `endpoints` for custom routes; MCP-specific custom tools deferred
+- **MCP resources/prompts** — only tools generated from modelRouter plus `registerMCPTool`
 - **Array operation tools** — handled via update, no dedicated push/patch/delete array tools
 - **WebSocket transport** — HTTP/SSE only
 - **Admin dashboard** — use `getMCPTools()` programmatically or MCP client tool listing

@@ -1,9 +1,10 @@
-import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
+import {baseUrl, selectBetterAuthUserId, useMCPTools} from "@terreno/rtk";
 import {
   Box,
   GPTChat,
   type GPTChatHistory,
   type GPTChatMessage,
+  type MCPToolDetail,
   type MessageContentPart,
   type SelectedFile,
   Spinner,
@@ -12,7 +13,8 @@ import {
 import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
-import {useDispatch} from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
+import {getSessionToken} from "@/lib/betterAuth";
 import {
   type GptHistory,
   terrenoApi,
@@ -93,7 +95,7 @@ const AiScreen: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_VALUE);
 
   const dispatch = useDispatch();
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId);
   const {data: modelsData} = useGetAiModelsQuery(undefined, {skip: !userId});
 
   // Prefer the live model list from the backend; fall back to the static list until it loads.
@@ -104,6 +106,11 @@ const AiScreen: React.FC = () => {
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery(gptHistoriesListQueryArgs, {
     skip: !userId,
   });
+  const {tools: mcpToolsRaw} = useMCPTools();
+  const mcpTools: MCPToolDetail[] = useMemo(
+    () => mcpToolsRaw.map((t) => ({description: t.description, name: t.name})),
+    [mcpToolsRaw]
+  );
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 
@@ -165,7 +172,7 @@ const AiScreen: React.FC = () => {
         return;
       }
       try {
-        const token = await getAuthToken();
+        const token = await getSessionToken();
         await fetch(`${baseUrl}/gpt/histories/${currentHistoryId}/rating`, {
           body: JSON.stringify({promptIndex, rating}),
           headers: {
@@ -227,7 +234,7 @@ const AiScreen: React.FC = () => {
           })
         );
 
-        const token = await getAuthToken();
+        const token = await getSessionToken();
         const headers: Record<string, string> = {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -435,6 +442,7 @@ const AiScreen: React.FC = () => {
       geminiApiKey={geminiApiKey}
       histories={histories}
       isStreaming={isStreaming}
+      mcpTools={mcpTools}
       onAttachFiles={handleAttachFiles}
       onCreateHistory={handleCreateHistory}
       onDeleteHistory={handleDeleteHistory}
