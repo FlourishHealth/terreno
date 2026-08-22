@@ -43,7 +43,7 @@ batch. Grow-style runs may append a **Plan vs Actual** log after each task.
 | Concrete task steps and their status | this directory |
 | Public status and target | GitHub roadmap issue / Project (roadmap-enabled repos) |
 | Sprint estimates and assignees | Linear |
-| Current stage/attempt/head/result | loop-owned execution state (default `.terreno/execution/<slug>.yaml`) |
+| Current stage/attempt/head/result | loop-owned execution state (default `.terreno/pipeline/<slug>.json`) |
 
 Do not copy the full checklist into a GitHub issue or Linear. Create linked GitHub child
 issues only for tasks that outside contributors should be able to claim independently; the

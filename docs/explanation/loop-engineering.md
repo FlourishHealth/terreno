@@ -95,7 +95,7 @@ checklist. Lightweight loop-owned state stores only current stage/attempt/task,
 branch/head/PR, the previous structured result, artifacts, attempted approaches, and next
 transition.
 
-The fallback state location is `.terreno/execution/<slug>.yaml`; the outer loop preserves
+The fallback state location is `.terreno/pipeline/<slug>.json`; the outer loop preserves
 or transports it and Brew excludes it from commits unless repository policy says
 otherwise. Stage results follow the plugin's JSON-schema-backed YAML contract and never
 contain chain-of-thought or transcripts.

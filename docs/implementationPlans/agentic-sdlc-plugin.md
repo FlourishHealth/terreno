@@ -54,7 +54,7 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP4 | Stages discover supporting skills by description; exact skill names are never universal dependencies |
 | AP5 | Taste is one observe/act/emit iteration; the outer loop owns waiting and reinvocation |
 | AP6 | Shared results use stable YAML shaped by JSON Schema; statuses are `PASS`, `FAIL`, `BLOCKED`, `PENDING` |
-| AP7 | Existing repository state convention wins; fallback is loop-owned `.terreno/execution/<slug>.yaml`, not committed by default |
+| AP7 | Existing repository state convention wins; fallback reuses loop-owned `.terreno/pipeline/<slug>.json`, not committed by default |
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |

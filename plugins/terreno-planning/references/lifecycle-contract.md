@@ -76,7 +76,7 @@ The IP and task file remain authoritative for design and scope. Execution state 
 small loop-owned handoff, not another plan.
 
 Use an existing repository convention when present. Otherwise use
-`.terreno/execution/<ip-or-task-slug>.yaml`, conforming to
+`.terreno/pipeline/<ip-or-task-slug>.json`, conforming to
 [`execution-state.schema.json`](execution-state.schema.json). The outer loop must preserve
 or transport this file between fresh invocations. Do not commit it unless the repository
 explicitly tracks execution state; Brew must exclude loop-owned state from PR commits.
