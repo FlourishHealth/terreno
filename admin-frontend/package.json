@@ -51,7 +51,7 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "test": "bun test && for f in ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do bun test \"$f\" || exit 1; done",
-    "test:agent": "for f in ./src/*.test.ts ./src/*.test.tsx ./src/**/*.test.ts ./src/**/*.test.tsx ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do if [ -f \"$f\" ]; then bun test --only-failures \"$f\" || exit 1; fi; done",
+    "test:agent": "for f in ./src/*.test.ts ./src/*.test.tsx ./src/**/*.test.ts ./src/**/*.test.tsx ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do if [ -f \"$f\" ]; then AGENT=1 bun test --only-failures \"$f\" || exit 1; fi; done",
     "test:ci": "bun run test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },

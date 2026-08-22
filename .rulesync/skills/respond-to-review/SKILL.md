@@ -199,7 +199,7 @@ calling Taste invocation, which owns commit/push and structured state.
 ## Step 7: Return to Taste
 
 Return changed files, targeted verification, addressed comments, unresolved blockers, and
-thread identifiers. Do not invoke `/submit` or a CI watcher.
+thread identifiers. Do not invoke Brew or a CI watcher.
 
 If the fix is user-facing, note the required changelog update for Taste/Brew to apply
 under repository policy.

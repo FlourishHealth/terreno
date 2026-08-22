@@ -11,3 +11,5 @@ repo-local skills. Grow retains interactive grilling and a 15-line approval summ
 retains vertical-slice TDD and independent implementation/test-quality review; Roast is
 the authoritative verifier. The former Grind behavior remains an outer-loop feature
 profile, and static validation enforces names, transitions, portability, and loop bounds.
+Deprecated repo-local routers (`ip`, `implement`, `submit`, `autobot`, `check-watcher`)
+are removed. Quiet package tests (`test:agent`) run with `AGENT=1`.

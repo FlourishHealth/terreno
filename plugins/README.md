@@ -82,9 +82,8 @@ bun run rules:check
 
 No aliases are retained for the five retired plugin command names. The old
 implementation-Roast name collides semantically with the new verification-Roast stage.
-Terreno keeps thin repo-local compatibility routers for existing `/ip`, `/implement`,
-`/submit`, and `/autobot` users; those route to canonical lifecycle stages/outer-loop
-behavior and contain no second implementation.
+Deprecated repo-local routers (`/ip`, `/implement`, `/submit`, `/autobot`, `/check-watcher`)
+are removed; invoke the canonical stages directly.
 
 Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json),
 then invoke a canonical stage such as `/terreno-1-grow`.

@@ -41,8 +41,8 @@ writes the IP, and once it is Approved hands off to `roadmap-item`.**
 | ---------- | ----------- | ---------------------- |
 | Idea debated and shaped | Community + maintainers | GitHub Discussion |
 | Discussion → first tracking issue (`Shaping`) | `roadmap-promote` | GitHub Issue + Project |
-| Design, scope, acceptance criteria | `terreno-1-grow` / `ip` | `docs/implementationPlans/<slug>.md` |
-| Task breakdown for implementation | `terreno-1-grow` / `ip` | `docs/tasks/<slug>.md` |
+| Design, scope, acceptance criteria | `terreno-1-grow` | `docs/implementationPlans/<slug>.md` |
+| Task breakdown for implementation | `terreno-1-grow` | `docs/tasks/<slug>.md` |
 | Approved IP → issue `Planned` + `IP` field set | `roadmap-item` | GitHub Issue + Project |
 | Implement, verify, submit, review | `terreno-2-pick` … `terreno-5-taste` | the PR |
 | Sprint estimates, assignees, internal-only work | Linear | Linear |

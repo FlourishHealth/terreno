@@ -114,7 +114,7 @@
     "prestart": "test -f ui-types-documentation.json || bun run generate-types",
     "preweb": "test -f ui-types-documentation.json || bun run generate-types",
     "start": "RCT_METRO_PORT=8085 NODE_OPTIONS=--openssl-legacy-provider expo start --port 8085",
-    "test:agent": "echo 'No tests'",
+    "test:agent": "AGENT=1 echo 'No tests'",
     "test:ci": "echo 'No tests'",
     "web": "NODE_OPTIONS=--openssl-legacy-provider expo start --web --port 8085"
   },
