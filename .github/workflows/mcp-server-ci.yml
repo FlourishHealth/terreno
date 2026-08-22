@@ -3,7 +3,7 @@ name: MCP Server CI
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - "mcp-server/**"
       - "scripts/check-coverage.ts"

@@ -100,6 +100,9 @@ describe("createSocketTransport", () => {
       baseUrl: server.baseUrl,
       batchUnsupportedGraceMs,
       timeoutMs,
+      // Websocket-only: polling→websocket upgrade emits disconnect and
+      // flakes the timeout test on GitHub runners.
+      transports: ["websocket"],
     });
     return transport;
   };

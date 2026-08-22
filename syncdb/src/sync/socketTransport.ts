@@ -49,6 +49,11 @@ export interface SocketTransportConfig {
   timeoutMs?: number;
   /** Grace period before a batch send is treated as unsupported (default 2s). */
   batchUnsupportedGraceMs?: number;
+  /**
+   * Socket.io transports. Default polling then websocket so a restarting
+   * dev server does not fail the first handshake.
+   */
+  transports?: string[];
 }
 
 interface PendingMutation {
@@ -86,6 +91,7 @@ export const createSocketTransport = ({
   authProvider,
   timeoutMs = DEFAULT_MUTATION_TIMEOUT_MS,
   batchUnsupportedGraceMs = BATCH_UNSUPPORTED_GRACE_MS,
+  transports = ["polling", "websocket"],
 }: SocketTransportConfig): SyncTransport => {
   const deltaListeners = new Set<(delta: SyncDelta) => void>();
   const subscribedListeners = new Set<(subscribed: SyncSubscribed) => void>();
@@ -122,7 +128,7 @@ export const createSocketTransport = ({
     reconnection: true,
     // Start with polling so dev server restarts don't fail the initial
     // websocket-only handshake; Socket.io upgrades once connected.
-    transports: ["polling", "websocket"],
+    transports,
   });
 
   const settle = (mutationId: string, result: SendMutationResult): void => {

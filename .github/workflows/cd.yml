@@ -5,6 +5,16 @@ on:
     branches:
       - master
   pull_request:
+    paths:
+      - "terraform/**"
+      - "example-backend/**"
+      - "api/**"
+      - "api-health/**"
+      - "admin-backend/**"
+      - "ai/**"
+      - "mcp-server/**"
+      - "ui/**"
+      - ".github/workflows/cd.yml"
   workflow_dispatch:
     inputs:
       run_terraform:
