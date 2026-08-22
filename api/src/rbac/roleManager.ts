@@ -2,7 +2,12 @@ import type {User, UserModel} from "../auth";
 import {APIError, isAPIError} from "../errors";
 import {logger} from "../logger";
 import {createRbacAuditModel, type RbacAuditWrite, recordRbacAudit} from "./auditModel";
-import {diffPermissionSets, isPermissionSubset, validatePermissionSet} from "./permissionUtils";
+import {
+  diffPermissionSets,
+  isPermissionSubset,
+  unionPermissionSets,
+  validatePermissionSet,
+} from "./permissionUtils";
 import {
   createRbacRoleModel,
   type RbacRoleDocument,
@@ -317,6 +322,12 @@ export const createRoleManager = (args: {
       if (existing.isLocked) {
         throw new APIError({status: 400, title: "Cannot delete a locked role"});
       }
+      await assertNoEscalationOrAudit({
+        action: "role.remove",
+        actor,
+        permissions: existing.permissions ?? {},
+        targetRoleName: roleName,
+      });
       await existing.deleteOne();
       invalidateCache();
       await emitAudit({
@@ -375,7 +386,7 @@ export const createRoleManager = (args: {
         await assertNoEscalationOrAudit({
           action: "role.update",
           actor,
-          permissions: changes.permissions,
+          permissions: unionPermissionSets(existing.permissions ?? {}, changes.permissions),
           targetRoleName: roleName,
         });
       }

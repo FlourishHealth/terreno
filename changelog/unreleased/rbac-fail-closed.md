@@ -12,6 +12,9 @@ category: Changed
   `rbac:manageRoles` is not a substitute. Unchanged echoed `admin`
   values are allowed. If `assign` fails after an admin User update or bulk-patch,
   non-role fields are restored so the request does not keep a partial write.
+  Role update requires the actor to hold the union of current and incoming
+  permissions, and delete requires holding the role's current permissions, so
+  `manageRoles` cannot empty or remove grants the actor lacks.
   assign/unassign require the actor to already hold the
   target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Admin CRUD for a resource missing

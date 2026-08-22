@@ -460,7 +460,9 @@ Guardrails baked into `RoleManager` (borrowed from Better Auth's dynamic access 
 - **No escalation**: an actor can only grant (or edit a role to include, or assign) permissions
   the actor **themselves currently holds**. Holding `rbac:manageRoles` lets an actor *manage*
   roles but never lets them hand out actions they lack — a role editor cannot bootstrap
-  privileges they do not have. The **only** exception is `superadmin`, which (via its `"*"`
+  privileges they do not have. Role **update** checks `actorPermissions ⊇ (existing ∪ incoming)`
+  so emptying a role still requires holding its current grants. Role **remove** checks
+  `actorPermissions ⊇ existing`. The **only** exception is `superadmin`, which (via its `"*"`
   expansion) holds every permission and so can grant anything; this is a property of *what
   superadmin holds*, not a special "manageRoles can escalate" rule. Concretely: the check is
   `actorPermissions ⊇ permissionsBeingGranted`, evaluated against the actor's effective set.

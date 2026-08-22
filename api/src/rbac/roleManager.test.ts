@@ -528,6 +528,50 @@ describe("roleManager", () => {
     expect(denied[0]?.permissionDelta?.gained.todo).toEqual(["delete"]);
   });
 
+  it("rejects emptying or deleting a role whose permissions the actor does not hold", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Role Manager",
+          name: "role-manager",
+          permissions: {rbac: ["manageRoles"], todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const superadmin = createTestUser({roles: ["superadmin"]});
+    await access.roles.create({
+      actor: superadmin,
+      role: {
+        displayName: "Writer",
+        name: "writer",
+        permissions: {todo: ["update"]},
+      },
+    });
+
+    const actor = createTestUser({email: "manager@example.com", roles: ["role-manager"]});
+    await expect(
+      access.roles.update({
+        actor,
+        changes: {permissions: {}},
+        roleName: "writer",
+      })
+    ).rejects.toMatchObject({status: 403, title: "Cannot grant permissions you do not hold"});
+
+    await expect(access.roles.remove({actor, roleName: "writer"})).rejects.toMatchObject({
+      status: 403,
+      title: "Cannot grant permissions you do not hold",
+    });
+
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    const writer = await RbacRole.findExactlyOne({name: "writer"});
+    expect(writer.permissions.todo).toEqual(["update"]);
+  });
+
   it("rejects invalid permission sets", async () => {
     await setupDb();
     const access = createAccess({
