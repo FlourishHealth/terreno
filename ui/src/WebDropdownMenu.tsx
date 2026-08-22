@@ -255,15 +255,19 @@ export const WebDropdownMenu = ({
     zIndex: 2,
   };
 
+  // Centered presentation is the Android native-picker path. `boxShadow` and
+  // `elevation` both paint on Android, so keep elevation-only there — matching
+  // Box's `shadow` prop. iOS/web get `boxShadow`.
   const centeredMenuLayoutStyle = {
     backgroundColor: theme.surface.base,
     borderRadius: 8,
-    boxShadow: createBoxShadow({blurRadius: 12, offsetY: 4, opacity: 0.25}),
-    elevation: 8,
     maxHeight: clampedMaxHeight,
     maxWidth: Math.min(400, windowWidth - 48),
     overflow: "hidden" as const,
     width: Math.min(400, windowWidth - 48),
+    ...(Platform.OS === "android"
+      ? {elevation: 8}
+      : {boxShadow: createBoxShadow({blurRadius: 12, offsetY: 4, opacity: 0.25})}),
   };
 
   const menuLayoutStyle = isCenteredPresentation

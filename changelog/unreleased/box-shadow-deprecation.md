@@ -9,3 +9,5 @@ category: Fixed
 - Patched `react-native-modalize` and `react-native-actions-sheet` to use `boxShadow`; the
   modalize stylesheet ran at import time, so the deprecation warning appeared on every web page
   that imported `@terreno/ui`.
+- Android centered dropdowns (`WebDropdownMenu` `presentation="centered"`) keep `elevation` and
+  omit `boxShadow`, so the two APIs do not stack.
