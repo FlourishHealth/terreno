@@ -82,6 +82,7 @@ jobs:
           bun install --production --frozen-lockfile
 
       - name: Build Docker image
+        working-directory: .
         run: |
           docker build \
             --file mcp-server/Dockerfile \
