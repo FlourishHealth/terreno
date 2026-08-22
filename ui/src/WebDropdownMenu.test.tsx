@@ -647,6 +647,60 @@ describe("WebDropdownMenu centered presentation", () => {
     expect(style.top).toBeUndefined();
     expect(style.maxHeight).toBe(Math.round(812 * 0.55));
   });
+
+  it("uses elevation without boxShadow on Android", () => {
+    const PlatformModule = require("react-native").Platform;
+    const savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "android";
+      const {getByTestId} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          presentation="centered"
+          visible
+        />
+      );
+      const menu = getByTestId("web_dropdown_menu");
+      const style = Array.isArray(menu.props.style)
+        ? Object.assign({}, ...menu.props.style)
+        : menu.props.style;
+      expect(style.elevation).toBe(8);
+      expect(style.boxShadow).toBeUndefined();
+    } finally {
+      PlatformModule.OS = savedOS;
+    }
+  });
+
+  it("uses boxShadow without elevation on iOS", () => {
+    const PlatformModule = require("react-native").Platform;
+    const savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "ios";
+      const {getByTestId} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          presentation="centered"
+          visible
+        />
+      );
+      const menu = getByTestId("web_dropdown_menu");
+      const style = Array.isArray(menu.props.style)
+        ? Object.assign({}, ...menu.props.style)
+        : menu.props.style;
+      expect(style.elevation).toBeUndefined();
+      expect(style.boxShadow).toBe("0px 4px 12px rgba(0, 0, 0, 0.25)");
+    } finally {
+      PlatformModule.OS = savedOS;
+    }
+  });
 });
 
 describe("useWebDropdownAnchor", () => {
