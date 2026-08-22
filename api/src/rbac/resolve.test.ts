@@ -248,6 +248,55 @@ describe("createPermissionResolver", () => {
     expect(stale.todo).toEqual(["list"]);
   });
 
+  it("keeps last-known deny grants when a source fails with deny policy", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({statements: appStatements});
+    await RbacRole.findOneAndUpdate(
+      {name: "writer"},
+      {
+        $set: {
+          displayName: "Writer",
+          name: "writer",
+          permissions: {todo: ["read", "update"]},
+        },
+      },
+      {upsert: true}
+    );
+
+    let shouldFail = false;
+    const source: PermissionSource = {
+      getGrants: async () => {
+        if (shouldFail) {
+          throw new Error("source unavailable");
+        }
+        return {
+          deny: {todo: ["update"]},
+          permissions: {todo: ["list"]},
+        };
+      },
+      name: "idp-deny-source",
+      staleOnFailure: "deny",
+    };
+
+    const resolver = createPermissionResolver({
+      cacheTtlMs: 0,
+      rbacRoleModel: RbacRole,
+      sources: [source],
+      statements: appStatements,
+    });
+
+    const user = createTestUser({roles: ["writer"]});
+    const fresh = await resolver.resolvePermissionsForUser(user);
+    expect(fresh.todo ?? []).toEqual(expect.arrayContaining(["read", "list"]));
+    expect(fresh.todo ?? []).not.toContain("update");
+
+    shouldFail = true;
+    const afterFailure = await resolver.resolvePermissionsForUser(user);
+    expect(afterFailure.todo).toEqual(["read"]);
+    expect(afterFailure.todo ?? []).not.toContain("list");
+  });
+
   it("skips failed sources when stale policy is deny", async () => {
     await setupDb();
     const RbacRole = createRbacRoleModel(mongoose.connection);

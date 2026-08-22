@@ -5,6 +5,7 @@ import type {User, UserModel} from "../auth";
 import {setupDb} from "../tests";
 import {createAccess} from "./access";
 import {createRbacAuditModel} from "./auditModel";
+import {createRoleManager} from "./roleManager";
 import {createRbacRoleModel} from "./roleModel";
 import {terrenoStatements} from "./statements";
 import type {PermissionSource} from "./types";
@@ -444,6 +445,10 @@ describe("roleManager", () => {
       status: 403,
       title: "Cannot grant permissions you do not hold",
     });
+
+    const RbacAudit = createRbacAuditModel(mongoose.connection);
+    const deniedAssigns = await RbacAudit.find({action: "role.assign", denied: true});
+    expect(deniedAssigns).toHaveLength(0);
   });
 
   it("rejects role management without manageRoles permission", async () => {
@@ -794,5 +799,73 @@ describe("roleManager", () => {
     } finally {
       UserModel.findById = originalFindById;
     }
+  });
+
+  it("does not record denied audits for non-escalation role-lookup failures", async () => {
+    await setupDb();
+    await createRbacRoleModel(mongoose.connection).seedDefaults({statements: appStatements});
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    let actorCalls = 0;
+    const {roleManager} = createRoleManager({
+      connection: mongoose.connection,
+      getActorPermissions: async () => {
+        actorCalls += 1;
+        if (actorCalls === 1) {
+          return {rbac: ["manageRoles"], todo: ["read"]};
+        }
+        throw new Error("role lookup failed");
+      },
+      getPreviewPermissions: async () => ({}),
+      invalidateCache: () => undefined,
+      statements: appStatements,
+    });
+
+    await expect(
+      roleManager.create({
+        actor,
+        role: {
+          displayName: "Lookup Fail",
+          name: "lookup-fail",
+          permissions: {todo: ["read"]},
+        },
+      })
+    ).rejects.toThrow("role lookup failed");
+
+    const denied = await createRbacAuditModel(mongoose.connection).find({denied: true});
+    expect(denied).toHaveLength(0);
+  });
+
+  it("keeps the original escalation error when denied-audit persistence fails", async () => {
+    await setupDb();
+    await createRbacRoleModel(mongoose.connection).seedDefaults({statements: appStatements});
+
+    const actor = createTestUser({roles: ["role-manager"]});
+    const {roleManager} = createRoleManager({
+      auditSinks: [
+        async () => {
+          throw new Error("audit sink down");
+        },
+      ],
+      connection: mongoose.connection,
+      getActorPermissions: async () => ({rbac: ["manageRoles"], todo: ["read"]}),
+      getPreviewPermissions: async () => ({}),
+      invalidateCache: () => undefined,
+      statements: appStatements,
+    });
+
+    await expect(
+      roleManager.create({
+        actor,
+        role: {
+          displayName: "Escalated",
+          name: "escalated-audit-fail",
+          permissions: {todo: ["delete"]},
+        },
+      })
+    ).rejects.toMatchObject({
+      status: 403,
+      title: "Cannot grant permissions you do not hold",
+    });
   });
 });

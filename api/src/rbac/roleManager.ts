@@ -1,5 +1,5 @@
 import type {User, UserModel} from "../auth";
-import {APIError} from "../errors";
+import {APIError, isAPIError} from "../errors";
 import {logger} from "../logger";
 import {createRbacAuditModel, type RbacAuditWrite, recordRbacAudit} from "./auditModel";
 import {diffPermissionSets, isPermissionSubset, validatePermissionSet} from "./permissionUtils";
@@ -51,6 +51,14 @@ const assertUserSaveAvailable = (targetUser: {save?: unknown}): void => {
       title: "User model does not support saving role assignments",
     });
   }
+};
+
+const isEscalationDenial = (error: unknown): boolean => {
+  return (
+    isAPIError(error) &&
+    error.status === 403 &&
+    error.title === "Cannot grant permissions you do not hold"
+  );
 };
 
 const assertNoEscalation = async (
@@ -144,14 +152,25 @@ export const createRoleManager = (args: {
     try {
       await assertNoEscalation(args.actor, args.permissions, getActorPermissions);
     } catch (error) {
-      await emitAudit({
-        action: args.action,
-        actorId: args.actor.id,
-        denied: true,
-        permissionDelta: {gained: args.permissions, lost: {}},
-        targetRoleName: args.targetRoleName,
-        targetUserId: args.targetUserId,
-      });
+      if (!isEscalationDenial(error)) {
+        throw error;
+      }
+      try {
+        await emitAudit({
+          action: args.action,
+          actorId: args.actor.id,
+          denied: true,
+          permissionDelta: {gained: args.permissions, lost: {}},
+          targetRoleName: args.targetRoleName,
+          targetUserId: args.targetUserId,
+        });
+      } catch (auditError) {
+        logger.error("Failed to write denied RbacAudit", {
+          action: args.action,
+          actorId: args.actor.id,
+          error: auditError,
+        });
+      }
       throw error;
     }
   };
@@ -264,12 +283,7 @@ export const createRoleManager = (args: {
       const uniqueRoleNames = [...new Set(roleNames)];
       for (const roleName of uniqueRoleNames) {
         const role = await rbacRoleModel.findExactlyOne({name: roleName});
-        await assertNoEscalationOrAudit({
-          action: "role.assign",
-          actor,
-          permissions: role.permissions ?? {},
-          targetUserId: userId,
-        });
+        await assertNoEscalation(actor, role.permissions ?? {}, getActorPermissions);
       }
 
       const before = await getPreviewPermissions(targetUser);

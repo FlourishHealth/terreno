@@ -132,6 +132,28 @@ export const createPermissionResolver = <S extends Statements>(args: {
     return null;
   };
 
+  const denyOnlyFromCache = (
+    cached: SourceCacheEntry | undefined
+  ): PermissionSourceGrants | null => {
+    const deny = cached?.grants?.deny;
+    if (!deny) {
+      return null;
+    }
+    return {deny};
+  };
+
+  const grantsAfterSourceFailure = (
+    source: PermissionSource,
+    cached: SourceCacheEntry | undefined,
+    now: number
+  ): PermissionSourceGrants | null => {
+    const stale = grantsFromStaleCache(source, cached, now);
+    if (stale) {
+      return stale;
+    }
+    return denyOnlyFromCache(cached);
+  };
+
   const fetchSourceGrants = async (
     user: User,
     source: PermissionSource,
@@ -149,7 +171,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
           policy: source.staleOnFailure ?? "deny",
           source: source.name,
         });
-        return grantsFromStaleCache(source, cached, now);
+        return grantsAfterSourceFailure(source, cached, now);
       }
     }
 
@@ -174,7 +196,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
         policy: source.staleOnFailure ?? "deny",
         source: source.name,
       });
-      return grantsFromStaleCache(source, cachedAfterTouch, now);
+      return grantsAfterSourceFailure(source, cachedAfterTouch, now);
     }
   };
 

@@ -907,11 +907,11 @@ behavior is per-source `staleOnFailure` (default `"deny"`):
 
 | Policy | Behavior |
 |---|---|
-| `"deny"` (default) | Omit this source's grants for the request. Local `user.roles` and other sources still apply. Revoked upstream access cannot linger because a dependency is down. |
+| `"deny"` (default) | Omit this source's additive grants (`roles`, `permissions`) for the request. Local `user.roles` and other sources still apply. If a prior fetch cached a `deny` set, keep applying that last-known deny so IdP/ABAC restrictions do not lift while the source is down. Revoked upstream *elevations* cannot linger because a dependency is down. |
 | `"use-stale-bounded"` | Reuse the last successful grants only if younger than `staleMaxAgeMs` (hard cap). Suitable for read-only hints, not elevation. |
 | `"use-stale"` | Reuse last successful grants until TTL expiry. **Not permitted** for sources that can grant roles/permissions beyond what local roles already provide — elevation paths must fail closed. |
 
-`PermissionSource.deny` already fails closed; grant caching matches that posture for elevation.
+`PermissionSource.deny` fails closed on refresh failure by keeping the last cached deny set (additive grants from that source are still omitted). Grant caching matches that posture for elevation.
 Logged at `warn` with source name and policy applied.
 
 ### 4.11 Admin UI (first-class)
