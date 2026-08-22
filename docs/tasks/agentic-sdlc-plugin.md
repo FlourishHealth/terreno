@@ -52,6 +52,6 @@ See: [`docs/implementationPlans/agentic-sdlc-plugin.md`](../implementationPlans/
 - [x] **Task 4.2**: Update plugin/docs/metadata/changelog and regenerate integrations
   - Blocked by: Task 4.1
   - Acceptance: Plugin is `2.0.0`; docs describe the bounded loop; generated rules are current; retired names appear only in intentional migration/history.
-- [ ] **Task 4.3**: Run static tests, rulesync validation, lint/type checks, and independent review
+- [x] **Task 4.3**: Run static tests, rulesync validation, lint/type checks, and independent review
   - Blocked by: Task 4.2
   - Acceptance: All checks pass and no material standards/spec findings remain.
