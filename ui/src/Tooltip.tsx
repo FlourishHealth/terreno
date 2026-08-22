@@ -8,9 +8,9 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import {Portal} from "react-native-portalize";
 
 import type {TooltipPosition, TooltipProps} from "./Common";
+import {Portal} from "./PortalHost";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 

@@ -4,9 +4,10 @@
 // entries are matched with .test().
 
 export const GLOBAL_CONSOLE_ALLOWLIST: ReadonlyArray<string | RegExp> = [
-  // React Native Web deprecation: pointerEvents prop.
-  // Source: @terreno/ui (ToastNotifications, DateTimeField, SidebarNavigation).
-  // TODO(ui): migrate pointerEvents prop to style.pointerEvents.
+  // React Native Web deprecation: pointerEvents prop. @terreno/ui no longer
+  // passes it, but unmaintained third-party components still do
+  // (@react-native-community/slider, react-native-actions-sheet,
+  // react-native-modalize, react-native-calendars).
   "props.pointerEvents is deprecated. Use style.pointerEvents",
 
   // react-redux memoization warning. Some selectors in the dependency tree

@@ -16,11 +16,16 @@ import {
   goSyncOnline,
   installOfflineControl,
   openSyncTodos,
+  SYNCDB_TEST_TIMEOUT,
   waitForSyncTodosScreen,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, createTodoAs, listTodosAs, patchTodoAs} from "./helpers/todosApi";
 
 const USER = SYNCDB_CONFLICTS_USER;
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
   let target: {_id: string; title: string};

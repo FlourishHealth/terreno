@@ -71,11 +71,36 @@ export const listTodosAs = async (user: TodoApiUser): Promise<TodoRecord[]> => {
   });
 };
 
+/** Rounds of list-then-delete `clearTodosAs` runs before giving up. */
+const CLEAR_TODOS_MAX_ROUNDS = 20;
+
+/**
+ * Delete every todo the user owns, verifying the collection is actually empty.
+ *
+ * A single list-then-delete pass silently tolerated both a failed DELETE and a todo
+ * beyond the first page, and the stray it left behind surfaced later as an unexplained
+ * extra row (or a "no todos yet" assertion that never came true) in whichever test ran
+ * next. Re-listing until the collection is empty makes the seeded state deterministic
+ * and fails here, where the cause is obvious, when it cannot be.
+ */
 export const clearTodosAs = async (user: TodoApiUser): Promise<void> => {
   await withAuthedContext(user, async (ctx, headers) => {
-    const res = await ctx.get("/todos", {headers});
-    const json = (await res.json()) as {data?: TodoRecord[]};
-    const todos = json.data ?? [];
-    await Promise.all(todos.map((todo) => ctx.delete(`/todos/${todo.id ?? todo._id}`, {headers})));
+    for (let round = 0; round < CLEAR_TODOS_MAX_ROUNDS; round += 1) {
+      const res = await ctx.get("/todos", {headers});
+      if (!res.ok()) {
+        throw new Error(`todosApi: list failed with status ${res.status()}`);
+      }
+      const json = (await res.json()) as {data?: TodoRecord[]};
+      const todos = json.data ?? [];
+      if (todos.length === 0) {
+        return;
+      }
+      await Promise.all(
+        todos.map((todo) => ctx.delete(`/todos/${todo.id ?? todo._id}`, {headers}))
+      );
+    }
+    throw new Error(
+      `todosApi: clearTodosAs could not empty todos for ${user.email} in ${CLEAR_TODOS_MAX_ROUNDS} rounds`
+    );
   });
 };

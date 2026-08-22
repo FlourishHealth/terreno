@@ -405,6 +405,8 @@ export const WebDropdownMenu = ({
 
     const webFixedOverlayStyle = {
       inset: 0,
+      // box-none lets clicks pass to the backdrop / menu but not the empty overlay.
+      pointerEvents: "box-none",
       position: "fixed",
       zIndex: 9999,
     } as unknown as ViewStyle;
@@ -421,7 +423,7 @@ export const WebDropdownMenu = ({
     } as unknown as ViewStyle;
 
     const overlay = (
-      <View pointerEvents="box-none" style={webFixedOverlayStyle}>
+      <View style={webFixedOverlayStyle}>
         <Pressable
           aria-role="button"
           onPress={onClose}
