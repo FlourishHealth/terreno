@@ -10,7 +10,8 @@ Move one verified implementation into review, emit current PR/head state, and ex
 outer loop invokes Taste separately.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
-[`independent review procedure`](../../references/independent-review.md).
+[`independent review procedure`](../../references/independent-review.md). All GitHub text
+must follow the [`GitHub attention contract`](../../references/github-attention-contract.md).
 
 ## Preconditions
 
@@ -45,12 +46,17 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) a
 7. **Push.** Push with upstream. Resolve only mechanical conflicts needed to update the PR,
    using repository conflict guidance and rerunning affected checks. A conflict requiring
    a design/behavior choice is `BLOCKED`.
-8. **Create/update PR.** Apply the repository template. Preserve human-edited title/body;
-   make only accurate minimal edits. Include IP/task links, checks, and evidence. Attach
-   UI/runtime artifacts without sensitive data.
-9. **Observe once.** Resolve the PR number/URL and pushed head SHA; confirm CI was
+8. **Create/update PR.** Apply the GitHub attention contract and any stricter repository
+   template. The visible body uses only `Why`, `What changed`, and `Verification`, stays
+   under 250 words, names untested risk explicitly, and puts optional detail in one
+   expandable block. Preserve human-edited title/body; make only accurate minimal edits.
+   Attach only decisive UI/runtime artifacts without sensitive data.
+9. **Do not announce.** Do not post a PR comment for creation, readiness, check results,
+   or evidence already present in the body. A top-level comment is allowed only for one
+   blocking human action that cannot live in an existing review thread.
+10. **Observe once.** Resolve the PR number/URL and pushed head SHA; confirm CI was
    triggered. Do not wait for completion.
-10. **Record and exit.** Update execution state and emit `PASS` with the PR/head and
+11. **Record and exit.** Update execution state and emit `PASS` with the PR/head and
     `recommended_next_stage: taste`.
 
 ## Supporting skills

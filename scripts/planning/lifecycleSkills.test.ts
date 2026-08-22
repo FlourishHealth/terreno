@@ -2,7 +2,11 @@ import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
-import {validateLifecyclePlugin, validateStageContent} from "./lifecycleSkills.ts";
+import {
+  validateGithubAttentionContract,
+  validateLifecyclePlugin,
+  validateStageContent,
+} from "./lifecycleSkills.ts";
 
 const ROOT_DIRECTORY = resolve(import.meta.dir, "../..");
 
@@ -71,5 +75,18 @@ describe("lifecycle skill architecture", (): void => {
     });
 
     assert.isTrue(errors.some((error) => error.includes("recommended_next_stage: grow")));
+  });
+
+  it("rejects verbose or incomplete GitHub communication contracts", (): void => {
+    const errors = validateGithubAttentionContract(`
+## Summary
+## What changed
+## Verification
+`);
+
+    assert.isTrue(errors.some((error) => error.includes("missing required heading ## Why")));
+    assert.isTrue(errors.some((error) => error.includes("forbidden heading ## Summary")));
+    assert.isTrue(errors.some((error) => error.includes("default PR comments to silence")));
+    assert.isTrue(errors.some((error) => error.includes("behind disclosure")));
   });
 });

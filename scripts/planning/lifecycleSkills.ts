@@ -24,6 +24,15 @@ interface TextFile {
   path: string;
 }
 
+const PR_HEADINGS = ["## Why", "## What changed", "## Verification"];
+const PR_FORBIDDEN_HEADINGS = [
+  "## Summary",
+  "## Related IP or issue",
+  "## Type of change",
+  "## Testing performed",
+  "## Checklist",
+];
+
 const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     directory: "terreno-1-grow",
@@ -164,6 +173,9 @@ export const validateStageContent = ({
   }
 
   if (definition.stage === "brew") {
+    if (!content.includes("../../references/github-attention-contract.md")) {
+      errors.push(`${prefix}: Brew must load the GitHub attention contract`);
+    }
     if (!content.includes("Brew itself never executes Taste")) {
       errors.push(`${prefix}: must explicitly terminate without executing Taste`);
     }
@@ -173,6 +185,9 @@ export const validateStageContent = ({
   }
 
   if (definition.stage === "taste") {
+    if (!content.includes("../../references/github-attention-contract.md")) {
+      errors.push(`${prefix}: Taste must load the GitHub attention contract`);
+    }
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
@@ -183,6 +198,31 @@ export const validateStageContent = ({
         );
       }
     }
+  }
+
+  return errors;
+};
+
+export const validateGithubAttentionContract = (content: string): string[] => {
+  const errors: string[] = [];
+
+  for (const heading of PR_HEADINGS) {
+    if (!content.includes(heading)) {
+      errors.push(`GitHub attention contract is missing required heading ${heading}`);
+    }
+  }
+
+  for (const heading of PR_FORBIDDEN_HEADINGS) {
+    if (content.includes(heading)) {
+      errors.push(`GitHub attention contract contains forbidden heading ${heading}`);
+    }
+  }
+
+  if (!content.includes("Default to silence")) {
+    errors.push("GitHub attention contract must default PR comments to silence");
+  }
+  if (!content.includes("<details>")) {
+    errors.push("GitHub attention contract must put optional detail behind disclosure");
   }
 
   return errors;
@@ -220,6 +260,27 @@ export const validateLifecyclePlugin = ({
       if (content.includes(marker)) {
         errors.push(`portable plugin reference ${path} contains repository marker ${marker}`);
       }
+    }
+  }
+
+  const attentionContract = readFileSync(
+    join(pluginDirectory, "references/github-attention-contract.md"),
+    "utf8"
+  );
+  errors.push(...validateGithubAttentionContract(attentionContract));
+
+  const pullRequestTemplate = readFileSync(
+    join(rootDirectory, ".github/PULL_REQUEST_TEMPLATE.md"),
+    "utf8"
+  );
+  for (const heading of PR_HEADINGS) {
+    if (!pullRequestTemplate.includes(heading)) {
+      errors.push(`pull request template is missing required heading ${heading}`);
+    }
+  }
+  for (const heading of PR_FORBIDDEN_HEADINGS) {
+    if (pullRequestTemplate.includes(heading)) {
+      errors.push(`pull request template contains retired heading ${heading}`);
     }
   }
 

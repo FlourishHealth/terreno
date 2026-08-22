@@ -37,47 +37,44 @@ Create a pull request for the current branch.
    ```
 
    Guidelines for the PR:
-   - Title: Clear, concise summary of the changes
+   - Title: Plain-language outcome, at most 72 characters
    - Do not use prefix commit format (feat:, fix:, chore:, etc.)
    - Do not mention AI, Claude, or any AI assistant in the title or body
    - Do not add "Generated with Claude" or similar footers
    - Always create as draft
    - Sign every commit with DCO: `git commit -s` (see [CONTRIBUTING.md](CONTRIBUTING.md))
 
-   **PR body:** Match [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md). GitHub pre-fills this template on new PRs; when using `gh pr create`, supply the same sections:
+   **PR body:** Human attention is the limiting resource. Match
+   [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md), keep the
+   visible body under 250 words, and use exactly these top-level headings:
 
    ```markdown
-   ## Summary
+   ## Why
 
-   [What changed and why — 2-4 sentences]
+   [Problem and impact in 1–2 sentences; include one issue/IP link if useful.]
 
-   ## Related IP or issue
+   ## What changed
 
-   [#NNN or docs/implementationPlans/<slug>.md]
+   - [Outcome or behavior; maximum five bullets.]
 
-   ## Type of change
+   ## Verification
 
-   - [ ] Bug fix
-   - [ ] New feature
-   - [ ] Breaking change
-   - [ ] Documentation
-   - [ ] Chore / CI
-
-   ## Testing performed
-
-   [Commands run, manual steps. Frontend changes: attach screenshots or video per AGENTS.md]
-
-   ## Checklist
-
-   - [ ] Tests added or updated where appropriate
-   - [ ] `bun run lint` passes
-   - [ ] `bun run compile` passes (if TypeScript changed)
-   - [ ] Docs updated (if user-facing behavior changed)
-   - [ ] `changelog/unreleased/<feature>.md` added for user-facing changes
-   - [ ] DCO signed off (`git commit -s`) on every commit
+   | Status | Scope | Evidence / action |
+   | --- | --- | --- |
+   | ✅ Tested | [Behavior or risk] | [`command` or artifact] |
+   | ⚠️ Not tested | [Remaining risk] | [Exact reviewer action] |
    ```
 
-   **Frontend evidence (required when branch touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`):** Add an `## Evidence` section after **Testing performed** with screenshots/videos from `verify-ui-changes` (`/opt/cursor/artifacts/`). In Cursor cloud runs, reference artifacts with HTML tags — the PR tool uploads and rewrites URLs.
+   - Omit the `Not tested` row when nothing remains untested.
+   - Say what each check proves; do not paste a command list without scope.
+   - Do not add checklists, type-of-change sections, commit lists, or repeated criteria.
+   - Put migration notes, logs, compatibility matrices, or unusual implementation detail
+     in one optional `<details><summary>Details</summary>…</details>` block.
+   - Frontend changes: embed only the minimum decisive screenshots/videos from
+     `verify-ui-changes`. Do not add a fourth top-level heading.
+   - Do not post a creation/readiness/test-summary comment. Update the body when evidence
+     changes. Post only when a human decision is blocked and cannot be asked in a review
+     thread.
 
 5. Return the PR URL to the user.
 

@@ -36,6 +36,7 @@ The shared result/state format and outer state machine live in:
 
 - [`references/lifecycle-contract.md`](terreno-planning/references/lifecycle-contract.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
+- [`references/github-attention-contract.md`](terreno-planning/references/github-attention-contract.md)
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
 - [`execution-state.schema.json`](terreno-planning/references/execution-state.schema.json)
 

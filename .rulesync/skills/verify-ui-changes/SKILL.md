@@ -41,13 +41,16 @@ Do not open or update a PR for frontend work until this workflow is complete.
    - Screen recordings for interaction flows → e.g. `/opt/cursor/artifacts/<feature>-demo.mp4`
    - Use `RecordScreen` in Cursor Cloud for video walkthroughs.
 5. **Post evidence to the PR** before finishing:
-   - Match [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md): describe manual steps under **Testing performed**; add an `## Evidence` section with media when UI changed.
+   - Match [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md):
+     add one concise `Verification` table row for the exercised flow.
    - Reference artifacts with HTML tags and absolute paths, e.g. `<img alt="Todos list after filter" src="/opt/cursor/artifacts/screenshots/todos-filter.png" />` or `<video src="/opt/cursor/artifacts/todos-create.mp4" controls></video>`.
    - Use the PR management tool to create or update the PR body after artifacts exist.
-   - List app URL(s) tested, credentials used, and which UI states/flows the media demonstrates.
-   - Tick the PR **Checklist** items that apply (lint, compile, tests, docs, changelog, DCO).
+   - Name the flow and UI state proved. Never include credentials.
 
-If environment setup blocks verification, document the exact blocker and every command attempted in the PR body. Do not present compile-only or app-start-only checks as complete verification.
+If environment setup blocks verification, add one `⚠️ Not tested` row naming the
+blocked behavior and exact reviewer action. Put only decisive error detail in an optional
+`<details>` block. Do not present compile-only or app-start-only checks as complete
+verification.
 
 ## Verification Requirements
 
@@ -409,14 +412,12 @@ Test `admin-frontend` changes in the example full-stack app.
 
 Post UI verification evidence to GitHub through the PR body so reviewers can see it without local setup.
 
-- Follow [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) section order.
+- Follow [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md).
 - Save screenshots and videos under `/opt/cursor/artifacts`.
-- Reference artifacts in **Testing performed** and/or an `## Evidence` section with HTML tags, e.g. `<video src="/opt/cursor/artifacts/admin_model_list_demo.mp4" controls></video>`.
-- List in the PR body:
-  - exact app URL(s) tested
-  - credentials used when applicable
-  - changed UI state(s) and flows exercised
-  - screenshot/video artifact references
+- Reference only decisive artifacts in the `Verification` table with HTML tags, e.g.
+  `<video src="/opt/cursor/artifacts/admin_model_list_demo.mp4" controls></video>`.
+- Name the tested URL, changed flow/state, and what the artifact proves. Never include
+  credentials.
 - Use the PR management tool to create or update the PR body after artifacts are available.
 - Keep evidence minimal: one short video is preferred for interaction flows, plus one screenshot when it shows a static visual state more clearly.
 

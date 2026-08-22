@@ -139,33 +139,21 @@ Do not attempt to "clean up" or quote a non-numeric PR number — reject it.
    - Blocking (CHANGES_REQUESTED) vs suggestions
    - Inline code comments vs general comments
 
-## Step 3: Decide What To Do & Propose a Plan
+## Step 3: Decide What To Do & Show the Minimum Plan
 
-Decide the right action for each unresolved comment (fix, skip, ask), then present a structured plan organized by priority:
+Human attention is the limiting resource. Collapse all unresolved comments into one table.
+Paraphrase; do not quote comments unless exact wording changes the decision.
 
 ```
-## PR #$PR_NUMBER Review Comments Plan
-
-### 🔴 Must Fix (Blocking)
-1. [file:line] @reviewer: "comment text"
-   → Proposed fix: <description>
-
-### ⚠️ Should Address (Suggestions)
-2. [file:line] @reviewer: "comment text"
-   → Proposed fix: <description>
-
-### 💬 Questions/Clarifications Needed
-- Comment X: Need your input on approach
-- Comment Y: Conflicts with existing pattern, which to use?
-
-### 📝 Will Skip (N/A or out of scope)
-- Comment Z: Not applicable or out of scope
-
-### 💬 Suggested Replies to Human Commenters
-For any comments that warrant a reply (e.g., to clarify a decision or thank a reviewer):
-- **Print the suggested reply text** so the user can see it
-- **Never post replies** via `gh pr comment`, `gh api`, or any other method — leave posting to the user
+| Priority | Thread | Action |
+| --- | --- | --- |
+| Blocker | `file:line` | <smallest fix> |
+| Decision | `file:line` | <one exact question> |
+| Skip | `file:line` | <short reason> |
 ```
+
+Omit categories with no rows. Do not add a preamble, recap, suggested thanks, or a
+separate reply section.
 
 ## Step 4: Confirmation (only if there are open questions)
 
@@ -180,14 +168,13 @@ Ask: **"Need your input on the questions above. Anything else to change before I
 
 ## Step 5: Make the Fix
 
-After approval:
-
-1. Implement fixes one at a time, in priority order
-2. After each fix, briefly confirm what was changed
+After approval, implement fixes one at a time in priority order. Do not emit progress
+updates between fixes.
 
 ## Step 6: Show the diff
 
-Show the complete diff so the user can scan what was implemented:
+Return the diff stat plus only the relevant hunks. Put a long complete diff in one
+expandable block when the caller cannot inspect it directly:
 ```bash
 git diff
 git diff --stat
@@ -198,8 +185,8 @@ calling Taste invocation, which owns commit/push and structured state.
 
 ## Step 7: Return to Taste
 
-Return changed files, targeted verification, addressed comments, unresolved blockers, and
-thread identifiers. Do not invoke Brew or a CI watcher.
+Return one compact table of changed files, targeted verification, addressed comments,
+unresolved blockers, and thread identifiers. Do not invoke Brew or a CI watcher.
 
 If the fix is user-facing, note the required changelog update for Taste/Brew to apply
 under repository policy.
@@ -208,6 +195,28 @@ under repository policy.
 
 The calling Taste invocation resolves each thread only after it commits/pushes the
 verified fix. Return the thread `id` captured in Step 2.
+
+Default to resolving addressed threads silently. Post a reply only when the diff cannot
+preserve a non-obvious decision or when a human must act. Never post progress, thanks,
+test summaries, CI status, or a restatement of the PR body. Keep a necessary reply to at
+most three short sentences:
+
+```markdown
+Fixed in `<sha>`: <what changed and why this approach>.
+```
+
+For a required decision:
+
+```markdown
+**Action needed:** <one decision and why it blocks>.
+
+<details>
+<summary>Evidence</summary>
+
+<only the detail needed to decide>
+
+</details>
+```
 
 For each thread that was fixed or addressed (from the "Must Fix" and "Should Address" categories in the plan):
 ```bash

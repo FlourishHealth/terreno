@@ -31,6 +31,10 @@ Loop state follows
 The outer loop owns state persistence, waiting, stage invocation, retries, and escalation.
 Brew exits after PR setup. Taste observes/acts once and exits.
 
+GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
+`Verification` are the only visible PR sections; optional detail is expandable; comments
+are reserved for blocked decisions or non-obvious review resolutions.
+
 Exact commands and domain conventions are supplied by repository-local skills discovered
 at stage start; they are not bundled into the lifecycle plugin.
 

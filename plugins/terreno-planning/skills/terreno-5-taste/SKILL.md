@@ -9,7 +9,8 @@ disable-model-invocation: true
 Observe current external state once, act on currently actionable engineering work, emit
 structured state, and exit. Taste never owns persistence or waiting.
 
-Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md).
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+[`GitHub attention contract`](../../references/github-attention-contract.md).
 
 ## Preconditions
 
@@ -49,12 +50,17 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md).
 6. **Verify changed code.** Run affected repository checks and any mandatory domain,
    runtime, or UI verification. Capture updated evidence/artifacts. Missing mandatory
    capability is `BLOCKED`.
-7. **Commit/push if changed.** Follow repository policy. Record the new head. Reply to and
-   resolve a review thread only after its issue is actually addressed.
+7. **Commit/push if changed.** Follow repository policy. Record the new head. Resolve an
+   addressed thread silently when the diff is self-explanatory. Reply only when a
+   non-obvious decision must be preserved, using no more than three short sentences.
 8. **Preserve PR description.** Never regenerate or replace human-authored text. Fetch the
-   latest body before a required minimal checkbox/evidence edit; skip body mutation if it
-   cannot be preserved exactly. Keep sensitive data out of text and artifacts.
-9. **Emit and exit.**
+   latest body before a required minimal evidence edit; skip body mutation if it cannot
+   be preserved exactly. Update `Verification` instead of posting test/CI comments. Keep
+   sensitive data out of text and artifacts.
+9. **Default to silence.** Never post progress, thanks, readiness, CI, or PR-summary
+   comments. Use an existing review thread when possible. A top-level comment is allowed
+   only for one blocking human decision/action not already visible in the PR body.
+10. **Emit and exit.**
    - New push or external work still running → `PENDING`, current head,
      `recommended_next_stage: taste`, and `next_check_after_seconds`.
    - All checks terminal/non-failing, no conflicts, no actionable reviews → `PASS`.
