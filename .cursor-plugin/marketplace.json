@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-    "version": "1.1.1",
+    "version": "2.0.0",
     "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five-stage pipeline from feature request to mergeable PR"
+      "description": "Five bounded transitions: Grow shapes, Pick builds, Roast proves, Brew submits, and Taste reacts once to current PR state."
     }
   ]
 }

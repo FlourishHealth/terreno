@@ -18,6 +18,13 @@ on:
       - "changelog/**"
       - "CHANGELOG.md"
       - "scripts/check-circleci-parity/**"
+      - "scripts/planning/**"
+      - "plugins/**"
+      - ".cursor-plugin/**"
+      - ".rulesync/skills/**"
+      - "skills/**"
+      - "skills.sh.json"
+      - "**/.ai/skills/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
       - ".circleci/**"
@@ -37,6 +44,13 @@ on:
       - "changelog/**"
       - "CHANGELOG.md"
       - "scripts/check-circleci-parity/**"
+      - "scripts/planning/**"
+      - "plugins/**"
+      - ".cursor-plugin/**"
+      - ".rulesync/skills/**"
+      - "skills/**"
+      - "skills.sh.json"
+      - "**/.ai/skills/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
       - ".circleci/**"
@@ -172,3 +186,31 @@ jobs:
 
       - name: Test changelog assemble
         run: bun test scripts/changelog/lib.test.ts
+
+  lifecycle-skills:
+    name: Lifecycle skill architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Check lifecycle contracts
+        run: bun run check:lifecycle-skills
+
+      - name: Test lifecycle validator
+        run: bun test scripts/planning/

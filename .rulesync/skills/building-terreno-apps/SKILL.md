@@ -11,6 +11,13 @@ Use this skill when building or refactoring screens in a Terreno Expo app (`exam
 
 **Related skills:** `terreno-ui` (component selection), `terreno-data-fetching` (API hooks), `verify-ui-changes` (mandatory UI verification), `generate-sdk` (after backend changes).
 
+## Documentation
+
+1. Read `docs/tutorials/`, `docs/explanation/`, and app-structure how-to pages before changing screens or navigation.
+2. Implement against that design.
+3. Update those pages in the same slice with `update-docs`.
+4. Ship without matching docs is a failed slice.
+
 ## References
 
 Consult these resources as needed:

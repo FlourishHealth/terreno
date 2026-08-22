@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "copilot", "claudecode"]
+targets: ["cursor", "devin", "copilot", "claudecode"]
 description: "@terreno/syncdb - Local-first data layer for Terreno frontends"
 globs: ["**/*"]
 ---

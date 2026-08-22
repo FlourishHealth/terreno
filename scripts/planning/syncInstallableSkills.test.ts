@@ -1,0 +1,79 @@
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join, resolve} from "node:path";
+import {assert} from "chai";
+import {describe, it} from "bun:test";
+import {
+  buildInstallableSkillsTree,
+  rewriteSharedPluginLinks,
+  syncInstallableSkills,
+  validateSkillGroupings,
+} from "./syncInstallableSkills.ts";
+
+const ROOT_DIRECTORY = resolve(import.meta.dir, "../..");
+
+const writeFile = (path: string, contents: string): void => {
+  mkdirSync(join(path, ".."), {recursive: true});
+  writeFileSync(path, contents);
+};
+
+describe("installable skills sync", (): void => {
+  it("rewrites portable plugin reference links for a copied skill", (): void => {
+    assert.equal(
+      rewriteSharedPluginLinks("See [docs](../../references/documentation-contract.md)."),
+      "See [docs](references/documentation-contract.md)."
+    );
+  });
+
+  it("overlays package skills on top of rulesync copies", (): void => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), "terreno-skills-"));
+    try {
+      writeFile(
+        join(fixtureRoot, ".rulesync/skills/mongoose-schema-safety/SKILL.md"),
+        "from-rulesync\n"
+      );
+      writeFile(
+        join(fixtureRoot, "plugins/terreno-planning/skills/terreno-1-grow/SKILL.md"),
+        "Read [lifecycle](../../references/lifecycle-contract.md)\n"
+      );
+      writeFile(
+        join(fixtureRoot, "plugins/terreno-planning/references/lifecycle-contract.md"),
+        "lifecycle\n"
+      );
+      writeFile(
+        join(fixtureRoot, "api/.ai/skills/mongoose-schema-safety/SKILL.md"),
+        "from-package\n"
+      );
+
+      const destination = join(fixtureRoot, "skills");
+      buildInstallableSkillsTree({destination, rootDirectory: fixtureRoot});
+
+      assert.equal(
+        readFileSync(join(destination, "mongoose-schema-safety/SKILL.md"), "utf8"),
+        "from-package\n"
+      );
+      assert.equal(
+        readFileSync(join(destination, "terreno-1-grow/SKILL.md"), "utf8"),
+        "Read [lifecycle](references/lifecycle-contract.md)\n"
+      );
+      assert.equal(
+        readFileSync(
+          join(destination, "terreno-1-grow/references/lifecycle-contract.md"),
+          "utf8"
+        ),
+        "lifecycle\n"
+      );
+    } finally {
+      rmSync(fixtureRoot, {force: true, recursive: true});
+    }
+  });
+
+  it("keeps the committed installable tree in sync", (): void => {
+    assert.deepEqual(syncInstallableSkills({check: true, rootDirectory: ROOT_DIRECTORY}), []);
+  });
+
+  it("rejects an ungrouped installable skill", (): void => {
+    const errors = validateSkillGroupings(["terreno-1-grow", "mystery-skill"]);
+    assert.isTrue(errors.some((error) => error.includes("mystery-skill")));
+  });
+});

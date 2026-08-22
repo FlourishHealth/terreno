@@ -46,3 +46,4 @@ Find gaps between code and documentation before they reach users.
 
 - `release` skill: run docs audit before cutting a release if the changelog includes API surface changes.
 - `update-docs` skill: use audit output as the fix list after regenerating docs.
+  Architecture docs that contradict code are the same class of drift as missing pages.

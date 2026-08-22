@@ -78,3 +78,4 @@ website/node_modules/
 .devdata/
 
 .claude/worktrees/
+.terreno-skills-sync/
