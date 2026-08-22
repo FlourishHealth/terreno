@@ -24,9 +24,9 @@ Every stage includes:
 - Recommended next stage
 
 Results use `PASS`, `FAIL`, `BLOCKED`, or `PENDING` and follow
-[`stage-result.schema.json`](../../plugins/terreno-planning/references/stage-result.schema.json).
+[`stage-result.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/stage-result.schema.json).
 Loop state follows
-[`execution-state.schema.json`](../../plugins/terreno-planning/references/execution-state.schema.json).
+[`execution-state.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/execution-state.schema.json).
 
 The outer loop owns state persistence, waiting, stage invocation, retries, and escalation.
 Brew exits after PR setup. Taste observes/acts once and exits.
