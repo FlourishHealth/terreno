@@ -1215,13 +1215,23 @@ export class AdminApp {
         if (!actor || !accessControl) {
           throw new APIError({status: 401, title: "Unauthorized"});
         }
-        const record = value as {_id?: unknown; id?: string};
+        const record = value as {
+          _id?: unknown;
+          id?: string;
+          roles?: string[];
+          set?: (path: string, value: unknown) => void;
+        };
         const userId = record.id ?? (record._id != null ? String(record._id) : undefined);
         if (!userId) {
           throw new APIError({status: 500, title: "User id missing after write"});
         }
         try {
           await accessControl.roles.assign({actor, roleNames: pending, userId});
+          if (typeof record.set === "function") {
+            record.set("roles", [...pending]);
+          } else {
+            record.roles = [...pending];
+          }
         } catch (error) {
           if (rollbackOnFailure) {
             try {

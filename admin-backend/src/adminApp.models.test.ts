@@ -1335,6 +1335,54 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect((await FoodModel.findById(foreign._id).lean())?.calories).toBe(2);
   });
 
+  it("returns assigned User roles in the admin update response", async () => {
+    if (!UserModel.schema.path("roles")) {
+      UserModel.schema.add({
+        roles: {default: [], description: "RBAC role names", type: [String]},
+      });
+    }
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles", "manageRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-role-editor",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "roles"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+
+    const response = await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({roles: ["member"]})
+      .expect(200);
+
+    expect(response.body.data.roles).toEqual(["member"]);
+  });
+
   it("deletes a newly created User when role assignment fails", async () => {
     const accessControl = createAccess({
       connection: mongoose.connection,
