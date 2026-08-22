@@ -177,21 +177,6 @@ export const SyncDevPanel: React.FC = () => {
     setIsExpanded((current) => !current);
   }, []);
 
-  // Listen even when the visible panel is collapsed or omitted so CircleCI's
-  // production static export can still break socket backoff after chaos flaps.
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const onReconnect = (): void => {
-      void handleForceReconnect();
-    };
-    window.addEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
-    return () => {
-      window.removeEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
-    };
-  }, [handleForceReconnect]);
-
   if (!showDevPanel) {
     return null;
   }
