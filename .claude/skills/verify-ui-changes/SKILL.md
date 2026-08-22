@@ -349,7 +349,7 @@ it was a native button and Space used to work.
 #### Baselining console warnings
 
 The demo app emits pre-existing React-Native-Web deprecations on essentially every page
-(`"shadow*" style props are deprecated`, `props.pointerEvents is deprecated`). Before blaming your
+(`"shadow*" style props are deprecated`). Before blaming your
 component, load an unrelated component page (e.g. `/demo/IconButton`) and diff the console output.
 Only warnings that appear on your page and not the baseline are attributable to your change.
 
