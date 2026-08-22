@@ -5,8 +5,9 @@ description: >-
   components and a three-layer theming system. Use when adding or reviewing
   layout, forms, tables, modals, feedback, or navigation chrome. Covers
   component selection, Box/Page patterns, theme props, and when NOT to use raw
-  React Native primitives. Not for backend APIs, RTK Query, or Expo Router
-  setup.
+  React Native primitives. Lifecycle composition: Grow for UI shape, Pick for
+  implementation, Roast for UI conformance review. Not for backend APIs, RTK
+  Query, or Expo Router setup.
 ---
 # @terreno/ui
 

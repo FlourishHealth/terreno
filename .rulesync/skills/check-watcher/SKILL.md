@@ -1,6 +1,6 @@
 ---
 name: check-watcher
-description: Monitor GitHub Actions checks and automatically fix failures
+description: Legacy standalone CI-only watcher for explicit use outside the bounded lifecycle. Not used by Taste; lifecycle waiting/reinvocation belongs to the outer loop.
 disable-model-invocation: true
 claudecode:
   model: haiku

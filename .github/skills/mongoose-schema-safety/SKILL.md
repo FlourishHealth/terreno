@@ -4,7 +4,8 @@ description: >-
   Invoke when making any Mongoose schema change: adding/removing/renaming
   fields, creating a new model, adding indexes, or writing a backfill migration.
   Provides the five-type pattern, risk matrix, type file checklist, and rollout
-  safety steps for terreno backends.
+  safety steps for terreno backends. Lifecycle composition: Grow for migration
+  risk decisions, Pick for implementation, Roast for schema/data proof.
 ---
 # Mongoose Schema Safety — Terreno
 

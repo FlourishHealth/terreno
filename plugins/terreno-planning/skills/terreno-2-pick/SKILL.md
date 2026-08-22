@@ -1,147 +1,99 @@
 ---
 name: terreno-2-pick
-description: Implement an approved IP or Grind task in code via strict TDD with independent review checkpoints and drift detection. Use ONLY when an approved IP or Grind task file exists — not for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
+description: Implement one approved IP/task slice with behavior-focused TDD, drift detection, and independent implementation/test-quality review. Not for planning, independent acceptance verification, or PR submission.
 disable-model-invocation: true
 ---
 
-# Pick
+# Pick — build
 
-Implement from an IP (or a Grind task file) using strict vertical-slice TDD, with independent review checkpoints and drift detection at every commit. Load [`references/testing.md`](references/testing.md) before choosing test seams and [`references/mocking.md`](references/mocking.md) whenever a test double is considered.
+Implement one approved slice carefully. Pick's internal reviewers ask whether engineering
+was disciplined; they do **not** replace Roast's independent proof.
+
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
+[`testing guidance`](references/testing.md), and
+[`mocking guidance`](references/mocking.md).
 
 ## Preconditions
 
-- An approved IP exists, **or** a Grind task file (`docs/tasks/<slug>.md` with `**Grind:** true`) exists.
-- Scope is implementation, not planning or PR operations.
-- Grind sub-agents implement **one task id** per spawn. The parent Grind agent owns dispatch.
+- An approved IP/task contract exists.
+- One current unblocked task/slice is identifiable.
+- Branch and prior execution state are available.
 
-## Execution Model
+## Inputs
 
-- Follow red -> green (`Specify -> Encode -> Fulfill`) one behavior at a time.
-- Use tracer-bullet vertical slices. Each cycle proves a narrow complete behavior through its public seam; never write all tests first and implementation later.
-- Refactor only after the coherent slice is green and independently reviewed.
-- Keep commits small and behavior-scoped.
-- After each commit, verify the branch still matches the IP. If drift is found, stop and surface mismatch before continuing.
+- Approved IP, task file, current task, and applicable acceptance criteria
+- Branch/current head and execution state
+- Selected/discoverable repository skills and instructions
+- Prior Pick attempts
+- Exact Roast failures or Taste/CI/review evidence when retrying
+- Known blockers and existing artifacts
 
-## Mandatory Independent Reviews
+## Procedure
 
-At meaningful checkpoints (minimum: after each commit):
+1. **Reconstruct.** Verify the approved plan, current task, branch/head, prior result, and
+   already-verified behavior. Do not redo completed work.
+2. **Discover supporting skills.** Inspect available project skills for affected domains;
+   load applicable implementation, testing, safety, and runtime guidance.
+3. **Focus retries.** Convert prior failure evidence into a hypothesis and the smallest
+   safe change. Record attempted approaches; do not repeat one without new evidence.
+4. **Specify.** State one caller-visible behavior and the highest public seam that proves
+   it.
+5. **Encode.** Add one failing test and run the repository's closest test command. Confirm
+   it fails for the intended product reason.
+6. **Fulfill.** Implement the minimum code that passes. Prefer real integrations and
+   narrow injected fakes at true external boundaries.
+7. **Clean the Kitchen.** Once the vertical slice is green, refactor names/structure,
+   remove debug/dead code, and rerun the affected repository-prescribed checks.
+8. **Review independently.** In fresh contexts, run:
+   - implementation/spec review
+   - test-quality review (public behavior, independent expected values, realistic
+     boundaries, no leaky/global test doubles)
+   Fix material findings and rerun affected checks.
+9. **Check drift and runtime.** Compare the diff to the current task/IP. Run any mandatory
+   runtime/UI/safety verification declared by repository instructions or supporting
+   skills. Missing mandatory capability is `BLOCKED`, not skipped.
+10. **Record.** Mark only the completed task/slice, update execution state with commands,
+    evidence, artifacts, and attempts, then emit the structured result.
 
-1. Spawn an independent review sub-agent in a fresh context to assess code correctness and IP alignment.
-2. Spawn a separate independent test-quality sub-agent in its own fresh context before trusting test coverage.
+Repeat Specify → Encode → Fulfill for learned behaviors inside this one slice. Do not batch
+all tests first or expand into the next task.
 
-If either sub-agent flags issues, fix and rerun review before continuing.
+## Supporting skills
 
-## Test-Quality Audit Rules (strict)
+Follow the shared discovery procedure. Project skills own exact commands, framework
+patterns, schema/data rules, test environment, UI verification, prompt governance,
+generated-code workflows, and repository gotchas.
 
-The test-quality sub-agent must enforce all of these:
+## Evidence produced
 
-- Test caller-visible behavior through public seams, not private methods or internal call order.
-- Derive expected values from the IP or a worked literal, not the production algorithm.
-- Prefer injected typed fakes at external boundaries.
-- Treat `mock.module` as process-global and leaky. Do not use module-level mocks in normal suites.
-- When an unchangeable dynamic import requires `mock.module`, isolate the file in its own Bun process and document why injection is impossible.
-- Keep spies and fakes scoped to the test or a fresh harness factory.
-- Never mock the database on the backend.
-- Use real frontend stores/reducers/providers; inject only network, storage, clock, or other external adapters.
+- Files/behavior completed for the current task
+- Red and green test evidence plus required lint/type/build/runtime results
+- Internal review results
+- Drift decision and artifact references
+- Attempted-approach summary (especially on retries)
+- Updated execution state and structured Pick result
 
-## TDD Cycle
+## Success conditions
 
-### 1) Specify
+- Current task is complete without unresolved internal review findings or plan drift.
+- Required repository checks/runtime gates pass for the current head.
+- Evidence is sufficient for a fresh Roast verifier.
+- Emit `PASS` with `recommended_next_stage: roast`.
 
-Define one caller-visible behavior in plain language. Record the highest existing public seam that proves it.
+## Failure conditions
 
-### 2) Encode
+Tests, internal reviews, or implementation checks that objectively fail emit `FAIL` with
+expected/actual/evidence. Recommend `pick` only with a focused next hypothesis; otherwise
+escalate under blocked conditions.
 
-Write exactly one failing test for that behavior. Run the closest Bun command with `--only-failures` and verify it is red for the expected product reason, not syntax, setup, or an unrelated failure.
+## Blocked conditions
 
-### 3) Fulfill
+An unresolved product/security/data/public-API decision, unsafe destructive change,
+missing required verifier, inaccessible dependency, or scope expansion emits `BLOCKED`
+with the exact decision/action required.
 
-Implement the minimum code required to pass that test.
+## Recommended next stage
 
-Repeat Specify → Encode → Fulfill for the next learned behavior. Do not prewrite a horizontal batch of tests.
-
-### 4) Review and Clean the Kitchen
-
-After a coherent vertical slice is green:
-
-1. Run the independent correctness and test-quality reviews.
-2. Refactor safely, remove dead/debug code, and improve names without adding behavior.
-3. Rerun the slice tests in agent-quiet mode.
-4. Commit only when the reviewed slice stays green and matches the IP.
-
-## Before Coding a Slice
-
-- Consider multiple approaches (legacy behavior: brainstorm alternatives first).
-- Choose the best approach and proceed with smallest safe increment.
-
-## Package/Domain Guardrails
-
-### General
-
-- Use Bun workflows (`bun run lint`, `bun run compile`, targeted `bun test --only-failures ...`).
-- Prefer real integrations over heavy mocking.
-- Preserve repo coding conventions (TypeScript patterns, error handling, logging rules, Luxon requirement where relevant).
-
-### Backend (`@terreno/api`, backends)
-
-- Use real test DB patterns and route-level tests where appropriate.
-- Never use raw `Model.findOne`; use `findExactlyOne`/`findOneOrNone` patterns.
-- Apply schema-safety checks for any model change (types, indexes, migration/backfill risks, cross-package ripple).
-
-### Backend tests mutating env
-
-When tests mutate `process.env`, follow the backend env contract:
-
-- Treat the package preload `beforeEach` as the baseline reset source of truth.
-- Mutate only the keys needed by the test; do not use whole-env snapshot/restore patterns.
-- Do not add redundant manual restore for keys the preload already resets.
-- Use `Reflect.deleteProperty(process.env, "KEY")` when a key must be unset.
-- Ensure newly required keys are added to shared setup paths (`setupEnvironment()` and relevant preload setup files).
-
-### AI prompt changes (`@terreno/ai`)
-
-When adding/changing prompts:
-
-- Keep prompts in constants.
-- Use approved temperature presets.
-- Preserve logging and prompt-test checklist requirements.
-
-### Backend API surface changes
-
-If backend API shape changes, regenerate SDK via the established workflow:
-
-- Start backend
-- Run frontend SDK generation
-- Never hand-edit `example-frontend/store/openApiSdk.ts`
-
-### Frontend changes (mandatory)
-
-When implementation touches frontend packages (`ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or app-integrated `rtk/`):
-
-1. Before marking Pick complete and handing to Roast, invoke the `verify-ui-changes` skill.
-2. Launch the correct app for the package that changed.
-3. Log in with seeded credentials when the app requires authentication.
-4. Attempt to use each implemented user-facing feature — navigate to the affected screen and exercise the primary flow.
-5. Save screenshots and videos under `/opt/cursor/artifacts/` for Brew to attach to the PR.
-
-Do not hand off to Roast without this evidence when frontend paths changed, unless environment setup is genuinely blocked (document the blocker and commands attempted).
-
-## Per-Commit Verification Checklist
-
-For every commit:
-
-1. Confirm changed behavior maps to IP tasks/criteria.
-2. Run targeted tests with Bun `--only-failures` and required lint/compile checks.
-3. When the commit touches frontend paths, run `verify-ui-changes` (launch app, login, exercise feature, save screenshots/videos).
-4. Run independent code review sub-agent.
-5. Run independent test-quality sub-agent.
-6. Proceed only if alignment + quality checks pass.
-
-## Done Criteria for Pick
-
-- All planned implementation tasks for the scoped slice are complete.
-- Tests prove behavior through public seams and comply with [`references/testing.md`](references/testing.md).
-- Test doubles comply with [`references/mocking.md`](references/mocking.md); no leaky module-level mocks were introduced.
-- Frontend paths have app login + feature verification evidence saved to `/opt/cursor/artifacts/` when applicable.
-- No unresolved review findings remain from independent sub-agents.
-- Work is ready for independent **Roast** verification (`plugins/terreno-planning/skills/terreno-3-roast/SKILL.md`).
+- `PASS` → Roast
+- `FAIL` → Pick with preserved evidence and a new hypothesis
+- `BLOCKED` → outer loop routes the named gate

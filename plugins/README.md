@@ -1,53 +1,88 @@
 # Terreno plugins
 
-Installable Cursor plugins that ship Terreno's agent workflows.
+## `terreno-planning` — loop-engineering lifecycle
 
-## `terreno-planning` — the planning pipeline
+The reusable Cursor plugin exposes exactly five bounded lifecycle transitions:
 
-A five-stage agentic SDLC pipeline that takes work from a raw request to a mergeable PR,
-plus a **Grind** short path for a single feature. Each skill under
-[`terreno-planning/skills/`](terreno-planning/skills) is `disable-model-invocation`, so an
-agent runs them only when you invoke them.
+| # | Stage | Contract |
+| --- | --- | --- |
+| 1 | **Grow** (`terreno-1-grow`) | Research, clarify, shape, and approve the IP/tasks |
+| 2 | **Pick** (`terreno-2-pick`) | Build one approved slice with TDD and internal review |
+| 3 | **Roast** (`terreno-3-roast`) | Independently prove/disprove the IP criteria |
+| 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, then exit |
+| 5 | **Taste** (`terreno-5-taste`) | One current-head CI/mergeability/review reaction, then exit |
 
-| # | Stage (skill) | Does | Reads / writes |
-| - | ------------- | ---- | -------------- |
-| — | **Grind** (`terreno-grind`) | One feature: research, grill, task list, one TDD sub-agent per task, then Brew | Writes `docs/tasks/<slug>.md` (`**Grind:** true`); no full IP |
-| 1 | **Grow** (`terreno-1-grow`) | Grill in rounds, then write the IP + task list; end with a 15-line verify table | Writes `docs/implementationPlans/<slug>.md` + `docs/tasks/<slug>.md` |
-| 2 | **Pick** (`terreno-2-pick`) | Implement vertical slices via strict TDD with boundary-only fakes and independent review | Reads the approved IP/tasks |
-| 3 | **Roast** (`terreno-3-roast`) | Independently verify against the IP with evidence | Reads the IP; produces evidence |
-| 4 | **Brew** (`terreno-4-brew`) | Run all Bun tests quietly, verify docs, spawn standards/spec review, then open/update the draft PR | The PR links its IP |
-| 5 | **Taste** (`terreno-5-taste`) | Drive CI and the review loop until mergeable | Post-PR |
+Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
+Stages never own the full orchestration.
 
-The pipeline runs the same way in every Terreno repo. Its permanent artifacts are always
-the files Grow (or Grind) writes; external trackers link to them and never replace them. See
-[`docs/implementationPlans/README.md`](../docs/implementationPlans/README.md) and
-[`docs/tasks/README.md`](../docs/tasks/README.md).
+## Composition
 
-`terreno-code-review` is the read-only review procedure Brew runs in a fresh sub-agent. It
-keeps repository-standard findings separate from IP/spec findings.
+```text
+lifecycle stage
+      +
+repository/domain skills
+      +
+IP + task + execution state
+      +
+current evidence
+```
 
-### Roadmap handoff is conditional
+The plugin owns portable stage method and transition contracts. Repository-local skills
+own exact commands, frameworks, architecture, test environments, generated-code rules,
+safety policies, and gotchas. Every stage discovers available project skills by
+description; no Terreno-specific skill name is a plugin dependency.
 
-Some repos run a public roadmap (GitHub Discussions + a roadmap Project + tracking issues);
-others (Flourish, most consumer apps) do not. The same plugin serves both:
+The shared result/state format and outer state machine live in:
 
-- **Roadmap-enabled repo** (detected by `.github/roadmap-fields.yml` plus a `roadmap-item`
-  skill): when an IP reaches **Approved**, Grow hands off to `roadmap-item` to create or
-  update the public tracking issue, and the IP header records the `Discussion:` and
-  `Roadmap issue:` links. The `roadmap-*` maintainer skills own the public board; see
-  [`docs/explanation/roadmap-process.md`](../docs/explanation/roadmap-process.md).
-- **No-roadmap repo:** Grow detects the roadmap system is absent and **skips the handoff**.
-  The IP + task list are the source of truth (status on each IP's `**Status:**` header),
-  and execution is tracked in Linear via the IP header `Linear:` link.
+- [`references/lifecycle-contract.md`](terreno-planning/references/lifecycle-contract.md)
+- [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
+- [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
+- [`execution-state.schema.json`](terreno-planning/references/execution-state.schema.json)
 
-Grow never mutates GitHub itself — it hands off to `roadmap-item`, which stops for
-maintainer approval.
+The optional **feature profile** in the loop document preserves the former Grind behavior:
+one fresh Pick invocation per frontier task. It is an outer-loop recipe, not a sixth
+lifecycle stage.
 
-The canonical workflow is **Grow → Pick → Roast → Brew → Taste**. The former prose names
-Blend, implementation-Roast, Cupping, Pour, and Dial In are deprecated.
+## State machine
 
-## Installing
+```text
+Grow PASS → Pick PASS → Roast PASS → Brew PASS → Taste
+                       ↘ Roast FAIL → Pick (exact evidence)
+Taste PENDING → outer loop waits → fresh Taste
+Taste PASS → merge-ready
+Any BLOCKED → named human/external gate
+```
 
-The plugins are declared in [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json).
-Install `terreno-planning` from that marketplace, then invoke a stage by name (for example
-`/terreno-1-grow` or `/terreno-grind`).
+Brew does not execute Taste. Taste does not wait or repeatedly inspect changing state.
+The loop owns persistence, waiting, retry, stop, and escalation.
+
+## Repository integration
+
+Terreno's project skills remain canonical under `.rulesync/skills/` and are generated for
+supported agent ecosystems with `bun run rules`. They are not bundled into this plugin.
+Examples include API/UI/data conventions, test environments, schema safety, prompt
+governance, documentation, and runtime/UI verification.
+
+Validate the plugin architecture with:
+
+```bash
+bun run check:lifecycle-skills
+bun run rules:check
+```
+
+## Migration
+
+| Retired | Canonical |
+| --- | --- |
+| `terreno-1-blend` | `terreno-1-grow` |
+| `terreno-2-roast` (implementation) | `terreno-2-pick` |
+| `terreno-3-cupping` | `terreno-3-roast` (verification) |
+| `terreno-4-pour` | `terreno-4-brew` |
+| `terreno-5-dialin` | `terreno-5-taste` |
+
+No compatibility aliases are retained. The old implementation-Roast name collides
+semantically with the new verification-Roast stage, and repository search found no
+separate maintained alias mechanism. This is a hard-cut major plugin migration.
+
+Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json),
+then invoke a canonical stage such as `/terreno-1-grow`.

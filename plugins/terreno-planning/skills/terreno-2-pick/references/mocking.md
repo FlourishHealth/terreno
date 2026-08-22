@@ -7,31 +7,27 @@ Mock only a boundary where production leaves the system:
 - network transport
 - file storage when a real temporary directory is unsuitable
 
-Use the real database through `@terreno/test`. Use real Terreno models, stores, reducers, routers, and internal collaborators.
+Use real internal collaborators and integrations when the repository's test environment
+supports them. Repository skills decide whether databases, stores, routers, or framework
+harnesses are real, isolated, or replaced at a boundary.
 
 ## Prefer injected fakes
 
 Pass a narrow, domain-specific adapter into production code and provide a local fake in the test. Each adapter operation should have one typed purpose and one response shape.
 
-Good Terreno examples:
-
-- `comms/src/commsService.test.ts` injects local `MailProvider`, `SmsProvider`, `PushProvider`, and `VerificationProvider` fakes while retaining the real service and MongoDB.
-- `syncdb/src/client.test.ts` injects `createFakeTransport`, an HTTP channel, auth provider, persister, and clock through the public client configuration.
-
 Keep fake state inside the test or a fresh harness factory. Assert observable results first; inspect fake state only when the boundary interaction itself is the contract.
 
 ## Module mocks leak
 
-Bun module mocks are process-wide and hoisted. Registration survives beyond the individual test and can contaminate later files or make test order significant.
+Some runners implement module mocks as process-wide or hoisted state. Registration may
+survive an individual test and make order significant. Consult repository test guidance.
 
 Design an injectable seam instead of using `mock.module`. When an unchangeable dynamic import makes a module mock unavoidable:
 
-1. isolate it in a dedicated `*.isolated.ts` or dedicated test process
+1. isolate it in a dedicated file or test process
 2. document why dependency injection cannot represent the boundary
-3. run it through the package's isolated-test script
+3. run it through the repository's isolated-test mechanism
 4. never rely on restoring the module in `afterEach`
-
-`api/src/secretProvidersGcpClient.test.ts` documents this exceptional isolation pattern. It is a containment example, not the default.
 
 ## Scoped spies
 

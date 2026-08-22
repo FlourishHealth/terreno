@@ -10,7 +10,9 @@ description: >-
   permissions/queryFields/populatePaths/responseHandler, edits to @terreno/api
   routing or OpenAPI generation, or any time a route is added/removed/renamed.
   Also use when the user asks to "regenerate the SDK", "update openApiSdk.ts",
-  "run bun run sdk", or reports stale/missing generated hooks.
+  "run bun run sdk", or reports stale/missing generated hooks. Lifecycle
+  composition: Pick after API-shape changes; Roast to verify generated-client
+  compatibility.
 ---
 # Generate Frontend SDK
 

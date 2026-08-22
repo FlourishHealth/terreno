@@ -43,18 +43,20 @@ answers, then wait). After the user confirms shared understanding it writes the 
 and ends with a **15-line verify table** — destination, in/out, tracer, task graph, test
 seam — so a human can check the plan without rereading the IP.
 
-**Grind** (`terreno-grind`) is the short path for one feature: research, grill, task file
-only (`**Grind:** true`), then one fresh TDD sub-agent per task. Escalate to Grow when
-the slice is actually an IP (new public API, cross-package, breaking).
+For a small feature, an outer loop may use the plugin's **feature profile**: a compact
+approved task contract, one fresh Pick invocation per frontier task, independent Roast,
+then Brew and bounded Taste iterations. This preserves the former Grind behavior without
+putting orchestration inside a lifecycle skill.
 
 1. **Grow** (`terreno-1-grow`) — grill, then write the IP + tracer-bullet task list; end with the 15-line verify table.
-2. **Pick** (`terreno-2-pick`) — implement via TDD from the approved IP (or one Grind task).
-3. **Roast** (`terreno-3-roast`) — independently verify against the IP (skip on Grind unless asked).
+2. **Pick** (`terreno-2-pick`) — implement one approved slice via TDD.
+3. **Roast** (`terreno-3-roast`) — independently verify the implementation against the IP.
 4. **Brew** (`terreno-4-brew`) — commit, push, open the PR.
-5. **Taste** (`terreno-5-taste`) — drive CI and review until mergeable.
+5. **Taste** (`terreno-5-taste`) — react once to current CI, mergeability, and review state.
 
-**Grind** (`terreno-grind`) replaces steps 1–3 for a single feature: grill, task file only,
-one TDD sub-agent per task, then Brew.
+The outer loop owns stage selection, execution-state persistence, waiting, retries, and
+human/external escalation. Each stage emits the common machine-readable result described
+in [`plugins/terreno-planning/references/lifecycle-contract.md`](../../plugins/terreno-planning/references/lifecycle-contract.md).
 
 You can also author an IP directly with the `ip` skill; both produce the same two files.
 

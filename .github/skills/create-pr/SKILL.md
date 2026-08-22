@@ -1,6 +1,8 @@
 ---
 name: create-pr
-description: Create a draft pull request for the current branch
+description: >-
+  Create or update a draft PR using Terreno template and preservation
+  conventions. Lifecycle composition: Brew after Roast proof.
 ---
 # Create Pull Request
 

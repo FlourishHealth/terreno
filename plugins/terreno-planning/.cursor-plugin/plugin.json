@@ -1,8 +1,8 @@
 {
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
-  "description": "Agentic SDLC: Grow plans, Pick implements with TDD, Roast verifies, Brew opens the PR, and Taste drives CI. Grind is the single-feature short path.",
-  "version": "1.4.0",
+  "description": "Five bounded loop-engineering transitions: Grow shapes, Pick builds, Roast proves, Brew submits, and Taste reacts once to current PR state.",
+  "version": "2.0.0",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"

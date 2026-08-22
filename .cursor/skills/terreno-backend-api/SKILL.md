@@ -1,6 +1,6 @@
 ---
 name: terreno-backend-api
-description: Guidelines for creating backend APIs with @terreno/api on Express/Mongoose. Covers when to use Terreno backend vs Expo API routes, modelRouter CRUD, permissions, custom routes, OpenAPI generation, and the SDK codegen pipeline. Use when adding models, routes, auth, or server-side logic in Terreno apps.
+description: 'Guidelines for creating backend APIs with @terreno/api on Express/Mongoose. Covers when to use Terreno backend vs Expo API routes, modelRouter CRUD, permissions, custom routes, OpenAPI generation, and the SDK codegen pipeline. Use when adding models, routes, auth, or server-side logic in Terreno apps. Lifecycle composition: Grow for API shape, Pick for implementation, Roast for API/integration proof.'
 ---
 # Terreno Backend API
 

@@ -8,9 +8,10 @@ as described in [`docs/implementationPlans/README.md`](../implementationPlans/RE
 
 The filename slug matches the IP it belongs to.
 
-**Grind** writes a task file with `**Grind:** true` and no IP. The destination, tracer,
-and test seam live in that file's header so a fresh sub-agent can implement one task
-without a design doc.
+The loop's small-feature profile may use a task file with `**Feature profile:** true` and
+no full IP when repository policy permits. The destination, scope, decisions, acceptance
+criteria, tracer, and verification seam live in that durable contract so a fresh Pick
+agent can implement one task without conversation history.
 
 ## Task shape
 
@@ -42,6 +43,7 @@ batch. Grow-style runs may append a **Plan vs Actual** log after each task.
 | Concrete task steps and their status | this directory |
 | Public status and target | GitHub roadmap issue / Project (roadmap-enabled repos) |
 | Sprint estimates and assignees | Linear |
+| Current stage/attempt/head/result | loop-owned execution state (default `.terreno/execution/<slug>.yaml`) |
 
 Do not copy the full checklist into a GitHub issue or Linear. Create linked GitHub child
 issues only for tasks that outside contributors should be able to claim independently; the

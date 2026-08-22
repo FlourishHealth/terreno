@@ -1,110 +1,94 @@
 ---
 name: terreno-4-brew
-description: Commit, push, and set up the PR, then hand off by loading plugins/terreno-planning/skills/terreno-5-taste/SKILL.md (Cursor does not reliably invoke sibling plugin skills by name alone). Use ONLY when code is ready to enter review — not for implementation work, independent verification, or waiting on CI/comments after the PR is open.
+description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, and evidence attachment. Exits after emitting PR/head state; does not wait for CI.
 disable-model-invocation: true
 ---
 
-# Brew
+# Brew — submit
 
-Get work into review, then immediately hand ownership to **Taste** by loading the taste skill from disk (see Handoff).
+Move one verified implementation into review, emit current PR/head state, and exit. The
+outer loop invokes Taste separately.
 
-## Scope Boundary
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+[`independent review procedure`](../../references/independent-review.md).
 
-Brew owns only pre-review-open and review-open actions:
+## Preconditions
 
-1. Final pre-submit checks.
-2. Independent code review.
-3. Commit and push.
-4. Create/update draft PR.
-5. Resolve merge conflicts required to get PR updated; conflicts that appear after the handoff belong to Taste.
-6. Ensure CI is triggered on the first push.
-7. Immediately hand off to Taste using the path in Handoff (do not rely on skill-name-only invocation).
+- Roast returned `PASS` for the implementation being submitted.
+- Branch/diff and verification evidence are available.
+- No unresolved human gate remains.
 
-Brew must never block on CI completion or review comments.
+## Inputs
+
+- Approved IP/task and Roast result
+- Current branch/head/diff and execution state
+- Verification artifacts/evidence
+- Repository instructions, available supporting skills, and PR template
+- Existing PR title/body when updating (human edits are authoritative)
 
 ## Procedure
 
-### 1) Pre-submit checks
+1. **Reconstruct.** Confirm the branch tree corresponds to the Roast-passed
+   implementation. Behavioral changes after Roast return to Roast.
+2. **Discover supporting skills.** Load applicable submission, documentation, commit,
+   changelog, security, and repository verification skills.
+3. **Run final gates.** Execute repository-required pre-submit checks. Confirm docs,
+   generated files, changelog/release notes, and verification artifacts are complete.
+4. **Review independently.** Review the full branch diff on separate standards and
+   IP/spec axes. Fix material findings outside Brew via Pick/Roast; do not smuggle
+   implementation work into submission.
+5. **Check hygiene.** Review status/diff; exclude loop-owned execution state, debug output,
+   secrets, credentials, customer data, and unrelated files.
+6. **Commit.** Follow repository commit and DCO/sign-off policy. Preserve the existing
+   prohibition on AI attribution. Use behavior-scoped commits; do not rewrite pushed
+   history unless explicitly allowed.
+7. **Push.** Push with upstream. Resolve only mechanical conflicts needed to update the PR,
+   using repository conflict guidance and rerunning affected checks. A conflict requiring
+   a design/behavior choice is `BLOCKED`.
+8. **Create/update PR.** Apply the repository template. Preserve human-edited title/body;
+   make only accurate minimal edits. Include IP/task links, checks, and evidence. Attach
+   UI/runtime artifacts without sensitive data.
+9. **Observe once.** Resolve the PR number/URL and pushed head SHA; confirm CI was
+   triggered. Do not wait for completion.
+10. **Record and exit.** Update execution state and emit `PASS` with the PR/head and
+    `recommended_next_stage: taste`.
 
-1. Run required lint and compile checks for touched areas.
-2. Run **every workspace Bun test locally in agent-quiet mode**:
+## Supporting skills
 
-   ```bash
-   bun run test:agent
-   ```
+Follow the shared discovery procedure. Project skills own exact lint/type/test commands,
+documentation generation, changelog rules, commit/DCO policy, PR templates, conflict
+handling, and mandatory evidence gates.
 
-   This is the required full-suite command. It uses Bun's `--only-failures` reporter mode so failures and the final summary remain visible without printing every passing test.
-3. Inspect the diff for public API, component, route, configuration, setup, or environment changes. Invoke `update-docs` when applicable and verify the relevant reference/how-to/generated docs were updated. A checked PR-template box is not evidence; name the documentation files or record why docs are not applicable.
-4. Run `bun run rules:check` when agent rules or `.rulesync/` skills changed.
+## Evidence produced
 
-Stop and fix before committing if checks fail.
+- Final checks and independent-review outcomes
+- Commit and pushed head SHA
+- PR URL/number and preserved template/body state
+- Attached artifact references and sensitive-data check
+- Updated execution state and structured Brew result
 
-**Frontend verification gate:** If the branch touches `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, `admin-spa/`, or frontend-integrated `rtk/`:
+## Success conditions
 
-1. Invoke `verify-ui-changes` before commit/PR setup.
-2. Launch the correct app, log in with seeded credentials when required, and exercise each changed user-facing feature.
-3. Save screenshots and videos under `/opt/cursor/artifacts/`.
-4. Do not open or update the PR until artifacts are ready to attach.
+- Verified implementation is committed/pushed and the PR accurately represents it.
+- CI is triggered for the recorded current head.
+- Emit `PASS` with `recommended_next_stage: taste`, then exit.
 
-### 2) Independent code review
+## Failure conditions
 
-Spawn a fresh review sub-agent before committing:
+Failed final checks, review findings, push errors, or PR setup errors emit `FAIL` with
+evidence and the smallest corrective stage/action. Behavioral failures recommend Pick or
+Roast, not an implementation fix inside Brew.
 
-- Read `plugins/terreno-planning/skills/terreno-code-review/SKILL.md` from the repository root.
-- Use the PR base branch as the fixed point, or the repository default branch when no PR exists.
-- Run its separate Standards and Spec axes against the full branch diff.
-- Return concrete findings only; do not edit code in the review context.
+## Blocked conditions
 
-Fix every material finding in the implementation context, rerun affected checks plus `bun run test:agent`, and repeat the review until both available axes are clean. If the harness cannot spawn sub-agents, stop and report that the mandatory independent review could not run.
+Missing access, required human approval/decision, unsafe conflict, unavailable mandatory
+submission capability, or sensitive-data risk emits `BLOCKED` with exact action required.
 
-### 3) Commit hygiene
+## Recommended next stage
 
-- Review `git status`/`git diff`.
-- Stage only relevant files.
-- Commit with clear message.
-- No AI attribution/co-author text.
-- **DCO:** use `git commit -s` on every commit (see [CONTRIBUTING.md](../../../../CONTRIBUTING.md); enforced on external forks via `.github/workflows/dco.yml`).
-- **Changelog:** add `changelog/unreleased/<feature>.md` with a YAML `category` header before opening the PR when the change is user-visible. Do not edit `CHANGELOG.md`.
+- `PASS` → outer loop invokes a fresh Taste
+- `FAIL` → stage named by evidence (`pick`, `roast`, or `brew`)
+- `BLOCKED` → outer loop routes the named gate
 
-### 4) Push branch
-
-- Push with upstream.
-- On network errors, retry with exponential backoff (4s, 8s, 16s, 32s).
-
-### 5) PR setup
-
-- Reuse existing PR if present; otherwise create draft PR.
-- Read and apply [`.github/PULL_REQUEST_TEMPLATE.md`](../../../../.github/PULL_REQUEST_TEMPLATE.md) — GitHub pre-fills it on web PRs; match the same sections when using `gh pr create` or the PR management tool:
-  - **Summary**, **Related IP or issue** (link IP, Grind task file, or `#issue`), **Type of change** (checkboxes), **Testing performed**, **Checklist** (lint, compile, tests, docs, changelog, DCO).
-- Under **Testing performed**, record `bun run test:agent` and its pass/fail summary.
-- Under **Checklist**, mark docs complete only after Step 1 identifies the updated files or records why documentation is not applicable.
-- Keep PR title/body accurate and concise.
-- **Include run evidence:** if any screenshots, screen recordings, or videos were captured during this run (browser testing, Playwright, emulator sessions, UI verification), add them under `## Evidence` after **Testing performed** with a one-line caption per item. For frontend changes this section is **required** — include app URL, credentials used, feature exercised, and media from `verify-ui-changes`. In Cursor cloud runs, reference artifacts by absolute path with HTML tags (`<img src="/opt/cursor/artifacts/screenshots/example.png" />`, `<video src="/opt/cursor/artifacts/demo.mp4"></video>`) — the PR tool uploads them and rewrites URLs automatically. When updating an existing PR, append new evidence without removing what is already there. Skip the section only when the branch has no frontend paths and no other evidence exists.
-- Apply sensitive-data minimum-necessary handling in PR text, including evidence media — do not attach screenshots or recordings containing credentials, customer data, PII, or other regulated information.
-
-### 6) Conflict resolution before handoff
-
-If push/rebase/merge conflicts block PR update:
-
-- Resolve conflicts.
-- Re-run required checks.
-- Rerun `bun run test:agent`.
-- Rerun the independent code review when conflict resolution changes behavior.
-- Commit and push conflict fix.
-
-### 7) Handoff (required)
-
-As soon as PR is open/updated and CI has been triggered on first push:
-
-**Cursor / plugin caveat:** Skills inside `plugins/terreno-planning/skills/` are not always registered as separately invocable skills. Treat the markdown file as the source of truth.
-
-1. Read `plugins/terreno-planning/skills/terreno-5-taste/SKILL.md` from the repository root (same path on disk as this Brew skill).
-2. Execute the **Taste** procedure from that file immediately — same turn if possible — without waiting for CI to finish.
-3. Exit Brew’s scope without blocking; Taste owns the reactive loop from here.
-
-Optional: if your Cursor/plugin setup exposes a `/terreno-5-taste` slash command and it successfully loads that skill, you may use it **instead of** step 1–2 only when you have confirmed it resolves to the same `terreno-5-taste/SKILL.md` content.
-
-## Branch/Repo Conventions
-
-- Use the cloud-agent branch convention from your run instructions: `cursor/<descriptive-name>-<run-suffix>`. Do not hardcode a literal suffix from this skill — use the suffix your agent session was given.
-- Keep commit/PR text free of AI attribution.
+For standalone compatibility, a human/runner may invoke Taste immediately after Brew
+returns. Brew itself never executes Taste and never owns CI waiting.

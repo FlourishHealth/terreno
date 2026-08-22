@@ -1500,7 +1500,8 @@ Report:
 
 ## Submitting the IP
 
-Once the plan is finalized, use `/submit` to commit the IP files, push the branch, and create a PR on the target project's GitHub repo. The worktree is already on a dedicated branch, so `/submit` works directly.
+Once the plan is finalized, use the repository's `commit` and `create-pr` skills to
+submit the IP-only change. Brew is reserved for Roast-verified implementation work.
 
 ## Arguments
 

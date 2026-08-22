@@ -27,5 +27,6 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 ## Other references
 
+- [Lifecycle plugin](lifecycle-plugin.md) — Grow/Pick/Roast/Brew/Taste contracts, results, and transitions
 - Root [package.json](https://github.com/flourishhealth/terreno/blob/master/package.json) — Workspace scripts and catalog
 - Per-package `package.json` in each package directory — Commands and dependencies

@@ -1,13 +1,16 @@
 ---
 name: respond-to-review
 description: >-
-  Review PR comments, infer PR from branch when needed, plan fixes, and
-  implement — auto-submitting when no clarifications are needed
+  Resolve and classify Terreno PR comments, plan focused fixes, and implement
+  addressed items without owning submission or CI waiting. Lifecycle
+  composition: Taste.
 disable-model-invocation: true
 ---
 # PR Review Response Workflow
 
-Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/submit` automatically without prompting.
+Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan and
+implement focused fixes. If a human decision is required, return it as a blocker. Taste
+owns commit/push/result emission; the outer loop owns later observation.
 
 ## Step 0: Validate Input
 
@@ -171,7 +174,8 @@ Ask: **"Need your input on the questions above. Anything else to change before I
 - Incorporate any feedback
 - Re-present plan if significant changes requested
 
-**If there are no open questions:** skip confirmation entirely. Proceed directly to Step 5 — implement, commit, run `/submit`, and resolve threads without further prompts. Do not ask the user for plan approval in this case.
+**If there are no open questions:** skip confirmation entirely. Proceed directly to Step
+5 and return the verified diff to Taste. Do not ask for redundant plan approval.
 
 ## Step 5: Make the Fix
 
@@ -188,17 +192,21 @@ git diff
 git diff --stat
 ```
 
-Do **not** commit here. `/submit` (next step) handles pre-commit checks, staging, commit, push, and PR updates — running pre-commit *before* the commit, which is the correct order. Committing here would invert that order and leave broken code committed locally if pre-commit fails.
+Do **not** commit here. Return the verified diff and addressed-thread identifiers to the
+calling Taste invocation, which owns commit/push and structured state.
 
-## Step 7: Run /submit
+## Step 7: Return to Taste
 
-Invoke the `/submit` skill to handle pre-commit checks, commit (`git commit -s` for DCO), push, and PR updates. This will also launch the CI check-watcher in the background. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
+Return changed files, targeted verification, addressed comments, unresolved blockers, and
+thread identifiers. Do not invoke `/submit` or a CI watcher.
 
-If the fix is user-facing, add or update `changelog/unreleased/<feature>.md` before or as part of the submit step. Do not edit `CHANGELOG.md`.
+If the fix is user-facing, note the required changelog update for Taste/Brew to apply
+under repository policy.
 
 ## Step 8: Resolve Addressed Threads
 
-After `/submit` completes, resolve each review thread that was addressed in the implementation. Use the thread `id` captured in Step 2.
+The calling Taste invocation resolves each thread only after it commits/pushes the
+verified fix. Return the thread `id` captured in Step 2.
 
 For each thread that was fixed or addressed (from the "Must Fix" and "Should Address" categories in the plan):
 ```bash

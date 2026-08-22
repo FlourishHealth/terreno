@@ -23,11 +23,9 @@ Prefer the highest existing seam that proves the behavior. Add a seam only when 
 
 Expected values come from a literal worked example, the IP, or another independent source of truth.
 
-## Terreno examples
+## Repository composition
 
-- `api/src/api.test.ts` and route-focused API tests: real Express routes, Supertest, and the test database exercise externally observable behavior.
-- `comms/src/commsService.test.ts`: real service and database with small injected provider fakes at external communication boundaries.
-- `syncdb/src/client.test.ts`: the exported client is exercised with injected auth, HTTP, persistence, clock, and transport adapters.
-- `scripts/roadmap/checkRoadmapItem.test.ts`: pure public functions are tested with real taxonomy files and Chai `assert`.
-
-Match the assertion library already used in the package. New Terreno tests should prefer Chai `assert` where local conventions permit.
+Load applicable repository testing skills before choosing commands, harnesses, fixtures,
+databases, assertion libraries, or runtime probes. Match established tests near the
+changed public seam. The lifecycle plugin does not prescribe a framework or package
+layout.

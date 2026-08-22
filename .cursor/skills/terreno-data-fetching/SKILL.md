@@ -1,6 +1,6 @@
 ---
 name: terreno-data-fetching
-description: Use when implementing or debugging ANY network request, API call, or data fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice, token management, realtime sockets, caching, and SDK regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps.
+description: 'Use when implementing or debugging ANY network request, API call, or data fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice, token management, realtime sockets, caching, and SDK regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps. Lifecycle composition: Grow for data-flow shape, Pick for implementation, Roast for independent network/cache behavior proof.'
 ---
 # Terreno Data Fetching
 

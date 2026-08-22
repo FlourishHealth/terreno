@@ -58,7 +58,8 @@ Run one complete pipeline loop:
 2. **Pick**: implement vertical slices with red → green Bun tests.
 3. **Roast**: independently verify the IP with evidence.
 4. **Brew**: run full agent-quiet tests, docs gate, and code review; open/update the draft PR.
-5. **Taste**: finish CI and review.
+5. **Taste**: invoke one current-state reaction at a time; persist results and let the
+   outer loop schedule fresh Taste iterations until `PASS` or `BLOCKED`.
 
 Close the ticket only when its acceptance evidence and merged PR are linked.
 

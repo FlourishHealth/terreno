@@ -1,11 +1,12 @@
 ---
 name: fix-conflicts
-description: Pull latest from master, resolve merge conflicts, validate with lint/compile checks, and monitor CI
+description: 'Integrate the latest base, resolve Terreno conflicts without dropping either side, and run affected validation. Lifecycle composition: Brew for PR-update conflicts; Taste for current-PR conflicts.'
 disable-model-invocation: true
 ---
 # Fix Conflicts
 
-Pull latest from master, resolve merge conflicts, validate with lint/compile checks, and monitor CI.
+Pull the latest base, resolve merge conflicts, and validate the affected areas. Return
+after the push; the outer lifecycle loop owns later CI observation.
 
 ## Instructions
 
@@ -72,10 +73,8 @@ Pull latest from master, resolve merge conflicts, validate with lint/compile che
    git push origin HEAD
    ```
 
-8. Run check-watcher by invoking `/check-watcher`:
-   - This monitors GitHub Actions checks
-   - If checks fail, it will automatically read failures, fix them, and push again
-   - Continue until all checks pass
+8. Return the pushed head and validation evidence. Do not launch a watcher; Brew/Taste
+   emits lifecycle state and the outer loop schedules later observation.
 
 ## Arguments
 

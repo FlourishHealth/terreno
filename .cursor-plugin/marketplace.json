@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-    "version": "1.4.0",
+    "version": "2.0.0",
     "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Grow plans, Pick implements with TDD, Roast verifies, Brew opens the PR, and Taste drives CI. Grind is the single-feature short path."
+      "description": "Five bounded transitions: Grow shapes, Pick builds, Roast proves, Brew submits, and Taste reacts once to current PR state."
     }
   ]
 }

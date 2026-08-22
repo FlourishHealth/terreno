@@ -1,120 +1,92 @@
 ---
 name: terreno-1-grow
-description: Interview the user in grilling rounds, then write or update the IP and task list. Use when planning work, drafting or revising an implementation plan, changing IP status, or the user says grow / blend / plan this / write an IP. Do not use for implementing code, submitting PRs, or monitoring CI.
+description: Research, clarify, shape, and approve an implementation-ready IP and task list. Use for planning substantial work or revising an existing plan; not for implementation or PR operations.
 disable-model-invocation: true
 ---
 
-# Grow
+# Grow — shape
 
-Turn a request into an implementation plan and a bot-consumable task list. Interview
-first. Write after the user confirms shared understanding.
+Turn a request, ticket, or specification into approved artifacts a fresh Pick agent can
+execute without conversation history.
 
-Load [`references/grilling.md`](references/grilling.md) before asking questions.
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+[`grilling procedure`](references/grilling.md) before acting.
 
 ## Preconditions
 
-This is planning, not implementation and not PR operations.
+- A request/spec/ticket and repository are available.
+- This invocation owns shaping only; the outer loop owns later stages.
 
-## Output contract
+## Inputs
 
-Every plan is two files. External trackers link here; they never replace these files.
+- Request/spec/ticket and linked context
+- Existing IP/task files, if revising
+- Repository instructions, code, tests, history, and available project skills
+- Execution state and prior result, when present
 
-| File | Path | Holds |
-| ---- | ---- | ----- |
-| IP | `docs/implementationPlans/<slug>.md` | Goals, architecture, models/APIs, testing decisions, phases, acceptance |
-| Tasks | `docs/tasks/<slug>.md` | Execution checklist Pick consumes |
+## Procedure
 
-Follow [`docs/implementationPlans/README.md`](../../../../docs/implementationPlans/README.md)
-and [`docs/tasks/README.md`](../../../../docs/tasks/README.md).
+1. **Reconstruct.** Resolve the repository's existing IP/task conventions (default:
+   `docs/implementationPlans/<slug>.md` and `docs/tasks/<slug>.md`). Read prior state and
+   verify it against repository reality.
+2. **Discover supporting skills.** Inspect available repository/project skills and load
+   those relevant to the affected domains. Record selected skills for downstream stages.
+3. **Research before asking.** Classify uncertainty:
+   - **Human decision:** product, architecture, security, data ownership, compatibility,
+     rollout, destructive change, or scope → grill and block until answered.
+   - **Discoverable fact:** repository convention, library behavior, ownership, tests →
+     investigate it.
+   - **Low-risk implementation detail:** strongly implied by convention → choose it and
+     record the assumption.
+4. **Grill.** Work the current decision frontier in numbered rounds with recommended
+   answers. Wait for explicit shared-understanding confirmation before writing.
+5. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.
+   Define scope, non-scope, architecture decisions, risks, human gates, rollout, and
+   dependencies.
+6. **Specify proof.** Make every acceptance criterion observable and pair it with a
+   verification method (test, build, runtime/API/database probe, UI exercise, artifact,
+   compatibility/regression case).
+7. **Write.** Produce the IP and a dependency-aware tracer-bullet task list. Each task
+   names files/seams, acceptance criteria, blockers, verification, and relevant supporting
+   skills when discoverable.
+8. **Approve.** Show the existing 15-line verification summary. Set the repository's
+   approved status only after human confirmation. Update execution state and emit the
+   stage result.
 
-For a **single-feature** slice that does not need a full IP, stop and tell the user to
-invoke **Grind** (`terreno-grind`) instead. Grow is for work that needs a durable design
-doc. If unsure, grill "IP vs Grind" as Q1.
+## Supporting skills
 
-## Grilling (required before any new or materially revised plan)
+Follow the shared discovery procedure. Supporting skills may cover API/UI architecture,
+data access, schemas, prompts, deployment, testing, or safety. Names are repository-defined;
+none is universally required.
 
-Do not emit a blocking-questions wall. Run the round loop in `references/grilling.md`.
+## Evidence produced
 
-Minimum tree for a Terreno plan:
+- Approved IP path and task-file path
+- Research findings and recorded assumptions (not chain-of-thought)
+- Decision log/human gates
+- Acceptance-criterion → verification mapping
+- Selected supporting skills
+- Updated execution state and structured Grow result
 
-1. Destination (what exists when done)
-2. In / out of scope
-3. Public seam for the tracer bullet (route, model, hook, CLI, screen)
-4. Packages touched
-5. Test seam and double style (see Pick
-   [`references/mocking.md`](../terreno-2-pick/references/mocking.md) — inject at boundaries)
-6. Auth, permissions, sync vs OpenAPI, if relevant
-7. Rollout / flags / breaking changes, if relevant
-8. Tracker (Linear / none). Never invent a Linear issue.
+## Success conditions
 
-Facts: spawn explore sub-agents. Decisions: ask the user, whole frontier, one round,
-recommended answers, then wait.
+- IP/task artifacts are approved, implementation-ready, dependency-aware, and testable.
+- A fresh Pick invocation can identify the next unblocked task, applicable criteria,
+  decisions, supporting skills, and risks from durable artifacts.
+- Emit `PASS` with `recommended_next_stage: pick`.
 
-## After confirmation — write the files
+## Failure conditions
 
-Write or update the IP, then the task list, in the same turn. Do not implement.
+Malformed or contradictory artifacts emit `FAIL` with exact defects and a focused Grow
+retry. Do not pass incomplete criteria to Pick.
 
-### IP must include
+## Blocked conditions
 
-- Header: `**Status:**`, `**Created:**`, `**Author:**` (`agent (<model>)`), optional
-  `**Linear:**` / `**Discussion:**` / `**Roadmap issue:**`
-- Architecture and models/APIs
-- **Testing decisions:** public seam, fixture vs injected fake, isolation if `mock.module`
-- Phases and acceptance criteria
-- Task list as a bullet outline plus pointer to `docs/tasks/<slug>.md`
+Unresolved human decisions, unavailable required evidence/access, or unsafe ambiguity emit
+`BLOCKED` with options, tradeoffs, and a recommended default when appropriate.
 
-### Task list must include
+## Recommended next stage
 
-- Tracer-bullet tasks (narrow, independently shippable, tests first)
-- `Blocked by:` on every task that is not a frontier item
-- Checkboxes Pick can mark
-
-Do not write a task that depends on an unwritten earlier task without `Blocked by:`.
-
-## Plan summary (required, last message after writing)
-
-The user verifies from this block alone. Keep it **short**. No recap of the interview.
-No restating the full IP.
-
-```markdown
-**Plan:** `docs/implementationPlans/<slug>.md`
-**Tasks:** `docs/tasks/<slug>.md`
-
-| | |
-| --- | --- |
-| Destination | <one sentence> |
-| In | <tags or 3–6 words> |
-| Out | <tags or 3–6 words> |
-| Tracer | <seam> |
-| Tasks | <N> (frontier: <ids>; blocked: <ids>) |
-| Tests | <file or seam → fake/fixture> |
-
-Decisions: <Q#=choice, Q#=choice>
-Confirm by reading the table. Next: invoke Pick (`terreno-2-pick`) on the frontier tasks.
-```
-
-Hard cap: **15 lines**. If a cell needs a paragraph, the IP is the paragraph; the table
-stays terse.
-
-## Lifecycle (existing plans)
-
-When the user asks to create, update, approve, complete, defer, or kill a plan:
-
-- **New / revise:** grill, confirm, write, summary table.
-- **Approve:** set `**Status:** Approved`. If `.github/roadmap-fields.yml` and a
-  `roadmap-item` skill exist, stop and tell the user to invoke `roadmap-item` with the IP
-  path. Do not create GitHub issues from Grow. If those files are absent, skip.
-- **Complete / kill:** move IP to `docs/implementationPlans/archive/` and tasks to
-  `docs/tasks/archive/` (create `archive/` if needed).
-- **Defer:** leave files; set `**Status:** Deferred`.
-
-Always update `**Status:**` on the IP. There is no `PLAN_INDEX.md`.
-
-## Execution rules
-
-- Do not write application code.
-- Do not open, update, or merge a PR.
-- Do not monitor CI or review comments.
-- Do not start Pick until the user confirms the summary table.
-- Prefer editing an existing IP over creating a duplicate.
-- Ask before overwriting an IP that is Approved or In Progress.
+- `PASS` → Pick
+- `FAIL` → Grow with defect evidence
+- `BLOCKED` → outer loop routes the named human/external gate

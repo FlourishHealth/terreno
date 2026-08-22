@@ -1,12 +1,13 @@
 # Grilling — interactive design interview
 
-Use this during Grow (and Grind) instead of dumping every unknown in one list.
+Use this during Grow instead of dumping every unknown in one list.
 
 Goal: shared understanding with the user, then write. Do not write the IP, task list, or
 code until the user confirms the last round left no open questions.
 
 Adapted from [grilling](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md).
-Do not copy tracker or Linear setup from that skill. Terreno artifacts stay IP + task files.
+Do not copy tracker setup from that skill. Follow the consuming repository's artifact and
+tracking conventions.
 
 ## Map a design tree, not a questionnaire
 
@@ -19,8 +20,8 @@ Every request has a tree:
 Work in **rounds**. Each round asks only the current **frontier**: questions whose
 prerequisites are already settled. Deeper questions wait until their parent is decided.
 
-Example: do not ask "which Linear project?" before "do we track this in Linear?".
-Do not ask "which mock pattern?" before "which public seam is the tracer bullet?".
+Example: do not ask "which tracker project?" before "do we track this externally?".
+Do not ask "which test double?" before "which public seam is the tracer bullet?".
 
 ## Agent vs user
 
@@ -65,7 +66,7 @@ Rules for the body:
 - Do not ask for facts you already looked up. Cite the finding in the question if it
   informs the decision.
 - Cap the round at **five** questions. Park the rest as "later, after these".
-- End the message. Do not write files, do not start Roast, do not summarize the whole
+- End the message. Do not write files, do not start Pick, do not summarize the whole
   plan yet.
 
 ### After the user replies
@@ -92,10 +93,30 @@ Confirm and I will write the plan. Change any bullet if I have it wrong.
 
 Do not write the IP until they confirm.
 
+## Approval summary
+
+After writing, show a final verification block capped at 15 lines:
+
+```markdown
+Plan: <path>
+Tasks: <path>
+Destination: <one sentence>
+In: <short tags>
+Out: <short tags>
+Tracer: <public seam>
+Tasks: <count; frontier IDs; blocked IDs>
+Verification: <criterion/method summary>
+Supporting skills: <names or none found>
+Decisions: <Q#=choice>
+Next: approve → Pick
+```
+
+This is an index for fast approval, not a second copy of the IP.
+
 ## Anti-patterns
 
 - One giant question dump at the start
-- Asking repo facts ("where is modelRouter defined?")
+- Asking repository facts ("where is this route defined?")
 - Acting on a recommended answer the user has not accepted
 - Recapping the entire interview at the end of every round
 - Writing the IP in the same turn as unanswered questions

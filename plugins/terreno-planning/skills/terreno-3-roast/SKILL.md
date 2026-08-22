@@ -1,80 +1,86 @@
 ---
 name: terreno-3-roast
-description: Independently verify a completed implementation against the IP/spec with concrete evidence. Use ONLY when implementation already exists — not for writing feature code, planning the IP, or running the PR submission/review loop.
+description: Independently prove or disprove that the current implementation satisfies its approved IP and acceptance criteria. Use after Pick, preferably in a fresh context; not for fixing implementation code.
 disable-model-invocation: true
 ---
 
-# Roast
+# Roast — prove
 
-Independent verification of completed implementation against IP/spec, runnable even when the verifier did not author the PR.
+Roast is the authoritative stage-level verifier:
 
-## Verification Objective
+```text
+requirement → verification method → evidence → PASS / FAIL / BLOCKED
+```
 
-- Prove or disprove that implementation matches intended scope and acceptance expectations.
-- Produce concrete evidence (commands run, outputs, screenshots/videos when UI is involved).
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md).
 
-## Standalone Entry
+## Preconditions
 
-Roast can run on:
+- An approved IP/task contract and completed Pick result exist.
+- Current branch/head and diff are resolvable.
+- Run in a fresh context when the harness permits.
 
-- Local branch changes, or
-- An existing PR owned by someone else (resolve PR, checkout/worktree as needed).
+## Inputs
 
-## Verification Workflow
+- IP, task file, acceptance criteria, and verification requirements
+- Current branch/head, diff, and PR when present
+- Pick result, execution state, prior Roast attempts, and artifacts
+- Repository instructions and available project/verification skills
 
-1. Load source of truth (IP/spec, acceptance criteria, PR context).
-2. Build a requirement-to-evidence checklist.
-3. Run targeted automated checks for touched packages.
-4. Run manual verification where automation is insufficient.
-5. Record pass/fail per requirement with evidence.
+## Procedure
 
-## UI Verification Requirements
+1. **Reconstruct independently.** Verify the head and source artifacts. Do not trust
+   Pick's completion claims as proof.
+2. **Discover supporting skills.** Load applicable domain and verification skills.
+   Repository-mandatory capabilities are hard requirements.
+3. **Build the matrix.** Map every in-scope criterion to one or more objective methods and
+   the evidence required. Include promised regressions, compatibility, and non-scope.
+4. **Inspect and execute.** Review the diff and run concrete checks independently:
+   repository-prescribed tests, integration/system behavior, lint/type/build checks,
+   runtime/API/database probes, regression reproductions, or real UI interaction.
+5. **Exercise changed behavior.** For UI-facing work, use the available repository UI
+   verification capability, interact with the actual changed workflow, and capture
+   required screenshots/video/logs. App launch alone is not proof.
+6. **Classify each criterion.** Record `PASS`, `FAIL`, or `BLOCKED` with reproducible
+   evidence. Never pass a criterion because the code merely looks reasonable.
+7. **Do not fix.** Report implementation defects to Pick. Only correct verifier setup
+   owned by Roast; if that changes evidence materially, rerun the affected method.
+8. **Record.** Update execution state and emit the structured result.
 
-For UI-facing changes, manual verification with login + feature exercise is **mandatory**.
+## Supporting skills
 
-1. Invoke the `verify-ui-changes` skill.
-2. Launch the correct app for the package that changed.
-3. Log in with seeded credentials when the app requires authentication.
-4. Attempt to use each requirement's user-facing behavior — not just confirm the app loads.
-5. Save screenshots and videos under `/opt/cursor/artifacts/`.
-6. Include artifact references in the verification output for PR attachment.
+Follow the shared discovery procedure. Applicable skills may supply API/database test
+methods, UI/runtime verification, security/safety checks, build commands, or deployment
+probes. If repository policy makes one mandatory and it is unavailable, emit `BLOCKED`.
 
-### `@terreno/ui` changes
+## Evidence produced
 
-- Start demo (`bun run demo:start`).
-- Open `/dev`, select the changed component/story.
-- Validate changed states and interactions.
-- Capture screenshots/video evidence.
+- Requirement-to-evidence matrix
+- Commands/probes/interactions and outcomes
+- Artifact/log/API response references
+- Exact expected vs actual behavior for every failure
+- Environment/access details for every blocker
+- Updated execution state and structured Roast result
 
-### `admin-frontend` / example app UI changes
+## Success conditions
 
-- Start backend + frontend example apps.
-- Log in (`admin@example.com` / `testpassword123` for admin; `test@example.com` / `testpassword123` for user flows).
-- Navigate to the changed feature and exercise it in the browser.
-- Capture screenshots/video evidence.
+- Every in-scope acceptance criterion has objective passing evidence on the recorded head.
+- Required regression/runtime/UI checks pass.
+- Emit `PASS` with `recommended_next_stage: brew`.
 
-### Other frontend package changes
+## Failure conditions
 
-- Run package-appropriate manual checks with login + feature exercise when auth is required.
-- Capture screenshots/video evidence.
+One or more criteria disproven by evidence emits `FAIL` with severity, expected, actual,
+and reproducible evidence. Set `recommended_next_stage: pick`.
 
-## Evidence Rules
+## Blocked conditions
 
-- Save artifacts in `/opt/cursor/artifacts`.
-- Include command outputs and media references needed for reviewer confidence.
-- Post media to the PR `## Evidence` or `## UI verification` section when Roast precedes or accompanies Brew.
-- Report mismatches explicitly; do not mask failures.
+Unavailable required environment/capability/access, ambiguous criterion requiring a human
+decision, or external service failure that prevents proof emits `BLOCKED` with exact
+classification and next action.
 
-## Output Structure
+## Recommended next stage
 
-- Scope verified.
-- Checks executed.
-- Requirement-by-requirement outcome.
-- Evidence references.
-- Open defects/gaps (if any) with severity.
-
-## Handoff
-
-When every requirement passes and evidence is ready, invoke **Brew**
-(`terreno-4-brew`) to run pre-submit checks, review the branch, and open or update the
-draft PR.
+- `PASS` → Brew
+- `FAIL` → Pick with exact failure evidence and current head
+- `BLOCKED` → outer loop classifies retryable environment/external vs human gate

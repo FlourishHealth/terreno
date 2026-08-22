@@ -2,10 +2,12 @@
 category: Changed
 ---
 
-The Terreno planning plugin's canonical stages are now Grow → Pick → Roast → Brew →
-Taste. It uses vertical-slice TDD with boundary-only test doubles, runs the full Bun suite
-in agent-quiet mode during Brew, verifies documentation, and adds an independent
-standards/spec review before opening a PR. Grow interviews in grilling rounds and ends
-with a 15-line verify table. Grind is the single-feature short path (research, task list,
-one TDD sub-agent per task). Architecture, roadmap-frontier, and agent-document skills
-support deeper refactors and large efforts.
+The Terreno planning plugin 2.0 is a fresh-invocation loop-engineering lifecycle:
+Grow → Pick → Roast → Brew → Taste. Every bounded stage discovers repository skills,
+reads/writes a shared evidence-oriented result/state contract, and exits. Brew no longer
+executes Taste; Taste reacts once to current CI/mergeability/review state while the outer
+loop owns waiting and reinvocation. Terreno package commands and domain rules remain in
+repo-local skills. Grow retains interactive grilling and a 15-line approval summary; Pick
+retains vertical-slice TDD and independent implementation/test-quality review; Roast is
+the authoritative verifier. The former Grind behavior remains an outer-loop feature
+profile, and static validation enforces names, transitions, portability, and loop bounds.
