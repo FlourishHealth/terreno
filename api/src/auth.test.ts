@@ -1039,14 +1039,34 @@ describe("privileged user fields", () => {
     expect([...PRIVILEGED_USER_FIELDS]).toEqual(["admin", "roles", "organizationIds"]);
   });
 
-  it("omits User roles from write bodies when RBAC accessControl is set", () => {
+  it("omits privileged User fields from ordinary RBAC modelRouter writes", () => {
     expect(
-      omitUserRolesFromWriteBody("User", {}, {email: "a@example.com", roles: ["superadmin"]})
+      omitUserRolesFromWriteBody(
+        "User",
+        {},
+        {
+          admin: true,
+          email: "a@example.com",
+          organizationIds: ["other-tenant"],
+          roles: ["superadmin"],
+        }
+      )
     ).toEqual({email: "a@example.com"});
     expect(
-      omitUserRolesFromWriteBody("User", {}, [{email: "a@example.com", roles: ["superadmin"]}])
+      omitUserRolesFromWriteBody("User", {}, [
+        {admin: true, email: "a@example.com", roles: ["superadmin"]},
+      ])
     ).toEqual([{email: "a@example.com"}]);
-    expect(omitUserRolesFromWriteBody("Todo", {}, {roles: ["superadmin"]})).toEqual({
+    expect(
+      omitUserRolesFromWriteBody(
+        "User",
+        {},
+        {admin: true, organizationIds: ["other-tenant"], roles: ["superadmin"]},
+        true
+      )
+    ).toEqual({admin: true});
+    expect(omitUserRolesFromWriteBody("Todo", {}, {admin: true, roles: ["superadmin"]})).toEqual({
+      admin: true,
       roles: ["superadmin"],
     });
     expect(omitUserRolesFromWriteBody("User", undefined, {roles: ["superadmin"]})).toEqual({

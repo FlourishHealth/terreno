@@ -130,36 +130,43 @@ export const stripPrivilegedUserFields = (
   return sanitized;
 };
 
-const omitRolesFromObject = (item: unknown): unknown => {
+const omitPrivilegedFieldsFromObject = (item: unknown, allowAdminWrite: boolean): unknown => {
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     return item;
   }
-  if (!("roles" in item)) {
+  const record = item as Record<string, unknown>;
+  const fieldsToDrop = PRIVILEGED_USER_FIELDS.filter(
+    (field) => field in record && !(field === "admin" && allowAdminWrite)
+  );
+  if (fieldsToDrop.length === 0) {
     return item;
   }
-  const next = {...(item as Record<string, unknown>)};
-  delete next.roles;
-  logger.warn("Ignored User roles on a modelRouter write; assign roles through RoleManager");
+  const next = {...record};
+  for (const field of fieldsToDrop) {
+    Reflect.deleteProperty(next, field);
+  }
+  logger.warn(`Ignored privileged User fields on a modelRouter write: ${fieldsToDrop.join(", ")}`);
   return next;
 };
 
 /**
- * When RBAC is enabled, User `roles` must go through RoleManager.assign — not mongoose
- * create/update on `/users` or other modelRouters. AdminApp copies `roles` off the body
- * before this runs.
+ * When RBAC is enabled, authority-bearing User fields must not flow through ordinary mongoose
+ * writes on `/users`, sync, or MCP. AdminApp captures role assignments before this runs and
+ * explicitly marks authorized legacy-admin writes after its additional checks.
  */
 export const omitUserRolesFromWriteBody = (
   modelName: string,
   accessControl: unknown,
-  body: unknown
+  body: unknown,
+  allowAdminWrite = false
 ): unknown => {
   if (modelName !== "User" || !accessControl || body == null) {
     return body;
   }
   if (Array.isArray(body)) {
-    return body.map(omitRolesFromObject);
+    return body.map((item) => omitPrivilegedFieldsFromObject(item, allowAdminWrite));
   }
-  return omitRolesFromObject(body);
+  return omitPrivilegedFieldsFromObject(body, allowAdminWrite);
 };
 
 export const signupUser = async (

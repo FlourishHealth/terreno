@@ -1239,7 +1239,12 @@ const _buildModelRouter = <T>(
       }
     }
 
-    body = omitUserRolesFromWriteBody(model.modelName, options.accessControl, body) as typeof body;
+    body = omitUserRolesFromWriteBody(
+      model.modelName,
+      options.accessControl,
+      body,
+      (req as Request & {terrenoAllowUserAdminWrite?: boolean}).terrenoAllowUserAdminWrite === true
+    ) as typeof body;
 
     if (options.access && options.accessControl && body && typeof body === "object") {
       await validateAccessWriteBody({

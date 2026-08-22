@@ -46,3 +46,6 @@ category: Changed
 - Self-service signup and `PATCH /auth/me` strip `organizationIds` alongside `admin` and `roles`,
   preventing callers from assigning themselves tenant membership. Administrative organization
   membership changes must use a privileged server-side path.
+- Ordinary RBAC-enabled User modelRouter, sync, and MCP writes strip `admin`, `roles`, and
+  `organizationIds`. AdminApp marks legacy `admin` writes only after its `assignRoles`,
+  `manageRoles`, and target-privilege checks succeed.

@@ -247,7 +247,9 @@ export const executeCreate = async <T>({
   cleanedBody = omitUserRolesFromWriteBody(
     model.modelName,
     options.accessControl,
-    cleanedBody
+    cleanedBody,
+    (request as express.Request & {terrenoAllowUserAdminWrite?: boolean})
+      .terrenoAllowUserAdminWrite === true
   ) as typeof cleanedBody;
   if (cleanedBody === undefined) {
     throw new BadRequestError({
@@ -428,7 +430,9 @@ export const executeUpdate = async <T>({
   cleanedBody = omitUserRolesFromWriteBody(
     model.modelName,
     options.accessControl,
-    cleanedBody
+    cleanedBody,
+    (request as express.Request & {terrenoAllowUserAdminWrite?: boolean})
+      .terrenoAllowUserAdminWrite === true
   ) as typeof cleanedBody;
 
   await validateAccessWritePayload({

@@ -1379,6 +1379,22 @@ export class AdminApp {
         return Boolean((existing as {admin?: boolean} | null)?.admin);
       };
 
+      const markAuthorizedUserAdminWrite = (
+        body: Record<string, unknown>,
+        request: express.Request
+      ): void => {
+        if (
+          config.model.modelName !== "User" ||
+          !this.options.accessControl ||
+          !("admin" in body)
+        ) {
+          return;
+        }
+        (
+          request as express.Request & {terrenoAllowUserAdminWrite?: boolean}
+        ).terrenoAllowUserAdminWrite = true;
+      };
+
       // noExplicitAny: matches the Model<any> from AdminModelConfig above.
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
@@ -1407,6 +1423,7 @@ export class AdminApp {
           const record = body as Record<string, unknown>;
           takePendingUserRoles(record, req);
           await assertCanWriteUserAdminFlag(record, req);
+          markAuthorizedUserAdminWrite(record, req);
           return stripProtectedFromBody(body) as typeof body;
         },
         preUpdate: async (body, req) => {
@@ -1416,6 +1433,7 @@ export class AdminApp {
           const record = body as Record<string, unknown>;
           takePendingUserRoles(record, req);
           await assertCanWriteUserAdminFlag(record, req, await currentUserAdminFlag(req));
+          markAuthorizedUserAdminWrite(record, req);
           return stripProtectedFromBody(body) as typeof body;
         },
         queryFields: buildAdminModelQueryFields({
