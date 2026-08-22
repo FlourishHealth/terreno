@@ -570,12 +570,12 @@ mock.module("@react-native-async-storage/async-storage", () => ({
   setItem: mock(() => Promise.resolve()),
 }));
 
-// Mock react-native-portalize. The real `Host` wraps children in an extra View
+// Mock the portal host. The real `Host` wraps children in an extra View
 // whose presence makes snapshots brittle, and individual tests already mock
 // this to render inline; hoisting the mock to setup keeps test ordering from
 // leaking different shapes into other test files. Shape matches the per-file
 // mock used by Tooltip.test.tsx so the two don't disagree.
-mock.module("react-native-portalize", () => ({
+mock.module("./PortalHost", () => ({
   Host: ({children}: MockComponentProps) =>
     React.createElement("View", {testID: "portal-host"}, children),
   Portal: ({children}: MockComponentProps) =>

@@ -349,9 +349,14 @@ it was a native button and Space used to work.
 #### Baselining console warnings
 
 The demo app emits pre-existing React-Native-Web deprecations on essentially every page
-(`"shadow*" style props are deprecated`, `props.pointerEvents is deprecated`). Before blaming your
-component, load an unrelated component page (e.g. `/demo/IconButton`) and diff the console output.
-Only warnings that appear on your page and not the baseline are attributable to your change.
+(`props.pointerEvents is deprecated`). Before blaming your component, load an unrelated component
+page (e.g. `/demo/IconButton`) and diff the console output. Only warnings that appear on your page
+and not the baseline are attributable to your change.
+
+The `"shadow*" style props are deprecated. Use "boxShadow".` warning is fixed — `@terreno/ui` uses
+`boxShadow` (see `createBoxShadow` in `ui/src/Utilities.tsx`) and `react-native-modalize` /
+`react-native-actions-sheet` are patched in `patches/`. If it reappears, a new `shadow*` style prop
+was introduced; do not re-add it to the baseline.
 
 ### `admin-frontend` and example app UI changes
 

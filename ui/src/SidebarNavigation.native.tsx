@@ -391,12 +391,12 @@ const SidebarHeader: FC<{onOpen: () => void}> = ({onOpen}) => {
         </View>
         {Boolean(title) && (
           <View
-            pointerEvents="none"
             style={{
               alignItems: "center",
               bottom: 0,
               justifyContent: "center",
               left: 0,
+              pointerEvents: "none",
               position: "absolute",
               right: 0,
               top: 0,

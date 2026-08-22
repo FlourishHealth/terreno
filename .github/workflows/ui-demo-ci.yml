@@ -1,7 +1,12 @@
 name: UI Demo CI
 
 on:
+  pull_request:
+    paths:
+      - 'demo/**'
   push:
+    branches:
+      - master
     paths:
       - 'demo/**'
 

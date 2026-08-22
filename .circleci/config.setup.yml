@@ -128,6 +128,7 @@ workflows:
             api-health/src/.* run-e2e true
             feature-flags/src/.* run-e2e true
             feature-flags/src/.* run-admin-spa-integration true
+            syncdb/.* run-e2e true
 
   # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
   # Continuation uses a differently named parameter so CircleCI does not treat
