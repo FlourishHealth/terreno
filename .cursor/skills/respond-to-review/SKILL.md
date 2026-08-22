@@ -153,13 +153,13 @@ separate reply section.
 
 ## Step 4: Confirmation (only if there are open questions)
 
-**If the plan has any items under 💬 Questions/Clarifications Needed:**
-Ask: **"Need your input on the questions above. Anything else to change before I implement?"**
+**If the plan has any `Decision` rows:**
+Ask: **"Need your input on the decisions above. Anything else to change before I implement?"**
 - Wait for explicit approval before making any changes
 - Incorporate any feedback
 - Re-present plan if significant changes requested
 
-**If there are no open questions:** skip confirmation entirely. Proceed directly to Step
+**If there are no `Decision` rows:** skip confirmation entirely. Proceed directly to Step
 5 and return the verified diff to Taste. Do not ask for redundant plan approval.
 
 ## Step 5: Make the Fix
@@ -214,7 +214,8 @@ For a required decision:
 </details>
 ```
 
-For each thread that was fixed or addressed (from the "Must Fix" and "Should Address" categories in the plan):
+For each thread that was fixed or addressed (`Blocker` rows, and any `Decision` row
+the human already answered in code):
 ```bash
 gh api graphql -f query='
   mutation($threadId: ID!) {
@@ -225,8 +226,8 @@ gh api graphql -f query='
 ```
 
 Do NOT resolve threads that were:
-- Skipped (marked as N/A or out of scope)
-- Questions/clarifications that were not answered by code changes
+- `Skip` (N/A or out of scope)
+- `Decision` rows still waiting on a human answer
 - Threads where the user decided not to take action
 
 Report which threads were resolved and which were left open.

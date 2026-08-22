@@ -24,7 +24,6 @@
         "generate-sdk",
         "building-terreno-apps",
         "backend-test-env",
-        "native-data-fetching",
         "ai-prompt-governance"
       ]
     },
@@ -82,6 +81,7 @@
         "expo-observe",
         "expo-tailwind-setup",
         "expo-ui",
+        "native-data-fetching",
         "upgrading-expo",
         "use-dom"
       ]
