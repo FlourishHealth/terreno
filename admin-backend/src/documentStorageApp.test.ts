@@ -78,6 +78,16 @@ const buildApp = (options: DocumentStorageOptions): express.Application => {
   return app;
 };
 
+describe("DocumentStorageApp admin contribution", () => {
+  it("contributes the documents custom screen", () => {
+    const contribution = new DocumentStorageApp({bucketName: "test-bucket"}).adminContribution();
+
+    expect(contribution).toEqual({
+      customScreens: [{displayName: "Documents", icon: "folder", name: "documents"}],
+    });
+  });
+});
+
 describe("DocumentStorageApp", () => {
   let app: express.Application;
   let adminAgent: TestAgent;
@@ -314,6 +324,7 @@ describe("DocumentStorageApp", () => {
 
       const res = await adminAgent.get("/documents/download/boom.pdf").expect(500);
       expect(res.body.title).toInclude("Failed to access file");
+      expect(JSON.stringify(res.body)).not.toInclude("broken");
     });
 
     it("logs and swallows stream errors once headers have been flushed", async () => {

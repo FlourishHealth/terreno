@@ -153,6 +153,44 @@ describe("createSocketTransport", () => {
     expect(server.subscribes).toEqual([{collections: ["todos"]}, {collections: ["notes"]}]);
   });
 
+  it("reports sync:subscribed confirmations to onSubscribed listeners", async () => {
+    server.io.removeAllListeners("connection");
+    server.io.on("connection", (socket) => {
+      socket.on("sync:subscribe", (payload: {collections: string[]}) => {
+        for (const collection of payload.collections) {
+          socket.emit("sync:subscribed", {collection, streams: [`${collection}|owner:u1`]});
+        }
+      });
+    });
+    const subscriber = makeTransport();
+    const confirmations: {collection: string; streams: string[]}[] = [];
+    subscriber.onSubscribed?.((subscribed) => confirmations.push(subscribed));
+    subscriber.subscribe(["todos"]);
+    await subscriber.connect();
+    await waitUntil(() => confirmations.length === 1);
+    expect(confirmations).toEqual([{collection: "todos", streams: ["todos|owner:u1"]}]);
+  });
+
+  it("ignores malformed sync:subscribed payloads", async () => {
+    server.io.removeAllListeners("connection");
+    server.io.on("connection", (socket) => {
+      socket.on("sync:subscribe", () => {
+        socket.emit("sync:subscribed", {collection: "todos"});
+        socket.emit("sync:subscribed", {streams: ["todos|owner:u1"]});
+        socket.emit("sync:subscribed", {collection: "todos", streams: [1, "todos|owner:u1"]});
+      });
+    });
+    const subscriber = makeTransport();
+    const confirmations: {collection: string; streams: string[]}[] = [];
+    subscriber.onSubscribed?.((subscribed) => confirmations.push(subscribed));
+    subscriber.subscribe(["todos"]);
+    await subscriber.connect();
+    await waitUntil(() => confirmations.length === 1);
+    // Only the third payload is well-formed enough to deliver, with the non-string
+    // stream dropped rather than passed through to the store.
+    expect(confirmations).toEqual([{collection: "todos", streams: ["todos|owner:u1"]}]);
+  });
+
   it("resolves sendMutation from an emitted sync:ack", async () => {
     server.mutateHandler = (request, socket) => {
       const ack: SyncAck = {id: request.id ?? "x", mutationId: request.mutationId, seq: 3};

@@ -1,4 +1,5 @@
 export * from "./actions";
+export * from "./adminTypes";
 export * from "./api";
 export * from "./auth";
 export * from "./betterAuth";
@@ -14,6 +15,25 @@ export * from "./expressServer";
 export * from "./githubAuth";
 export * from "./httpClient";
 export * from "./logger";
+export {extractUserFromHeaders, type MCPAuthContext} from "./mcp/auth";
+export type {MCPCustomTool} from "./mcp/registry";
+export {clearMCPRegistry, getMCPRegistry, registerMCPModel, registerMCPTool} from "./mcp/registry";
+export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";
+export {type MCPServerOptions, mountMCPServer} from "./mcp/server";
+export {
+  generateAllTools,
+  generateToolsForEntry,
+  getAllMCPTools,
+  type MCPToolDefinition,
+} from "./mcp/toolGenerator";
+export type {
+  MCPConfig,
+  MCPMethod,
+  MCPRegistryEntry,
+  MCPRequest,
+  MCPToolArgs,
+  MCPToolResult,
+} from "./mcp/types";
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
@@ -96,6 +116,7 @@ export type {
 } from "./realtime/types";
 export * from "./requestContext";
 export * from "./scriptRunner";
+export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
 export * from "./sync/executors";
 export * from "./sync/models";

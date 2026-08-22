@@ -15,6 +15,8 @@ import {
   type InstanceActionConfig,
   registerActionRoutes,
 } from "./actions";
+import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
+import type {AdminConfig} from "./adminTypes";
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
@@ -27,6 +29,8 @@ import {
   passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
+import {registerMCPModel} from "./mcp/registry";
+import type {MCPConfig} from "./mcp/types";
 import {
   createOpenApiMiddleware,
   deleteOpenApiMiddleware,
@@ -349,6 +353,25 @@ export interface ModelRouterOptions<T> {
    */
   validation?: boolean | ModelRouterValidationOptions;
   /**
+   * MCP (Model Context Protocol) configuration. When provided, registers this model's
+   * CRUD operations as MCP tools that can be called by LLMs.
+   *
+   * Tools are auto-generated based on the methods specified (default: ['list', 'read']).
+   * Auth, permissions, population, and filtering all work the same as REST.
+   *
+   * @example
+   * ```typescript
+   * modelRouter("/todos", Todo, {
+   *   mcp: {
+   *     methods: ['list', 'read', 'create'],
+   *     excludeFields: ['internalNote'],
+   *     maxLimit: 25,
+   *   },
+   * });
+   * ```
+   */
+  mcp?: MCPConfig;
+  /**
    * Enable real-time sync for this model via WebSocket events.
    * When configured, CRUD operations will emit events to connected clients
    * through the RealtimeApp plugin's change stream watcher.
@@ -365,6 +388,11 @@ export interface ModelRouterOptions<T> {
    * Only works with the three-argument form: modelRouter('/path', Model, options).
    */
   sync?: SyncConfig;
+  /**
+   * Optional admin panel metadata for this model. Consumed by {@link AdminApp} when aggregating
+   * `/admin/config` and for server-side field scrubbing / realtime change events.
+   */
+  admin?: AdminConfig;
 }
 
 /**
@@ -574,8 +602,16 @@ export interface ModelRouterRegistration {
   path: string;
   /** The Express router containing CRUD endpoints */
   router: express.Router;
-  /** @internal Rebuilds the router with the openApi instance injected into options */
-  _buildWithOpenApi: (openApi: OpenApiMiddleware) => express.Router;
+  /** The Mongoose model this router serves */
+  // noExplicitAny: registration stores arbitrary document models
+  // biome-ignore lint/suspicious/noExplicitAny: registration stores arbitrary document models
+  model: ModelLike<any>;
+  /** Options passed to modelRouter (includes optional admin config) */
+  // noExplicitAny: registration stores arbitrary document models
+  // biome-ignore lint/suspicious/noExplicitAny: registration stores arbitrary document models
+  options: ModelRouterOptions<any>;
+  /** @internal Rebuilds the router with OpenAPI and TerrenoApp context injected */
+  _buildWithContext: (context: ModelRouterBuildContext) => express.Router;
 }
 
 /**
@@ -616,7 +652,12 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
-  const router = _buildModelRouter(model, options);
+  const router = _buildModelRouter(model, options, path);
+
+  // Register MCP tools if configured
+  if (options.mcp) {
+    registerMCPModel(model, options.mcp, options);
+  }
 
   if (path !== undefined) {
     // Register for real-time sync if configured
@@ -635,8 +676,14 @@ export function modelRouter<T>(
     }
     return {
       __type: "modelRouter",
-      _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
-        _buildModelRouter(model, {...options, openApi}),
+      _buildWithContext: (context: ModelRouterBuildContext) =>
+        _buildModelRouter(
+          model,
+          enrichModelRouterOptions(model, {...options, openApi: context.openApi}, context),
+          path
+        ),
+      model,
+      options,
       path,
       router,
     };
@@ -660,7 +707,8 @@ export function modelRouter<T>(
 
 const _buildModelRouter = <T>(
   model: ModelLike<T>,
-  options: ModelRouterOptions<T>
+  options: ModelRouterOptions<T>,
+  routePath?: string
 ): express.Router => {
   const router = express.Router();
 
@@ -713,7 +761,7 @@ const _buildModelRouter = <T>(
     [
       authenticateMiddleware(options.allowAnonymous),
       permissionMiddleware(model, options),
-      listOpenApiMiddleware(model, options),
+      listOpenApiMiddleware(model, options, routePath),
       queryValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
@@ -1332,3 +1380,4 @@ export const asyncHandler = (fn: AsyncHandlerFn, options?: AsyncHandlerOptions) 
 // For backwards compatibility with the old names.
 export const gooseRestRouter = modelRouter;
 export type GooseRESTOptions<T> = ModelRouterOptions<T>;
+export type {ModelRouterBuildContext} from "./adminModelRouter";

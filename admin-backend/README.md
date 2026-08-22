@@ -1,5 +1,8 @@
 # @terreno/admin-backend
 
+See [Add a model to the admin](../docs/how-to/admin-add-model.md) for the recommended
+`modelRouter({admin: ...})` setup.
+
 Admin panel backend plugin for `@terreno/api` that auto-generates admin CRUD endpoints and metadata for Mongoose models.
 
 ## Install

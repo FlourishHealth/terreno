@@ -498,6 +498,92 @@ describe("createSyncDb", () => {
     });
   });
 
+  describe("subscribe confirmation catch-up", () => {
+    it("pages a confirmed stream, catching a write the startup snapshot missed", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      // The startup reconcile paged the stream to an empty head; the server accepted the
+      // room join only afterwards, and a write landed in between.
+      expect(client.store.getEntity({collection: "todos", id: "late"})).toBeUndefined();
+      harness.http.state.pages[DEFAULT_STREAM] = {
+        cursor: 7,
+        entities: [{data: {title: "written during the join"}, deleted: false, id: "late", seq: 7}],
+        frontierSeq: 7,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: DEFAULT_STREAM,
+      };
+
+      harness.transport.confirmSubscribed({collection: "todos", streams: [DEFAULT_STREAM]});
+      await flush();
+
+      expect(client.store.getEntity({collection: "todos", id: "late"})?.data).toEqual({
+        title: "written during the join",
+      });
+      await client.stop();
+    });
+
+    it("records a confirmed stream the client has not seen before", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+
+      harness.transport.confirmSubscribed({collection: "todos", streams: ["todos|owner:new"]});
+      await flush();
+
+      expect(client.store.getKnownStreams()).toContain("todos|owner:new");
+      await client.stop();
+    });
+
+    it("ignores confirmations for unconfigured collections and empty stream lists", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      const baseline = harness.http.state.fetchCount;
+
+      harness.transport.confirmSubscribed({collection: "projects", streams: ["projects|all"]});
+      harness.transport.confirmSubscribed({collection: "todos", streams: []});
+      await flush();
+
+      expect(harness.http.state.fetchCount).toBe(baseline);
+      expect(client.store.getKnownStreams()).not.toContain("projects|all");
+      await client.stop();
+    });
+
+    it("does not page while simulated-offline", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      client.goOffline();
+      const baseline = harness.http.state.fetchCount;
+
+      harness.transport.confirmSubscribed({collection: "todos", streams: [DEFAULT_STREAM]});
+      await flush();
+
+      expect(harness.http.state.fetchCount).toBe(baseline);
+      await client.stop();
+    });
+
+    it("stops listening for confirmations after stop()", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      await client.stop();
+      const baseline = harness.http.state.fetchCount;
+
+      harness.transport.confirmSubscribed({collection: "todos", streams: [DEFAULT_STREAM]});
+      await flush();
+
+      expect(harness.http.state.fetchCount).toBe(baseline);
+    });
+  });
+
   describe("stream discovery, join & leave (C2)", () => {
     it("join: a newly-returned stream is bootstrapped from 0 and recorded as known", async () => {
       const harness = makeHarness();

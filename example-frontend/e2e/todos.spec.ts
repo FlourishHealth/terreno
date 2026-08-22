@@ -4,6 +4,7 @@ import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
+  clickTodoControl,
   createTodoViaUi,
   openSyncTodos,
   todoItemByTitle,
@@ -38,7 +39,7 @@ test.describe("Todos", () => {
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todo-item-unknown";
     const itemId = todoTestId.replace("todo-item-", "");
 
-    await page.getByTestId(`todo-toggle-${itemId}-clickable`).click();
+    await clickTodoControl(page.getByTestId(`todo-toggle-${itemId}-clickable`));
     await expect(page.getByTestId(`todo-item-${itemId}`)).toHaveAttribute(
       "aria-label",
       "completed todo"
@@ -54,7 +55,7 @@ test.describe("Todos", () => {
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todo-item-deleted";
     const itemId = todoTestId.replace("todo-item-", "");
 
-    await page.getByTestId(`todo-delete-${itemId}`).click();
+    await clickTodoControl(page.getByTestId(`todo-delete-${itemId}`));
     await expect(page.getByTestId(todoTestId)).toBeHidden({timeout: CONVERGE_TIMEOUT});
     await page.getByTestId("todos-empty-state").waitFor({state: "visible"});
   });
@@ -66,7 +67,7 @@ test.describe("Todos", () => {
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todo-item-unknown";
     const itemId = todoTestId.replace("todo-item-", "");
 
-    await page.getByTestId(`todo-toggle-${itemId}-clickable`).click();
+    await clickTodoControl(page.getByTestId(`todo-toggle-${itemId}-clickable`));
     await expect(page.getByTestId("todos-completed-section")).toBeVisible();
     await expect(page.getByTestId(`todo-item-${itemId}`)).toHaveAttribute(
       "aria-label",

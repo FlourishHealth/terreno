@@ -11,15 +11,21 @@ import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
+  clickTodoControl,
   goSyncOffline,
   goSyncOnline,
   installOfflineControl,
   openSyncTodos,
+  SYNCDB_TEST_TIMEOUT,
   waitForSyncTodosScreen,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, createTodoAs, listTodosAs, patchTodoAs} from "./helpers/todosApi";
 
 const USER = SYNCDB_CONFLICTS_USER;
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
   let target: {_id: string; title: string};
@@ -43,7 +49,7 @@ test.describe("SyncDB conflict resolution (AC-10, AC-11, AC-12)", () => {
    */
   const produceConflict = async (page: Page): Promise<void> => {
     await goSyncOffline(page);
-    await page.getByTestId(`todo-toggle-${target._id}-clickable`).click();
+    await clickTodoControl(page.getByTestId(`todo-toggle-${target._id}-clickable`));
     await expect(page.getByTestId("sync-queued-count")).toContainText("1");
 
     // "Another client" edits the same todo while we're offline.

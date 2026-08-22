@@ -1,6 +1,8 @@
 url: http://localhost:8082/login
 ---
-# Login with existing test user
+# Login as the seeded admin. Non-admin users are wrapped in ConsentNavigator
+# (spinner, then pending forms) so `todos-screen` never appears in this flow.
+# SyncDevPanel is collapsed by default so the create-todo row stays on-screen.
 # Prerequisites: backend running on port 4000, test data seeded, frontend running on port 8082
 
 - launchApp

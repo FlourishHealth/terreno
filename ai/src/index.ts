@@ -1,5 +1,7 @@
 export type {FlexibleSchema, JSONValue} from "ai";
 export {jsonSchema, Output} from "ai";
+export type {AIAdminAppOptions} from "./aiAdminApp";
+export {AIAdminApp} from "./aiAdminApp";
 export type {AiAppOptions} from "./aiApp";
 export {AiApp} from "./aiApp";
 export {LangfuseApp} from "./langfuseApp";
@@ -44,6 +46,7 @@ export {
   listGeminiApiModels,
   normalizeGeminiModelId,
 } from "./service/gemini";
+export {getMCPTools} from "./service/getMCPTools";
 export {MCPService} from "./service/mcpService";
 export type {ParseFailure, ParseResult, ParseSuccess} from "./service/parseAiJson";
 export {

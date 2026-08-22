@@ -58,12 +58,25 @@ await getCommsService().sendSms({
 });
 ```
 
-`sendPushToUser()` resolves active device tokens and deactivates tokens only when a provider marks
-a failure as permanent. `startVerification()` and `checkVerification()` delegate to the configured
-verification provider. `startVerification()` accepts `channel: "sms"` or `channel: "email"`;
-`checkVerification()` verifies the code against the same phone number or email destination and may
-return an `error` reason when `valid` is false. Start attempts store the verification channel in
-delivery-log metadata while recipient values remain redacted.
+`sendPushToUser()` resolves active device tokens and deactivates tokens when
+`errorClass` is `"permanent"` or `isPermanentFailure` is `true`. Provider throws become
+`errorClass: "transient"` with `errorCode: "provider-throw"` and never reject the
+`CommsService` promise. Transient failures retry once (`onRetry` with
+`context.attempt === 2`); push retries only the failed tokens. `checkVerification()` does
+not retry.
+
+`beforeSend` may mutate the message or cancel (`status: "cancelled"`, no provider call).
+A throwing `beforeSend` is logged and treated as no-op (send continues). Adapters later
+call `recordDeliveryEvent()` / `recordOptOut()` to update the log and fire
+`onDeliveryEvent` / `onOptOut`.
+
+Each send stores one `CommsMessage` row with `attempts[]`. Rendered payloads are retained
+for `retainPayloadDays` (default 30, `0` disables) after `redactPayload`. Mail payloads
+keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
+`dynamicTemplateData`. SMS payloads keep `to` and `body`. Push payloads omit tokens.
+Verification start stores `{channel}` only; verification checks store no payload.
+`recordDeliveryEvent` writes `status`, `errorCode`, and `errorClass` onto the matching
+row (`opened` does not change status). Expired payloads are unset, not deleted.
 
 ## Provider contracts
 
@@ -124,15 +137,20 @@ row.
 ```typescript
 interface CommsAppOptions {
   basePath?: string; // default: "/comms"
+  beforeSend?: (context: CommsHookContext) =>
+    Promise<{cancel?: boolean; message?: CommsHookMessage} | undefined>;
   defaultFrom?: string;
   logMessages?: boolean; // default: true
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
   onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onOptOut?: (event: OptOutEvent) => Promise<void>;
   onRetry?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   push?: PushProvider;
+  redactPayload?: (context: CommsHookContext, payload: unknown) => unknown;
   redactRecipients?: boolean; // default: true
+  retainPayloadDays?: number; // default: 30; 0 stores no payload
   sms?: SmsProvider;
   verification?: VerificationProvider;
 }
@@ -144,10 +162,25 @@ When a channel is unconfigured:
 - production throws a `501` `APIError` titled `Comms channel not configured`.
 
 Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `[redacted]` unless
-`redactRecipients` is explicitly `false`.
+`redactRecipients` is explicitly `false`. Rendered payloads are retained for `retainPayloadDays`
+(default 30) after `redactPayload`; expired payloads are unset without deleting the log row.
+Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
+`dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
+only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
+and `errorClass` onto the matching row (`opened` does not change status).
 
-`onSend` and `onError` fire after every channel outcome (mail, SMS, push, and verification).
-`onRetry` currently runs only for transient mail failures before the one automatic retry.
+`beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
+`onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
+`errorClass` is `"transient"` (`context.attempt === 2`; shipped signature is `(context, result)`).
+Throwing hooks are logged and never change the send outcome. Exception text stays in logs;
+`metadata.hookErrors` records only `hook-threw` per hook name. Adapters should call
+`recordDeliveryEvent()` and `recordOptOut()` rather than invoking those hooks directly.
+
+Provider throws become `{accepted: false, errorClass: "transient", errorCode: "provider-throw"}`.
+Permanent and config failures are not retried. Push retries re-send only the tokens whose first
+result was transient; tokens are deactivated when `errorClass` is `"permanent"` or
+`isPermanentFailure` is true. Each push token gets its own hook context (`attempt`, `isRetry`,
+`messageId`).
 
 ## Routes
 

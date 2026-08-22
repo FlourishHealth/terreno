@@ -5,6 +5,19 @@ import {DateTime} from "luxon";
 import {AIRequest} from "../models/aiRequest";
 import type {AiRequestsExplorerRouteOptions} from "../types";
 
+const parseRequestTypes = (raw: unknown): string[] => {
+  if (Array.isArray(raw)) {
+    return raw.flatMap((item) => parseRequestTypes(item));
+  }
+  if (typeof raw !== "string") {
+    return [];
+  }
+  return raw
+    .split(",")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+};
+
 export const addAiRequestsExplorerRoutes = (
   router: express.Router,
   options?: AiRequestsExplorerRouteOptions
@@ -48,8 +61,11 @@ export const addAiRequestsExplorerRoutes = (
         deleted: {$ne: true},
       };
 
-      if (req.query.requestType) {
-        match.requestType = req.query.requestType;
+      const requestTypes = parseRequestTypes(req.query.requestType);
+      if (requestTypes.length === 1) {
+        match.requestType = requestTypes[0];
+      } else if (requestTypes.length > 1) {
+        match.requestType = {$in: requestTypes};
       }
       if (req.query.model) {
         match.aiModel = req.query.model;

@@ -19,12 +19,17 @@ import {
   readSyncDbBlobLength,
   restoreNetwork,
   SYNC_DB_NAME,
+  SYNCDB_TEST_TIMEOUT,
   todoItemByTitle,
   waitForSyncTodosScreen,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, createTodoAs, listTodosAs} from "./helpers/todosApi";
 
 const USER = SYNCDB_STORAGE_USER;
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB encryption at rest (AC-14)", () => {
   test.beforeEach(async ({page, consoleGuard}) => {

@@ -10,16 +10,22 @@ import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
+  clickTodoControl,
   goSyncOffline,
   goSyncOnline,
   installOfflineControl,
   openSyncTodos,
+  SYNCDB_TEST_TIMEOUT,
   todoItemByTitle,
   waitForSyncTodosScreen,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, createTodoAs, listTodosAs} from "./helpers/todosApi";
 
 const USER = SYNCDB_OFFLINE_USER;
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
   test.beforeEach(async ({page, consoleGuard}) => {
@@ -79,7 +85,7 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
     await goSyncOffline(page);
 
     // Toggle completion — the item is marked completed immediately.
-    await page.getByTestId(`todo-toggle-${toggled._id}-clickable`).click();
+    await clickTodoControl(page.getByTestId(`todo-toggle-${toggled._id}-clickable`));
     await expect(page.getByTestId("todos-completed-section")).toBeVisible();
     await expect(page.getByTestId(`todo-item-${toggled._id}`)).toHaveAttribute(
       "aria-label",
@@ -87,7 +93,7 @@ test.describe("SyncDB offline mutations (AC-4, AC-6)", () => {
     );
 
     // Delete — the item disappears immediately.
-    await page.getByTestId(`todo-delete-${doomed._id}`).click();
+    await clickTodoControl(page.getByTestId(`todo-delete-${doomed._id}`));
     await expect(page.getByTestId(`todo-item-${doomed._id}`)).toBeHidden();
 
     await expect(page.getByTestId("sync-queued-count")).toContainText("2");

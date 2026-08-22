@@ -15,11 +15,12 @@ for *the concrete steps*. External trackers (a GitHub roadmap issue, a Linear is
 discussion thread) link **to** these files — they never replace them. See
 [`docs/tasks/README.md`](../tasks/README.md) for the task-file shape.
 
-## The live index
+## Status lives on each IP
 
-[`PLAN_INDEX.md`](PLAN_INDEX.md) is the authoritative list of active, completed, and
-deferred plans — read it, not this page, to see what is current. This README explains the
-process; `PLAN_INDEX.md` tracks the state.
+There is no shared `PLAN_INDEX.md`. That file caused merge conflicts the same way a
+shared changelog Unreleased section did. Status is the `**Status:**` line in each
+`docs/implementationPlans/<slug>.md` (and in `archive/` after close). List those
+directories to see what exists; this README explains the process.
 
 ## When to write an IP
 
@@ -54,15 +55,14 @@ links. See [`docs/explanation/roadmap-process.md`](../explanation/roadmap-proces
 the full IP ↔ roadmap lifecycle.
 
 In repos with **no** roadmap board (Flourish, most consumer apps), the pipeline is
-identical minus that handoff: the IP + task list plus `PLAN_INDEX.md` are the source of
-truth, and Linear tracks execution via the IP header `Linear:` link.
+identical minus that handoff: the IP + task list are the source of truth, and Linear
+tracks execution via the IP header `Linear:` link.
 
 ## Lifecycle
 
-1. **Draft** → **Approved** — IP written and reviewed (status lives in the IP header and
-   `PLAN_INDEX.md`).
+1. **Draft** → **Approved** — IP written and reviewed (status lives in the IP header).
 2. **In progress** → **Complete** — implemented, verified, merged.
-3. **Archive** — completed IPs move to `docs/implementationPlans/archive/` and the index is updated.
+3. **Archive** — completed IPs move to `docs/implementationPlans/archive/`.
 
 Plans that are fully implemented and now describe shipped architecture should be migrated
 to `docs/explanation/` as reference documentation.

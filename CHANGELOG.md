@@ -9,31 +9,13 @@ All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/) as one
+file per feature. `bun run changelog:assemble <version>` folds those files into a
+dated section below when cutting a release.
+
 ## [Unreleased]
 
-### Added
-
-- `Popover` in `@terreno/ui` for previewing a document with loading, loaded, and error states,
-  an open action, and optional thumbs up/down feedback
-- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
-  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
-- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
-  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
-  (`docs/explanation/local-first-data.md`)
-- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
-  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
-- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
-  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
-  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
-  `onSend`).
-
-### Deprecated
-
-- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
-  through the current major line; will not ship in the next major. Migrate collection CRUD to
-  [`@terreno/syncdb`](docs/reference/syncdb.md) using
-  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
-  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
 ## [57.0.0] - 2026-08-20
 
