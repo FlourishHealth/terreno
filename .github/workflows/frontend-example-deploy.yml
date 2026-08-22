@@ -149,9 +149,16 @@ jobs:
 
       - name: Get branch alias
         id: branch
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
-          BRANCH="${{ github.ref_name }}"
-          SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-' | tr -cd '[:alnum:]-' | cut -c1-30)
+          # Netlify serves an alias as a hostname label (alias--site.netlify.app), so it
+          # must be lowercase with no repeated or trailing hyphens.
+          SAFE_BRANCH=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | tr '/' '-' | tr -cd '[:alnum:]-' | tr -s '-' | cut -c1-30 | sed 's/-*$//')
+          if [ -z "$SAFE_BRANCH" ]; then
+            echo "::error::Branch name '$BRANCH' produced an empty Netlify alias"
+            exit 1
+          fi
           echo "alias=branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "env=example-frontend-preview-branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
 
