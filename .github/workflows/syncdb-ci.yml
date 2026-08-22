@@ -50,8 +50,8 @@ jobs:
         run: bun run compile
         working-directory: syncdb
 
-      - name: Test
-        run: bun run test
+      - name: Test with coverage
+        run: bun run ../scripts/check-coverage.ts --threshold=90
         working-directory: syncdb
         env:
           CI: true

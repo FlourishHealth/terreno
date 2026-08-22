@@ -100,6 +100,9 @@ describe("createSocketTransport", () => {
       baseUrl: server.baseUrl,
       batchUnsupportedGraceMs,
       timeoutMs,
+      // Websocket-only: polling→websocket upgrade emits disconnect and
+      // flakes the timeout test on GitHub runners.
+      transports: ["websocket"],
     });
     return transport;
   };
@@ -289,15 +292,11 @@ describe("createSocketTransport", () => {
     server.mutateHandler = () => {
       // Never reply.
     };
-    const sender = makeTransport(100);
+    const sender = makeTransport(50);
     await sender.connect();
-    // Engine.IO upgrades polling → websocket and emits disconnect on the
-    // polling transport. Wait that out so the mutation timeout, not the
-    // upgrade, settles the pending promise (GHA flake).
-    await new Promise((resolve) => setTimeout(resolve, 200));
     await expect(
       sender.sendMutation({collection: "todos", id: "t1", mutationId: "m1", operation: "update"})
-    ).rejects.toThrow("Timed out after 100ms");
+    ).rejects.toThrow("Timed out after 50ms");
   });
 
   it("rejects in-flight mutations when the transport disconnects", async () => {
