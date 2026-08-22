@@ -9,6 +9,8 @@ description: >-
 
 Grow owns portable research, grilling, shaping, approval, and result emission. This
 repo-local skill supplies Terreno's artifact conventions.
+Invoke it explicitly; generated agent formats that cannot encode
+`disable-model-invocation` must still treat it as user-invoked only.
 
 When invoked as `/ip`:
 

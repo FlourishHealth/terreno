@@ -197,3 +197,13 @@ review becomes a shared reference. Neither remains a sixth plugin skill.
 - Repository skills remain local and discoverable/composable.
 - Backend/API, UI, and multi-invocation CI/review scenarios are documented.
 - Canonical sources and rulesync-generated copies validate cleanly.
+
+## Remaining assumptions / weaknesses
+
+- The plugin defines state/results but does not ship a scheduler or durable remote state
+  service; the outer loop must preserve the fallback artifact between machines.
+- Some generated skill formats do not encode Cursor's `disable-model-invocation`
+  frontmatter. Compatibility shims repeat “explicit invocation only” in their portable
+  description/body, but enforcement depends on that agent runtime.
+- Repository skill quality controls how much exact domain knowledge a stage can compose.
+  When no skill exists, agents still infer from instructions/code/tests.

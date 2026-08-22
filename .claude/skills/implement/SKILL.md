@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 Pick (`terreno-2-pick`) owns lifecycle implementation. This shim exists for concrete
 existing `/implement` callers.
+Invoke it explicitly; generated agent formats that cannot encode
+`disable-model-invocation` must still treat it as user-invoked only.
 
 1. Require an approved IP/task and one current unblocked slice.
 2. Load/invoke Pick with the IP, task, execution state, branch/head, prior results, and

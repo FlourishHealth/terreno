@@ -80,9 +80,11 @@ bun run rules:check
 | `terreno-4-pour` | `terreno-4-brew` |
 | `terreno-5-dialin` | `terreno-5-taste` |
 
-No compatibility aliases are retained. The old implementation-Roast name collides
-semantically with the new verification-Roast stage, and repository search found no
-separate maintained alias mechanism. This is a hard-cut major plugin migration.
+No aliases are retained for the five retired plugin command names. The old
+implementation-Roast name collides semantically with the new verification-Roast stage.
+Terreno keeps thin repo-local compatibility routers for existing `/ip`, `/implement`,
+`/submit`, and `/autobot` users; those route to canonical lifecycle stages/outer-loop
+behavior and contain no second implementation.
 
 Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json),
 then invoke a canonical stage such as `/terreno-1-grow`.
