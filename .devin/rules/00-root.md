@@ -30,6 +30,15 @@ escalation. See `plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
 project commands and domain conventions belong there, not in the portable plugin.
 
+## Documentation
+
+Human-facing docs are the architecture source. Before changing code, read the
+explanation and reference pages for the affected area. Update those pages in the
+same slice using the `update-docs` skill. Missing docs for a user-visible or
+architectural change fails the slice. Install the published skill set with
+`npx skills add FlourishHealth/terreno`; regenerate `skills/` with
+`bun run skills:sync`.
+
 ## Development
 
 Uses [Bun](https://bun.sh/) as the package manager.
@@ -110,7 +119,8 @@ The `example-frontend/` and `example-backend/` directories serve as both documen
 
 1. **Add examples** demonstrating new features
 2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`
-3. **Verify integration** by running both examples together
+3. **Update docs** in the same slice (`docs/explanation/`, `docs/reference/`, `docs/how-to/`)
+4. **Verify integration** by running both examples together
 
 ### Running the Full Stack
 

@@ -14,6 +14,13 @@ description: >-
 
 **Related skills:** `generate-sdk` (regenerate hooks after backend changes), `terreno-backend-api` (create backend routes), `building-terreno-apps` (screen integration).
 
+## Documentation
+
+1. Read `docs/reference/syncdb.md`, `docs/how-to/migrate-rtk-to-syncdb.md`, and auth/realtime explanation pages before changing fetch, cache, or session behavior.
+2. Implement against that design.
+3. Update those pages in the same slice with `update-docs`.
+4. Ship without matching docs is a failed slice.
+
 ## References
 
 ```

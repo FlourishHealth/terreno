@@ -3,6 +3,7 @@ import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {
+  validateDocumentationContract,
   validateGithubAttentionContract,
   validateLifecyclePlugin,
   validateStageContent,
@@ -88,5 +89,30 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("forbidden heading ## Summary")));
     assert.isTrue(errors.some((error) => error.includes("default PR comments to silence")));
     assert.isTrue(errors.some((error) => error.includes("behind disclosure")));
+  });
+
+  it("rejects a documentation contract that does not require reading and updating docs", (): void => {
+    const errors = validateDocumentationContract("# Docs\nWrite something later.");
+
+    assert.isTrue(errors.some((error) => error.includes("Always read docs first")));
+    assert.isTrue(errors.some((error) => error.includes("Always update docs")));
+    assert.isTrue(errors.some((error) => error.includes("Diátaxis")));
+  });
+
+  it("rejects a stage that does not load the documentation contract", (): void => {
+    const content = readStage("terreno-2-pick").replace(
+      "../../references/documentation-contract.md",
+      "missing-docs-contract"
+    );
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["recommended_next_stage: roast"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("documentation contract")));
   });
 });

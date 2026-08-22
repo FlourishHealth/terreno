@@ -1,62 +1,69 @@
 ---
 name: update-docs
 description: >-
-  Keep Terreno docs in sync when public APIs change — regenerate component
-  pages, update reference/how-to docs, and run rulesync before opening a PR.
-  Lifecycle composition: Pick when behavior/docs change together; Brew for the
-  final docs gate.
+  Keep Terreno docs in sync whenever behavior, public API, architecture, or
+  operator workflow changes. Read architecture docs first; write Diátaxis pages
+  in the same slice; regenerate generated docs. Lifecycle composition: Pick when
+  behavior and docs change together; Roast proves docs; Brew is the final docs
+  gate.
 ---
 # Update Docs
 
-Use when a change touches user-facing APIs, components, routes, configuration, or environment variables.
+Use whenever behavior, public API, architecture, or operator workflow changes. Docs are
+the architecture source. Code implements them.
 
 ## When to run
 
-Run before opening a PR when the diff includes any of:
-
-- New or changed exports in `api/`, `ui/`, `rtk/`, `ai/`, `comms/`, `feature-flags/`, or `admin-*`
-- New UI components or changed prop types in `@terreno/ui`
-- New `modelRouter` / `TerrenoApp` options, permissions, or custom routes
-- New environment variables or setup steps
-
-Skip for internal refactors, test-only changes, and dependency bumps with no usage change.
+Always run in the same slice as the change. Skip only a pure internal refactor that does
+not change APIs, UI, architecture, data flow, env/config, or operator steps. Record that
+skip. Missing docs for a user-visible or architectural change is a failed slice.
 
 ## Workflow
 
-1. **Map changes to docs**
-   - UI component → generated page under `docs/reference/components/` (via `website` generate script) + demo story in `demo/stories/`
-   - Package export → `docs/reference/<package>.md` and relevant how-to guides
-   - Auth / deployment → `docs/how-to/` or `docs/reference/environment-variables.md`
+1. **Read the current architecture**
+   - Open explanation and reference docs for the affected area before editing code or docs.
+   - If docs and code disagree, resolve both in this slice.
 
-2. **Regenerate generated docs**
+2. **Map the change to Diátaxis**
+
+   | Change | Page |
+   | --- | --- |
+   | First-run path | `docs/tutorials/` |
+   | Operator task | `docs/how-to/` |
+   | API, props, env, commands | `docs/reference/` |
+   | Why the system is shaped this way | `docs/explanation/` |
+   | UI component | generated `docs/reference/components/` plus a demo story |
+
+3. **Write the page**
+   - Update the existing section in place.
+   - Lead with the next action or canonical fact.
+   - Use the page's standard headings. Prefer tables.
+   - One minimal current example. No implementation chronology.
+   - Never hand-edit generated output.
+
+4. **Regenerate generated docs** when UI types or OpenAPI-derived pages change:
 
    ```bash
    cd ui && bun run compile && bun run types
    bun run website:generate
    ```
 
-   Generated output is build-time only (gitignored) except versioned snapshots created at release.
-
-3. **Update hand-written docs**
-   - Keep edits minimal — update the existing section in place
-   - Prefer code examples over prose
-   - Follow Diátaxis layout: `docs/tutorials/`, `docs/how-to/`, `docs/reference/`, `docs/explanation/`
-
-4. **Verify site build**
+5. **Verify**
 
    ```bash
    bun run website:build
    ```
 
-5. **Sync AI rules when docs change agent-facing guidance**
+6. **Sync agent copies** when agent-facing guidance changed:
 
    ```bash
    bun run rules
+   bun run skills:sync
    ```
 
-6. **Commit** docs changes, regenerated rules if any, and note in the PR that the docs deploy preview should be checked.
+7. **Record** every docs file created or updated in the PR `Verification` table.
 
 ## Integration
 
-- `implement` and `create-pr` skills: if public APIs changed, run this skill before submit.
-- `verify-ui-changes`: new components need a story **and** a generated component doc page that renders in the docs deploy preview.
+Pick, Roast, and Brew require this skill for user-visible or architectural work.
+`create-pr` does not open until the docs in this slice match the shipped behavior.

@@ -9,7 +9,8 @@ disable-model-invocation: true
 Observe current external state once, act on currently actionable engineering work, emit
 structured state, and exit. Taste never owns persistence or waiting.
 
-Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
+[`documentation contract`](../../references/documentation-contract.md), and
 [`GitHub attention contract`](../../references/github-attention-contract.md).
 
 ## Preconditions
@@ -48,8 +49,9 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) a
      preserve both intended changes, and never rewrite pushed history unless allowed.
    - Do not push speculative code for unrelated/flaky/external failures.
 6. **Verify changed code.** Run affected repository checks and any mandatory domain,
-   runtime, or UI verification. Capture updated evidence/artifacts. Missing mandatory
-   capability is `BLOCKED`.
+   runtime, or UI verification. Update architecture/public docs when the fix changes
+   behavior. Capture updated evidence/artifacts. Missing mandatory capability is
+   `BLOCKED`.
 7. **Commit/push if changed.** Follow repository policy. Record the new head. Resolve an
    addressed thread silently when the diff is self-explanatory. Reply only when a
    non-obvious decision must be preserved, using no more than three short sentences.

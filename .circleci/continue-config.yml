@@ -696,7 +696,7 @@ jobs:
           command: bun run check:lifecycle-skills
       - run:
           name: Test lifecycle validator
-          command: bun test scripts/planning/lifecycleSkills.test.ts
+          command: bun test scripts/planning/
 
   license-coverage:
     executor: node22

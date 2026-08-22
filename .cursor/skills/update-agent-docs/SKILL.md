@@ -8,9 +8,9 @@ Use this workflow for any document consumed by an agent. When editing a skill, a
 
 ## 1. Find the source of truth
 
-Identify generated copies before editing. In Terreno, `.rulesync/` is the source for synchronized rules and skills; `bun run rules` generates tool-specific copies. Plugin skills under `plugins/` are separate published sources.
+Identify generated copies before editing. In Terreno, `.rulesync/` is the source for synchronized rules and skills; `bun run rules` generates tool-specific copies. Plugin skills under `plugins/` are separate published sources. Package skills under `<package>/.ai/skills/` overlay those copies in the installable `skills/` tree via `bun run skills:sync`.
 
-Read related documents and remove conflicting duplicates rather than adding another layer.
+Read related documents and remove conflicting duplicates rather than adding another layer. Human-facing docs (`docs/`) remain the architecture source; agent docs point at them and do not invent a second design.
 
 ## 2. Design the context pointer
 
@@ -47,6 +47,7 @@ Delete no-ops, stale caches of the environment, and duplicate meanings.
 - check frontmatter and relative links
 - ensure referenced files exist
 - run `bun run rules` after `.rulesync/` edits
+- run `bun run skills:sync` after skill source, plugin skill, or `<package>/.ai/skills/` edits
 - run `bun run rules:check` and the repository's agent-quiet test command
 - inspect the generated diff for unintended churn
 

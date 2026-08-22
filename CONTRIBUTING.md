@@ -78,6 +78,7 @@ Run these from the repository root:
 | `bun run test:agent` | Run all package tests with passing cases suppressed (failures and summaries remain visible) |
 | `bun run check:no-barrel-imports` | Enforce no internal barrel imports |
 | `bun run check:changelog` | Validate `changelog/unreleased/` fragment files |
+| `bun run skills:sync` | Regenerate installable `skills/` and `skills.sh.json` |
 | `bun run changelog:preview` | Preview assembled unreleased notes |
 | `bun run check:licenses` | Verify published packages ship a LICENSE |
 | `bun run backend:dev` | Start example backend |
@@ -106,7 +107,7 @@ Follow the conventions in [AGENTS.md](AGENTS.md). Highlights:
 1. **Ideas** — start in [GitHub Discussions → Ideas](https://github.com/FlourishHealth/terreno/discussions/new?category=ideas); do not open a tracking issue yourself.
 2. **Promotion** — a maintainer promotes an accepted idea to a `Shaping` tracking issue on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md) board (`roadmap-promote`).
 3. **Design** — substantial work gets an [implementation plan](docs/implementationPlans/README.md) (IP) plus a task list before large coding begins. When the IP is approved, the tracking issue moves to `Planned` and gets its `IP` field set (`roadmap-item` — it updates the promoted issue, it does not open a second one).
-4. **Build** — the [`terreno-planning` plugin](plugins/README.md) provides bounded transitions: Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (react once). The outer loop reinvokes Taste as PR state changes.
+4. **Build** — the [`terreno-planning` plugin](plugins/README.md) provides bounded transitions: Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (react once). The outer loop reinvokes Taste as PR state changes. Read architecture docs first and update them in the same slice. Install skills with `npx skills add FlourishHealth/terreno`; regenerate `skills/` with `bun run skills:sync`.
 5. **RFC path** — API or package changes that affect consumers start in [RFCs](https://github.com/FlourishHealth/terreno/discussions/new?category=rfcs); accepted RFCs become IPs.
 
 See the [roadmap process](docs/explanation/roadmap-process.md) for the full IP ↔ roadmap lifecycle, the promote-vs-item split, maintainer setup, and the Linear bridge.

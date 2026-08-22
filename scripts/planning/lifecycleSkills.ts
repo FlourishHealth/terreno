@@ -152,6 +152,10 @@ export const validateStageContent = ({
     errors.push(`${prefix}: must load the shared lifecycle contract`);
   }
 
+  if (!content.includes("../../references/documentation-contract.md")) {
+    errors.push(`${prefix}: must load the shared documentation contract`);
+  }
+
   for (const section of REQUIRED_SECTIONS) {
     if (!content.includes(section)) {
       errors.push(`${prefix}: missing section ${section}`);
@@ -197,6 +201,24 @@ export const validateStageContent = ({
           `${prefix}: contains an internal waiting/loop pattern: ${pattern.source}`
         );
       }
+    }
+  }
+
+  return errors;
+};
+
+export const validateDocumentationContract = (content: string): string[] => {
+  const errors: string[] = [];
+  const requiredPhrases = [
+    "Always read docs first",
+    "Always update docs",
+    "Diátaxis",
+    "Missing docs for a user-visible or architectural change is `FAIL`",
+  ];
+
+  for (const phrase of requiredPhrases) {
+    if (!content.includes(phrase)) {
+      errors.push(`Documentation contract is missing required phrase: ${phrase}`);
     }
   }
 
@@ -268,6 +290,20 @@ export const validateLifecyclePlugin = ({
     "utf8"
   );
   errors.push(...validateGithubAttentionContract(attentionContract));
+
+  const documentationContract = readFileSync(
+    join(pluginDirectory, "references/documentation-contract.md"),
+    "utf8"
+  );
+  errors.push(...validateDocumentationContract(documentationContract));
+
+  const pluginReadme = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
+  if (!pluginReadme.includes("documentation-contract.md")) {
+    errors.push("plugins/README.md must document the documentation contract");
+  }
+  if (!pluginReadme.includes("npx skills add FlourishHealth/terreno")) {
+    errors.push("plugins/README.md must document npx skills installation");
+  }
 
   const pullRequestTemplate = readFileSync(
     join(rootDirectory, ".github/PULL_REQUEST_TEMPLATE.md"),

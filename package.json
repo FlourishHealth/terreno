@@ -247,6 +247,8 @@
     "rtk:web": "bun run --filter '@terreno/rtk' web",
     "rules": "bunx rulesync generate",
     "rules:check": "bunx rulesync generate && git diff --exit-code",
+    "skills:sync": "bun run scripts/planning/syncInstallableSkills.ts",
+    "skills:check": "bun run scripts/planning/syncInstallableSkills.ts --check",
     "syncdb:compile": "bun run --filter '@terreno/syncdb' compile",
     "syncdb:dev": "bun run --filter '@terreno/syncdb' dev",
     "syncdb:lint": "bun run --filter '@terreno/syncdb' lint",

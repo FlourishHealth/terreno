@@ -203,4 +203,4 @@ jobs:
         run: bun run check:lifecycle-skills
 
       - name: Test lifecycle validator
-        run: bun test scripts/planning/lifecycleSkills.test.ts
+        run: bun test scripts/planning/

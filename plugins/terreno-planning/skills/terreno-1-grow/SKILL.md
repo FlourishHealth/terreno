@@ -9,7 +9,8 @@ disable-model-invocation: true
 Turn a request, ticket, or specification into approved artifacts a fresh Pick agent can
 execute without conversation history.
 
-Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
+[`documentation contract`](../../references/documentation-contract.md), and
 [`grilling procedure`](references/grilling.md) before acting.
 
 ## Preconditions
@@ -30,27 +31,32 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) a
    instructions and nearby artifacts. If none exists, choose a colocated IP/task pair,
    record the new convention, and avoid creating a shared mutable index. Read prior state
    and verify it against repository reality.
-2. **Discover supporting skills.** Inspect available repository/project skills and load
-   those relevant to the affected domains. Record selected skills for downstream stages.
-3. **Research before asking.** Classify uncertainty:
+2. **Read architecture docs.** Load the repository's architecture, domain, and operator
+   docs for the affected area. Treat them as the current design. If docs are missing or
+   contradict the code, the IP must resolve that in this invocation.
+3. **Discover supporting skills.** Inspect available repository/project skills and load
+   those relevant to the affected domains, including documentation skills. Record
+   selected skills for downstream stages.
+4. **Research before asking.** Classify uncertainty:
    - **Human decision:** product, architecture, security, data ownership, compatibility,
      rollout, destructive change, or scope → grill and block until answered.
    - **Discoverable fact:** repository convention, library behavior, ownership, tests →
      investigate it.
    - **Low-risk implementation detail:** strongly implied by convention → choose it and
      record the assumption.
-4. **Grill.** Work the current decision frontier in numbered rounds with recommended
+5. **Grill.** Work the current decision frontier in numbered rounds with recommended
    answers. Wait for explicit shared-understanding confirmation before writing.
-5. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.
+6. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.
    Define scope, non-scope, architecture decisions, risks, human gates, rollout, and
    dependencies.
-6. **Specify proof.** Make every acceptance criterion observable and pair it with a
+7. **Specify proof.** Make every acceptance criterion observable and pair it with a
    verification method (test, build, runtime/API/database probe, UI exercise, artifact,
    compatibility/regression case).
-7. **Write.** Produce the IP and a dependency-aware tracer-bullet task list. Each task
-   names files/seams, acceptance criteria, blockers, verification, and relevant supporting
-   skills when discoverable.
-8. **Approve.** Show the 15-line approval summary defined in the grilling reference. Set
+8. **Write.** Produce the IP and a dependency-aware tracer-bullet task list. Each task
+   names files/seams, acceptance criteria, blockers, verification, docs to create or
+   update, and relevant supporting skills when discoverable. Docs updates follow the
+   documentation contract and are not deferred.
+9. **Approve.** Show the 15-line approval summary defined in the grilling reference. Set
    the repository's approved status only after human confirmation. Update execution state
    and emit the stage result.
 
@@ -67,6 +73,7 @@ none is universally required.
 - Decision log/human gates
 - Acceptance-criterion → verification mapping
 - Selected supporting skills
+- Docs files named on each task
 - Updated execution state and structured Grow result
 
 ## Success conditions

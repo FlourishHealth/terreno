@@ -35,6 +35,7 @@ description; no Terreno-specific skill name is a plugin dependency.
 The shared result/state format and outer state machine live in:
 
 - [`references/lifecycle-contract.md`](terreno-planning/references/lifecycle-contract.md)
+- [`references/documentation-contract.md`](terreno-planning/references/documentation-contract.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
 - [`references/github-attention-contract.md`](terreno-planning/references/github-attention-contract.md)
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
@@ -63,6 +64,18 @@ Terreno's project skills remain canonical under `.rulesync/skills/` and are gene
 supported agent ecosystems with `bun run rules`. They are not bundled into this plugin.
 Examples include API/UI/data conventions, test environments, schema safety, prompt
 governance, documentation, and runtime/UI verification.
+
+Install the same set (plugin stages plus repo and package skills) with:
+
+```bash
+npx skills add FlourishHealth/terreno
+bun run skills:sync
+```
+
+`skills/` is generated: `.rulesync/skills/` first, then plugin stages, then
+`<package>/.ai/skills/` overlays. Stages read architecture docs first and update them
+in the same slice; see
+[`documentation-contract.md`](terreno-planning/references/documentation-contract.md).
 
 Validate the plugin architecture with:
 

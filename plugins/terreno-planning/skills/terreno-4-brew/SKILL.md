@@ -9,7 +9,8 @@ disable-model-invocation: true
 Move one verified implementation into review, emit current PR/head state, and exit. The
 outer loop invokes Taste separately.
 
-Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
+[`documentation contract`](../../references/documentation-contract.md), and
 [`independent review procedure`](../../references/independent-review.md). All GitHub text
 must follow the [`GitHub attention contract`](../../references/github-attention-contract.md).
 
@@ -33,8 +34,10 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
    implementation. Behavioral changes after Roast return to Roast.
 2. **Discover supporting skills.** Load applicable submission, documentation, commit,
    changelog, security, and repository verification skills.
-3. **Run final gates.** Execute repository-required pre-submit checks. Confirm docs,
-   generated files, changelog/release notes, and verification artifacts are complete.
+3. **Run final gates.** Execute repository-required pre-submit checks. Confirm docs
+   follow the documentation contract, generated files are current, changelog/release
+   notes exist when required, and verification artifacts are complete. Ship without
+   matching docs is `FAIL`.
 4. **Review independently.** Review the full branch diff on separate standards and
    IP/spec axes. Fix material findings outside Brew via Pick/Roast; do not smuggle
    implementation work into submission.

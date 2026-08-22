@@ -8,6 +8,13 @@ Use this skill when building server-side APIs for Terreno apps. Terreno uses **E
 
 **Related skills:** `mongoose-schema-safety` (schema changes), `generate-sdk` (frontend hooks after API changes), `terreno-data-fetching` (consuming the API), `backend-test-env` (tests that mutate env).
 
+## Documentation
+
+1. Read `docs/reference/api.md` and the relevant how-to/explanation pages before changing routes, models, or permissions.
+2. Implement against that design.
+3. Update those pages in the same slice with `update-docs` (Diátaxis: tutorial / how-to / reference / explanation).
+4. Ship without matching docs is a failed slice.
+
 ## Terreno vs Expo API Routes
 
 | Need | Use |

@@ -24,7 +24,8 @@ Use these terms consistently.
 
 If the user names an area, use it. Otherwise inspect recent history for files and concepts changed repeatedly. Weight active hot spots over speculative cleanup.
 
-Read applicable `AGENTS.md`, `CLAUDE.md`, IPs, and architecture decisions before proposing changes.
+Read applicable `AGENTS.md`, `CLAUDE.md`, IPs, and architecture docs before proposing
+changes. Treat explanation/reference pages as the current design.
 
 ## 2. Explore in a fresh context
 

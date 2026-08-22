@@ -35,6 +35,20 @@ GitHub communication follows a fixed attention budget: `Why`, `What changed`, an
 `Verification` are the only visible PR sections; optional detail is expandable; comments
 are reserved for blocked decisions or non-obvious review resolutions.
 
+Every stage follows the
+[documentation contract](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):
+read architecture docs before acting, update them in the same slice, and fail the slice
+when user-visible or architectural behavior ships without matching docs.
+
+Install the published skill set (lifecycle stages plus repo and package skills):
+
+```bash
+npx skills add FlourishHealth/terreno
+```
+
+Regenerate the committed `skills/` tree with `bun run skills:sync`. Package skills under
+`<package>/.ai/skills/` overlay the repo copies.
+
 Exact commands and domain conventions are supplied by repository-local skills discovered
 at stage start; they are not bundled into the lifecycle plugin.
 

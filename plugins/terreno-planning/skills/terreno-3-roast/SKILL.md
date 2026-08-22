@@ -12,7 +12,8 @@ Roast is the authoritative stage-level verifier:
 requirement → verification method → evidence → PASS / FAIL / BLOCKED
 ```
 
-Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md).
+Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) and
+[`documentation contract`](../../references/documentation-contract.md).
 
 ## Preconditions
 
@@ -41,11 +42,13 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md).
 5. **Exercise changed behavior.** For UI-facing work, use the available repository UI
    verification capability, interact with the actual changed workflow, and capture
    required screenshots/video/logs. App launch alone is not proof.
-6. **Classify each criterion.** Record `PASS`, `FAIL`, or `BLOCKED` with reproducible
+6. **Prove docs.** Confirm architecture and public docs match the shipped behavior. A
+   criterion that is true in code but absent or wrong in docs is `FAIL`.
+7. **Classify each criterion.** Record `PASS`, `FAIL`, or `BLOCKED` with reproducible
    evidence. Never pass a criterion because the code merely looks reasonable.
-7. **Do not fix.** Report implementation defects to Pick. Only correct verifier setup
+8. **Do not fix.** Report implementation defects to Pick. Only correct verifier setup
    owned by Roast; if that changes evidence materially, rerun the affected method.
-8. **Record.** Update execution state and emit the structured result.
+9. **Record.** Update execution state and emit the structured result.
 
 ## Supporting skills
 
@@ -60,12 +63,14 @@ probes. If repository policy makes one mandatory and it is unavailable, emit `BL
 - Artifact/log/API response references
 - Exact expected vs actual behavior for every failure
 - Environment/access details for every blocker
+- Docs pages that match or fail against shipped behavior
 - Updated execution state and structured Roast result
 
 ## Success conditions
 
 - Every in-scope acceptance criterion has objective passing evidence on the recorded head.
 - Required regression/runtime/UI checks pass.
+- Architecture and public docs match the shipped behavior.
 - Emit `PASS` with `recommended_next_stage: brew`.
 
 ## Failure conditions

@@ -28,6 +28,10 @@ The `example-frontend` consumes the `example-backend` API via auto-generated RTK
 
 **Never edit `example-frontend/store/openApiSdk.ts` by hand — it is fully overwritten by this skill.**
 
+## Documentation
+
+Read `docs/reference/syncdb.md` and the backend/OpenAPI reference before regenerating. After a public API change, run `update-docs` in the same slice so reference and how-to pages match the new hooks. Generated SDK files are not hand-edited docs.
+
 ## When to run this skill
 
 Run it whenever the backend's OpenAPI surface changes. Common triggers:

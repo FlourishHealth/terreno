@@ -10,6 +10,7 @@ Implement one approved slice carefully. Pick's internal reviewers ask whether en
 was disciplined; they do **not** replace Roast's independent proof.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
+[`documentation contract`](../../references/documentation-contract.md),
 [`testing guidance`](references/testing.md), and
 [`mocking guidance`](references/mocking.md).
 
@@ -32,28 +33,33 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 
 1. **Reconstruct.** Verify the approved plan, current task, branch/head, prior result, and
    already-verified behavior. Do not redo completed work.
-2. **Discover supporting skills.** Inspect available project skills for affected domains;
-   load applicable implementation, testing, safety, and runtime guidance.
-3. **Focus retries.** Convert prior failure evidence into a hypothesis and the smallest
+2. **Read architecture docs.** Load the current architecture and domain docs for the
+   files/seams in this slice. Implement against that design; if the slice changes it,
+   update those docs in the same slice.
+3. **Discover supporting skills.** Inspect available project skills for affected domains;
+   load applicable implementation, testing, documentation, safety, and runtime guidance.
+4. **Focus retries.** Convert prior failure evidence into a hypothesis and the smallest
    safe change. Record attempted approaches; do not repeat one without new evidence.
-4. **Specify.** State one caller-visible behavior and the highest public seam that proves
+5. **Specify.** State one caller-visible behavior and the highest public seam that proves
    it.
-5. **Encode.** Add one failing test and run the repository's closest test command. Confirm
+6. **Encode.** Add one failing test and run the repository's closest test command. Confirm
    it fails for the intended product reason.
-6. **Fulfill.** Implement the minimum code that passes. Prefer real integrations and
+7. **Fulfill.** Implement the minimum code that passes. Prefer real integrations and
    narrow injected fakes at true external boundaries.
-7. **Clean the Kitchen.** Once the vertical slice is green, refactor names/structure,
+8. **Clean the Kitchen.** Once the vertical slice is green, refactor names/structure,
    remove debug/dead code, and rerun the affected repository-prescribed checks.
-8. **Review independently.** In fresh contexts, run:
+9. **Review independently.** In fresh contexts, run:
    - implementation/spec review
    - test-quality review (public behavior, independent expected values, realistic
      boundaries, no leaky/global test doubles)
    Fix material findings and rerun affected checks.
-9. **Check drift and runtime.** Compare the diff to the current task/IP. Run any mandatory
-   runtime/UI/safety verification declared by repository instructions or supporting
-   skills. Missing mandatory capability is `BLOCKED`, not skipped.
-10. **Record.** Mark only the completed task/slice, update execution state with commands,
-    evidence, artifacts, and attempts, then emit the structured result.
+10. **Check drift, docs, and runtime.** Compare the diff to the current task/IP. Update
+    architecture and public docs in this slice using the documentation contract. Run any
+    mandatory runtime/UI/safety verification declared by repository instructions or
+    supporting skills. Missing mandatory capability is `BLOCKED`, not skipped.
+    Missing docs for a user-visible or architectural change is `FAIL`.
+11. **Record.** Mark only the completed task/slice, update execution state with commands,
+    evidence, artifacts, docs files, and attempts, then emit the structured result.
 
 Repeat Specify → Encode → Fulfill for learned behaviors inside this one slice. Do not batch
 all tests first or expand into the next task.

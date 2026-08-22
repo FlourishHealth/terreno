@@ -69,6 +69,9 @@ Each stage inspects available skills and loads those whose descriptions match th
 affected domain. A useful skill is optional when absent; a capability required by
 repository policy is a hard gate and produces `BLOCKED` if unavailable.
 
+Stages also load architecture docs before acting. Docs are the design; code implements
+them. Missing docs for a user-visible or architectural change is `FAIL`.
+
 This lets the same Pick method compose with backend API and test-environment knowledge,
 while Roast composes with UI conventions and real-app verification.
 

@@ -19,6 +19,13 @@ Work down this list and stop at the first layer that meets the need:
 
 **Do not use `@expo/ui`** in Terreno apps unless there is an explicit requirement for native SwiftUI/Compose that `@terreno/ui` cannot satisfy.
 
+## Documentation
+
+1. Read `docs/reference/ui.md`, `docs/reference/components/`, and the relevant explanation pages before changing components or theme contracts.
+2. Implement against that design.
+3. Update those pages (and a demo story) in the same slice with `update-docs`.
+4. Ship without matching docs is a failed slice.
+
 ## References
 
 ```
