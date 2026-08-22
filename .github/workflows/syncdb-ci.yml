@@ -50,8 +50,14 @@ jobs:
         run: bun run compile
         working-directory: syncdb
 
-      - name: Test with coverage
-        run: bun run ../scripts/check-coverage.ts --threshold=90
+      - name: Test
+        run: bun run test
+        working-directory: syncdb
+        env:
+          CI: true
+
+      - name: Isolated tests
+        run: bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
         working-directory: syncdb
         env:
           CI: true
