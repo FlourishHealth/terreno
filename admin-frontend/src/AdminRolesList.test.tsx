@@ -32,6 +32,18 @@ mock.module("./useAdminRoles", () => ({
 
 const mockApi = {} as unknown as AdminApi;
 
+interface RenderedNode {
+  props?: {testID?: unknown};
+  children?: unknown[];
+}
+
+const collectTestIDs = (node: unknown): string[] => {
+  const rendered = node as RenderedNode | null;
+  const own = typeof rendered?.props?.testID === "string" ? [rendered.props.testID] : [];
+  const children = Array.isArray(rendered?.children) ? rendered.children : [];
+  return [...own, ...children.flatMap((child) => collectTestIDs(child))];
+};
+
 const ROLES = [
   {displayName: "Super Admin", isLocked: true, isSealed: true, name: "superadmin"},
   {description: "Baseline role for signed-up users", displayName: "Todo User", name: "todoUser"},
@@ -112,6 +124,24 @@ describe("AdminRolesList", () => {
 
     expect(getByTestId("admin-roles-edit-todoUser").props.disabled).toBeFalsy();
     expect(getByTestId("admin-roles-edit-superadmin").props.disabled).toBeTruthy();
+  });
+
+  it("scrolls the role list body while keeping the add button outside the scroll area", () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
+
+    const scrollArea = getByTestId("admin-roles-scroll");
+    expect(scrollArea).toBeTruthy();
+
+    const scrollTestIDs = collectTestIDs(scrollArea);
+    expect(scrollTestIDs).toContain("admin-roles-item-superadmin");
+    expect(scrollTestIDs).toContain("admin-permissions-list");
+    expect(scrollTestIDs).not.toContain("admin-roles-add-button");
   });
 
   it("renders roles returned inside a data envelope", () => {

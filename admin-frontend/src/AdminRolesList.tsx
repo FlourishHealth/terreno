@@ -150,8 +150,15 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
   }
 
   return (
-    <Box gap={3} padding={4} testID="admin-roles-list">
-      <Box alignItems="center" direction="row" justifyContent="between">
+    <Box direction="column" flex="grow" minHeight={0} testID="admin-roles-list">
+      <Box
+        alignItems="center"
+        direction="row"
+        gap={2}
+        justifyContent="between"
+        paddingX={4}
+        paddingY={3}
+      >
         <Heading size="lg">Roles</Heading>
         <Button
           iconName="plus"
@@ -160,67 +167,73 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
           text="Add role"
         />
       </Box>
-      {roles.length === 0 ? (
-        <Text>No roles found.</Text>
-      ) : (
-        roles.map((role) => (
-          <Box
-            border="default"
-            direction="column"
-            gap={2}
-            key={role.name}
-            padding={3}
-            rounding="md"
-            testID={`admin-roles-item-${role.name}`}
-          >
-            <Box alignItems="center" direction="row" gap={2} justifyContent="between">
-              <Box alignItems="center" direction="row" gap={2}>
-                <Text bold size="md">
-                  {role.displayName}
+      {/* Scrolls the role cards and permission vocabulary so a long list cannot push the
+          "Add role" action out of reach. */}
+      <Box flex="grow" minHeight={0} scroll testID="admin-roles-scroll">
+        <Box direction="column" gap={3} paddingX={4} paddingY={2}>
+          {roles.length === 0 ? (
+            <Text>No roles found.</Text>
+          ) : (
+            roles.map((role) => (
+              <Box
+                border="default"
+                direction="column"
+                gap={2}
+                key={role.name}
+                padding={3}
+                rounding="md"
+                testID={`admin-roles-item-${role.name}`}
+              >
+                <Box alignItems="center" direction="row" gap={2} justifyContent="between">
+                  <Box alignItems="center" direction="row" gap={2}>
+                    <Text bold size="md">
+                      {role.displayName}
+                    </Text>
+                    {role.isLocked ? <Badge secondary status="info" value="locked" /> : null}
+                    {role.isSealed ? <Badge secondary status="warning" value="sealed" /> : null}
+                  </Box>
+                  <Button
+                    disabled={role.isSealed}
+                    iconName="pen"
+                    onClick={() => handleEdit(role)}
+                    testID={`admin-roles-edit-${role.name}`}
+                    text="Edit"
+                    variant="outline"
+                  />
+                </Box>
+                <Text color="secondaryLight" size="sm">
+                  {role.name}
                 </Text>
-                {role.isLocked ? <Badge secondary status="info" value="locked" /> : null}
-                {role.isSealed ? <Badge secondary status="warning" value="sealed" /> : null}
-              </Box>
-              <Button
-                disabled={role.isSealed}
-                iconName="pen"
-                onClick={() => handleEdit(role)}
-                testID={`admin-roles-edit-${role.name}`}
-                text="Edit"
-                variant="outline"
-              />
-            </Box>
-            <Text color="secondaryLight" size="sm">
-              {role.name}
-            </Text>
-            {role.description ? <Text size="sm">{role.description}</Text> : null}
-            <Box direction="row" gap={1} wrap>
-              {Object.entries(role.permissions ?? {}).flatMap(([resource, actions]) =>
-                actions.map((action) => (
-                  <Badge key={`${resource}:${action}`} value={`${resource}:${action}`} />
-                ))
-              )}
-            </Box>
-          </Box>
-        ))
-      )}
-
-      <Box border="default" gap={2} padding={3} rounding="md" testID="admin-permissions-list">
-        <Heading size="md">Available permissions</Heading>
-        {areStatementsLoading ? <Spinner /> : null}
-        {statementsError ? <Text color="error">Failed to load permissions.</Text> : null}
-        {!areStatementsLoading && !statementsError
-          ? resources.map((resource) => (
-              <Box gap={1} key={resource}>
-                <Text bold>{resource}</Text>
+                {role.description ? <Text size="sm">{role.description}</Text> : null}
                 <Box direction="row" gap={1} wrap>
-                  {statements[resource].map((action) => (
-                    <Badge key={`${resource}:${action}`} value={`${resource}:${action}`} />
-                  ))}
+                  {Object.entries(role.permissions ?? {}).flatMap(([resource, actions]) =>
+                    actions.map((action) => (
+                      <Badge key={`${resource}:${action}`} value={`${resource}:${action}`} />
+                    ))
+                  )}
                 </Box>
               </Box>
             ))
-          : null}
+          )}
+
+          <Box border="default" gap={2} padding={3} rounding="md" testID="admin-permissions-list">
+            <Heading size="md">Available permissions</Heading>
+            {areStatementsLoading ? <Spinner /> : null}
+            {statementsError ? <Text color="error">Failed to load permissions.</Text> : null}
+            {!areStatementsLoading && !statementsError
+              ? resources.map((resource) => (
+                  <Box gap={1} key={resource}>
+                    <Text bold>{resource}</Text>
+                    <Box direction="row" gap={1} wrap>
+                      {statements[resource].map((action) => (
+                        <Badge key={`${resource}:${action}`} value={`${resource}:${action}`} />
+                      ))}
+                    </Box>
+                  </Box>
+                ))
+              : null}
+          </Box>
+        </Box>
       </Box>
 
       <Modal
