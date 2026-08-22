@@ -10,9 +10,11 @@
 // forces an unnecessary full native rebuild whenever a JS-only / per-environment
 // value changes, instead of a fast OTA update.
 //
-// Skipping the extra section keeps the native fingerprint stable across JS-only
-// changes, so only genuine native changes (native deps, config plugins, app
-// icons/scheme, SDK bumps) produce a new fingerprint and require a rebuild.
+// The package.json scripts are build/development commands; they do not change
+// the compiled native binary either. Skipping both sources keeps the native
+// fingerprint stable across JS-only/tooling changes, so only genuine native
+// changes (native deps, config plugins, app icons/scheme, SDK bumps) produce a
+// new fingerprint and require a rebuild.
 module.exports = {
-  sourceSkips: ["ExpoConfigExtraSection"],
+  sourceSkips: ["ExpoConfigExtraSection", "PackageJsonScriptsAll"],
 };
