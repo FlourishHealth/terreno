@@ -1271,6 +1271,165 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect((await UserModel.findById(target?._id))?.admin).toBe(true);
   });
 
+  it("does not let manageRoles mint the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles", "manageRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "manager-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target?.admin).toBe(false);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(false);
+
+    await agent
+      .post("/admin/users")
+      .send({admin: true, email: "minted-admin@example.com"})
+      .expect(403);
+    expect(await UserModel.findOne({email: "minted-admin@example.com"})).toBeNull();
+  });
+
+  it("does not let manageRoles revoke the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles", "manageRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "manager-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "admin@example.com"});
+    expect(target?.admin).toBe(true);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: false})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(true);
+  });
+
+  it("does not persist organizationIds on RBAC admin User writes", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-editor",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          bulkPatchAllowlist: ["name", "organizationIds"],
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({name: "Org-stripped", organizationIds: ["other-tenant"]})
+      .expect(200);
+    const afterPatch = await UserModel.findById(target?._id);
+    expect(afterPatch?.name).toBe("Org-stripped");
+    expect(
+      (afterPatch as {organizationIds?: string[]} | null)?.organizationIds ?? []
+    ).not.toContain("other-tenant");
+
+    const created = await agent
+      .post("/admin/users")
+      .send({email: "org-stripped@example.com", organizationIds: ["other-tenant"]})
+      .expect(201);
+    expect(created.body.data.organizationIds ?? []).not.toContain("other-tenant");
+    const createdDoc = await UserModel.findOne({email: "org-stripped@example.com"});
+    expect(
+      (createdDoc as {organizationIds?: string[]} | null)?.organizationIds ?? []
+    ).not.toContain("other-tenant");
+
+    await agent
+      .post("/admin/users/bulk-patch")
+      .send({
+        ids: [String(target?._id)],
+        patch: {organizationIds: ["bulk-tenant"]},
+      })
+      .expect(400);
+    expect(
+      ((await UserModel.findById(target?._id)) as {organizationIds?: string[]} | null)
+        ?.organizationIds ?? []
+    ).not.toContain("bulk-tenant");
+  });
+
   it("checks each bulk-patch target document against RBAC scopes", async () => {
     const foodStatements = {
       ...terrenoStatements,

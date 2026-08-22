@@ -1171,8 +1171,10 @@ export class AdminApp {
           delete next[key];
         }
         // Self-service never writes these fields. Admin CRUD may set `admin`.
-        // When RBAC is enabled, `roles` must go through RoleManager.assign.
+        // When RBAC is enabled, `roles` must go through RoleManager.assign and
+        // tenant membership is not a generic User document field.
         if (config.model.modelName === "User" && this.options.accessControl) {
+          delete next.organizationIds;
           delete next.roles;
         }
         return next;
@@ -1348,21 +1350,15 @@ export class AdminApp {
         const nextAdmin = coerceAdminFlag(body.admin);
         const isGrantingAdmin = nextAdmin === true && !currentAdmin;
         const isRevokingAdmin = nextAdmin === false && currentAdmin;
-        // assignRoles is not enough to mint or strip the legacy admin plane (IsAdmin,
-        // password reset). Require manageRoles, or an actor who already holds admin.
+        // assignRoles and manageRoles still cannot mint or strip the legacy admin
+        // plane (IsAdmin, password reset, owner bypass). Only an existing admin can.
         if ((isGrantingAdmin || isRevokingAdmin) && !actor.admin) {
-          const manage = await accessControl.can({
-            permissions: {rbac: ["manageRoles"]},
-            user: actor,
+          throw new APIError({
+            status: 403,
+            title: isGrantingAdmin
+              ? "Cannot grant the legacy admin flag without the admin privilege"
+              : "Cannot revoke the legacy admin flag without the admin privilege",
           });
-          if (!manage.allowed) {
-            throw new APIError({
-              status: 403,
-              title: isGrantingAdmin
-                ? "Cannot grant the legacy admin flag without rbac:manageRoles"
-                : "Cannot revoke the legacy admin flag without rbac:manageRoles",
-            });
-          }
         }
         const targetId = targetUserId ?? request.params?.id;
         if (targetId) {
@@ -1399,6 +1395,7 @@ export class AdminApp {
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApiMw ? {openApi: openApiMw} : {}),
+        ...(this.options.accessControl ? {accessControl: this.options.accessControl} : {}),
         defaultLimit: config.pageSize ?? 100,
         maxLimit: 500,
         permissions: {

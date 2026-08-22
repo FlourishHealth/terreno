@@ -8,9 +8,8 @@ category: Changed
 - AdminApp model CRUD requires resource actions in addition to `admin:access`. Self-service
   still cannot write User `admin`/`roles`. Without RBAC, admin CRUD may set `admin`.
   With RBAC, `roles` go through `RoleManager.assign`. Changing `admin` requires
-  `rbac:assignRoles`, and granting or revoking `admin` also requires
-  `rbac:manageRoles` unless the actor already has the legacy admin flag, plus
-  the same privilege-subset check as role assign. Unchanged echoed `admin`
+  `rbac:assignRoles` plus an actor who already holds the legacy admin flag;
+  `rbac:manageRoles` is not a substitute. Unchanged echoed `admin`
   values are allowed. assign/unassign require the actor to already hold the
   target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Admin CRUD for a resource missing
@@ -47,5 +46,5 @@ category: Changed
   preventing callers from assigning themselves tenant membership. Administrative organization
   membership changes must use a privileged server-side path.
 - Ordinary RBAC-enabled User modelRouter, sync, and MCP writes strip `admin`, `roles`, and
-  `organizationIds`. AdminApp marks legacy `admin` writes only after its `assignRoles`,
-  `manageRoles`, and target-privilege checks succeed.
+  `organizationIds`. AdminApp strips `organizationIds` the same way, and marks legacy
+  `admin` writes only after `assignRoles` and an existing-admin check succeed.
