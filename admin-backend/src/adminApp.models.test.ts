@@ -1580,4 +1580,108 @@ describe("AdminApp user elevation and scoped bulk-patch", () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(await UserModel.findOne({email})).toBeNull();
   });
+
+  it("does not persist other User fields when role assignment fails on update", async () => {
+    if (!UserModel.schema.path("roles")) {
+      UserModel.schema.add({
+        roles: {default: [], description: "RBAC role names", type: [String]},
+      });
+    }
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-update-rollback",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "name", "roles"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+    const originalName = target?.name;
+
+    const res = await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({name: "Should-not-stick", roles: ["does-not-exist"]});
+    expect(res.status).toBeGreaterThanOrEqual(400);
+
+    const after = await UserModel.findById(target?._id);
+    expect(after?.name).toBe(originalName);
+  });
+
+  it("does not persist bulk-patch fields when role assignment fails", async () => {
+    if (!UserModel.schema.path("roles")) {
+      UserModel.schema.add({
+        roles: {default: [], description: "RBAC role names", type: [String]},
+      });
+    }
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-bulk-rollback",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          bulkPatchAllowlist: ["name", "roles"],
+          displayName: "Users",
+          listFields: ["email", "name", "roles"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+    const originalName = target?.name;
+
+    const res = await agent.post("/admin/users/bulk-patch").send({
+      ids: [String(target?._id)],
+      patch: {name: "Should-not-stick", roles: ["does-not-exist"]},
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toBe(0);
+    expect(res.body.failures?.length).toBeGreaterThan(0);
+
+    const after = await UserModel.findById(target?._id);
+    expect(after?.name).toBe(originalName);
+  });
 });

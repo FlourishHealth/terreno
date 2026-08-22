@@ -10,7 +10,9 @@ category: Changed
   With RBAC, `roles` go through `RoleManager.assign`. Changing `admin` requires
   `rbac:assignRoles` plus an actor who already holds the legacy admin flag;
   `rbac:manageRoles` is not a substitute. Unchanged echoed `admin`
-  values are allowed. assign/unassign require the actor to already hold the
+  values are allowed. If `assign` fails after an admin User update or bulk-patch,
+  non-role fields are restored so the request does not keep a partial write.
+  assign/unassign require the actor to already hold the
   target user's current permissions. The seeded `auditor` role no longer receives
   `admin:access` via read-only expansion. Admin CRUD for a resource missing
   from statements fails closed for list/read, search, and writes. Framework statements now

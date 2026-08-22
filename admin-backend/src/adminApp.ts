@@ -1249,6 +1249,46 @@ export class AdminApp {
         }
       };
 
+      const restoreUserFieldsAfterFailedRoleAssign = async (
+        value: unknown,
+        prev: unknown,
+        cleanedBody: unknown
+      ): Promise<void> => {
+        if (!prev || typeof prev !== "object" || !cleanedBody || typeof cleanedBody !== "object") {
+          return;
+        }
+        if (Array.isArray(cleanedBody)) {
+          return;
+        }
+        const record = value as {
+          _id?: unknown;
+          save?: () => Promise<unknown>;
+          set?: (path: string, next: unknown) => void;
+        };
+        const prevRecord = prev as Record<string, unknown>;
+        const body = cleanedBody as Record<string, unknown>;
+        const restore: Record<string, unknown> = {};
+        for (const key of Object.keys(body)) {
+          if (key === "roles") {
+            continue;
+          }
+          restore[key] = prevRecord[key];
+          if (typeof record.set === "function") {
+            record.set(key, prevRecord[key]);
+          }
+        }
+        if (Object.keys(restore).length === 0) {
+          return;
+        }
+        if (typeof record.save === "function") {
+          await record.save();
+          return;
+        }
+        if (record._id != null) {
+          await config.model.updateOne({_id: record._id}, {$set: restore});
+        }
+      };
+
       const bulkPatchOpenApi = openApiMw
         ? createOpenApiBuilder({openApi: openApiMw})
             .withTags(["admin"])
@@ -1410,7 +1450,12 @@ export class AdminApp {
           await auditHooks.postCreate?.(value, request);
         },
         postUpdate: async (value, cleanedBody, request, prev) => {
-          await applyPendingUserRoles(value, request);
+          try {
+            await applyPendingUserRoles(value, request);
+          } catch (error) {
+            await restoreUserFieldsAfterFailedRoleAssign(value, prev, cleanedBody);
+            throw error;
+          }
           await auditHooks.postUpdate?.(value, cleanedBody, request, prev);
         },
         preCreate: async (body, req) => {
@@ -1527,19 +1572,30 @@ export class AdminApp {
                 Boolean((doc as {admin?: boolean}).admin),
                 id
               );
+              const previousPatch: Record<string, unknown> = {};
+              for (const key of Object.keys(patch)) {
+                previousPatch[key] = (doc as unknown as Record<string, unknown>)[key];
+              }
               if (Object.keys(patch).length > 0) {
                 await doc.updateOne({$set: patch});
               }
-              if (pendingRoles) {
-                if (!actor) {
-                  failures.push({id, title: "Forbidden"});
-                  continue;
+              try {
+                if (pendingRoles) {
+                  if (!actor) {
+                    failures.push({id, title: "Forbidden"});
+                    continue;
+                  }
+                  await this.options.accessControl?.roles.assign({
+                    actor,
+                    roleNames: pendingRoles,
+                    userId: id,
+                  });
                 }
-                await this.options.accessControl?.roles.assign({
-                  actor,
-                  roleNames: pendingRoles,
-                  userId: id,
-                });
+              } catch (roleError) {
+                if (Object.keys(previousPatch).length > 0) {
+                  await config.model.updateOne({_id: id}, {$set: previousPatch});
+                }
+                throw roleError;
               }
               updated += 1;
             } catch (err: unknown) {
