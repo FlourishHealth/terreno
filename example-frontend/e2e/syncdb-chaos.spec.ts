@@ -20,6 +20,7 @@ import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
   createTodoViaUi,
+  forceSyncReconnect,
   installChaosControl,
   openSyncTodos,
   startSyncFlapLoop,
@@ -79,8 +80,10 @@ test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
     // 30 flaps grow the socket's reconnect backoff, so the drain can sit idle waiting
     // out a delay longer than CONVERGE_TIMEOUT even though connectivity is restored.
     // Force the reconnect instead of racing the backoff — the drain itself is what this
-    // test is measuring, not Socket.io's retry schedule.
-    await page.getByTestId("syncdb-reconnect-button").click();
+    // test is measuring, not Socket.io's retry schedule. CircleCI serves a production
+    // static export (__DEV__ false) so the visible Sync Lab panel is omitted; dispatch
+    // the window event the panel always listens for.
+    await forceSyncReconnect(page);
 
     // The banner shows queued state via ONE of two testIDs depending on volume:
     // "sync-queued-count" (<=20 queued) or "sync-drain-progress" (>20 queued —

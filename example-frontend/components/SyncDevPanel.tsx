@@ -7,7 +7,7 @@ import {
 import {useConflicts, useSyncDbClient, useSyncStatus} from "@terreno/syncdb/react";
 import {Box, Button, Heading, SegmentedControl, Text} from "@terreno/ui";
 import type React from "react";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {SyncLabRateControls} from "@/components/SyncLabRateControls";
 import {useSyncLabRates} from "@/components/syncLabRates";
 import {useOpenSyncDebugger} from "@/hooks/useOpenSyncDebugger";
@@ -26,6 +26,12 @@ const RESYNC_SKIP_MESSAGES: Record<string, string> = {
 /** Conflict resolution strategies, aligned with the toggle labels below. */
 const RESOLVE_STRATEGIES: ConflictResolutionStrategy[] = ["useServer", "keepMine"];
 const RESOLVE_LABELS = ["Use the other version", "Keep my change"];
+
+/**
+ * Playwright uses this hook to restart the client after chaos flaps even when
+ * the visible Sync Lab panel is omitted from production exports.
+ */
+const E2E_FORCE_RECONNECT_EVENT = "syncdb-e2e-reconnect";
 
 /**
  * Dev panel for exercising syncdb offline/reconnect/wipe flows and Sync Lab churn.
@@ -132,6 +138,20 @@ export const SyncDevPanel: React.FC = () => {
       setIsBusy(false);
     }
   }, [client]);
+
+  // Keep the test reconnect hook mounted when the production build hides the panel.
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const onReconnect = (): void => {
+      void handleForceReconnect();
+    };
+    window.addEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
+    return () => {
+      window.removeEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
+    };
+  }, [handleForceReconnect]);
 
   const handleWipe = useCallback(async (): Promise<void> => {
     setIsBusy(true);

@@ -212,6 +212,10 @@ export type ConflictResolutionStrategy = "useServer" | "keepMine";
  */
 export interface SyncCollectionStatus {
   queuedCount: number;
+  /**
+   * Unresolved conflicts plus resolved conflicts whose local persistence write
+   * has not succeeded yet.
+   */
   conflictCount: number;
   failedCount: number;
 }
@@ -221,6 +225,10 @@ export interface SyncStatus {
   isOnline: boolean;
   isSyncing: boolean;
   queuedCount: number;
+  /**
+   * Unresolved conflicts plus resolved conflicts whose local persistence write
+   * has not succeeded yet.
+   */
   conflictCount: number;
   /** Count of mutations in the terminal `failed` state. */
   failedCount: number;
