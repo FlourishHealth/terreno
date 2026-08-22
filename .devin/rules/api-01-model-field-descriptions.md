@@ -1,9 +1,6 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
-description: "Require description on all Mongoose model fields"
-globs: ["**/*"]
+trigger: always_on
 ---
-
 # Model Field Descriptions
 
 Every field in a Mongoose schema **must** have a `description` property. Descriptions flow through to the OpenAPI spec via `mongoose-to-swagger`, making the generated API documentation and SDK more useful.

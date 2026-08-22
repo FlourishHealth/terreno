@@ -1,9 +1,6 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
-description: "@terreno/api - Express/Mongoose REST API framework"
-globs: ["**/*"]
+trigger: always_on
 ---
-
 # @terreno/api
 
 Express/Mongoose REST API framework styled after Django REST Framework. This is a **backend-only** package — no React, no UI components, no frontend code.

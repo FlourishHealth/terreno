@@ -1,9 +1,6 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
-description: "@terreno/ui - React Native component library"
-globs: ["**/*"]
+trigger: always_on
 ---
-
 # @terreno/ui
 
 React Native UI component library with 90+ components and a three-layer theming system. This is a **frontend-only** package — no Express, no Mongoose, no backend code.

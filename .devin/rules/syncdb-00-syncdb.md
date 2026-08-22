@@ -1,9 +1,6 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
-description: "@terreno/syncdb - Local-first data layer for Terreno frontends"
-globs: ["**/*"]
+trigger: always_on
 ---
-
 # @terreno/syncdb
 
 Local-first data layer for frontends connecting to `@terreno/api` sync backends. The on-device TinyBase store is the UI source of truth: reads come from local state, writes apply optimistically into a durable outbox, and the server reconciles over socket deltas with HTTP snapshot catch-up. This is a **frontend data** package — no Express, no Mongoose, no backend code.

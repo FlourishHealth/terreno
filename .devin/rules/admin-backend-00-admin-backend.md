@@ -1,9 +1,6 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
-description: "@terreno/admin-backend - Admin panel backend plugin for @terreno/api"
-globs: ["**/*"]
+trigger: always_on
 ---
-
 # @terreno/admin-backend
 
 Admin panel backend plugin for @terreno/api that auto-generates admin CRUD endpoints for Mongoose models. This is a **backend-only** package — no React, no UI components, no frontend code.

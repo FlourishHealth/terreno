@@ -1,9 +1,6 @@
 ---
-targets: ["cursor", "devin", "copilot", "claudecode"]
-description: "@terreno/ai - AI service layer for Terreno apps"
-globs: ["**/*"]
+trigger: always_on
 ---
-
 # @terreno/ai
 
 AI service layer for Terreno apps providing GPT chat, request logging, and admin tools. Provider-agnostic via Vercel AI SDK. This is a **backend-only** package — no React, no UI components, no frontend code.
