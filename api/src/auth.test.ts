@@ -858,15 +858,6 @@ describe("addAuthRoutes /refresh_token error paths", () => {
   beforeEach(async () => {
     setSystemTime();
     await setupTestData();
-    if (!UserModel.schema.path("organizationIds")) {
-      UserModel.schema.add({
-        organizationIds: {
-          default: [],
-          description: "Organization memberships",
-          type: [String],
-        },
-      });
-    }
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,

@@ -10,6 +10,7 @@ export interface User {
   email: string;
   age?: number;
   disabled?: boolean;
+  organizationIds?: string[];
 }
 
 export interface SuperUser extends User {
@@ -57,6 +58,11 @@ const userSchema = new Schema<User>({
   admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
   age: {description: "The user's age", type: Number},
   name: {description: "The user's display name", type: String},
+  organizationIds: {
+    default: [],
+    description: "Organization memberships",
+    type: [String],
+  },
   username: {description: "The user's username", type: String},
 });
 
