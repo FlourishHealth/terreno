@@ -20,6 +20,7 @@ export {
   useScreenWidget,
 } from "./AdminProvider";
 export {AdminRefField, type AdminRefFieldProps} from "./AdminRefField";
+export {AdminRolesField} from "./AdminRolesField";
 export {AdminRolesList} from "./AdminRolesList";
 export {AdminScreenRouter, type AdminScreenRouterProps} from "./AdminScreenRouter";
 export {AdminScriptList} from "./AdminScriptList";

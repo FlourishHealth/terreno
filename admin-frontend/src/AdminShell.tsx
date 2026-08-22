@@ -61,6 +61,14 @@ const NavButton: React.FC<{
   </Box>
 );
 
+const isAuditLogModel = (model: AdminModelConfig): boolean => {
+  return model.name === "AdminAuditLog" || model.routePath.includes("audit-log");
+};
+
+const isFeatureFlagModel = (model: AdminModelConfig): boolean => {
+  return model.name === "FeatureFlag" || model.displayName === "Feature Flags";
+};
+
 interface AdminShellSidebarNavProps {
   allCustomScreens: AdminCustomScreen[];
   configurationPath?: string;
@@ -88,6 +96,23 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
 }) => {
   const sidebarIsColorful = sidebarVariant === "colorful";
   const sectionLabelColor = sidebarIsColorful ? "inverted" : "secondaryDark";
+  const models = grouped.flatMap(({models: groupModels}) => groupModels);
+  const auditLogModel = models.find(isAuditLogModel);
+  const featureFlagModel = models.find(isFeatureFlagModel);
+  const visibleGrouped = grouped
+    .map(({group, models: groupModels}) => ({
+      group,
+      models: groupModels.filter((model) => !isAuditLogModel(model) && !isFeatureFlagModel(model)),
+    }))
+    .filter(({models: groupModels}) => groupModels.length > 0);
+  const hasPlatformLinks = Boolean(
+    scripts.length > 0 ||
+      rolesPath ||
+      versionConfigPath ||
+      auditLogModel ||
+      featureFlagModel ||
+      configurationPath
+  );
 
   const runNav = useCallback(
     (action: () => void): void => {
@@ -99,83 +124,48 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
 
   return (
     <>
-      <Box direction="column" flex="grow" gap={3} minHeight={0} overflow="scrollY">
-        <NavButton
-          label="Home"
-          onPress={() => {
-            runNav(() => {
-              navigate("/");
-            });
-          }}
-          sidebarVariant={sidebarVariant}
-          testID="admin-shell-nav-home"
-        />
-        <Box direction="column" gap={1}>
-          <Text bold color={sectionLabelColor} size="sm">
-            Tools
-          </Text>
-          {scripts.length > 0 ? (
-            <NavButton
-              label="Scripts"
-              onPress={() => {
-                runNav(() => {
-                  navigate("/__scripts");
-                });
-              }}
-              sidebarVariant={sidebarVariant}
-              testID="admin-shell-nav-scripts"
-            />
-          ) : null}
-          {rolesPath ? (
-            <NavButton
-              label="Roles"
-              onPress={() => {
-                runNav(() => {
-                  navigate(rolesPath);
-                });
-              }}
-              sidebarVariant={sidebarVariant}
-              testID="admin-shell-nav-roles"
-            />
-          ) : null}
+      <Box direction="column" flex="grow" gap={4} minHeight={0} overflow="scrollY">
+        <Box direction="column">
           <NavButton
-            label="Version"
+            label="Home"
             onPress={() => {
               runNav(() => {
-                navigate(versionConfigPath);
+                navigate("/");
               });
             }}
             sidebarVariant={sidebarVariant}
-            testID="admin-shell-nav-version"
+            testID="admin-shell-nav-home"
           />
         </Box>
-        <Box direction="column" gap={1}>
-          <Text bold color={sectionLabelColor} size="sm">
-            Models
-          </Text>
-          {grouped.map(({group, models}) => (
-            <Box direction="column" gap={1} key={group}>
-              <Text bold color={sectionLabelColor} size="sm">
-                {group}
-              </Text>
-              {models.map((model) => (
-                <NavButton
-                  key={model.name}
-                  label={model.displayName}
-                  onPress={() => {
-                    runNav(() => {
-                      navigate(`/${model.name}`);
-                    });
-                  }}
-                  sidebarVariant={sidebarVariant}
-                  testID={`admin-shell-nav-model-${model.name}`}
-                />
-              ))}
-            </Box>
-          ))}
-        </Box>
+        {visibleGrouped.length > 0 ? (
+          <Box direction="column" gap={3} testID="admin-shell-nav-models">
+            <Text bold color={sectionLabelColor} size="sm">
+              Models
+            </Text>
+            {visibleGrouped.map(({group, models: groupModels}) => (
+              <Box direction="column" gap={1} key={group}>
+                <Text bold color={sectionLabelColor} size="sm">
+                  {group}
+                </Text>
+                {groupModels.map((model) => (
+                  <NavButton
+                    key={model.name}
+                    label={model.displayName}
+                    onPress={() => {
+                      runNav(() => {
+                        navigate(`/${model.name}`);
+                      });
+                    }}
+                    sidebarVariant={sidebarVariant}
+                    testID={`admin-shell-nav-model-${model.name}`}
+                  />
+                ))}
+              </Box>
+            ))}
+          </Box>
+        ) : null}
         {allCustomScreens.length > 0 ? (
-          <Box direction="column" gap={1}>
+          <Box direction="column" gap={1} testID="admin-shell-nav-screens">
             <Text bold color={sectionLabelColor} size="sm">
               Screens
             </Text>
@@ -194,17 +184,85 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             ))}
           </Box>
         ) : null}
-        {configurationPath ? (
-          <NavButton
-            label="Configuration"
-            onPress={() => {
-              runNav(() => {
-                router.push(configurationPath as Href);
-              });
-            }}
-            sidebarVariant={sidebarVariant}
-            testID="admin-shell-nav-configuration"
-          />
+        <Box flex="grow" />
+        {hasPlatformLinks ? (
+          <Box direction="column" gap={1} testID="admin-shell-nav-platform">
+            <Text bold color={sectionLabelColor} size="sm">
+              Platform
+            </Text>
+            {scripts.length > 0 ? (
+              <NavButton
+                label="Scripts"
+                onPress={() => {
+                  runNav(() => {
+                    navigate("/__scripts");
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-scripts"
+              />
+            ) : null}
+            {rolesPath ? (
+              <NavButton
+                label="Roles"
+                onPress={() => {
+                  runNav(() => {
+                    navigate(rolesPath);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-roles"
+              />
+            ) : null}
+            {versionConfigPath ? (
+              <NavButton
+                label="Version"
+                onPress={() => {
+                  runNav(() => {
+                    navigate(versionConfigPath);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-version"
+              />
+            ) : null}
+            {auditLogModel ? (
+              <NavButton
+                label="Audit Log"
+                onPress={() => {
+                  runNav(() => {
+                    navigate(`/${auditLogModel.name}`);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-audit-log"
+              />
+            ) : null}
+            {featureFlagModel ? (
+              <NavButton
+                label="Feature Flags"
+                onPress={() => {
+                  runNav(() => {
+                    navigate(`/${featureFlagModel.name}`);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-feature-flags"
+              />
+            ) : null}
+            {configurationPath ? (
+              <NavButton
+                label="Configuration"
+                onPress={() => {
+                  runNav(() => {
+                    router.push(configurationPath as Href);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-configuration"
+              />
+            ) : null}
+          </Box>
         ) : null}
       </Box>
       {footer ? <Box marginTop={4}>{footer}</Box> : null}
