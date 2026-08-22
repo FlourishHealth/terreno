@@ -31,6 +31,7 @@ const ModelTableScreen: React.FC = () => {
       apiBase={apiBase}
       breadcrumbs={breadcrumbs}
       configurationPath="/configuration"
+      rolesPath="/roles"
       routeBase=""
     >
       <AdminScreenRouter api={terrenoApi} apiBase={apiBase} name={model} routeBase="" />

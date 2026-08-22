@@ -9,6 +9,8 @@ import {loadDocOr404} from "./docLoader";
 import {APIError, ForbiddenError, ValidationError} from "./errors";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {checkPermissions, type PermissionMethod} from "./permissions";
+import {createIsPermitted} from "./rbac/middleware";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
 
 // At least two characters: leading letter plus one or more alphanumeric/_/- chars.
 export const ACTION_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]+$/;
@@ -24,7 +26,8 @@ export interface ActionContext<TDoc, TBody, TQuery> {
 
 interface BaseActionConfig<TBody, TQuery, TResponse> {
   method: "GET" | "POST";
-  permissions: PermissionMethod<unknown>[];
+  permissions?: PermissionMethod<unknown>[];
+  access?: {resource: string; action: string};
   body?: ZodSchema<TBody>;
   query?: ZodSchema<TQuery>;
   response?: ZodSchema<TResponse>;
@@ -71,15 +74,50 @@ const mapActionToCrudMethod = (scope: ActionScope, httpMethod: "GET" | "POST"): 
   return httpMethod === "GET" ? "list" : "create";
 };
 
+const resolveActionAccess = (
+  action: BaseActionConfig<unknown, unknown, unknown>,
+  scope: ActionScope,
+  routerAccess?: ModelRouterAccessOptions
+): {action: string; resource: string} | null | undefined => {
+  if (action.access) {
+    return action.access;
+  }
+  if (!routerAccess?.resource) {
+    return undefined;
+  }
+  const crud = mapActionToCrudMethod(scope, action.method);
+  const mapped = routerAccess.actions?.[crud];
+  if (mapped === null) {
+    return null;
+  }
+  return {action: mapped ?? crud, resource: routerAccess.resource};
+};
+
 export const runActionPermissions = async <T>(
   action: BaseActionConfig<unknown, unknown, unknown>,
   scope: ActionScope,
   model: Model<T>,
   req: Request,
-  doc?: T
+  doc?: T,
+  accessControl?: AnyTerrenoAccess,
+  routerAccess?: ModelRouterAccessOptions
 ): Promise<void> => {
   const method = mapActionToCrudMethod(scope, action.method);
-  const allowed = await checkPermissions(method, action.permissions, req.user, doc);
+  let permissions = action.permissions;
+  const rbacAccess = resolveActionAccess(action, scope, routerAccess);
+  if (rbacAccess === null || permissions?.length === 0) {
+    permissions = [];
+  } else if (rbacAccess && accessControl) {
+    const isPermitted = createIsPermitted({can: accessControl.can});
+    const rbacCheck = isPermitted({
+      [rbacAccess.resource]: [rbacAccess.action],
+    }) as PermissionMethod<unknown>;
+    permissions = [...(action.permissions ?? []), rbacCheck];
+  }
+  if (!permissions) {
+    throw new APIError({status: 500, title: "Action missing permissions configuration"});
+  }
+  const allowed = await checkPermissions(method, permissions, req.user, doc);
   if (allowed) {
     return;
   }
@@ -301,11 +339,14 @@ const validateActionConfig = (
       `Invalid action name "${name}". Action names must match ${ACTION_NAME_PATTERN.toString()}`
     );
   }
-  if (config.permissions === undefined) {
+  if (config.permissions === undefined && !config.access) {
     throw new Error(
-      `Action "${name}" (${scope}) is missing required "permissions". ` +
-        "Provide at least one permission function, or [] to disable the action."
+      `Action "${name}" (${scope}) is missing required "permissions" or "access". ` +
+        "Provide at least one permission function, an access descriptor, or [] to disable the action."
     );
+  }
+  if (config.permissions !== undefined && config.permissions.length === 0 && !config.access) {
+    return;
   }
   if (config.method !== "GET" && config.method !== "POST") {
     throw new Error(`Action "${name}" (${scope}) only supports GET and POST methods`);
@@ -353,7 +394,15 @@ const buildActionMiddleware = <T>(
 
   const preDocPermissions = async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      await runActionPermissions(action, scope, model, req);
+      await runActionPermissions(
+        action,
+        scope,
+        model,
+        req,
+        undefined,
+        options.accessControl,
+        options.access
+      );
       return next();
     } catch (error) {
       return next(error);
@@ -370,7 +419,15 @@ const buildActionMiddleware = <T>(
               options.populatePaths
             );
             (req as Request & {obj?: T}).obj = doc;
-            await runActionPermissions(action, scope, model, req, doc);
+            await runActionPermissions(
+              action,
+              scope,
+              model,
+              req,
+              doc,
+              options.accessControl,
+              options.access
+            );
             return next();
           } catch (error) {
             return next(error);

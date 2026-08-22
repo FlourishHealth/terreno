@@ -18,6 +18,7 @@ export * from "./tagGenerator";
 export * from "./useFeatureFlags";
 export * from "./useMCPTools";
 export * from "./useOfflineStatus";
+export * from "./usePermissions";
 export * from "./useRealtimeDebug";
 export * from "./useServerStatus";
 export * from "./useTerrenoChat";

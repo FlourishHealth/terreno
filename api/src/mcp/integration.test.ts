@@ -5,8 +5,16 @@ import mongoose, {Schema} from "mongoose";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
+import {createAccess} from "../rbac/access";
+import {terrenoStatements} from "../rbac/statements";
+import {setupDb} from "../tests";
 import {handleCreate, handleDelete, handleList, handleRead, handleUpdate} from "./handlers";
-import {clearMCPRegistry, registerMCPModel} from "./registry";
+import {
+  clearMCPRegistry,
+  getMCPRegistry,
+  registerMCPModel,
+  updateMCPRegistryOptions,
+} from "./registry";
 import {generateAllTools} from "./toolGenerator";
 import type {MCPRegistryEntry, MCPRequest} from "./types";
 
@@ -40,6 +48,11 @@ interface TestDocFields {
 
 const TodoModel = getOrCreateModel("MCPTodo", todoSchema);
 const OwnerModel = getOrCreateModel("MCPOwner", ownerSchema);
+const userWriteSchema = new Schema({
+  email: {type: String},
+  roles: {default: [], type: [String]},
+});
+const UserWriteModel = getOrCreateModel("MCPUserWrite", userWriteSchema);
 
 interface TestUser {
   _id: mongoose.Types.ObjectId;
@@ -120,6 +133,7 @@ describe("MCP Integration", () => {
   beforeEach(async () => {
     await TodoModel.deleteMany({});
     await OwnerModel.deleteMany({});
+    await UserWriteModel.deleteMany({});
     clearMCPRegistry();
     entry = createEntry();
   });
@@ -147,6 +161,79 @@ describe("MCP Integration", () => {
 
       expect(parsed.error).toBeDefined();
       expect(parsed.error).toContain("Permission denied");
+    });
+
+    it("rejects create fields outside the RBAC write mask", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Writer",
+            name: "mcp-writer",
+            permissions: {todo: ["create", "read", "update", "list"]},
+          },
+        ],
+        fieldViews: {
+          todo: {
+            createView: "deny",
+            select: async () => "public",
+            views: {
+              public: {omit: [], read: "*", write: ["title"]},
+            },
+          },
+        },
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+      const writer = {...normalUser, roles: ["mcp-writer"]};
+      const result = await handleCreate(
+        {
+          ...entry,
+          options: {
+            ...entry.options,
+            access: {resource: "todo"},
+            accessControl: access as never,
+            preCreate: undefined,
+          },
+        },
+        {completed: true, title: "Secret"},
+        asUser(writer)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.error).toContain("Validation failed");
+      expect(await TodoModel.countDocuments()).toBe(0);
+    });
+
+    it("drops User roles on MCP create when accessControl is set", async () => {
+      const writeEntry: MCPRegistryEntry = {
+        config: {methods: ["create"]},
+        model: UserWriteModel,
+        modelName: "User",
+        options: {
+          accessControl: {} as never,
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [],
+            list: [],
+            read: [],
+            update: [],
+          },
+        },
+      };
+      const result = await handleCreate(
+        writeEntry,
+        {email: "mcp-roles@example.com", roles: ["superadmin"]},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.data.email).toBe("mcp-roles@example.com");
+      expect(parsed.data.roles ?? []).toEqual([]);
+      const stored = await UserWriteModel.findOne({email: "mcp-roles@example.com"}).lean();
+      expect(stored?.roles ?? []).toEqual([]);
     });
 
     it("strips REST excludeFromCreate fields before persist", async () => {
@@ -550,6 +637,82 @@ describe("MCP Integration", () => {
 
       expect(parsed.data.title).toBe("Still mine");
       expect(String(parsed.data.ownerId)).toBe(normalUser.id);
+    });
+
+    it("rejects update fields outside the RBAC write mask", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Writer",
+            name: "mcp-updater",
+            permissions: {todo: ["create", "read", "update", "list"]},
+          },
+        ],
+        fieldViews: {
+          todo: {
+            select: async () => "public",
+            views: {
+              public: {omit: [], read: "*", write: ["title"]},
+            },
+          },
+        },
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+      const writer = {...normalUser, roles: ["mcp-updater"]};
+      const doc = await TodoModel.create({
+        completed: false,
+        ownerId: normalUser._id,
+        title: "Keep owner",
+      });
+      const result = await handleUpdate(
+        {
+          ...entry,
+          options: {
+            ...entry.options,
+            access: {resource: "todo"},
+            accessControl: access as never,
+          },
+        },
+        {completed: true, id: doc._id.toString(), title: "Still mine"},
+        asUser(writer)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.error).toContain("Validation failed");
+      expect((await TodoModel.findById(doc._id))?.completed).toBe(false);
+    });
+
+    it("drops User roles on MCP update when accessControl is set", async () => {
+      const doc = await UserWriteModel.create({email: "mcp-roles-update@example.com", roles: []});
+      const writeEntry: MCPRegistryEntry = {
+        config: {methods: ["update"]},
+        model: UserWriteModel,
+        modelName: "User",
+        options: {
+          accessControl: {} as never,
+          permissions: {
+            create: [],
+            delete: [],
+            list: [],
+            read: [],
+            update: [Permissions.IsAuthenticated],
+          },
+        },
+      };
+      const result = await handleUpdate(
+        writeEntry,
+        {email: "mcp-roles-update@example.com", id: doc._id.toString(), roles: ["superadmin"]},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+      expect(parsed.data.email).toBe("mcp-roles-update@example.com");
+      expect(parsed.data.roles ?? []).toEqual([]);
+      expect((await UserWriteModel.findById(doc._id).lean())?.roles ?? []).toEqual([]);
     });
 
     it("strips MCP excludeFields from the update persist payload", async () => {
@@ -1275,6 +1438,36 @@ describe("MCP Integration", () => {
       const tools = generateAllTools([entry]);
 
       expect(tools.length).toBeGreaterThan(0);
+    });
+
+    it("updateMCPRegistryOptions replaces permissions used by handlers", async () => {
+      registerMCPModel(TodoModel, entry.config, entry.options);
+      updateMCPRegistryOptions("MCPTodo", {
+        ...entry.options,
+        permissions: {
+          ...entry.options.permissions,
+          delete: [],
+        },
+      });
+
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Locked"});
+      const registered = getMCPRegistry()[0];
+      expect(registered).toBeDefined();
+      const result = await handleDelete(registered, {id: doc._id.toString()}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(parsed.error).toContain("cannot delete");
+      expect(await TodoModel.findById(doc._id)).toBeTruthy();
+    });
+
+    it("updateMCPRegistryOptions no-ops for an unknown model", () => {
+      registerMCPModel(TodoModel, {methods: ["list"]}, entry.options);
+      const original = getMCPRegistry()[0]?.options;
+      updateMCPRegistryOptions("MissingModel", {
+        ...entry.options,
+        permissions: {...entry.options.permissions, delete: []},
+      });
+      expect(getMCPRegistry()[0]?.options).toBe(original);
     });
 
     it("generates correct tool names", () => {

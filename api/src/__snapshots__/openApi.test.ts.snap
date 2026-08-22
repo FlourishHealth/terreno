@@ -244,6 +244,14 @@ exports[`openApi gets the openapi.json 1`] = `
                                   "description": "The user's display name",
                                   "type": "string",
                                 },
+                                "organizationIds": {
+                                  "default": [],
+                                  "description": "Organization memberships",
+                                  "items": {
+                                    "type": "string",
+                                  },
+                                  "type": "array",
+                                },
                                 "salt": {
                                   "type": "string",
                                 },
@@ -349,6 +357,14 @@ exports[`openApi gets the openapi.json 1`] = `
                               "name": {
                                 "description": "The user's display name",
                                 "type": "string",
+                              },
+                              "organizationIds": {
+                                "default": [],
+                                "description": "Organization memberships",
+                                "items": {
+                                  "type": "string",
+                                },
+                                "type": "array",
                               },
                               "salt": {
                                 "type": "string",
@@ -563,6 +579,14 @@ exports[`openApi gets the openapi.json 1`] = `
                           "description": "The user's display name",
                           "type": "string",
                         },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -668,6 +692,14 @@ exports[`openApi gets the openapi.json 1`] = `
                       "name": {
                         "description": "The user's display name",
                         "type": "string",
+                      },
+                      "organizationIds": {
+                        "default": [],
+                        "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
                       },
                       "salt": {
                         "type": "string",
@@ -811,6 +843,14 @@ exports[`openApi gets the openapi.json 1`] = `
                             "description": "The user's display name",
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "default": [],
+                            "description": "Organization memberships",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -916,6 +956,14 @@ exports[`openApi gets the openapi.json 1`] = `
                         "name": {
                           "description": "The user's display name",
                           "type": "string",
+                        },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
                         },
                         "salt": {
                           "type": "string",
@@ -1189,6 +1237,14 @@ exports[`openApi gets the openapi.json 1`] = `
                             "description": "The user's display name",
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "default": [],
+                            "description": "Organization memberships",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -1294,6 +1350,14 @@ exports[`openApi gets the openapi.json 1`] = `
                         "name": {
                           "description": "The user's display name",
                           "type": "string",
+                        },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
                         },
                         "salt": {
                           "type": "string",
@@ -1501,6 +1565,14 @@ exports[`openApi gets the openapi.json 1`] = `
                           "description": "The user's display name",
                           "type": "string",
                         },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -1606,6 +1678,14 @@ exports[`openApi gets the openapi.json 1`] = `
                       "name": {
                         "description": "The user's display name",
                         "type": "string",
+                      },
+                      "organizationIds": {
+                        "default": [],
+                        "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
                       },
                       "salt": {
                         "type": "string",
@@ -1749,6 +1829,14 @@ exports[`openApi gets the openapi.json 1`] = `
                             "description": "The user's display name",
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "default": [],
+                            "description": "Organization memberships",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -1854,6 +1942,14 @@ exports[`openApi gets the openapi.json 1`] = `
                         "name": {
                           "description": "The user's display name",
                           "type": "string",
+                        },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
                         },
                         "salt": {
                           "type": "string",
@@ -2204,6 +2300,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   "description": "The user's display name",
                                   "type": "string",
                                 },
+                                "organizationIds": {
+                                  "default": [],
+                                  "description": "Organization memberships",
+                                  "items": {
+                                    "type": "string",
+                                  },
+                                  "type": "array",
+                                },
                                 "salt": {
                                   "type": "string",
                                 },
@@ -2309,6 +2413,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                               "name": {
                                 "description": "The user's display name",
                                 "type": "string",
+                              },
+                              "organizationIds": {
+                                "default": [],
+                                "description": "Organization memberships",
+                                "items": {
+                                  "type": "string",
+                                },
+                                "type": "array",
                               },
                               "salt": {
                                 "type": "string",
@@ -2523,6 +2635,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "description": "The user's display name",
                           "type": "string",
                         },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -2628,6 +2748,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "name": {
                         "description": "The user's display name",
                         "type": "string",
+                      },
+                      "organizationIds": {
+                        "default": [],
+                        "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
                       },
                       "salt": {
                         "type": "string",
@@ -2771,6 +2899,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "description": "The user's display name",
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "default": [],
+                            "description": "Organization memberships",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -2876,6 +3012,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "name": {
                           "description": "The user's display name",
                           "type": "string",
+                        },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
                         },
                         "salt": {
                           "type": "string",
@@ -3149,6 +3293,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "description": "The user's display name",
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "default": [],
+                            "description": "Organization memberships",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -3254,6 +3406,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "name": {
                           "description": "The user's display name",
                           "type": "string",
+                        },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
                         },
                         "salt": {
                           "type": "string",
@@ -3461,6 +3621,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "description": "The user's display name",
                           "type": "string",
                         },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -3566,6 +3734,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "name": {
                         "description": "The user's display name",
                         "type": "string",
+                      },
+                      "organizationIds": {
+                        "default": [],
+                        "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
                       },
                       "salt": {
                         "type": "string",
@@ -3709,6 +3885,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "description": "The user's display name",
                             "type": "string",
                           },
+                          "organizationIds": {
+                            "default": [],
+                            "description": "Organization memberships",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -3814,6 +3998,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "name": {
                           "description": "The user's display name",
                           "type": "string",
+                        },
+                        "organizationIds": {
+                          "default": [],
+                          "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
                         },
                         "salt": {
                           "type": "string",

@@ -25,6 +25,7 @@ const ModelEditScreen: React.FC = () => {
       apiBase={apiBase}
       breadcrumbs={breadcrumbs}
       configurationPath="/configuration"
+      rolesPath="/roles"
       routeBase=""
     >
       <AdminModelForm

@@ -32,6 +32,21 @@ export const registerMCPModel = (
   });
 };
 
+/**
+ * Replace options on an existing MCP registry entry after TerrenoApp injects
+ * accessControl (same contract as updateRealtimeRegistryOptions).
+ */
+export const updateMCPRegistryOptions = (
+  modelName: string,
+  options: ModelRouterOptions<unknown>
+): void => {
+  const existing = mcpRegistry.find((entry) => entry.modelName === modelName);
+  if (!existing) {
+    return;
+  }
+  existing.options = options as MCPRegistryEntry["options"];
+};
+
 export const registerMCPTool = (tool: MCPCustomTool): void => {
   const existingIndex = mcpCustomTools.findIndex((registered) => registered.name === tool.name);
   if (existingIndex >= 0) {

@@ -1,9 +1,11 @@
 import {DateTime} from "luxon";
-import type {HydratedDocument} from "mongoose";
+import mongoose, {type HydratedDocument} from "mongoose";
 import type {PassportLocalMongooseDocument} from "passport-local-mongoose";
 
 import {APIError} from "../errors";
 import {logger} from "../logger";
+import {createRbacAuditModel} from "../rbac/auditModel";
+import {createRbacRoleModel} from "../rbac/roleModel";
 import {FoodModel, RequiredModel, type User, UserModel} from "./models";
 import type {CachedTestData, TestData, TestFoods, TestRequired, TestUsers} from "./types";
 
@@ -17,6 +19,8 @@ export const clearTestCollections = async (): Promise<void> => {
     UserModel.deleteMany({}),
     FoodModel.deleteMany({}),
     RequiredModel.deleteMany({}),
+    createRbacRoleModel(mongoose.connection).deleteMany({}),
+    createRbacAuditModel(mongoose.connection).deleteMany({}),
   ]).catch(logger.catch);
 };
 

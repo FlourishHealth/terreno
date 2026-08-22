@@ -1,6 +1,6 @@
 # Implementation Plan: Infrastructure MCP server (`@terreno/infra-mcp`)
 
-**Status:** Draft — blocked on the RBAC module ([rbac-permissions.md](rbac-permissions.md)) landing in `@terreno/api`
+**Status:** Draft — unblocked; RBAC module is Complete ([rbac-permissions.md](rbac-permissions.md))
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1090
 **Branch:** TBD
 **Owner:** TBD
@@ -229,7 +229,7 @@ No new frontend package. Admin surfaces reuse `@terreno/admin-backend` + `@terre
 
 - **No data migrations** — all collections are new.
 - Rollout is additive: new package, new Cloud Run service. Nothing existing changes until Phase 2's cloud-agent credential switch, which is coordinated: keep `GCP_SA_*` injection until the MCP path is verified, then remove.
-- Blocked dependency: the RBAC module PR must merge first (Phase 1 RBAC wiring consumes `createAccess`, `rbacUserPlugin`, `rbacRouter`, default-role seeding).
+- RBAC dependency: the RBAC module is Complete ([rbac-permissions.md](rbac-permissions.md)). Phase 1 wiring consumes `createAccess`, `rbacUserPlugin`, `rbacRouter`, default-role seeding.
 
 ## Activity Log & User Updates
 
