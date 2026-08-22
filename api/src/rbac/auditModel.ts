@@ -92,3 +92,12 @@ export const recordRbacAudit = async (
     targetUserId: args.targetUserId,
   });
 };
+
+export const normalizeRbacAuditSinks = <T extends (record: RbacAuditWrite) => unknown>(
+  auditSink?: T | T[]
+): T[] => {
+  if (!auditSink) {
+    return [];
+  }
+  return Array.isArray(auditSink) ? auditSink : [auditSink];
+};

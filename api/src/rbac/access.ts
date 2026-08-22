@@ -1,5 +1,5 @@
 import type {User} from "../auth";
-
+import {normalizeRbacAuditSinks} from "./auditModel";
 import {createIsPermitted, createRequireAccess} from "./middleware";
 import {createPermissionResolver} from "./resolve";
 import {createRoleManager} from "./roleManager";
@@ -27,6 +27,12 @@ const EMPTY_FIELD_MASK: FieldMask = {
 };
 
 export const createAccess = <S extends Statements>(options: AccessOptions<S>): TerrenoAccess<S> => {
+  const persistAudit = options.persistAudit !== false;
+  const auditSinks = normalizeRbacAuditSinks(options.auditSink);
+  if (!persistAudit && auditSinks.length === 0) {
+    throw new Error("RBAC audit requires persistAudit or at least one auditSink");
+  }
+
   const mergedStatements = mergeStatements(options.statements) as S;
   const rbacRoleModel = createRbacRoleModel(options.connection);
 
@@ -39,11 +45,13 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
   });
 
   const {roleManager} = createRoleManager({
+    auditSinks,
     connection: options.connection,
     defaultRoles: options.defaultRoles,
     getActorPermissions: (user) => resolver.resolvePermissionsForUser(user),
     getPreviewPermissions: (user) => resolver.resolvePermissionsForUserUncached(user),
     invalidateCache: resolver.invalidateCache,
+    persistAudit,
     statements: mergedStatements,
     userModel: options.userModel,
   });

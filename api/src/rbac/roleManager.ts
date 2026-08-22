@@ -10,7 +10,7 @@ import {
   terrenoDefaultRoles,
 } from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
-import type {RoleManager} from "./types";
+import type {RbacAuditSink, RoleManager} from "./types";
 
 const assertCanManageRoles = async (
   actor: User,
@@ -98,6 +98,8 @@ export const createRoleManager = (args: {
   getPreviewPermissions: (user: User) => Promise<PermissionSet>;
   invalidateCache: (invalidateArgs?: {userId?: string}) => void;
   userModel?: UserModel;
+  persistAudit?: boolean;
+  auditSinks?: RbacAuditSink[];
 }): {roleManager: RoleManager} => {
   const {
     connection,
@@ -107,18 +109,25 @@ export const createRoleManager = (args: {
     getPreviewPermissions,
     invalidateCache,
     userModel,
+    persistAudit = true,
+    auditSinks = [],
   } = args;
 
   const rbacRoleModel = createRbacRoleModel(connection);
-  const rbacAuditModel = createRbacAuditModel(connection);
+  const rbacAuditModel = persistAudit ? createRbacAuditModel(connection) : undefined;
 
-  const emitAudit = async (args: RbacAuditWrite): Promise<void> => {
+  const emitAudit = async (record: RbacAuditWrite): Promise<void> => {
     try {
-      await recordRbacAudit(rbacAuditModel, args);
+      if (rbacAuditModel) {
+        await recordRbacAudit(rbacAuditModel, record);
+      }
+      for (const sink of auditSinks) {
+        await sink(record);
+      }
     } catch (error) {
       logger.error("Failed to write RbacAudit", {
-        action: args.action,
-        actorId: args.actorId,
+        action: record.action,
+        actorId: record.actorId,
         error,
       });
       throw error;

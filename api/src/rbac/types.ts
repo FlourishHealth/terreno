@@ -5,6 +5,7 @@ import type {Connection} from "mongoose";
 import type {RESTMethod} from "../api";
 import type {User, UserModel} from "../auth";
 import type {PermissionMethod} from "../permissions";
+import type {RbacAuditWrite} from "./auditModel";
 import type {RbacRoleDocument, RoleDefinition} from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
 
@@ -142,6 +143,10 @@ export interface ResourceFieldViews<_S extends Statements> {
   };
 }
 
+export type {PermissionSet, RbacAuditWrite};
+
+export type RbacAuditSink = (record: RbacAuditWrite) => void | Promise<void>;
+
 export interface AccessOptions<S extends Statements> {
   connection: Connection;
   statements: S;
@@ -154,9 +159,17 @@ export interface AccessOptions<S extends Statements> {
   cacheTtlMs?: number;
   resolvePermissions?: (args: {user: User}) => Promise<PermissionSet | null>;
   statementDescriptions?: Record<string, Record<string, string>>;
+  /**
+   * Extra destinations for RoleManager audit records (e.g. a consuming-app audit log).
+   * The built-in `RbacAudit` collection is still written unless `persistAudit` is false.
+   */
+  auditSink?: RbacAuditSink | RbacAuditSink[];
+  /**
+   * When false, skip the built-in `RbacAudit` collection. At least one `auditSink` is then
+   * required so role mutations cannot go unaudited.
+   */
+  persistAudit?: boolean;
 }
-
-export type {PermissionSet};
 
 export interface TerrenoAccess<S extends Statements> {
   readonly statements: S;

@@ -153,6 +153,75 @@ describe("roleManager", () => {
     expect(removeAudit.permissionDelta?.lost.todo).toEqual(["read"]);
   });
 
+  it("fans successful role writes out to a pluggable audit sink", async () => {
+    await setupDb();
+    const sinkRecords: Array<{action: string; targetRoleName?: string}> = [];
+    const access = createAccess({
+      auditSink: async (record) => {
+        sinkRecords.push({action: record.action, targetRoleName: record.targetRoleName});
+      },
+      connection: mongoose.connection,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    await access.roles.create({
+      actor,
+      role: {
+        displayName: "Sinked",
+        name: "sinked",
+        permissions: {todo: ["read"]},
+      },
+    });
+
+    const RbacAudit = createRbacAuditModel(mongoose.connection);
+    const persisted = await RbacAudit.findExactlyOne({
+      action: "role.create",
+      targetRoleName: "sinked",
+    });
+    expect(persisted.denied).toBe(false);
+    expect(sinkRecords).toEqual([{action: "role.create", targetRoleName: "sinked"}]);
+  });
+
+  it("can skip the built-in collection when persistAudit is false and a sink is set", async () => {
+    await setupDb();
+    const sinkRecords: string[] = [];
+    const access = createAccess({
+      auditSink: async (record) => {
+        sinkRecords.push(record.action);
+      },
+      connection: mongoose.connection,
+      persistAudit: false,
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const actor = createTestUser({roles: ["superadmin"]});
+    await access.roles.create({
+      actor,
+      role: {
+        displayName: "Sink Only",
+        name: "sink-only",
+        permissions: {todo: ["list"]},
+      },
+    });
+
+    expect(sinkRecords).toEqual(["role.create"]);
+    const RbacAudit = createRbacAuditModel(mongoose.connection);
+    expect(await RbacAudit.countDocuments({targetRoleName: "sink-only"})).toBe(0);
+  });
+
+  it("rejects createAccess when persistAudit is false and no auditSink is provided", () => {
+    expect(() =>
+      createAccess({
+        connection: mongoose.connection,
+        persistAudit: false,
+        statements: appStatements,
+      })
+    ).toThrow("RBAC audit requires persistAudit or at least one auditSink");
+  });
+
   it("assigns and unassigns roles on users", async () => {
     await setupDb();
     const UserModel = getRbacTestUserModel();

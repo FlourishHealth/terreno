@@ -10,7 +10,9 @@
 Phases 1–6 in section 8 are implemented. `RoleManager` emits `RbacAudit` (including
 `permissionDelta`) on create/update/remove/assign/unassign; denied escalation attempts are
 written with `denied: true`. `rbacRouter` is a thin HTTP adapter and does not write a second
-audit row. Seed upsert lives in `upsertSeededRole`; `RbacRole.seedDefaults({statements,
+audit row. Apps can attach `createAccess({auditSink})` (one sink or an array) to fan the same
+record into a consuming-app audit log. `persistAudit: false` skips the built-in collection
+and requires at least one sink. Seed upsert lives in `upsertSeededRole`; `RbacRole.seedDefaults({statements,
 extraRoles})` is the single seed entry. `previewRoleChange.affectedUserCount` is the number of
 users currently holding that role.
 
@@ -27,7 +29,7 @@ type `RbacRoleModel` remains exported. Migrate `import {RbacRoleModel} from "@te
 `createRbacRoleModel(connection)`.
 
 Left out of this close: Redis/pubsub cross-instance cache invalidation beyond in-process
-`invalidateCache`, and a pluggable audit sink besides the built-in collection.
+`invalidateCache`.
 
 ---
 
