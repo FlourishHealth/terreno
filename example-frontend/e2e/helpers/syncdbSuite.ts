@@ -21,11 +21,22 @@
  */
 import type {Browser, BrowserContext, Locator, Page, WebSocketRoute} from "@playwright/test";
 import type {ConsoleGuard} from "../fixtures/test";
-import type {E2EUser} from "../fixtures/testUsers";
-import {loginAs} from "./login";
 
 export const SYNC_DB_NAME = "terreno-example";
 export const CONVERGE_TIMEOUT = 20_000;
+
+/**
+ * Per-test budget for the syncdb suites, applied with `test.describe.configure`.
+ *
+ * Playwright counts `beforeEach` against the test timeout, and these hooks seed the
+ * backend, log in through the UI, and then wait up to CONVERGE_TIMEOUT for the seeded
+ * sentinel — which can exceed the 30s CI default before the test body even starts. When
+ * it does, the run dies with a generic "Test timeout exceeded while running beforeEach"
+ * and truncates whichever convergence assertion was mid-flight, so the failure says
+ * nothing about which wait actually stalled. Every meaningful wait in these suites
+ * carries its own explicit timeout; this only bounds the total.
+ */
+export const SYNCDB_TEST_TIMEOUT = 90_000;
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
@@ -346,16 +357,30 @@ export const createTodoViaUi = async (page: Page, title: string): Promise<void> 
   await todoItemByTitle(page, title).waitFor({state: "visible"});
 };
 
-/** Open a second logged-in browser session on the sync Todos screen. */
+/**
+ * Wait until this page's outbox is empty, i.e. every local mutation has been
+ * server-acked. Creating a todo only proves the optimistic local apply, so a test that
+ * asserts another session sees it needs this in between — otherwise a mutation stuck in
+ * the sender's queue fails as "the receiver never got the delta", blaming the wrong side.
+ */
+export const waitForOutboxDrained = async (page: Page): Promise<void> => {
+  await page.getByTestId("sync-queued-count").waitFor({state: "hidden", timeout: CONVERGE_TIMEOUT});
+};
+
+/**
+ * Open a second logged-in browser session on the sync Todos screen, cloning the
+ * authenticated storage state of `page` rather than driving the login form again. A
+ * second UI login costs seconds of the test budget on CI and adds an unrelated failure
+ * surface to tests that are about the sync protocol.
+ */
 export const openSecondSession = async (
   browser: Browser,
-  user: E2EUser
+  page: Page
 ): Promise<{context: BrowserContext; page: Page}> => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await loginAs(page, user);
-  await openSyncTodos(page);
-  return {context, page};
+  const context = await browser.newContext({storageState: await page.context().storageState()});
+  const secondPage = await context.newPage();
+  await openSyncTodos(secondPage);
+  return {context, page: secondPage};
 };
 
 /** Byte length of the encrypted syncdb blob in IndexedDB (0 when absent). */

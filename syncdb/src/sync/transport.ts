@@ -4,6 +4,7 @@ import type {
   SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNack,
+  SyncSubscribed,
 } from "../types";
 
 /** Default time to wait for a mutation ack/nack before rejecting. */
@@ -71,6 +72,12 @@ export interface SyncTransport {
   sendMutationBatch?: (request: SyncMutateBatchRequest) => Promise<SendMutationBatchResult>;
   /** Subscribe to inbound `sync:delta` events. Returns an unsubscribe function. */
   onDelta: (callback: (delta: SyncDelta) => void) => () => void;
+  /**
+   * Subscribe to the server's `sync:subscribed` confirmations. Returns an unsubscribe
+   * function. Optional so transports without a subscription handshake (HTTP-only
+   * doubles) satisfy the contract; callers must treat its absence as "never confirmed".
+   */
+  onSubscribed?: (callback: (subscribed: SyncSubscribed) => void) => () => void;
   /** Subscribe to connection status changes. Returns an unsubscribe function. */
   onStatusChange: (callback: (status: TransportStatus) => void) => () => void;
 }

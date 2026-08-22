@@ -62,6 +62,7 @@ export type {
   SyncSnapshotResponse,
   SyncStatus,
   SyncStreamInfo,
+  SyncSubscribed,
 } from "./types";
 
 // --- Local store and outbox (read surface) -------------------------------
