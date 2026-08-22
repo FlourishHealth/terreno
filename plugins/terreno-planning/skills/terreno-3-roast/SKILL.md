@@ -77,7 +77,7 @@ and reproducible evidence. Set `recommended_next_stage: pick`.
 
 Unavailable required environment/capability/access, ambiguous criterion requiring a human
 decision, or external service failure that prevents proof emits `BLOCKED` with exact
-classification and next action.
+classification, `recommended_next_stage: null`, and next action.
 
 ## Recommended next stage
 

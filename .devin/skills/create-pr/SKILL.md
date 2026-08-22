@@ -1,6 +1,8 @@
 ---
 name: create-pr
-description: Create a draft pull request for the current branch
+description: >-
+  Create or update a draft PR using Terreno template and preservation
+  conventions. Lifecycle composition: Brew after Roast proof.
 ---
 # Create Pull Request
 
@@ -67,7 +69,7 @@ Create a pull request for the current branch.
    - [ ] `bun run lint` passes
    - [ ] `bun run compile` passes (if TypeScript changed)
    - [ ] Docs updated (if user-facing behavior changed)
-   - [ ] `CHANGELOG.md` `## [Unreleased]` updated for user-facing changes
+   - [ ] `changelog/unreleased/<feature>.md` added for user-facing changes
    - [ ] DCO signed off (`git commit -s`) on every commit
    ```
 

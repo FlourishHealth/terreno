@@ -76,13 +76,16 @@ handling, and mandatory evidence gates.
 ## Failure conditions
 
 Failed final checks, review findings, push errors, or PR setup errors emit `FAIL` with
-evidence and the smallest corrective stage/action. Behavioral failures recommend Pick or
-Roast, not an implementation fix inside Brew.
+evidence and the smallest corrective stage/action: behavioral defects use
+`recommended_next_stage: pick`, stale/missing proof uses `recommended_next_stage: roast`,
+and submission-only retries use `recommended_next_stage: brew`. Do not fix implementation
+inside Brew.
 
 ## Blocked conditions
 
 Missing access, required human approval/decision, unsafe conflict, unavailable mandatory
-submission capability, or sensitive-data risk emits `BLOCKED` with exact action required.
+submission capability, or sensitive-data risk emits `BLOCKED` with
+`recommended_next_stage: null` and the exact action required.
 
 ## Recommended next stage
 

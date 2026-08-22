@@ -42,5 +42,34 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("must not execute Taste")));
   });
-});
 
+  it("rejects repository-specific commands in portable stages", (): void => {
+    const errors = validateStageContent({
+      content: `${readStage("terreno-2-pick")}\nRun bun run lint.`,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["recommended_next_stage: roast"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("repository-specific marker")));
+  });
+
+  it("rejects a missing non-pass transition marker", (): void => {
+    const content = readStage("terreno-1-grow").replace(
+      "recommended_next_stage: grow",
+      "missing-grow-retry"
+    );
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-1-grow",
+        nextMarkers: ["recommended_next_stage: pick", "recommended_next_stage: grow"],
+        stage: "grow",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("recommended_next_stage: grow")));
+  });
+});

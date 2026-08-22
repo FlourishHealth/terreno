@@ -19,15 +19,50 @@ interface ValidateStageContentOptions {
   definition: StageDefinition;
 }
 
+interface TextFile {
+  content: string;
+  path: string;
+}
+
 const STAGE_DEFINITIONS: StageDefinition[] = [
-  {directory: "terreno-1-grow", nextMarkers: ["recommended_next_stage: pick"], stage: "grow"},
-  {directory: "terreno-2-pick", nextMarkers: ["recommended_next_stage: roast"], stage: "pick"},
+  {
+    directory: "terreno-1-grow",
+    nextMarkers: [
+      "recommended_next_stage: pick",
+      "recommended_next_stage: grow",
+      "recommended_next_stage: null",
+    ],
+    stage: "grow",
+  },
+  {
+    directory: "terreno-2-pick",
+    nextMarkers: [
+      "recommended_next_stage: roast",
+      "recommended_next_stage: pick",
+      "recommended_next_stage: null",
+    ],
+    stage: "pick",
+  },
   {
     directory: "terreno-3-roast",
-    nextMarkers: ["recommended_next_stage: brew", "recommended_next_stage: pick"],
+    nextMarkers: [
+      "recommended_next_stage: brew",
+      "recommended_next_stage: pick",
+      "recommended_next_stage: null",
+    ],
     stage: "roast",
   },
-  {directory: "terreno-4-brew", nextMarkers: ["recommended_next_stage: taste"], stage: "brew"},
+  {
+    directory: "terreno-4-brew",
+    nextMarkers: [
+      "recommended_next_stage: taste",
+      "recommended_next_stage: pick",
+      "recommended_next_stage: roast",
+      "recommended_next_stage: brew",
+      "recommended_next_stage: null",
+    ],
+    stage: "brew",
+  },
   {
     directory: "terreno-5-taste",
     nextMarkers: ["recommended_next_stage: taste", "recommended_next_stage: null"],
@@ -69,7 +104,25 @@ const PORTABILITY_MARKERS = [
   "admin-frontend",
   "bun run",
   "MongoMemoryServer",
+  "docs/implementationPlans",
 ];
+
+const readMarkdownFiles = (directory: string): TextFile[] => {
+  const files: TextFile[] = [];
+
+  for (const entry of readdirSync(directory, {withFileTypes: true})) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...readMarkdownFiles(path));
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith(".md")) {
+      files.push({content: readFileSync(path, "utf8"), path});
+    }
+  }
+
+  return files;
+};
 
 export const validateStageContent = ({
   content,
@@ -104,7 +157,9 @@ export const validateStageContent = ({
 
   for (const marker of PORTABILITY_MARKERS) {
     if (content.includes(marker)) {
-      errors.push(`${prefix}: repository-specific marker belongs in a project skill: ${marker}`);
+      errors.push(
+        `${prefix}: repository-specific marker belongs in a project skill: ${marker}`
+      );
     }
   }
 
@@ -123,7 +178,9 @@ export const validateStageContent = ({
     }
     for (const pattern of TASTE_LOOP_PATTERNS) {
       if (pattern.test(content)) {
-        errors.push(`${prefix}: contains an internal waiting/loop pattern: ${pattern.source}`);
+        errors.push(
+          `${prefix}: contains an internal waiting/loop pattern: ${pattern.source}`
+        );
       }
     }
   }
@@ -135,6 +192,7 @@ export const validateLifecyclePlugin = ({
   rootDirectory,
 }: ValidateLifecyclePluginOptions): string[] => {
   const errors: string[] = [];
+  const pluginDirectory = join(rootDirectory, "plugins/terreno-planning");
   const skillsDirectory = join(rootDirectory, "plugins/terreno-planning/skills");
   const actualStageDirectories = readdirSync(skillsDirectory, {withFileTypes: true})
     .filter((entry) => entry.isDirectory() && /^terreno-\d-/.test(entry.name))
@@ -157,7 +215,14 @@ export const validateLifecyclePlugin = ({
     }
   }
 
-  const pluginDirectory = join(rootDirectory, "plugins/terreno-planning");
+  for (const {content, path} of readMarkdownFiles(join(pluginDirectory, "references"))) {
+    for (const marker of PORTABILITY_MARKERS) {
+      if (content.includes(marker)) {
+        errors.push(`portable plugin reference ${path} contains repository marker ${marker}`);
+      }
+    }
+  }
+
   const pluginFiles = [
     join(pluginDirectory, ".cursor-plugin/plugin.json"),
     join(rootDirectory, ".cursor-plugin/marketplace.json"),
@@ -171,7 +236,10 @@ export const validateLifecyclePlugin = ({
     }
   }
 
-  const migrationDocumentation = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
+  const migrationDocumentation = readFileSync(
+    join(rootDirectory, "plugins/README.md"),
+    "utf8"
+  );
   for (const retiredIdentifier of RETIRED_IDENTIFIERS) {
     if (!migrationDocumentation.includes(retiredIdentifier)) {
       errors.push(`migration documentation is missing retired identifier ${retiredIdentifier}`);
@@ -201,4 +269,3 @@ export const validateLifecyclePlugin = ({
 
   return errors;
 };
-

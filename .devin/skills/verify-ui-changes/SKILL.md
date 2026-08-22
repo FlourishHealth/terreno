@@ -3,6 +3,8 @@ name: verify-ui-changes
 description: >-
   Mandatory when any feature touches the frontend. Launch the app, log in,
   exercise the feature, save screenshots/videos, and post evidence to the PR.
+  Lifecycle composition: Pick for implementation runtime checks, Roast for
+  independent proof, and Taste after a UI-affecting review/CI fix.
 ---
 # Verify UI Changes
 

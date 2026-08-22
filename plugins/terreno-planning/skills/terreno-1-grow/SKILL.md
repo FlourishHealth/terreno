@@ -26,9 +26,10 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) a
 
 ## Procedure
 
-1. **Reconstruct.** Resolve the repository's existing IP/task conventions (default:
-   `docs/implementationPlans/<slug>.md` and `docs/tasks/<slug>.md`). Read prior state and
-   verify it against repository reality.
+1. **Reconstruct.** Resolve the repository's existing IP/task conventions from its
+   instructions and nearby artifacts. If none exists, choose a colocated IP/task pair,
+   record the new convention, and avoid creating a shared mutable index. Read prior state
+   and verify it against repository reality.
 2. **Discover supporting skills.** Inspect available repository/project skills and load
    those relevant to the affected domains. Record selected skills for downstream stages.
 3. **Research before asking.** Classify uncertainty:
@@ -49,9 +50,9 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) a
 7. **Write.** Produce the IP and a dependency-aware tracer-bullet task list. Each task
    names files/seams, acceptance criteria, blockers, verification, and relevant supporting
    skills when discoverable.
-8. **Approve.** Show the existing 15-line verification summary. Set the repository's
-   approved status only after human confirmation. Update execution state and emit the
-   stage result.
+8. **Approve.** Show the 15-line approval summary defined in the grilling reference. Set
+   the repository's approved status only after human confirmation. Update execution state
+   and emit the stage result.
 
 ## Supporting skills
 
@@ -77,13 +78,15 @@ none is universally required.
 
 ## Failure conditions
 
-Malformed or contradictory artifacts emit `FAIL` with exact defects and a focused Grow
-retry. Do not pass incomplete criteria to Pick.
+Malformed or contradictory artifacts emit `FAIL` with exact defects,
+`recommended_next_stage: grow`, and a focused Grow retry. Do not pass incomplete criteria
+to Pick.
 
 ## Blocked conditions
 
 Unresolved human decisions, unavailable required evidence/access, or unsafe ambiguity emit
-`BLOCKED` with options, tradeoffs, and a recommended default when appropriate.
+`BLOCKED` with `recommended_next_stage: null`, options, tradeoffs, and a recommended
+default when appropriate.
 
 ## Recommended next stage
 

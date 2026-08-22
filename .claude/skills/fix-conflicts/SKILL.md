@@ -19,11 +19,13 @@ after the push; the outer lifecycle loop owns later CI observation.
    ```
    - If there are uncommitted changes, ask the user whether to stash them or abort
 
-2. Fetch and merge the latest master into the current branch:
+2. Resolve the PR/default base branch, then fetch and merge it into the current branch:
    ```
-   git fetch origin master
-   git merge origin/master
+   BASE_BRANCH="$(gh pr view --json baseRefName --jq .baseRefName 2>/dev/null || git remote show origin | awk '/HEAD branch/ {print $NF}')"
+   git fetch origin "$BASE_BRANCH"
+   git merge "origin/$BASE_BRANCH"
    ```
+   - If `BASE_BRANCH` is empty, stop and ask for the base; never guess `master`/`main`.
    - If the fetch or merge fails, check network connectivity and repository access permissions. Notify the user if the issue persists.
 
 3. Check for merge conflicts:

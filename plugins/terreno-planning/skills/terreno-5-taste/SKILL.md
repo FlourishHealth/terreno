@@ -94,14 +94,16 @@ Emit `PASS` with `recommended_next_stage: null`.
 
 Taste normally converts actionable failures into one bounded fix and then `PENDING`.
 If the iteration itself fails before it can observe or act, emit `FAIL` with exact
-evidence and recommend a focused Taste retry. Do not make repeated speculative edits.
+evidence, `recommended_next_stage: taste`, and a focused retry. Do not make repeated
+speculative edits.
 
 ## Blocked conditions
 
 Emit `BLOCKED` for inaccessible checks/services, unavailable mandatory verifier,
 irreconcilable behavior decisions, destructive/security/public-API choices, exhausted
 safe infrastructure retry, or policy-required human action. Include the current head,
-what was attempted, and the single action/decision required.
+what was attempted, `recommended_next_stage: null`, and the single action/decision
+required.
 
 ## Recommended next stage
 

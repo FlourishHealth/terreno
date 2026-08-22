@@ -11,4 +11,3 @@ if (errors.length > 0) {
 }
 
 console.info("Lifecycle skills: canonical, portable, transition-safe, and loop-compatible.");
-

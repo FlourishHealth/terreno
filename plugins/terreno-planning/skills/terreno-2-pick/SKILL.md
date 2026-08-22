@@ -83,14 +83,14 @@ generated-code workflows, and repository gotchas.
 ## Failure conditions
 
 Tests, internal reviews, or implementation checks that objectively fail emit `FAIL` with
-expected/actual/evidence. Recommend `pick` only with a focused next hypothesis; otherwise
-escalate under blocked conditions.
+expected/actual/evidence and `recommended_next_stage: pick` only with a focused next
+hypothesis; otherwise escalate under blocked conditions.
 
 ## Blocked conditions
 
 An unresolved product/security/data/public-API decision, unsafe destructive change,
 missing required verifier, inaccessible dependency, or scope expansion emits `BLOCKED`
-with the exact decision/action required.
+with `recommended_next_stage: null` and the exact decision/action required.
 
 ## Recommended next stage
 

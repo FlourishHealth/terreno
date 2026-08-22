@@ -91,6 +91,12 @@ Each invocation:
 5. Replace `last_result`, merge artifact references, and set `next`.
 6. Emit the same result to the caller so the loop can persist it elsewhere.
 
+These six state operations are mandatory whenever a stage says “update execution state.”
+Every result also includes a concrete `recommended_next_action`, even when
+`recommended_next_stage` is `null`. For `BLOCKED`, set `next.human_required: true` only
+when the blocker is a human decision/policy gate; access/environment/external blockers
+remain false unless human action is genuinely required.
+
 If no writable artifact exists, still emit the result. If the outer loop cannot preserve
 that result for the next fresh invocation, return `BLOCKED` and name the missing state
 transport.

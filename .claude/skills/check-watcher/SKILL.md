@@ -9,7 +9,8 @@ disable-model-invocation: true
 ---
 # Check Watcher
 
-Monitor GitHub Actions checks and auto-fix CI failures. Designed to be called standalone or from other skills.
+Monitor GitHub Actions checks and auto-fix CI failures as an explicitly invoked legacy
+standalone workflow. Lifecycle skills do not call it.
 
 Keep this skill scoped to CI only:
 

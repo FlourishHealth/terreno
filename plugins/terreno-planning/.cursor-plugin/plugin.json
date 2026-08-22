@@ -11,6 +11,6 @@
   "skills": "skills",
   "compatibility": {
     "terreno": ">=1.0.0",
-    "expoSdk": "~54"
+    "expoSdk": "~57"
   }
 }

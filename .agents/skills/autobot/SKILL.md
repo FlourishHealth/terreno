@@ -9,6 +9,8 @@ description: >-
 
 Use the installed `terreno-planning` lifecycle. This file owns orchestration only; it does
 not duplicate Brew/Taste engineering procedures.
+Invoke it explicitly; generated agent formats that cannot encode
+`disable-model-invocation` must still treat it as user-invoked only.
 
 ## Inputs
 

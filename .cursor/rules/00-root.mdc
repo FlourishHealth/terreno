@@ -23,6 +23,16 @@ A monorepo containing shared packages for building full-stack applications with 
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
 
+## Agentic lifecycle
+
+The reusable planning plugin uses five bounded transitions:
+**Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
+**Taste** (react once). The outer loop owns state persistence, waiting, retry, stop, and
+escalation. See `plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+
+Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
+project commands and domain conventions belong there, not in the portable plugin.
+
 ## Development
 
 Uses [Bun](https://bun.sh/) as the package manager.

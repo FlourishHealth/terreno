@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 The reusable lifecycle owns submission in **Brew** (`terreno-4-brew`). This shim exists
 for concrete existing `/submit` callers; it is not a second source of submission rules.
+Invoke it explicitly; generated agent formats that cannot encode
+`disable-model-invocation` must still treat it as user-invoked only.
 
 1. Require a Roast `PASS` result for the current implementation. If missing, invoke Roast
    first or return `BLOCKED`.
