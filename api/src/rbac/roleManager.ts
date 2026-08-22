@@ -1,13 +1,13 @@
 import type {User, UserModel} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
+import {createRbacAuditModel, type RbacAuditWrite, recordRbacAudit} from "./auditModel";
 import {diffPermissionSets, isPermissionSubset, validatePermissionSet} from "./permissionUtils";
 import {
   createRbacRoleModel,
   type RbacRoleDocument,
   type RoleDefinition,
   terrenoDefaultRoles,
-  upsertSeededRole,
 } from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
 import type {RoleManager} from "./types";
@@ -110,15 +110,45 @@ export const createRoleManager = (args: {
   } = args;
 
   const rbacRoleModel = createRbacRoleModel(connection);
+  const rbacAuditModel = createRbacAuditModel(connection);
+
+  const emitAudit = async (args: RbacAuditWrite): Promise<void> => {
+    try {
+      await recordRbacAudit(rbacAuditModel, args);
+    } catch (error) {
+      logger.error("Failed to write RbacAudit", {
+        action: args.action,
+        actorId: args.actorId,
+        error,
+      });
+      throw error;
+    }
+  };
+
+  const assertNoEscalationOrAudit = async (args: {
+    actor: User;
+    permissions: PermissionSet;
+    action: string;
+    targetRoleName?: string;
+    targetUserId?: string;
+  }): Promise<void> => {
+    try {
+      await assertNoEscalation(args.actor, args.permissions, getActorPermissions);
+    } catch (error) {
+      await emitAudit({
+        action: args.action,
+        actorId: args.actor.id,
+        denied: true,
+        permissionDelta: {gained: args.permissions, lost: {}},
+        targetRoleName: args.targetRoleName,
+        targetUserId: args.targetUserId,
+      });
+      throw error;
+    }
+  };
 
   const seedDefaults = async (): Promise<void> => {
-    await rbacRoleModel.seedDefaults({statements});
-    for (const role of defaultRoles ?? []) {
-      if (terrenoDefaultRoles.some((defaultRole) => defaultRole.name === role.name)) {
-        continue;
-      }
-      await upsertSeededRole(rbacRoleModel, role, statements);
-    }
+    await rbacRoleModel.seedDefaults({extraRoles: defaultRoles, statements});
   };
 
   const roleManager: RoleManager = {
@@ -163,19 +193,37 @@ export const createRoleManager = (args: {
       for (const roleName of uniqueRoleNames) {
         const role = await rbacRoleModel.findExactlyOne({name: roleName});
         const permissions = role.permissions ?? {};
-        await assertNoEscalation(actor, permissions, getActorPermissions);
+        await assertNoEscalationOrAudit({
+          action: "role.assign",
+          actor,
+          permissions,
+          targetUserId: userId,
+        });
       }
 
       assertUserSaveAvailable(targetUser);
+      const before = await getPreviewPermissions(targetUser);
       const rbacUser = targetUser as unknown as User & {roles: string[]};
       rbacUser.roles = uniqueRoleNames;
       await targetUser.save();
       invalidateCache({userId});
+      const after = await getPreviewPermissions(targetUser);
+      await emitAudit({
+        action: "role.assign",
+        actorId: actor.id,
+        permissionDelta: diffPermissionSets(before, after),
+        targetUserId: userId,
+      });
     },
     create: async ({actor, role}) => {
       await assertCanManageRoles(actor, getActorPermissions);
       assertValidPermissionSet(role.permissions, statements);
-      await assertNoEscalation(actor, role.permissions, getActorPermissions);
+      await assertNoEscalationOrAudit({
+        action: "role.create",
+        actor,
+        permissions: role.permissions,
+        targetRoleName: role.name,
+      });
 
       const created = await rbacRoleModel.create({
         ...role,
@@ -183,6 +231,12 @@ export const createRoleManager = (args: {
         excludesRoles: role.excludesRoles ?? [],
         isLocked: role.isLocked ?? false,
         isSealed: role.isSealed ?? false,
+      });
+      await emitAudit({
+        action: "role.create",
+        actorId: actor.id,
+        permissionDelta: {gained: created.permissions, lost: {}},
+        targetRoleName: created.name,
       });
       return created;
     },
@@ -201,7 +255,12 @@ export const createRoleManager = (args: {
       const uniqueRoleNames = [...new Set(roleNames)];
       for (const roleName of uniqueRoleNames) {
         const role = await rbacRoleModel.findExactlyOne({name: roleName});
-        await assertNoEscalation(actor, role.permissions ?? {}, getActorPermissions);
+        await assertNoEscalationOrAudit({
+          action: "role.assign",
+          actor,
+          permissions: role.permissions ?? {},
+          targetUserId: userId,
+        });
       }
 
       const before = await getPreviewPermissions(targetUser);
@@ -223,9 +282,10 @@ export const createRoleManager = (args: {
     previewRoleChange: async ({roleName, permissions}) => {
       const existing = await rbacRoleModel.findExactlyOne({name: roleName});
       const diff = diffPermissionSets(existing.permissions, permissions);
+      const affectedUserCount = userModel ? await userModel.countDocuments({roles: roleName}) : 0;
       return {
         ...diff,
-        affectedUserCount: 0,
+        affectedUserCount,
       };
     },
     remove: async ({actor, roleName}) => {
@@ -236,6 +296,12 @@ export const createRoleManager = (args: {
       }
       await existing.deleteOne();
       invalidateCache();
+      await emitAudit({
+        action: "role.remove",
+        actorId: actor.id,
+        permissionDelta: {gained: {}, lost: existing.permissions},
+        targetRoleName: roleName,
+      });
     },
     seedDefaults,
     unassign: async ({actor, userId, roleNames}) => {
@@ -250,10 +316,18 @@ export const createRoleManager = (args: {
       }
       await assertCanModifyTargetUser(actor, targetUser, getActorPermissions);
       assertUserSaveAvailable(targetUser);
+      const before = await getPreviewPermissions(targetUser);
       const rbacUser = targetUser as unknown as User & {roles: string[]};
       rbacUser.roles = rbacUser.roles.filter((role) => !roleNames.includes(role));
       await targetUser.save();
       invalidateCache({userId});
+      const after = await getPreviewPermissions(targetUser);
+      await emitAudit({
+        action: "role.unassign",
+        actorId: actor.id,
+        permissionDelta: diffPermissionSets(before, after),
+        targetUserId: userId,
+      });
     },
     update: async ({actor, roleName, changes}) => {
       await assertCanManageRoles(actor, getActorPermissions);
@@ -275,7 +349,12 @@ export const createRoleManager = (args: {
       }
       if (changes.permissions) {
         assertValidPermissionSet(changes.permissions, statements);
-        await assertNoEscalation(actor, changes.permissions, getActorPermissions);
+        await assertNoEscalationOrAudit({
+          action: "role.update",
+          actor,
+          permissions: changes.permissions,
+          targetRoleName: roleName,
+        });
       }
       if (changes.name && existing.isLocked) {
         throw new APIError({status: 400, title: "Cannot rename a locked role"});
@@ -304,12 +383,19 @@ export const createRoleManager = (args: {
           allowedChanges[key] = value === null ? undefined : value;
         }
       }
+      const beforePermissions = existing.permissions;
       Object.assign(existing, allowedChanges);
       if (changes.description === null) {
         existing.set("description", undefined);
       }
       await existing.save();
       invalidateCache();
+      await emitAudit({
+        action: "role.update",
+        actorId: actor.id,
+        permissionDelta: diffPermissionSets(beforePermissions, existing.permissions),
+        targetRoleName: existing.name,
+      });
       return existing;
     },
   };

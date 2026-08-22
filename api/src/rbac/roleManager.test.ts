@@ -4,6 +4,7 @@ import mongoose, {type Model, model, Schema} from "mongoose";
 import type {User, UserModel} from "../auth";
 import {setupDb} from "../tests";
 import {createAccess} from "./access";
+import {createRbacAuditModel} from "./auditModel";
 import {createRbacRoleModel} from "./roleModel";
 import {terrenoStatements} from "./statements";
 import type {PermissionSource} from "./types";
@@ -129,6 +130,27 @@ describe("roleManager", () => {
     await access.roles.remove({actor, roleName: "todo-reader"});
     const remaining = await access.roles.list();
     expect(remaining.map((role) => role.name)).not.toContain("todo-reader");
+
+    const RbacAudit = createRbacAuditModel(mongoose.connection);
+    const createAudit = await RbacAudit.findExactlyOne({
+      action: "role.create",
+      denied: false,
+      targetRoleName: "todo-reader",
+    });
+    expect(createAudit.permissionDelta?.gained.todo).toEqual(["read"]);
+    const updateAudits = await RbacAudit.find({
+      action: "role.update",
+      denied: false,
+      targetRoleName: "todo-reader",
+    });
+    expect(updateAudits).toHaveLength(2);
+    expect(updateAudits.every((entry) => entry.actorId === actor.id)).toBe(true);
+    const removeAudit = await RbacAudit.findExactlyOne({
+      action: "role.remove",
+      denied: false,
+      targetRoleName: "todo-reader",
+    });
+    expect(removeAudit.permissionDelta?.lost.todo).toEqual(["read"]);
   });
 
   it("assigns and unassigns roles on users", async () => {
@@ -168,6 +190,24 @@ describe("roleManager", () => {
 
     const unassigned = await UserModel.findById(target.id);
     expect(unassigned?.roles).toEqual([]);
+
+    const RbacAudit = createRbacAuditModel(mongoose.connection);
+    const assignAudit = await RbacAudit.findExactlyOne({
+      action: "role.assign",
+      denied: false,
+      targetUserId: target.id,
+    });
+    expect(assignAudit.permissionDelta?.gained.todo).toEqual(
+      expect.arrayContaining(["read", "update"])
+    );
+    const unassignAudit = await RbacAudit.findExactlyOne({
+      action: "role.unassign",
+      denied: false,
+      targetUserId: target.id,
+    });
+    expect(unassignAudit.permissionDelta?.lost.todo).toEqual(
+      expect.arrayContaining(["read", "update"])
+    );
   });
 
   it("rejects assign and unassign when the actor lacks the target user's permissions", async () => {
@@ -302,7 +342,7 @@ describe("roleManager", () => {
       roleName: "reader",
     });
     expect(rolePreview.gained.todo).toEqual(expect.arrayContaining(["list"]));
-    expect(rolePreview.affectedUserCount).toBe(0);
+    expect(rolePreview.affectedUserCount).toBe(1);
   });
 
   it("rejects previewing roles whose permissions the actor does not hold", async () => {
@@ -406,6 +446,12 @@ describe("roleManager", () => {
         },
       })
     ).rejects.toMatchObject({status: 403, title: "Cannot grant permissions you do not hold"});
+
+    const RbacAudit = createRbacAuditModel(mongoose.connection);
+    const denied = await RbacAudit.find({action: "role.create", denied: true});
+    expect(denied).toHaveLength(1);
+    expect(denied[0]?.actorId).toBe(actor.id);
+    expect(denied[0]?.permissionDelta?.gained.todo).toEqual(["delete"]);
   });
 
   it("rejects invalid permission sets", async () => {

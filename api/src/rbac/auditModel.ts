@@ -67,4 +67,28 @@ export const createRbacAuditModel = (connection: mongoose.Connection): RbacAudit
   return connection.model<RbacAuditDocument, RbacAuditModel>("RbacAudit", rbacAuditSchema);
 };
 
-export const RbacAuditModel = createRbacAuditModel(mongoose.connection);
+export interface RbacAuditWrite {
+  action: string;
+  actorId: string;
+  denied?: boolean;
+  permissionDelta?: {
+    gained: PermissionSet;
+    lost: PermissionSet;
+  };
+  targetRoleName?: string;
+  targetUserId?: string;
+}
+
+export const recordRbacAudit = async (
+  model: RbacAuditModel,
+  args: RbacAuditWrite
+): Promise<void> => {
+  await model.create({
+    action: args.action,
+    actorId: args.actorId,
+    denied: args.denied ?? false,
+    permissionDelta: args.permissionDelta,
+    targetRoleName: args.targetRoleName,
+    targetUserId: args.targetUserId,
+  });
+};

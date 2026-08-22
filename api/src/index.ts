@@ -56,6 +56,11 @@ export * from "./plugins";
 export * from "./populate";
 export * from "./rbac/access";
 export {
+  createRbacAuditModel,
+  type RbacAuditDocument,
+  recordRbacAudit,
+} from "./rbac/auditModel";
+export {
   type BackfillAdminsOptions,
   type BackfillAdminsResult,
   backfillAdmins,
@@ -67,7 +72,7 @@ export {
   createRbacRoleModel,
   expandRolePermissions,
   type RbacRoleDocument,
-  RbacRoleModel,
+  type RbacRoleModel,
   READ_ONLY_ROLE_PERMISSIONS,
   type RoleDefinition,
   terrenoDefaultRoles,

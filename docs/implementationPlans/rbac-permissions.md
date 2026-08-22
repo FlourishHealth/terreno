@@ -1,9 +1,33 @@
 # RBAC Permissions for Terreno — API Design
 
-**Status:** Draft — API design for discussion (full IP to follow)
+**Status:** Complete — phases 1–6 shipped in PR #932 (2026-08-22)
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1089
 **Target package:** `@terreno/api` (new `src/rbac/` module), with surfaces in `admin-backend`, `admin-frontend`, `admin-spa`, `rtk`, and the modelRouter MCP work
 **Depends on:** `better-auth/plugins/access` (already a dependency via the Better Auth provider)
+
+## Shipped (PR #932)
+
+Phases 1–6 in section 8 are implemented. `RoleManager` emits `RbacAudit` (including
+`permissionDelta`) on create/update/remove/assign/unassign; denied escalation attempts are
+written with `denied: true`. `rbacRouter` is a thin HTTP adapter and does not write a second
+audit row. Seed upsert lives in `upsertSeededRole`; `RbacRole.seedDefaults({statements,
+extraRoles})` is the single seed entry. `previewRoleChange.affectedUserCount` is the number of
+users currently holding that role.
+
+### Compatibility: no default-connection models
+
+Importing `@terreno/api` does **not** register `RbacRole` or `RbacAudit` on
+`mongoose.connection`. Apps must:
+
+1. Call `createAccess({connection, ...})` (registers both models on that connection), or
+2. Call `createRbacRoleModel(connection)` / `createRbacAuditModel(connection)` in scripts/tests.
+
+The previous `RbacRoleModel` / `RbacAuditModel` value singletons are removed. The TypeScript
+type `RbacRoleModel` remains exported. Migrate `import {RbacRoleModel} from "@terreno/api"` to
+`createRbacRoleModel(connection)`.
+
+Left out of this close: Redis/pubsub cross-instance cache invalidation beyond in-process
+`invalidateCache`, and a pluggable audit sink besides the built-in collection.
 
 ---
 
@@ -978,15 +1002,14 @@ fall out of the admin UI with zero code — the exact win the RBAC move is for.
 6. **Deny semantics**: **Only `PermissionSource.deny`** — roles do not carry negative
    permissions (union semantics stay simple; matches Better Auth).
 
-## 8. Phasing sketch (full task breakdown in the IP)
+## 8. Phasing sketch — shipped
 
-1. **Core**: statements/merge, `createAccess`, resolve+cache, `RbacRole` model + seeds,
+1. **Core** — shipped: statements/merge, `createAccess`, resolve+cache, `RbacRole` model + seeds,
    `rbacUserPlugin`, `IsPermitted`, `requireAccess` middleware. Tests.
-2. **modelRouter**: `access` option, scope-aware permission middleware, filter merging,
+2. **modelRouter** — shipped: `access` option, scope-aware permission middleware, filter merging,
    field-mask response handling, actions support.
-3. **HTTP surface**: `rbacRouter`, previews, `/auth/me` extension, backfill script.
-4. **Admin**: roles screens, diffs, user assignment, `admin:access` migration.
-5. **Realtime + MCP**: swap internals to `access.can()`/`fieldMask()`.
-6. **Sources + client**: `PermissionSource`, rtk selectors, Better Auth bridge, docs +
-   example-backend/-frontend demonstration (example app gets a `manager` role and a scoped
-   todo example).
+3. **HTTP surface** — shipped: `rbacRouter`, previews, `/auth/me` extension, backfill script.
+4. **Admin** — shipped: roles screens, diffs, user assignment, `admin:access` migration.
+5. **Realtime + MCP** — shipped: internals use `access.can()`/`fieldMask()`.
+6. **Sources + client** — shipped: `PermissionSource`, rtk selectors, Better Auth bridge,
+   example-backend/-frontend `manager` role and scoped todo example.

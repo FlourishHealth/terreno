@@ -43,7 +43,7 @@ export type RbacRoleModel = Model<RbacRoleDocument> & {
     query: Record<string, unknown>,
     errorArgs?: Partial<APIErrorConstructor>
   ) => Promise<(Document & RbacRoleDocument) | null>;
-  seedDefaults: (args: {statements: Statements}) => Promise<void>;
+  seedDefaults: (args: {statements: Statements; extraRoles?: RoleDefinition[]}) => Promise<void>;
 };
 
 export {READ_ONLY_ROLE_PERMISSIONS} from "./statements";
@@ -171,8 +171,18 @@ rbacRoleSchema.plugin(findExactlyOne);
 
 rbacRoleSchema.statics = {
   ...rbacRoleSchema.statics,
-  async seedDefaults(this: RbacRoleModel, {statements}: {statements: Statements}): Promise<void> {
+  async seedDefaults(
+    this: RbacRoleModel,
+    {statements, extraRoles}: {statements: Statements; extraRoles?: RoleDefinition[]}
+  ): Promise<void> {
+    const terrenoNames = new Set(terrenoDefaultRoles.map((role) => role.name));
     for (const role of terrenoDefaultRoles) {
+      await upsertSeededRole(this, role, statements);
+    }
+    for (const role of extraRoles ?? []) {
+      if (terrenoNames.has(role.name)) {
+        continue;
+      }
       await upsertSeededRole(this, role, statements);
     }
   },
@@ -184,5 +194,3 @@ export const createRbacRoleModel = (connection: Connection): RbacRoleModel => {
   }
   return connection.model<RbacRoleDocument, RbacRoleModel>("RbacRole", rbacRoleSchema);
 };
-
-export const RbacRoleModel = createRbacRoleModel(mongoose.connection);

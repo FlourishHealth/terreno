@@ -4,8 +4,6 @@ import {asyncHandler} from "../api";
 import {authenticateMiddleware, type User, type UserModel} from "../auth";
 import {APIError} from "../errors";
 import type {TerrenoPlugin} from "../terrenoPlugin";
-import {createRbacAuditModel} from "./auditModel";
-import type {PermissionSet} from "./statements";
 import type {AnyTerrenoAccess} from "./types";
 
 export interface RbacRouterOptions {
@@ -19,26 +17,6 @@ export const rbacRouter = ({
   userModel,
   basePath = "/rbac",
 }: RbacRouterOptions): TerrenoPlugin => {
-  const auditModel = createRbacAuditModel(userModel.db);
-
-  const recordAudit = async (args: {
-    action: string;
-    actorId: string;
-    denied?: boolean;
-    permissionDelta?: {gained: PermissionSet; lost: PermissionSet};
-    targetRoleName?: string;
-    targetUserId?: string;
-  }): Promise<void> => {
-    await auditModel.create({
-      action: args.action,
-      actorId: args.actorId,
-      denied: args.denied ?? false,
-      permissionDelta: args.permissionDelta,
-      targetRoleName: args.targetRoleName,
-      targetUserId: args.targetUserId,
-    });
-  };
-
   return {
     register: (app: express.Application): void => {
       const router = express.Router();
@@ -76,11 +54,6 @@ export const rbacRouter = ({
             throw new APIError({status: 401, title: "Unauthorized"});
           }
           const role = await access.roles.create({actor, role: req.body});
-          await recordAudit({
-            action: "role.create",
-            actorId: actor.id,
-            targetRoleName: role.name,
-          });
           return res.status(201).json({data: role});
         })
       );
@@ -99,11 +72,6 @@ export const rbacRouter = ({
             changes: req.body,
             roleName: req.params.name,
           });
-          await recordAudit({
-            action: "role.update",
-            actorId: actor.id,
-            targetRoleName: role.name,
-          });
           return res.json({data: role});
         })
       );
@@ -118,11 +86,6 @@ export const rbacRouter = ({
             throw new APIError({status: 401, title: "Unauthorized"});
           }
           await access.roles.remove({actor, roleName: req.params.name});
-          await recordAudit({
-            action: "role.remove",
-            actorId: actor.id,
-            targetRoleName: req.params.name,
-          });
           return res.status(204).send();
         })
       );
@@ -178,11 +141,6 @@ export const rbacRouter = ({
             actor,
             roleNames: req.body.roleNames,
             userId: req.params.id,
-          });
-          await recordAudit({
-            action: "role.assign",
-            actorId: actor.id,
-            targetUserId: req.params.id,
           });
           return res.json({data: {success: true}});
         })

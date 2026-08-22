@@ -2,6 +2,7 @@ import {describe, expect, it} from "bun:test";
 import mongoose from "mongoose";
 
 import {setupDb} from "../tests";
+import {createRbacAuditModel} from "./auditModel";
 import {createRbacRoleModel, expandRolePermissions, terrenoDefaultRoles} from "./roleModel";
 import {READ_ONLY_ROLE_PERMISSIONS, terrenoStatements} from "./statements";
 
@@ -62,6 +63,42 @@ describe("rbac role model", () => {
     const superadmin = await RbacRole.findExactlyOne({name: "superadmin"});
     expect(superadmin.permissions.admin).toContain("access");
     expect(superadmin.permissions.user).toContain("delete");
+  });
+
+  it("seeds extra roles through the same upsert as terreno defaults", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({
+      extraRoles: [
+        {
+          displayName: "App Editor",
+          name: "app-editor",
+          permissions: {user: ["read"]},
+        },
+      ],
+      statements: terrenoStatements,
+    });
+
+    const extra = await RbacRole.findExactlyOne({name: "app-editor"});
+    expect(extra.displayName).toBe("App Editor");
+    expect(extra.permissions.user).toEqual(["read"]);
+  });
+
+  it("registers models only on the connection passed to the factory", async () => {
+    await setupDb();
+    const uri = `mongodb://${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`;
+    const isolated = await mongoose.createConnection(uri).asPromise();
+    try {
+      expect(isolated.models.RbacRole).toBeUndefined();
+      expect(isolated.models.RbacAudit).toBeUndefined();
+      createRbacRoleModel(isolated);
+      expect(isolated.models.RbacRole).toBeDefined();
+      expect(isolated.models.RbacAudit).toBeUndefined();
+      createRbacAuditModel(isolated);
+      expect(isolated.models.RbacAudit).toBeDefined();
+    } finally {
+      await isolated.close();
+    }
   });
 
   it("expands read-only sentinel at seed time", () => {
