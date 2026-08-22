@@ -138,20 +138,6 @@ export const SyncDevPanel: React.FC = () => {
     }
   }, [client]);
 
-  // Keep the test reconnect hook mounted when the production build hides the panel.
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const onReconnect = (): void => {
-      void handleForceReconnect();
-    };
-    window.addEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
-    return () => {
-      window.removeEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
-    };
-  }, [handleForceReconnect]);
-
   const handleWipe = useCallback(async (): Promise<void> => {
     setIsBusy(true);
     try {
