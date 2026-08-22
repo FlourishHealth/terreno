@@ -13,6 +13,18 @@ on:
       - "bun.lock"
       - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
+    paths:
+      - "example-frontend/**"
+      - "ui/**"
+      - "rtk/**"
+      - "ai/**"
+      - "admin-frontend/**"
+      - "bun.lock"
+      - "example-backend/**"
+      - "api/**"
+      - "api-health/**"
+      - "admin-backend/**"
+      - ".github/workflows/frontend-example-deploy.yml"
 
 jobs:
   check-changes:

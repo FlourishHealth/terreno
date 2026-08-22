@@ -4,7 +4,18 @@ name: Maestro E2E Tests
 # demo-appium-ci workflow for demo smoke coverage; example-frontend flows remain.
 
 on:
+  pull_request:
+    paths:
+      - "ui/**"
+      - "demo/**"
+      - "example-frontend/**"
+      - "example-backend/**"
+      - "rtk/**"
+      - ".maestro/**"
+      - ".github/workflows/maestro-e2e.yml"
   push:
+    branches:
+      - master
     paths:
       - "ui/**"
       - "demo/**"
@@ -14,6 +25,10 @@ on:
       - ".maestro/**"
       - ".github/workflows/maestro-e2e.yml"
   workflow_dispatch:
+
+concurrency:
+  group: maestro-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e:

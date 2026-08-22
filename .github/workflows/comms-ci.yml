@@ -1,7 +1,17 @@
 name: Comms CI
 
 on:
+  pull_request:
+    paths:
+      - "api/**"
+      - "comms/**"
+      - "test/**"
+      - "bun.lock"
+      - "package.json"
+      - ".github/workflows/comms-ci.yml"
   push:
+    branches:
+      - master
     paths:
       - "api/**"
       - "comms/**"
