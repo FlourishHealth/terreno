@@ -105,7 +105,7 @@ export const authenticateMiddleware = (anonymous = false) => {
  * must never set them, or any caller could grant themselves admin or an RBAC role. Elevate
  * users through the admin API or `access.roles.assign` instead.
  */
-export const PRIVILEGED_USER_FIELDS = ["admin", "roles"] as const;
+export const PRIVILEGED_USER_FIELDS = ["admin", "roles", "organizationIds"] as const;
 
 /**
  * Removes {@link PRIVILEGED_USER_FIELDS} from a self-service body. Fields are dropped rather

@@ -43,3 +43,6 @@ category: Changed
   serializers accept change-stream BSON post-images (no Mongoose `toObject`) so
   `sync:delta` is not dropped after RBAC wraps `defaultResponseHandler`. Invalid permission sets
   use a stable `APIError.title`.
+- Self-service signup and `PATCH /auth/me` strip `organizationIds` alongside `admin` and `roles`,
+  preventing callers from assigning themselves tenant membership. Administrative organization
+  membership changes must use a privileged server-side path.

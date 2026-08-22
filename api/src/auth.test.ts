@@ -858,6 +858,15 @@ describe("addAuthRoutes /refresh_token error paths", () => {
   beforeEach(async () => {
     setSystemTime();
     await setupTestData();
+    if (!UserModel.schema.path("organizationIds")) {
+      UserModel.schema.add({
+        organizationIds: {
+          default: [],
+          description: "Organization memberships",
+          type: [String],
+        },
+      });
+    }
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
@@ -1007,9 +1016,15 @@ describe("privileged user fields", () => {
     setSystemTime();
   });
 
-  it("drops admin and roles, keeping other fields", () => {
+  it("drops admin, roles, and organizationIds, keeping other fields", () => {
     const sanitized = stripPrivilegedUserFields(
-      {admin: true, age: 42, name: "Someone", roles: ["superadmin"]},
+      {
+        admin: true,
+        age: 42,
+        name: "Someone",
+        organizationIds: ["other-tenant"],
+        roles: ["superadmin"],
+      },
       "test"
     );
 
@@ -1020,8 +1035,8 @@ describe("privileged user fields", () => {
     expect(stripPrivilegedUserFields({name: "Someone"}, "test")).toEqual({name: "Someone"});
   });
 
-  it("lists admin and roles as privileged", () => {
-    expect([...PRIVILEGED_USER_FIELDS]).toEqual(["admin", "roles"]);
+  it("lists admin, roles, and organizationIds as privileged", () => {
+    expect([...PRIVILEGED_USER_FIELDS]).toEqual(["admin", "roles", "organizationIds"]);
   });
 
   it("omits User roles from write bodies when RBAC accessControl is set", () => {
@@ -1039,15 +1054,23 @@ describe("privileged user fields", () => {
     });
   });
 
-  it("does not let anonymous signup self-assign admin", async () => {
+  it("does not let anonymous signup self-assign admin or organizations", async () => {
     await agent
       .post("/auth/signup")
-      .send({admin: true, email: "escalate@example.com", password: "Password123!"})
+      .send({
+        admin: true,
+        email: "escalate@example.com",
+        organizationIds: ["other-tenant"],
+        password: "Password123!",
+      })
       .expect(200);
 
     const created = await UserModel.findOne({email: "escalate@example.com"});
     expect(created).toBeTruthy();
     expect((created as unknown as {admin?: boolean})?.admin).toBe(false);
+    expect(
+      (created as unknown as {organizationIds?: string[]})?.organizationIds ?? []
+    ).not.toContain("other-tenant");
   });
 
   it("does not let signupUser self-assign roles", async () => {
@@ -1062,7 +1085,7 @@ describe("privileged user fields", () => {
     expect((user as unknown as {roles?: string[]}).roles).toBeUndefined();
   });
 
-  it("does not let PATCH /auth/me escalate to admin", async () => {
+  it("does not let PATCH /auth/me escalate to admin or join organizations", async () => {
     const [_admin, notAdmin] = await setupDb();
     const jwtLib = (await import("jsonwebtoken")).default;
     const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
@@ -1073,12 +1096,15 @@ describe("privileged user fields", () => {
     await agent
       .patch("/auth/me")
       .set("authorization", `Bearer ${token}`)
-      .send({admin: true, name: "Renamed"})
+      .send({admin: true, name: "Renamed", organizationIds: ["other-tenant"]})
       .expect(200);
 
     const reloaded = await UserModel.findById(notAdminId);
     expect((reloaded as unknown as {admin?: boolean})?.admin).toBe(false);
     expect((reloaded as unknown as {name?: string})?.name).toBe("Renamed");
+    expect(
+      (reloaded as unknown as {organizationIds?: string[]})?.organizationIds ?? []
+    ).not.toContain("other-tenant");
   });
 });
 
