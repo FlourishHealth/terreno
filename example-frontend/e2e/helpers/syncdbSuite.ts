@@ -74,12 +74,6 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
 export const todoItemByTitle = (page: Page, title: string): Locator =>
   page.locator('[data-testid^="todo-item-"]').filter({hasText: title});
 
-export const forceSyncReconnect = async (page: Page): Promise<void> => {
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event("syncdb-e2e-reconnect"));
-  });
-};
-
 /**
  * Click a control that may sit under the bottom tab bar. Playwright's default
  * scroll-into-view aligns to the viewport bottom, which is exactly where `/ai`

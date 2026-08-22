@@ -32,12 +32,6 @@ const RESOLVE_LABELS = ["Use the other version", "Keep my change"];
 const E2E_FORCE_RECONNECT_EVENT = "syncdb-e2e-reconnect";
 
 /**
- * Playwright uses this hook to restart the client after chaos flaps even when
- * the visible Sync Lab panel is omitted from production exports.
- */
-const E2E_FORCE_RECONNECT_EVENT = "syncdb-e2e-reconnect";
-
-/**
  * Dev panel for exercising syncdb offline/reconnect/wipe flows and Sync Lab churn.
  *
  * Visibility is gated by the admin Sync Lab toggle ({@link useSyncLabRates}
