@@ -113,10 +113,9 @@ describe("useEntity", () => {
 
   it("re-renders on a local write and reports the pending flag", async () => {
     const {client, transport, wrapper} = await setup();
-    // Keep the mutation un-acked so the optimistic pending flag is observable.
-    transport.setDefaultResponder(() => {
-      throw new Error("offline");
-    });
+    // Never ack so the optimistic pending flag stays observable. Do not throw:
+    // an unhandled sendMutation rejection leaks into other files under bun test.
+    transport.setDefaultResponder(() => new Promise(() => {}));
     const {result} = renderHook(() => useEntity<TodoData>("todos", "t1"), {wrapper});
     expect(result.current.data).toBeUndefined();
 

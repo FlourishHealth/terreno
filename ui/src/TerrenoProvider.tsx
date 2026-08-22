@@ -1,10 +1,10 @@
 import type React from "react";
 import type {FC} from "react";
-import {Host} from "react-native-portalize";
 
 import type {IconRegistryMap} from "./Common";
 import {IconRegistryProvider} from "./IconRegistry";
 import {OpenAPIProvider} from "./OpenAPIContext";
+import {Host} from "./PortalHost";
 import {ThemeProvider} from "./Theme";
 import {Toast} from "./Toast";
 import {ToastProvider} from "./ToastNotifications";

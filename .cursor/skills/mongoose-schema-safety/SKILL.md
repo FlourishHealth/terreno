@@ -1,10 +1,17 @@
 ---
 name: mongoose-schema-safety
-description: 'Invoke when making any Mongoose schema change: adding/removing/renaming fields, creating a new model, adding indexes, or writing a backfill migration. Provides the five-type pattern, risk matrix, type file checklist, and rollout safety steps for terreno backends.'
+description: 'Invoke when making any Mongoose schema change: adding/removing/renaming fields, creating a new model, adding indexes, or writing a backfill migration. Provides the five-type pattern, risk matrix, type file checklist, and rollout safety steps for terreno backends. Lifecycle composition: Grow for migration risk decisions, Pick for implementation, Roast for schema/data proof.'
 ---
 # Mongoose Schema Safety — Terreno
 
 Consumer-oriented copy for agents using `@terreno/api` from npm also lives under **`api/.ai/skills/mongoose-schema-safety/SKILL.md`** (synced into the MCP server bundle).
+
+## Documentation
+
+1. Read `docs/how-to/create-a-model.md` and `docs/reference/api.md` before changing schemas, types, or indexes.
+2. Implement against that design.
+3. Update those pages in the same slice with `update-docs`. Schema field `description`s are public docs via OpenAPI.
+4. Ship without matching docs is a failed slice.
 
 ## Where Schemas and Types Live
 
@@ -120,6 +127,7 @@ A schema change in one place often ripples:
 - [ ] `modelRouter` config updated (`queryFields`, `populatePaths`, `responseHandler`) if needed
 - [ ] `AdminApp` `listFields` updated if the model is in the admin panel
 - [ ] `bun run sdk` run from `example-frontend/` if the API response shape changed
+- [ ] Docs updated (`docs/how-to/create-a-model.md`, `docs/reference/api.md`, or the consumer app's API docs) when the public shape or operator steps changed
 - [ ] Test covers old-format document behavior (missing new field) if the change rolls out before a backfill
 - [ ] Unique index: dedup migration written and run before the index is added
 - [ ] `checkModelsStrict()` still passes (it runs on non-prod startup)

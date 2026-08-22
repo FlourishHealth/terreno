@@ -20,6 +20,25 @@ A monorepo containing shared packages for building full-stack applications with 
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
 
+## Agentic lifecycle
+
+The reusable planning plugin uses five bounded transitions:
+**Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
+**Taste** (react once). The outer loop owns state persistence, waiting, retry, stop, and
+escalation. See `plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+
+Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
+project commands and domain conventions belong there, not in the portable plugin.
+
+## Documentation
+
+Human-facing docs are the architecture source. Before changing code, read the
+explanation and reference pages for the affected area. Update those pages in the
+same slice using the `update-docs` skill. Missing docs for a user-visible or
+architectural change fails the slice. Install the published skill set with
+`npx skills add FlourishHealth/terreno`; regenerate `skills/` with
+`bun run skills:sync`.
+
 ## Development
 
 Uses [Bun](https://bun.sh/) as the package manager.
@@ -31,7 +50,8 @@ bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
-bun run test             # Run tests in api and ui
+bun run test             # Run all workspace test suites
+bun run test:agent       # Run all tests with passing cases suppressed
 ```
 
 - **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
@@ -62,39 +82,45 @@ The three core packages form a complete full-stack framework:
 ```
                            BACKEND
   @terreno/api
-  - Mongoose models with modelRouter -> CRUD endpoints
-  - Built-in auth (JWT + Passport)
+  - Mongoose models with modelRouter -> CRUD + sync endpoints
+  - Better Auth (default) + legacy JWT/Passport
   - Automatic OpenAPI spec generation
                               |
-                     /openapi.json
-                              |
-                    RTK Query SDK Codegen
-                              |
+              +---------------+---------------+
+              |                               |
+     /openapi.json                    sync protocol
+              |                               |
+     RTK Query SDK Codegen            @terreno/syncdb
+     (non-synced routes)              (collection CRUD)
+              |                               |
                            FRONTEND
-  @terreno/rtk
-  - Generated hooks from OpenAPI spec
-  - Auth slice with JWT token management
-  - Automatic token refresh
+  @terreno/rtk                         @terreno/syncdb
+  - Generated hooks (auth, admin, AI)  - useQuery / useMutate (local-first)
+  - Better Auth session Redux          - Offline outbox + conflict UI
+  - Feature flags + sockets
                               +
   @terreno/ui
   - React Native components (Box, Button, TextField, etc.)
   - TerrenoProvider for theming
 ```
 
+> **Legacy:** `@terreno/rtk` RTK Query hooks for **collection CRUD** are deprecated — use syncdb. See [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
+
 ### Integration Flow
 
-1. **Backend (api)**: Define Mongoose models, use `modelRouter` to create CRUD endpoints with permissions
-2. **OpenAPI Generation**: `setupServer` automatically generates `/openapi.json`
-3. **SDK Codegen**: Frontend runs `bun run sdk` to generate RTK Query hooks from OpenAPI spec
-4. **Frontend (rtk + ui)**: Use generated hooks with UI components for type-safe API calls
+1. **Backend (api)**: Define Mongoose models with `syncPlugin` + `isDeletedPlugin`; use `modelRouter` with a `sync` config; register `SyncApp` and `RealtimeApp`
+2. **OpenAPI Generation**: `setupServer` generates `/openapi.json` for non-synced routes
+3. **SDK Codegen**: Frontend runs `bun run sdk` for auth, admin, AI, and custom endpoints — **not** for synced collections
+4. **Frontend (syncdb + ui)**: Use `useQuery` / `useMutate` for synced data; use generated SDK hooks only for non-synced routes; Better Auth via `@terreno/rtk`
 
 ## Example Apps (Keep These Updated!)
 
-The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
+The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, syncdb, or rtk:
 
 1. **Add examples** demonstrating new features
 2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`
-3. **Verify integration** by running both examples together
+3. **Update docs** in the same slice (`docs/explanation/`, `docs/reference/`, `docs/how-to/`)
+4. **Verify integration** by running both examples together
 
 ### Running the Full Stack
 
@@ -127,7 +153,9 @@ bun run frontend:web
 - Use multiline syntax with curly braces for all conditionals
 
 ### Testing
-- Use bun test with expect for testing
+- Use Bun for tests.
+- Agents should use `bun run test:agent` for the full suite. It preserves failures and the final summary while suppressing passing test cases.
+- Use the closest package or file-level `bun test --only-failures <path>` command during red/green cycles.
 
 ### Logging
 - Frontend: Use `console.info`, `console.debug`, `console.warn`, or `console.error` for permanent logs
@@ -294,29 +322,29 @@ Modals:
 - Don't use `style` prop when equivalent props exist (`padding`, `margin`)
 - Never modify `openApiSdk.ts` manually
 
-### @terreno/rtk
+### @terreno/syncdb
 
-Redux Toolkit Query integration:
+Local-first data layer (primary path for collection CRUD):
 
-- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
-- **emptyApi**: Base RTK Query API for code generation
-- **Platform utilities**: Secure token storage (expo-secure-store for native, AsyncStorage for web)
+- **createSyncDb**: Client with durable outbox, socket sync, encrypted persistence
+- **React hooks**: `useQuery`, `useEntity`, `useMutate`, `useSyncStatus`, `useConflicts`
+- **betterAuthAdapter**: Session auth for sync sockets
 
 Key imports:
 ```typescript
-import {generateAuthSlice} from "@terreno/rtk";
+import {createSyncDb, betterAuthAdapter} from "@terreno/syncdb";
+import {SyncDbProvider, useQuery, useMutate} from "@terreno/syncdb/react";
 ```
 
-Always use generated SDK hooks - never use `axios` or `request` directly:
+### @terreno/rtk (legacy data sync; still required for SDK + auth)
 
-```typescript
-// Correct
-import {useGetYourRouteQuery} from "@/store/openApiSdk";
-const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
+Redux Toolkit Query integration for **non-synced** routes and session state:
 
-// Wrong - don't use axios directly
-// const result = await axios.get("/api/yourRoute/value");
-```
+- **generateBetterAuthSlice**: Better Auth session Redux (default for new apps)
+- **emptyApi**: Base RTK Query API for OpenAPI codegen
+- **useTerrenoFeatureFlags**, **useSocketConnection**: Feature flags and realtime
+
+Use generated SDK hooks for non-synced routes only — never use `axios` or `request` directly.
 
 ## React Best Practices (Frontend Packages)
 

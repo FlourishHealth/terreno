@@ -1,12 +1,19 @@
 ---
 name: terreno-backend-api
-description: Guidelines for creating backend APIs with @terreno/api on Express/Mongoose. Covers when to use Terreno backend vs Expo API routes, modelRouter CRUD, permissions, custom routes, OpenAPI generation, and the SDK codegen pipeline. Use when adding models, routes, auth, or server-side logic in Terreno apps.
+description: 'Guidelines for creating backend APIs with @terreno/api on Express/Mongoose. Covers when to use Terreno backend vs Expo API routes, modelRouter CRUD, permissions, custom routes, OpenAPI generation, and the SDK codegen pipeline. Use when adding models, routes, auth, or server-side logic in Terreno apps. Lifecycle composition: Grow for API shape, Pick for implementation, Roast for API/integration proof.'
 ---
 # Terreno Backend API
 
 Use this skill when building server-side APIs for Terreno apps. Terreno uses **Express + Mongoose** (`@terreno/api`), not Expo API routes (`+api.ts` on EAS Hosting).
 
 **Related skills:** `mongoose-schema-safety` (schema changes), `generate-sdk` (frontend hooks after API changes), `terreno-data-fetching` (consuming the API), `backend-test-env` (tests that mutate env).
+
+## Documentation
+
+1. Read `docs/reference/api.md` and the relevant how-to/explanation pages before changing routes, models, or permissions.
+2. Implement against that design.
+3. Update those pages in the same slice with `update-docs` (Diátaxis: tutorial / how-to / reference / explanation).
+4. Ship without matching docs is a failed slice.
 
 ## Terreno vs Expo API Routes
 

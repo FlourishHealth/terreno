@@ -8,7 +8,8 @@ import {
 } from "react";
 import {Animated} from "react-native";
 import {Modalize} from "react-native-modalize";
-import {Portal} from "react-native-portalize";
+
+import {Portal} from "./PortalHost";
 
 export const useCombinedRefs = <T,>(
   ...refs: Array<Ref<T> | undefined>

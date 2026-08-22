@@ -2,6 +2,19 @@ name: Rulesync Check
 
 on:
   pull_request:
+    paths:
+      - "rulesync.jsonc"
+      - ".rulesync/**"
+      - ".cursor/**"
+      - ".claude/**"
+      - ".agents/**"
+      - ".devin/**"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".github/copilot-instructions.md"
+      - ".github/instructions/**"
+      - ".github/skills/**"
+      - ".github/workflows/rulesync-check.yml"
 
 jobs:
   rulesync-check:

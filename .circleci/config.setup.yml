@@ -94,6 +94,13 @@ workflows:
             LICENSE$ run-repo-policies true
             .*/LICENSE$ run-repo-policies true
             biome/plugins/no-barrel-imports\.grit run-repo-policies true
+            scripts/planning/.* run-repo-policies true
+            plugins/.* run-repo-policies true
+            .cursor-plugin/.* run-repo-policies true
+            .rulesync/skills/.* run-repo-policies true
+            skills/.* run-repo-policies true
+            skills\.sh\.json run-repo-policies true
+            .*/\.ai/skills/.* run-repo-policies true
             scripts/no-barrel-imports/.* run-repo-policies true
             scripts/check-explicit-any/.* run-repo-policies true
             scripts/check-license-coverage/.* run-repo-policies true
@@ -128,6 +135,7 @@ workflows:
             api-health/src/.* run-e2e true
             feature-flags/src/.* run-e2e true
             feature-flags/src/.* run-admin-spa-integration true
+            syncdb/.* run-e2e true
 
   # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
   # Continuation uses a differently named parameter so CircleCI does not treat

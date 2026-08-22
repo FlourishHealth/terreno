@@ -23,6 +23,7 @@ import {
   forceSyncReconnect,
   installChaosControl,
   openSyncTodos,
+  SYNCDB_TEST_TIMEOUT,
   startSyncFlapLoop,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, listTodosAs} from "./helpers/todosApi";
@@ -44,6 +45,10 @@ const assertNoDuplicates = (items: string[], label: string): void => {
   const duplicated = [...counts.entries()].filter(([, count]) => count > 1);
   expect(duplicated, `${label} had duplicate titles: ${JSON.stringify(duplicated)}`).toEqual([]);
 };
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT. The chaos test body raises it further below.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
   let chaos: ChaosControl;

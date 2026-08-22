@@ -279,8 +279,11 @@ const DateRowWithIcon: FC<DateRowWithIconProps> = ({
 
   return (
     <View
-      pointerEvents={isMobileDatetime ? "none" : "auto"}
-      style={{alignItems: "center", flexDirection: "row"}}
+      style={{
+        alignItems: "center",
+        flexDirection: "row",
+        pointerEvents: isMobileDatetime ? "none" : "auto",
+      }}
     >
       <DateField {...segmentProps} type={type} />
       {isMobile && <Box flex="grow" />}
@@ -1011,7 +1014,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           )}
 
           {isMobileDatetime && (
-            <View pointerEvents="none">
+            <View style={{pointerEvents: "none"}}>
               <MobileTimeDisplay
                 disabled={disabled}
                 displayText={mobileTimeDisplayText}

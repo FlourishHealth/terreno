@@ -28,7 +28,7 @@ It is the only skill that sets the Project `IP` field and moves an item to `Stat
   second issue for the same work.
 - If the IP is internal-origin with no discussion behind it, **create** the issue here at
   `Planned`.
-- The planning pipeline's **Blend** stage hands off here once an IP reaches Approved (in
+- The planning pipeline's **Grow** stage hands off here once an IP reaches Approved (in
   repos that run a roadmap). In a repo with no roadmap board, there is nothing to do —
   the IP and its task list are the source of truth.
 
@@ -37,6 +37,7 @@ It is the only skill that sets the Project `IP` field and moves an item to `Stat
 - An IP has reached **Approved** and needs its public tracking issue
 - An existing roadmap item's status, target, or scope has changed
 - Backfilling tracking issues from [`docs/explanation/roadmap-seed-issues.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-seed-issues.md)
+- Adding one approved delivery slice to an existing `roadmap-wayfinder` map
 
 ## When not to use
 
@@ -44,6 +45,7 @@ It is the only skill that sets the Project `IP` field and moves an item to `Stat
 - The item just needs labels — use `roadmap-triage`
 - Auditing the whole board — use `roadmap-review`
 - Writing the IP itself — use `ip`
+- A destination is too large or uncertain for one IP — use `roadmap-wayfinder` to chart the map first
 
 ## Hard rules
 
@@ -68,6 +70,8 @@ Read the IP and its task list. Extract:
 | Dependencies | The IP's "Depends on" line |
 
 If the IP declares an RTK deprecation flag of **Blocked**, the item still gets `Status=Planned` — the Project Status field has no `Blocked` option. Carry the gating with the `status:blocked` label and say what it is waiting on.
+
+For a wayfinder slice, also extract the map URL and blocking slice titles. Keep the full design and task graph in the linked IP/task files; the roadmap item states only the delivered outcome and native blocking edges.
 
 ### 2. Find any existing item — do not open a duplicate
 

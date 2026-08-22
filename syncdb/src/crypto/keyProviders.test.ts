@@ -140,7 +140,7 @@ describe("createServerKeyProvider", () => {
       fetchKeyMaterial: async () =>
         Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64"),
     });
-    expect(provider.getKey({userId: "u1"})).rejects.toThrow("32 bytes");
+    await expect(provider.getKey({userId: "u1"})).rejects.toThrow("32 bytes");
   });
 
   it("does not poison future attempts after a failed fetch", async () => {
@@ -156,7 +156,7 @@ describe("createServerKeyProvider", () => {
         return material;
       },
     });
-    expect(provider.getKey({userId: "u1"})).rejects.toThrow("network unavailable");
+    await expect(provider.getKey({userId: "u1"})).rejects.toThrow("network unavailable");
     shouldFail = false;
     const key = await provider.getKey({userId: "u1"});
     expect(key.type).toBe("secret");

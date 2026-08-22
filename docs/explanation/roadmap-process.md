@@ -22,10 +22,10 @@ Discussion (Ideas/RFC)
     ▼
 Issue: Status = Shaping ─────────────────────────────┐
                                                       │  IP approved → roadmap-item
-Blend writes IP + task list  ────────────────────────┤  (sets IP field, Shaping → Planned)
+Grow writes IP + task list   ────────────────────────┤  (sets IP field, Shaping → Planned)
 (docs/implementationPlans/ + docs/tasks/)             ▼
                                           Issue: Status = Planned
-                                                      │  Roast → Cupping → Pour
+                                                      │  Pick → Roast → Brew
                                                       ▼
                                           PR: Fixes #NNN
                                                       │  merge
@@ -34,17 +34,17 @@ Blend writes IP + task list  ─────────────────
 ```
 
 The planning pipeline (the `terreno-planning` plugin) drives the design-and-build half;
-the roadmap skills drive the public-tracking half. They meet at one handoff: **Blend
+the roadmap skills drive the public-tracking half. They meet at one handoff: **Grow
 writes the IP, and once it is Approved hands off to `roadmap-item`.**
 
 | Transition | Who owns it | Authoritative artifact |
 | ---------- | ----------- | ---------------------- |
 | Idea debated and shaped | Community + maintainers | GitHub Discussion |
 | Discussion → first tracking issue (`Shaping`) | `roadmap-promote` | GitHub Issue + Project |
-| Design, scope, acceptance criteria | `terreno-1-blend` / `ip` | `docs/implementationPlans/<slug>.md` |
-| Task breakdown for implementation | `terreno-1-blend` / `ip` | `docs/tasks/<slug>.md` |
+| Design, scope, acceptance criteria | `terreno-1-grow` | `docs/implementationPlans/<slug>.md` |
+| Task breakdown for implementation | `terreno-1-grow` | `docs/tasks/<slug>.md` |
 | Approved IP → issue `Planned` + `IP` field set | `roadmap-item` | GitHub Issue + Project |
-| Implement, verify, submit, review | `terreno-2-roast` … `terreno-5-dialin` | the PR |
+| Implement, verify, submit, review | `terreno-2-pick` … `terreno-5-taste` | the PR |
 | Sprint estimates, assignees, internal-only work | Linear | Linear |
 | Public rendered list | CI (`roadmap:generate`) | `ROADMAP.md` |
 
@@ -60,7 +60,7 @@ The `terreno-planning` plugin is meant to run in any Terreno repo, including one
 Discussions and no roadmap board (Flourish, most consumer apps). There, only the design-and-build
 half applies:
 
-- **Blend** still writes the IP + task list — that dual-file model is the source of truth
+- **Grow** still writes the IP + task list — that dual-file model is the source of truth
   everywhere. It detects the absence of `.github/roadmap-fields.yml` and the `roadmap-item`
   skill and **skips the roadmap handoff** instead of inventing issues or labels.
 - Sprint execution is tracked in Linear and linked from the IP header; it is never copied
@@ -236,9 +236,9 @@ is the variable the generator reads.
 
 ## Maintainer skills
 
-Four agent skills cover the recurring roadmap work. Each one researches, proposes, and then
+Five agent skills cover the recurring roadmap work. Each one researches, proposes, and then
 **stops for a maintainer to approve** before touching GitHub — roadmap decisions are the most
-human part of the process, so none of them mutate state on their own. All four are
+human part of the process, so none of them mutate state on their own. All five are
 `disable-model-invocation`, meaning an agent will not start them on its own initiative;
 you invoke them explicitly.
 
@@ -248,6 +248,19 @@ you invoke them explicitly.
 | `roadmap-promote` | Maintainers accepted an Ideas or RFC discussion and it needs a tracked issue that links back to the thread |
 | `roadmap-item` | An approved IP needs its public tracking issue, or an existing entry's scope changed |
 | `roadmap-review` | Recurring hygiene: status drift, stale items, untriaged backlog, promotion candidates, then regenerate `ROADMAP.md` |
+| `roadmap-frontier` | A destination is too large or uncertain for one IP/context and needs a map, a small unblocked frontier, and repeated Grow → Taste delivery loops |
+
+### Huge features: frontier maps
+
+A frontier map is one low-resolution roadmap issue with an observable destination,
+resolved-decision index, current frontier, fog, and explicit out-of-scope boundary. Child
+tickets hold the detail and native blocking relationships. Work only the **frontier**:
+open, unblocked, unclaimed tickets.
+
+Decision tickets resolve one question. Delivery tickets link one approved IP/task pair and
+run the complete planning pipeline. After each ticket, update the map, graduate clarified
+fog into precise tickets, and return to the frontier with a fresh agent context. The map
+closes only when the destination is reached and no in-scope fog or open child tickets remain.
 
 Sources live in `.rulesync/skills/`; run `bun run rules` after editing to regenerate the
 per-agent mirrors.

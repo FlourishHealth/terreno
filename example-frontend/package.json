@@ -68,6 +68,7 @@
     "start": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --port 8082",
     "sync-sdk": "bun ../syncdb/src/codegen/cli.ts --schema ${OPENAPI_URL:-http://localhost:4000/openapi.json} --out ./store/syncDbSdk.ts --collections todos --config ./syncdb-codegen.json",
     "test": "bun test ./**/*.test.ts ./**/*.test.tsx",
+    "test:agent": "AGENT=1 bun test --only-failures ./**/*.test.ts ./**/*.test.tsx",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
     "web": "EXPO_UNSTABLE_MCP_SERVER=1 NODE_OPTIONS=--max-old-space-size=8192 bun expo start --web --port 8082"
