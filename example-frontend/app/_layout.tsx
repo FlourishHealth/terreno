@@ -8,7 +8,6 @@ import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
-  getAuthToken,
   installTerrenoDevConsoleLogger,
   selectBetterAuthIsLoading,
   selectBetterAuthUserId,

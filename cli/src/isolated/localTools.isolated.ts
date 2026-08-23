@@ -36,9 +36,31 @@ describe("local project commands", () => {
     expect(io.stdoutLines.join("\n")).toContain("application_info");
     io.stdoutLines.length = 0;
     expect(
-      await runCli(["logs", "--entries", "5", "--level", "error", "--sources", "backend"], io)
+      await runCli(
+        [
+          "logs",
+          "--entries",
+          "5",
+          "--level",
+          "error",
+          "--since",
+          "2026-08-23T18:00:00Z",
+          "--sources",
+          "backend",
+        ],
+        io
+      )
     ).toBe(0);
     expect(io.stdoutLines.join("\n")).toContain("read_logs");
+    io.stdoutLines.length = 0;
+    expect(await runCli(["state", "--slice", "rtk", "--query", "todos"], io)).toBe(0);
+    expect(io.stdoutLines.join("\n")).toContain("get_rtk_state");
+    io.stdoutLines.length = 0;
+    expect(await runCli(["eval", "--code", "1 + 1"], io)).toBe(0);
+    expect(io.stdoutLines.join("\n")).toContain("evaluate");
+    io.stdoutLines.length = 0;
+    expect(await runCli(["navigate", "/profile"], io)).toBe(0);
+    expect(io.stdoutLines.join("\n")).toContain("navigate");
     io.stdoutLines.length = 0;
     expect(await runCli(["logs", "last-error", "--json"], io)).toBe(0);
     expect(io.stdoutLines.join("\n")).toContain("last_error");

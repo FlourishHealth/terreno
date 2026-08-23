@@ -29,7 +29,10 @@ Commands:
   api request <METHOD> <path>     Invoke by HTTP method and path
 
   info                            Print local @terreno/* versions
-  logs                            Tail .terreno/logs
+  logs                            Merge backend, browser, Metro, and app logs
+  state                           Inspect auth and RTK Query state
+  eval                            Evaluate JavaScript through Metro CDP
+  navigate                        Navigate the Expo app through Metro CDP
   db schema                       List Mongo collections
   db query                        Run a read-only Mongo query
 
@@ -102,9 +105,21 @@ Options:
   form --field title:text:required [--out file]
   admin --model Todo:/todos:Todos:title,completed
 `,
-    logs: `Usage: terreno logs [--entries 80] [--level error] [--sources backend,browser]
+    eval: `Usage: terreno eval --code <javascript>
 
-  last-error [--sources backend]
+Requires TERRENO_MCP_EVAL=1. Evaluates JavaScript in the app runtime through Metro CDP.
+`,
+    logs: `Usage: terreno logs [--entries 80] [--level error] [--since <ISO>] [--sources backend,browser,metro,app]
+
+  last-error [--sources backend,browser,metro,app]
+`,
+    navigate: `Usage: terreno navigate <path>
+
+Requires TERRENO_MCP_EVAL=1. Navigates an Expo Router app through Metro CDP.
+`,
+    state: `Usage: terreno state [--slice auth|rtk|<name>] [--query <substring>]
+
+Reads Redux/RTK Query state through the registered dev store or Metro CDP.
 `,
     validate: `Usage: terreno validate schema --file <path>
 `,

@@ -48,8 +48,49 @@ export const runLogsCommand = async (
   const result = await handleLocalToolCall("read_logs", {
     entries: entriesRaw ? Number(entriesRaw) : undefined,
     level: flagString(parsed.flags, "level"),
+    since: flagString(parsed.flags, "since"),
     sources: flagList(parsed.flags, "source", "sources"),
   });
+  return printToolResult(io, json, result);
+};
+
+export const runStateCommand = async (
+  parsed: ParsedArgs,
+  io: CliIo,
+  json: boolean
+): Promise<number> => {
+  const result = await handleLocalToolCall("get_rtk_state", {
+    query: flagString(parsed.flags, "query"),
+    slice: flagString(parsed.flags, "slice"),
+  });
+  return printToolResult(io, json, result);
+};
+
+export const runEvalCommand = async (
+  parsed: ParsedArgs,
+  io: CliIo,
+  json: boolean
+): Promise<number> => {
+  const code = flagString(parsed.flags, "code");
+  if (!code) {
+    io.stderr("Usage: terreno eval --code <javascript>");
+    return 1;
+  }
+  const result = await handleLocalToolCall("evaluate", {code});
+  return printToolResult(io, json, result);
+};
+
+export const runNavigateCommand = async (
+  parsed: ParsedArgs,
+  io: CliIo,
+  json: boolean
+): Promise<number> => {
+  const path = parsed.positionals[1];
+  if (!path) {
+    io.stderr("Usage: terreno navigate <path>");
+    return 1;
+  }
+  const result = await handleLocalToolCall("navigate", {path});
   return printToolResult(io, json, result);
 };
 

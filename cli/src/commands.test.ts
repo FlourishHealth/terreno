@@ -155,6 +155,8 @@ describe("generate and validate commands", () => {
     expect(await runCli(["docs", "upgrade"], io)).toBe(1);
     expect(await runCli(["bootstrap"], io)).toBe(1);
     expect(await runCli(["bootstrap", "app"], io)).toBe(1);
+    expect(await runCli(["eval"], io)).toBe(1);
+    expect(await runCli(["navigate"], io)).toBe(1);
     expect(await runCli(["api", "list"], io)).toBe(1);
     expect(await runCli(["api"], io)).toBe(1);
     expect(await runCli(["db"], io)).toBe(1);

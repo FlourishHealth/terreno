@@ -32,7 +32,10 @@ terreno generate rest-cli --schema http://localhost:4000/openapi.json --out ./to
 | `api call <operationId>` | Invoke by OpenAPI operation id |
 | `api request <METHOD> <path>` | Invoke by method + path template |
 | `info` | Local `@terreno/*` versions (via MCP local tools) |
-| `logs` | Tail `.terreno/logs` (`--entries`, `--level`, `--sources`; `last-error`) |
+| `logs` | Merge backend/browser JSONL, Metro events, and app CDP console (`--entries`, `--level`, `--since`, `--sources`; `last-error`) |
+| `state` | Inspect auth or RTK Query state (`--slice`, `--query`) through the dev store or Metro CDP |
+| `eval` | Evaluate JavaScript in the app runtime through Metro CDP (`--code`; requires `TERRENO_MCP_EVAL=1`) |
+| `navigate` | Navigate Expo Router through Metro CDP (requires `TERRENO_MCP_EVAL=1`) |
 | `db schema` | Mongo collections (`--collection-filter`, `--summary`) |
 | `db query` | Read-only Mongo (`--collection`, `--operation`, `--filter`, `--pipeline`, `--field`, `--limit`) |
 

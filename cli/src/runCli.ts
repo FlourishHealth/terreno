@@ -6,7 +6,14 @@ import {runApiCommand} from "./commands/api";
 import {runBootstrapCommand} from "./commands/bootstrap";
 import {runDocsCommand} from "./commands/docs";
 import {runGenerateCommand, runValidateCommand} from "./commands/generate";
-import {runDbCommand, runInfoCommand, runLogsCommand} from "./commands/project";
+import {
+  runDbCommand,
+  runEvalCommand,
+  runInfoCommand,
+  runLogsCommand,
+  runNavigateCommand,
+  runStateCommand,
+} from "./commands/project";
 import {commandHelp, HELP_TEXT} from "./help";
 import {type CliIo, createProcessIo, printJson} from "./io";
 import {flagBoolean, parseArgs} from "./parseArgs";
@@ -50,12 +57,18 @@ export const runCli = async (argv: string[], io: CliIo = createProcessIo()): Pro
         return await runDbCommand(parsed, io, json);
       case "docs":
         return await runDocsCommand(parsed, io, json);
+      case "eval":
+        return await runEvalCommand(parsed, io, json);
       case "generate":
         return await runGenerateCommand(parsed, io, json);
       case "info":
         return await runInfoCommand(io, json);
       case "logs":
         return await runLogsCommand(parsed, io, json);
+      case "navigate":
+        return await runNavigateCommand(parsed, io, json);
+      case "state":
+        return await runStateCommand(parsed, io, json);
       case "validate":
         return await runValidateCommand(parsed, io, json);
       case "version": {

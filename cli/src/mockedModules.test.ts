@@ -45,6 +45,9 @@ describe("mocked local tools and syncdb", () => {
     expect(await runCli(["info", "--json"], io)).toBe(0);
     expect(await runCli(["logs"], io)).toBe(0);
     expect(await runCli(["logs", "last-error", "--json"], io)).toBe(0);
+    expect(await runCli(["state", "--slice", "rtk", "--query", "todos", "--json"], io)).toBe(0);
+    expect(await runCli(["eval", "--code", "1 + 1", "--json"], io)).toBe(0);
+    expect(await runCli(["navigate", "/profile", "--json"], io)).toBe(0);
     expect(await runCli(["db", "schema", "--json"], io)).toBe(0);
     expect(
       await runCli(
@@ -68,7 +71,11 @@ describe("mocked local tools and syncdb", () => {
         io
       )
     ).toBe(0);
-    expect(io.stdoutLines.join("\n")).toContain("database_query");
+    const output = io.stdoutLines.join("\n");
+    expect(output).toContain("get_rtk_state");
+    expect(output).toContain("evaluate");
+    expect(output).toContain("navigate");
+    expect(output).toContain("database_query");
   });
 
   it("generates a syncdb sdk", async () => {
