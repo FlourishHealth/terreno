@@ -58,13 +58,14 @@ describe("local MCP runtime tools", () => {
     const backendLogDir = join(projectRoot, "example-backend", ".terreno", "logs");
     mkdirSync(backendLogDir, {recursive: true});
     const timestamp = DateTime.utc().toISO();
+    const browserTimestamp = DateTime.fromISO(timestamp).plus({milliseconds: 1}).toISO();
     writeFileSync(
       join(backendLogDir, "app.log"),
       `${JSON.stringify({level: "info", message: "backend ready", timestamp})}\n`
     );
     writeFileSync(
       join(backendLogDir, "browser.log"),
-      `${JSON.stringify({level: "error", message: "client failed", timestamp})}\n`
+      `${JSON.stringify({level: "error", message: "client failed", timestamp: browserTimestamp})}\n`
     );
 
     const result = JSON.parse(await readLogs({entries: 10, sources: ["backend", "browser"]})) as {
