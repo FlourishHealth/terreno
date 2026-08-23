@@ -8,6 +8,38 @@
     "terreno-mcp": "./dist/index.js",
     "terreno-mcp-local": "./dist/local/index.js"
   },
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./bootstrap": {
+      "bun": "./src/bootstrap.ts",
+      "default": "./dist/bootstrap.js",
+      "types": "./dist/bootstrap.d.ts"
+    },
+    "./local-tools": {
+      "bun": "./src/local/localTools.ts",
+      "default": "./dist/local/localTools.js",
+      "types": "./dist/local/localTools.d.ts"
+    },
+    "./search": {
+      "bun": "./src/search/docIndex.ts",
+      "default": "./dist/search/docIndex.js",
+      "types": "./dist/search/docIndex.d.ts"
+    },
+    "./tools": {
+      "bun": "./src/tools.ts",
+      "default": "./dist/tools.js",
+      "types": "./dist/tools.d.ts"
+    },
+    "./upgrade": {
+      "bun": "./src/upgradeGuide.ts",
+      "default": "./dist/upgradeGuide.js",
+      "types": "./dist/upgradeGuide.d.ts"
+    }
+  },
   "scripts": {
     "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
     "dev": "bun --watch src/index.ts",

@@ -34,6 +34,11 @@
     "./testing": {
       "default": "./dist/testing/index.js",
       "types": "./dist/testing/index.d.ts"
+    },
+    "./codegen": {
+      "bun": "./src/codegen/generate.ts",
+      "default": "./dist/codegen/generate.js",
+      "types": "./dist/codegen/generate.d.ts"
     }
   },
   "files": [

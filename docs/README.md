@@ -25,6 +25,7 @@ Documentation for the Terreno monorepo: shared packages for full-stack applicati
 | [@terreno/comms](reference/comms.md) | Pluggable communications providers |
 | [@terreno/feature-flags](reference/feature-flags.md) | Feature flags and A/B testing plugin |
 | [@terreno/mcp](reference/mcp-server.md) | AI coding assistant integration (MCP) |
+| [@terreno/cli](reference/cli.md) | `terreno` CLI for docs, codegen, bootstrap, and OpenAPI REST |
 | [@terreno/test](reference/test.md) | Bun test helpers and in-memory MongoDB |
 
 ### Legacy
