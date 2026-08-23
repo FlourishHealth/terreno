@@ -10,6 +10,9 @@ const MAX_STACK_LENGTH = 16_000;
 const BROWSER_LOG_BODY_LIMIT = "256kb";
 
 const shouldEnableBrowserLogs = (): boolean => {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
   if (process.env.TERRENO_BROWSER_LOGS === "false" || process.env.TERRENO_BROWSER_LOGS === "0") {
     return false;
   }

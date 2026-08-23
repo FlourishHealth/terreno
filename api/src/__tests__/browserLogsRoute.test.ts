@@ -77,5 +77,13 @@ describe("Terreno dev browser logs route", () => {
       .post("/__terreno/browser-logs")
       .send({entries: [{level: "error", message: "x"}]});
     expect(enabledResponse.status).toBe(204);
+
+    process.env.NODE_ENV = "production";
+    const productionApp = express();
+    addTerrenoDevBrowserLogsRoute(productionApp);
+    const productionResponse = await supertest(productionApp)
+      .post("/__terreno/browser-logs")
+      .send({entries: [{level: "error", message: "x"}]});
+    expect(productionResponse.status).toBe(404);
   });
 });
