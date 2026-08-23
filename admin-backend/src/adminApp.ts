@@ -698,12 +698,8 @@ export class AdminApp {
     if (config.adminAccess?.authorize) {
       return [
         ...shell,
-        async (_method, user, instance) => {
-          if (action !== "list" && instance === undefined) {
-            return true;
-          }
-          return config.adminAccess?.authorize?.({action, instance, user}) ?? false;
-        },
+        async (_method, user, instance) =>
+          config.adminAccess?.authorize?.({action, instance, user}) ?? false,
       ];
     }
     const resource = this.adminResource(config);
@@ -728,7 +724,8 @@ export class AdminApp {
           if (!(await this.canAnyResourceAction(user, resource, ["writeOwned"], instance))) {
             return false;
           }
-          if (instance === undefined) {
+          // writeOwned always allows create. Ownership applies to update/delete.
+          if (action === "create" || instance === undefined) {
             return true;
           }
           return this.isAdminModelOwned(config, user, instance);

@@ -446,7 +446,8 @@ describe("AdminApp /admin/config", () => {
     await agent
       .post("/admin/foods")
       .send({calories: 6, name: "Foreign", ownerId: new mongoose.Types.ObjectId()})
-      .expect(403);
+      .expect(201);
+    await agent.post("/admin/foods").send({calories: 7, name: "Unassigned"}).expect(201);
   });
 
   it("supports completely custom per-model authorization", async () => {
@@ -468,8 +469,14 @@ describe("AdminApp /admin/config", () => {
     );
     const agent = await authAsUser(localApp, "admin");
 
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepInclude(config.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
     await agent.get("/admin/foods").expect(200);
-    await agent.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(403);
+    await agent.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(405);
   });
 });
 

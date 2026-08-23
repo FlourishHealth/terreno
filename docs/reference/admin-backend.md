@@ -145,7 +145,12 @@ new AdminApp({
 `adminAccess.resource` overrides the default `admin<ModelName>` name. Use
 `adminAccess.authorize({action, instance, user})` when a model or screen needs a completely
 custom decision. The callback replaces the standard read/write/write-owned decision, while
-`admin:access` still protects the admin shell.
+`admin:access` still protects the admin shell. Every action is authorized without an instance
+first (router and `/admin/config` probes). Return `true` for `read` / `update` / `delete` when
+`instance` is missing if some records may be allowed; the loaded record is authorized next.
+`create` is also checked again with the request body.
+
+`writeOwned` can create any new record; `isOwned` is only applied to update and delete.
 
 The config endpoint is caller-specific: models and custom screens without read access are omitted,
 writable controls are disabled, and `platformTools` reports visibility for Scripts, Roles, Version,
