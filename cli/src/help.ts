@@ -94,6 +94,10 @@ Options:
   component <Name>
   upgrade --from <semver> --to <semver>
 `,
+    eval: `Usage: terreno eval --code <javascript>
+
+Requires TERRENO_MCP_EVAL=1. Evaluates JavaScript in the app runtime through Metro CDP.
+`,
     generate: `Usage: terreno generate <target> [options]
 
   syncdb --schema <url|path> --out <file> [--collections a,b] [--config <json>] [--no-format]
@@ -104,10 +108,6 @@ Options:
   screen --name TodoList --type list|detail|form|empty [--model-name Todo] [--out file]
   form --field title:text:required [--out file]
   admin --model Todo:/todos:Todos:title,completed
-`,
-    eval: `Usage: terreno eval --code <javascript>
-
-Requires TERRENO_MCP_EVAL=1. Evaluates JavaScript in the app runtime through Metro CDP.
 `,
     logs: `Usage: terreno logs [--entries 80] [--level error] [--since <ISO>] [--sources backend,browser,metro,app]
 

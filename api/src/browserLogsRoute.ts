@@ -61,12 +61,12 @@ export const addTerrenoDevBrowserLogsRoute = (app: express.Application): void =>
         typeof r.message === "string" ? r.message : JSON.stringify(r.message ?? "");
       lines.push(
         JSON.stringify({
-        level,
-        message: rawMessage.slice(0, MAX_MESSAGE_LENGTH),
-        source: "browser",
-        stack: typeof r.stack === "string" ? r.stack.slice(0, MAX_STACK_LENGTH) : undefined,
-        timestamp:
-          typeof r.timestamp === "string" && r.timestamp ? r.timestamp : DateTime.now().toISO(),
+          level,
+          message: rawMessage.slice(0, MAX_MESSAGE_LENGTH),
+          source: "browser",
+          stack: typeof r.stack === "string" ? r.stack.slice(0, MAX_STACK_LENGTH) : undefined,
+          timestamp:
+            typeof r.timestamp === "string" && r.timestamp ? r.timestamp : DateTime.now().toISO(),
         })
       );
     }
