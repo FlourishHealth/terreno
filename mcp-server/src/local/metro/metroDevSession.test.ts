@@ -156,7 +156,7 @@ describe("Metro development session", () => {
     expect(logs.entries[0]?.message).toBe("hello");
 
     process.env.TERRENO_MCP_EVAL = "1";
-    expect(await navigate({path: "/profile"})).toContain('"value": 2');
+    expect(await navigate({path: "/profile"})).toContain('"result": 2');
   });
 
   it("reports an unreachable Metro target", async (): Promise<void> => {
