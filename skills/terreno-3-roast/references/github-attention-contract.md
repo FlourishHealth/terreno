@@ -41,17 +41,22 @@ Rules:
 - Name what a check proves; a command alone is not evidence.
 - Link one canonical issue/spec in `Why`; do not add a separate metadata section.
 - Embed only the minimum screenshot/video needed to prove user-visible behavior.
-- Put migration notes, full check logs, compatibility matrices, or unusual implementation
-  detail in one optional block after the table:
+- Put migration notes, full check logs, compatibility matrices, unusual implementation
+  detail, and the stage-result YAML in one optional block after the table:
 
   ```html
   <details>
   <summary>Details</summary>
-
   Concise supporting detail.
-
+  <details>
+  <summary>Stage result</summary>
+  Compact v2 YAML for the next skill. Never duplicate it in the visible body.
+  </details>
   </details>
   ```
+
+- Never put stage-result YAML in the visible body or a comment. Omit the inner Stage
+  result toggle when this PR is not a lifecycle handoff.
 
 - Do not add checklists, type-of-change sections, commit lists, generated summaries,
   badges, repeated acceptance criteria, or routine CI state.

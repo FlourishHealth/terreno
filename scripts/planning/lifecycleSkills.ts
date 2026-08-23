@@ -37,44 +37,44 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     directory: "terreno-1-grow",
     nextMarkers: [
-      "recommended_next_stage: pick",
-      "recommended_next_stage: grow",
-      "recommended_next_stage: null",
+      "next: pick",
+      "next: grow",
+      "next: null",
     ],
     stage: "grow",
   },
   {
     directory: "terreno-2-pick",
     nextMarkers: [
-      "recommended_next_stage: roast",
-      "recommended_next_stage: pick",
-      "recommended_next_stage: null",
+      "next: roast",
+      "next: pick",
+      "next: null",
     ],
     stage: "pick",
   },
   {
     directory: "terreno-3-roast",
     nextMarkers: [
-      "recommended_next_stage: brew",
-      "recommended_next_stage: pick",
-      "recommended_next_stage: null",
+      "next: brew",
+      "next: pick",
+      "next: null",
     ],
     stage: "roast",
   },
   {
     directory: "terreno-4-brew",
     nextMarkers: [
-      "recommended_next_stage: taste",
-      "recommended_next_stage: pick",
-      "recommended_next_stage: roast",
-      "recommended_next_stage: brew",
-      "recommended_next_stage: null",
+      "next: taste",
+      "next: pick",
+      "next: roast",
+      "next: brew",
+      "next: null",
     ],
     stage: "brew",
   },
   {
     directory: "terreno-5-taste",
-    nextMarkers: ["recommended_next_stage: taste", "recommended_next_stage: null"],
+    nextMarkers: ["next: taste", "next: null"],
     stage: "taste",
   },
 ];
@@ -173,6 +173,15 @@ export const validateStageContent = ({
       errors.push(
         `${prefix}: repository-specific marker belongs in a project skill: ${marker}`
       );
+    }
+  }
+
+  if (definition.stage === "grow") {
+    if (!content.includes("references/grilling.md")) {
+      errors.push(`${prefix}: Grow must load the grilling procedure`);
+    }
+    if (!content.includes("Decisions table")) {
+      errors.push(`${prefix}: Grow must list grilled decisions in a Decisions table`);
     }
   }
 
@@ -345,10 +354,23 @@ export const validateLifecyclePlugin = ({
 
   const resultSchema = JSON.parse(
     readFileSync(join(pluginDirectory, "references/stage-result.schema.json"), "utf8")
-  ) as {properties?: {stage?: {enum?: string[]}; status?: {enum?: string[]}}};
+  ) as {
+    properties?: {
+      stage?: {enum?: string[]};
+      status?: {enum?: string[]};
+      v?: {const?: number};
+    };
+    required?: string[];
+  };
   const schemaStages = resultSchema.properties?.stage?.enum ?? [];
   const schemaStatuses = resultSchema.properties?.status?.enum ?? [];
 
+  if (resultSchema.properties?.v?.const !== 2) {
+    errors.push("stage-result schema v must be 2");
+  }
+  if (JSON.stringify(resultSchema.required) !== JSON.stringify(["v", "stage", "status", "next", "action"])) {
+    errors.push("stage-result schema must require only v, stage, status, next, action");
+  }
   if (JSON.stringify(schemaStages) !== JSON.stringify(LIFECYCLE_STAGES)) {
     errors.push("stage-result schema stage values do not match canonical lifecycle");
   }
@@ -356,10 +378,24 @@ export const validateLifecyclePlugin = ({
     errors.push("stage-result schema statuses must be PASS, FAIL, BLOCKED, PENDING");
   }
 
+  const lifecycleContract = readFileSync(
+    join(pluginDirectory, "references/lifecycle-contract.md"),
+    "utf8"
+  );
+  if (!lifecycleContract.includes("<details>")) {
+    errors.push("lifecycle contract must hide stage YAML behind disclosure");
+  }
+  if (!lifecycleContract.includes("Omit nulls and empty arrays")) {
+    errors.push("lifecycle contract must omit empty stage-result keys");
+  }
+
   const executionSchema = JSON.parse(
     readFileSync(join(pluginDirectory, "references/execution-state.schema.json"), "utf8")
-  ) as {properties?: {stage?: {enum?: string[]}}};
+  ) as {properties?: {stage?: {enum?: string[]}; v?: {const?: number}}};
   const executionStages = executionSchema.properties?.stage?.enum ?? [];
+  if (executionSchema.properties?.v?.const !== 2) {
+    errors.push("execution-state schema v must be 2");
+  }
   if (JSON.stringify(executionStages) !== JSON.stringify(LIFECYCLE_STAGES)) {
     errors.push("execution-state schema stage values do not match canonical lifecycle");
   }

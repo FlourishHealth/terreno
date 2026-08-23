@@ -27,7 +27,7 @@ describe("lifecycle skill architecture", (): void => {
       content: `${readStage("terreno-5-taste")}\nRun sleep 180 before checking again.`,
       definition: {
         directory: "terreno-5-taste",
-        nextMarkers: ["recommended_next_stage: taste", "recommended_next_stage: null"],
+        nextMarkers: ["next: taste", "next: null"],
         stage: "taste",
       },
     });
@@ -40,7 +40,7 @@ describe("lifecycle skill architecture", (): void => {
       content: `${readStage("terreno-4-brew")}\nExecute Taste procedure now.`,
       definition: {
         directory: "terreno-4-brew",
-        nextMarkers: ["recommended_next_stage: taste"],
+        nextMarkers: ["next: taste"],
         stage: "brew",
       },
     });
@@ -53,7 +53,7 @@ describe("lifecycle skill architecture", (): void => {
       content: `${readStage("terreno-2-pick")}\nRun bun run lint.`,
       definition: {
         directory: "terreno-2-pick",
-        nextMarkers: ["recommended_next_stage: roast"],
+        nextMarkers: ["next: roast"],
         stage: "pick",
       },
     });
@@ -63,19 +63,19 @@ describe("lifecycle skill architecture", (): void => {
 
   it("rejects a missing non-pass transition marker", (): void => {
     const content = readStage("terreno-1-grow").replace(
-      "recommended_next_stage: grow",
+      "next: grow",
       "missing-grow-retry"
     );
     const errors = validateStageContent({
       content,
       definition: {
         directory: "terreno-1-grow",
-        nextMarkers: ["recommended_next_stage: pick", "recommended_next_stage: grow"],
+        nextMarkers: ["next: pick", "next: grow"],
         stage: "grow",
       },
     });
 
-    assert.isTrue(errors.some((error) => error.includes("recommended_next_stage: grow")));
+    assert.isTrue(errors.some((error) => error.includes("next: grow")));
   });
 
   it("rejects verbose or incomplete GitHub communication contracts", (): void => {
@@ -108,11 +108,28 @@ describe("lifecycle skill architecture", (): void => {
       content,
       definition: {
         directory: "terreno-2-pick",
-        nextMarkers: ["recommended_next_stage: roast"],
+        nextMarkers: ["next: roast"],
         stage: "pick",
       },
     });
 
     assert.isTrue(errors.some((error) => error.includes("documentation contract")));
+  });
+
+  it("rejects Grow that skips grilling or the Decisions table", (): void => {
+    const content = readStage("terreno-1-grow")
+      .replace("references/grilling.md", "missing-grilling")
+      .replace("Decisions table", "compressed one-liner");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-1-grow",
+        nextMarkers: ["next: pick", "next: grow", "next: null"],
+        stage: "grow",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("grilling procedure")));
+    assert.isTrue(errors.some((error) => error.includes("Decisions table")));
   });
 });

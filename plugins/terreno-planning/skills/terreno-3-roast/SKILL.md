@@ -48,7 +48,8 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md) a
    evidence. Never pass a criterion because the code merely looks reasonable.
 8. **Do not fix.** Report implementation defects to Pick. Only correct verifier setup
    owned by Roast; if that changes evidence materially, rerun the affected method.
-9. **Record.** Update execution state and emit the structured result.
+9. **Record.** Update execution state and emit the structured result collapsed per the
+   lifecycle contract.
 
 ## Supporting skills
 
@@ -71,18 +72,18 @@ probes. If repository policy makes one mandatory and it is unavailable, emit `BL
 - Every in-scope acceptance criterion has objective passing evidence on the recorded head.
 - Required regression/runtime/UI checks pass.
 - Architecture and public docs match the shipped behavior.
-- Emit `PASS` with `recommended_next_stage: brew`.
+- Emit `PASS` with `next: brew`.
 
 ## Failure conditions
 
 One or more criteria disproven by evidence emits `FAIL` with severity, expected, actual,
-and reproducible evidence. Set `recommended_next_stage: pick`.
+and reproducible evidence. Set `next: pick`.
 
 ## Blocked conditions
 
 Unavailable required environment/capability/access, ambiguous criterion requiring a human
 decision, or external service failure that prevents proof emits `BLOCKED` with exact
-classification, `recommended_next_stage: null`, and next action.
+classification, `next: null`, and next action.
 
 ## Recommended next stage
 

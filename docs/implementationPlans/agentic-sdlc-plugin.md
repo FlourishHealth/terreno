@@ -53,11 +53,12 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP3 | Canonical stages are Grow, Pick, Roast, Brew, Taste |
 | AP4 | Stages discover supporting skills by description; exact skill names are never universal dependencies |
 | AP5 | Taste is one observe/act/emit iteration; the outer loop owns waiting and reinvocation |
-| AP6 | Shared results use stable YAML shaped by JSON Schema; statuses are `PASS`, `FAIL`, `BLOCKED`, `PENDING` |
+| AP6 | Shared results use compact `v: 2` YAML; required keys are `v`, `stage`, `status`, `next`, `action`; empty keys are omitted; YAML is collapsed for humans |
 | AP7 | Existing repository state convention wins; fallback reuses loop-owned `.terreno/pipeline/<slug>.json`, not committed by default |
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
+| AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
 
 ## Architecture
 
@@ -95,9 +96,10 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 
 ## Shared result contract
 
-Every stage emits the same concise YAML keys: schema version, stage/status, IP/task,
-attempt, branch/head/PR, supporting skills, completed work, checks, artifacts, failures,
-blockers, decisions required, next stage/action, and optional next-check interval.
+Every stage emits compact `v: 2` YAML: required `v`, `stage`, `status`, `next`, `action`;
+optional `ip`, `task`, `attempt`, `branch`, `sha`, `pr`, `skills`, `done`, `checks`,
+`artifacts`, `fail`, `block`, `ask`, `wait`. Omit nulls and empty arrays. Humans see
+`status` / `next` / `action`; the YAML is collapsed in chat and in the PR Details toggle.
 
 Schemas:
 
@@ -109,8 +111,9 @@ No reasoning transcript is persisted.
 ## Execution state
 
 The IP owns design/scope; tasks own executable slices. State stores only current
-stage/attempt/head/PR, prior structured result, artifacts, attempted approaches, and next
-transition. The outer loop preserves/transports it between fresh invocations.
+stage/attempt/head/PR, prior structured result (`last`), artifacts, attempted approaches
+(`tried`), and next transition. The outer loop preserves/transports it between fresh
+invocations.
 
 State files are excluded from Brew commits unless a repository explicitly tracks them.
 After a PR exists, each Taste invocation also reconstructs current truth from the PR and
@@ -121,8 +124,10 @@ current head rather than trusting stale state.
 ### Grow
 
 Researches repository facts, distinguishes human decisions from discoverable facts and
-low-risk conventional details, grills only genuine decisions, then writes approved,
-implementation-ready IP/tasks. Every acceptance criterion maps to verification.
+low-risk conventional details, grills until each answer is executable, then writes
+approved, implementation-ready IP/tasks. Every acceptance criterion maps to verification.
+Approval shows a 15-line index plus a full Decisions table when any grilled decisions
+exist.
 
 ### Pick
 
