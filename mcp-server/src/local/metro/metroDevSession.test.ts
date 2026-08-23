@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
-
+import {lastError, readLogs} from "../tools/readLogs";
+import {getRtkState, navigate} from "../tools/runtime";
 import {
   cdpRuntimeEvaluate,
   ensureCdpConnected,
@@ -44,9 +45,24 @@ class FakeWebSocket {
   }
 
   send(raw: string): void {
-    const request = JSON.parse(raw) as {id: number; method: string};
+    const request = JSON.parse(raw) as {
+      id: number;
+      method: string;
+      params?: {expression?: string};
+    };
+    const evaluateValue = request.params?.expression?.includes("__TERRENO_STORE__")
+      ? {
+          ok: true,
+          state: {
+            auth: {userId: "cdp-user"},
+            "terreno-rtk": {mutations: {}, queries: {}},
+          },
+        }
+      : 2;
     const result =
-      request.method === "Runtime.evaluate" ? {result: {result: {value: 2}}} : {result: {}};
+      request.method === "Runtime.evaluate"
+        ? {result: {result: {value: evaluateValue}}}
+        : {result: {}};
     queueMicrotask((): void => {
       this.emit("message", {data: JSON.stringify({id: request.id, ...result})});
     });
@@ -84,6 +100,7 @@ describe("Metro development session", () => {
     resetMetroDevSessionForTests();
     globalThis.fetch = originalFetch;
     globalThis.WebSocket = originalWebSocket;
+    Reflect.deleteProperty(process.env, "TERRENO_MCP_EVAL");
     Reflect.deleteProperty(process.env, "TERRENO_METRO_URL");
   });
 
@@ -104,6 +121,11 @@ describe("Metro development session", () => {
       source?: string;
     };
     expect(event).toMatchObject({level: "error", source: "metro"});
+    const logs = JSON.parse(await readLogs({sources: ["metro"]})) as {
+      entries: Array<{level?: string}>;
+    };
+    expect(logs.entries[0]?.level).toBe("error");
+    expect(await lastError({sources: ["metro"]})).toContain("bundle_failed");
   });
 
   it("connects to Hermes, captures console calls, and evaluates expressions", async (): Promise<void> => {
@@ -124,6 +146,17 @@ describe("Metro development session", () => {
     expect(entry).toMatchObject({level: "warn", message: "hello", source: "app"});
 
     expect(await cdpRuntimeEvaluate("1 + 1", true)).toEqual({value: 2});
+    const state = JSON.parse(await getRtkState({slice: "auth"})) as {
+      auth?: {userId?: string};
+    };
+    expect(state.auth?.userId).toBe("cdp-user");
+    const logs = JSON.parse(await readLogs({sources: ["app"]})) as {
+      entries: Array<{message?: string}>;
+    };
+    expect(logs.entries[0]?.message).toBe("hello");
+
+    process.env.TERRENO_MCP_EVAL = "1";
+    expect(await navigate({path: "/profile"})).toContain('"value": 2');
   });
 
   it("reports an unreachable Metro target", async (): Promise<void> => {

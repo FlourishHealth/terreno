@@ -88,7 +88,13 @@ describe("local MCP runtime tools", () => {
       getState: (): Record<string, unknown> => ({
         auth: {userId: "user-1"},
         "terreno-rtk": {
-          mutations: {},
+          mutations: {
+            updateTodo: {
+              endpointName: "updateTodo",
+              originalArgs: {id: "todo-1"},
+              status: "pending",
+            },
+          },
           queries: {
             todos: {endpointName: "getTodos", originalArgs: {}, status: "fulfilled"},
           },
@@ -100,6 +106,11 @@ describe("local MCP runtime tools", () => {
       queries: Array<{endpoint?: string}>;
     };
     expect(state.queries[0]?.endpoint).toBe("getTodos");
+    const noMatch = JSON.parse(await getRtkState({query: "missing", slice: "rtk"})) as {
+      mutations: unknown[];
+      queries: unknown[];
+    };
+    expect(noMatch).toEqual({mutations: [], queries: []});
     expect(JSON.parse(await getRtkState({slice: "auth"}))).toEqual({
       auth: {userId: "user-1"},
     });
@@ -113,6 +124,13 @@ describe("local MCP runtime tools", () => {
     process.env.TERRENO_MCP_EVAL = "1";
     expect(await evaluate({code: "  "})).toBe("No code provided.");
     expect(await navigate({path: "  "})).toBe("No path provided.");
+
+    devGlobal.__TERRENO_STORE__ = {
+      getState: (): Record<string, unknown> => ({auth: {userId: "user-1"}}),
+    };
+    expect(JSON.parse(await getRtkState({slice: "rtk"}))).toEqual({
+      note: "No terreno-rtk slice found on store.",
+    });
   });
 
   it("filters durable logs by time and level and reports no error", async (): Promise<void> => {
@@ -145,6 +163,7 @@ describe("local MCP runtime tools", () => {
     ) as {entries: Array<{message?: string}>};
     expect(filtered.entries).toHaveLength(1);
     expect(filtered.entries[0]?.message).toBe("new info");
+    expect(await lastError({sources: ["backend"]})).toContain("old failure");
     expect(await lastError({sources: ["browser"]})).toContain("No recent error-level entries");
   });
 
