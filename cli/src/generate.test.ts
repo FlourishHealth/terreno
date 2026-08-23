@@ -48,4 +48,17 @@ describe("generateRestCliFiles", () => {
     const packageJson = files.find((file) => file.path === "package.json")?.content ?? "{}";
     expect(JSON.parse(packageJson).dependencies["@terreno/cli"]).toBe("latest");
   });
+
+  it("normalizes YAML specs in the generated openapi.json", () => {
+    const specLiteral = `openapi: 3.0.0
+info:
+  title: Shop
+  version: "1"
+paths: {}
+`;
+    const spec = parseOpenApiDocument(specLiteral);
+    const files = generateRestCliFiles({binName: "shop", spec, specLiteral});
+    const openApiJson = files.find((file) => file.path === "openapi.json")?.content ?? "";
+    expect(JSON.parse(openApiJson)).toEqual(spec);
+  });
 });

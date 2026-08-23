@@ -60,6 +60,15 @@ describe("Terreno dev browser logs route", () => {
     expect(res.status).toBe(413);
   });
 
+  it("rejects an empty request body", async () => {
+    process.env.NODE_ENV = "development";
+    const app = express();
+    addTerrenoDevBrowserLogsRoute(app);
+
+    const response = await supertest(app).post("/__terreno/browser-logs");
+    expect(response.status).toBe(400);
+  });
+
   it("is not mounted outside development unless explicitly enabled", async () => {
     process.env.NODE_ENV = "test";
 

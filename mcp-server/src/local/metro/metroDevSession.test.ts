@@ -18,6 +18,7 @@ type FakeListener = (event: FakeMessageEvent | {message?: string}) => void;
 
 class FakeWebSocket {
   static readonly OPEN = 1;
+  static autoRespond = true;
   static instances: FakeWebSocket[] = [];
 
   readonly url: string;
@@ -63,9 +64,11 @@ class FakeWebSocket {
       request.method === "Runtime.evaluate"
         ? {result: {result: {value: evaluateValue}}}
         : {result: {}};
-    queueMicrotask((): void => {
-      this.emit("message", {data: JSON.stringify({id: request.id, ...result})});
-    });
+    if (FakeWebSocket.autoRespond) {
+      queueMicrotask((): void => {
+        this.emit("message", {data: JSON.stringify({id: request.id, ...result})});
+      });
+    }
   }
 
   emit(name: string, event: FakeMessageEvent | {message?: string}): void {
@@ -81,6 +84,7 @@ describe("Metro development session", () => {
 
   beforeEach((): void => {
     resetMetroDevSessionForTests();
+    FakeWebSocket.autoRespond = true;
     FakeWebSocket.instances = [];
     process.env.TERRENO_METRO_URL = "http://localhost:8082";
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
@@ -165,5 +169,16 @@ describe("Metro development session", () => {
     const result = await ensureCdpConnected();
     expect(result.ok).toBe(false);
     expect(result.detail).toContain("503");
+  });
+
+  it("rejects pending evaluations when CDP disconnects", async (): Promise<void> => {
+    expect((await ensureCdpConnected()).ok).toBe(true);
+    FakeWebSocket.autoRespond = false;
+    const evaluation = cdpRuntimeEvaluate("slow()", true);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    FakeWebSocket.instances[0]?.close();
+    expect((await evaluation).error).toContain("CDP disconnected");
   });
 });

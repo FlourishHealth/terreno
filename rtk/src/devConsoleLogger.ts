@@ -9,6 +9,9 @@ interface Queued {
   timestamp: string;
 }
 
+const MAX_BATCH_ENTRIES = 100;
+const MAX_QUEUE_ENTRIES = 1000;
+
 let queue: Queued[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 let restoreConsole: (() => void) | undefined;
@@ -28,23 +31,26 @@ const flush = async (): Promise<void> => {
   if (queue.length === 0) {
     return;
   }
-  const batch = queue;
+  const pending = queue;
   queue = [];
   const url = `${baseUrl.replace(/\/$/, "")}/__terreno/browser-logs`;
-  try {
-    await fetch(url, {
-      body: JSON.stringify({entries: batch}),
-      headers: {"Content-Type": "application/json"},
-      method: "POST",
-    });
-  } catch {
-    // Dev-only bridge; never break the app if the backend is down.
+  for (let offset = 0; offset < pending.length; offset += MAX_BATCH_ENTRIES) {
+    const entries = pending.slice(offset, offset + MAX_BATCH_ENTRIES);
+    try {
+      await fetch(url, {
+        body: JSON.stringify({entries}),
+        headers: {"Content-Type": "application/json"},
+        method: "POST",
+      });
+    } catch {
+      // Dev-only bridge; never break the app if the backend is down.
+    }
   }
 };
 
 const scheduleFlush = (): void => {
   if (flushTimer) {
-    clearTimeout(flushTimer);
+    return;
   }
   flushTimer = setTimeout(() => {
     flushTimer = undefined;
@@ -53,6 +59,9 @@ const scheduleFlush = (): void => {
 };
 
 const push = (level: string, message: string, stack?: string): void => {
+  if (queue.length >= MAX_QUEUE_ENTRIES) {
+    queue.splice(0, queue.length - MAX_QUEUE_ENTRIES + 1);
+  }
   queue.push({
     level,
     message: message.slice(0, 8000),

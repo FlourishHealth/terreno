@@ -60,7 +60,7 @@ Auth: \`--token\` or \`TERRENO_TOKEN\`. Base URL: \`--base-url\` or \`TERRENO_AP
     {content: `${JSON.stringify(packageJson, null, 2)}\n`, path: "package.json"},
     {content: `${readme}\n`, path: "README.md"},
     {
-      content: `${specLiteral.endsWith("\n") ? specLiteral : `${specLiteral}\n`}`,
+      content: `${JSON.stringify(options.spec, null, 2)}\n`,
       path: "openapi.json",
     },
   ];

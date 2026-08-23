@@ -25,6 +25,13 @@ let lastCdpStatus = "not connected";
 let metroEventsStatus = "not connected";
 let metroConnectPromise: Promise<void> | undefined;
 
+const rejectPendingCdp = (reason: string): void => {
+  for (const pending of pendingCdp.values()) {
+    pending.reject(new Error(reason));
+  }
+  pendingCdp.clear();
+};
+
 const pushRing = (ring: RingEntry[], entry: RingEntry): void => {
   ring.push(entry);
   if (ring.length > RING_MAX) {
@@ -239,6 +246,7 @@ export const ensureCdpConnected = async (): Promise<{ok: boolean; detail: string
         if (cdpWs === ws) {
           cdpWs = undefined;
           lastCdpStatus = "CDP disconnected";
+          rejectPendingCdp(lastCdpStatus);
         }
       });
     });
@@ -382,7 +390,7 @@ export const resetMetroDevSessionForTests = (): void => {
   metroWs = undefined;
   cdpConnectPromise = undefined;
   metroConnectPromise = undefined;
-  pendingCdp.clear();
+  rejectPendingCdp("CDP session reset");
   cdpConsoleRing.length = 0;
   metroEventsRing.length = 0;
   nextCdpId = 1;

@@ -1,5 +1,5 @@
 import {mkdir, writeFile} from "node:fs/promises";
-import {dirname} from "node:path";
+import {dirname, isAbsolute, resolve} from "node:path";
 
 import type {CliIo} from "../io";
 import {printJson} from "../io";
@@ -12,7 +12,7 @@ export const maybeWrite = async (
   extra?: Record<string, unknown>
 ): Promise<number> => {
   if (outPath) {
-    const absolute = outPath.startsWith("/") ? outPath : `${io.cwd}/${outPath}`;
+    const absolute = isAbsolute(outPath) ? outPath : resolve(io.cwd, outPath);
     await mkdir(dirname(absolute), {recursive: true});
     await writeFile(absolute, content.endsWith("\n") ? content : `${content}\n`, "utf8");
     if (json) {

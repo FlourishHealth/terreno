@@ -48,4 +48,36 @@ describe("installTerrenoDevConsoleLogger", () => {
     expect(body.entries[0]?.level).toBe("error");
     expect(body.entries[1]?.level).toBe("warn");
   });
+
+  it("flushes bursts in server-sized batches", async () => {
+    const fetchMock = mock((_input: RequestInfo | URL, _init?: RequestInit) =>
+      Promise.resolve(new Response(null, {status: 204}))
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const originalWarn = console.warn;
+    console.warn = (): void => {};
+
+    try {
+      installTerrenoDevConsoleLogger();
+      for (let index = 0; index < 101; index += 1) {
+        console.warn(`line-${index}`);
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 450);
+      });
+    } finally {
+      resetTerrenoDevConsoleLoggerForTests();
+      console.warn = originalWarn;
+    }
+
+    expect(fetchMock.mock.calls).toHaveLength(2);
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      entries: unknown[];
+    };
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)) as {
+      entries: unknown[];
+    };
+    expect(firstBody.entries).toHaveLength(100);
+    expect(secondBody.entries).toHaveLength(1);
+  });
 });

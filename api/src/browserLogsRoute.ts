@@ -39,8 +39,8 @@ export const addTerrenoDevBrowserLogsRoute = (app: express.Application): void =>
   }
 
   app.post("/__terreno/browser-logs", express.json({limit: BROWSER_LOG_BODY_LIMIT}), (req, res) => {
-    const body = req.body as {entries?: unknown};
-    if (!Array.isArray(body.entries) || body.entries.length === 0) {
+    const body = req.body as {entries?: unknown} | undefined;
+    if (!Array.isArray(body?.entries) || body.entries.length === 0) {
       res.status(400).json({error: "Expected { entries: [...] }"});
       return;
     }
