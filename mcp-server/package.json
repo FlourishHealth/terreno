@@ -10,32 +10,32 @@
   },
   "exports": {
     ".": {
-      "bun": "./src/index.ts",
+      "bun": "./dist/index.js",
       "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./bootstrap": {
-      "bun": "./src/bootstrap.ts",
+      "bun": "./dist/bootstrap.js",
       "default": "./dist/bootstrap.js",
       "types": "./dist/bootstrap.d.ts"
     },
     "./local-tools": {
-      "bun": "./src/local/localTools.ts",
+      "bun": "./dist/local/localTools.js",
       "default": "./dist/local/localTools.js",
       "types": "./dist/local/localTools.d.ts"
     },
     "./search": {
-      "bun": "./src/search/docIndex.ts",
+      "bun": "./dist/search/docIndex.js",
       "default": "./dist/search/docIndex.js",
       "types": "./dist/search/docIndex.d.ts"
     },
     "./tools": {
-      "bun": "./src/tools.ts",
+      "bun": "./dist/tools.js",
       "default": "./dist/tools.js",
       "types": "./dist/tools.d.ts"
     },
     "./upgrade": {
-      "bun": "./src/upgradeGuide.ts",
+      "bun": "./dist/upgradeGuide.js",
       "default": "./dist/upgradeGuide.js",
       "types": "./dist/upgradeGuide.d.ts"
     }

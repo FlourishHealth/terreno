@@ -16,7 +16,7 @@ import {printJson} from "../io";
 import {flagBoolean, flagList, flagString, type ParsedArgs} from "../parseArgs";
 import {parseFormField, parseModelField} from "../parseFields";
 import {generateRestCliFiles} from "../rest/generateAppCli";
-import {loadOpenApiDocument, parseOpenApiDocument} from "../rest/loadSpec";
+import {parseOpenApiDocument} from "../rest/loadSpec";
 import {writeFiles} from "../writeFiles";
 import {maybeWrite} from "./output";
 
@@ -220,7 +220,6 @@ export const runGenerateCommand = async (
     const source = resolveFromCwd(io.cwd, schema);
     const specLiteral = await loadSpecLiteral(source, io);
     const spec = parseOpenApiDocument(specLiteral);
-    await loadOpenApiDocument(source, io.fetch);
     const files = generateRestCliFiles({
       baseUrl: flagString(parsed.flags, "base-url"),
       binName,
