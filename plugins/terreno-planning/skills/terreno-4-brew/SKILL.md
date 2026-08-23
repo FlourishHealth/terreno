@@ -51,16 +51,17 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
    a design/behavior choice is `BLOCKED`.
 8. **Create/update PR.** Apply the GitHub attention contract and any stricter repository
    template. The visible body uses only `Why`, `What changed`, and `Verification`, stays
-   under 250 words, names untested risk explicitly, and puts optional detail in one
-   expandable block. Preserve human-edited title/body; make only accurate minimal edits.
-   Attach only decisive UI/runtime artifacts without sensitive data.
+   under 250 words, names untested risk explicitly, and puts optional detail plus the
+   stage-result YAML in one expandable Details block. Preserve human-edited title/body;
+   make only accurate minimal edits. Attach only decisive UI/runtime artifacts without
+   sensitive data.
 9. **Do not announce.** Do not post a PR comment for creation, readiness, check results,
    or evidence already present in the body. A top-level comment is allowed only for one
    blocking human action that cannot live in an existing review thread.
 10. **Observe once.** Resolve the PR number/URL and pushed head SHA; confirm CI was
    triggered. Do not wait for completion.
 11. **Record and exit.** Update execution state and emit `PASS` with the PR/head and
-    `recommended_next_stage: taste`.
+    `next: taste`, collapsed per the lifecycle contract.
 
 ## Supporting skills
 
@@ -80,21 +81,21 @@ handling, and mandatory evidence gates.
 
 - Verified implementation is committed/pushed and the PR accurately represents it.
 - CI is triggered for the recorded current head.
-- Emit `PASS` with `recommended_next_stage: taste`, then exit.
+- Emit `PASS` with `next: taste`, then exit.
 
 ## Failure conditions
 
 Failed final checks, review findings, push errors, or PR setup errors emit `FAIL` with
 evidence and the smallest corrective stage/action: behavioral defects use
-`recommended_next_stage: pick`, stale/missing proof uses `recommended_next_stage: roast`,
-and submission-only retries use `recommended_next_stage: brew`. Do not fix implementation
+`next: pick`, stale/missing proof uses `next: roast`,
+and submission-only retries use `next: brew`. Do not fix implementation
 inside Brew.
 
 ## Blocked conditions
 
 Missing access, required human approval/decision, unsafe conflict, unavailable mandatory
 submission capability, or sensitive-data risk emits `BLOCKED` with
-`recommended_next_stage: null` and the exact action required.
+`next: null` and the exact action required.
 
 ## Recommended next stage
 

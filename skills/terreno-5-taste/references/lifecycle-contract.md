@@ -20,7 +20,7 @@ At the start of every stage:
 1. Inspect skills exposed by the harness and repository (for example skill catalogs and
    repository skill directories).
 2. Match their descriptions to the affected domains and the current stage.
-3. Load applicable skills before acting. Record their names in `supporting_skills`.
+3. Load applicable skills before acting. Record their names in `skills`.
 4. If repository instructions require a capability and it is unavailable, return
    `BLOCKED`; never silently skip it.
 5. If no skill applies, infer conventions from repository instructions, existing code,
@@ -41,44 +41,64 @@ Every stage follows the [`documentation contract`](documentation-contract.md):
 
 ## Stage result
 
-Emit all keys below as a final fenced YAML document. Keep lists empty rather than
-omitting keys. Status values are exactly `PASS`, `FAIL`, `BLOCKED`, or `PENDING`.
-The machine-readable schema is [`stage-result.schema.json`](stage-result.schema.json).
+Machine-readable result is for the next skill and the outer loop. It is **not** the
+human-facing answer.
+
+Lead the chat with `status`, `next`, and `action` in one or two lines. Put the YAML
+only in a collapsed details block. On a PR, put it only in the Details toggle from the
+[`GitHub attention contract`](github-attention-contract.md). Never paste the YAML in
+visible PR body, comments, or the main chat.
+
+The schema is [`stage-result.schema.json`](stage-result.schema.json) (`v: 2`). Required
+keys are `v`, `stage`, `status`, `next`, and `action`. Omit nulls and empty arrays.
+Status values are exactly `PASS`, `FAIL`, `BLOCKED`, or `PENDING`.
+
+Wrap the YAML:
+
+```html
+<details>
+<summary>Stage result</summary>
+</details>
+```
+
+Example payload:
 
 ```yaml
-schema_version: 1
+v: 2
 stage: roast
 status: FAIL
 ip: example-feature
 task: T2
 attempt: 2
-branch: cursor/example-feature-abc
-head_sha: abc123
-pr: "456"
-supporting_skills:
-  - backend-api
-completed:
-  - Verified cursor pagination route behavior
+sha: abc123
 checks:
   - name: cursor-pagination
     status: FAIL
-    evidence: "bun test ...: expected 2 records, received 3"
-artifacts: []
-failures:
-  - requirement: Cursor pagination is backwards compatible
-    severity: blocking
-    expected: No duplicate records across first, middle, and final pages
-    actual: Final page repeats one record
-    evidence: "test output or artifact path"
-blockers: []
-decisions_required: []
-recommended_next_stage: pick
-recommended_next_action: Fix duplicate cursor boundary and rerun the failing test
-next_check_after_seconds: null
+    ev: "bun test: expected 2 records, received 3"
+fail:
+  - need: Cursor pagination is backwards compatible
+    want: No duplicate records across pages
+    got: Final page repeats one record
+    ev: test output
+next: pick
+action: Fix duplicate cursor boundary and rerun the failing test
 ```
 
-Evidence must be reproducible: command plus outcome, artifact path, API response, log
-location, or PR/check URL. Never persist chain-of-thought or conversational transcripts.
+Evidence in `ev` must be reproducible: command plus outcome, artifact path, API
+response, log location, or PR/check URL. Never persist chain-of-thought or conversational
+transcripts.
+
+| Key | Meaning |
+| --- | --- |
+| `sha` | current head |
+| `skills` | supporting skills loaded |
+| `done` | completed work |
+| `fail` | `need` / `want` / `got` / `ev`; optional `sev` |
+| `block` | `kind` / `why` / optional `ev` |
+| `ask` | human questions: `q` / `rec` / optional `opts` |
+| `next` | recommended next stage or `null` |
+| `action` | concrete next action |
+| `wait` | seconds until the next Taste check |
 
 ## Execution state
 
@@ -93,19 +113,19 @@ explicitly tracks execution state; Brew must exclude loop-owned state from PR co
 
 Each invocation:
 
-1. Read state and verify its branch/head/PR against reality.
+1. Read state and verify its branch/sha/PR against reality.
 2. Increment `attempt` for the invoked stage.
-3. Consume `last_result` and prior failed approaches; do not repeat a failed approach
+3. Consume `last` and prior `tried` approaches; do not repeat a failed approach
    without new evidence.
 4. Perform the stage.
-5. Replace `last_result`, merge artifact references, and set `next`.
+5. Replace `last`, merge artifact references, and set `next`.
 6. Emit the same result to the caller so the loop can persist it elsewhere.
 
 These six state operations are mandatory whenever a stage says “update execution state.”
-Every result also includes a concrete `recommended_next_action`, even when
-`recommended_next_stage` is `null`. For `BLOCKED`, set `next.human_required: true` only
-when the blocker is a human decision/policy gate; access/environment/external blockers
-remain false unless human action is genuinely required.
+Every result also includes a concrete `action`, even when `next` is `null`. For
+`BLOCKED`, set `next.human: true` only when the blocker is a human decision/policy gate;
+access/environment/external blockers remain false unless human action is genuinely
+required.
 
 If no writable artifact exists, still emit the result. If the outer loop cannot preserve
 that result for the next fresh invocation, return `BLOCKED` and name the missing state
@@ -117,8 +137,8 @@ transport.
   recommend the smallest evidence-driven retry.
 - `BLOCKED`: no safe engineering action exists now. Classify `human`, `environment`,
   `access`, or `external`; include the exact action or decision required.
-- `PENDING`: changing external state is not terminal (primarily Taste). Include
-  `next_check_after_seconds`; the **outer loop** waits and invokes again.
+- `PENDING`: changing external state is not terminal (primarily Taste). Include `wait`;
+  the **outer loop** waits and invokes again.
 - `PASS`: this stage's success conditions are proven for the recorded head.
 
 Human gates include unresolved product semantics, architecture/security/data ownership,
@@ -128,4 +148,3 @@ recommended default when appropriate.
 
 Bounded engineering retries must be hypothesis-driven. Unbounded observation belongs to
 the outer loop, never inside a lifecycle skill.
-

@@ -12,8 +12,9 @@ Any BLOCKED ───────────→ human/external gate
 ```
 
 The loop persists the execution state, starts fresh agents with only the required
-artifacts, honors `recommended_next_stage`, waits on `PENDING`, and stops on `PASS` or
-`BLOCKED` according to policy. It must not turn a human decision into retries.
+artifacts, honors `next`, waits on `PENDING` (`wait` seconds), and stops on `PASS` or
+`BLOCKED` according to policy. It must not turn a human decision into retries. Stage
+YAML is loop/skill data; keep it collapsed for humans.
 
 ## Invocation packet
 

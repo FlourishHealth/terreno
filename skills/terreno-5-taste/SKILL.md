@@ -58,17 +58,19 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 8. **Preserve PR description.** Never regenerate or replace human-authored text. Fetch the
    latest body before a required minimal evidence edit; skip body mutation if it cannot
    be preserved exactly. Update `Verification` instead of posting test/CI comments. Keep
+   stage-result YAML in the Details toggle, never in the visible body. Keep
    sensitive data out of text and artifacts.
 9. **Default to silence.** Never post progress, thanks, readiness, CI, or PR-summary
    comments. Use an existing review thread when possible. A top-level comment is allowed
    only for one blocking human decision/action not already visible in the PR body.
 10. **Emit and exit.**
    - New push or external work still running → `PENDING`, current head,
-     `recommended_next_stage: taste`, and `next_check_after_seconds`.
+     `next: taste`, and `wait`.
    - All checks terminal/non-failing, no conflicts, no actionable reviews → `PASS`.
    - No safe current action because of human/access/external/environment gate →
      `BLOCKED`.
-   Update execution state before exit.
+   Update execution state and emit the structured result collapsed per the lifecycle
+   contract. Then exit.
 
 ## Supporting skills
 
@@ -96,13 +98,13 @@ For the **current head**:
 - no actionable review finding remains
 - PR is mergeable or only awaiting policy-required human approval
 
-Emit `PASS` with `recommended_next_stage: null`.
+Emit `PASS` with `next: null`.
 
 ## Failure conditions
 
 Taste normally converts actionable failures into one bounded fix and then `PENDING`.
 If the iteration itself fails before it can observe or act, emit `FAIL` with exact
-evidence, `recommended_next_stage: taste`, and a focused retry. Do not make repeated
+evidence, `next: taste`, and a focused retry. Do not make repeated
 speculative edits.
 
 ## Blocked conditions
@@ -110,7 +112,7 @@ speculative edits.
 Emit `BLOCKED` for inaccessible checks/services, unavailable mandatory verifier,
 irreconcilable behavior decisions, destructive/security/public-API choices, exhausted
 safe infrastructure retry, or policy-required human action. Include the current head,
-what was attempted, `recommended_next_stage: null`, and the single action/decision
+what was attempted, `next: null`, and the single action/decision
 required.
 
 ## Recommended next stage

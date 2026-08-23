@@ -59,7 +59,8 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
     supporting skills. Missing mandatory capability is `BLOCKED`, not skipped.
     Missing docs for a user-visible or architectural change is `FAIL`.
 11. **Record.** Mark only the completed task/slice, update execution state with commands,
-    evidence, artifacts, docs files, and attempts, then emit the structured result.
+    evidence, artifacts, docs files, and attempts, then emit the structured result
+    collapsed per the lifecycle contract.
 
 Repeat Specify → Encode → Fulfill for learned behaviors inside this one slice. Do not batch
 all tests first or expand into the next task.
@@ -84,19 +85,19 @@ generated-code workflows, and repository gotchas.
 - Current task is complete without unresolved internal review findings or plan drift.
 - Required repository checks/runtime gates pass for the current head.
 - Evidence is sufficient for a fresh Roast verifier.
-- Emit `PASS` with `recommended_next_stage: roast`.
+- Emit `PASS` with `next: roast`.
 
 ## Failure conditions
 
 Tests, internal reviews, or implementation checks that objectively fail emit `FAIL` with
-expected/actual/evidence and `recommended_next_stage: pick` only with a focused next
+expected/actual/evidence and `next: pick` only with a focused next
 hypothesis; otherwise escalate under blocked conditions.
 
 ## Blocked conditions
 
 An unresolved product/security/data/public-API decision, unsafe destructive change,
 missing required verifier, inaccessible dependency, or scope expansion emits `BLOCKED`
-with `recommended_next_stage: null` and the exact decision/action required.
+with `next: null` and the exact decision/action required.
 
 ## Recommended next stage
 

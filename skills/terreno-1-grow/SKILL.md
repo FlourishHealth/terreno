@@ -11,7 +11,8 @@ execute without conversation history.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md), and
-[`grilling procedure`](references/grilling.md) before acting.
+[`grilling procedure`](references/grilling.md) before acting. Follow grilling for every
+human decision until the answer is executable.
 
 ## Preconditions
 
@@ -44,8 +45,10 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
      investigate it.
    - **Low-risk implementation detail:** strongly implied by convention → choose it and
      record the assumption.
-5. **Grill.** Work the current decision frontier in numbered rounds with recommended
-   answers. Wait for explicit shared-understanding confirmation before writing.
+5. **Grill.** Follow the grilling procedure. Work the current decision frontier in
+   numbered rounds with recommended answers. Get to the bottom of each reply: vague,
+   partial, or conflicting answers stay on the frontier. Wait for explicit
+   shared-understanding confirmation before writing.
 6. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.
    Define scope, non-scope, architecture decisions, risks, human gates, rollout, and
    dependencies.
@@ -56,9 +59,11 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
    names files/seams, acceptance criteria, blockers, verification, docs to create or
    update, and relevant supporting skills when discoverable. Docs updates follow the
    documentation contract and are not deferred.
-9. **Approve.** Show the 15-line approval summary defined in the grilling reference. Set
-   the repository's approved status only after human confirmation. Update execution state
-   and emit the stage result.
+9. **Approve.** Show the 15-line approval index from grilling, then the unbounded
+   Decisions table when grilling produced any settled human decisions. Skip that table
+   when there were none. Set the repository's approved status only after human
+   confirmation. Update execution state and emit the stage result collapsed per the
+   lifecycle contract.
 
 ## Supporting skills
 
@@ -70,7 +75,7 @@ none is universally required.
 
 - Approved IP path and task-file path
 - Research findings and recorded assumptions (not chain-of-thought)
-- Decision log/human gates
+- Decision log/human gates, listed in full when any exist
 - Acceptance-criterion → verification mapping
 - Selected supporting skills
 - Docs files named on each task
@@ -81,18 +86,18 @@ none is universally required.
 - IP/task artifacts are approved, implementation-ready, dependency-aware, and testable.
 - A fresh Pick invocation can identify the next unblocked task, applicable criteria,
   decisions, supporting skills, and risks from durable artifacts.
-- Emit `PASS` with `recommended_next_stage: pick`.
+- Emit `PASS` with `next: pick`.
 
 ## Failure conditions
 
 Malformed or contradictory artifacts emit `FAIL` with exact defects,
-`recommended_next_stage: grow`, and a focused Grow retry. Do not pass incomplete criteria
+`next: grow`, and a focused Grow retry. Do not pass incomplete criteria
 to Pick.
 
 ## Blocked conditions
 
 Unresolved human decisions, unavailable required evidence/access, or unsafe ambiguity emit
-`BLOCKED` with `recommended_next_stage: null`, options, tradeoffs, and a recommended
+`BLOCKED` with `next: null`, options, tradeoffs, and a recommended
 default when appropriate.
 
 ## Recommended next stage
