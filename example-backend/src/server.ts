@@ -5,6 +5,7 @@ import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {AIAdminApp, LangfuseApp} from "@terreno/ai";
 import {
   BetterAuthApp,
+  backfillAdmins,
   ConsentApp,
   checkModelsStrict,
   configureOpenApiValidator,
@@ -14,6 +15,7 @@ import {
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
+  rbacRouter,
   SyncApp,
   syncConsents,
   TerrenoApp,
@@ -32,6 +34,7 @@ import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
+import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
@@ -40,6 +43,7 @@ import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
+import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
@@ -83,6 +87,12 @@ const createOpenApiAwareRouteRegistration = (
 export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
+  await access.roles.seedDefaults();
+  await backfillAdmins({
+    access,
+    userModel: User as unknown as TerrenoAuthUserModel,
+    wetRun: process.env.RBAC_BACKFILL_ADMINS === "true",
+  });
 
   if (process.env.SEED_DEFAULTS === "true") {
     logger.info("Seeding default example data");
@@ -149,6 +159,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
     const terraApp = new TerrenoApp({
+      accessControl: access,
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
@@ -164,6 +175,8 @@ export async function start(skipListen = false): Promise<express.Application> {
       userModel: User as unknown as TerrenoAuthUserModel,
     }).configure(AppConfiguration);
 
+    registerUsersTodoStatusTool();
+
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)
     // that rely on req.user being populated from the better-auth session.
@@ -177,6 +190,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     }
 
     terraApp
+      .register(rbacRouter({access, userModel: User as unknown as TerrenoAuthUserModel}))
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
       .register(
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
@@ -294,6 +308,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(new AIAdminApp())
       .register(
         new AdminApp({
+          accessControl: access,
           customScreens: [
             {
               description: "How this example wires Terreno admin UI v2",

@@ -710,6 +710,67 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   };
 
   /**
+   * Catch up the streams the server just confirmed this socket joined
+   * (`sync:subscribed`).
+   *
+   * Closing the join gap: `start()` (and every reconnect) emits `sync:subscribe` and
+   * then immediately kicks off a snapshot reconcile over HTTP. The server, meanwhile,
+   * resolves the full user and its scopes before joining the `sync:{stream}` rooms, so
+   * the reconcile can finish paging a stream to its head BEFORE the socket is in the
+   * room. A write landing in that window is in neither the snapshot (too late) nor a
+   * delta (room not joined yet), leaving the client silently stale until the next
+   * periodic reconcile — minutes later.
+   *
+   * The confirmation is the first instant live delivery is guaranteed, so paging each
+   * confirmed stream from its cursor here makes snapshot + delta coverage contiguous.
+   * It deliberately does NOT go through `reconcile()`: that call coalesces onto a pass
+   * which may have started before the join (exactly the pass that could have missed the
+   * write). Per-stream paging is idempotent and cursor-guarded, so running it beside an
+   * in-flight reconcile is safe.
+   */
+  const catchUpSubscribedStreams = async ({
+    collection,
+    streams,
+  }: {
+    collection: string;
+    streams: string[];
+  }): Promise<void> => {
+    if (!httpChannel || simulatedOffline || authPaused || streams.length === 0) {
+      return;
+    }
+    if (!store.collections.includes(collection)) {
+      return;
+    }
+    const myGeneration = generation;
+    const myUserId = currentUserId;
+    const isSuperseded = (): boolean => generation !== myGeneration || currentUserId !== myUserId;
+    addSyncing(1);
+    try {
+      for (const stream of streams) {
+        if (isSuperseded()) {
+          return;
+        }
+        store.addKnownStream({collection, stream});
+        await bootstrapStream({channel: httpChannel, collection, store, stream});
+      }
+      debugLog?.record({
+        detail: {collection, streams},
+        direction: "system",
+        label: `subscribe catch-up: ${streams.join(", ")}`,
+        type: "reconcile",
+      });
+    } catch (error) {
+      if (error instanceof AuthRequiredError) {
+        setAuthPaused(true);
+        return;
+      }
+      throw error;
+    } finally {
+      addSyncing(-1);
+    }
+  };
+
+  /**
    * C2 migration: deployed clients hold legacy `snapshot:{collection}` pseudo-cursors.
    * On start, delete all of them and clear `_knownStreams` so the normal discovery path
    * re-bootstraps every stream from cursor 0. Idempotent upserts + seq guards make
@@ -1426,6 +1487,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         unbindDeltaHandler = undefined;
       });
       unsubscribers.push(transport.onStatusChange(handleStatusChange));
+      const unsubscribeSubscribed = transport.onSubscribed?.((subscribed) => {
+        void catchUpSubscribedStreams(subscribed).catch(warn("subscribe catch-up failed"));
+      });
+      if (unsubscribeSubscribed) {
+        unsubscribers.push(unsubscribeSubscribed);
+      }
       unsubscribers.push(config.authProvider.onAuthChange(handleAuthChange));
 
       try {

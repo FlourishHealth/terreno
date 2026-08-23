@@ -4,7 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
-import {AdminObjectPicker} from "../AdminObjectPicker";
+import {AdminObjectPicker as BaseAdminObjectPicker} from "../AdminObjectPicker";
 import type {AdminApi} from "../types";
 
 interface ApiState {
@@ -18,6 +18,11 @@ const apiState: ApiState = {
   searchData: undefined,
   selectedItem: undefined,
 };
+
+// This suite exercises the search-as-you-type contract explicitly.
+const AdminObjectPicker: React.FC<React.ComponentProps<typeof BaseAdminObjectPicker>> = (
+  props
+): React.ReactElement => <BaseAdminObjectPicker {...props} autocomplete />;
 
 const querySpecs: unknown[] = [];
 const makeApi = () => ({
@@ -36,6 +41,7 @@ const makeApi = () => ({
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     const searchKey = keys.find((k) => k.startsWith("adminSearch_"));
     const readKey = keys.find((k) => k.startsWith("adminSearchRead_"));
+    const listKey = keys.find((k) => k.startsWith("adminPickerList_"));
     const enhanced: Record<string, unknown> = {};
     if (searchKey) {
       enhanced[`use${cap(searchKey)}Query`] = (_q: string, opts: Record<string, unknown>) => {
@@ -52,6 +58,9 @@ const makeApi = () => ({
         }
         return {data: apiState.selectedItem};
       };
+    }
+    if (listKey) {
+      enhanced[`use${cap(listKey)}Query`] = () => ({data: undefined, isFetching: false});
     }
     return enhanced;
   },

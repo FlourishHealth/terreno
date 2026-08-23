@@ -3,10 +3,12 @@ import type {Document, Model} from "mongoose";
 
 import type {AdminChangeEvent, AdminConfig} from "./adminTypes";
 import type {ModelRouterOptions} from "./api";
+import type {AnyTerrenoAccess} from "./rbac/types";
 import {scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 import type {TerrenoApp} from "./terrenoApp";
 
 export interface ModelRouterBuildContext {
+  accessControl?: AnyTerrenoAccess;
   openApi?: ModelRouterOptions<unknown>["openApi"];
   routePath?: string;
   terrenoApp?: TerrenoApp;

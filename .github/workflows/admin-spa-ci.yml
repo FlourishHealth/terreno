@@ -3,7 +3,16 @@
 name: Admin SPA CI
 
 on:
+  pull_request:
+    paths:
+      - "admin-spa/**"
+      - "admin-frontend/**"
+      - "rtk/**"
+      - "ui/**"
+      - ".github/workflows/admin-spa-ci.yml"
   push:
+    branches:
+      - master
     paths:
       - "admin-spa/**"
       - "admin-frontend/**"

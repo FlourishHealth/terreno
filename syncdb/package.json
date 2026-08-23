@@ -67,9 +67,10 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "test": "bun test",
+    "test:agent": "AGENT=1 bun test --only-failures",
     "test:ci": "bun test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.23.1"
+  "version": "57.1.0"
 }

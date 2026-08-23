@@ -20,6 +20,25 @@ A monorepo containing shared packages for building full-stack applications with 
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
 
+## Agentic lifecycle
+
+The reusable planning plugin uses five bounded transitions:
+**Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
+**Taste** (react once). The outer loop owns state persistence, waiting, retry, stop, and
+escalation. See `plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+
+Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
+project commands and domain conventions belong there, not in the portable plugin.
+
+## Documentation
+
+Human-facing docs are the architecture source. Before changing code, read the
+explanation and reference pages for the affected area. Update those pages in the
+same slice using the `update-docs` skill. Missing docs for a user-visible or
+architectural change fails the slice. Install the published skill set with
+`npx skills add FlourishHealth/terreno`; regenerate `skills/` with
+`bun run skills:sync`.
+
 ## Development
 
 Uses [Bun](https://bun.sh/) as the package manager.
@@ -31,7 +50,8 @@ bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
-bun run test             # Run tests in api and ui
+bun run test             # Run all workspace test suites
+bun run test:agent       # Run all tests with passing cases suppressed
 ```
 
 - **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
@@ -97,7 +117,8 @@ The `example-frontend/` and `example-backend/` directories serve as both documen
 
 1. **Add examples** demonstrating new features
 2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`
-3. **Verify integration** by running both examples together
+3. **Update docs** in the same slice (`docs/explanation/`, `docs/reference/`, `docs/how-to/`)
+4. **Verify integration** by running both examples together
 
 ### Running the Full Stack
 
@@ -130,7 +151,9 @@ bun run frontend:web
 - Use multiline syntax with curly braces for all conditionals
 
 ### Testing
-- Use bun test with expect for testing
+- Use Bun for tests.
+- Agents should use `bun run test:agent` for the full suite. It preserves failures and the final summary while suppressing passing test cases.
+- Use the closest package or file-level `bun test --only-failures <path>` command during red/green cycles.
 
 ### Logging
 - Frontend: Use `console.info`, `console.debug`, `console.warn`, or `console.error` for permanent logs

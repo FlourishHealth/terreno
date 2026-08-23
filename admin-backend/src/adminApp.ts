@@ -1,5 +1,6 @@
 import {
   type AdminModelAdminMap,
+  type AnyTerrenoAccess,
   APIError,
   asyncHandler,
   authenticateMiddleware,
@@ -14,6 +15,7 @@ import {
   type ModelRouterOptions,
   modelRouter,
   type OpenApiMiddleware,
+  type PermissionMethod,
   Permissions,
   type PopulatePath,
   type ScriptArgDef,
@@ -189,6 +191,9 @@ export interface AdminOptions {
    * Consumers typically persist to an `AdminAuditLog` collection.
    */
   onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
+  /** When set, admin shell entry requires `admin:access`; model CRUD also requires
+   * resource/action permissions (for example `user:update`) from the same Access instance. */
+  accessControl?: AnyTerrenoAccess;
 }
 
 interface AdminFieldMeta {
@@ -403,6 +408,24 @@ const auditLabelFromListFields = (
   return id != null ? String(id) : undefined;
 };
 
+const coerceAdminFlag = (value: unknown): boolean => {
+  if (value === true || value === 1 || value === "1" || value === "true" || value === "yes") {
+    return true;
+  }
+  if (
+    value === false ||
+    value === 0 ||
+    value === "0" ||
+    value === "false" ||
+    value === "no" ||
+    value === "" ||
+    value == null
+  ) {
+    return false;
+  }
+  throw new APIError({status: 400, title: "admin must be a boolean"});
+};
+
 const auditActorId = (request: express.Request): string | undefined => {
   const user = request.user as {_id?: unknown} | undefined;
   if (!user || user._id == null) {
@@ -552,6 +575,58 @@ export class AdminApp {
    */
   constructor(options: AdminOptions) {
     this.options = options;
+  }
+
+  private adminAccessPermissions(): PermissionMethod<unknown>[] {
+    if (this.options.accessControl) {
+      return [this.options.accessControl.permission({admin: ["access"]})];
+    }
+    return [Permissions.IsAdmin];
+  }
+
+  private async hasScriptPermission(
+    user: User | undefined,
+    action: "runScripts" | "viewBackgroundTasks"
+  ): Promise<boolean> {
+    if (!this.options.accessControl) {
+      return Boolean(user?.admin);
+    }
+    const result = await this.options.accessControl.can({
+      permissions: {admin: [action]},
+      user,
+    });
+    return result.allowed;
+  }
+
+  private async hasConfigurationPermission(
+    user: User | undefined,
+    action: "read" | "update"
+  ): Promise<boolean> {
+    if (!this.options.accessControl) {
+      return Boolean(user?.admin);
+    }
+    const result = await this.options.accessControl.can({
+      permissions: {configuration: [action]},
+      user,
+    });
+    return result.allowed;
+  }
+
+  private resourceActionPermissions(
+    modelName: string,
+    action: "list" | "read" | "create" | "update" | "delete"
+  ): PermissionMethod<unknown>[] {
+    const shell = this.adminAccessPermissions();
+    const accessControl = this.options.accessControl;
+    if (!accessControl) {
+      return shell;
+    }
+    const resource = `${modelName.charAt(0).toLowerCase()}${modelName.slice(1)}`;
+    const knownActions = accessControl.statements[resource];
+    if (!knownActions) {
+      return [];
+    }
+    return [...shell, accessControl.permission({[resource]: [action]})];
   }
 
   /**
@@ -796,7 +871,11 @@ export class AdminApp {
       ...asMiddlewareList(adminConfigOpenApi),
       asyncHandler(async (req, res) => {
         if (
-          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+          !(await checkPermissions(
+            "read",
+            this.adminAccessPermissions(),
+            req.user as User | undefined
+          ))
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
@@ -839,12 +918,11 @@ export class AdminApp {
       authenticateMiddleware(),
       ...asMiddlewareList(backgroundTasksOpenApi),
       asyncHandler(async (req, res) => {
-        if (
-          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
-        ) {
+        const actor = req.user as User | undefined;
+        if (!actor || !(await this.hasScriptPermission(actor, "runScripts"))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
-        const user = req.user as {_id: unknown} | undefined;
+        const user = actor as {_id: unknown};
         const raw = req.body as {
           ids?: unknown;
           kind?: unknown;
@@ -899,9 +977,7 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (
-          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
-        ) {
+        if (!(await this.hasConfigurationPermission(req.user as User | undefined, "read"))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const config = await VersionConfig.findOneOrNone({_singleton: "config"});
@@ -921,9 +997,7 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (
-          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
-        ) {
+        if (!(await this.hasConfigurationPermission(req.user as User | undefined, "update"))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const raw = req.body as Record<string, unknown>;
@@ -988,7 +1062,11 @@ export class AdminApp {
         authenticateMiddleware(),
         asyncHandler(async (req, res) => {
           if (
-            !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+            !(await checkPermissions(
+              "list",
+              this.resourceActionPermissions(config.model.modelName, "list"),
+              req.user as User | undefined
+            ))
           ) {
             throw new APIError({
               disableExternalErrorTracking: true,
@@ -1063,12 +1141,17 @@ export class AdminApp {
       );
       const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
 
-      const adminPermission = (allowed: boolean | undefined): (typeof Permissions.IsAdmin)[] => {
+      const adminPermission = (
+        allowed: boolean | undefined,
+        action: "list" | "read" | "create" | "update" | "delete"
+      ): PermissionMethod<unknown>[] => {
         if (allowed === false) {
           return [];
         }
-        return [Permissions.IsAdmin];
+        return this.resourceActionPermissions(config.model.modelName, action);
       };
+
+      const updatePermissions = this.resourceActionPermissions(config.model.modelName, "update");
 
       const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
         if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -1087,7 +1170,123 @@ export class AdminApp {
         for (const key of SYSTEM_ADMIN_FIELDS) {
           delete next[key];
         }
+        // Self-service never writes these fields. Admin CRUD may set `admin`.
+        // When RBAC is enabled, `roles` must go through RoleManager.assign and
+        // tenant membership is not a generic User document field.
+        if (config.model.modelName === "User" && this.options.accessControl) {
+          delete next.organizationIds;
+          delete next.roles;
+        }
         return next;
+      };
+
+      const parseRoleNames = (value: unknown): string[] => {
+        if (!Array.isArray(value) || value.some((roleName) => typeof roleName !== "string")) {
+          throw new APIError({status: 400, title: "roles must be an array of strings"});
+        }
+        return value as string[];
+      };
+
+      const takePendingUserRoles = (
+        body: Record<string, unknown>,
+        request: express.Request
+      ): void => {
+        if (config.model.modelName !== "User" || !this.options.accessControl) {
+          return;
+        }
+        if (!("roles" in body)) {
+          return;
+        }
+        (
+          request as express.Request & {terrenoPendingUserRoles?: string[]}
+        ).terrenoPendingUserRoles = parseRoleNames(body.roles);
+      };
+
+      const applyPendingUserRoles = async (
+        value: unknown,
+        request: express.Request,
+        rollbackOnFailure = false
+      ): Promise<void> => {
+        const pending = (request as express.Request & {terrenoPendingUserRoles?: string[]})
+          .terrenoPendingUserRoles;
+        if (!pending) {
+          return;
+        }
+        const actor = request.user as User | undefined;
+        const accessControl = this.options.accessControl;
+        if (!actor || !accessControl) {
+          throw new APIError({status: 401, title: "Unauthorized"});
+        }
+        const record = value as {
+          _id?: unknown;
+          id?: string;
+          roles?: string[];
+          set?: (path: string, value: unknown) => void;
+        };
+        const userId = record.id ?? (record._id != null ? String(record._id) : undefined);
+        if (!userId) {
+          throw new APIError({status: 500, title: "User id missing after write"});
+        }
+        try {
+          await accessControl.roles.assign({actor, roleNames: pending, userId});
+          if (typeof record.set === "function") {
+            record.set("roles", [...pending]);
+          } else {
+            record.roles = [...pending];
+          }
+        } catch (error) {
+          if (rollbackOnFailure) {
+            try {
+              await config.model.deleteOne({_id: userId});
+            } catch (rollbackError) {
+              logger.error("Failed to roll back user after role assignment failure", {
+                error: rollbackError,
+                userId,
+              });
+            }
+          }
+          throw error;
+        }
+      };
+
+      const restoreUserFieldsAfterFailedRoleAssign = async (
+        value: unknown,
+        prev: unknown,
+        cleanedBody: unknown
+      ): Promise<void> => {
+        if (!prev || typeof prev !== "object" || !cleanedBody || typeof cleanedBody !== "object") {
+          return;
+        }
+        if (Array.isArray(cleanedBody)) {
+          return;
+        }
+        const record = value as {
+          _id?: unknown;
+          save?: () => Promise<unknown>;
+          set?: (path: string, next: unknown) => void;
+        };
+        const prevRecord = prev as Record<string, unknown>;
+        const body = cleanedBody as Record<string, unknown>;
+        const restore: Record<string, unknown> = {};
+        for (const key of Object.keys(body)) {
+          if (key === "roles") {
+            continue;
+          }
+          restore[key] = prevRecord[key];
+          if (typeof record.set === "function") {
+            record.set(key, prevRecord[key]);
+          }
+        }
+        if (Object.keys(restore).length === 0) {
+          return;
+        }
+        if (typeof record.save === "function") {
+          await record.save();
+          return;
+        }
+        if (record._id != null) {
+          await config.model.updateOne({_id: record._id}, {$set: restore});
+        }
       };
 
       const bulkPatchOpenApi = openApiMw
@@ -1158,29 +1357,125 @@ export class AdminApp {
           }
         : {};
 
+      const assertCanWriteUserAdminFlag = async (
+        body: Record<string, unknown>,
+        request: express.Request,
+        currentAdmin = false,
+        targetUserId?: string
+      ): Promise<void> => {
+        if (config.model.modelName !== "User" || !("admin" in body)) {
+          return;
+        }
+        const accessControl = this.options.accessControl;
+        if (!accessControl) {
+          return;
+        }
+        if (coerceAdminFlag(body.admin) === Boolean(currentAdmin)) {
+          return;
+        }
+        const actor = request.user as User | undefined;
+        if (!actor) {
+          throw new APIError({status: 401, title: "Unauthorized"});
+        }
+        const result = await accessControl.can({
+          permissions: {rbac: ["assignRoles"]},
+          user: actor,
+        });
+        if (!result.allowed) {
+          throw new APIError({
+            status: 403,
+            title: "Missing rbac:assignRoles permission",
+          });
+        }
+        const nextAdmin = coerceAdminFlag(body.admin);
+        const isGrantingAdmin = nextAdmin === true && !currentAdmin;
+        const isRevokingAdmin = nextAdmin === false && currentAdmin;
+        // assignRoles and manageRoles still cannot mint or strip the legacy admin
+        // plane (IsAdmin, password reset, owner bypass). Only an existing admin can.
+        if ((isGrantingAdmin || isRevokingAdmin) && !actor.admin) {
+          throw new APIError({
+            status: 403,
+            title: isGrantingAdmin
+              ? "Cannot grant the legacy admin flag without the admin privilege"
+              : "Cannot revoke the legacy admin flag without the admin privilege",
+          });
+        }
+        const targetId = targetUserId ?? request.params?.id;
+        if (targetId) {
+          await accessControl.roles.assertCanModifyUser({actor, userId: String(targetId)});
+        }
+      };
+
+      const currentUserAdminFlag = async (request: express.Request): Promise<boolean> => {
+        const id = request.params?.id;
+        if (!id) {
+          return false;
+        }
+        const existing = await config.model.findById(id).select("admin").lean();
+        return Boolean((existing as {admin?: boolean} | null)?.admin);
+      };
+
+      const markAuthorizedUserAdminWrite = (
+        body: Record<string, unknown>,
+        request: express.Request
+      ): void => {
+        if (
+          config.model.modelName !== "User" ||
+          !this.options.accessControl ||
+          !("admin" in body)
+        ) {
+          return;
+        }
+        (
+          request as express.Request & {terrenoAllowUserAdminWrite?: boolean}
+        ).terrenoAllowUserAdminWrite = true;
+      };
+
       // noExplicitAny: matches the Model<any> from AdminModelConfig above.
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApiMw ? {openApi: openApiMw} : {}),
+        ...(this.options.accessControl ? {accessControl: this.options.accessControl} : {}),
         defaultLimit: config.pageSize ?? 100,
         maxLimit: 500,
         permissions: {
-          create: adminPermission(config.permissions?.create),
-          delete: adminPermission(config.permissions?.delete),
-          list: [Permissions.IsAdmin],
-          read: [Permissions.IsAdmin],
-          update: adminPermission(config.permissions?.update),
+          create: adminPermission(config.permissions?.create, "create"),
+          delete: adminPermission(config.permissions?.delete, "delete"),
+          list: adminPermission(true, "list"),
+          read: adminPermission(true, "read"),
+          update: adminPermission(config.permissions?.update, "update"),
         },
-        preCreate: async (body, _req) => {
+        postCreate: async (value, request) => {
+          await applyPendingUserRoles(value, request, true);
+          await auditHooks.postCreate?.(value, request);
+        },
+        postUpdate: async (value, cleanedBody, request, prev) => {
+          try {
+            await applyPendingUserRoles(value, request);
+          } catch (error) {
+            await restoreUserFieldsAfterFailedRoleAssign(value, prev, cleanedBody);
+            throw error;
+          }
+          await auditHooks.postUpdate?.(value, cleanedBody, request, prev);
+        },
+        preCreate: async (body, req) => {
           if (!body || typeof body !== "object") {
             return body;
           }
+          const record = body as Record<string, unknown>;
+          takePendingUserRoles(record, req);
+          await assertCanWriteUserAdminFlag(record, req);
+          markAuthorizedUserAdminWrite(record, req);
           return stripProtectedFromBody(body) as typeof body;
         },
-        preUpdate: async (body, _req) => {
+        preUpdate: async (body, req) => {
           if (!body || typeof body !== "object") {
             return body;
           }
+          const record = body as Record<string, unknown>;
+          takePendingUserRoles(record, req);
+          await assertCanWriteUserAdminFlag(record, req, await currentUserAdminFlag(req));
+          markAuthorizedUserAdminWrite(record, req);
           return stripProtectedFromBody(body) as typeof body;
         },
         queryFields: buildAdminModelQueryFields({
@@ -1194,7 +1489,7 @@ export class AdminApp {
           scrubAdminResponse(value, config, allModelAdmins) as JSONValue,
         sort: config.defaultSort ?? "-created",
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
-        ...auditHooks,
+        ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
 
       const modelBase = express.Router();
@@ -1205,7 +1500,7 @@ export class AdminApp {
         ...asMiddlewareList(bulkPatchOpenApi),
         asyncHandler(async (req, res) => {
           if (
-            !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+            !(await checkPermissions("update", updatePermissions, req.user as User | undefined))
           ) {
             throw new APIError({status: 403, title: "Admin access required"});
           }
@@ -1239,7 +1534,15 @@ export class AdminApp {
             });
           }
           const patch = stripProtectedFromBody(rawPatch);
-          if (Object.keys(patch).length === 0) {
+          let pendingRoles: string[] | undefined;
+          if (
+            config.model.modelName === "User" &&
+            this.options.accessControl &&
+            "roles" in rawPatch
+          ) {
+            pendingRoles = parseRoleNames(rawPatch.roles);
+          }
+          if (Object.keys(patch).length === 0 && pendingRoles === undefined) {
             throw new APIError({
               status: 400,
               title: "Patch must include at least one writable field",
@@ -1247,18 +1550,54 @@ export class AdminApp {
           }
           let updated = 0;
           const failures: {id: string; title: string}[] = [];
+          const actor = req.user as User | undefined;
           for (const id of ids) {
             if (!mongoose.isValidObjectId(id)) {
               failures.push({id, title: "Invalid id"});
               continue;
             }
             try {
-              const resUpdate = await config.model.updateOne({_id: id}, {$set: patch});
-              if (resUpdate.matchedCount === 0) {
+              const doc = await config.model.findById(id);
+              if (!doc) {
                 failures.push({id, title: "Not found"});
-              } else {
-                updated += 1;
+                continue;
               }
+              if (!(await checkPermissions("update", updatePermissions, actor, doc))) {
+                failures.push({id, title: "Forbidden"});
+                continue;
+              }
+              await assertCanWriteUserAdminFlag(
+                rawPatch,
+                req,
+                Boolean((doc as {admin?: boolean}).admin),
+                id
+              );
+              const previousPatch: Record<string, unknown> = {};
+              for (const key of Object.keys(patch)) {
+                previousPatch[key] = (doc as unknown as Record<string, unknown>)[key];
+              }
+              if (Object.keys(patch).length > 0) {
+                await doc.updateOne({$set: patch});
+              }
+              try {
+                if (pendingRoles) {
+                  if (!actor) {
+                    failures.push({id, title: "Forbidden"});
+                    continue;
+                  }
+                  await this.options.accessControl?.roles.assign({
+                    actor,
+                    roleNames: pendingRoles,
+                    userId: id,
+                  });
+                }
+              } catch (roleError) {
+                if (Object.keys(previousPatch).length > 0) {
+                  await config.model.updateOne({_id: id}, {$set: previousPatch});
+                }
+                throw roleError;
+              }
+              updated += 1;
             } catch (err: unknown) {
               const message = err instanceof Error ? err.message : String(err);
               failures.push({id, title: message});
@@ -1291,8 +1630,8 @@ export class AdminApp {
     router.get(
       "/runs",
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const user = req.user as {admin?: boolean} | undefined;
-        if (!user?.admin) {
+        const user = req.user as User | undefined;
+        if (!user || !(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
           throw new APIError({status: 403, title: "Only admins can view run history"});
         }
 
@@ -1349,8 +1688,8 @@ export class AdminApp {
     router.post(
       "/:name/run",
       asyncHandler(async (req: express.Request<{name: string}>, res: express.Response) => {
-        const user = req.user as {_id: unknown; admin?: boolean; name?: string} | undefined;
-        if (!user?.admin) {
+        const user = req.user as (User & {_id: unknown; name?: string}) | undefined;
+        if (!user || !(await this.hasScriptPermission(user, "runScripts"))) {
           throw new APIError({status: 403, title: "Only admins can run scripts"});
         }
 
@@ -1404,7 +1743,7 @@ export class AdminApp {
         let task: BackgroundTaskDocument;
         try {
           task = (await BackgroundTask.create({
-            createdBy: user._id as mongoose.Types.ObjectId,
+            createdBy: user._id as unknown as mongoose.Types.ObjectId,
             isDryRun: !isWetRun,
             logs: [
               {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
@@ -1492,8 +1831,8 @@ export class AdminApp {
     router.get(
       "/tasks/:id",
       asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
-        const user = req.user as {_id: unknown; admin?: boolean} | undefined;
-        if (!user?.admin) {
+        const user = req.user as User | undefined;
+        if (!user || !(await this.hasScriptPermission(user, "viewBackgroundTasks"))) {
           throw new APIError({status: 403, title: "Only admins can view tasks"});
         }
 
@@ -1516,8 +1855,8 @@ export class AdminApp {
     router.delete(
       "/tasks/:id",
       asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
-        const user = req.user as {_id: unknown; admin?: boolean; name?: string} | undefined;
-        if (!user?.admin) {
+        const user = req.user as (User & {name?: string}) | undefined;
+        if (!user || !(await this.hasScriptPermission(user, "runScripts"))) {
           throw new APIError({status: 403, title: "Only admins can cancel tasks"});
         }
 

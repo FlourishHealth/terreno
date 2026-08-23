@@ -10,7 +10,9 @@ description: >-
   permissions/queryFields/populatePaths/responseHandler, edits to @terreno/api
   routing or OpenAPI generation, or any time a route is added/removed/renamed.
   Also use when the user asks to "regenerate the SDK", "update openApiSdk.ts",
-  "run bun run sdk", or reports stale/missing generated hooks.
+  "run bun run sdk", or reports stale/missing generated hooks. Lifecycle
+  composition: Pick after API-shape changes; Roast to verify generated-client
+  compatibility.
 ---
 # Generate Frontend SDK
 
@@ -25,6 +27,10 @@ During the `@terreno/rtk` support window, some screens may still use generated `
 The `example-frontend` consumes the `example-backend` API via auto-generated RTK Query hooks in `store/openApiSdk.ts`. The codegen pulls from the live backend at `http://localhost:4000/openapi.json`, so the backend must be running while `bun run sdk` executes.
 
 **Never edit `example-frontend/store/openApiSdk.ts` by hand — it is fully overwritten by this skill.**
+
+## Documentation
+
+Read `docs/reference/syncdb.md` and the backend/OpenAPI reference before regenerating. After a public API change, run `update-docs` in the same slice so reference and how-to pages match the new hooks. Generated SDK files are not hand-edited docs.
 
 ## When to run this skill
 

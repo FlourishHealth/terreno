@@ -5,7 +5,24 @@ name: Example Backend Script Runner
 # assistants run admin scripts directly from the project.
 
 on:
+  pull_request:
+    paths:
+      - "api/**"
+      - "ai/**"
+      - "api-health/**"
+      - "admin-backend/**"
+      - "admin-frontend/**"
+      - "admin-spa/**"
+      - "comms/**"
+      - "feature-flags/**"
+      - "rtk/**"
+      - "ui/**"
+      - "example-backend/**"
+      - "bun.lock"
+      - ".github/workflows/example-backend-script-runner.yml"
   push:
+    branches:
+      - master
     paths:
       - "api/**"
       - "ai/**"

@@ -1,7 +1,14 @@
 name: UI CI
 
 on:
+  pull_request:
+    paths:
+      - 'ui/**'
+      - 'demo/**'
+      - '.github/workflows/ui-ci.yml'
   push:
+    branches:
+      - master
     paths:
       - 'ui/**'
       - 'demo/**'

@@ -31,6 +31,21 @@ export const registerRealtime = (entry: RealtimeRegistryEntry): void => {
 };
 
 /**
+ * Replace options on an existing registry entry (e.g. after TerrenoApp injects accessControl).
+ * Matches by routePath; no-op if the route was never registered.
+ */
+export const updateRealtimeRegistryOptions = (
+  routePath: string,
+  options: ModelRouterOptions<unknown>
+): void => {
+  const existing = realtimeRegistry.find((entry) => entry.routePath === routePath);
+  if (!existing) {
+    return;
+  }
+  existing.options = options;
+};
+
+/**
  * Get all registered real-time models.
  */
 export const getRealtimeRegistry = (): RealtimeRegistryEntry[] => realtimeRegistry;

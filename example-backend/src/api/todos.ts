@@ -10,6 +10,7 @@ const bulkCompleteBodySchema = z
   .strict();
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  access: {resource: "todo"},
   admin: {
     actions: [
       {
@@ -54,6 +55,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   collectionActions: {
     bulkComplete: {
+      access: {action: "update", resource: "todo"},
       body: bulkCompleteBodySchema,
       handler: async ({body, user}) => {
         const ownerId = (user as unknown as UserDocument)?._id;
@@ -90,6 +92,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   instanceActions: {
     markComplete: {
+      access: {action: "update", resource: "todo"},
       handler: async ({doc}) => {
         const todo = doc as TodoDocument;
         if (todo.completed) {
@@ -103,6 +106,11 @@ export const todoRouter = modelRouter("/todos", Todo, {
       permissions: [Permissions.IsOwner],
       summary: "Mark a single todo as complete",
     },
+  },
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read", "create", "update", "delete"],
   },
   permissions: {
     create: [Permissions.IsAuthenticated],

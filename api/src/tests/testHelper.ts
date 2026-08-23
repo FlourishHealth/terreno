@@ -2,7 +2,6 @@ import {ensureTestMongooseConnected} from "@terreno/test";
 
 import {logger} from "../logger";
 import {clearTestCollections, createTestData, createTestUsers} from "./createTestData";
-import {FoodModel, UserModel} from "./models";
 import {loadTestData} from "./mongoTestSetup";
 import type {TestData} from "./types";
 
@@ -27,8 +26,7 @@ const ensureConnected = async (): Promise<void> => {
 /** Seeds only the standard users (legacy helper). */
 export const setupDb = async () => {
   await ensureConnected();
-
-  await Promise.all([UserModel.deleteMany({}), FoodModel.deleteMany({})]).catch(logger.catch);
+  await clearTestCollections();
 
   try {
     const users = await createTestUsers();

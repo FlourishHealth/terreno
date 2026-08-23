@@ -15,6 +15,31 @@ export * from "./expressServer";
 export * from "./githubAuth";
 export * from "./httpClient";
 export * from "./logger";
+export {extractUserFromHeaders, type MCPAuthContext} from "./mcp/auth";
+export type {MCPCustomTool} from "./mcp/registry";
+export {
+  clearMCPRegistry,
+  getMCPRegistry,
+  registerMCPModel,
+  registerMCPTool,
+  updateMCPRegistryOptions,
+} from "./mcp/registry";
+export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";
+export {type MCPServerOptions, mountMCPServer} from "./mcp/server";
+export {
+  generateAllTools,
+  generateToolsForEntry,
+  getAllMCPTools,
+  type MCPToolDefinition,
+} from "./mcp/toolGenerator";
+export type {
+  MCPConfig,
+  MCPMethod,
+  MCPRegistryEntry,
+  MCPRequest,
+  MCPToolArgs,
+  MCPToolResult,
+} from "./mcp/types";
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
@@ -29,6 +54,34 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export * from "./rbac/access";
+export {
+  createRbacAuditModel,
+  type RbacAuditDocument,
+  recordRbacAudit,
+} from "./rbac/auditModel";
+export {
+  type BackfillAdminsOptions,
+  type BackfillAdminsResult,
+  backfillAdmins,
+} from "./rbac/backfillAdmins";
+export * from "./rbac/fieldViews";
+export * from "./rbac/middleware";
+export * from "./rbac/permissionUtils";
+export {
+  createRbacRoleModel,
+  expandRolePermissions,
+  type RbacRoleDocument,
+  type RbacRoleModel,
+  READ_ONLY_ROLE_PERMISSIONS,
+  type RoleDefinition,
+  terrenoDefaultRoles,
+} from "./rbac/roleModel";
+export {type RbacRouterOptions, rbacRouter} from "./rbac/routes";
+export * from "./rbac/scopes";
+export * from "./rbac/statements";
+export * from "./rbac/types";
+export * from "./rbac/userPlugin";
 export {
   type AuthorizedEmitEntry,
   emitPayloadToAuthorizedRoom,
@@ -60,6 +113,7 @@ export {
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./realtime/registry";
 export {
   DEFAULT_SESSION_REVALIDATION_INTERVAL_MS,

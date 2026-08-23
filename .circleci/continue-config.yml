@@ -682,6 +682,22 @@ jobs:
           path: explicit-any-inventory.json
           destination: explicit-any-inventory
 
+  lifecycle-skills:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - node/install-bun
+      - run:
+          name: Install deps (lifecycle validator)
+          command: bun install
+      - run:
+          name: Check lifecycle contracts
+          command: bun run check:lifecycle-skills
+      - run:
+          name: Test lifecycle validator
+          command: bun test scripts/planning/
+
   license-coverage:
     executor: node22
     resource_class: small
@@ -956,6 +972,7 @@ workflows:
     jobs:
       - no-barrel-imports
       - explicit-any
+      - lifecycle-skills
       - license-coverage
       - circleci-parity
 

@@ -95,11 +95,12 @@
     "smoke": "bun e2e/smoke.ts",
     "start": "expo start",
     "test": "bun test ./src",
+    "test:agent": "AGENT=1 bun test --only-failures ./src",
     "test:ci": "bun test ./src",
     "test:e2e": "playwright test",
     "test:integration": "playwright test --config playwright.integration.config.ts",
     "web": "expo start --web --port 8083"
   },
   "types": "./src/dist/index.d.ts",
-  "version": "57.0.0"
+  "version": "57.1.0"
 }

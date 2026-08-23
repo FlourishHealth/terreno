@@ -1,12 +1,15 @@
 ---
 name: respond-to-review
 description: >-
-  Review PR comments, infer PR from branch when needed, plan fixes, and
-  implement — auto-submitting when no clarifications are needed
+  Resolve and classify Terreno PR comments, plan focused fixes, and implement
+  addressed items without owning submission or CI waiting. Lifecycle
+  composition: Taste.
 ---
 # PR Review Response Workflow
 
-Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/submit` automatically without prompting.
+Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan and
+implement focused fixes. If a human decision is required, return it as a blocker. Taste
+owns commit/push/result emission; the outer loop owns later observation.
 
 ## Step 0: Validate Input
 
@@ -134,72 +137,87 @@ Do not attempt to "clean up" or quote a non-numeric PR number — reject it.
    - Blocking (CHANGES_REQUESTED) vs suggestions
    - Inline code comments vs general comments
 
-## Step 3: Decide What To Do & Propose a Plan
+## Step 3: Decide What To Do & Show the Minimum Plan
 
-Decide the right action for each unresolved comment (fix, skip, ask), then present a structured plan organized by priority:
+Human attention is the limiting resource. Collapse all unresolved comments into one table.
+Paraphrase; do not quote comments unless exact wording changes the decision.
 
 ```
-## PR #$PR_NUMBER Review Comments Plan
-
-### 🔴 Must Fix (Blocking)
-1. [file:line] @reviewer: "comment text"
-   → Proposed fix: <description>
-
-### ⚠️ Should Address (Suggestions)
-2. [file:line] @reviewer: "comment text"
-   → Proposed fix: <description>
-
-### 💬 Questions/Clarifications Needed
-- Comment X: Need your input on approach
-- Comment Y: Conflicts with existing pattern, which to use?
-
-### 📝 Will Skip (N/A or out of scope)
-- Comment Z: Not applicable or out of scope
-
-### 💬 Suggested Replies to Human Commenters
-For any comments that warrant a reply (e.g., to clarify a decision or thank a reviewer):
-- **Print the suggested reply text** so the user can see it
-- **Never post replies** via `gh pr comment`, `gh api`, or any other method — leave posting to the user
+| Priority | Thread | Action |
+| --- | --- | --- |
+| Blocker | `file:line` | <smallest fix> |
+| Decision | `file:line` | <one exact question> |
+| Skip | `file:line` | <short reason> |
 ```
+
+Omit categories with no rows. Do not add a preamble, recap, suggested thanks, or a
+separate reply section.
 
 ## Step 4: Confirmation (only if there are open questions)
 
-**If the plan has any items under 💬 Questions/Clarifications Needed:**
-Ask: **"Need your input on the questions above. Anything else to change before I implement?"**
+**If the plan has any `Decision` rows:**
+Ask: **"Need your input on the decisions above. Anything else to change before I implement?"**
 - Wait for explicit approval before making any changes
 - Incorporate any feedback
 - Re-present plan if significant changes requested
 
-**If there are no open questions:** skip confirmation entirely. Proceed directly to Step 5 — implement, commit, run `/submit`, and resolve threads without further prompts. Do not ask the user for plan approval in this case.
+**If there are no `Decision` rows:** skip confirmation entirely. Proceed directly to Step
+5 and return the verified diff to Taste. Do not ask for redundant plan approval.
 
 ## Step 5: Make the Fix
 
-After approval:
-
-1. Implement fixes one at a time, in priority order
-2. After each fix, briefly confirm what was changed
+After approval, implement fixes one at a time in priority order. Do not emit progress
+updates between fixes.
 
 ## Step 6: Show the diff
 
-Show the complete diff so the user can scan what was implemented:
+Return the diff stat plus only the relevant hunks. Put a long complete diff in one
+expandable block when the caller cannot inspect it directly:
 ```bash
 git diff
 git diff --stat
 ```
 
-Do **not** commit here. `/submit` (next step) handles pre-commit checks, staging, commit, push, and PR updates — running pre-commit *before* the commit, which is the correct order. Committing here would invert that order and leave broken code committed locally if pre-commit fails.
+Do **not** commit here. Return the verified diff and addressed-thread identifiers to the
+calling Taste invocation, which owns commit/push and structured state.
 
-## Step 7: Run /submit
+## Step 7: Return to Taste
 
-Invoke the `/submit` skill to handle pre-commit checks, commit (`git commit -s` for DCO), push, and PR updates. This will also launch the CI check-watcher in the background. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
+Return one compact table of changed files, targeted verification, addressed comments,
+unresolved blockers, and thread identifiers. Do not invoke Brew or a CI watcher.
 
-If the fix is user-facing, add or update `changelog/unreleased/<feature>.md` before or as part of the submit step. Do not edit `CHANGELOG.md`.
+If the fix is user-facing, note the required changelog update for Taste/Brew to apply
+under repository policy.
 
 ## Step 8: Resolve Addressed Threads
 
-After `/submit` completes, resolve each review thread that was addressed in the implementation. Use the thread `id` captured in Step 2.
+The calling Taste invocation resolves each thread only after it commits/pushes the
+verified fix. Return the thread `id` captured in Step 2.
 
-For each thread that was fixed or addressed (from the "Must Fix" and "Should Address" categories in the plan):
+Default to resolving addressed threads silently. Post a reply only when the diff cannot
+preserve a non-obvious decision or when a human must act. Never post progress, thanks,
+test summaries, CI status, or a restatement of the PR body. Keep a necessary reply to at
+most three short sentences:
+
+```markdown
+Fixed in `<sha>`: <what changed and why this approach>.
+```
+
+For a required decision:
+
+```markdown
+**Action needed:** <one decision and why it blocks>.
+
+<details>
+<summary>Evidence</summary>
+
+<only the detail needed to decide>
+
+</details>
+```
+
+For each thread that was fixed or addressed (`Blocker` rows, and any `Decision` row
+the human already answered in code):
 ```bash
 gh api graphql -f query='
   mutation($threadId: ID!) {
@@ -210,8 +228,8 @@ gh api graphql -f query='
 ```
 
 Do NOT resolve threads that were:
-- Skipped (marked as N/A or out of scope)
-- Questions/clarifications that were not answered by code changes
+- `Skip` (N/A or out of scope)
+- `Decision` rows still waiting on a human answer
 - Threads where the user decided not to take action
 
 Report which threads were resolved and which were left open.

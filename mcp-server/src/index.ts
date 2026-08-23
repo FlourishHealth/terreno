@@ -2,17 +2,9 @@
 
 import "./instrument.js";
 
-import {createMcpExpressApp} from "@modelcontextprotocol/sdk/server/express.js";
-import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
-import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import {
-  CallToolRequestSchema,
-  GetPromptRequestSchema,
-  ListPromptsRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import {createMcpExpressApp} from "@modelcontextprotocol/express";
+import {toNodeHandler} from "@modelcontextprotocol/node";
+import {createMcpHandler, McpServer} from "@modelcontextprotocol/server";
 import * as Sentry from "@sentry/bun";
 import {logger} from "@terreno/api";
 import {handlePromptRequest, prompts} from "./prompts.js";
@@ -36,7 +28,7 @@ const createServer = (): McpServer => {
     )
   );
 
-  server.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  server.server.setRequestHandler("resources/list", async () => {
     return {
       resources: resources.map((r) => ({
         description: r.description,
@@ -47,7 +39,7 @@ const createServer = (): McpServer => {
     };
   });
 
-  server.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  server.server.setRequestHandler("resources/read", async (request) => {
     logger.info("MCP ReadResource", {uri: request.params.uri});
     const resource = resources.find((r) => r.uri === request.params.uri);
     if (!resource) {
@@ -64,16 +56,16 @@ const createServer = (): McpServer => {
     };
   });
 
-  server.server.setRequestHandler(ListToolsRequestSchema, async () => {
+  server.server.setRequestHandler("tools/list", async () => {
     return {tools};
   });
 
-  server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.server.setRequestHandler("tools/call", async (request) => {
     logger.info("MCP CallTool", {arguments: request.params.arguments, name: request.params.name});
     return handleToolCall(request.params.name, request.params.arguments ?? {});
   });
 
-  server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  server.server.setRequestHandler("prompts/list", async () => {
     return {
       prompts: prompts.map((p) => ({
         arguments: p.arguments,
@@ -83,7 +75,7 @@ const createServer = (): McpServer => {
     };
   });
 
-  server.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  server.server.setRequestHandler("prompts/get", async (request) => {
     logger.info("MCP GetPrompt", {arguments: request.params.arguments, name: request.params.name});
     return handlePromptRequest(request.params.name, request.params.arguments ?? {});
   });
@@ -114,57 +106,9 @@ const resolveHost = (): string => {
   return "0.0.0.0";
 };
 
-type McpRequest = Parameters<StreamableHTTPServerTransport["handleRequest"]>[0] & {
-  body?: unknown;
-};
-type McpResponse = Parameters<StreamableHTTPServerTransport["handleRequest"]>[1] & {
-  headersSent?: boolean;
-  status: (code: number) => McpResponse;
-  json: (body: unknown) => void;
-};
-
-const handleMcpRequest = async (req: McpRequest, res: McpResponse): Promise<void> => {
-  const server = createServer();
-  const transport = new StreamableHTTPServerTransport({sessionIdGenerator: undefined});
-
-  try {
-    logger.debug("Handling MCP request", {
-      method: req.method,
-      url: req.url,
-    });
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-  } catch (error) {
-    Sentry.captureException(error);
-    logger.error("Error handling MCP request:", error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: {
-          code: -32603,
-          message: "Internal server error",
-        },
-        id: null,
-        jsonrpc: "2.0",
-      });
-    }
-    return;
-  }
-
-  res.on("close", () => {
-    transport.close();
-    server.close();
-  });
-};
-
-const handleUnsupportedMethod = async (_req: McpRequest, res: McpResponse): Promise<void> => {
-  res.status(405).json({
-    error: {
-      code: -32000,
-      message: "Method not allowed.",
-    },
-    id: null,
-    jsonrpc: "2.0",
-  });
+const handleMcpError = (error: Error): void => {
+  Sentry.captureException(error);
+  logger.error("Error handling MCP request", {error});
 };
 
 const main = async (): Promise<void> => {
@@ -175,12 +119,19 @@ const main = async (): Promise<void> => {
   const port = resolvePort();
   const host = resolveHost();
   const app = createMcpExpressApp({host});
+  const handler = createMcpHandler(createServer, {
+    legacy: "stateless",
+    onerror: handleMcpError,
+    responseMode: "auto",
+  });
+  const nodeHandler = toNodeHandler(handler);
 
-  app.post("/mcp", handleMcpRequest);
-  app.get("/mcp", handleUnsupportedMethod);
-  app.delete("/mcp", handleUnsupportedMethod);
-
-  app.post("/", handleMcpRequest);
+  app.all("/mcp", (req, res) => {
+    void nodeHandler(req, res, req.body);
+  });
+  app.post("/", (req, res) => {
+    void nodeHandler(req, res, req.body);
+  });
   app.get("/", (_req, res) => {
     res.status(200).json({
       mcpEndpoint: "/mcp",
@@ -188,7 +139,6 @@ const main = async (): Promise<void> => {
       status: "ok",
     });
   });
-  app.delete("/", handleUnsupportedMethod);
 
   app.listen(port, host, (error?: Error): void => {
     if (error) {

@@ -1,6 +1,6 @@
 ---
 name: backend-test-env
-description: Invoke when writing tests that mutate `process.env` in `@terreno/api`, `@terreno/ai`, or `example-backend` — feature flags, auth secrets, integration toggles. Covers the preload contract, `setupEnvironment()`, and safe mutation patterns.
+description: 'Invoke when writing tests that mutate `process.env` in `@terreno/api`, `@terreno/ai`, or `example-backend` — feature flags, auth secrets, integration toggles. Covers the preload contract, `setupEnvironment()`, and safe mutation patterns. Lifecycle composition: Pick when writing these tests; Roast when independently reproducing env-sensitive behavior.'
 ---
 # Backend Test — `process.env` Contract
 

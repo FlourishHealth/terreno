@@ -17,6 +17,249 @@ dated section below when cutting a release.
 
 Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
+## [57.1.0] - 2026-08-23
+
+Upgrade note: [`mcp-server/src/docs/upgrades/57.1.0.md`](mcp-server/src/docs/upgrades/57.1.0.md).
+
+### Added
+
+- Admin configuration can now live beside `modelRouter` registrations or in plugin
+  `adminContribution()` metadata. `@terreno/admin-frontend` adds a provider-backed widget registry,
+  screen router, filter drawer, bulk actions, autocomplete references, and first-party Feature Flags,
+  Consent, Documents, and AI admin integrations.
+- `terreno_bootstrap_app` scaffolds Better Auth + `@terreno/syncdb` (replica-set MongoDB,
+  `SyncApp`/`RealtimeApp`, `SyncDbProvider`) instead of JWT `generateAuthSlice`
+- CircleCI dual-run for package CI, repo policies, and Playwright e2e (`.circleci/`;
+  deploys still on GitHub Actions). See `docs/how-to/circleci.md`.
+- `@terreno/comms` Phase 1 gap-fill: `beforeSend` mutate/cancel, `recordDeliveryEvent` /
+  `recordOptOut`, attempt history on `CommsMessage`, payload retention
+  (`retainPayloadDays`, `redactPayload`), and channel-wide transient retry (SMS,
+  verification start, per-token push). `onRetry` stays `(context, result)` with
+  `context.attempt`. Push prune honors `errorClass: "permanent"` as well as
+  `isPermanentFailure`.
+- `createCollectionHooks` in `@terreno/syncdb/react` and optional per-mutation
+  `maxAttempts` on syncdb writes.
+- Model Context Protocol support in `modelRouter` via an `mcp` option: opted-in
+  models expose their CRUD operations as MCP tools at `POST /mcp`, reusing the
+  same permissions, query filters, population, and lifecycle hooks as REST
+  ([#358](https://github.com/FlourishHealth/terreno/pull/358)). `getMCPTools(user)`
+  in `@terreno/ai` returns those tools as Vercel AI SDK objects for in-process
+  chat. MCP list filters accept Mongo comparison operators (`$in`, `$gte`, `$ne`,
+  and friends) and top-level `$and` / `$or` on `queryFields`; operators that can
+  execute code (`$where`, `$expr`, `$function`) are rejected. `@terreno/rtk`
+  adds `useMCPTools()` and `useTerrenoChat()`. MCP HTTP/stdio servers use the
+  TypeScript SDK v2 (`2026-07-28`) with a how-to guide and structured tool-call
+  logs. Lifecycle hooks and REST `responseHandler` receive a stub Express-shaped
+  request from `createMCPRequest` (authenticated user, tool args as `body`, empty
+  `headers`/`query`/`params`, `isMCPRequest: true`) rather than forwarded HTTP
+  headers. `registerMCPTool` adds custom tools alongside modelRouter CRUD. The
+  example backend exposes `users_todo_statuses` (admin-only: every user and their
+  todo completed flags).
+- Example app profiles list every assigned role and link superadmins to role editing. The admin
+  script runner includes a guarded `resetDatabase` action, and seed data includes
+  `superadmin@example.com`. The admin roles page supports creating and editing roles by selecting
+  from the server's available permissions. Admin script execution requires `admin:runScripts` when
+  RBAC is configured, and live production resets require `ALLOW_ADMIN_DB_RESET=true`.
+- `SendGridMailProvider` at `@terreno/comms/adapters/sendgrid` (optional peer
+  `@sendgrid/mail`) with sandbox mode, `errorCode`/`errorClass` taxonomy, Email Activity
+  deep links, and one transient retry via `CommsService` hooks (`onError` / `onRetry` /
+  `onSend`).
+- `terreno-syncdb-codegen` CLI in `@terreno/syncdb` generates typed collection hooks
+  (`store/syncDbSdk.ts`) from OpenAPI `x-terreno-sync` list operations. The CLI is a
+  bin of `@terreno/syncdb`, not a separate `@terreno/syncdb-codegen` package.
+- `@terreno/syncdb` documentation: reference (`docs/reference/syncdb.md`), migration guide
+  (`docs/how-to/migrate-rtk-to-syncdb.md`), and local-first explainer
+  (`docs/explanation/local-first-data.md`)
+
+### Changed
+
+- User admin forms now load existing RBAC roles into an **Add role** dropdown. Assigned roles
+  remain visible and can be removed without entering raw array values. Blank optional enum
+  fields no longer block otherwise valid saves, and role-update responses include the new roles.
+- The admin sidebar groups Scripts, Roles, Version, Audit Log, Feature Flags, and Configuration
+  under a consistently spaced **Platform** section at the bottom. Empty navigation sections are
+  hidden, and Audit Log / Feature Flags no longer appear twice under Models.
+- The Terreno planning plugin 2.0 is a fresh-invocation loop-engineering lifecycle:
+  Grow → Pick → Roast → Brew → Taste. Every bounded stage discovers repository skills,
+  reads/writes a shared evidence-oriented result/state contract, and exits. Brew no longer
+  executes Taste; Taste reacts once to current CI/mergeability/review state while the outer
+  loop owns waiting and reinvocation. Terreno package commands and domain rules remain in
+  repo-local skills. Grow retains interactive grilling and a 15-line approval summary; Pick
+  retains vertical-slice TDD and independent implementation/test-quality review; Roast is
+  the authoritative verifier. The former Grind behavior remains an outer-loop feature
+  profile, and static validation enforces names, transitions, portability, and loop bounds.
+  Deprecated repo-local routers (`ip`, `implement`, `submit`, `autobot`, `check-watcher`)
+  are removed. Quiet package tests (`test:agent`) run with `AGENT=1`. Brew, Taste, and
+  repository PR skills now enforce an attention-budgeted GitHub format: only `Why`, `What
+  changed`, and `Verification` remain visible; optional detail is expandable; comments are
+  reserved for blocked decisions or non-obvious review resolutions.
+- Unreleased notes are one file per feature in `changelog/unreleased/` instead of a shared
+  `CHANGELOG.md` `## [Unreleased]` section. `docs/implementationPlans/PLAN_INDEX.md` is
+  removed for the same reason — status lives on each IP's `**Status:**` header. Parallel
+  PRs no longer conflict on those shared files.
+- GitHub Actions package CI (API, AI, UI, RTK, comms, syncdb, examples, E2E, Maestro, admin SPA) now runs on `pull_request` with path filters, and on `push` only to `master`. This stops the first push of a new branch from ignoring path filters and running unrelated jobs (the 13 Playwright shards were the main cost). Docs-only and rules-only PRs skip package CI, Rulesync, CD, and frontend/demo deploy workflows. Example Frontend Deploy PR path filters match the frontend build gate (backend-only PRs skip the workflow; mixed PRs still retarget preview `BASE_URL`).
+- CircleCI pipelines are disabled (`.circleci/config.yml` no-op). GitHub Actions
+  remains the CI of record. Restore with `.circleci/config.setup.yml`. See
+  `docs/how-to/circleci.md`.
+- Lifecycle stages now follow a documentation contract: read architecture docs before
+  acting, update them in the same slice, and fail user-visible or architectural work that
+  ships without matching docs. All agent skills are installable with
+  `npx skills add FlourishHealth/terreno`. The committed `skills/` tree is generated from
+  `.rulesync/skills/`, the planning plugin stages, and `<package>/.ai/skills/` overlays via
+  `bun run skills:sync`.
+- Role assignment **preview** no longer writes `RbacAudit` denied-assign rows. Denied
+  mutation audits are recorded only for the escalation `403` (`Cannot grant permissions
+  you do not hold`); other failures are not stored as denials, and a failed audit write
+  does not replace that original `403`.
+- When a `PermissionSource` refresh fails with `staleOnFailure: "deny"` (the default),
+  last-cached `deny` grants stay in force so IdP/ABAC restrictions do not lift. Additive
+  `roles` / `permissions` from that source are still omitted.
+- RBAC `createView: "deny"` and unknown field-view names fail closed instead of granting a
+  full mask. Nested field omits clone documents; write masks honor dotted paths. Bulk create
+  and array mutations apply the same write mask as single-document writes.
+- AdminApp model CRUD requires resource actions in addition to `admin:access`. Self-service
+  still cannot write User `admin`/`roles`. Without RBAC, admin CRUD may set `admin`.
+  With RBAC, `roles` go through `RoleManager.assign`. Changing `admin` requires
+  `rbac:assignRoles` plus an actor who already holds the legacy admin flag;
+  `rbac:manageRoles` is not a substitute. Unchanged echoed `admin`
+  values are allowed. If `assign` fails after an admin User update or bulk-patch,
+  non-role fields are restored so the request does not keep a partial write.
+  Role update requires the actor to hold the union of current and incoming
+  permissions, and delete requires holding the role's current permissions, so
+  `manageRoles` cannot empty or remove grants the actor lacks.
+  assign/unassign require the actor to already hold the
+  target user's current permissions. The seeded `auditor` role no longer receives
+  `admin:access` via read-only expansion. Admin CRUD for a resource missing
+  from statements fails closed for list/read, search, and writes. Framework statements now
+  include `featureFlag`, `consentForm`, and `consentResponse` so superadmin `*`
+  can list those admin models; example-backend adds `adminAuditLog` list/read.
+  `POST /admin/background-tasks`
+  requires `admin:runScripts`; version-config GET/PUT require `configuration:read` /
+  `configuration:update`.
+- MCP and SyncDB registries use resolved RBAC options (TerrenoApp-injected and the
+  documented `access` + `accessControl` path, including pathless `modelRouter`)
+  instead of the pre-build legacy permission arrays. Create/update also apply
+  `validateAccessWritePayload` (field views / `createView: "deny"`).
+  User `roles` on modelRouter writes (HTTP, sync, and MCP) are dropped when
+  `accessControl` is set.
+  Example-backend `backfillAdmins` is dry-run unless `RBAC_BACKFILL_ADMINS=true`.
+- `runActionPermissions` combines legacy `action.permissions` with RBAC instead of replacing
+  them. Actions without `access` inherit the router's `access.resource` and the mapped CRUD
+  verb (`instance` POST → `update`, `collection` POST → `create`). Example todo
+  `bulkComplete` / `markComplete` set `access: {resource: "todo", action: "update"}`
+  so they cannot bypass `todo:update`. Empty action permissions and inherited CRUD actions
+  mapped to `null` remain disabled. Assignment previews use uncached permission resolution
+  on both the current and proposed sets, honor source `staleOnFailure` without writing
+  caches, and reject role permissions the actor does not already hold. The admin role
+  editor keeps Create/Save in the
+  modal footer and scrolls the permission grid so a larger statement vocabulary cannot
+  hide the save control. Create/list responses always apply the **read** field
+  mask. Per-router `access.scope`
+  extra PermissionSets are evaluated on HTTP and realtime reads. Sync and realtime
+  serializers accept change-stream BSON post-images (no Mongoose `toObject`) so
+  `sync:delta` is not dropped after RBAC wraps `defaultResponseHandler`. Invalid permission sets
+  use a stable `APIError.title`.
+- Self-service signup and `PATCH /auth/me` strip `organizationIds` alongside `admin` and `roles`,
+  preventing callers from assigning themselves tenant membership. Administrative organization
+  membership changes must use a privileged server-side path.
+- Ordinary RBAC-enabled User modelRouter, sync, and MCP writes strip `admin`, `roles`, and
+  `organizationIds`. AdminApp strips `organizationIds` the same way, and marks legacy
+  `admin` writes only after `assignRoles` and an existing-admin check succeed.
+- `RoleManager` writes `RbacAudit` (with `permissionDelta`) on create, update, remove, assign,
+  and unassign. Denied escalation attempts are stored with `denied: true`. HTTP `rbacRouter`
+  no longer writes a second audit row. Apps can pass `auditSink` (one function or an array)
+  to fan records into a consuming-app log; set `persistAudit: false` to skip the built-in
+  collection (at least one sink is then required).
+- `RbacRole.seedDefaults` accepts `extraRoles` and shares `upsertSeededRole` with
+  `RoleManager.seedDefaults`. `previewRoleChange` reports a real `affectedUserCount`.
+- Importing `@terreno/api` no longer registers `RbacRole` / `RbacAudit` on the default
+  mongoose connection. Use `createAccess({connection})` or `createRbacRoleModel` /
+  `createRbacAuditModel`. The `RbacRoleModel` / `RbacAuditModel` singletons are removed;
+  the `RbacRoleModel` type remains.
+- The RBAC implementation plan is Complete (phases 1–6 shipped).
+
+### Deprecated
+
+- **`@terreno/rtk` for data synchronization** — deprecated as of **56.0.0**. Still published
+  through the current major line; will not ship in the next major. Migrate collection CRUD to
+  [`@terreno/syncdb`](docs/reference/syncdb.md) using
+  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). Continue using `@terreno/rtk`
+  for the OpenAPI SDK, Better Auth Redux, feature flags, and sockets.
+
+### Fixed
+
+- Admin lists no longer inherit public `queryFilter` scoping, and `adminFilter` Mongo operators
+  are not rejected as client filters.
+- Admin mutations and responses consistently scrub excluded fields, including populated refs.
+- Plugin admin contributions forward `populatePaths`.
+- Document Storage clients use the contributed `/documents` API path.
+- Admin search applies the same `queryFilter`/`adminFilter` as list CRUD.
+- AI Request Explorer multi-type filters use `$in` instead of dropping the filter.
+- Admin list search (`q`) is a case-insensitive partial match across `searchFields`.
+- The filter drawer can clear all filters and disables Apply when the draft is unchanged.
+- Admin config `name` is unique when the same Mongoose model is mounted at more than one
+  `routePath`, and list search/bulk-patch metadata is looked up by path.
+- Document download failures log a status code only — not storage paths or provider payloads.
+- The admin Roles screen scrolls its role cards and the "Available permissions" list instead
+  of clipping them, and keeps the heading and "Add role" button pinned above the scroll area.
+- `@terreno/ui` no longer triggers the react-native-web warning `"shadow*" style props are
+  deprecated. Use "boxShadow".` — `Filter`, `WebDropdownMenu` (select fields, timezone picker,
+  address field), and `DraggableList` now use `boxShadow`, and the new `createBoxShadow` /
+  `applyColorOpacity` helpers build the shadow value from a color plus opacity.
+- Patched `react-native-modalize` and `react-native-actions-sheet` to use `boxShadow` on
+  iOS/web and `elevation` only on Android, so the two APIs do not stack. The modalize
+  stylesheet ran at import time, so the deprecation warning appeared on every web page that
+  imported `@terreno/ui`.
+- Android centered dropdowns (`WebDropdownMenu` `presentation="centered"`) keep `elevation` and
+  omit `boxShadow`, so the two APIs do not stack.
+- Push hooks and retries are per-token; provider results are zipped to token strings
+  after `beforeSend`. Mail payloads retain `replyTo` and `dynamicTemplateData`.
+  `DeliveryEvent.errorClass` is persisted on the log row. `defaultFrom` is reapplied
+  after `beforeSend`. Payload cleanup is best-effort and cannot fail `logSend` /
+  `appendAttempt`. Hook exception text is logged only; `metadata.hookErrors` stores
+  `hook-threw`, not `String(error)`.
+- Conflict `requeue` copies per-mutation `maxAttempts` onto the cloned outbox
+  row so `retries: false` stays fail-fast after keepMine.
+- Expo native fingerprints for the demo and example frontend now exclude `package.json`
+  scripts. Development and test command changes no longer trigger unnecessary native build
+  acknowledgements or rebuilds.
+- MCP create/update apply REST `validation.excludeFromCreate` /
+  `excludeFromUpdate` and MCP `excludeFields` as a write denylist on persist and
+  hook request bodies, including nested/dot paths and literal dotted keys
+  (`"metadata.nested.token"`). Invalid ObjectIds return a structured not-found
+  instead of crashing on `CastError`; mixed-case 24-hex ids still work. List
+  returns a structured error when `queryFilter` throws. A throwing
+  `responseHandler` / `mcpResponseHandler` becomes a structured tool error instead
+  of a protocol crash. List filters ignore queryFields that sit under an
+  `excludeFields` parent path, matching tool schema generation. Lifecycle hooks
+  that throw `APIError` return `error.title` to the MCP client, matching
+  `queryFilter` handling.
+- `@terreno/ui` no longer triggers the React Native Web warning
+  `props.pointerEvents is deprecated. Use style.pointerEvents`. Every component that set
+  `pointerEvents` as a prop (`DateTimeField`, `Filter`, `SidebarNavigation`, `ToastNotifications`,
+  `WebDropdownMenu`) now sets it in `style`.
+- The `react-native-portalize` dependency, which set the deprecated prop on every screen through
+  `TerrenoProvider`, is replaced by an internal portal host. `Host` and `Portal` are now exported
+  from `@terreno/ui` with the same API.
+- `seedDefaults` no longer overwrites customized unsealed roles on restart; sealed defaults still refresh from code.
+  API tests clear `RbacRole` / `RbacAudit` in `setupDb` so leftover unsealed names cannot leak across cases.
+- Admin `/bulk-patch` authorizes each target document, so scoped `update` cannot patch out-of-scope ids.
+- Admin User CRUD can set the `admin` flag when RBAC is off. With RBAC, changing `admin` requires `rbac:assignRoles`; echoed unchanged `admin` values on create/update do not.
+- Permission resolver caches evict expired and overflow entries so distinct identities cannot grow unbounded.
+- Clearing a role description in the admin UI sends `null` so PATCH removes the field.
+- Admin User create rolls back the new row if `RoleManager.assign` fails after insert.
+- `assign` / `unassign` refuse to change a user whose current permissions the actor does not hold.
+- MCP model tools pick up TerrenoApp-injected `accessControl` (permissions, query filters, write masks) instead of keeping the pre-build legacy checks.
+- Example todos Sync Lab panel starts collapsed so the first list row stays
+  above the tab bar on short web viewports.
+- `terreno-syncdb-codegen` rejects non-identifier collection/type names and
+  JSON-escapes generated strings so a remote OpenAPI document cannot inject
+  TypeScript.
+- `@terreno/syncdb` no longer misses server changes that land between its startup snapshot
+  and the socket joining a stream's room: each `sync:subscribed` confirmation now pages the
+  streams it names from their cursor, instead of leaving the client stale until the next
+  periodic reconcile
+
 ## [57.0.0] - 2026-08-20
 
 First stable release of the Expo SDK 57 line, cut from `master` after

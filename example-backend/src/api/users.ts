@@ -18,7 +18,7 @@ export const usersRouter = modelRouter("/users", User as unknown as Model<UserDo
     displayName: "Users",
     fieldsets: [
       {fields: ["email", "name"], title: "Profile"},
-      {fields: ["admin", "oauthProvider"], title: "Access"},
+      {fields: ["admin", "roles", "oauthProvider"], title: "Access"},
     ],
     filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
     group: "Demo: shared app data",
@@ -30,6 +30,10 @@ export const usersRouter = modelRouter("/users", User as unknown as Model<UserDo
     recordTitleField: "name",
     searchFields: ["email", "name"],
     sortableFields: ["email", "name", "admin", "created"],
+  },
+  mcp: {
+    excludeFields: ["hash", "salt", "attempts", "last"],
+    methods: ["list", "read"],
   },
   permissions: {
     create: [Permissions.IsAdmin],
