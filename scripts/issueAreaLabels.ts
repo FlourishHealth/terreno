@@ -18,7 +18,6 @@ export const AREA_BY_PACKAGE: Record<string, string> = {
   "@terreno/feature-flags": "area:api",
   "@terreno/cli": "area:mcp",
   "@terreno/mcp": "area:mcp",
-  "@terreno/syncdb": "area:syncdb",
   "@terreno/rtk": "area:syncdb",
   "@terreno/test": "area:api",
   "@terreno/ui": "area:ui",

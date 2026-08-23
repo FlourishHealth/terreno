@@ -24,7 +24,6 @@ body:
         - "@terreno/feature-flags"
         - "@terreno/cli"
         - "@terreno/mcp"
-        - "@terreno/syncdb"
         - docs
         - examples
         - mcp

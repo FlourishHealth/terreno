@@ -15,7 +15,6 @@ export const PUBLISHED_PACKAGES = [
   "comms",
   "feature-flags",
   "mcp-server",
-  "syncdb",
   "cli",
 ] as const;
 

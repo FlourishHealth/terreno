@@ -1,7 +1,7 @@
 {
   "author": "Josh Gachnang",
   "bin": {
-    "terreno": "./src/bin.ts"
+    "terreno": "./dist/bin.js"
   },
   "bugs": {
     "url": "https://github.com/FlourishHealth/terreno/issues"
@@ -31,8 +31,7 @@
   },
   "files": [
     "LICENSE",
-    "dist",
-    "src"
+    "dist"
   ],
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
