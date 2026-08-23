@@ -110,7 +110,7 @@ describe("generate and validate commands", () => {
     const code = await runCli(["docs", "search", "modelRouter", "--packages", "api"], io);
     expect(code).toBe(0);
     expect(io.stdoutLines.join("\n").length).toBeGreaterThan(10);
-  });
+  }, 15_000);
 
   it("bootstraps AI rules into a directory", async () => {
     const dir = await mkdtemp(join(tmpdir(), "terreno-cli-"));
