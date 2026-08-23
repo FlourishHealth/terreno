@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {
+  ADMIN_MODEL_ACCESS,
   addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
@@ -22,6 +23,7 @@ import {
   setupDb,
   UserModel,
 } from "@terreno/api/testing";
+import {assert} from "chai";
 import type express from "express";
 import mongoose from "mongoose";
 import supertest from "supertest";
@@ -335,6 +337,131 @@ describe("AdminApp /admin/config", () => {
     const res = await agent.get("/admin/config").expect(200);
     expect(res.body.home.title).toBe("Ops");
     expect(res.body.home.slots.sidebar).toEqual(["versionConfig", "recentActivity"]);
+  });
+
+  it("filters screens and platform tools from the caller's RBAC grants", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({
+        admin: ["access"],
+        adminFood: ["read"],
+        adminScreen: ["allowed"],
+      }),
+      statements: {
+        ...terrenoStatements,
+        adminFood: ADMIN_MODEL_ACCESS,
+        adminScreen: ["allowed", "hidden"],
+      },
+    });
+    const localApp = buildApp([{...foodModelConfig, adminAccess: {}}], {
+      accessControl,
+      customScreens: [
+        {
+          adminAccess: {action: "allowed", resource: "adminScreen"},
+          displayName: "Allowed",
+          name: "allowed",
+        },
+        {
+          adminAccess: {action: "hidden", resource: "adminScreen"},
+          displayName: "Hidden",
+          name: "hidden",
+        },
+      ],
+      scripts: [
+        {
+          description: "Seed",
+          name: "seed",
+          runner: async () => ({results: [], success: true}),
+        },
+      ],
+    });
+    const agent = await authAsUser(localApp, "admin");
+
+    const response = await agent.get("/admin/config").expect(200);
+
+    assert.deepEqual(
+      response.body.models.map((model: {name: string}) => model.name),
+      ["Food"]
+    );
+    assert.deepInclude(response.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    assert.deepEqual(response.body.customScreens, [{displayName: "Allowed", name: "allowed"}]);
+    assert.deepEqual(response.body.platformTools, {
+      configuration: false,
+      roles: false,
+      scripts: false,
+      version: false,
+    });
+    assert.deepEqual(response.body.scripts, []);
+  });
+
+  it("enforces writeOwned with the configured ownership callback", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({
+        admin: ["access"],
+        adminFood: ["read", "writeOwned"],
+      }),
+      statements: {...terrenoStatements, adminFood: ADMIN_MODEL_ACCESS},
+    });
+    const localApp = buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            isOwned: ({instance, user}) =>
+              String((instance as {ownerId?: unknown}).ownerId) === String(user.id),
+          },
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const actor = await UserModel.findOne({email: "admin@example.com"});
+    assert.exists(actor);
+    const owned = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
+    const other = await FoodModel.create({
+      calories: 2,
+      name: "Other",
+      ownerId: new mongoose.Types.ObjectId(),
+    });
+
+    await agent.patch(`/admin/foods/${owned._id}`).send({calories: 3}).expect(200);
+    await agent.patch(`/admin/foods/${other._id}`).send({calories: 4}).expect(403);
+    await agent
+      .post("/admin/foods")
+      .send({calories: 5, name: "Created", ownerId: actor?._id})
+      .expect(201);
+    await agent
+      .post("/admin/foods")
+      .send({calories: 6, name: "Foreign", ownerId: new mongoose.Types.ObjectId()})
+      .expect(403);
+  });
+
+  it("supports completely custom per-model authorization", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({admin: ["access"]}),
+      statements: terrenoStatements,
+    });
+    const localApp = buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            authorize: ({action}) => action === "list" || action === "read",
+          },
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+
+    await agent.get("/admin/foods").expect(200);
+    await agent.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(405);
   });
 });
 

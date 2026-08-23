@@ -1,6 +1,7 @@
 import type express from "express";
 import type {Model} from "mongoose";
 
+import type {User} from "./auth";
 import type {PermissionMethod, RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
 import type {ScriptArgDef, ScriptRunner} from "./scriptRunner";
@@ -78,6 +79,24 @@ export interface AdminModelPermissions {
   update?: boolean;
 }
 
+export interface AdminAccessContext {
+  action: "create" | "delete" | "list" | "read" | "update";
+  instance?: unknown;
+  user?: User;
+}
+
+export interface AdminAccessConfig {
+  /**
+   * RBAC resource for the standard read/write/writeOwned controls. Defaults to
+   * `admin<ModelName>` when that statement exists, then the legacy camel-cased model name.
+   */
+  resource?: string;
+  /** Determines whether the current user owns an instance for writeOwned access. */
+  isOwned?: (args: {instance: unknown; user: User}) => boolean | Promise<boolean>;
+  /** Completely replaces the standard RBAC decision for this model. */
+  authorize?: (args: AdminAccessContext) => boolean | Promise<boolean>;
+}
+
 export interface AdminConfig {
   displayName: string;
   group?: string;
@@ -104,6 +123,8 @@ export interface AdminConfig {
     read: PermissionMethod<unknown>[];
     update: PermissionMethod<unknown>[];
   }>;
+  /** Fine-grained admin RBAC and optional ownership/custom authorization. */
+  adminAccess?: AdminAccessConfig;
   adminFilter?: (
     req: express.Request
   ) => Record<string, unknown> | Promise<Record<string, unknown>>;
@@ -128,6 +149,8 @@ export interface AdminCustomScreen {
   group?: string;
   icon?: string;
   name: string;
+  /** RBAC or custom authorization for exposing this screen in admin metadata/navigation. */
+  adminAccess?: Pick<AdminAccessConfig, "authorize" | "resource"> & {action?: string};
 }
 
 export interface AdminHomeSlots {

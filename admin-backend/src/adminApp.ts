@@ -1,4 +1,5 @@
 import {
+  type AdminAccessConfig,
   type AdminModelAdminMap,
   type AnyTerrenoAccess,
   APIError,
@@ -65,6 +66,18 @@ export interface AdminFieldOverride {
   widget?: string;
 }
 
+/**
+ * Builds an ownership check for writeOwned admin access. The field may contain an id
+ * directly or a populated document with `_id`.
+ */
+export const adminOwnedBy = (field: string): NonNullable<AdminAccessConfig["isOwned"]> => {
+  return ({instance, user}): boolean => {
+    const value = (instance as Record<string, unknown> | undefined)?.[field];
+    const ownerId = (value as {_id?: unknown} | undefined)?._id ?? value;
+    return ownerId != null && String(ownerId) === String(user.id);
+  };
+};
+
 export interface AdminModelConfig {
   /** The Mongoose model to expose in the admin panel */
   // noExplicitAny: Model<T> is invariant; the admin panel must accept any document shape.
@@ -110,6 +123,8 @@ export interface AdminModelConfig {
   populatePaths?: PopulatePath[];
   /** UI-only hint that live updates may be available */
   realtime?: boolean;
+  /** Fine-grained admin RBAC and optional ownership/custom authorization. */
+  adminAccess?: AdminAccessConfig;
   /**
    * Field key used for the edit screen title (browser tab / stack header). When omitted, the
    * admin UI derives a label from common keys (`name`, `title`, …) then the first scalar
@@ -170,6 +185,8 @@ export interface AdminCustomScreenConfig {
   name: string;
   /** Optional subtitle or help text shown with the screen card in the admin UI */
   description?: string;
+  /** RBAC or custom authorization for exposing this screen in admin metadata/navigation. */
+  adminAccess?: Pick<AdminAccessConfig, "authorize" | "resource"> & {action?: string};
 }
 
 /**
@@ -256,6 +273,12 @@ interface AdminConfigResponse {
   customScreens?: AdminCustomScreenConfig[];
   home: ReturnType<typeof normalizeAdminHome>;
   models: AdminModelMeta[];
+  platformTools: {
+    configuration: boolean;
+    roles: boolean;
+    scripts: boolean;
+    version: boolean;
+  };
   schemaVersion: number;
   scripts: AdminScriptMeta[];
   widgetIds: string[];
@@ -612,8 +635,57 @@ export class AdminApp {
     return result.allowed;
   }
 
+  private async canAnyResourceAction(
+    user: User | undefined,
+    resource: string,
+    actions: string[],
+    instance?: unknown
+  ): Promise<boolean> {
+    const accessControl = this.options.accessControl;
+    if (!accessControl || !user) {
+      return Boolean(user?.admin);
+    }
+    for (const action of actions) {
+      const result = await accessControl.can({
+        doc: instance,
+        permissions: {[resource]: [action]},
+        user,
+      });
+      if (result.allowed) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private adminResource(config: Pick<AdminModelConfig, "adminAccess" | "model">): string {
+    const accessControl = this.options.accessControl;
+    const explicit = config.adminAccess?.resource;
+    if (explicit) {
+      return explicit;
+    }
+    const standard = `admin${config.model.modelName}`;
+    if (config.adminAccess && accessControl?.statements[standard]) {
+      return standard;
+    }
+    return `${config.model.modelName.charAt(0).toLowerCase()}${config.model.modelName.slice(1)}`;
+  }
+
+  private async isAdminModelOwned(
+    config: Pick<AdminModelConfig, "adminAccess">,
+    user: User,
+    instance: unknown
+  ): Promise<boolean> {
+    if (config.adminAccess?.isOwned) {
+      return config.adminAccess.isOwned({instance, user});
+    }
+    const owner = (instance as {ownerId?: {_id?: unknown} | unknown} | undefined)?.ownerId;
+    const ownerId = (owner as {_id?: unknown} | undefined)?._id ?? owner;
+    return ownerId != null && String(ownerId) === String(user.id);
+  }
+
   private resourceActionPermissions(
-    modelName: string,
+    config: Pick<AdminModelConfig, "adminAccess" | "model">,
     action: "list" | "read" | "create" | "update" | "delete"
   ): PermissionMethod<unknown>[] {
     const shell = this.adminAccessPermissions();
@@ -621,10 +693,41 @@ export class AdminApp {
     if (!accessControl) {
       return shell;
     }
-    const resource = `${modelName.charAt(0).toLowerCase()}${modelName.slice(1)}`;
+    if (config.adminAccess?.authorize) {
+      return [
+        ...shell,
+        async (_method, user, instance) =>
+          config.adminAccess?.authorize?.({action, instance, user}) ?? false,
+      ];
+    }
+    const resource = this.adminResource(config);
     const knownActions = accessControl.statements[resource];
     if (!knownActions) {
       return [];
+    }
+    const hasStandardAccess = knownActions.includes("write") || knownActions.includes("writeOwned");
+    if (hasStandardAccess) {
+      return [
+        ...shell,
+        async (_method, user, instance) => {
+          if (!user) {
+            return false;
+          }
+          if (action === "list" || action === "read") {
+            return this.canAnyResourceAction(user, resource, ["read"], instance);
+          }
+          if (await this.canAnyResourceAction(user, resource, ["write"], instance)) {
+            return true;
+          }
+          if (!(await this.canAnyResourceAction(user, resource, ["writeOwned"], instance))) {
+            return false;
+          }
+          if (instance === undefined) {
+            return true;
+          }
+          return this.isAdminModelOwned(config, user, instance);
+        },
+      ];
     }
     return [...shell, accessControl.permission({[resource]: [action]})];
   }
@@ -798,14 +901,20 @@ export class AdminApp {
       name: script.name,
     }));
 
-    const defaultScreens = [{displayName: "Version Config", name: "version-config"}];
-    const mergedScreens = [
+    const defaultScreens: AdminCustomScreenConfig[] = [
+      {
+        adminAccess: {action: "read", resource: "configuration"},
+        displayName: "Version Config",
+        name: "version-config",
+      },
+    ];
+    const mergedScreens: AdminCustomScreenConfig[] = [
       ...defaultScreens,
       ...aggregated.customScreens,
       ...(this.options.customScreens ?? []),
     ];
 
-    const configResponse: AdminConfigResponse = {
+    const baseConfigResponse: AdminConfigResponse = {
       capabilities: {
         actions: true,
         fieldsets: true,
@@ -815,9 +924,101 @@ export class AdminApp {
       customScreens: mergedScreens,
       home: normalizeAdminHome(this.options.home),
       models: configModels,
+      platformTools: {
+        configuration: true,
+        roles: true,
+        scripts: true,
+        version: true,
+      },
       schemaVersion: ADMIN_SCHEMA_VERSION,
       scripts: configScripts,
       widgetIds: aggregated.widgetIds,
+    };
+
+    const buildAuthorizedConfig = async (user: User | undefined): Promise<AdminConfigResponse> => {
+      const authorizedModels = (
+        await Promise.all(
+          configModels.map(async (modelMeta, index): Promise<AdminModelMeta | null> => {
+            const config = modelConfigs[index];
+            if (!config) {
+              return null;
+            }
+            const canRead = await checkPermissions(
+              "list",
+              this.resourceActionPermissions(config, "list"),
+              user
+            );
+            if (!canRead) {
+              return null;
+            }
+            const canCreate =
+              modelMeta.permissions.create &&
+              (await checkPermissions(
+                "create",
+                this.resourceActionPermissions(config, "create"),
+                user
+              ));
+            const canDelete =
+              modelMeta.permissions.delete &&
+              (await checkPermissions(
+                "delete",
+                this.resourceActionPermissions(config, "delete"),
+                user
+              ));
+            const canUpdate =
+              modelMeta.permissions.update &&
+              (await checkPermissions(
+                "update",
+                this.resourceActionPermissions(config, "update"),
+                user
+              ));
+            return {
+              ...modelMeta,
+              permissions: {create: canCreate, delete: canDelete, update: canUpdate},
+            };
+          })
+        )
+      ).filter((model): model is AdminModelMeta => model !== null);
+
+      const authorizedScreens = (
+        await Promise.all(
+          mergedScreens.map(async (screen): Promise<AdminCustomScreenConfig | null> => {
+            if (!screen.adminAccess) {
+              return screen;
+            }
+            if (screen.adminAccess.authorize) {
+              const allowed = await screen.adminAccess.authorize({action: "read", user});
+              return allowed ? screen : null;
+            }
+            if (!screen.adminAccess.resource) {
+              return screen;
+            }
+            const allowed = await this.canAnyResourceAction(user, screen.adminAccess.resource, [
+              screen.adminAccess.action ?? "read",
+            ]);
+            return allowed ? screen : null;
+          })
+        )
+      ).filter((screen): screen is AdminCustomScreenConfig => screen !== null);
+
+      const canReadConfiguration = await this.hasConfigurationPermission(user, "read");
+      const canReadRoles = await this.canAnyResourceAction(user, "rbac", ["read"]);
+      const canUseScripts = await this.canAnyResourceAction(user, "admin", [
+        "runScripts",
+        "viewBackgroundTasks",
+      ]);
+      return {
+        ...baseConfigResponse,
+        customScreens: authorizedScreens.map(({adminAccess: _adminAccess, ...screen}) => screen),
+        models: authorizedModels,
+        platformTools: {
+          configuration: canReadConfiguration,
+          roles: canReadRoles,
+          scripts: canUseScripts,
+          version: canReadConfiguration,
+        },
+        scripts: canUseScripts ? configScripts : [],
+      };
     };
 
     const adminConfigOpenApi = openApiMw
@@ -847,6 +1048,15 @@ export class AdminApp {
             },
             home: {type: "object"},
             models: {type: "array"},
+            platformTools: {
+              properties: {
+                configuration: {type: "boolean"},
+                roles: {type: "boolean"},
+                scripts: {type: "boolean"},
+                version: {type: "boolean"},
+              },
+              type: "object",
+            },
             schemaVersion: {type: "number"},
             scripts: {
               items: {
@@ -879,7 +1089,7 @@ export class AdminApp {
         ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
-        return res.json(configResponse);
+        return res.json(await buildAuthorizedConfig(req.user as User | undefined));
       })
     );
 
@@ -1064,7 +1274,7 @@ export class AdminApp {
           if (
             !(await checkPermissions(
               "list",
-              this.resourceActionPermissions(config.model.modelName, "list"),
+              this.resourceActionPermissions(config, "list"),
               req.user as User | undefined
             ))
           ) {
@@ -1148,10 +1358,10 @@ export class AdminApp {
         if (allowed === false) {
           return [];
         }
-        return this.resourceActionPermissions(config.model.modelName, action);
+        return this.resourceActionPermissions(config, action);
       };
 
-      const updatePermissions = this.resourceActionPermissions(config.model.modelName, "update");
+      const updatePermissions = this.resourceActionPermissions(config, "update");
 
       const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
         if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -1463,6 +1673,16 @@ export class AdminApp {
             return body;
           }
           const record = body as Record<string, unknown>;
+          if (
+            !(await checkPermissions(
+              "create",
+              this.resourceActionPermissions(config, "create"),
+              req.user as User | undefined,
+              record
+            ))
+          ) {
+            throw new APIError({status: 403, title: "Admin create access denied"});
+          }
           takePendingUserRoles(record, req);
           await assertCanWriteUserAdminFlag(record, req);
           markAuthorizedUserAdminWrite(record, req);

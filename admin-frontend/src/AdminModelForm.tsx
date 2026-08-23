@@ -457,6 +457,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [itemId, deleteItem, toast, modelName]);
 
   const isSaving = isCreating || isUpdating;
+  const isFormWritable =
+    mode === "create"
+      ? modelConfig?.permissions?.create !== false
+      : modelConfig?.permissions?.update !== false;
 
   const navigationTitle = useMemo((): string => {
     if (!modelConfig) {
@@ -515,13 +519,15 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           {mode === "edit" && modelConfig.permissions?.delete !== false ? (
             <DeleteButton loading={isDeleting} onDelete={handleDelete} />
           ) : null}
-          <Button
-            loading={isSaving}
-            onClick={handleSave}
-            testID="admin-save-button"
-            text={mode === "create" ? "Create" : "Save"}
-            variant="primary"
-          />
+          {isFormWritable ? (
+            <Button
+              loading={isSaving}
+              onClick={handleSave}
+              testID="admin-save-button"
+              text={mode === "create" ? "Create" : "Save"}
+              variant="primary"
+            />
+          ) : null}
         </Box>
       ),
       title: navigationTitle,
@@ -535,6 +541,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     isDeleting,
     handleSave,
     handleDelete,
+    isFormWritable,
   ]);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
@@ -552,8 +559,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (!modelConfig) {
       return new Set<string>();
     }
+    if (!isFormWritable) {
+      return new Set(Object.keys(modelConfig.fields));
+    }
     return new Set(modelConfig.readonlyFields ?? []);
-  }, [modelConfig]);
+  }, [isFormWritable, modelConfig]);
 
   const fieldSections = useMemo(() => {
     if (!modelConfig?.fieldsets?.length) {

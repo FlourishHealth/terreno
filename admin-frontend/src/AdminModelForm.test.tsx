@@ -3,6 +3,7 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import type {AdminApi, AdminConfigResponse} from "./types";
@@ -129,6 +130,34 @@ describe("AdminModelForm", () => {
         title: "New User",
       })
     );
+  });
+
+  it("removes save controls when effective model permissions are read-only", () => {
+    configState.config = {
+      ...config,
+      models: [{...modelConfig, permissions: {create: false, delete: false, update: false}}],
+    };
+    readState.data = {email: "readonly@example.com", name: "Read only"};
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+
+    renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="readonly"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+
+    assert.isNull(header.queryByTestId("admin-save-button"));
+    assert.isNull(header.queryByTestId("admin-delete-button"));
   });
 
   it("renders spinner during edit when the item is loading", () => {

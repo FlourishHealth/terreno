@@ -3,6 +3,7 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
@@ -261,6 +262,37 @@ describe("AdminShell", () => {
       fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
     });
     expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/AdminAuditLog");
+  });
+
+  it("hides built-in platform tools denied by backend RBAC metadata", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      platformTools: {
+        configuration: false,
+        roles: false,
+        scripts: false,
+        version: false,
+      },
+    };
+
+    const {queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNull(queryByTestId("admin-shell-nav-scripts"));
+    assert.isNull(queryByTestId("admin-shell-nav-roles"));
+    assert.isNull(queryByTestId("admin-shell-nav-version"));
+    assert.isNull(queryByTestId("admin-shell-nav-configuration"));
   });
 
   it("hides empty Models and Screens headings", () => {

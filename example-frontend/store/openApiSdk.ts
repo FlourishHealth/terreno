@@ -2,18 +2,20 @@
 import {emptySplitApi as api} from "./betterAuthApi";
 export const addTagTypes = [
   "ai",
-  "users",
+  "gpthistories",
   "gpt",
-  "admin",
   "admin-users",
   "settings",
   "loadtest",
   "todos",
   "exampleprojects",
+  "users",
+  "comms",
+  "admin",
   "featureflags",
+  "adminauditlogs",
   "consentforms",
   "consentresponses",
-  "adminauditlogs",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -21,20 +23,6 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      $get: build.query<$getRes, $getArgs>({
-        providesTags: ["users"],
-        query: (queryArg) => ({
-          params: {
-            _id: queryArg._id,
-            email: queryArg.email,
-            limit: queryArg.limit,
-            name: queryArg.name,
-            page: queryArg.page,
-            sort: queryArg.sort,
-          },
-          url: `/`,
-        }),
-      }),
       deleteAdminConsentFormsById: build.mutation<
         DeleteAdminConsentFormsByIdRes,
         DeleteAdminConsentFormsByIdArgs
@@ -62,9 +50,15 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg}`,
         }),
       }),
-      deleteById: build.mutation<DeleteByIdRes, DeleteByIdArgs>({
-        invalidatesTags: ["users"],
-        query: (queryArg) => ({method: "DELETE", url: `/${queryArg}`}),
+      deleteCommsPushTokensById: build.mutation<
+        DeleteCommsPushTokensByIdRes,
+        DeleteCommsPushTokensByIdArgs
+      >({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/comms/pushTokens/${queryArg}`,
+        }),
       }),
       deleteFeatureFlagsFlagsById: build.mutation<
         DeleteFeatureFlagsFlagsByIdRes,
@@ -76,6 +70,15 @@ const injectedRtkApi = api
           url: `/feature-flags/flags/${queryArg}`,
         }),
       }),
+      deleteGptHistoriesById: build.mutation<DeleteGptHistoriesByIdRes, DeleteGptHistoriesByIdArgs>(
+        {
+          invalidatesTags: ["gpthistories"],
+          query: (queryArg) => ({
+            method: "DELETE",
+            url: `/gpt/histories/${queryArg}`,
+          }),
+        }
+      ),
       deleteProjectsById: build.mutation<DeleteProjectsByIdRes, DeleteProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -91,6 +94,10 @@ const injectedRtkApi = api
         invalidatesTags: ["todos"],
         query: (queryArg) => ({method: "DELETE", url: `/todos/${queryArg}`}),
       }),
+      deleteUsersById: build.mutation<DeleteUsersByIdRes, DeleteUsersByIdArgs>({
+        invalidatesTags: ["users"],
+        query: (queryArg) => ({method: "DELETE", url: `/users/${queryArg}`}),
+      }),
       getAdminAuditLogs: build.query<GetAdminAuditLogsRes, GetAdminAuditLogsArgs>({
         providesTags: ["adminauditlogs"],
         query: (queryArg) => ({
@@ -101,6 +108,7 @@ const injectedRtkApi = api
             limit: queryArg.limit,
             modelName: queryArg.modelName,
             page: queryArg.page,
+            q: queryArg.q,
             recordId: queryArg.recordId,
             recordLabel: queryArg.recordLabel,
             sort: queryArg.sort,
@@ -126,6 +134,7 @@ const injectedRtkApi = api
             limit: queryArg.limit,
             order: queryArg.order,
             page: queryArg.page,
+            q: queryArg.q,
             slug: queryArg.slug,
             sort: queryArg.sort,
             title: queryArg.title,
@@ -155,6 +164,7 @@ const injectedRtkApi = api
             limit: queryArg.limit,
             locale: queryArg.locale,
             page: queryArg.page,
+            q: queryArg.q,
             sort: queryArg.sort,
             userId: queryArg.userId,
           },
@@ -176,12 +186,12 @@ const injectedRtkApi = api
             archived: queryArg.archived,
             created: queryArg.created,
             defaultVariant: queryArg.defaultVariant,
-            description: queryArg.description,
             enabled: queryArg.enabled,
             key: queryArg.key,
             limit: queryArg.limit,
             name: queryArg.name,
             page: queryArg.page,
+            q: queryArg.q,
             sort: queryArg.sort,
             type: queryArg.type,
           },
@@ -208,6 +218,7 @@ const injectedRtkApi = api
             ownerId: queryArg.ownerId,
             page: queryArg.page,
             priority: queryArg.priority,
+            q: queryArg.q,
             sort: queryArg.sort,
             tags: queryArg.tags,
             title: queryArg.title,
@@ -230,6 +241,7 @@ const injectedRtkApi = api
             limit: queryArg.limit,
             name: queryArg.name,
             page: queryArg.page,
+            q: queryArg.q,
             sort: queryArg.sort,
           },
           url: `/admin/users/`,
@@ -243,23 +255,36 @@ const injectedRtkApi = api
         providesTags: ["ai"],
         query: () => ({url: `/ai/models`}),
       }),
-      getAiRequestsExplorer: build.query<GetAiRequestsExplorerRes, GetAiRequestsExplorerArgs>({
-        providesTags: ["admin"],
+      getCommsMessages: build.query<GetCommsMessagesRes, GetCommsMessagesArgs>({
+        providesTags: ["admin", "comms"],
         query: (queryArg) => ({
           params: {
+            channel: queryArg.channel,
             endDate: queryArg.endDate,
             limit: queryArg.limit,
-            model: queryArg.model,
             page: queryArg.page,
-            requestType: queryArg.requestType,
             startDate: queryArg.startDate,
+            status: queryArg.status,
+            userId: queryArg.userId,
           },
-          url: `/aiRequestsExplorer`,
+          url: `/comms/messages`,
         }),
       }),
-      getById: build.query<GetByIdRes, GetByIdArgs>({
-        providesTags: ["users"],
-        query: (queryArg) => ({url: `/${queryArg}`}),
+      getCommsPushTokens: build.query<GetCommsPushTokensRes, GetCommsPushTokensArgs>({
+        providesTags: ["comms"],
+        query: (queryArg) => ({
+          params: {
+            active: queryArg.active,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            platform: queryArg.platform,
+          },
+          url: `/comms/pushTokens`,
+        }),
+      }),
+      getCommsPushTokensById: build.query<GetCommsPushTokensByIdRes, GetCommsPushTokensByIdArgs>({
+        providesTags: ["comms"],
+        query: (queryArg) => ({url: `/comms/pushTokens/${queryArg}`}),
       }),
       getFeatureFlagsFlags: build.query<GetFeatureFlagsFlagsRes, GetFeatureFlagsFlagsArgs>({
         providesTags: ["featureflags"],
@@ -279,6 +304,24 @@ const injectedRtkApi = api
       >({
         providesTags: ["featureflags"],
         query: (queryArg) => ({url: `/feature-flags/flags/${queryArg}`}),
+      }),
+      getGptHistories: build.query<GetGptHistoriesRes, GetGptHistoriesArgs>({
+        providesTags: ["gpthistories"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            projectId: queryArg.projectId,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+          },
+          url: `/gpt/histories/`,
+        }),
+      }),
+      getGptHistoriesById: build.query<GetGptHistoriesByIdRes, GetGptHistoriesByIdArgs>({
+        providesTags: ["gpthistories"],
+        query: (queryArg) => ({url: `/gpt/histories/${queryArg}`}),
       }),
       getGptTools: build.query<GetGptToolsRes, GetGptToolsArgs>({
         providesTags: ["gpt"],
@@ -324,6 +367,24 @@ const injectedRtkApi = api
         providesTags: ["todos"],
         query: (queryArg) => ({url: `/todos/${queryArg}`}),
       }),
+      getUsers: build.query<GetUsersRes, GetUsersArgs>({
+        providesTags: ["users"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            email: queryArg.email,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            sort: queryArg.sort,
+          },
+          url: `/users/`,
+        }),
+      }),
+      getUsersById: build.query<GetUsersByIdRes, GetUsersByIdArgs>({
+        providesTags: ["users"],
+        query: (queryArg) => ({url: `/users/${queryArg}`}),
+      }),
       patchAdminConsentFormsById: build.mutation<
         PatchAdminConsentFormsByIdRes,
         PatchAdminConsentFormsByIdArgs
@@ -333,17 +394,6 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/admin/consent-forms/${queryArg.id}`,
-        }),
-      }),
-      patchAdminConsentResponsesById: build.mutation<
-        PatchAdminConsentResponsesByIdRes,
-        PatchAdminConsentResponsesByIdArgs
-      >({
-        invalidatesTags: ["consentresponses"],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "PATCH",
-          url: `/admin/consent-responses/${queryArg.id}`,
         }),
       }),
       patchAdminFeatureFlagsById: build.mutation<
@@ -373,14 +423,6 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}`,
         }),
       }),
-      patchById: build.mutation<PatchByIdRes, PatchByIdArgs>({
-        invalidatesTags: ["users"],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "PATCH",
-          url: `/${queryArg.id}`,
-        }),
-      }),
       patchFeatureFlagsFlagsById: build.mutation<
         PatchFeatureFlagsFlagsByIdRes,
         PatchFeatureFlagsFlagsByIdArgs
@@ -390,6 +432,14 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/feature-flags/flags/${queryArg.id}`,
+        }),
+      }),
+      patchGptHistoriesById: build.mutation<PatchGptHistoriesByIdRes, PatchGptHistoriesByIdArgs>({
+        invalidatesTags: ["gpthistories"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/gpt/histories/${queryArg.id}`,
         }),
       }),
       patchGptHistoriesByIdRating: build.mutation<
@@ -419,9 +469,13 @@ const injectedRtkApi = api
           url: `/todos/${queryArg.id}`,
         }),
       }),
-      post: build.mutation<PostRes, PostArgs>({
+      patchUsersById: build.mutation<PatchUsersByIdRes, PatchUsersByIdArgs>({
         invalidatesTags: ["users"],
-        query: (queryArg) => ({body: queryArg, method: "POST", url: `/`}),
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/users/${queryArg.id}`,
+        }),
       }),
       postAdminAuditLogsBulkPatch: build.mutation<
         PostAdminAuditLogsBulkPatchRes,
@@ -462,17 +516,6 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/admin/consent-forms/bulk-patch`,
-        }),
-      }),
-      postAdminConsentResponses: build.mutation<
-        PostAdminConsentResponsesRes,
-        PostAdminConsentResponsesArgs
-      >({
-        invalidatesTags: ["consentresponses"],
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: `/admin/consent-responses/`,
         }),
       }),
       postAdminConsentResponsesBulkPatch: build.mutation<
@@ -554,12 +597,28 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}/password`,
         }),
       }),
+      postCommsPushTokens: build.mutation<PostCommsPushTokensRes, PostCommsPushTokensArgs>({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/pushTokens`,
+        }),
+      }),
       postFeatureFlagsFlags: build.mutation<PostFeatureFlagsFlagsRes, PostFeatureFlagsFlagsArgs>({
         invalidatesTags: ["featureflags"],
         query: (queryArg) => ({
           body: queryArg,
           method: "POST",
           url: `/feature-flags/flags/`,
+        }),
+      }),
+      postGptHistories: build.mutation<PostGptHistoriesRes, PostGptHistoriesArgs>({
+        invalidatesTags: ["gpthistories"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/gpt/histories/`,
         }),
       }),
       postGptPrompt: build.mutation<PostGptPromptRes, PostGptPromptArgs>({
@@ -629,6 +688,14 @@ const injectedRtkApi = api
           url: `/todos/`,
         }),
       }),
+      postUsers: build.mutation<PostUsersRes, PostUsersArgs>({
+        invalidatesTags: ["users"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/users/`,
+        }),
+      }),
       todosBulkComplete: build.mutation<TodosBulkCompleteRes, TodosBulkCompleteArgs>({
         invalidatesTags: ["todos"],
         query: (queryArg) => ({
@@ -656,174 +723,324 @@ export type GetAiModelsRes = /** status 200 Success */ {
   }[];
 };
 export type GetAiModelsArgs = undefined;
-export type PostRes = /** status 201 Successful create */ {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email: string;
-  /** The user's display name */
-  name: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+export type PostGptHistoriesRes = /** status 201 Successful create */ {
+  /** Project this conversation belongs to */
+  projectId?: any;
+  /** Ordered list of messages in this conversation */
+  prompts?: {
+    /** Arguments passed to a tool call */
+    args?: any;
+    /** Multipart content attached to this prompt */
+    content?: {
+      /** Original filename of the attached file */
+      filename?: string;
+      /** MIME type of the content part */
+      mimeType?: string;
+      /** Text content of this part */
+      text?: string;
+      /** The kind of content this part represents */
+      type: "text" | "image" | "file";
+      /** URL pointing to the content resource */
+      url?: string;
+    }[];
+    /** AI model identifier used for this prompt */
+    model?: string;
+    /** User feedback rating for this prompt */
+    rating?: "up" | "down";
+    /** Result returned from a tool call */
+    result?: any;
+    /** Text content of the prompt or response */
+    text: string;
+    /** Identifier linking a tool result to its originating call */
+    toolCallId?: string;
+    /** Name of the tool that was invoked */
+    toolName?: string;
+    /** Role of this message in the conversation */
+    type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+  }[];
+  /** Auto-generated title from the first assistant response */
+  title?: string;
+  /** The user who owns this conversation history */
+  userId: any;
   _id: string;
-  hash?: string;
-  salt?: string;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
   created: string;
   /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
   deleted?: boolean;
+  ownerId?: any;
 };
-export type PostArgs = {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email?: string;
-  /** The user's display name */
-  name?: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+export type PostGptHistoriesArgs = {
+  /** Project this conversation belongs to */
+  projectId?: any;
+  /** Ordered list of messages in this conversation */
+  prompts?: {
+    /** Arguments passed to a tool call */
+    args?: any;
+    /** Multipart content attached to this prompt */
+    content?: {
+      /** Original filename of the attached file */
+      filename?: string;
+      /** MIME type of the content part */
+      mimeType?: string;
+      /** Text content of this part */
+      text?: string;
+      /** The kind of content this part represents */
+      type: "text" | "image" | "file";
+      /** URL pointing to the content resource */
+      url?: string;
+    }[];
+    /** AI model identifier used for this prompt */
+    model?: string;
+    /** User feedback rating for this prompt */
+    rating?: "up" | "down";
+    /** Result returned from a tool call */
+    result?: any;
+    /** Text content of the prompt or response */
+    text: string;
+    /** Identifier linking a tool result to its originating call */
+    toolCallId?: string;
+    /** Name of the tool that was invoked */
+    toolName?: string;
+    /** Role of this message in the conversation */
+    type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+  }[];
+  /** Auto-generated title from the first assistant response */
+  title?: string;
+  /** The user who owns this conversation history */
+  userId?: any;
   _id?: string;
-  hash?: string;
-  salt?: string;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
   created?: string;
   /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
   deleted?: boolean;
+  ownerId?: any;
 };
-export type $getRes = /** status 200 Successful list */ {
+export type GetGptHistoriesRes = /** status 200 Successful list */ {
   data?: {
-    /** Whether the user has admin privileges */
-    admin?: boolean;
-    /** Identifier linking to the Better Auth session provider */
-    betterAuthId?: string;
-    /** The user's email address, used for authentication */
-    email: string;
-    /** The user's display name */
-    name: string;
-    /** OAuth provider used for authentication */
-    oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
+    /** Project this conversation belongs to */
+    projectId?: any;
+    /** Ordered list of messages in this conversation */
+    prompts?: {
+      /** Arguments passed to a tool call */
+      args?: any;
+      /** Multipart content attached to this prompt */
+      content?: {
+        /** Original filename of the attached file */
+        filename?: string;
+        /** MIME type of the content part */
+        mimeType?: string;
+        /** Text content of this part */
+        text?: string;
+        /** The kind of content this part represents */
+        type: "text" | "image" | "file";
+        /** URL pointing to the content resource */
+        url?: string;
+      }[];
+      /** AI model identifier used for this prompt */
+      model?: string;
+      /** User feedback rating for this prompt */
+      rating?: "up" | "down";
+      /** Result returned from a tool call */
+      result?: any;
+      /** Text content of the prompt or response */
+      text: string;
+      /** Identifier linking a tool result to its originating call */
+      toolCallId?: string;
+      /** Name of the tool that was invoked */
+      toolName?: string;
+      /** Role of this message in the conversation */
+      type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+    }[];
+    /** Auto-generated title from the first assistant response */
+    title?: string;
+    /** The user who owns this conversation history */
+    userId: any;
     _id: string;
-    hash?: string;
-    salt?: string;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
     created: string;
     /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
     deleted?: boolean;
+    ownerId?: any;
   }[];
   limit?: number;
   more?: boolean;
   page?: number;
   total?: number;
 };
-export type $getArgs = {
+export type GetGptHistoriesArgs = {
   _id?: {
     $in?: string[];
   };
-  email?:
-    | string
+  userId?:
+    | any
     | {
-        $in?: string[];
+        $in?: any[];
       };
-  name?:
-    | string
+  projectId?:
+    | any
     | {
-        $in?: string[];
+        $in?: any[];
       };
   page?: number;
   sort?: string;
   limit?: number;
 };
-export type GetByIdRes = /** status 200 Successful read */ {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email: string;
-  /** The user's display name */
-  name: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
+  /** Project this conversation belongs to */
+  projectId?: any;
+  /** Ordered list of messages in this conversation */
+  prompts?: {
+    /** Arguments passed to a tool call */
+    args?: any;
+    /** Multipart content attached to this prompt */
+    content?: {
+      /** Original filename of the attached file */
+      filename?: string;
+      /** MIME type of the content part */
+      mimeType?: string;
+      /** Text content of this part */
+      text?: string;
+      /** The kind of content this part represents */
+      type: "text" | "image" | "file";
+      /** URL pointing to the content resource */
+      url?: string;
+    }[];
+    /** AI model identifier used for this prompt */
+    model?: string;
+    /** User feedback rating for this prompt */
+    rating?: "up" | "down";
+    /** Result returned from a tool call */
+    result?: any;
+    /** Text content of the prompt or response */
+    text: string;
+    /** Identifier linking a tool result to its originating call */
+    toolCallId?: string;
+    /** Name of the tool that was invoked */
+    toolName?: string;
+    /** Role of this message in the conversation */
+    type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+  }[];
+  /** Auto-generated title from the first assistant response */
+  title?: string;
+  /** The user who owns this conversation history */
+  userId: any;
   _id: string;
-  hash?: string;
-  salt?: string;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
   created: string;
   /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
   deleted?: boolean;
+  ownerId?: any;
 };
-export type GetByIdArgs = string;
-export type PatchByIdRes = /** status 200 Successful update */ {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email: string;
-  /** The user's display name */
-  name: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+export type GetGptHistoriesByIdArgs = string;
+export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
+  /** Project this conversation belongs to */
+  projectId?: any;
+  /** Ordered list of messages in this conversation */
+  prompts?: {
+    /** Arguments passed to a tool call */
+    args?: any;
+    /** Multipart content attached to this prompt */
+    content?: {
+      /** Original filename of the attached file */
+      filename?: string;
+      /** MIME type of the content part */
+      mimeType?: string;
+      /** Text content of this part */
+      text?: string;
+      /** The kind of content this part represents */
+      type: "text" | "image" | "file";
+      /** URL pointing to the content resource */
+      url?: string;
+    }[];
+    /** AI model identifier used for this prompt */
+    model?: string;
+    /** User feedback rating for this prompt */
+    rating?: "up" | "down";
+    /** Result returned from a tool call */
+    result?: any;
+    /** Text content of the prompt or response */
+    text: string;
+    /** Identifier linking a tool result to its originating call */
+    toolCallId?: string;
+    /** Name of the tool that was invoked */
+    toolName?: string;
+    /** Role of this message in the conversation */
+    type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+  }[];
+  /** Auto-generated title from the first assistant response */
+  title?: string;
+  /** The user who owns this conversation history */
+  userId: any;
   _id: string;
-  hash?: string;
-  salt?: string;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
   created: string;
   /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
   deleted?: boolean;
+  ownerId?: any;
 };
-export type PatchByIdArgs = {
+export type PatchGptHistoriesByIdArgs = {
   id: string;
   body: {
-    /** Whether the user has admin privileges */
-    admin?: boolean;
-    /** Identifier linking to the Better Auth session provider */
-    betterAuthId?: string;
-    /** The user's email address, used for authentication */
-    email?: string;
-    /** The user's display name */
-    name?: string;
-    /** OAuth provider used for authentication */
-    oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
+    /** Project this conversation belongs to */
+    projectId?: any;
+    /** Ordered list of messages in this conversation */
+    prompts?: {
+      /** Arguments passed to a tool call */
+      args?: any;
+      /** Multipart content attached to this prompt */
+      content?: {
+        /** Original filename of the attached file */
+        filename?: string;
+        /** MIME type of the content part */
+        mimeType?: string;
+        /** Text content of this part */
+        text?: string;
+        /** The kind of content this part represents */
+        type: "text" | "image" | "file";
+        /** URL pointing to the content resource */
+        url?: string;
+      }[];
+      /** AI model identifier used for this prompt */
+      model?: string;
+      /** User feedback rating for this prompt */
+      rating?: "up" | "down";
+      /** Result returned from a tool call */
+      result?: any;
+      /** Text content of the prompt or response */
+      text: string;
+      /** Identifier linking a tool result to its originating call */
+      toolCallId?: string;
+      /** Name of the tool that was invoked */
+      toolName?: string;
+      /** Role of this message in the conversation */
+      type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+    }[];
+    /** Auto-generated title from the first assistant response */
+    title?: string;
+    /** The user who owns this conversation history */
+    userId?: any;
     _id?: string;
-    hash?: string;
-    salt?: string;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
     created?: string;
     /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
     deleted?: boolean;
+    ownerId?: any;
   };
 };
-export type DeleteByIdRes = unknown;
-export type DeleteByIdArgs = string;
+export type DeleteGptHistoriesByIdRes = unknown;
+export type DeleteGptHistoriesByIdArgs = string;
 export type PostGptPromptRes = /** status 200 Success */ {
   data?: string;
 };
@@ -864,21 +1081,6 @@ export type GetGptToolsRes = /** status 200 Success */ {
   }[];
 };
 export type GetGptToolsArgs = undefined;
-export type GetAiRequestsExplorerRes = /** status 200 Success */ {
-  data?: object[];
-  limit?: number;
-  more?: boolean;
-  page?: number;
-  total?: number;
-};
-export type GetAiRequestsExplorerArgs = {
-  page?: number;
-  limit?: number;
-  requestType?: string;
-  model?: string;
-  startDate?: string;
-  endDate?: string;
-};
 export type PostAdminUsersByIdPasswordRes = /** status 200 Success */ {
   data?: {
     _id?: string;
@@ -1270,6 +1472,254 @@ export type PatchProjectsByIdArgs = {
 };
 export type DeleteProjectsByIdRes = unknown;
 export type DeleteProjectsByIdArgs = string;
+export type PostUsersRes = /** status 201 Successful create */ {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email: string;
+  /** The user's display name */
+  name: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PostUsersArgs = {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email?: string;
+  /** The user's display name */
+  name?: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id?: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetUsersRes = /** status 200 Successful list */ {
+  data?: {
+    /** Whether the user has admin privileges */
+    admin?: boolean;
+    /** Identifier linking to the Better Auth session provider */
+    betterAuthId?: string;
+    /** The user's email address, used for authentication */
+    email: string;
+    /** The user's display name */
+    name: string;
+    /** OAuth provider used for authentication */
+    oauthProvider?: "google" | "github" | "apple" | null;
+    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+    organizationIds?: string[];
+    _id: string;
+    hash?: string;
+    salt?: string;
+    /** RBAC role names assigned to this user */
+    roles?: string[];
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetUsersArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  email?:
+    | string
+    | {
+        $in?: string[];
+      };
+  name?:
+    | string
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetUsersByIdRes = /** status 200 Successful read */ {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email: string;
+  /** The user's display name */
+  name: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetUsersByIdArgs = string;
+export type PatchUsersByIdRes = /** status 200 Successful update */ {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email: string;
+  /** The user's display name */
+  name: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PatchUsersByIdArgs = {
+  id: string;
+  body: {
+    /** Whether the user has admin privileges */
+    admin?: boolean;
+    /** Identifier linking to the Better Auth session provider */
+    betterAuthId?: string;
+    /** The user's email address, used for authentication */
+    email?: string;
+    /** The user's display name */
+    name?: string;
+    /** OAuth provider used for authentication */
+    oauthProvider?: "google" | "github" | "apple" | null;
+    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+    organizationIds?: string[];
+    _id?: string;
+    hash?: string;
+    salt?: string;
+    /** RBAC role names assigned to this user */
+    roles?: string[];
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  };
+};
+export type DeleteUsersByIdRes = unknown;
+export type DeleteUsersByIdArgs = string;
+export type PostCommsPushTokensRes =
+  /** status 200 Success */
+  | {
+      data?: object;
+    }
+  | /** status 201 Success */ {
+      data?: object;
+    };
+export type PostCommsPushTokensArgs = {
+  deviceId?: string;
+  /** Device platform: android, ios, or web */
+  platform: string;
+  token: string;
+};
+export type GetCommsPushTokensRes = /** status 200 Success */ {
+  data?: object[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetCommsPushTokensArgs = {
+  page?: number;
+  limit?: number;
+  active?: boolean;
+  platform?: string;
+};
+export type DeleteCommsPushTokensByIdRes = /** status 204 Success */ {};
+export type DeleteCommsPushTokensByIdArgs = string;
+export type GetCommsPushTokensByIdRes = /** status 200 Successful read */ {
+  /** Whether the device token is available for push delivery */
+  active?: boolean;
+  /** Application-provided identifier for the device */
+  deviceId?: string;
+  /** Most recent time the device token was registered */
+  lastSeenAt: string;
+  /** Platform associated with the device token */
+  platform: "android" | "ios" | "web";
+  /** Push provider token identifying the device */
+  token: string;
+  /** User who owns the device token */
+  userId: any;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  ownerId?: any;
+};
+export type GetCommsPushTokensByIdArgs = string;
+export type GetCommsMessagesRes = /** status 200 Success */ {
+  data?: object[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetCommsMessagesArgs = {
+  page?: number;
+  limit?: number;
+  channel?: string;
+  status?: string;
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+};
 export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
   /** Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added. */
   archived?: boolean;
@@ -1561,6 +2011,12 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
+  capabilities?: {
+    actions?: boolean;
+    fieldsets?: boolean;
+    filters?: boolean;
+    realtime?: boolean;
+  };
   customScreens?: {
     description?: string;
     displayName?: string;
@@ -1568,12 +2024,19 @@ export type GetAdminConfigRes = /** status 200 Success */ {
   }[];
   home?: object;
   models?: any;
+  platformTools?: {
+    configuration?: boolean;
+    roles?: boolean;
+    scripts?: boolean;
+    version?: boolean;
+  };
   schemaVersion?: number;
   scripts?: {
     args?: any;
     description?: string;
     name?: string;
   }[];
+  widgetIds?: string[];
 };
 export type GetAdminConfigArgs = undefined;
 export type PostAdminBackgroundTasksRes = /** status 201 Success */ {
@@ -1589,6 +2052,111 @@ export type PostAdminBackgroundTasksArgs = {
   /** Optional admin model route this task relates to */
   resourceRoute?: string;
 };
+export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAuditLogsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
+  data?: {
+    /** User who performed the action */
+    actorId?: any;
+    /** Mongoose model name affected */
+    modelName: string;
+    /** Primary key of the affected document */
+    recordId?: any;
+    /** Human-readable label for the record */
+    recordLabel?: string;
+    /** Mutation kind */
+    verb: "created" | "deleted" | "updated";
+    _id: string;
+    createdAt?: string;
+    updatedAt?: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAuditLogsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  verb?:
+    | ("created" | "deleted" | "updated")
+    | {
+        $in?: string[];
+      };
+  modelName?:
+    | string
+    | {
+        $in?: string[];
+      };
+  recordLabel?:
+    | string
+    | {
+        $in?: string[];
+      };
+  recordId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  actorId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  createdAt?:
+    | string
+    | {
+        $gt?: string;
+        $gte?: string;
+        $lt?: string;
+        $lte?: string;
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
+  /** User who performed the action */
+  actorId?: any;
+  /** Mongoose model name affected */
+  modelName: string;
+  /** Primary key of the affected document */
+  recordId?: any;
+  /** Human-readable label for the record */
+  recordLabel?: string;
+  /** Mutation kind */
+  verb: "created" | "deleted" | "updated";
+  _id: string;
+  createdAt?: string;
+  updatedAt?: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAuditLogsByIdArgs = string;
 export type PostAdminFeatureFlagsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -1744,6 +2312,11 @@ export type GetAdminFeatureFlagsArgs = {
   _id?: {
     $in?: string[];
   };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
   key?:
     | string
     | {
@@ -1785,11 +2358,6 @@ export type GetAdminFeatureFlagsArgs = {
         $lt?: string;
         /** When this document was created */
         $lte?: string;
-      };
-  description?:
-    | string
-    | {
-        $in?: string[];
       };
   page?: number;
   sort?: string;
@@ -1936,420 +2504,6 @@ export type PatchAdminFeatureFlagsByIdArgs = {
 };
 export type DeleteAdminFeatureFlagsByIdRes = unknown;
 export type DeleteAdminFeatureFlagsByIdArgs = string;
-export type PostAdminTodosBulkPatchRes = /** status 200 Success */ {
-  failures?: any;
-  updated?: number;
-};
-export type PostAdminTodosBulkPatchArgs = {
-  /** Document ids to update */
-  ids: string[];
-  /** Partial document; keys must be allowlisted for this model */
-  patch: object;
-};
-export type PostAdminTodosRes = /** status 201 Successful create */ {
-  /** The document id (String so offline sync clients can mint ids) */
-  _id: string;
-  /** Whether the todo item has been completed */
-  completed?: boolean;
-  /** The user who owns this todo */
-  ownerId: any;
-  /** Priority level of the todo */
-  priority?: "low" | "medium" | "high";
-  /** Free-form tags for categorization */
-  tags?: string[];
-  /** The title of the todo item */
-  title: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
-  _syncPrevStream?: string;
-  /** Monotonic per-stream sequence stamped on every synced write */
-  _syncSeq?: number;
-};
-export type PostAdminTodosArgs = {
-  /** The document id (String so offline sync clients can mint ids) */
-  _id?: string;
-  /** Whether the todo item has been completed */
-  completed?: boolean;
-  /** The user who owns this todo */
-  ownerId?: any;
-  /** Priority level of the todo */
-  priority?: "low" | "medium" | "high";
-  /** Free-form tags for categorization */
-  tags?: string[];
-  /** The title of the todo item */
-  title?: string;
-  /** When this document was last updated */
-  updated?: string;
-  /** When this document was created */
-  created?: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
-  _syncPrevStream?: string;
-  /** Monotonic per-stream sequence stamped on every synced write */
-  _syncSeq?: number;
-};
-export type GetAdminTodosRes = /** status 200 Successful list */ {
-  data?: {
-    /** The document id (String so offline sync clients can mint ids) */
-    _id: string;
-    /** Whether the todo item has been completed */
-    completed?: boolean;
-    /** The user who owns this todo */
-    ownerId: any;
-    /** Priority level of the todo */
-    priority?: "low" | "medium" | "high";
-    /** Free-form tags for categorization */
-    tags?: string[];
-    /** The title of the todo item */
-    title: string;
-    /** When this document was last updated */
-    updated: string;
-    /** When this document was created */
-    created: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
-    _syncPrevStream?: string;
-    /** Monotonic per-stream sequence stamped on every synced write */
-    _syncSeq?: number;
-  }[];
-  limit?: number;
-  more?: boolean;
-  page?: number;
-  total?: number;
-};
-export type GetAdminTodosArgs = {
-  _id?: {
-    $in?: string[];
-  };
-  title?:
-    | string
-    | {
-        $in?: string[];
-      };
-  completed?:
-    | boolean
-    | {
-        $in?: boolean[];
-      };
-  ownerId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  created?:
-    | string
-    | {
-        /** When this document was created */
-        $gt?: string;
-        /** When this document was created */
-        $gte?: string;
-        /** When this document was created */
-        $lt?: string;
-        /** When this document was created */
-        $lte?: string;
-      };
-  priority?:
-    | ("low" | "medium" | "high")
-    | {
-        $in?: string[];
-      };
-  tags?:
-    | string[]
-    | {
-        $in?: any[];
-      };
-  createdGte?:
-    | any
-    | {
-        $in?: any[];
-      };
-  createdLte?:
-    | any
-    | {
-        $in?: any[];
-      };
-  page?: number;
-  sort?: string;
-  limit?: number;
-};
-export type GetAdminTodosByIdRes = /** status 200 Successful read */ {
-  /** The document id (String so offline sync clients can mint ids) */
-  _id: string;
-  /** Whether the todo item has been completed */
-  completed?: boolean;
-  /** The user who owns this todo */
-  ownerId: any;
-  /** Priority level of the todo */
-  priority?: "low" | "medium" | "high";
-  /** Free-form tags for categorization */
-  tags?: string[];
-  /** The title of the todo item */
-  title: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
-  _syncPrevStream?: string;
-  /** Monotonic per-stream sequence stamped on every synced write */
-  _syncSeq?: number;
-};
-export type GetAdminTodosByIdArgs = string;
-export type PatchAdminTodosByIdRes = /** status 200 Successful update */ {
-  /** The document id (String so offline sync clients can mint ids) */
-  _id: string;
-  /** Whether the todo item has been completed */
-  completed?: boolean;
-  /** The user who owns this todo */
-  ownerId: any;
-  /** Priority level of the todo */
-  priority?: "low" | "medium" | "high";
-  /** Free-form tags for categorization */
-  tags?: string[];
-  /** The title of the todo item */
-  title: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
-  _syncPrevStream?: string;
-  /** Monotonic per-stream sequence stamped on every synced write */
-  _syncSeq?: number;
-};
-export type PatchAdminTodosByIdArgs = {
-  id: string;
-  body: {
-    /** The document id (String so offline sync clients can mint ids) */
-    _id?: string;
-    /** Whether the todo item has been completed */
-    completed?: boolean;
-    /** The user who owns this todo */
-    ownerId?: any;
-    /** Priority level of the todo */
-    priority?: "low" | "medium" | "high";
-    /** Free-form tags for categorization */
-    tags?: string[];
-    /** The title of the todo item */
-    title?: string;
-    /** When this document was last updated */
-    updated?: string;
-    /** When this document was created */
-    created?: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
-    _syncPrevStream?: string;
-    /** Monotonic per-stream sequence stamped on every synced write */
-    _syncSeq?: number;
-  };
-};
-export type PostAdminUsersBulkPatchRes = /** status 200 Success */ {
-  failures?: any;
-  updated?: number;
-};
-export type PostAdminUsersBulkPatchArgs = {
-  /** Document ids to update */
-  ids: string[];
-  /** Partial document; keys must be allowlisted for this model */
-  patch: object;
-};
-export type PostAdminUsersRes = /** status 201 Successful create */ {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email: string;
-  /** The user's display name */
-  name: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
-  _id: string;
-  hash?: string;
-  salt?: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PostAdminUsersArgs = {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email?: string;
-  /** The user's display name */
-  name?: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
-  _id?: string;
-  hash?: string;
-  salt?: string;
-  /** When this document was last updated */
-  updated?: string;
-  /** When this document was created */
-  created?: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type GetAdminUsersRes = /** status 200 Successful list */ {
-  data?: {
-    /** Whether the user has admin privileges */
-    admin?: boolean;
-    /** Identifier linking to the Better Auth session provider */
-    betterAuthId?: string;
-    /** The user's email address, used for authentication */
-    email: string;
-    /** The user's display name */
-    name: string;
-    /** OAuth provider used for authentication */
-    oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
-    _id: string;
-    hash?: string;
-    salt?: string;
-    /** When this document was last updated */
-    updated: string;
-    /** When this document was created */
-    created: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  }[];
-  limit?: number;
-  more?: boolean;
-  page?: number;
-  total?: number;
-};
-export type GetAdminUsersArgs = {
-  _id?: {
-    $in?: string[];
-  };
-  email?:
-    | string
-    | {
-        $in?: string[];
-      };
-  name?:
-    | string
-    | {
-        $in?: string[];
-      };
-  admin?:
-    | boolean
-    | {
-        $in?: boolean[];
-      };
-  created?:
-    | string
-    | {
-        /** When this document was created */
-        $gt?: string;
-        /** When this document was created */
-        $gte?: string;
-        /** When this document was created */
-        $lt?: string;
-        /** When this document was created */
-        $lte?: string;
-      };
-  page?: number;
-  sort?: string;
-  limit?: number;
-};
-export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email: string;
-  /** The user's display name */
-  name: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
-  _id: string;
-  hash?: string;
-  salt?: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type GetAdminUsersByIdArgs = string;
-export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
-  /** Whether the user has admin privileges */
-  admin?: boolean;
-  /** Identifier linking to the Better Auth session provider */
-  betterAuthId?: string;
-  /** The user's email address, used for authentication */
-  email: string;
-  /** The user's display name */
-  name: string;
-  /** OAuth provider used for authentication */
-  oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
-  _id: string;
-  hash?: string;
-  salt?: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PatchAdminUsersByIdArgs = {
-  id: string;
-  body: {
-    /** Whether the user has admin privileges */
-    admin?: boolean;
-    /** Identifier linking to the Better Auth session provider */
-    betterAuthId?: string;
-    /** The user's email address, used for authentication */
-    email?: string;
-    /** The user's display name */
-    name?: string;
-    /** OAuth provider used for authentication */
-    oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
-    _id?: string;
-    hash?: string;
-    salt?: string;
-    /** When this document was last updated */
-    updated?: string;
-    /** When this document was created */
-    created?: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  };
-};
-export type DeleteAdminUsersByIdRes = unknown;
-export type DeleteAdminUsersByIdArgs = string;
 export type PostAdminConsentFormsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -2514,6 +2668,11 @@ export type GetAdminConsentFormsArgs = {
   _id?: {
     $in?: string[];
   };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
   title?:
     | string
     | {
@@ -2722,100 +2881,6 @@ export type PostAdminConsentResponsesBulkPatchArgs = {
   /** Partial document; keys must be allowlisted for this model */
   patch: object;
 };
-export type PostAdminConsentResponsesRes = /** status 201 Successful create */ {
-  /** Whether the user agreed (true) or declined (false) the consent form */
-  agreed: boolean;
-  /** Timestamp when the user submitted their agreement or declination */
-  agreedAt: string;
-  /** Map of checkbox index to boolean indicating whether each checkbox was checked */
-  checkboxValues?: {
-    [key: string]: boolean;
-  };
-  consentFormId: {
-    /** Human-readable title of the consent form */
-    title?: string;
-    /** URL-safe identifier for this form, combined with version to uniquely identify a form */
-    slug?: string;
-    /** Version number of this form. Incrementing the version requires users to re-consent */
-    version?: number;
-    /** Category of consent form */
-    type?: "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
-  };
-  /** Snapshot of the form content in the user's locale at the time of response */
-  contentSnapshot?: string;
-  /** Version number of the form at the time the user responded */
-  formVersionSnapshot?: number;
-  /** IP address of the user at the time of response, captured for audit purposes */
-  ipAddress?: string;
-  /** Locale code of the content version the user viewed when responding */
-  locale: string;
-  /** Base64-encoded signature image or typed signature text, if captured */
-  signature?: string;
-  /** Timestamp when the user provided their signature */
-  signedAt?: string;
-  /** User-agent string of the browser or app used to submit the response */
-  userAgent?: string;
-  userId: {
-    /** The user's display name */
-    name?: string;
-    /** The user's email address, used for authentication */
-    email?: string;
-  };
-  _id: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PostAdminConsentResponsesArgs = {
-  /** Whether the user agreed (true) or declined (false) the consent form */
-  agreed?: boolean;
-  /** Timestamp when the user submitted their agreement or declination */
-  agreedAt?: string;
-  /** Map of checkbox index to boolean indicating whether each checkbox was checked */
-  checkboxValues?: {
-    [key: string]: boolean;
-  };
-  consentFormId?: {
-    /** Human-readable title of the consent form */
-    title?: string;
-    /** URL-safe identifier for this form, combined with version to uniquely identify a form */
-    slug?: string;
-    /** Version number of this form. Incrementing the version requires users to re-consent */
-    version?: number;
-    /** Category of consent form */
-    type?: "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
-  };
-  /** Snapshot of the form content in the user's locale at the time of response */
-  contentSnapshot?: string;
-  /** Version number of the form at the time the user responded */
-  formVersionSnapshot?: number;
-  /** IP address of the user at the time of response, captured for audit purposes */
-  ipAddress?: string;
-  /** Locale code of the content version the user viewed when responding */
-  locale?: string;
-  /** Base64-encoded signature image or typed signature text, if captured */
-  signature?: string;
-  /** Timestamp when the user provided their signature */
-  signedAt?: string;
-  /** User-agent string of the browser or app used to submit the response */
-  userAgent?: string;
-  userId?: {
-    /** The user's display name */
-    name?: string;
-    /** The user's email address, used for authentication */
-    email?: string;
-  };
-  _id?: string;
-  /** When this document was last updated */
-  updated?: string;
-  /** When this document was created */
-  created?: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
 export type GetAdminConsentResponsesRes = /** status 200 Successful list */ {
   data?: {
     /** Whether the user agreed (true) or declined (false) the consent form */
@@ -2873,6 +2938,11 @@ export type GetAdminConsentResponsesArgs = {
   _id?: {
     $in?: string[];
   };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
   userId?:
     | any
     | {
@@ -2952,46 +3022,258 @@ export type GetAdminConsentResponsesByIdRes = /** status 200 Successful read */ 
   deleted?: boolean;
 };
 export type GetAdminConsentResponsesByIdArgs = string;
-export type PatchAdminConsentResponsesByIdRes = /** status 200 Successful update */ {
-  /** Whether the user agreed (true) or declined (false) the consent form */
-  agreed: boolean;
-  /** Timestamp when the user submitted their agreement or declination */
-  agreedAt: string;
-  /** Map of checkbox index to boolean indicating whether each checkbox was checked */
-  checkboxValues?: {
-    [key: string]: boolean;
-  };
-  consentFormId: {
-    /** Human-readable title of the consent form */
-    title?: string;
-    /** URL-safe identifier for this form, combined with version to uniquely identify a form */
-    slug?: string;
-    /** Version number of this form. Incrementing the version requires users to re-consent */
-    version?: number;
-    /** Category of consent form */
-    type?: "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
-  };
-  /** Snapshot of the form content in the user's locale at the time of response */
-  contentSnapshot?: string;
-  /** Version number of the form at the time the user responded */
-  formVersionSnapshot?: number;
-  /** IP address of the user at the time of response, captured for audit purposes */
-  ipAddress?: string;
-  /** Locale code of the content version the user viewed when responding */
-  locale: string;
-  /** Base64-encoded signature image or typed signature text, if captured */
-  signature?: string;
-  /** Timestamp when the user provided their signature */
-  signedAt?: string;
-  /** User-agent string of the browser or app used to submit the response */
-  userAgent?: string;
-  userId: {
-    /** The user's display name */
-    name?: string;
-    /** The user's email address, used for authentication */
-    email?: string;
-  };
+export type PostAdminTodosBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminTodosBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type PostAdminTodosRes = /** status 201 Successful create */ {
+  /** The document id (String so offline sync clients can mint ids) */
   _id: string;
+  /** Whether the todo item has been completed */
+  completed?: boolean;
+  /** The user who owns this todo */
+  ownerId: any;
+  /** Priority level of the todo */
+  priority?: "low" | "medium" | "high";
+  /** Free-form tags for categorization */
+  tags?: string[];
+  /** The title of the todo item */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PostAdminTodosArgs = {
+  /** The document id (String so offline sync clients can mint ids) */
+  _id?: string;
+  /** Whether the todo item has been completed */
+  completed?: boolean;
+  /** The user who owns this todo */
+  ownerId?: any;
+  /** Priority level of the todo */
+  priority?: "low" | "medium" | "high";
+  /** Free-form tags for categorization */
+  tags?: string[];
+  /** The title of the todo item */
+  title?: string;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetAdminTodosRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (String so offline sync clients can mint ids) */
+    _id: string;
+    /** Whether the todo item has been completed */
+    completed?: boolean;
+    /** The user who owns this todo */
+    ownerId: any;
+    /** Priority level of the todo */
+    priority?: "low" | "medium" | "high";
+    /** Free-form tags for categorization */
+    tags?: string[];
+    /** The title of the todo item */
+    title: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminTodosArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  title?:
+    | string
+    | {
+        $in?: string[];
+      };
+  completed?:
+    | boolean
+    | {
+        $in?: boolean[];
+      };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
+        $lte?: string;
+      };
+  priority?:
+    | ("low" | "medium" | "high")
+    | {
+        $in?: string[];
+      };
+  tags?:
+    | string[]
+    | {
+        $in?: any[];
+      };
+  createdGte?:
+    | any
+    | {
+        $in?: any[];
+      };
+  createdLte?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminTodosByIdRes = /** status 200 Successful read */ {
+  /** The document id (String so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether the todo item has been completed */
+  completed?: boolean;
+  /** The user who owns this todo */
+  ownerId: any;
+  /** Priority level of the todo */
+  priority?: "low" | "medium" | "high";
+  /** Free-form tags for categorization */
+  tags?: string[];
+  /** The title of the todo item */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetAdminTodosByIdArgs = string;
+export type PatchAdminTodosByIdRes = /** status 200 Successful update */ {
+  /** The document id (String so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether the todo item has been completed */
+  completed?: boolean;
+  /** The user who owns this todo */
+  ownerId: any;
+  /** Priority level of the todo */
+  priority?: "low" | "medium" | "high";
+  /** Free-form tags for categorization */
+  tags?: string[];
+  /** The title of the todo item */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchAdminTodosByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (String so offline sync clients can mint ids) */
+    _id?: string;
+    /** Whether the todo item has been completed */
+    completed?: boolean;
+    /** The user who owns this todo */
+    ownerId?: any;
+    /** Priority level of the todo */
+    priority?: "low" | "medium" | "high";
+    /** Free-form tags for categorization */
+    tags?: string[];
+    /** The title of the todo item */
+    title?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type PostAdminUsersBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminUsersBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type PostAdminUsersRes = /** status 201 Successful create */ {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email: string;
+  /** The user's display name */
+  name: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -2999,81 +3281,50 @@ export type PatchAdminConsentResponsesByIdRes = /** status 200 Successful update
   /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
   deleted?: boolean;
 };
-export type PatchAdminConsentResponsesByIdArgs = {
-  id: string;
-  body: {
-    /** Whether the user agreed (true) or declined (false) the consent form */
-    agreed?: boolean;
-    /** Timestamp when the user submitted their agreement or declination */
-    agreedAt?: string;
-    /** Map of checkbox index to boolean indicating whether each checkbox was checked */
-    checkboxValues?: {
-      [key: string]: boolean;
-    };
-    consentFormId?: {
-      /** Human-readable title of the consent form */
-      title?: string;
-      /** URL-safe identifier for this form, combined with version to uniquely identify a form */
-      slug?: string;
-      /** Version number of this form. Incrementing the version requires users to re-consent */
-      version?: number;
-      /** Category of consent form */
-      type?: "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
-    };
-    /** Snapshot of the form content in the user's locale at the time of response */
-    contentSnapshot?: string;
-    /** Version number of the form at the time the user responded */
-    formVersionSnapshot?: number;
-    /** IP address of the user at the time of response, captured for audit purposes */
-    ipAddress?: string;
-    /** Locale code of the content version the user viewed when responding */
-    locale?: string;
-    /** Base64-encoded signature image or typed signature text, if captured */
-    signature?: string;
-    /** Timestamp when the user provided their signature */
-    signedAt?: string;
-    /** User-agent string of the browser or app used to submit the response */
-    userAgent?: string;
-    userId?: {
-      /** The user's display name */
-      name?: string;
-      /** The user's email address, used for authentication */
-      email?: string;
-    };
-    _id?: string;
-    /** When this document was last updated */
-    updated?: string;
-    /** When this document was created */
-    created?: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  };
+export type PostAdminUsersArgs = {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email?: string;
+  /** The user's display name */
+  name?: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id?: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
 };
-export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
-  failures?: any;
-  updated?: number;
-};
-export type PostAdminAuditLogsBulkPatchArgs = {
-  /** Document ids to update */
-  ids: string[];
-  /** Partial document; keys must be allowlisted for this model */
-  patch: object;
-};
-export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
+export type GetAdminUsersRes = /** status 200 Successful list */ {
   data?: {
-    /** User who performed the action */
-    actorId?: any;
-    /** Mongoose model name affected */
-    modelName: string;
-    /** Primary key of the affected document */
-    recordId?: any;
-    /** Human-readable label for the record */
-    recordLabel?: string;
-    /** Mutation kind */
-    verb: "created" | "deleted" | "updated";
+    /** Whether the user has admin privileges */
+    admin?: boolean;
+    /** Identifier linking to the Better Auth session provider */
+    betterAuthId?: string;
+    /** The user's email address, used for authentication */
+    email: string;
+    /** The user's display name */
+    name: string;
+    /** OAuth provider used for authentication */
+    oauthProvider?: "google" | "github" | "apple" | null;
+    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+    organizationIds?: string[];
     _id: string;
-    createdAt?: string;
-    updatedAt?: string;
+    hash?: string;
+    salt?: string;
+    /** RBAC role names assigned to this user */
+    roles?: string[];
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -3086,61 +3337,64 @@ export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
   page?: number;
   total?: number;
 };
-export type GetAdminAuditLogsArgs = {
+export type GetAdminUsersArgs = {
   _id?: {
     $in?: string[];
   };
-  verb?:
-    | ("created" | "deleted" | "updated")
-    | {
-        $in?: string[];
-      };
-  modelName?:
-    | string
-    | {
-        $in?: string[];
-      };
-  recordLabel?:
-    | string
-    | {
-        $in?: string[];
-      };
-  recordId?:
+  q?:
     | any
     | {
         $in?: any[];
       };
-  actorId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  createdAt?:
+  email?:
     | string
     | {
+        $in?: string[];
+      };
+  name?:
+    | string
+    | {
+        $in?: string[];
+      };
+  admin?:
+    | boolean
+    | {
+        $in?: boolean[];
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
         $gt?: string;
+        /** When this document was created */
         $gte?: string;
+        /** When this document was created */
         $lt?: string;
+        /** When this document was created */
         $lte?: string;
       };
   page?: number;
   sort?: string;
   limit?: number;
 };
-export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
-  /** User who performed the action */
-  actorId?: any;
-  /** Mongoose model name affected */
-  modelName: string;
-  /** Primary key of the affected document */
-  recordId?: any;
-  /** Human-readable label for the record */
-  recordLabel?: string;
-  /** Mutation kind */
-  verb: "created" | "deleted" | "updated";
+export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email: string;
+  /** The user's display name */
+  name: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
   _id: string;
-  createdAt?: string;
-  updatedAt?: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3148,7 +3402,62 @@ export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
   /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
   deleted?: boolean;
 };
-export type GetAdminAuditLogsByIdArgs = string;
+export type GetAdminUsersByIdArgs = string;
+export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
+  /** Whether the user has admin privileges */
+  admin?: boolean;
+  /** Identifier linking to the Better Auth session provider */
+  betterAuthId?: string;
+  /** The user's email address, used for authentication */
+  email: string;
+  /** The user's display name */
+  name: string;
+  /** OAuth provider used for authentication */
+  oauthProvider?: "google" | "github" | "apple" | null;
+  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+  organizationIds?: string[];
+  _id: string;
+  hash?: string;
+  salt?: string;
+  /** RBAC role names assigned to this user */
+  roles?: string[];
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PatchAdminUsersByIdArgs = {
+  id: string;
+  body: {
+    /** Whether the user has admin privileges */
+    admin?: boolean;
+    /** Identifier linking to the Better Auth session provider */
+    betterAuthId?: string;
+    /** The user's email address, used for authentication */
+    email?: string;
+    /** The user's display name */
+    name?: string;
+    /** OAuth provider used for authentication */
+    oauthProvider?: "google" | "github" | "apple" | null;
+    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
+    organizationIds?: string[];
+    _id?: string;
+    hash?: string;
+    salt?: string;
+    /** RBAC role names assigned to this user */
+    roles?: string[];
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  };
+};
+export type DeleteAdminUsersByIdRes = unknown;
+export type DeleteAdminUsersByIdArgs = string;
 export type ApiError = {
   /** An application-specific error code, expressed as a string value. */
   code?: string;
@@ -3179,16 +3488,15 @@ export type ApiError = {
 };
 export const {
   useGetAiModelsQuery,
-  usePostMutation,
-  use$getQuery,
-  useGetByIdQuery,
-  usePatchByIdMutation,
-  useDeleteByIdMutation,
+  usePostGptHistoriesMutation,
+  useGetGptHistoriesQuery,
+  useGetGptHistoriesByIdQuery,
+  usePatchGptHistoriesByIdMutation,
+  useDeleteGptHistoriesByIdMutation,
   usePostGptPromptMutation,
   usePatchGptHistoriesByIdRatingMutation,
   usePostGptRemixMutation,
   useGetGptToolsQuery,
-  useGetAiRequestsExplorerQuery,
   usePostAdminUsersByIdPasswordMutation,
   useGetSettingsGcsQuery,
   usePostSettingsGcsMutation,
@@ -3208,6 +3516,16 @@ export const {
   useGetProjectsByIdQuery,
   usePatchProjectsByIdMutation,
   useDeleteProjectsByIdMutation,
+  usePostUsersMutation,
+  useGetUsersQuery,
+  useGetUsersByIdQuery,
+  usePatchUsersByIdMutation,
+  useDeleteUsersByIdMutation,
+  usePostCommsPushTokensMutation,
+  useGetCommsPushTokensQuery,
+  useDeleteCommsPushTokensByIdMutation,
+  useGetCommsPushTokensByIdQuery,
+  useGetCommsMessagesQuery,
   usePostFeatureFlagsFlagsMutation,
   useGetFeatureFlagsFlagsQuery,
   useGetFeatureFlagsFlagsByIdQuery,
@@ -3215,12 +3533,24 @@ export const {
   useDeleteFeatureFlagsFlagsByIdMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
+  usePostAdminAuditLogsBulkPatchMutation,
+  useGetAdminAuditLogsQuery,
+  useGetAdminAuditLogsByIdQuery,
   usePostAdminFeatureFlagsBulkPatchMutation,
   usePostAdminFeatureFlagsMutation,
   useGetAdminFeatureFlagsQuery,
   useGetAdminFeatureFlagsByIdQuery,
   usePatchAdminFeatureFlagsByIdMutation,
   useDeleteAdminFeatureFlagsByIdMutation,
+  usePostAdminConsentFormsBulkPatchMutation,
+  usePostAdminConsentFormsMutation,
+  useGetAdminConsentFormsQuery,
+  useGetAdminConsentFormsByIdQuery,
+  usePatchAdminConsentFormsByIdMutation,
+  useDeleteAdminConsentFormsByIdMutation,
+  usePostAdminConsentResponsesBulkPatchMutation,
+  useGetAdminConsentResponsesQuery,
+  useGetAdminConsentResponsesByIdQuery,
   usePostAdminTodosBulkPatchMutation,
   usePostAdminTodosMutation,
   useGetAdminTodosQuery,
@@ -3232,18 +3562,4 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
-  usePostAdminConsentFormsBulkPatchMutation,
-  usePostAdminConsentFormsMutation,
-  useGetAdminConsentFormsQuery,
-  useGetAdminConsentFormsByIdQuery,
-  usePatchAdminConsentFormsByIdMutation,
-  useDeleteAdminConsentFormsByIdMutation,
-  usePostAdminConsentResponsesBulkPatchMutation,
-  usePostAdminConsentResponsesMutation,
-  useGetAdminConsentResponsesQuery,
-  useGetAdminConsentResponsesByIdQuery,
-  usePatchAdminConsentResponsesByIdMutation,
-  usePostAdminAuditLogsBulkPatchMutation,
-  useGetAdminAuditLogsQuery,
-  useGetAdminAuditLogsByIdQuery,
 } = injectedRtkApi;

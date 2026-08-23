@@ -1,7 +1,12 @@
 const MODEL_CRUD = ["create", "list", "read", "update", "delete"] as const;
+export const ADMIN_MODEL_ACCESS = ["read", "write", "writeOwned"] as const;
 
 export const terrenoStatements = {
   admin: ["access", "runScripts", "viewBackgroundTasks"],
+  adminConsentForm: ADMIN_MODEL_ACCESS,
+  adminConsentResponse: ADMIN_MODEL_ACCESS,
+  adminFeatureFlag: ADMIN_MODEL_ACCESS,
+  adminUser: ADMIN_MODEL_ACCESS,
   configuration: ["read", "update"],
   consentForm: MODEL_CRUD,
   consentResponse: ["list", "read"],

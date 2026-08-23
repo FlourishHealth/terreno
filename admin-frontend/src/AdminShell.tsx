@@ -6,7 +6,7 @@ import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {groupAdminModelsByGroup} from "./adminShellNav";
-import type {AdminApi, AdminCustomScreen, AdminModelConfig} from "./types";
+import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
@@ -76,6 +76,7 @@ interface AdminShellSidebarNavProps {
   grouped: ReturnType<typeof groupAdminModelsByGroup>;
   navigate: (path: string) => void;
   onNavigate?: () => void;
+  platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
   sidebarVariant: AdminShellSidebarVariant;
@@ -89,6 +90,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   grouped,
   navigate,
   onNavigate,
+  platformTools,
   rolesPath,
   scripts,
   sidebarVariant,
@@ -106,12 +108,12 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
     }))
     .filter(({models: groupModels}) => groupModels.length > 0);
   const hasPlatformLinks = Boolean(
-    scripts.length > 0 ||
-      rolesPath ||
-      versionConfigPath ||
+    (platformTools.scripts && scripts.length > 0) ||
+      (platformTools.roles && rolesPath) ||
+      (platformTools.version && versionConfigPath) ||
       auditLogModel ||
       featureFlagModel ||
-      configurationPath
+      (platformTools.configuration && configurationPath)
   );
 
   const runNav = useCallback(
@@ -190,7 +192,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             <Text bold color={sectionLabelColor} size="sm">
               Platform
             </Text>
-            {scripts.length > 0 ? (
+            {platformTools.scripts && scripts.length > 0 ? (
               <NavButton
                 label="Scripts"
                 onPress={() => {
@@ -202,7 +204,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 testID="admin-shell-nav-scripts"
               />
             ) : null}
-            {rolesPath ? (
+            {platformTools.roles && rolesPath ? (
               <NavButton
                 label="Roles"
                 onPress={() => {
@@ -214,7 +216,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 testID="admin-shell-nav-roles"
               />
             ) : null}
-            {versionConfigPath ? (
+            {platformTools.version && versionConfigPath ? (
               <NavButton
                 label="Version"
                 onPress={() => {
@@ -250,7 +252,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 testID="admin-shell-nav-feature-flags"
               />
             ) : null}
-            {configurationPath ? (
+            {platformTools.configuration && configurationPath ? (
               <NavButton
                 label="Configuration"
                 onPress={() => {
@@ -361,6 +363,12 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const backendScreens = config.customScreens ?? [];
   const allCustomScreens = [...backendScreens, ...(propCustomScreens ?? [])];
   const scripts = config.scripts ?? [];
+  const platformTools = config.platformTools ?? {
+    configuration: true,
+    roles: true,
+    scripts: true,
+    version: true,
+  };
   const grouped = groupAdminModelsByGroup(config.models as AdminModelConfig[]);
 
   const sidebarIsColorful = sidebarVariant === "colorful";
@@ -372,6 +380,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     footer,
     grouped,
     navigate,
+    platformTools,
     rolesPath,
     scripts,
     sidebarVariant,

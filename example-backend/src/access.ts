@@ -1,4 +1,10 @@
-import {createAccess, OwnerScope, type RbacAuditWrite, terrenoStatements} from "@terreno/api";
+import {
+  ADMIN_MODEL_ACCESS,
+  createAccess,
+  OwnerScope,
+  type RbacAuditWrite,
+  terrenoStatements,
+} from "@terreno/api";
 import mongoose from "mongoose";
 
 import {AdminAuditLog} from "./models/adminAuditLog";
@@ -7,7 +13,11 @@ import {appDefaultRoles} from "./rbacRoles";
 
 export const appStatements = {
   ...terrenoStatements,
+  adminAdminAuditLog: ADMIN_MODEL_ACCESS,
   adminAuditLog: ["list", "read"],
+  adminProject: ADMIN_MODEL_ACCESS,
+  adminScreen: ["showcase", "syncLab"],
+  adminTodo: ADMIN_MODEL_ACCESS,
   todo: ["create", "read", "update", "delete", "list"],
 } as const;
 

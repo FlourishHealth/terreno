@@ -14,6 +14,7 @@ const serializeUser = (doc: SerializableUser): Record<string, unknown> => {
 
 export const usersRouter = modelRouter("/users", User as unknown as Model<UserDocument>, {
   admin: {
+    adminAccess: {},
     defaultSort: "-created",
     displayName: "Users",
     fieldsets: [
