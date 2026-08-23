@@ -21,6 +21,7 @@ const AdminLayout: React.FC = () => {
         api={terrenoApi}
         apiBase={ADMIN_ROUTE}
         configurationPath="/admin/configuration"
+        rolesPath="/roles"
         routeBase={ADMIN_ROUTE}
         versionConfigPath="/version-config"
       >
@@ -33,6 +34,7 @@ const AdminLayout: React.FC = () => {
           <Stack.Screen name="index" options={{title: "Admin"}} />
           <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
           <Stack.Screen name="configuration" options={{title: "Configuration"}} />
+          <Stack.Screen name="roles" options={{title: "Roles"}} />
           <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
           <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
           <Stack.Screen name="[model]" options={{title: "Model"}} />

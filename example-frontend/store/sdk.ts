@@ -41,6 +41,8 @@ export interface ProfileResponse {
   email: string;
   name: string;
   admin?: boolean;
+  permissions?: Record<string, readonly string[]>;
+  roles?: string[];
 }
 
 // AI Request Explorer types
@@ -261,7 +263,15 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "feature-flags", "gptHistories", "profile", "PendingConsents"],
+    addTagTypes: [
+      "admin_scriptRuns",
+      "admin_scriptTask",
+      "consentForms",
+      "feature-flags",
+      "gptHistories",
+      "profile",
+      "PendingConsents",
+    ],
     endpoints: {
       ...generateTags(openapi, [...CACHE_TAG_TYPES, "consentForms", "PendingConsents"]),
       ...TODO_REALTIME_ENDPOINTS,

@@ -528,6 +528,51 @@ describe("AdminModelForm", () => {
     expect(body.body.tags).toEqual(["a", "b"]);
   });
 
+  it("omits blank optional enum fields from update payloads", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["email", "oauthProvider"],
+          fields: {
+            email: {required: true, type: "string"},
+            oauthProvider: {
+              enum: ["google", "github", "apple"],
+              required: false,
+              type: "string",
+            },
+          },
+        },
+      ],
+    };
+    readState.data = {email: "e@x.com"};
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+    renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+    await act(async () => {
+      fireEvent.press(header.getByTestId("admin-save-button"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    const body = updateFn.mock.calls[0][0] as {body: Record<string, unknown>; id: string};
+    expect(body.body.oauthProvider).toBeUndefined();
+    expect(body.body.email).toBe("e@x.com");
+  });
+
   it("applies field-level onChange via the rendered text field", async () => {
     configState.config = {
       ...config,

@@ -13,6 +13,7 @@ const VersionConfigRoute: React.FC = () => {
       apiBase={apiBase}
       breadcrumbs={[{href: "/", label: "Admin"}, {label: "Version configuration"}]}
       configurationPath="/configuration"
+      rolesPath="/roles"
       routeBase=""
     >
       <AdminVersionConfig api={terrenoApi} apiBase={apiBase} routeBase="" />

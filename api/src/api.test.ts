@@ -11,6 +11,7 @@ import type TestAgent from "supertest/lib/agent";
 import {addPopulateToQuery, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
+import {clearMCPRegistry, getMCPRegistry} from "./mcp/registry";
 import {Permissions} from "./permissions";
 import {
   authAsUser,
@@ -2134,6 +2135,68 @@ describe("@terreno/api", () => {
       expect(registration).toHaveProperty("_buildWithContext");
       expect(registration).toHaveProperty("model");
       expect(registration).toHaveProperty("options");
+    });
+
+    it("refreshes MCP registry options when rebuilt with accessControl", () => {
+      clearMCPRegistry();
+      const registration = modelRouter("/food", FoodModel, {
+        access: {resource: "food"},
+        mcp: {methods: ["list"]},
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+      const before = getMCPRegistry()[0]?.options.permissions.list;
+      expect(before).toEqual([Permissions.IsAny]);
+
+      const accessControl = {
+        can: async (): Promise<{allowed: boolean}> => ({allowed: true}),
+        fieldMask: async (): Promise<{omit: string[]; read: "*"; write: "*"}> => ({
+          omit: [],
+          read: "*",
+          write: "*",
+        }),
+        queryFilter: async (): Promise<Record<string, unknown>> => ({}),
+        statements: {food: ["list", "read", "create", "update", "delete"]},
+      };
+      registration._buildWithContext({accessControl: accessControl as never});
+
+      const after = getMCPRegistry()[0];
+      expect(after?.options.accessControl).toBe(accessControl);
+      expect(after?.options.permissions.list).not.toBe(before);
+    });
+
+    it("resolves MCP permissions when accessControl is passed to modelRouter", () => {
+      clearMCPRegistry();
+      const accessControl = {
+        can: async (): Promise<{allowed: boolean}> => ({allowed: true}),
+        fieldMask: async (): Promise<{omit: string[]; read: "*"; write: "*"}> => ({
+          omit: [],
+          read: "*",
+          write: "*",
+        }),
+        queryFilter: async (): Promise<Record<string, unknown>> => ({}),
+        statements: {food: ["list", "read", "create", "update", "delete"]},
+      };
+      modelRouter(FoodModel, {
+        access: {resource: "food"},
+        accessControl: accessControl as never,
+        mcp: {methods: ["list"]},
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+      const registered = getMCPRegistry()[0];
+      expect(registered?.options.accessControl).toBe(accessControl);
+      expect(registered?.options.permissions.list).not.toEqual([Permissions.IsAny]);
     });
 
     it("logs a warning when realtime config is used without the path form", () => {

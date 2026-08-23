@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
-import type {User} from "../auth";
+import {omitUserRolesFromWriteBody, type User} from "../auth";
 import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
+import {validateAccessWritePayload} from "../rbac/modelRouterAccess";
 import {defaultResponseHandler, transform} from "../transformers";
 import {createMCPRequest} from "./createMCPRequest";
 import {buildListQuery} from "./query";
@@ -403,6 +404,22 @@ export const handleCreate = async (
     }
   }
 
+  body = omitUserRolesFromWriteBody(entry.modelName, options.accessControl, body) as MCPToolArgs;
+
+  try {
+    await validateAccessWritePayload({
+      body,
+      options,
+      phase: "create",
+      user,
+    });
+  } catch (error) {
+    if (isAPIError(error)) {
+      return errorResult(error.title, error);
+    }
+    return errorResult(`Write validation failed: ${errorMessage(error)}`, error);
+  }
+
   let data: MCPDocument | null;
   try {
     data = asDocument(await model.create(body));
@@ -482,6 +499,23 @@ export const handleUpdate = async (
     } catch (error) {
       return hookFailureResult("preUpdate hook failed", error);
     }
+  }
+
+  body = omitUserRolesFromWriteBody(entry.modelName, options.accessControl, body) as MCPToolArgs;
+
+  try {
+    await validateAccessWritePayload({
+      body,
+      doc,
+      options,
+      phase: "write",
+      user,
+    });
+  } catch (error) {
+    if (isAPIError(error)) {
+      return errorResult(error.title, error);
+    }
+    return errorResult(`Write validation failed: ${errorMessage(error)}`, error);
   }
 
   const prevDoc = doc.toObject();

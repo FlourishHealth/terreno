@@ -131,6 +131,24 @@ const sanitizePayloadValue = (value: AdminFieldValue): AdminFieldValue => {
   return value;
 };
 
+const omitBlankOptionalEnums = (
+  payload: Record<string, AdminFieldValue>,
+  fields: Record<string, AdminFieldConfig>
+): Record<string, AdminFieldValue> => {
+  const nextPayload = {...payload};
+  for (const [fieldKey, fieldConfig] of Object.entries(fields)) {
+    if (
+      nextPayload[fieldKey] === "" &&
+      !fieldConfig.required &&
+      fieldConfig.enum &&
+      fieldConfig.enum.length > 0
+    ) {
+      Reflect.deleteProperty(nextPayload, fieldKey);
+    }
+  }
+  return nextPayload;
+};
+
 const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
   <Button
     confirmationText="Are you sure you want to delete this item?"
@@ -385,7 +403,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return;
     }
     try {
-      const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, AdminFieldValue>;
+      const sanitizedPayload = omitBlankOptionalEnums(
+        sanitizePayloadValue(formState) as Record<string, AdminFieldValue>,
+        modelConfig.fields
+      );
       const readonlyKeys = new Set(modelConfig.readonlyFields ?? []);
       const stripped: Record<string, AdminFieldValue> = {};
       for (const [k, v] of Object.entries(sanitizedPayload)) {

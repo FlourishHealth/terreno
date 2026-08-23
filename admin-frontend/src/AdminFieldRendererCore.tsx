@@ -4,6 +4,7 @@ import React from "react";
 import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 import {useFieldWidget} from "./AdminProvider";
 import {AdminRefField} from "./AdminRefField";
+import {AdminRolesField} from "./AdminRolesField";
 import type {AdminFieldConfig, AdminFieldValue, AdminScreenProps, RefRendererMap} from "./types";
 
 const USER_REF_MODEL_NAME = "User";
@@ -114,6 +115,26 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   if (FieldWidget && fieldConfig.widget) {
     return (
       <FieldWidget
+        api={api}
+        apiBase={apiBase}
+        baseUrl={baseUrl}
+        errorText={errorText}
+        fieldConfig={fieldConfig}
+        fieldKey={fieldKey}
+        modelConfigs={modelConfigs}
+        onChange={onChange}
+        parentFormState={parentFormState}
+        readOnly={readOnly}
+        refRenderers={refRenderers}
+        routeBase={routeBase}
+        value={value}
+      />
+    );
+  }
+
+  if (fieldKey === "roles" && fieldConfig.type === "array" && fieldConfig.itemType === "string") {
+    return (
+      <AdminRolesField
         api={api}
         apiBase={apiBase}
         baseUrl={baseUrl}

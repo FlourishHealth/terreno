@@ -15,6 +15,7 @@ import {Configuration} from "../models/configuration";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
+import {DEFAULT_USER_ROLE, SUPERADMIN_ROLE} from "../rbacRoles";
 import type {UserDocument} from "../types/models/userTypes";
 import {getAuthProvider} from "../utils/betterAuthConfig";
 import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
@@ -57,6 +58,13 @@ const TEST_USERS: SeedUser[] = [
     admin: true,
     email: "admin@example.com",
     name: "Admin User",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
+    password: "testpassword123",
+  },
+  {
+    admin: true,
+    email: "superadmin@example.com",
+    name: "Super Admin",
     organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
@@ -174,7 +182,26 @@ This consent is optional. You can decline without affecting your use of the appl
   },
 ];
 
-/** Ensure the Mongoose user doc reflects the seed's admin flag and organizations. */
+const seedRolesForUser = (testUser: SeedUser): string[] => {
+  return testUser.admin ? [SUPERADMIN_ROLE] : [DEFAULT_USER_ROLE];
+};
+
+const applySeedRoles = (
+  user: UserDocument,
+  testUser: SeedUser
+): {changed: boolean; user: UserDocument} => {
+  const roles = seedRolesForUser(testUser);
+  const rbacUser = user as UserDocument & {roles?: string[]};
+  const currentRoles = rbacUser.roles ?? [];
+  const missingRoles = roles.filter((role) => !currentRoles.includes(role));
+  if (missingRoles.length === 0) {
+    return {changed: false, user};
+  }
+  rbacUser.roles = [...new Set([...currentRoles, ...roles])];
+  return {changed: true, user};
+};
+
+/** Ensure the Mongoose user doc reflects the seed's admin flag, roles, and organizations. */
 const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const user = await User.findByEmail(testUser.email);
   if (!user) {
@@ -187,6 +214,10 @@ const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> 
   }
   if ((user.organizationIds ?? []).length === 0) {
     user.organizationIds = testUser.organizationIds;
+    changed = true;
+  }
+  const withRoles = applySeedRoles(user, testUser);
+  if (withRoles.changed) {
     changed = true;
   }
   if (changed) {
@@ -215,16 +246,7 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
     logger.info(`Test user already exists: ${testUser.email}`);
-    if ((existingUser.organizationIds ?? []).length === 0) {
-      existingUser.organizationIds = testUser.organizationIds;
-      await existingUser.save();
-      logger.info(`Backfilled organizationIds for ${testUser.email}`);
-    }
-    if (testUser.admin && !existingUser.admin) {
-      existingUser.admin = true;
-      await existingUser.save();
-      logger.info(`Promoted ${testUser.email} to admin`);
-    }
+    await reconcileMongooseUser(testUser);
     return existingUser;
   }
 
@@ -236,6 +258,7 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
       email: testUser.email,
       name: testUser.name,
       organizationIds: testUser.organizationIds,
+      roles: seedRolesForUser(testUser),
     },
     testUser.password
   );

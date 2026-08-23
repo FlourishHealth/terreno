@@ -10,10 +10,12 @@ export const setUserAdmin = async (email: string): Promise<void> => {
   const client = new MongoClient(MONGO_URI);
   try {
     await client.connect();
+    // The admin shell and RBAC screens gate on the superadmin role, not the legacy
+    // admin flag, so promotion has to grant both.
     await client
       .db()
       .collection("users")
-      .updateOne({email}, {$set: {admin: true}});
+      .updateOne({email}, {$addToSet: {roles: "superadmin"}, $set: {admin: true}});
   } finally {
     await client.close();
   }

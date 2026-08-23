@@ -9,7 +9,6 @@ import {
   requireAdminMiddleware,
 } from "@terreno/api";
 import type express from "express";
-import type {UserDocument} from "../types/models/userTypes";
 import {getFileStorageService, setFileStorageService} from "./ai";
 
 interface GcsConfigRequest {

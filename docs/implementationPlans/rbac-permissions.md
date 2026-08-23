@@ -1,9 +1,35 @@
 # RBAC Permissions for Terreno — API Design
 
-**Status:** Draft — API design for discussion (full IP to follow)
+**Status:** Complete — phases 1–6 shipped in PR #932 (2026-08-22)
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1089
 **Target package:** `@terreno/api` (new `src/rbac/` module), with surfaces in `admin-backend`, `admin-frontend`, `admin-spa`, `rtk`, and the modelRouter MCP work
 **Depends on:** `better-auth/plugins/access` (already a dependency via the Better Auth provider)
+
+## Shipped (PR #932)
+
+Phases 1–6 in section 8 are implemented. `RoleManager` emits `RbacAudit` (including
+`permissionDelta`) on create/update/remove/assign/unassign; denied escalation attempts are
+written with `denied: true`. `rbacRouter` is a thin HTTP adapter and does not write a second
+audit row. Apps can attach `createAccess({auditSink})` (one sink or an array) to fan the same
+record into a consuming-app audit log. `persistAudit: false` skips the built-in collection
+and requires at least one sink. Seed upsert lives in `upsertSeededRole`; `RbacRole.seedDefaults({statements,
+extraRoles})` is the single seed entry. `previewRoleChange.affectedUserCount` is the number of
+users currently holding that role.
+
+### Compatibility: no default-connection models
+
+Importing `@terreno/api` does **not** register `RbacRole` or `RbacAudit` on
+`mongoose.connection`. Apps must:
+
+1. Call `createAccess({connection, ...})` (registers both models on that connection), or
+2. Call `createRbacRoleModel(connection)` / `createRbacAuditModel(connection)` in scripts/tests.
+
+The previous `RbacRoleModel` / `RbacAuditModel` value singletons are removed. The TypeScript
+type `RbacRoleModel` remains exported. Migrate `import {RbacRoleModel} from "@terreno/api"` to
+`createRbacRoleModel(connection)`.
+
+Left out of this close: Redis/pubsub cross-instance cache invalidation beyond in-process
+`invalidateCache`.
 
 ---
 
@@ -409,7 +435,11 @@ export interface RoleManager {
 
   // Diff previews for the admin UI (see 4.11)
   previewRoleChange(args: {roleName: string; permissions: PermissionSet}): Promise<RoleDiff>;
-  previewAssignment(args: {userId: string; roleNames: string[]}): Promise<UserPermissionDiff>;
+  previewAssignment(args: {
+    actor: User;
+    userId: string;
+    roleNames: string[];
+  }): Promise<UserPermissionDiff>;
 }
 
 export interface RoleDiff {
@@ -430,12 +460,18 @@ Guardrails baked into `RoleManager` (borrowed from Better Auth's dynamic access 
 - **No escalation**: an actor can only grant (or edit a role to include, or assign) permissions
   the actor **themselves currently holds**. Holding `rbac:manageRoles` lets an actor *manage*
   roles but never lets them hand out actions they lack — a role editor cannot bootstrap
-  privileges they do not have. The **only** exception is `superadmin`, which (via its `"*"`
+  privileges they do not have. Role **update** checks `actorPermissions ⊇ (existing ∪ incoming)`
+  so emptying a role still requires holding its current grants. Role **remove** checks
+  `actorPermissions ⊇ existing`. The **only** exception is `superadmin`, which (via its `"*"`
   expansion) holds every permission and so can grant anything; this is a property of *what
   superadmin holds*, not a special "manageRoles can escalate" rule. Concretely: the check is
   `actorPermissions ⊇ permissionsBeingGranted`, evaluated against the actor's effective set.
 - **Vocabulary validation**: every `resource:action` in `permissions` must exist in
   `access.statements` — writes with unknown pairs are 400s.
+- **Preview assignment** takes the same `actor` as assign: it requires `rbac:assignRoles`,
+  the target-user privilege-subset check, and `assertNoEscalation` for every previewed role.
+  The before/after diff uses uncached permission resolution on both sides so a warm cache
+  cannot invent gained/lost grants, and the preview cannot write live permission caches.
 - **Managing roles requires** `rbac:manageRoles`; assigning requires `rbac:assignRoles`. These
   gate *access* to the operation and are additive to (not a substitute for) the no-escalation
   subset check above.
@@ -873,11 +909,11 @@ behavior is per-source `staleOnFailure` (default `"deny"`):
 
 | Policy | Behavior |
 |---|---|
-| `"deny"` (default) | Omit this source's grants for the request. Local `user.roles` and other sources still apply. Revoked upstream access cannot linger because a dependency is down. |
+| `"deny"` (default) | Omit this source's additive grants (`roles`, `permissions`) for the request. Local `user.roles` and other sources still apply. If a prior fetch cached a `deny` set, keep applying that last-known deny so IdP/ABAC restrictions do not lift while the source is down. Revoked upstream *elevations* cannot linger because a dependency is down. |
 | `"use-stale-bounded"` | Reuse the last successful grants only if younger than `staleMaxAgeMs` (hard cap). Suitable for read-only hints, not elevation. |
 | `"use-stale"` | Reuse last successful grants until TTL expiry. **Not permitted** for sources that can grant roles/permissions beyond what local roles already provide — elevation paths must fail closed. |
 
-`PermissionSource.deny` already fails closed; grant caching matches that posture for elevation.
+`PermissionSource.deny` fails closed on refresh failure by keeping the last cached deny set (additive grants from that source are still omitted). Grant caching matches that posture for elevation.
 Logged at `warn` with source name and policy applied.
 
 ### 4.11 Admin UI (first-class)
@@ -891,7 +927,8 @@ New screens in `admin-frontend` / `admin-spa`, driven entirely by the 4.9 endpoi
   212 users."
 - **User role assignment** (embedded in the admin user detail): multi-select of roles with
   exclusion conflicts surfaced inline; confirmation modal shows `UserPermissionDiff` (total
-  permissions gained/lost after union with their remaining roles).
+  permissions gained/lost after union with their remaining roles). The preview endpoint
+  requires an actor with `rbac:assignRoles` and rejects roles the actor cannot grant.
 - **Effective permissions inspector**: per user, each permission annotated with its source
   ("via PatientGuide", "via healthie").
 
@@ -969,15 +1006,14 @@ fall out of the admin UI with zero code — the exact win the RBAC move is for.
 6. **Deny semantics**: **Only `PermissionSource.deny`** — roles do not carry negative
    permissions (union semantics stay simple; matches Better Auth).
 
-## 8. Phasing sketch (full task breakdown in the IP)
+## 8. Phasing sketch — shipped
 
-1. **Core**: statements/merge, `createAccess`, resolve+cache, `RbacRole` model + seeds,
+1. **Core** — shipped: statements/merge, `createAccess`, resolve+cache, `RbacRole` model + seeds,
    `rbacUserPlugin`, `IsPermitted`, `requireAccess` middleware. Tests.
-2. **modelRouter**: `access` option, scope-aware permission middleware, filter merging,
+2. **modelRouter** — shipped: `access` option, scope-aware permission middleware, filter merging,
    field-mask response handling, actions support.
-3. **HTTP surface**: `rbacRouter`, previews, `/auth/me` extension, backfill script.
-4. **Admin**: roles screens, diffs, user assignment, `admin:access` migration.
-5. **Realtime + MCP**: swap internals to `access.can()`/`fieldMask()`.
-6. **Sources + client**: `PermissionSource`, rtk selectors, Better Auth bridge, docs +
-   example-backend/-frontend demonstration (example app gets a `manager` role and a scoped
-   todo example).
+3. **HTTP surface** — shipped: `rbacRouter`, previews, `/auth/me` extension, backfill script.
+4. **Admin** — shipped: roles screens, diffs, user assignment, `admin:access` migration.
+5. **Realtime + MCP** — shipped: internals use `access.can()`/`fieldMask()`.
+6. **Sources + client** — shipped: `PermissionSource`, rtk selectors, Better Auth bridge,
+   example-backend/-frontend `manager` role and scoped todo example.

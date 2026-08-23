@@ -80,6 +80,10 @@ export interface TerrenoAppOptions {
    */
   realtime?: boolean | RealtimeAppOptions;
   /**
+   * RBAC access controller injected into model routers and `/auth/me` enrichment.
+   */
+  accessControl?: import("./rbac/types").AnyTerrenoAccess;
+  /**
    * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
    * Use to attach early middleware via `app.use(...)` before JSON parsing.
    */
@@ -408,6 +412,7 @@ export class TerrenoApp {
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
         const router = registration._buildWithContext({
+          accessControl: options.accessControl,
           openApi: oapi,
           routePath: registration.path,
           terrenoApp: this,
@@ -435,7 +440,7 @@ export class TerrenoApp {
 
     // /auth/me must be registered after plugins so that session middleware
     // (e.g. Better Auth) has a chance to populate req.user first.
-    addMeRoutes(app, options.userModel, options.authOptions);
+    addMeRoutes(app, options.userModel, options.authOptions, options.accessControl);
 
     Sentry.setupExpressErrorHandler(app);
 

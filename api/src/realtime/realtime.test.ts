@@ -14,6 +14,8 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:
 import express from "express";
 import mongoose from "mongoose";
 
+import type {ModelRouterOptions} from "../api";
+
 import {
   emitToAuthorizedRoom,
   emitToDocumentAndQueryRooms,
@@ -48,6 +50,7 @@ import {
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./registry";
 import type {RealtimeEvent} from "./types";
 
@@ -584,6 +587,24 @@ describe("realtimeRegistry", () => {
       registerRealtime(makeEntry());
       clearRealtimeRegistry();
       expect(getRealtimeRegistry()).toHaveLength(0);
+    });
+  });
+
+  describe("updateRealtimeRegistryOptions", () => {
+    it("replaces options on an existing entry by route path", () => {
+      registerRealtime(makeEntry({routePath: "/todos"}));
+      const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<unknown>;
+      updateRealtimeRegistryOptions("/todos", updatedOptions);
+
+      expect(getRealtimeRegistry()[0]?.options).toBe(updatedOptions);
+    });
+
+    it("no-ops when the route path is not registered", () => {
+      registerRealtime(makeEntry({routePath: "/todos"}));
+      const originalOptions = getRealtimeRegistry()[0]?.options;
+      updateRealtimeRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<unknown>);
+
+      expect(getRealtimeRegistry()[0]?.options).toBe(originalOptions);
     });
   });
 });
@@ -1865,12 +1886,15 @@ describe("emitToDocumentAndQueryRooms", () => {
         ...modelEntry,
         options: {
           permissions: {
-            ...modelEntry.options.permissions,
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
             read: [
               (_method, user?: {admin?: boolean; id?: string}, obj?: unknown) =>
                 user?.admin === true ||
                 user?.id === (obj as {ownerId?: string} | undefined)?.ownerId,
             ],
+            update: [() => true],
           },
         },
       };
