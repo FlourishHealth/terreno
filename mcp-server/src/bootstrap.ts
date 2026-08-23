@@ -73,7 +73,7 @@ export const bootstrapTools: Tool[] = [
   },
 ];
 
-interface BootstrapArgs {
+export interface BootstrapArgs {
   appName: string;
   appDisplayName: string;
   description?: string;
@@ -2443,12 +2443,12 @@ bun run lint     # Lint code
 `;
 };
 
-interface AiRulesFile {
+export interface AiRulesFile {
   path: string;
   content: string;
 }
 
-const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
+export const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
   const packageIds = resolveBootstrapGuidelinePackages(args.packages);
   // Strip frontmatter for direct output files
   const stripFrontmatter = (content: string): string => {
@@ -2612,12 +2612,12 @@ jobs:
 `;
 };
 
-interface GeneratedFile {
+export interface GeneratedFile {
   path: string;
   content: string;
 }
 
-const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
+export const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
   const frontendDir = `frontend`;
   const backendDir = `backend`;
 

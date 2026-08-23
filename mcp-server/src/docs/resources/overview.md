@@ -13,6 +13,14 @@ A monorepo containing shared packages for building full-stack applications with 
 
 New apps: **syncdb + Better Auth** for data and auth; **rtk** for generated SDK hooks on non-synced routes only.
 
+## MCP development tools
+
+Use the hosted Terreno MCP for documentation and generators, and `terreno-mcp-local` for package
+versions, read-only Mongo inspection, merged logs, client state, and Metro/CDP runtime tools.
+Configure both with `docs/how-to/set-up-terreno-mcp.md`; follow
+`docs/how-to/debug-with-mcp.md` for the diagnostic workflow. The `terreno` CLI exposes the same
+local tools for terminal use.
+
 ## Development
 
 Uses [Bun](https://bun.sh/) as the package manager. Use `bun` commands, not `npm`.

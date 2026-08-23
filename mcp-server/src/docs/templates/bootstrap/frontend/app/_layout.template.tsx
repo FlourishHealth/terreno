@@ -5,12 +5,14 @@ import {Stack} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, useSelectCurrentUserId} from "@terreno/rtk";
+import {baseUrl, installTerrenoDevConsoleLogger, selectBetterAuthUserId} from "@terreno/rtk";
 import {TerrenoProvider} from "@terreno/ui";
-import {Provider} from "react-redux";
+import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useColorScheme} from "@/components/useColorScheme";
 import store, {persistor} from "@/store/index";
+
+installTerrenoDevConsoleLogger();
 
 export {ErrorBoundary} from "expo-router";
 
@@ -55,7 +57,7 @@ export default function RootLayout(): React.ReactElement | null {
 
 function RootLayoutNav(): React.ReactElement {
   const colorScheme = useColorScheme();
-  const userId = useSelectCurrentUserId();
+  const userId = useSelector(selectBetterAuthUserId);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

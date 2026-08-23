@@ -15,6 +15,7 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [@terreno/comms](comms.md) — Pluggable mail, SMS, push, and verification providers
 - [@terreno/feature-flags](feature-flags.md) — Feature flags and A/B testing plugin
 - [@terreno/mcp](mcp-server.md) — AI coding assistant integration (MCP)
+- [@terreno/cli](cli.md) — `terreno` CLI for docs, codegen, bootstrap, and OpenAPI REST
 - [@terreno/test](test.md) — Bun test helpers and in-memory MongoDB
 
 ## Migrating from RTK

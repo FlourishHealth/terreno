@@ -56,6 +56,11 @@ const compile = (dir) => {
 
   console.log(`Compiling ${depPkg.name} (${resolved})`);
   execSync("bun tsc", {cwd: resolved, stdio: "inherit"});
+  if (depPkg.name === "@terreno/mcp") {
+    fs.cpSync(path.join(resolved, "src", "docs"), path.join(resolved, "dist", "docs"), {
+      recursive: true,
+    });
+  }
 };
 
 const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
