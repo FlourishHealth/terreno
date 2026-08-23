@@ -340,8 +340,8 @@ export class TerrenoApp {
       }
     }
 
-    app.use(express.json({limit: "50mb"}));
     addTerrenoDevBrowserLogsRoute(app);
+    app.use(express.json({limit: "50mb"}));
 
     // Auth routes (login/signup/refresh_token) before JWT middleware
     addAuthRoutes(app, options.userModel, options.authOptions);

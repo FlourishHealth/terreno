@@ -1,13 +1,22 @@
 import {appendFileSync, mkdirSync} from "node:fs";
 import {join} from "node:path";
-import type express from "express";
+import express from "express";
 import {DateTime} from "luxon";
+
+const MAX_BATCH_ENTRIES = 100;
+const MAX_LEVEL_LENGTH = 32;
+const MAX_MESSAGE_LENGTH = 8000;
+const MAX_STACK_LENGTH = 16_000;
+const BROWSER_LOG_BODY_LIMIT = "256kb";
 
 const shouldEnableBrowserLogs = (): boolean => {
   if (process.env.TERRENO_BROWSER_LOGS === "false" || process.env.TERRENO_BROWSER_LOGS === "0") {
     return false;
   }
-  return process.env.NODE_ENV !== "production";
+  if (process.env.TERRENO_BROWSER_LOGS === "true" || process.env.TERRENO_BROWSER_LOGS === "1") {
+    return true;
+  }
+  return process.env.NODE_ENV === "development";
 };
 
 interface BrowserLogPayload {
@@ -26,34 +35,44 @@ export const addTerrenoDevBrowserLogsRoute = (app: express.Application): void =>
     return;
   }
 
-  app.post("/__terreno/browser-logs", (req, res) => {
+  app.post("/__terreno/browser-logs", express.json({limit: BROWSER_LOG_BODY_LIMIT}), (req, res) => {
     const body = req.body as {entries?: unknown};
     if (!Array.isArray(body.entries) || body.entries.length === 0) {
       res.status(400).json({error: "Expected { entries: [...] }"});
+      return;
+    }
+    if (body.entries.length > MAX_BATCH_ENTRIES) {
+      res.status(413).json({error: `A batch may contain at most ${MAX_BATCH_ENTRIES} entries`});
       return;
     }
 
     const logDir = join(process.cwd(), ".terreno", "logs");
     mkdirSync(logDir, {recursive: true});
     const path = join(logDir, "browser.log");
+    const lines: string[] = [];
 
     for (const row of body.entries) {
       if (typeof row !== "object" || row === null) {
         continue;
       }
       const r = row as BrowserLogPayload;
-      const level = typeof r.level === "string" ? r.level : "info";
-      const message =
-        typeof r.message === "string" ? r.message : JSON.stringify(r.message ?? "").slice(0, 8000);
-      const line = JSON.stringify({
+      const level = (typeof r.level === "string" ? r.level : "info").slice(0, MAX_LEVEL_LENGTH);
+      const rawMessage =
+        typeof r.message === "string" ? r.message : JSON.stringify(r.message ?? "");
+      lines.push(
+        JSON.stringify({
         level,
-        message,
+        message: rawMessage.slice(0, MAX_MESSAGE_LENGTH),
         source: "browser",
-        stack: typeof r.stack === "string" ? r.stack : undefined,
+        stack: typeof r.stack === "string" ? r.stack.slice(0, MAX_STACK_LENGTH) : undefined,
         timestamp:
           typeof r.timestamp === "string" && r.timestamp ? r.timestamp : DateTime.now().toISO(),
-      });
-      appendFileSync(path, `${line}\n`, {encoding: "utf-8", mode: 0o600});
+        })
+      );
+    }
+
+    if (lines.length > 0) {
+      appendFileSync(path, `${lines.join("\n")}\n`, {encoding: "utf-8", mode: 0o600});
     }
 
     res.status(204).end();

@@ -507,6 +507,9 @@ Returns comprehensive code style guide from project documentation.
 | `PORT` | `8080` | HTTP server port |
 | `MCP_HOST` or `HOST` | `0.0.0.0` | Server host address |
 | `TERRENO_MCP_DOCS_DIR` | `../docs` | Path to documentation directory (relative to dist/) |
+| `TERRENO_METRO_URL` | Frontend script port or `http://localhost:8082` | Metro origin used for `/events` and CDP discovery |
+| `TERRENO_MCP_EVAL` | Disabled | Set to `1` to enable local MCP `evaluate` and `navigate` |
+| `TERRENO_BROWSER_LOGS` | Enabled only when `NODE_ENV=development` | Set to `true` to opt in outside development or `false` to disable |
 
 **Example:**
 
