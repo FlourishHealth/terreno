@@ -16,7 +16,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) — use the latest stable release (CI runs `bun-version: latest`)
+- [Bun](https://bun.sh/) 1.4 or newer — use the latest stable release (CI runs `bun-version: latest`; EAS builds pin `1.4.0`)
 - **MongoDB replica set** — required to run `example-backend` locally (change streams power realtime and feature-flag sync). A single-node replica set is enough for development.
 
 ### Bootstrap

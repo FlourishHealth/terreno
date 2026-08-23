@@ -7,7 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "bun": "1.3.10",
+      "bun": "1.4.0",
       "ios": {
         "image": "latest"
       },
@@ -18,7 +18,7 @@
     "development:simulator": {
       "developmentClient": true,
       "distribution": "internal",
-      "bun": "1.3.10",
+      "bun": "1.4.0",
       "ios": {
         "simulator": true,
         "image": "latest"
