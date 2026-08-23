@@ -45,7 +45,8 @@ Check authentication and RTK Query cache state:
 ```
 
 The tool reads `globalThis.__TERRENO_STORE__` registered by the app, using CDP when the MCP process
-cannot access the app heap directly. The CLI equivalent is:
+cannot access the app heap directly. `slice: "auth"` prefers the Better Auth slice and falls back to
+legacy JWT auth; pass `betterAuth` to request that exact slice. The CLI equivalent is:
 
 ```bash
 terreno state --slice rtk --query todos

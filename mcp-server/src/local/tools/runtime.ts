@@ -69,6 +69,30 @@ const filterByQuery = (data: unknown, query: string | undefined): unknown => {
   };
 };
 
+const summarizeClientState = (
+  state: Record<string, unknown>,
+  slice: string | undefined,
+  query: string | undefined
+): unknown => {
+  const auth = state.betterAuth ?? state.auth;
+  if (slice === "auth") {
+    return {auth};
+  }
+  if (slice === "betterAuth") {
+    return {betterAuth: state.betterAuth};
+  }
+  if (slice === "terreno-rtk" || slice === "rtk") {
+    return filterByQuery(summarizeRtkCache(state), query);
+  }
+  if (slice) {
+    return {[slice]: state[slice]};
+  }
+  return {
+    auth,
+    terrenoRtk: filterByQuery(summarizeRtkCache(state), query),
+  };
+};
+
 export interface GetRtkStateArgs {
   slice?: string;
   query?: string;
@@ -94,24 +118,7 @@ export const getRtkState = (args: GetRtkStateArgs): Promise<string> => {
     const local = getDevStore();
     if (local) {
       const state = local.getState();
-      if (slice === "auth") {
-        return JSON.stringify({auth: state.auth}, null, 2);
-      }
-      if (slice === "terreno-rtk" || slice === "rtk") {
-        const summarized = summarizeRtkCache(state);
-        return JSON.stringify(filterByQuery(summarized, query), null, 2);
-      }
-      if (slice) {
-        return JSON.stringify({[slice]: state[slice]}, null, 2);
-      }
-      return JSON.stringify(
-        {
-          auth: state.auth,
-          terrenoRtk: filterByQuery(summarizeRtkCache(state), query),
-        },
-        null,
-        2
-      );
+      return JSON.stringify(summarizeClientState(state, slice, query), null, 2);
     }
 
     const ev = await cdpRuntimeEvaluate(STORE_READ_EXPR, true);
@@ -125,24 +132,7 @@ export const getRtkState = (args: GetRtkStateArgs): Promise<string> => {
       return `Could not read store from app: ${JSON.stringify(payload ?? ev.value)}\n${getCdpConnectionStatus()}`;
     }
     const state = payload.state;
-    if (slice === "auth") {
-      return JSON.stringify({auth: state.auth}, null, 2);
-    }
-    if (slice === "terreno-rtk" || slice === "rtk") {
-      const summarized = summarizeRtkCache(state);
-      return JSON.stringify(filterByQuery(summarized, query), null, 2);
-    }
-    if (slice) {
-      return JSON.stringify({[slice]: state[slice]}, null, 2);
-    }
-    return JSON.stringify(
-      {
-        auth: state.auth,
-        terrenoRtk: filterByQuery(summarizeRtkCache(state), query),
-      },
-      null,
-      2
-    );
+    return JSON.stringify(summarizeClientState(state, slice, query), null, 2);
   })();
 };
 

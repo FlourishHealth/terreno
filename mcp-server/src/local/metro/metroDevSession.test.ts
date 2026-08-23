@@ -55,7 +55,7 @@ class FakeWebSocket {
       ? {
           ok: true,
           state: {
-            auth: {userId: "cdp-user"},
+            betterAuth: {userId: "cdp-user"},
             "terreno-rtk": {mutations: {}, queries: {}},
           },
         }

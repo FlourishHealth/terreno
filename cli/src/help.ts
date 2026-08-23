@@ -117,9 +117,10 @@ Requires TERRENO_MCP_EVAL=1. Evaluates JavaScript in the app runtime through Met
 
 Requires TERRENO_MCP_EVAL=1. Navigates an Expo Router app through Metro CDP.
 `,
-    state: `Usage: terreno state [--slice auth|rtk|<name>] [--query <substring>]
+    state: `Usage: terreno state [--slice auth|betterAuth|rtk|<name>] [--query <substring>]
 
-Reads Redux/RTK Query state through the registered dev store or Metro CDP.
+Reads Redux/RTK Query state through the registered dev store or Metro CDP. The auth alias prefers
+the Better Auth slice and falls back to legacy JWT auth.
 `,
     validate: `Usage: terreno validate schema --file <path>
 `,

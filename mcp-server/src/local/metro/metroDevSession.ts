@@ -73,8 +73,11 @@ export const resolveMetroHttpBase = (): string => {
     return env.replace(/\/$/, "");
   }
   const root = resolveTerrenoProjectRoot();
-  const pkgPath = join(root, "frontend", "package.json");
-  if (!existsSync(pkgPath)) {
+  const pkgPath = [
+    join(root, "frontend", "package.json"),
+    join(root, "example-frontend", "package.json"),
+  ].find((candidate) => existsSync(candidate));
+  if (!pkgPath) {
     return "http://localhost:8082";
   }
   try {

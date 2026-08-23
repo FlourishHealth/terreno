@@ -80,4 +80,30 @@ describe("installTerrenoDevConsoleLogger", () => {
     expect(firstBody.entries).toHaveLength(100);
     expect(secondBody.entries).toHaveLength(1);
   });
+
+  it("retries a rejected backend batch once", async () => {
+    const fetchMock = mock((_input: RequestInfo | URL, _init?: RequestInit) =>
+      Promise.resolve(
+        new Response(null, {
+          status: fetchMock.mock.calls.length === 1 ? 503 : 204,
+        })
+      )
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const originalWarn = console.warn;
+    console.warn = (): void => {};
+
+    try {
+      installTerrenoDevConsoleLogger();
+      console.warn("retry-me");
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 450);
+      });
+    } finally {
+      resetTerrenoDevConsoleLoggerForTests();
+      console.warn = originalWarn;
+    }
+
+    expect(fetchMock.mock.calls).toHaveLength(2);
+  });
 });

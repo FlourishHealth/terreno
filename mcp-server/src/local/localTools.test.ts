@@ -131,6 +131,18 @@ describe("local MCP runtime tools", () => {
     expect(JSON.parse(await getRtkState({slice: "rtk"}))).toEqual({
       note: "No terreno-rtk slice found on store.",
     });
+
+    devGlobal.__TERRENO_STORE__ = {
+      getState: (): Record<string, unknown> => ({
+        betterAuth: {user: {id: "better-auth-user"}},
+      }),
+    };
+    expect(JSON.parse(await getRtkState({slice: "auth"}))).toEqual({
+      auth: {user: {id: "better-auth-user"}},
+    });
+    expect(JSON.parse(await getRtkState({slice: "betterAuth"}))).toEqual({
+      betterAuth: {user: {id: "better-auth-user"}},
+    });
   });
 
   it("filters durable logs by time and level and reports no error", async (): Promise<void> => {
@@ -172,7 +184,7 @@ describe("local MCP runtime tools", () => {
     expect(resolveMetroHttpBase()).toBe("https://metro.example.test");
 
     Reflect.deleteProperty(process.env, "TERRENO_METRO_URL");
-    const frontendDir = join(projectRoot, "frontend");
+    const frontendDir = join(projectRoot, "example-frontend");
     mkdirSync(frontendDir, {recursive: true});
     writeFileSync(
       join(frontendDir, "package.json"),

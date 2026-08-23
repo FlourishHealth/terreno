@@ -17,6 +17,14 @@ let flushTimer: ReturnType<typeof setTimeout> | undefined;
 let restoreConsole: (() => void) | undefined;
 let restoreErrorUtils: (() => void) | undefined;
 
+const postEntries = async (url: string, entries: Queued[]): Promise<Response> => {
+  return fetch(url, {
+    body: JSON.stringify({entries}),
+    headers: {"Content-Type": "application/json"},
+    method: "POST",
+  });
+};
+
 const isDevOrTestInstall = (): boolean => {
   if (typeof __DEV__ !== "undefined" && __DEV__) {
     return true;
@@ -37,13 +45,16 @@ const flush = async (): Promise<void> => {
   for (let offset = 0; offset < pending.length; offset += MAX_BATCH_ENTRIES) {
     const entries = pending.slice(offset, offset + MAX_BATCH_ENTRIES);
     try {
-      await fetch(url, {
-        body: JSON.stringify({entries}),
-        headers: {"Content-Type": "application/json"},
-        method: "POST",
-      });
+      const response = await postEntries(url, entries);
+      if (!response.ok) {
+        await postEntries(url, entries);
+      }
     } catch {
-      // Dev-only bridge; never break the app if the backend is down.
+      try {
+        await postEntries(url, entries);
+      } catch {
+        // Dev-only bridge; never break the app if the backend is down.
+      }
     }
   }
 };
