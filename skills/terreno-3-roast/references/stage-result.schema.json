@@ -4,99 +4,79 @@
   "title": "Terreno lifecycle stage result",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "stage",
-    "status",
-    "ip",
-    "task",
-    "attempt",
-    "branch",
-    "head_sha",
-    "pr",
-    "supporting_skills",
-    "completed",
-    "checks",
-    "artifacts",
-    "failures",
-    "blockers",
-    "decisions_required",
-    "recommended_next_stage",
-    "recommended_next_action",
-    "next_check_after_seconds"
-  ],
+  "required": ["v", "stage", "status", "next", "action"],
   "properties": {
-    "schema_version": {"const": 1},
+    "v": {"const": 2},
     "stage": {"enum": ["grow", "pick", "roast", "brew", "taste"]},
     "status": {"enum": ["PASS", "FAIL", "BLOCKED", "PENDING"]},
-    "ip": {"type": ["string", "null"]},
-    "task": {"type": ["string", "null"]},
+    "ip": {"type": "string"},
+    "task": {"type": "string"},
     "attempt": {"type": "integer", "minimum": 1},
-    "branch": {"type": ["string", "null"]},
-    "head_sha": {"type": ["string", "null"]},
-    "pr": {"type": ["string", "null"]},
-    "supporting_skills": {"type": "array", "items": {"type": "string"}},
-    "completed": {"type": "array", "items": {"type": "string"}},
+    "branch": {"type": "string"},
+    "sha": {"type": "string"},
+    "pr": {"type": "string"},
+    "skills": {"type": "array", "items": {"type": "string"}},
+    "done": {"type": "array", "items": {"type": "string"}},
     "checks": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "status", "evidence"],
+        "required": ["name", "status", "ev"],
         "properties": {
           "name": {"type": "string"},
           "status": {"enum": ["PASS", "FAIL", "BLOCKED", "PENDING"]},
-          "evidence": {"type": "string"}
+          "ev": {"type": "string"}
         }
       }
     },
     "artifacts": {"type": "array", "items": {"type": "string"}},
-    "failures": {
+    "fail": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["requirement", "severity", "expected", "actual", "evidence"],
+        "required": ["need", "want", "got", "ev"],
         "properties": {
-          "requirement": {"type": "string"},
-          "severity": {"enum": ["blocking", "non_blocking"]},
-          "expected": {"type": "string"},
-          "actual": {"type": "string"},
-          "evidence": {"type": "string"}
+          "need": {"type": "string"},
+          "sev": {"enum": ["blocking", "non_blocking"]},
+          "want": {"type": "string"},
+          "got": {"type": "string"},
+          "ev": {"type": "string"}
         }
       }
     },
-    "blockers": {
+    "block": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "summary", "evidence"],
+        "required": ["kind", "why"],
         "properties": {
           "kind": {"enum": ["human", "environment", "access", "external"]},
-          "summary": {"type": "string"},
-          "evidence": {"type": "string"}
+          "why": {"type": "string"},
+          "ev": {"type": "string"}
         }
       }
     },
-    "decisions_required": {
+    "ask": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["question", "options", "recommended"],
+        "required": ["q", "rec"],
         "properties": {
-          "question": {"type": "string"},
-          "options": {"type": "array", "items": {"type": "string"}},
-          "recommended": {"type": "string"}
+          "q": {"type": "string"},
+          "opts": {"type": "array", "items": {"type": "string"}},
+          "rec": {"type": "string"}
         }
       }
     },
-    "recommended_next_stage": {
+    "next": {
       "type": ["string", "null"],
       "enum": ["grow", "pick", "roast", "brew", "taste", null]
     },
-    "recommended_next_action": {"type": "string"},
-    "next_check_after_seconds": {"type": ["integer", "null"], "minimum": 1}
+    "action": {"type": "string"},
+    "wait": {"type": "integer", "minimum": 1}
   }
 }

@@ -41,6 +41,9 @@ The shared result/state format and outer state machine live in:
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
 - [`execution-state.schema.json`](terreno-planning/references/execution-state.schema.json)
 
+Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details toggle in
+chat and on the PR. Humans read `status`, `next`, and `action`.
+
 The optional **feature profile** in the loop document preserves the former Grind behavior:
 one fresh Pick invocation per frontier task. It is an outer-loop recipe, not a sixth
 lifecycle stage.

@@ -4,64 +4,50 @@
   "title": "Terreno lifecycle execution state",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "ip",
-    "task",
-    "stage",
-    "attempt",
-    "branch",
-    "head_sha",
-    "pr",
-    "supporting_skills",
-    "last_result",
-    "artifacts",
-    "attempted_approaches",
-    "next"
-  ],
+  "required": ["v", "stage", "attempt", "next"],
   "properties": {
-    "schema_version": {"const": 1},
-    "ip": {"type": ["string", "null"]},
-    "task": {"type": ["string", "null"]},
+    "v": {"const": 2},
+    "ip": {"type": "string"},
+    "task": {"type": "string"},
     "stage": {"enum": ["grow", "pick", "roast", "brew", "taste"]},
     "attempt": {"type": "integer", "minimum": 1},
-    "branch": {"type": ["string", "null"]},
-    "head_sha": {"type": ["string", "null"]},
-    "pr": {"type": ["string", "null"]},
-    "supporting_skills": {"type": "array", "items": {"type": "string"}},
-    "last_result": {
+    "branch": {"type": "string"},
+    "sha": {"type": "string"},
+    "pr": {"type": "string"},
+    "skills": {"type": "array", "items": {"type": "string"}},
+    "last": {
       "anyOf": [
         {"type": "null"},
         {"$ref": "stage-result.schema.json"}
       ]
     },
     "artifacts": {"type": "array", "items": {"type": "string"}},
-    "attempted_approaches": {
+    "tried": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["stage", "attempt", "summary", "outcome", "evidence"],
+        "required": ["stage", "attempt", "why", "status", "ev"],
         "properties": {
           "stage": {"enum": ["grow", "pick", "roast", "brew", "taste"]},
           "attempt": {"type": "integer", "minimum": 1},
-          "summary": {"type": "string"},
-          "outcome": {"enum": ["PASS", "FAIL", "BLOCKED", "PENDING"]},
-          "evidence": {"type": "string"}
+          "why": {"type": "string"},
+          "status": {"enum": ["PASS", "FAIL", "BLOCKED", "PENDING"]},
+          "ev": {"type": "string"}
         }
       }
     },
     "next": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stage", "reason", "human_required"],
+      "required": ["stage", "why", "human"],
       "properties": {
         "stage": {
           "type": ["string", "null"],
           "enum": ["grow", "pick", "roast", "brew", "taste", null]
         },
-        "reason": {"type": "string"},
-        "human_required": {"type": "boolean"}
+        "why": {"type": "string"},
+        "human": {"type": "boolean"}
       }
     }
   }

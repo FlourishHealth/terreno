@@ -26,12 +26,31 @@ Do not ask "which test double?" before "which public seam is the tracer bullet?"
 ## Agent vs user
 
 | Kind | Who | How |
-| ---- | --- | --- |
+| ---- | --- | ---- |
 | **Fact** | Agent | Look it up. Spawn explore/generalPurpose sub-agents. Read the repo. |
 | **Decision** | User | Ask. Never invent product, scope, or UX choices. |
 
 Do not ask the user anything a sub-agent can answer from the repo, docs, or git history.
 If a lookup fails, say what you searched and ask one targeted question.
+
+## Get to the bottom
+
+A reply is not done until Pick can execute it without guessing.
+
+After each user message:
+
+1. Record what was actually chosen, not the wording of the reply.
+2. If the answer is vague, partial, "sure", "yes", "whatever you think", or only restates
+   the question, stay on that decision. Ask the missing concrete: who, which API, which
+   UX, which data owner, which compatibility promise, what is out of scope.
+3. If two answers conflict, name the conflict and re-ask the parent before unlocking
+   children.
+4. If a recommendation had sub-choices and they accepted it without picking one, grill
+   the sub-choices.
+5. Unlock children only when the parent is executable.
+
+Do not treat a recommended answer as accepted unless the user confirmed it. Do not write
+from inferred agreement.
 
 ## Round loop
 
@@ -72,9 +91,10 @@ Rules for the body:
 ### After the user replies
 
 1. Record answers on the tree.
-2. Unlock children. Drop questions the answers made irrelevant.
-3. Research any new facts those answers created.
-4. Next round, or confirm-and-write if the frontier is empty.
+2. Get to the bottom of each answered item before treating it as settled.
+3. Unlock children. Drop questions the answers made irrelevant.
+4. Research any new facts those answers created.
+5. Next round, or confirm-and-write if the frontier is empty.
 
 ## Confirm-and-write
 
@@ -95,7 +115,7 @@ Do not write the IP until they confirm.
 
 ## Approval summary
 
-After writing, show a final verification block capped at 15 lines:
+After writing, show a final verification index capped at 15 lines:
 
 ```markdown
 Plan: <path>
@@ -107,16 +127,28 @@ Tracer: <public seam>
 Tasks: <count; frontier IDs; blocked IDs>
 Verification: <criterion/method summary>
 Supporting skills: <names or none found>
-Decisions: <Q#=choice>
 Next: approve → Pick
 ```
 
-This is an index for fast approval, not a second copy of the IP.
+This is an index for fast approval, not a second copy of the IP. Do not compress
+decisions into that index.
+
+If any human decisions were grilled, add this table **after** the index, with no row
+limit. List every settled decision. Skip the table entirely when there were none; do not
+mention decisions, an empty table, or "none".
+
+```markdown
+| ID | Decision | Choice |
+| --- | --- | --- |
+| Q1 | <question title> | <chosen answer> |
+```
 
 ## Anti-patterns
 
 - One giant question dump at the start
 - Asking repository facts ("where is this route defined?")
 - Acting on a recommended answer the user has not accepted
+- Accepting a vague "yes" as a finished decision
 - Recapping the entire interview at the end of every round
 - Writing the IP in the same turn as unanswered questions
+- Hiding decisions in a one-line `Q#=choice` summary

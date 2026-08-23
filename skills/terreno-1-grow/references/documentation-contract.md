@@ -25,7 +25,7 @@ Update docs in the same slice as the behavior when any of these change:
 - verification, rollout, or compatibility rules
 
 Skip docs only for a pure internal refactor that does not change those. Record that skip
-in the stage result. Missing docs for a user-visible or architectural change is `FAIL`,
+in the stage result `done` list. Missing docs for a user-visible or architectural change is `FAIL`,
 not a follow-up.
 
 ## How to write
@@ -55,4 +55,4 @@ Rules:
 - A stranger can find the behavior from docs without reading the PR.
 - Architecture docs match the shipped design.
 - Examples and commands in docs are current.
-- The stage result names every docs file created or updated.
+- The stage result `done` list names every docs file created or updated.

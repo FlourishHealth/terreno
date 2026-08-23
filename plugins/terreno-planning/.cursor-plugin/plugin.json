@@ -2,7 +2,7 @@
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
   "description": "Five bounded loop-engineering transitions: Grow shapes, Pick builds, Roast proves, Brew submits, and Taste reacts once to current PR state.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"

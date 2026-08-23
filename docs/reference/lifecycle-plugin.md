@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.0.0`)
+Plugin: `terreno-planning` (`2.1.0`)
 
 All five skills are explicitly invoked (`disable-model-invocation: true`) and implement
 one bounded transition.
@@ -23,10 +23,11 @@ Every stage includes:
 - Success, failure, and blocked conditions
 - Recommended next stage
 
-Results use `PASS`, `FAIL`, `BLOCKED`, or `PENDING` and follow
-[`stage-result.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/stage-result.schema.json).
-Loop state follows
+Results use `PASS`, `FAIL`, `BLOCKED`, or `PENDING` and the compact `v: 2` schema
+[`stage-result.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/stage-result.schema.json)
+(`v`, `stage`, `status`, `next`, `action`; omit empty keys). Loop state follows
 [`execution-state.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/execution-state.schema.json).
+Chat and PRs show `status` / `next` / `action`; the YAML lives in a Details toggle.
 
 The outer loop owns state persistence, waiting, stage invocation, retries, and escalation.
 Brew exits after PR setup. Taste observes/acts once and exits.
