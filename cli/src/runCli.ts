@@ -1,7 +1,3 @@
-import {readFile} from "node:fs/promises";
-import {dirname, join} from "node:path";
-import {fileURLToPath} from "node:url";
-
 import {runApiCommand} from "./commands/api";
 import {runBootstrapCommand} from "./commands/bootstrap";
 import {runDocsCommand} from "./commands/docs";
@@ -17,14 +13,7 @@ import {
 import {commandHelp, HELP_TEXT} from "./help";
 import {type CliIo, createProcessIo, printJson} from "./io";
 import {flagBoolean, parseArgs} from "./parseArgs";
-
-const packageDir = dirname(fileURLToPath(import.meta.url));
-
-export const readCliVersion = async (): Promise<string> => {
-  const pkgPath = join(packageDir, "..", "package.json");
-  const pkg = JSON.parse(await readFile(pkgPath, "utf8")) as {version?: string};
-  return pkg.version ?? "0.0.0";
-};
+import {readCliVersion} from "./version";
 
 export const runCli = async (argv: string[], io: CliIo = createProcessIo()): Promise<number> => {
   const parsed = parseArgs(argv);

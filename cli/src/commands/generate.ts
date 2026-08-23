@@ -17,6 +17,7 @@ import {flagBoolean, flagList, flagString, type ParsedArgs} from "../parseArgs";
 import {parseFormField, parseModelField} from "../parseFields";
 import {generateRestCliFiles} from "../rest/generateAppCli";
 import {parseOpenApiDocument} from "../rest/loadSpec";
+import {readCliVersion} from "../version";
 import {writeFiles} from "../writeFiles";
 import {maybeWrite} from "./output";
 
@@ -223,6 +224,7 @@ export const runGenerateCommand = async (
     const files = generateRestCliFiles({
       baseUrl: flagString(parsed.flags, "base-url"),
       binName,
+      cliVersion: await readCliVersion(),
       spec,
       specLiteral,
     });

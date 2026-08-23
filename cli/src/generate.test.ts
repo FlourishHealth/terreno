@@ -45,5 +45,7 @@ describe("generateRestCliFiles", () => {
     const cli = files.find((file) => file.path === "src/cli.ts")?.content ?? "";
     expect(cli).toContain("@terreno/cli");
     expect(cli).toContain("runAppRestCli");
+    const packageJson = files.find((file) => file.path === "package.json")?.content ?? "{}";
+    expect(JSON.parse(packageJson).dependencies["@terreno/cli"]).toBe("latest");
   });
 });

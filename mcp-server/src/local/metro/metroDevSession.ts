@@ -1,5 +1,6 @@
 import {existsSync, readFileSync} from "node:fs";
 import {join} from "node:path";
+import {DateTime} from "luxon";
 
 import {resolveTerrenoProjectRoot} from "../projectRoot.js";
 
@@ -150,13 +151,13 @@ const handleCdpMessage = (text: string): void => {
       message,
       source: "app",
       stack,
-      timestamp: new Date().toISOString(),
+      timestamp: DateTime.utc().toISO(),
     });
     pushRing(cdpConsoleRing, {
       level,
       raw: line,
       source: "app",
-      timestamp: new Date().toISOString(),
+      timestamp: DateTime.utc().toISO(),
     });
   }
 };
@@ -321,13 +322,13 @@ export const ensureMetroEventsConnected = async (): Promise<{ok: boolean; detail
           level,
           message,
           source: "metro",
-          timestamp: new Date().toISOString(),
+          timestamp: DateTime.utc().toISO(),
         });
         pushRing(metroEventsRing, {
           level,
           raw: line,
           source: "metro",
-          timestamp: new Date().toISOString(),
+          timestamp: DateTime.utc().toISO(),
         });
       });
       ws.addEventListener("close", () => {
@@ -371,6 +372,22 @@ export const snapshotCdpConsoleRing = (): RingEntry[] => {
 
 export const snapshotMetroEventsRing = (): RingEntry[] => {
   return [...metroEventsRing];
+};
+
+/** Clears module-level sockets and buffers for isolated unit tests. */
+export const resetMetroDevSessionForTests = (): void => {
+  cdpWs?.close();
+  metroWs?.close();
+  cdpWs = undefined;
+  metroWs = undefined;
+  cdpConnectPromise = undefined;
+  metroConnectPromise = undefined;
+  pendingCdp.clear();
+  cdpConsoleRing.length = 0;
+  metroEventsRing.length = 0;
+  nextCdpId = 1;
+  lastCdpStatus = "not connected";
+  metroEventsStatus = "not connected";
 };
 
 export const cdpRuntimeEvaluate = async (

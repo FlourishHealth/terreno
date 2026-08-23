@@ -3,6 +3,7 @@ import type {OpenApiDocument} from "./operations";
 export interface GenerateRestCliOptions {
   baseUrl?: string;
   binName: string;
+  cliVersion?: string;
   spec: OpenApiDocument;
   specLiteral: string;
 }
@@ -12,6 +13,7 @@ export const generateRestCliFiles = (
 ): Array<{content: string; path: string}> => {
   const binName = options.binName;
   const specLiteral = options.specLiteral;
+  const cliVersion = options.cliVersion ? `^${options.cliVersion}` : "latest";
   const defaultBase = options.baseUrl ?? options.spec.servers?.[0]?.url ?? "";
   const title = options.spec.info?.title ?? binName;
 
@@ -32,7 +34,7 @@ process.exit(code);
 
   const packageJson = {
     bin: {[binName]: "./src/cli.ts"},
-    dependencies: {"@terreno/cli": "^57.1.0"},
+    dependencies: {"@terreno/cli": cliVersion},
     description: `OpenAPI CLI for ${title}`,
     name: binName,
     private: true,

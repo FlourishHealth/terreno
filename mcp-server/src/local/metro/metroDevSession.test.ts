@@ -1,0 +1,138 @@
+import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+
+import {
+  cdpRuntimeEvaluate,
+  ensureCdpConnected,
+  ensureMetroEventsConnected,
+  resetMetroDevSessionForTests,
+  snapshotCdpConsoleRing,
+  snapshotMetroEventsRing,
+} from "./metroDevSession";
+
+interface FakeMessageEvent {
+  data: string;
+}
+
+type FakeListener = (event: FakeMessageEvent | {message?: string}) => void;
+
+class FakeWebSocket {
+  static readonly OPEN = 1;
+  static instances: FakeWebSocket[] = [];
+
+  readonly url: string;
+  readyState = 0;
+  private readonly listeners = new Map<string, FakeListener[]>();
+
+  constructor(url: string) {
+    this.url = url;
+    FakeWebSocket.instances.push(this);
+    queueMicrotask((): void => {
+      this.readyState = FakeWebSocket.OPEN;
+      this.emit("open", {});
+    });
+  }
+
+  addEventListener(name: string, listener: FakeListener): void {
+    const listeners = this.listeners.get(name) ?? [];
+    listeners.push(listener);
+    this.listeners.set(name, listeners);
+  }
+
+  close(): void {
+    this.readyState = 3;
+    this.emit("close", {});
+  }
+
+  send(raw: string): void {
+    const request = JSON.parse(raw) as {id: number; method: string};
+    const result =
+      request.method === "Runtime.evaluate"
+        ? {result: {result: {value: 2}}}
+        : {result: {}};
+    queueMicrotask((): void => {
+      this.emit("message", {data: JSON.stringify({id: request.id, ...result})});
+    });
+  }
+
+  emit(name: string, event: FakeMessageEvent | {message?: string}): void {
+    for (const listener of this.listeners.get(name) ?? []) {
+      listener(event);
+    }
+  }
+}
+
+describe("Metro development session", () => {
+  const originalFetch = globalThis.fetch;
+  const originalWebSocket = globalThis.WebSocket;
+
+  beforeEach((): void => {
+    resetMetroDevSessionForTests();
+    FakeWebSocket.instances = [];
+    process.env.TERRENO_METRO_URL = "http://localhost:8082";
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    globalThis.fetch = (async (): Promise<Response> =>
+      new Response(
+        JSON.stringify([
+          {
+            title: "Hermes app",
+            webSocketDebuggerUrl: "ws://localhost:8082/cdp",
+          },
+        ]),
+        {status: 200}
+      )) as typeof fetch;
+  });
+
+  afterEach((): void => {
+    resetMetroDevSessionForTests();
+    globalThis.fetch = originalFetch;
+    globalThis.WebSocket = originalWebSocket;
+    Reflect.deleteProperty(process.env, "TERRENO_METRO_URL");
+  });
+
+  it("shares concurrent Metro connections and captures event messages", async (): Promise<void> => {
+    const [first, second] = await Promise.all([
+      ensureMetroEventsConnected(),
+      ensureMetroEventsConnected(),
+    ]);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    FakeWebSocket.instances[0]?.emit("message", {
+      data: JSON.stringify({type: "bundle_failed", message: "Syntax error"}),
+    });
+    const event = JSON.parse(snapshotMetroEventsRing()[0]?.raw ?? "{}") as {
+      level?: string;
+      source?: string;
+    };
+    expect(event).toMatchObject({level: "error", source: "metro"});
+  });
+
+  it("connects to Hermes, captures console calls, and evaluates expressions", async (): Promise<void> => {
+    const connection = await ensureCdpConnected();
+    expect(connection.ok).toBe(true);
+    const socket = FakeWebSocket.instances[0];
+    socket?.emit("message", {
+      data: JSON.stringify({
+        method: "Runtime.consoleAPICalled",
+        params: {args: [{value: "hello"}], type: "warning"},
+      }),
+    });
+    const entry = JSON.parse(snapshotCdpConsoleRing()[0]?.raw ?? "{}") as {
+      level?: string;
+      message?: string;
+      source?: string;
+    };
+    expect(entry).toMatchObject({level: "warn", message: "hello", source: "app"});
+
+    expect(await cdpRuntimeEvaluate("1 + 1", true)).toEqual({value: 2});
+  });
+
+  it("reports an unreachable Metro target", async (): Promise<void> => {
+    globalThis.fetch = (async (): Promise<Response> =>
+      new Response("unavailable", {status: 503})) as typeof fetch;
+    const result = await ensureCdpConnected();
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("503");
+  });
+});

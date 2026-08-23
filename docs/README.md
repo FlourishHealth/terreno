@@ -39,6 +39,8 @@ Documentation for the Terreno monorepo: shared packages for full-stack applicati
 ## Quick links
 
 - [Getting started](tutorials/getting-started.md)
+- [Set up Terreno MCP](how-to/set-up-terreno-mcp.md)
+- [Debug with MCP](how-to/debug-with-mcp.md)
 - [Local-first data](explanation/local-first-data.md)
 - [AGENTS.md](../AGENTS.md) — Onboarding context for AI assistants
 - [ROADMAP.md](../ROADMAP.md) — Public roadmap

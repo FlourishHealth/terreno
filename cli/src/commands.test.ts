@@ -60,6 +60,10 @@ describe("generate and validate commands", () => {
     expect(code).toBe(0);
     const cliSource = await readFile(join(out, "src/cli.ts"), "utf8");
     expect(cliSource).toContain("runAppRestCli");
+    const packageJson = JSON.parse(await readFile(join(out, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    expect(packageJson.dependencies["@terreno/cli"]).toBe("^57.1.0");
     await rm(dir, {force: true, recursive: true});
   });
 
