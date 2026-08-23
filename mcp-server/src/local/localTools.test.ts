@@ -7,7 +7,7 @@ import {DateTime} from "luxon";
 import {resolveTerrenoLogDirs} from "./logPaths";
 import {resolveMetroHttpBase} from "./metro/metroDevSession";
 import {lastError, readLogs} from "./tools/readLogs";
-import {evaluate, getRtkState} from "./tools/runtime";
+import {evaluate, getRtkState, navigate} from "./tools/runtime";
 
 describe("local MCP runtime tools", () => {
   let projectRoot: string;
@@ -100,7 +100,52 @@ describe("local MCP runtime tools", () => {
       queries: Array<{endpoint?: string}>;
     };
     expect(state.queries[0]?.endpoint).toBe("getTodos");
+    expect(JSON.parse(await getRtkState({slice: "auth"}))).toEqual({
+      auth: {userId: "user-1"},
+    });
+    expect(JSON.parse(await getRtkState({slice: "custom"}))).toEqual({});
+    expect(JSON.parse(await getRtkState({}))).toMatchObject({
+      auth: {userId: "user-1"},
+    });
     expect(await evaluate({code: "1 + 1"})).toContain("Refused");
+    expect(await navigate({path: "/profile"})).toContain("Refused");
+
+    process.env.TERRENO_MCP_EVAL = "1";
+    expect(await evaluate({code: "  "})).toBe("No code provided.");
+    expect(await navigate({path: "  "})).toBe("No path provided.");
+  });
+
+  it("filters durable logs by time and level and reports no error", async (): Promise<void> => {
+    const rootLogDir = join(projectRoot, ".terreno", "logs");
+    mkdirSync(rootLogDir, {recursive: true});
+    const threshold = DateTime.utc();
+    writeFileSync(
+      join(rootLogDir, "app.log"),
+      [
+        JSON.stringify({
+          level: "error",
+          message: "old failure",
+          timestamp: threshold.minus({minutes: 1}).toISO(),
+        }),
+        "plain line without timestamp",
+        JSON.stringify({
+          level: "info",
+          message: "new info",
+          timestamp: threshold.plus({milliseconds: 1}).toISO(),
+        }),
+      ].join("\n")
+    );
+
+    const filtered = JSON.parse(
+      await readLogs({
+        level: "info",
+        since: threshold.toISO(),
+        sources: ["backend"],
+      })
+    ) as {entries: Array<{message?: string}>};
+    expect(filtered.entries).toHaveLength(1);
+    expect(filtered.entries[0]?.message).toBe("new info");
+    expect(await lastError({sources: ["browser"]})).toContain("No recent error-level entries");
   });
 
   it("resolves Metro from explicit URL or frontend scripts", (): void => {
