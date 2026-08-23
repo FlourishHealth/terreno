@@ -67,9 +67,9 @@ describe("local MCP runtime tools", () => {
       `${JSON.stringify({level: "error", message: "client failed", timestamp})}\n`
     );
 
-    const result = JSON.parse(
-      await readLogs({entries: 10, sources: ["backend", "browser"]})
-    ) as {entries: Array<{message?: string}>};
+    const result = JSON.parse(await readLogs({entries: 10, sources: ["backend", "browser"]})) as {
+      entries: Array<{message?: string}>;
+    };
     expect(result.entries.map((entry) => entry.message)).toEqual([
       "backend ready",
       "client failed",

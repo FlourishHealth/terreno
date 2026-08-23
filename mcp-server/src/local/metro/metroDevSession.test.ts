@@ -46,9 +46,7 @@ class FakeWebSocket {
   send(raw: string): void {
     const request = JSON.parse(raw) as {id: number; method: string};
     const result =
-      request.method === "Runtime.evaluate"
-        ? {result: {result: {value: 2}}}
-        : {result: {}};
+      request.method === "Runtime.evaluate" ? {result: {result: {value: 2}}} : {result: {}};
     queueMicrotask((): void => {
       this.emit("message", {data: JSON.stringify({id: request.id, ...result})});
     });
@@ -99,7 +97,7 @@ describe("Metro development session", () => {
     expect(FakeWebSocket.instances).toHaveLength(1);
 
     FakeWebSocket.instances[0]?.emit("message", {
-      data: JSON.stringify({type: "bundle_failed", message: "Syntax error"}),
+      data: JSON.stringify({message: "Syntax error", type: "bundle_failed"}),
     });
     const event = JSON.parse(snapshotMetroEventsRing()[0]?.raw ?? "{}") as {
       level?: string;
