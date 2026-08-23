@@ -5,7 +5,7 @@ import type {CliIo} from "../io";
 import {printJson} from "../io";
 import {flagBoolean, flagList, flagString, type ParsedArgs} from "../parseArgs";
 import {parseHeaderFlags, parseJsonValue, parseNameValuePairs} from "./flagValues";
-import {invokeRestOperation, type InvokeRestResult} from "./invoke";
+import {type InvokeRestResult, invokeRestOperation} from "./invoke";
 import {defaultBaseUrl} from "./loadSpec";
 import {
   findRestOperation,
