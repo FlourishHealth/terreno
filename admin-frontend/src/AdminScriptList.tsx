@@ -60,6 +60,8 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   });
   const {config, isLoading, error} = useAdminConfig(api, resolvedApiBase);
   const {useListScriptRunsQuery} = useAdminScripts(api, resolvedApiBase);
+  const canRunScripts = isAdmin && (config?.platformTools?.runScripts ?? true);
+  const canViewScripts = config?.platformTools?.viewScripts ?? true;
 
   const [tab, setTab] = useState<Tab>("scripts");
   const [historyPage, setHistoryPage] = useState(1);
@@ -72,16 +74,22 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
 
   // Unfiltered most-recent runs power the per-script "Last run" badges on the Scripts tab.
-  const {data: latestRunsData} = useListScriptRunsQuery({limit: HISTORY_PAGE_SIZE, page: 1});
+  const {data: latestRunsData} = useListScriptRunsQuery(
+    {limit: HISTORY_PAGE_SIZE, page: 1},
+    {skip: !canViewScripts}
+  );
   const latestRuns: ScriptRun[] = useMemo(() => latestRunsData?.data ?? [], [latestRunsData]);
   const lastRuns = useMemo(() => latestRunByScript(latestRuns), [latestRuns]);
 
   // Paginated history, optionally scoped to a single script via the per-script History link.
-  const {data: historyData} = useListScriptRunsQuery({
-    limit: HISTORY_PAGE_SIZE,
-    name: historyScriptName ?? undefined,
-    page: historyPage,
-  });
+  const {data: historyData} = useListScriptRunsQuery(
+    {
+      limit: HISTORY_PAGE_SIZE,
+      name: historyScriptName ?? undefined,
+      page: historyPage,
+    },
+    {skip: !canViewScripts}
+  );
 
   // Accumulate each loaded history page (de-duplicated by id) so "Load more" advances through
   // pages instead of re-requesting a server-capped first page. Keying on the active filter lets
@@ -208,16 +216,18 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
           Last run {relativeTime(run.created)} — {run.isDryRun ? "dry run" : "live run"}{" "}
           {meta.label.toLowerCase()}
         </Text>
-        <Box
-          accessibilityHint={`Opens run history for ${script.name}`}
-          accessibilityLabel={`View run history for ${script.name}`}
-          onClick={() => handleViewHistory(script.name)}
-          testID={`admin-script-history-${script.name}`}
-        >
-          <Text color="link" size="sm">
-            History
-          </Text>
-        </Box>
+        {canViewScripts ? (
+          <Box
+            accessibilityHint={`Opens run history for ${script.name}`}
+            accessibilityLabel={`View run history for ${script.name}`}
+            onClick={() => handleViewHistory(script.name)}
+            testID={`admin-script-history-${script.name}`}
+          >
+            <Text color="link" size="sm">
+              History
+            </Text>
+          </Box>
+        ) : null}
       </Box>
     );
   };
@@ -235,12 +245,12 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
               {renderLastRun(script)}
             </Box>
             <Button
-              disabled={!isAdmin}
+              disabled={!canRunScripts}
               iconName="play"
               onClick={() => handleRunScript(script)}
               testID={`admin-script-run-${script.name}`}
               text="Run"
-              tooltipText={!isAdmin ? "Only admins can run scripts" : undefined}
+              tooltipText={!canRunScripts ? "You do not have permission to run scripts" : undefined}
               variant="primary"
             />
           </Box>
@@ -360,18 +370,20 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0} scroll title="Scripts">
-      <Box paddingX={4} paddingY={4}>
-        <SegmentedControl
-          items={[
-            "Scripts",
-            (latestRunsData?.total ?? latestRuns.length) > 0
-              ? `Run history (${latestRunsData?.total ?? latestRuns.length})`
-              : "Run history",
-          ]}
-          onChange={handleTabChange}
-          selectedIndex={tab === "history" ? 1 : 0}
-        />
-      </Box>
+      {canViewScripts ? (
+        <Box paddingX={4} paddingY={4}>
+          <SegmentedControl
+            items={[
+              "Scripts",
+              (latestRunsData?.total ?? latestRuns.length) > 0
+                ? `Run history (${latestRunsData?.total ?? latestRuns.length})`
+                : "Run history",
+            ]}
+            onChange={handleTabChange}
+            selectedIndex={tab === "history" ? 1 : 0}
+          />
+        </Box>
+      ) : null}
 
       {tab === "scripts" ? renderScripts() : renderHistory()}
 

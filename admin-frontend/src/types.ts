@@ -29,6 +29,11 @@ export type AdminApi = Api<
  */
 export type AdminFieldValue = unknown;
 
+export interface AdminRecordCapabilities {
+  delete: boolean;
+  update: boolean;
+}
+
 /**
  * RTK Query's `build` argument from `api.injectEndpoints({ endpoints: (build) => ... })`.
  *
@@ -155,8 +160,10 @@ export interface AdminConfigResponse {
   platformTools?: {
     configuration: boolean;
     roles: boolean;
+    runScripts?: boolean;
     scripts: boolean;
     version: boolean;
+    viewScripts?: boolean;
   };
   schemaVersion?: number;
   scripts: AdminScriptConfig[];

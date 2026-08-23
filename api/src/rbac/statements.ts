@@ -6,7 +6,6 @@ export const terrenoStatements = {
   adminConsentForm: ADMIN_MODEL_ACCESS,
   adminConsentResponse: ADMIN_MODEL_ACCESS,
   adminFeatureFlag: ADMIN_MODEL_ACCESS,
-  adminUser: ADMIN_MODEL_ACCESS,
   configuration: ["read", "update"],
   consentForm: MODEL_CRUD,
   consentResponse: ["list", "read"],

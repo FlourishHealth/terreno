@@ -6,6 +6,7 @@ import {
   apiUnauthorizedMiddleware,
   BackgroundTask,
   createAccess,
+  findOneOrNoneFor,
   modelRouter,
   Permissions,
   setupAuth,
@@ -392,8 +393,10 @@ describe("AdminApp /admin/config", () => {
     assert.deepEqual(response.body.platformTools, {
       configuration: false,
       roles: false,
+      runScripts: false,
       scripts: false,
       version: false,
+      viewScripts: false,
     });
     assert.deepEqual(response.body.scripts, []);
   });
@@ -420,7 +423,7 @@ describe("AdminApp /admin/config", () => {
       {accessControl}
     );
     const agent = await authAsUser(localApp, "admin");
-    const actor = await UserModel.findOne({email: "admin@example.com"});
+    const actor = await findOneOrNoneFor(UserModel, {email: "admin@example.com"});
     assert.exists(actor);
     const owned = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
     const other = await FoodModel.create({
@@ -431,6 +434,11 @@ describe("AdminApp /admin/config", () => {
 
     await agent.patch(`/admin/foods/${owned._id}`).send({calories: 3}).expect(200);
     await agent.patch(`/admin/foods/${other._id}`).send({calories: 4}).expect(403);
+    const ownedRead = await agent.get(`/admin/foods/${owned._id}`).expect(200);
+    const otherRead = await agent.get(`/admin/foods/${other._id}`).expect(200);
+    assert.deepEqual(ownedRead.body.data._adminCapabilities, {delete: true, update: true});
+    assert.deepEqual(otherRead.body.data._adminCapabilities, {delete: false, update: false});
+    await agent.delete(`/admin/foods/${other._id}`).expect(403);
     await agent
       .post("/admin/foods")
       .send({calories: 5, name: "Created", ownerId: actor?._id})
@@ -461,7 +469,7 @@ describe("AdminApp /admin/config", () => {
     const agent = await authAsUser(localApp, "admin");
 
     await agent.get("/admin/foods").expect(200);
-    await agent.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(405);
+    await agent.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(403);
   });
 });
 

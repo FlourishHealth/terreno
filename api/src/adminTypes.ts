@@ -80,7 +80,7 @@ export interface AdminModelPermissions {
 }
 
 export interface AdminAccessContext {
-  action: "create" | "delete" | "list" | "read" | "update";
+  action: string;
   instance?: unknown;
   user?: User;
 }

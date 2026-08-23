@@ -7,6 +7,7 @@ import type {
   AdminFieldConfig,
   AdminFieldValue,
   AdminModelConfig,
+  AdminRecordCapabilities,
   RefRendererMap,
 } from "./types";
 import {resolveAdminBases, SYSTEM_FIELDS} from "./types";
@@ -457,10 +458,14 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [itemId, deleteItem, toast, modelName]);
 
   const isSaving = isCreating || isUpdating;
+  const recordCapabilities = (
+    itemData as {_adminCapabilities?: AdminRecordCapabilities} | undefined
+  )?._adminCapabilities;
   const isFormWritable =
     mode === "create"
       ? modelConfig?.permissions?.create !== false
-      : modelConfig?.permissions?.update !== false;
+      : (recordCapabilities?.update ?? modelConfig?.permissions?.update !== false);
+  const canDeleteRecord = recordCapabilities?.delete ?? modelConfig?.permissions?.delete !== false;
 
   const navigationTitle = useMemo((): string => {
     if (!modelConfig) {
@@ -516,7 +521,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     navigation.setOptions({
       headerRight: () => (
         <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
-          {mode === "edit" && modelConfig.permissions?.delete !== false ? (
+          {mode === "edit" && canDeleteRecord ? (
             <DeleteButton loading={isDeleting} onDelete={handleDelete} />
           ) : null}
           {isFormWritable ? (
@@ -542,6 +547,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     handleSave,
     handleDelete,
     isFormWritable,
+    canDeleteRecord,
   ]);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {

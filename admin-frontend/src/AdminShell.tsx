@@ -361,7 +361,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   }
 
   const backendScreens = config.customScreens ?? [];
-  const allCustomScreens = [...backendScreens, ...(propCustomScreens ?? [])];
+  const allCustomScreens = config.platformTools
+    ? backendScreens
+    : [...backendScreens, ...(propCustomScreens ?? [])];
   const scripts = config.scripts ?? [];
   const platformTools = config.platformTools ?? {
     configuration: true,

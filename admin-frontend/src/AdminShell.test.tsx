@@ -282,6 +282,7 @@ describe("AdminShell", () => {
         api={mockApi}
         apiBase="/admin"
         configurationPath="/admin/configuration"
+        customScreens={[{displayName: "Denied local screen", name: "denied"}]}
         rolesPath="/roles"
         routeBase="/admin"
       >
@@ -293,6 +294,7 @@ describe("AdminShell", () => {
     assert.isNull(queryByTestId("admin-shell-nav-roles"));
     assert.isNull(queryByTestId("admin-shell-nav-version"));
     assert.isNull(queryByTestId("admin-shell-nav-configuration"));
+    assert.isNull(queryByTestId("admin-shell-nav-screen-denied"));
   });
 
   it("hides empty Models and Screens headings", () => {

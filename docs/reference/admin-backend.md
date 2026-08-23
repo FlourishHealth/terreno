@@ -114,7 +114,7 @@ With `accessControl`, each model can use a standard admin resource with three ac
 
 Declare an `admin<ModelName>` statement and optionally customize ownership:
 
-``````typescript
+```typescript
 import {ADMIN_MODEL_ACCESS} from "@terreno/api";
 import {adminOwnedBy, AdminApp} from "@terreno/admin-backend";
 
@@ -140,7 +140,7 @@ new AdminApp({
     name: "form-reports",
   }],
 });
-``````
+```
 
 `adminAccess.resource` overrides the default `admin<ModelName>` name. Use
 `adminAccess.authorize({action, instance, user})` when a model or screen needs a completely
@@ -155,6 +155,11 @@ and Configuration. Built-in tools use the existing editable permissions:
 - Roles: `rbac:read`
 - Version and Configuration: `configuration:read`
 - Audit Log and Feature Flags: their model's admin `read` permission
+
+Read and list responses include `_adminCapabilities.update` and
+`_adminCapabilities.delete` for each record. This keeps `writeOwned` forms and row controls
+read-only for records the current user does not own. Script metadata separately exposes run and
+history permissions so a history-only role never receives an enabled Run control.
 
 **Important:** Only expose models that should be editable via admin panel. Avoid sensitive internal models.
 

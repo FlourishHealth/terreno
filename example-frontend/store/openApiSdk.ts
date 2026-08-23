@@ -2027,8 +2027,10 @@ export type GetAdminConfigRes = /** status 200 Success */ {
   platformTools?: {
     configuration?: boolean;
     roles?: boolean;
+    runScripts?: boolean;
     scripts?: boolean;
     version?: boolean;
+    viewScripts?: boolean;
   };
   schemaVersion?: number;
   scripts?: {

@@ -18,6 +18,7 @@ export const appStatements = {
   adminProject: ADMIN_MODEL_ACCESS,
   adminScreen: ["showcase", "syncLab"],
   adminTodo: ADMIN_MODEL_ACCESS,
+  adminUser: ADMIN_MODEL_ACCESS,
   todo: ["create", "read", "update", "delete", "list"],
 } as const;
 

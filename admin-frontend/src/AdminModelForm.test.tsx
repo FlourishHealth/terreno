@@ -135,9 +135,13 @@ describe("AdminModelForm", () => {
   it("removes save controls when effective model permissions are read-only", () => {
     configState.config = {
       ...config,
-      models: [{...modelConfig, permissions: {create: false, delete: false, update: false}}],
+      models: [{...modelConfig, permissions: {create: true, delete: true, update: true}}],
     };
-    readState.data = {email: "readonly@example.com", name: "Read only"};
+    readState.data = {
+      _adminCapabilities: {delete: false, update: false},
+      email: "readonly@example.com",
+      name: "Read only",
+    };
     let savedHeaderRight: React.ReactElement | null = null;
     setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {

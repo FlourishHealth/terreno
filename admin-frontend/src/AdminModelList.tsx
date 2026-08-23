@@ -190,7 +190,9 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   }
 
   const backendScreens = config.customScreens ?? [];
-  const allCustomScreens = [...backendScreens, ...(propCustomScreens ?? [])];
+  const allCustomScreens = config.platformTools
+    ? backendScreens
+    : [...backendScreens, ...(propCustomScreens ?? [])];
   const scripts = config.scripts ?? [];
   const hasToolCards = allCustomScreens.length > 0 || scripts.length > 0 || !!configurationPath;
 

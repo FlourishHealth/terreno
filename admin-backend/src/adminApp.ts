@@ -276,8 +276,10 @@ interface AdminConfigResponse {
   platformTools: {
     configuration: boolean;
     roles: boolean;
+    runScripts: boolean;
     scripts: boolean;
     version: boolean;
+    viewScripts: boolean;
   };
   schemaVersion: number;
   scripts: AdminScriptMeta[];
@@ -665,7 +667,7 @@ export class AdminApp {
       return explicit;
     }
     const standard = `admin${config.model.modelName}`;
-    if (config.adminAccess && accessControl?.statements[standard]) {
+    if (accessControl?.statements[standard]) {
       return standard;
     }
     return `${config.model.modelName.charAt(0).toLowerCase()}${config.model.modelName.slice(1)}`;
@@ -696,8 +698,12 @@ export class AdminApp {
     if (config.adminAccess?.authorize) {
       return [
         ...shell,
-        async (_method, user, instance) =>
-          config.adminAccess?.authorize?.({action, instance, user}) ?? false,
+        async (_method, user, instance) => {
+          if (action !== "list" && instance === undefined) {
+            return true;
+          }
+          return config.adminAccess?.authorize?.({action, instance, user}) ?? false;
+        },
       ];
     }
     const resource = this.adminResource(config);
@@ -927,8 +933,10 @@ export class AdminApp {
       platformTools: {
         configuration: true,
         roles: true,
+        runScripts: true,
         scripts: true,
         version: true,
+        viewScripts: true,
       },
       schemaVersion: ADMIN_SCHEMA_VERSION,
       scripts: configScripts,
@@ -987,7 +995,10 @@ export class AdminApp {
               return screen;
             }
             if (screen.adminAccess.authorize) {
-              const allowed = await screen.adminAccess.authorize({action: "read", user});
+              const allowed = await screen.adminAccess.authorize({
+                action: screen.adminAccess.action ?? "read",
+                user,
+              });
               return allowed ? screen : null;
             }
             if (!screen.adminAccess.resource) {
@@ -1003,10 +1014,9 @@ export class AdminApp {
 
       const canReadConfiguration = await this.hasConfigurationPermission(user, "read");
       const canReadRoles = await this.canAnyResourceAction(user, "rbac", ["read"]);
-      const canUseScripts = await this.canAnyResourceAction(user, "admin", [
-        "runScripts",
-        "viewBackgroundTasks",
-      ]);
+      const canRunScripts = await this.hasScriptPermission(user, "runScripts");
+      const canViewScripts = await this.hasScriptPermission(user, "viewBackgroundTasks");
+      const canUseScripts = canRunScripts || canViewScripts;
       return {
         ...baseConfigResponse,
         customScreens: authorizedScreens.map(({adminAccess: _adminAccess, ...screen}) => screen),
@@ -1014,8 +1024,10 @@ export class AdminApp {
         platformTools: {
           configuration: canReadConfiguration,
           roles: canReadRoles,
+          runScripts: canRunScripts,
           scripts: canUseScripts,
           version: canReadConfiguration,
+          viewScripts: canViewScripts,
         },
         scripts: canUseScripts ? configScripts : [],
       };
@@ -1052,8 +1064,10 @@ export class AdminApp {
               properties: {
                 configuration: {type: "boolean"},
                 roles: {type: "boolean"},
+                runScripts: {type: "boolean"},
                 scripts: {type: "boolean"},
                 version: {type: "boolean"},
+                viewScripts: {type: "boolean"},
               },
               type: "object",
             },
@@ -1641,6 +1655,44 @@ export class AdminApp {
         ).terrenoAllowUserAdminWrite = true;
       };
 
+      const addRecordCapabilities = async (
+        value: unknown,
+        request: express.Request
+      ): Promise<JSONValue> => {
+        const scrubbed = scrubAdminResponse(value, config, allModelAdmins);
+        const sourceItems = Array.isArray(value) ? value : [value];
+        const scrubbedItems = Array.isArray(scrubbed) ? scrubbed : [scrubbed];
+        const withCapabilities = await Promise.all(
+          scrubbedItems.map(async (item, index) => {
+            if (!item || typeof item !== "object" || Array.isArray(item)) {
+              return item;
+            }
+            const instance = sourceItems[index];
+            const canUpdate =
+              config.permissions?.update !== false &&
+              (await checkPermissions(
+                "update",
+                this.resourceActionPermissions(config, "update"),
+                request.user as User | undefined,
+                instance
+              ));
+            const canDelete =
+              config.permissions?.delete !== false &&
+              (await checkPermissions(
+                "delete",
+                this.resourceActionPermissions(config, "delete"),
+                request.user as User | undefined,
+                instance
+              ));
+            return {
+              ...(item as Record<string, unknown>),
+              _adminCapabilities: {delete: canDelete, update: canUpdate},
+            };
+          })
+        );
+        return (Array.isArray(scrubbed) ? withCapabilities : withCapabilities[0]) as JSONValue;
+      };
+
       // noExplicitAny: matches the Model<any> from AdminModelConfig above.
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
@@ -1705,8 +1757,8 @@ export class AdminApp {
           searchFields: modelMeta?.searchFields ?? config.searchFields,
         }),
         queryFilter: buildAdminListQueryFilter(config, modelMeta?.searchFields),
-        responseHandler: async (value, _method, _request, _options): Promise<JSONValue> =>
-          scrubAdminResponse(value, config, allModelAdmins) as JSONValue,
+        responseHandler: async (value, _method, request): Promise<JSONValue> =>
+          addRecordCapabilities(value, request),
         sort: config.defaultSort ?? "-created",
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
