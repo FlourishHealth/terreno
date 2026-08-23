@@ -43,7 +43,7 @@ describe("mocked local tools and syncdb", () => {
     const io = createIo();
     expect(await runCli(["info"], io)).toBe(0);
     expect(await runCli(["info", "--json"], io)).toBe(0);
-    expect(await runCli(["logs"], io)).toBe(0);
+    expect(await runCli(["logs", "--sources", "backend,metro"], io)).toBe(0);
     expect(await runCli(["logs", "last-error", "--json"], io)).toBe(0);
     expect(await runCli(["state", "--slice", "rtk", "--query", "todos", "--json"], io)).toBe(0);
     expect(await runCli(["eval", "--code", "1 + 1", "--json"], io)).toBe(0);
@@ -72,6 +72,7 @@ describe("mocked local tools and syncdb", () => {
       )
     ).toBe(0);
     const output = io.stdoutLines.join("\n");
+    expect(output).toContain('"sources":["backend","metro"]');
     expect(output).toContain("get_rtk_state");
     expect(output).toContain("evaluate");
     expect(output).toContain("navigate");

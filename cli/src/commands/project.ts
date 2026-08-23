@@ -23,6 +23,13 @@ const printToolResult = (
   return 0;
 };
 
+const parseSources = (parsed: ParsedArgs): string[] => {
+  return flagList(parsed.flags, "source", "sources")
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+};
+
 export const runInfoCommand = async (io: CliIo, json: boolean): Promise<number> => {
   const result = await handleLocalToolCall("application_info", {});
   return printToolResult(io, json, result);
@@ -36,7 +43,7 @@ export const runLogsCommand = async (
   const action = parsed.positionals[1];
   if (action === "last-error") {
     const result = await handleLocalToolCall("last_error", {
-      sources: flagList(parsed.flags, "source", "sources"),
+      sources: parseSources(parsed),
     });
     return printToolResult(io, json, result);
   }
@@ -49,7 +56,7 @@ export const runLogsCommand = async (
     entries: entriesRaw ? Number(entriesRaw) : undefined,
     level: flagString(parsed.flags, "level"),
     since: flagString(parsed.flags, "since"),
-    sources: flagList(parsed.flags, "source", "sources"),
+    sources: parseSources(parsed),
   });
   return printToolResult(io, json, result);
 };
