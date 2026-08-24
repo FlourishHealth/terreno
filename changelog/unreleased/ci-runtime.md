@@ -14,3 +14,7 @@ once per run and shares `dist/` with the spec shards. Example-backend CI
 compiles `@terreno/*` deps in one process and watches `api/**`. The backend
 Docker check rebuilds only when the image recipe changes; CD still builds
 preview images from source.
+
+Backend startup now defers sync index creation until after MongoDB connects.
+This prevents import-time Mongoose buffering timeouts from blocking Cloud Run
+containers before they begin listening.
