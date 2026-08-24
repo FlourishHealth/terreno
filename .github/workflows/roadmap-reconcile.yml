@@ -40,6 +40,13 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      # Concurrency waits on the triggering SHA. Reset to the branch tip so a
+      # queued run cannot overwrite a later reconcile or sync with stale seed.
+      - name: Refresh to latest branch HEAD after concurrency wait
+        run: |
+          git fetch origin "$GITHUB_REF_NAME"
+          git reset --hard "origin/$GITHUB_REF_NAME"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -48,9 +55,11 @@ jobs:
       - name: Validate required secrets
         env:
           ROADMAP_PROJECT_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
         run: |
           missing=()
           if [ -z "$ROADMAP_PROJECT_TOKEN" ]; then missing+=("ROADMAP_PROJECT_TOKEN"); fi
+          if [ -z "$TERRENO_PROJECT_NUMBER" ]; then missing+=("TERRENO_PROJECT_NUMBER"); fi
           if [ ${#missing[@]} -ne 0 ]; then
             echo "::error::Missing required secrets: ${missing[*]}"
             exit 1

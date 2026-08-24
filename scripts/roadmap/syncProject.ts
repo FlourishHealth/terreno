@@ -91,6 +91,36 @@ export const buildDesiredFields = ({options}: {options: RoadmapFieldOptions}): D
   ];
 };
 
+export interface PagedNodes<T> {
+  nodes: T[];
+  pageInfo: {endCursor: string | null; hasNextPage: boolean};
+}
+
+/** Walks GraphQL `pageInfo` until `hasNextPage` is false. */
+export const collectPagedNodes = async <T>({
+  fetchPage,
+}: {
+  fetchPage: (after: string | null) => Promise<PagedNodes<T>>;
+}): Promise<T[]> => {
+  const nodes: T[] = [];
+  let after: string | null = null;
+
+  for (;;) {
+    const page = await fetchPage(after);
+    nodes.push(...page.nodes);
+    if (!page.pageInfo.hasNextPage) {
+      break;
+    }
+    const cursor = page.pageInfo.endCursor;
+    if (cursor === null || cursor === "") {
+      break;
+    }
+    after = cursor;
+  }
+
+  return nodes;
+};
+
 /**
  * Compares the declared field set against the board. Missing options are added
  * by rewriting the whole option list (GitHub has no add-one-option mutation),
@@ -566,21 +596,32 @@ export const main = async (): Promise<void> => {
   console.info(`Issue labels to add: ${labelWork.length}`);
 
   // --- project --------------------------------------------------------------
-  const projectsData = await graphql<{
-    organization: {projectsV2: {nodes: {id: string; number: number; title: string; url: string}[]}};
-  }>({query: PROJECTS_QUERY, token, variables: {after: null, owner: values.owner}}).catch(
-    (error: unknown): never => {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("read:project")) {
-        throw new Error(
-          "The token cannot read Projects. Run `gh auth refresh -s project` (or use a PAT with read:project) and retry."
-        );
+  type ProjectNode = {id: string; number: number; title: string; url: string};
+  const projectNodes = await collectPagedNodes<ProjectNode>({
+    fetchPage: async (after) => {
+      try {
+        const projectsData = await graphql<{
+          organization: {
+            projectsV2: {
+              nodes: ProjectNode[];
+              pageInfo: {endCursor: string | null; hasNextPage: boolean};
+            };
+          };
+        }>({query: PROJECTS_QUERY, token, variables: {after, owner: values.owner}});
+        return projectsData.organization.projectsV2;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("read:project")) {
+          throw new Error(
+            "The token cannot read Projects. Run `gh auth refresh -s project` (or use a PAT with read:project) and retry."
+          );
+        }
+        throw error;
       }
-      throw error;
-    }
-  );
+    },
+  });
 
-  let project = projectsData.organization.projectsV2.nodes.find((node) => node.title === PROJECT_TITLE);
+  let project = projectNodes.find((node) => node.title === PROJECT_TITLE);
   if (project === undefined) {
     actions.push(`create Project "${PROJECT_TITLE}" under ${values.owner}`);
     if (readOnly) {

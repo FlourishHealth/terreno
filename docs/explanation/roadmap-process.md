@@ -361,7 +361,12 @@ do not claim completion until done.
 | [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
 
 All three share the `roadmap` concurrency group. They write the same board, and interleaving
-them produces confusing partial states.
+them produces confusing partial states. After the group lock is acquired, each job refreshes
+to the latest branch HEAD so a queued `roadmap-sync` cannot overwrite statuses that
+`roadmap-reconcile` already advanced. `roadmap-reconcile` also fails fast when
+`TERRENO_PROJECT_NUMBER` is unset, so it never mutates the seed or board before generate
+can run. `roadmap:sync` pages organization projects until it finds **Terreno Roadmap**, so
+it will not create a second project if the org has more than 50 boards.
 
 The full loop, each arrow with exactly one writer:
 

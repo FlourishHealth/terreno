@@ -7,6 +7,7 @@ import {
   COMMUNITY_FIELD_NAME,
   IP_FIELD_NAME,
   buildDesiredFields,
+  collectPagedNodes,
   planFields,
   resolveSeedItems,
   validateItems,
@@ -47,6 +48,43 @@ Body for the undesigned item.
 | \`alpha-ip\` | https://github.com/FlourishHealth/terreno/issues/42 | \`Planned\` | \`api\` | \`Next\` | \`Feature\` | \`type:feature\` |
 | \`shipped-thing\` | https://github.com/FlourishHealth/terreno/issues/43 | \`Shipped\` | \`dx\` | \`Released\` | \`Improvement\` | \`type:chore\` |
 `;
+
+describe("collectPagedNodes", () => {
+  it("walks every page and finds a title past the first 50 nodes", async () => {
+    const pages: {id: string; number: number; title: string; url: string}[][] = [
+      Array.from({length: 50}, (_, index) => ({
+        id: `p${index}`,
+        number: index + 1,
+        title: `Other ${index}`,
+        url: `https://example.test/${index}`,
+      })),
+      [
+        {
+          id: "target",
+          number: 51,
+          title: "Terreno Roadmap",
+          url: "https://example.test/roadmap",
+        },
+      ],
+    ];
+
+    const nodes = await collectPagedNodes({
+      fetchPage: async (after) => {
+        const pageIndex = after === null ? 0 : Number(after);
+        return {
+          nodes: pages[pageIndex] ?? [],
+          pageInfo: {
+            endCursor: pageIndex === 0 ? "1" : null,
+            hasNextPage: pageIndex === 0,
+          },
+        };
+      },
+    });
+
+    assert.equal(nodes.length, 51);
+    assert.equal(nodes.find((node) => node.title === "Terreno Roadmap")?.id, "target");
+  });
+});
 
 describe("parseProjectFields", () => {
   it("reads backticked values", () => {
