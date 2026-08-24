@@ -7,6 +7,11 @@
  *
  * Usage (from a package directory):
  *   node ../.github/scripts/compile-workspace-deps.js
+ *
+ * Optional extra package directories (absolute or relative to this script's cwd)
+ * compile each package's @terreno/* deps in one process so a shared `compiled`
+ * set skips duplicate `tsc` work:
+ *   node compile-workspace-deps.js /path/to/api /path/to/rtk
  */
 const fs = require("fs");
 const path = require("path");
@@ -58,15 +63,23 @@ const compile = (dir) => {
   execSync("bun tsc", {cwd: resolved, stdio: "inherit"});
 };
 
-const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-for (const t of DEP_TYPES) {
-  for (const [name] of Object.entries(pkg[t] || {})) {
-    if (!isTerrenoMonorepoDep(name)) {
-      continue;
-    }
-    const depDir = resolveMonorepoPackageDir(process.cwd(), name);
-    if (depDir) {
-      compile(depDir);
+const packageDirs =
+  process.argv.slice(2).length > 0
+    ? process.argv.slice(2).map((dir) => path.resolve(dir))
+    : [process.cwd()];
+
+for (const packageDir of packageDirs) {
+  const pkgPath = path.join(packageDir, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+  for (const t of DEP_TYPES) {
+    for (const [name] of Object.entries(pkg[t] || {})) {
+      if (!isTerrenoMonorepoDep(name)) {
+        continue;
+      }
+      const depDir = resolveMonorepoPackageDir(packageDir, name);
+      if (depDir) {
+        compile(depDir);
+      }
     }
   }
 }

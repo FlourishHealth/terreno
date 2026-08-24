@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import express from "express";
 import {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
@@ -19,7 +20,8 @@ import {syncPlugin} from "./syncSeqPlugin";
  * (`SyncCounter.stream` / `SyncMutation.mutationId` uniques, the scope-move lookups,
  * `SyncKey.userId`), so they exist after startup without any manual `ensureIndexes()`
  * call — without the unique indexes, duplicate mutation deliveries double-apply and the
- * counter upsert race mints duplicate seqs.
+ * counter upsert race mints duplicate seqs. Index work must remain deferred until this
+ * function runs because model registration can happen before MongoDB connects.
  */
 
 interface IndexTodo extends IsDeleted {
@@ -68,6 +70,26 @@ describe("ensureSyncIndexes (C8)", () => {
       routePath: "/ensureIndexTodosOk",
     });
     await expect(ensureSyncIndexes()).resolves.toBeUndefined();
+  });
+
+  it("defers snapshot index creation until startup ensures indexes", async () => {
+    const IndexTodoModel = buildModel("EnsureIndexTodoDeferred");
+    let createIndexCalls = 0;
+    (IndexTodoModel.collection as any).createIndex = async () => {
+      createIndexCalls += 1;
+      return "ownerId_1__syncSeq_1";
+    };
+
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: IndexTodoModel as any,
+      options: authedOptions,
+      routePath: "/ensureIndexTodosDeferred",
+    });
+
+    assert.strictEqual(createIndexCalls, 0);
+    await ensureSyncIndexes();
+    assert.strictEqual(createIndexCalls, 1);
   });
 
   it("rejects with an actionable error when createIndex fails, so startup fails loudly", async () => {

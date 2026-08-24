@@ -323,7 +323,7 @@ export const installRealtimeSocketHandlers = (
  * TerrenoPlugin that provides real-time sync via Socket.io and MongoDB change streams.
  *
  * Attaches a Socket.io server to the HTTP server created by TerrenoApp.start(),
- * sets up JWT and/or Better Auth authentication for socket connections, manages room subscriptions
+ * sets up JWT authentication for socket connections, manages room subscriptions
  * (model, document, and query rooms), and starts a change stream watcher that
  * emits events to connected clients.
  *
@@ -394,14 +394,14 @@ export class RealtimeApp implements TerrenoPlugin {
         },
       });
 
-      // Authentication middleware: legacy JWT first when configured, optionally Better Auth sessions.
+      // Authentication middleware: legacy JWT first, optionally Better Auth sessions.
       const tokenSecret = this.config.tokenSecret ?? process.env.TOKEN_SECRET;
       if (!tokenSecret && !this.config.betterAuth) {
         throw new APIError({
           status: 500,
           title:
-            "[realtime] Socket authentication requires TOKEN_SECRET or Better Auth. " +
-            "Set process.env.TOKEN_SECRET, pass tokenSecret, or configure betterAuth.",
+            "[realtime] TOKEN_SECRET is required for socket authentication. " +
+            "Set process.env.TOKEN_SECRET or pass tokenSecret in RealtimeAppOptions.",
         });
       }
 
@@ -418,14 +418,13 @@ export class RealtimeApp implements TerrenoPlugin {
         createSocketAuthMiddleware({
           betterAuth: this.config.betterAuth,
           issuer: resolveTokenIssuer,
-          tokenSecret,
+          ...(tokenSecret ? {tokenSecret} : {}),
         })
       );
 
-      const authKinds = [tokenSecret ? "JWT" : null, this.config.betterAuth ? "Better Auth" : null]
-        .filter(Boolean)
-        .join(" + ");
-      logInfo(`[realtime] Socket auth middleware added (${authKinds})`);
+      logInfo(
+        `[realtime] Socket auth middleware added (${tokenSecret ? "JWT" : ""}${tokenSecret && this.config.betterAuth ? " + " : ""}${this.config.betterAuth ? "Better Auth" : ""})`
+      );
 
       // Task 9.21: tenant/custom sync scopes can only be resolved from the full user
       // document, so warn loudly here (once, at startup) rather than silently serving

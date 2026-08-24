@@ -399,13 +399,25 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
       - name: Build Docker image
+        id: docker-build
+        env:
+          IMAGE: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
         run: |
           docker build \
             --file ./example-backend/Dockerfile \
-            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }} \
+            --tag "$IMAGE" \
             .
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      - name: Smoke-test container before deploy
+        env:
+          SMOKE_IMAGE: ${{ steps.docker-build.outputs.image }}
+          SMOKE_MODE: preview
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: .github/workflows/scripts/backend-container-smoke.sh
       - name: Push Docker image
-        run: docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+        run: docker push ${{ steps.docker-build.outputs.image }}
       # Better Auth is only enabled once the terraform-managed secret exists,
       # so preview deploys keep working before the first terraform apply on master.
       - name: Resolve Better Auth deploy config
@@ -584,7 +596,7 @@ jobs:
       - uses: actions/checkout@v6.0.3
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build all packages
@@ -609,7 +621,7 @@ jobs:
       - uses: actions/checkout@v6.0.3
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build all packages
