@@ -6,9 +6,7 @@ export const SCOPED_PACKAGES = [
   "admin-frontend",
   "ai",
   "api",
-  "demo",
   "example-backend",
-  "example-frontend",
   "rtk",
   "ui",
 ] as const;

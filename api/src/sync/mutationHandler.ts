@@ -343,7 +343,7 @@ const isE11000Error = (error: unknown): boolean => {
  * different write landed and happens to have advanced the seq by exactly
  * one" (a real conflict; a seq match alone cannot tell these apart).
  */
-const docMatchesMutationData = (
+export const docMatchesMutationData = (
   doc: unknown,
   data: Record<string, unknown> | undefined
 ): boolean => {
@@ -358,7 +358,11 @@ const docMatchesMutationData = (
   return Object.entries(data).every(([key, value]) => {
     const current = plain?.[key];
     if (current instanceof Date && typeof value === "string") {
-      return current.toISOString() === DateTime.fromISO(value).toJSDate().toISOString();
+      const parsed = DateTime.fromISO(value, {zone: "utc"});
+      if (!parsed.isValid) {
+        return false;
+      }
+      return current.toISOString() === parsed.toJSDate().toISOString();
     }
     return JSON.stringify(current) === JSON.stringify(value);
   });

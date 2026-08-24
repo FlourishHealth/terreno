@@ -24,7 +24,8 @@ describe("source-rules scanner", () => {
   it("skips tests, isolated files, and generated SDKs", () => {
     assert.isFalse(isScopedProductionFile("api/src/foo.test.ts"));
     assert.isFalse(isScopedProductionFile("rtk/src/isolated/emptyApi.isolated.ts"));
-    assert.isFalse(isScopedProductionFile("example-frontend/src/openApiSdk.ts"));
+    assert.isFalse(isScopedProductionFile("example-frontend/app/index.tsx"));
+    assert.isFalse(isScopedProductionFile("demo/stories/Button.tsx"));
     assert.isFalse(isScopedProductionFile("scripts/check-source-rules/lib.ts"));
     assert.isTrue(isScopedProductionFile("api/src/plugins.ts"));
     assert.isTrue(isScopedProductionFile("ui/src/Button.tsx"));
