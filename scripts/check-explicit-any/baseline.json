@@ -2,7 +2,7 @@
   "byPackage": {
     "admin-backend": 3,
     "admin-frontend": 6,
-    "api": 878,
+    "api": 836,
     "demo": 2,
     "example-backend": 33,
     "example-frontend": 3,
@@ -12,20 +12,20 @@
     "ui": 40
   },
   "byRemediationStatus": {
-    "fully-documented": 1086,
+    "fully-documented": 1044,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-21T02:21:07.959Z",
+  "generatedAt": "2026-08-24T18:05:02.675Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 1086
+    "totalUsages": 1044
   },
-  "totalFiles": 83,
-  "totalUsages": 1086,
+  "totalFiles": 77,
+  "totalUsages": 1044,
   "version": 1
 }

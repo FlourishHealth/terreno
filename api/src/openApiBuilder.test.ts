@@ -378,7 +378,7 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
       .withTags(["test"])
       .withSummary("Test")
       .withResponse(200, {id: {type: "string"}})
-      .build() as express.RequestHandler;
+      .build();
 
     // Middleware should be a function
     expect(typeof middleware).toBe("function");
@@ -392,7 +392,7 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
   });
 
   it("build returns noop middleware when options is empty", () => {
-    const middleware = createOpenApiBuilder({}).build() as express.RequestHandler;
+    const middleware = createOpenApiBuilder({}).build();
 
     let nextCalled = false;
     middleware({} as express.Request, {} as express.Response, () => {
@@ -519,15 +519,15 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
     expect(result.validationEnabled).toBe(false);
   });
 
-  it("build() returns an array when validation is enabled with body and query", () => {
+  it("build() returns a single composed middleware when validation is enabled with body and query", () => {
     const result = createOpenApiBuilder({})
       .withRequestBody({name: {required: true, type: "string"}})
       .withQueryParameter("page", {type: "number"})
       .withValidation()
       .build();
 
-    expect(Array.isArray(result)).toBe(true);
-    expect(result).toHaveLength(3);
+    expect(typeof result).toBe("function");
+    expect(Array.isArray(result)).toBe(false);
   });
 
   it("build() returns a single middleware when validation is disabled", () => {
