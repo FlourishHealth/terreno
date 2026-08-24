@@ -670,7 +670,7 @@ ConfigurationDB.getByKey = async (key: string): Promise<ConfigurationDocument | 
 ConfigurationDB.setValue = async (
   key: string,
   value: ConfigValueType
-): Promise<ConfigurationDocument> {
+): Promise<ConfigurationDocument> => {
   const existing = await ConfigurationDB.findOneOrNone({key});
 
   if (existing) {

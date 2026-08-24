@@ -164,18 +164,15 @@ export const seedBetterAuthUserInProcess = async (
   }
 
   if (body.user) {
-    await syncBetterAuthUser(
-      User as unknown as TerrenoAuthUserModel,
-      {
-        createdAt: DateTime.now().toJSDate(),
-        email: body.user.email,
-        emailVerified: false,
-        id: body.user.id,
-        image: null,
-        name: body.user.name,
-        updatedAt: DateTime.now().toJSDate(),
-      }
-    );
+    await syncBetterAuthUser(User as unknown as TerrenoAuthUserModel, {
+      createdAt: DateTime.now().toJSDate(),
+      email: body.user.email,
+      emailVerified: false,
+      id: body.user.id,
+      image: null,
+      name: body.user.name,
+      updatedAt: DateTime.now().toJSDate(),
+    });
   }
 
   logger.info(`Seeded Better Auth user in-process: ${user.email}`);

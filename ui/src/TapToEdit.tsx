@@ -102,28 +102,28 @@ export const TapToEdit: FC<TapToEditProps> = ({
   }
 
   if (editable && (editing || isEditing)) {
+    const editableFieldProps = {
+      grow: fieldProps?.type === "textarea" ? (fieldProps.grow ?? true) : undefined,
+      helperText,
+      inputRef: ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
+        ? (ref: unknown): void => {
+            inputRef.current = ref as FocusableInput | null;
+          }
+        : undefined,
+      onChange: setValue as NonNullable<typeof setValue>,
+      row: fieldProps?.type === "textarea" ? 5 : undefined,
+      value,
+      ...fieldProps,
+      type: (fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>,
+    } as unknown as FieldProps;
+
     return (
       <View style={{flexDirection: "column", width: "100%"}}>
         <View style={{flex: 1, justifyContent: "center"}}>
           <Text bold>{title}</Text>
         </View>
         <View style={{gap: 16}}>
-          <Field
-            grow={fieldProps?.type === "textarea" ? (fieldProps.grow ?? true) : undefined}
-            helperText={helperText}
-            inputRef={
-              ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
-                ? (ref: unknown) => {
-                    inputRef.current = ref as FocusableInput | null;
-                  }
-                : undefined
-            }
-            onChange={setValue as NonNullable<typeof setValue>}
-            row={fieldProps?.type === "textarea" ? 5 : undefined}
-            type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
-            value={value}
-            {...(fieldProps as FieldProps)}
-          />
+          <Field {...editableFieldProps} />
           {editing && !isEditing && (
             <View style={{flexDirection: "row", gap: 16, justifyContent: "flex-end"}}>
               <Button

@@ -730,8 +730,7 @@ export const addAiRoutes = (
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
-    createRequestTools:
-      createPerRequestTools as unknown as GptRouteOptions["createRequestTools"],
+    createRequestTools: createPerRequestTools as unknown as GptRouteOptions["createRequestTools"],
     createServerModelFn: createServerModel,
     demoMode: !aiService,
     langfuseSystemPromptName: "chat-assistant",

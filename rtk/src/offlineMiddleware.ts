@@ -240,11 +240,7 @@ const applyOptimisticUpdate = (
   // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
   const updateAllCacheEntries = (updater: (draft: any) => void): void => {
     for (const queryArg of cachedArgs) {
-      dispatch(
-        // noExplicitAny: RTK Query cache shape varies by endpoint
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as never, queryArg, updater)
-      );
+      dispatch(api.util.updateQueryData(listEndpointName as never, queryArg, updater));
     }
   };
 
@@ -506,10 +502,11 @@ export const createOfflineMiddleware = (
                 (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
               );
               if (doc?.updated) {
-                timestamp =
-                  typeof doc.updated === "string"
-                    ? doc.updated
-                    : DateTime.fromJSDate(doc.updated).toISO();
+                if (typeof doc.updated === "string") {
+                  timestamp = doc.updated;
+                } else if (doc.updated instanceof Date) {
+                  timestamp = DateTime.fromJSDate(doc.updated).toISO() ?? timestamp;
+                }
                 listCacheBaseUpdatedAt = timestamp ?? undefined;
                 break;
               }

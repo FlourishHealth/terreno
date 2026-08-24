@@ -365,9 +365,11 @@ export class DateOnly extends SchemaType {
   }
 
   $conditionalHandlers = {
-    ...(SchemaType as unknown as {
-      prototype: {$conditionalHandlers: Record<string, (value: unknown) => Date | undefined>};
-    }).prototype.$conditionalHandlers,
+    ...(
+      SchemaType as unknown as {
+        prototype: {$conditionalHandlers: Record<string, (value: unknown) => Date | undefined>};
+      }
+    ).prototype.$conditionalHandlers,
     $gt: this.handleSingle,
     $gte: this.handleSingle,
     $lt: this.handleSingle,
