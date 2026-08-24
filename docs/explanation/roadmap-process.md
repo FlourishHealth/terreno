@@ -273,7 +273,8 @@ you invoke them explicitly.
 `roadmap-item` and `roadmap-promote` no longer touch the board with `gh project`. They add or
 edit an entry in [`roadmap-seed-issues.md`](roadmap-seed-issues.md) and run `roadmap:sync`,
 which opens the issue, applies the labels, adds the item, and sets every field in one
-idempotent pass. Board items added by hand show up as drift on the next `--check`.
+idempotent pass. Board items added by hand show up as `--check` drift; apply does not delete
+them. A dragged `Status` that is ahead of the seed is reported the same way and is not reset.
 
 `roadmap-review` starts from `bun run roadmap:reconcile`, which mechanically answers most
 hygiene questions and leaves a `Needs a human` list that is exactly the review's agenda.
@@ -392,8 +393,11 @@ Who owns what:
 | `ROADMAP.md` | Nothing — fully generated |
 
 `roadmap:sync` owns the board's *shape*: which fields exist, which options they allow, which
-issues are on it, and the declared field values. Maintainers own the board's *state*; the daily
-`--check` step reports drift rather than reverting it, so moving a card never fights CI.
+issues are on it, and Area / Target / Impact / IP. It writes `Status` only onto a new card or
+when the seed is strictly ahead (or Declined). A dragged Status that is ahead of the seed is
+reported by `--check` and is never overwritten. Cards that are not in
+[`roadmap-seed-issues.md`](roadmap-seed-issues.md) are also `--check` failures; apply does
+not delete them. Maintainers own the board's *state* and `Community interest`.
 
 **Status automation is monotonic.** `roadmap:reconcile --fix` advances status and applies
 supersessions, but never walks a status backwards and never revives declined work. IP headers

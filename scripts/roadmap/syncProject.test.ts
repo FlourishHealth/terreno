@@ -9,7 +9,9 @@ import {
   buildDesiredFields,
   collectPagedNodes,
   planFields,
+  planItemSync,
   resolveSeedItems,
+  shouldWriteBoardStatus,
   validateItems,
 } from "./syncProject.ts";
 
@@ -255,6 +257,85 @@ describe("validateItems", () => {
 
     assert.equal(problems.length, 1);
     assert.ok(problems[0]?.startsWith("mismatched:"));
+  });
+});
+
+describe("shouldWriteBoardStatus", () => {
+  it("writes Status onto a new or empty card", () => {
+    assert.equal(shouldWriteBoardStatus({boardStatus: "", seedStatus: "Planned"}), true);
+  });
+
+  it("writes when the seed is strictly ahead", () => {
+    assert.equal(shouldWriteBoardStatus({boardStatus: "Planned", seedStatus: "Shipped"}), true);
+  });
+
+  it("does not reset a dragged Status that is ahead of the seed", () => {
+    assert.equal(shouldWriteBoardStatus({boardStatus: "In progress", seedStatus: "Planned"}), false);
+  });
+
+  it("does not revive a Declined card from a later seed Status", () => {
+    assert.equal(shouldWriteBoardStatus({boardStatus: "Declined", seedStatus: "Planned"}), false);
+  });
+
+  it("writes Declined from the seed onto a live card", () => {
+    assert.equal(shouldWriteBoardStatus({boardStatus: "Planned", seedStatus: "Declined"}), true);
+  });
+});
+
+describe("planItemSync", () => {
+  const seedItem = {
+    area: "api",
+    impact: "Feature",
+    ip: "alpha-ip",
+    issueNumber: 42,
+    status: "Planned",
+    target: "Next",
+    title: "[Roadmap] Alpha",
+  };
+
+  it("reports a hand-added card without planning to delete it", () => {
+    const plan = planItemSync({
+      boardItems: [
+        {fields: {Status: "Inbox"}, id: "extra", issueNumber: 99},
+        {fields: {Area: "api", Impact: "Feature", IP: "alpha-ip", Status: "Planned", Target: "Next"}, id: "keep", issueNumber: 42},
+      ],
+      items: [seedItem],
+    });
+    assert.ok(plan.reports.some((report) => report.includes("EXTRA #99")));
+    assert.equal(
+      plan.fieldValuePlan.some((entry) => entry.itemIssue === 99),
+      false
+    );
+  });
+
+  it("reports a dragged Status instead of writing the seed value", () => {
+    const plan = planItemSync({
+      boardItems: [
+        {
+          fields: {Area: "api", Impact: "Feature", IP: "alpha-ip", Status: "In progress", Target: "Next"},
+          id: "dragged",
+          issueNumber: 42,
+        },
+      ],
+      items: [seedItem],
+    });
+    assert.deepEqual(plan.fieldValuePlan, []);
+    assert.ok(plan.reports.some((report) => report.includes("Status is In progress")));
+  });
+
+  it("writes Status when the seed is ahead of the board", () => {
+    const plan = planItemSync({
+      boardItems: [
+        {
+          fields: {Area: "api", Impact: "Feature", IP: "alpha-ip", Status: "Planned", Target: "Next"},
+          id: "behind",
+          issueNumber: 42,
+        },
+      ],
+      items: [{...seedItem, status: "Shipped"}],
+    });
+    assert.deepEqual(plan.fieldValuePlan, [{field: "Status", itemIssue: 42, value: "Shipped"}]);
+    assert.deepEqual(plan.reports, []);
   });
 });
 

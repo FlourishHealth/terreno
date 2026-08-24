@@ -30,7 +30,8 @@ import {
   parseLabelNames,
   validateRoadmapItem,
 } from "./checkRoadmapItem.ts";
-import {type SeedIssue, readSeedIssues} from "./seedIssues.ts";
+import {DECLINED, STATUS_RANK} from "./reconcileIps.ts";
+import {SEED_ISSUES_PATH, type SeedIssue, readSeedIssues} from "./seedIssues.ts";
 
 export const PROJECT_TITLE = "Terreno Roadmap";
 export const IP_FIELD_NAME = "IP";
@@ -265,6 +266,130 @@ export const validateItems = ({
   }
 
   return problems;
+};
+
+export interface BoardItemSnapshot {
+  fields: Record<string, string>;
+  id: string;
+  issueNumber: number | null;
+}
+
+export interface ItemFieldWrite {
+  field: string;
+  itemIssue: number;
+  value: string;
+}
+
+export interface ItemSyncPlan {
+  /** Mutations the apply path will perform. */
+  actions: string[];
+  fieldValuePlan: ItemFieldWrite[];
+  /** Drift that `--check` fails on but apply must not revert. */
+  reports: string[];
+}
+
+/** True when seed Status is empty, new, Declined, or strictly ahead of the board. */
+export const shouldWriteBoardStatus = ({
+  boardStatus,
+  seedStatus,
+}: {
+  boardStatus: string;
+  seedStatus: string;
+}): boolean => {
+  if (seedStatus === "") {
+    return false;
+  }
+  if (boardStatus === "") {
+    return true;
+  }
+  if (boardStatus === seedStatus) {
+    return false;
+  }
+  if (boardStatus === DECLINED && seedStatus !== DECLINED) {
+    return false;
+  }
+  if (seedStatus === DECLINED) {
+    return true;
+  }
+  const seedRank = STATUS_RANK[seedStatus] ?? -1;
+  const boardRank = STATUS_RANK[boardStatus] ?? -1;
+  return seedRank > boardRank;
+};
+
+export const planItemSync = ({
+  boardItems,
+  createMissingIssues = false,
+  items,
+}: {
+  boardItems: BoardItemSnapshot[];
+  createMissingIssues?: boolean;
+  items: Pick<
+    ResolvedItem,
+    "area" | "impact" | "ip" | "issueNumber" | "status" | "target" | "title"
+  >[];
+}): ItemSyncPlan => {
+  const plan: ItemSyncPlan = {actions: [], fieldValuePlan: [], reports: []};
+  const boardByIssue = new Map(
+    boardItems.filter((item) => item.issueNumber !== null).map((item) => [item.issueNumber as number, item])
+  );
+  const seedIssues = new Set(
+    items.flatMap((item) => (item.issueNumber === null ? [] : [item.issueNumber]))
+  );
+
+  for (const item of items) {
+    if (item.issueNumber === null) {
+      plan.actions.push(
+        createMissingIssues
+          ? `create issue "${item.title}"`
+          : `SKIP "${item.title}" (no issue; pass --create-missing-issues to open one)`
+      );
+      continue;
+    }
+
+    const boardItem = boardByIssue.get(item.issueNumber);
+    if (boardItem === undefined) {
+      plan.actions.push(`add #${item.issueNumber} to the board`);
+    }
+
+    const wanted: Record<string, string> = {
+      Area: item.area,
+      Impact: item.impact,
+      [IP_FIELD_NAME]: item.ip,
+      Target: item.target,
+    };
+    for (const [field, value] of Object.entries(wanted)) {
+      if (value === "" && field !== IP_FIELD_NAME) {
+        continue;
+      }
+      if ((boardItem?.fields[field] ?? "") === value) {
+        continue;
+      }
+      plan.fieldValuePlan.push({field, itemIssue: item.issueNumber, value});
+      plan.actions.push(`#${item.issueNumber} ${field} = ${value === "" ? "(empty)" : value}`);
+    }
+
+    const boardStatus = boardItem?.fields.Status ?? "";
+    if (shouldWriteBoardStatus({boardStatus, seedStatus: item.status})) {
+      plan.fieldValuePlan.push({field: "Status", itemIssue: item.issueNumber, value: item.status});
+      plan.actions.push(`#${item.issueNumber} Status = ${item.status}`);
+    } else if (item.status !== "" && boardStatus !== "" && boardStatus !== item.status) {
+      plan.reports.push(
+        `#${item.issueNumber} Status is ${boardStatus} on the board (seed ${item.status}); not overwritten`
+      );
+    }
+  }
+
+  for (const boardItem of boardItems) {
+    if (boardItem.issueNumber === null) {
+      plan.reports.push(`EXTRA board item ${boardItem.id} has no linked issue and is not in ${SEED_ISSUES_PATH}`);
+      continue;
+    }
+    if (!seedIssues.has(boardItem.issueNumber)) {
+      plan.reports.push(`EXTRA #${boardItem.issueNumber} is on the board but not in ${SEED_ISSUES_PATH}`);
+    }
+  }
+
+  return plan;
 };
 
 // ---------------------------------------------------------------------------
@@ -690,61 +815,48 @@ export const main = async (): Promise<void> => {
     boardItems.filter((item) => item.issueNumber !== null).map((item) => [item.issueNumber as number, item])
   );
 
-  const fieldValuePlan: {field: string; itemIssue: number; value: string}[] = [];
-  for (const item of items) {
-    if (item.issueNumber === null) {
-      actions.push(
-        values["create-missing-issues"]
-          ? `create issue "${item.title}"`
-          : `SKIP "${item.title}" (no issue; pass --create-missing-issues to open one)`
-      );
-      continue;
-    }
-
-    const boardItem = boardByIssue.get(item.issueNumber);
-    if (boardItem === undefined) {
-      actions.push(`add #${item.issueNumber} to the board`);
-    }
-
-    const wanted: Record<string, string> = {
-      Area: item.area,
-      Impact: item.impact,
-      [IP_FIELD_NAME]: item.ip,
-      Status: item.status,
-      Target: item.target,
-    };
-    for (const [field, value] of Object.entries(wanted)) {
-      if (value === "" && field !== IP_FIELD_NAME) {
-        continue;
-      }
-      // An unset board field is absent from fieldValues rather than empty, so
-      // normalize before comparing or an empty IP re-plans on every run.
-      if ((boardItem?.fields[field] ?? "") === value) {
-        continue;
-      }
-      fieldValuePlan.push({field, itemIssue: item.issueNumber, value});
-      actions.push(`#${item.issueNumber} ${field} = ${value === "" ? "(empty)" : value}`);
-    }
-  }
+  const itemPlan = planItemSync({
+    boardItems,
+    createMissingIssues: values["create-missing-issues"],
+    items,
+  });
+  actions.push(...itemPlan.actions);
+  const fieldValuePlan = itemPlan.fieldValuePlan;
+  const reports = itemPlan.reports;
 
   console.info(`Board: ${project.url}`);
 
-  if (actions.length === 0) {
+  if (reports.length > 0) {
+    console.info(`\nReports (${reports.length}; apply will not mutate these):`);
+    for (const report of reports) {
+      console.info(`  ! ${report}`);
+    }
+  }
+
+  if (actions.length === 0 && reports.length === 0) {
     console.info("\nBoard is in sync with the repository.");
     return;
   }
 
-  console.info(`\nPlan (${actions.length} actions):`);
-  for (const action of actions) {
-    console.info(`  - ${action}`);
+  if (actions.length > 0) {
+    console.info(`\nPlan (${actions.length} actions):`);
+    for (const action of actions) {
+      console.info(`  - ${action}`);
+    }
   }
 
   if (values.check) {
-    console.error(`\nroadmap:sync --check: board has drifted (${actions.length} pending actions)`);
+    console.error(
+      `\nroadmap:sync --check: board has drifted (${actions.length} pending actions, ${reports.length} reports)`
+    );
     process.exit(1);
   }
   if (values["dry-run"]) {
     console.info("\n--dry-run: nothing was changed.");
+    return;
+  }
+  if (actions.length === 0) {
+    console.info("\nNo apply actions. Extra board items and board-ahead Status stay until a human updates the seed.");
     return;
   }
 

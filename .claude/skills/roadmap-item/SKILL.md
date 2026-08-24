@@ -131,7 +131,8 @@ Print, then **stop and wait**:
 **Do not touch the board directly.** Write the entry into
 [`docs/explanation/roadmap-seed-issues.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-seed-issues.md)
 and let the sync tool do the rest — that document is the repo's declaration of what belongs
-on the board, and hand-added items get reported as drift on the next `--check`.
+on the board, and hand-added items fail `roadmap:sync --check`. Apply does not delete those
+cards; add a seed entry or remove the card by hand.
 
 Add a `##` section in the house style above:
 

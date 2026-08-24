@@ -59,7 +59,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
           if ! bun run roadmap:sync --check; then
-            echo "::warning::Roadmap board has drifted from the repository. Run 'bun run roadmap:sync' to reconcile."
+            echo "::warning::Roadmap board has drifted from the repository. Extra cards need a seed entry; a dragged Status is kept. See the check log."
           fi
 
       - name: Generate ROADMAP.md
