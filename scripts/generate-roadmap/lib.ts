@@ -8,7 +8,12 @@ export interface RoadmapItem {
   url: string;
 }
 
-export const TARGET_ORDER = ["0.28", "0.29", "Next", "Future"] as const;
+/**
+ * Render order for `## Target:` sections. Must stay deep-equal to the `target`
+ * list in `.github/roadmap-fields.yml` (asserted in checkRoadmapItem.test.ts).
+ * `Released` sits last so shipped history renders below upcoming work.
+ */
+export const TARGET_ORDER = ["57.3", "58", "Next", "Future", "Released"] as const;
 
 export const AREA_ORDER = [
   "api",

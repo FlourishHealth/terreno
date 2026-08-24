@@ -38,6 +38,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Reports board drift without failing the run: maintainers own board state,
+      # so a moved card must never block ROADMAP.md from regenerating.
+      - name: Report roadmap board drift
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          if ! bun run roadmap:sync --check; then
+            echo "::warning::Roadmap board has drifted from the repository. Run 'bun run roadmap:sync' to reconcile."
+          fi
+
       - name: Generate ROADMAP.md
         env:
           GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
