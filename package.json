@@ -243,6 +243,8 @@
     "rtk:test": "bun run --filter '@terreno/rtk' test:ci",
     "roadmap:check": "bun run scripts/roadmap/checkRoadmapItem.ts",
     "roadmap:generate": "bun run scripts/generate-roadmap/generate.ts",
+    "roadmap:reconcile": "bun run scripts/roadmap/reconcileIps.ts",
+    "roadmap:sync": "bun run scripts/roadmap/syncProject.ts",
     "labels:sync": "bun run scripts/sync-labels.ts",
     "rtk:web": "bun run --filter '@terreno/rtk' web",
     "rules": "bunx rulesync generate",

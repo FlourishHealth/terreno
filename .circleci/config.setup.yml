@@ -50,6 +50,7 @@ workflows:
             example-backend/.* run-example-backend true
             example-backend/.* run-example-backend-script true
             example-backend/.* run-example-backend-docker true
+            api/.* run-example-backend true
             api/.* run-example-backend-script true
             api/.* run-example-backend-docker true
             ai/.* run-example-backend true

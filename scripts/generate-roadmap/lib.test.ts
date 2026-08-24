@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {filterRoadmapItems, renderRoadmapMarkdown, type RoadmapItem} from "./lib";
+import {displayTitle, filterRoadmapItems, renderRoadmapMarkdown, type RoadmapItem} from "./lib";
 
 const sampleItems: RoadmapItem[] = [
   {
@@ -54,5 +54,19 @@ describe("renderRoadmapMarkdown", () => {
     assert.include(markdown, "oss-governance-baseline");
     assert.include(markdown, "## Target: Future");
     assert.notInclude(markdown, "Declined item");
+  });
+});
+
+describe("displayTitle", (): void => {
+  it("drops the [Roadmap] tracking prefix", (): void => {
+    assert.equal(displayTitle("[Roadmap] Deploy to GCP"), "Deploy to GCP");
+  });
+
+  it("leaves an untagged title alone", (): void => {
+    assert.equal(displayTitle("Deploy to GCP"), "Deploy to GCP");
+  });
+
+  it("keeps the original when the prefix is the whole title", (): void => {
+    assert.equal(displayTitle("[Roadmap]"), "[Roadmap]");
   });
 });

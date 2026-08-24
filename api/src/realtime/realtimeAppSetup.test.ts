@@ -5,8 +5,8 @@
  * are process-wide and would break later files that need the real implementations).
  */
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
-
 import type http from "node:http";
+import {assert} from "chai";
 
 import {RealtimeApp} from "./realtimeApp";
 
@@ -155,5 +155,23 @@ describe("RealtimeApp.onServerCreated", () => {
     delete process.env.TOKEN_SECRET;
     const app = new RealtimeApp(testRealtimeOptions());
     expect(() => app.onServerCreated(fakeServer)).toThrow(/TOKEN_SECRET is required/);
+  });
+
+  it("starts with Better Auth when no legacy token secret is available", () => {
+    delete process.env.TOKEN_SECRET;
+    const app = new RealtimeApp(
+      testRealtimeOptions({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => null},
+          } as never,
+        },
+      })
+    );
+
+    app.onServerCreated(fakeServer);
+
+    assert.lengthOf(lastIo().middleware, 1);
+    assert.isTrue(lastIo().handlers.has("connection"));
   });
 });

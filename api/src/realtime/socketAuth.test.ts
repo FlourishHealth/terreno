@@ -12,6 +12,7 @@
  * subscribe/mutate socket handlers) into its own file per the syncdb hardening plan.
  */
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import jwt from "jsonwebtoken";
 
 import {
@@ -271,6 +272,22 @@ describe("socketAuth", () => {
         id: "ba-user-2",
         isAnonymous: false,
       });
+    });
+
+    it("accepts Better Auth sessions without a legacy JWT secret", async () => {
+      const middleware = createSocketAuthMiddleware({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only-user"}})},
+          } as any,
+        },
+      });
+      const socket = makeAuthSocket("better-auth-session-token");
+      const error = await runMiddleware(middleware, socket);
+
+      assert.isUndefined(error);
+      assert.strictEqual(socket.decodedToken?.id, "ba-only-user");
+      assert.strictEqual(socket.decodedToken?.authKind, "better-auth");
     });
 
     it("falls through to Better Auth when the JWT is expired", async () => {

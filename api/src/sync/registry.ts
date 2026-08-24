@@ -26,26 +26,24 @@ export interface SyncRegistryEntry {
 const syncRegistry: SyncRegistryEntry[] = [];
 
 /**
- * C8: index creation is kicked off (fire-and-forget) at registration, but its failure must
- * be a STARTUP error, not a swallowed warning (a missing index table-scans the snapshot
- * query under load, and a missing unique index breaks mutation idempotency). Each
- * registration records its index promise here; `ensureSyncIndexes()` awaits them and
- * throws on any failure so server startup can fail loudly. A detached failure is also
- * logged so it is never silent even if startup never calls `ensureSyncIndexes`.
+ * C8: index creation must be a STARTUP error, not a swallowed warning (a missing index
+ * table-scans the snapshot query under load, and a missing unique index breaks mutation
+ * idempotency). Tasks are enqueued at registration but only run when `ensureSyncIndexes()`
+ * is called after MongoDB is connected — firing createIndex at import time (before
+ * `mongoose.connect`) buffers against a disconnected driver and can reject after 10s,
+ * permanently failing startup even once the connection succeeds.
  */
-const indexCreationPromises: Promise<void>[] = [];
+type IndexCreationTask = () => Promise<void>;
+const indexCreationTasks: IndexCreationTask[] = [];
 
 /**
- * Enqueue an index-creation promise for `ensureSyncIndexes()` to await at startup. Used by
+ * Enqueue an index-creation task for `ensureSyncIndexes()` to run at startup. Used by
  * `SyncApp.register` for the bookkeeping-model indexes (`SyncCounter`, `SyncMutation`,
  * `SyncScopeMove`, `SyncKey`), which are correctness-critical and must not depend on
  * Mongoose `autoIndex` being enabled.
  */
-export const trackSyncIndexCreation = (promise: Promise<void>): void => {
-  indexCreationPromises.push(promise);
-  // Swallow the detached rejection (the failure is logged where it happens and rethrown
-  // by `ensureSyncIndexes()` via the retained promise above).
-  promise.catch(() => {});
+export const trackSyncIndexCreation = (task: IndexCreationTask): void => {
+  indexCreationTasks.push(task);
 };
 
 /**
@@ -143,16 +141,13 @@ export const registerSync = <T>({
     });
   };
 
-  // Compound index for snapshot/catch-up queries: {scopeField, _syncSeq}. Created
-  // directly on the collection because the model is already compiled at registration.
-  // C8: track the promise so `ensureSyncIndexes()` (server startup) can fail loudly on a
-  // createIndex error — a missing index table-scans the snapshot query under load. The
-  // detached path only logs (never throws into an orphaned promise).
+  // Compound index for snapshot/catch-up queries: {scopeField, _syncSeq}. Deferred until
+  // `ensureSyncIndexes()` so createIndex runs only after MongoDB is connected.
   const indexSpec: Record<string, 1> = scopeField ? {[scopeField]: 1, _syncSeq: 1} : {_syncSeq: 1};
-  const indexPromise = model.collection
-    .createIndex(indexSpec)
-    .then(() => {})
-    .catch((error: unknown) => {
+  indexCreationTasks.push(async () => {
+    try {
+      await model.collection.createIndex(indexSpec);
+    } catch (error: unknown) {
       logger.error(`[sync] Failed to create sync index for ${name}`, {error: String(error)});
       throw new APIError({
         status: 500,
@@ -160,11 +155,8 @@ export const registerSync = <T>({
           `Failed to create sync snapshot index for ${name}: ${String(error)}. ` +
           "The snapshot/catch-up query requires this index; fix the schema/DB and restart.",
       });
-    });
-  indexCreationPromises.push(indexPromise);
-  // Swallow the detached rejection (already logged) so it is not an unhandled rejection;
-  // `ensureSyncIndexes()` still observes it via the retained promise above.
-  indexPromise.catch(() => {});
+    }
+  });
 };
 
 /**
@@ -190,7 +182,7 @@ export const updateSyncRegistryOptions = (
  * degrading the snapshot query to a table scan or breaking mutation idempotency.
  */
 export const ensureSyncIndexes = async (): Promise<void> => {
-  await Promise.all(indexCreationPromises);
+  await Promise.all(indexCreationTasks.map((task) => task()));
 };
 
 /** Get all registered sync models. */
@@ -258,5 +250,5 @@ export const findSyncEntryByCollectionName = (
 /** Clear the registry (for testing). */
 export const clearSyncRegistry = (): void => {
   syncRegistry.length = 0;
-  indexCreationPromises.length = 0;
+  indexCreationTasks.length = 0;
 };
