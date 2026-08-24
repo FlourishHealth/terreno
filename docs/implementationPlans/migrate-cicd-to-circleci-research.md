@@ -38,7 +38,7 @@ Investigate what “migrate all CI/CD to CircleCI” means for Terreno: inventor
 
 ### Shared CI patterns
 
-1. `oven-sh/setup-bun@v2` (`bun-version: latest`, sometimes pinned `1.3.10` for EAS)
+1. `oven-sh/setup-bun@v2` (`bun-version: latest`, sometimes pinned `1.4.0` for EAS)
 2. `actions/cache` on `~/.bun/install/cache` keyed by OS + ref + lockfile
 3. `bun install --frozen-lockfile` then package `lint` / `compile` / `test(:coverage|:ci)`
 4. Mongo via `supercharge/mongodb-github-action` (image `mirror.gcr.io/library/mongo`) for api/ai/example-backend/e2e
