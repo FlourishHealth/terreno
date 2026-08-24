@@ -8,7 +8,11 @@ import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import type {BetterAuthInstance} from "./betterAuthSetup";
-import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
+import {
+  ConfigurationApp,
+  type ConfigurationAppOptions,
+  type ConfigurationModelLike,
+} from "./configurationApp";
 import {
   apiErrorMiddleware,
   apiFallthroughErrorMiddleware,
@@ -274,12 +278,7 @@ export class TerrenoApp {
    *   .start();
    * ```
    */
-  configure(
-    // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    model: import("mongoose").Model<any>,
-    options?: Omit<ConfigurationAppOptions, "model">
-  ): this {
+  configure(model: ConfigurationModelLike, options?: Omit<ConfigurationAppOptions, "model">): this {
     this.configurationApp = new ConfigurationApp({model, ...options});
     return this;
   }
