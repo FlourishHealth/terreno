@@ -617,12 +617,13 @@ export const ensureSyncModelIndexes = async (): Promise<void> => {
           error: String(error),
         });
         throw new APIError({
+          cause: error,
           code: "sync-indexes-failed",
           detail:
-            "The sync protocol depends on these indexes (unique mutationId for mutation " +
+            `${String(error)}. The sync protocol depends on these indexes (unique mutationId for mutation ` +
             "idempotency, unique stream for seq allocation); fix the DB and restart.",
           status: 500,
-          title: `Failed to ensure sync indexes for ${model.modelName}: ${String(error)}.`,
+          title: `Failed to ensure sync indexes for ${model.modelName}`,
         });
       }
     })

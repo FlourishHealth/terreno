@@ -160,10 +160,11 @@ export const registerSync = <T>({
     .catch((error: unknown) => {
       logger.error(`[sync] Failed to create sync index for ${name}`, {error: String(error)});
       throw new APIError({
+        cause: error,
         code: "sync-snapshot-index-failed",
-        detail: "The snapshot/catch-up query requires this index; fix the schema/DB and restart.",
+        detail: `${String(error)}. The snapshot/catch-up query requires this index; fix the schema/DB and restart.`,
         status: 500,
-        title: `Failed to create sync snapshot index for ${name}: ${String(error)}.`,
+        title: `Failed to create sync snapshot index for ${name}`,
       });
     });
   indexCreationPromises.push(indexPromise);
