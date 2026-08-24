@@ -41,9 +41,20 @@ import {
   validateQueryParams,
   validateRequestBody,
 } from "./openApiValidator";
+import {
+  get as getOpenApiLayerSchema,
+  set as setOpenApiLayerSchema,
+} from "./vendor/wesleytodd-openapi/lib/layer-schema";
 
+/**
+ * Run handlers in order as one Express middleware function.
+ *
+ * `@wesleytodd/openapi` stores path schemas on a Map keyed by the function
+ * Express registers. Copying the schema from the documentation handler onto
+ * the composed function keeps `/openapi.json` generation working.
+ */
 const composeRequestHandlers = (handlers: express.RequestHandler[]): express.RequestHandler => {
-  return (req, res, next): void => {
+  const composed: express.RequestHandler = (req, res, next): void => {
     const run = (index: number): void => {
       if (index >= handlers.length) {
         next();
@@ -59,6 +70,16 @@ const composeRequestHandlers = (handlers: express.RequestHandler[]): express.Req
     };
     run(0);
   };
+
+  for (const handler of handlers) {
+    const schema = getOpenApiLayerSchema(handler);
+    if (schema) {
+      setOpenApiLayerSchema(composed, schema);
+      break;
+    }
+  }
+
+  return composed;
 };
 
 /**
