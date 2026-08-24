@@ -1,10 +1,10 @@
-import {afterAll, beforeAll, describe, expect, it} from "bun:test";
+import {describe, expect, it} from "bun:test";
 import type {NextFunction, Request, Response} from "express";
-import mongoose from "mongoose";
 
 import {
+  createMonitoredAggregate,
+  createMonitoredQueryExec,
   requestMonitorMiddleware,
-  setupMongooseMonitoring,
   trackDbQuery,
   trackMiddleware,
 } from "./requestMonitor";
@@ -30,8 +30,27 @@ const makeRes = (): Response & {ended: boolean} => {
   return res as unknown as Response & {ended: boolean};
 };
 
-const originalQueryExec = mongoose.Query.prototype.exec;
-const originalAggregate = mongoose.Model.aggregate;
+/**
+ * Forces every elapsed `process.hrtime(start)` reading past the slow thresholds.
+ * Fresh readings and `hrtime.bigint` stay real so concurrently running suites
+ * that depend on them are unaffected.
+ */
+const withSlowClock = async (run: () => Promise<void> | void): Promise<void> => {
+  const originalHrtime = process.hrtime;
+  const slowHrtime = ((start?: [number, number]) => {
+    if (!start) {
+      return originalHrtime();
+    }
+    return [2, 0] as [number, number];
+  }) as typeof process.hrtime;
+  slowHrtime.bigint = originalHrtime.bigint.bind(originalHrtime);
+  process.hrtime = slowHrtime;
+  try {
+    await run();
+  } finally {
+    process.hrtime = originalHrtime;
+  }
+};
 
 describe("requestMonitorMiddleware", () => {
   it("skips /health", () => {
@@ -43,15 +62,8 @@ describe("requestMonitorMiddleware", () => {
     expect(called).toBe(true);
   });
 
-  it("logs slow requests when elapsed time exceeds the threshold", () => {
-    const originalHrtime = process.hrtime.bind(process);
-    process.hrtime = ((start?: [number, number]) => {
-      if (!start) {
-        return [0, 0] as [number, number];
-      }
-      return [2, 0] as [number, number];
-    }) as typeof process.hrtime;
-    try {
+  it("logs slow requests when elapsed time exceeds the threshold", async () => {
+    await withSlowClock(() => {
       const req = makeReq("/", false);
       const res = makeRes();
       requestMonitorMiddleware(req, res, () => {});
@@ -60,9 +72,7 @@ describe("requestMonitorMiddleware", () => {
       trackDbQuery(req, "x".repeat(120), [0, 0]);
       res.end();
       expect(res.ended).toBe(true);
-    } finally {
-      process.hrtime = originalHrtime;
-    }
+    });
   });
 
   it("records memory snapshots while a request is in flight", async () => {
@@ -83,203 +93,114 @@ describe("requestMonitorMiddleware", () => {
   });
 });
 
-describe("setupMongooseMonitoring", () => {
-  beforeAll(() => {
-    mongoose.Query.prototype.exec = function (this: {
-      getQuery: () => Record<string, unknown>;
-      op?: string;
-      reject?: boolean;
-      syncValue?: unknown;
-    }) {
-      if (this.syncValue !== undefined) {
-        return this.syncValue;
-      }
-      if (this.reject) {
-        return Promise.reject(new Error("query failed"));
-      }
-      return Promise.resolve({ok: true});
-    } as typeof mongoose.Query.prototype.exec;
+interface FakeQuery {
+  getQuery: () => Record<string, unknown>;
+  op?: string;
+}
 
-    mongoose.Model.aggregate = function (this: {reject?: boolean}, _pipeline?: unknown) {
-      if (this.reject) {
-        return Promise.reject(new Error("aggregate failed"));
-      }
-      return Promise.resolve([{n: 1}]);
-    } as typeof mongoose.Model.aggregate;
+const fakeQuery = (op?: string): FakeQuery => ({
+  getQuery: () => ({name: "ada"}),
+  op,
+});
 
-    setupMongooseMonitoring();
+/**
+ * Runs `work` inside a monitored request so the wrappers take the
+ * `getCurrentRequest()` branch that records timings on the request.
+ */
+const insideMonitoredRequest = async <T>(work: () => Promise<T>): Promise<T> => {
+  const req = makeReq();
+  const res = makeRes();
+  let outcome: Promise<T> | undefined;
+  requestMonitorMiddleware(req, res, () => {
+    outcome = work();
   });
-
-  afterAll(() => {
-    mongoose.Query.prototype.exec = originalQueryExec;
-    mongoose.Model.aggregate = originalAggregate;
-  });
-
-  const runQueryInsideRequest = async (queryThis: {
-    getQuery: () => Record<string, unknown>;
-    op?: string;
-    reject?: boolean;
-    syncValue?: unknown;
-  }): Promise<unknown> => {
-    const req = makeReq();
-    const res = makeRes();
-    let result: unknown;
-    let error: unknown;
-    requestMonitorMiddleware(req, res, () => {
-      const pending = mongoose.Query.prototype.exec.call(queryThis);
-      if (pending && typeof (pending as Promise<unknown>).then === "function") {
-        return (pending as Promise<unknown>)
-          .then((value) => {
-            result = value;
-          })
-          .catch((err: unknown) => {
-            error = err;
-          })
-          .finally(() => {
-            res.end();
-          });
-      }
-      result = pending;
-      res.end();
-      return undefined;
-    });
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    if (error) {
-      throw error;
+  try {
+    if (!outcome) {
+      throw new Error("expected work to start inside the request context");
     }
-    return result;
-  };
+    return await outcome;
+  } finally {
+    res.end();
+  }
+};
 
-  it("tracks successful Query.exec inside a request", async () => {
-    const result = await runQueryInsideRequest({
-      getQuery: () => ({name: "ada"}),
-      op: "find",
-    });
+describe("createMonitoredQueryExec", () => {
+  it("tracks a resolved query inside a request", async () => {
+    const exec = createMonitoredQueryExec(async () => ({ok: true}));
+    const result = await insideMonitoredRequest(
+      () => exec.call(fakeQuery("find")) as Promise<unknown>
+    );
     expect(result).toEqual({ok: true});
   });
 
-  it("logs slow Query.exec without a request context", async () => {
-    const originalHrtime = process.hrtime.bind(process);
-    process.hrtime = ((start?: [number, number]) => {
-      if (!start) {
-        return [0, 0] as [number, number];
-      }
-      return [1, 0] as [number, number];
-    }) as typeof process.hrtime;
-    try {
-      const value = await mongoose.Query.prototype.exec.call({
-        getQuery: () => ({slow: true}),
-        op: "findOne",
-      });
-      expect(value).toEqual({ok: true});
-    } finally {
-      process.hrtime = originalHrtime;
-    }
-  });
-
-  it("tracks rejected Query.exec inside a request", async () => {
-    try {
-      await runQueryInsideRequest({
-        getQuery: () => ({name: "err"}),
-        op: "find",
-        reject: true,
-      });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect((error as Error).message).toBe("query failed");
-    }
-  });
-
-  it("logs slow rejected Query.exec without a request context", async () => {
-    const originalHrtime = process.hrtime.bind(process);
-    process.hrtime = ((start?: [number, number]) => {
-      if (!start) {
-        return [0, 0] as [number, number];
-      }
-      return [1, 0] as [number, number];
-    }) as typeof process.hrtime;
-    try {
-      await mongoose.Query.prototype.exec.call({
-        getQuery: () => ({slow: true}),
-        op: "findOne",
-        reject: true,
-      });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect((error as Error).message).toBe("query failed");
-    } finally {
-      process.hrtime = originalHrtime;
-    }
-  });
-
-  it("returns non-promise Query.exec results unchanged", () => {
-    const value = mongoose.Query.prototype.exec.call({
-      getQuery: () => ({}),
-      op: "find",
-      syncValue: {cursor: true},
-    }) as unknown;
-    expect(value).toEqual({cursor: true});
-  });
-
-  it("tracks successful Model.aggregate inside a request", async () => {
-    const req = makeReq();
-    const res = makeRes();
-    let result: unknown;
-    requestMonitorMiddleware(req, res, () => {
-      void mongoose.Model.aggregate.call({}, [{$match: {active: true}}]).then((value: unknown) => {
-        result = value;
-        res.end();
-      });
+  it("tracks a rejected query inside a request and rethrows", async () => {
+    const exec = createMonitoredQueryExec(async () => {
+      throw new Error("query failed");
     });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await expect(
+      insideMonitoredRequest(() => exec.call(fakeQuery("find")) as Promise<unknown>)
+    ).rejects.toThrow("query failed");
+  });
+
+  it("logs a slow resolved query without a request context", async () => {
+    const exec = createMonitoredQueryExec(async () => ({ok: true}));
+    await withSlowClock(async () => {
+      expect(await (exec.call(fakeQuery("findOne")) as Promise<unknown>)).toEqual({ok: true});
+    });
+  });
+
+  it("logs a slow rejected query without a request context", async () => {
+    const exec = createMonitoredQueryExec(async () => {
+      throw new Error("query failed");
+    });
+    await withSlowClock(async () => {
+      await expect(exec.call(fakeQuery("findOne")) as Promise<unknown>).rejects.toThrow(
+        "query failed"
+      );
+    });
+  });
+
+  it("defaults the operation label when the query has no op", async () => {
+    const exec = createMonitoredQueryExec(async () => ({ok: true}));
+    expect(await (exec.call(fakeQuery()) as Promise<unknown>)).toEqual({ok: true});
+  });
+
+  it("returns non-promise results unchanged", () => {
+    const cursor = {cursor: true};
+    const exec = createMonitoredQueryExec(() => cursor);
+    expect(exec.call(fakeQuery("find"))).toBe(cursor);
+  });
+});
+
+describe("createMonitoredAggregate", () => {
+  it("tracks a resolved aggregate inside a request", async () => {
+    const aggregate = createMonitoredAggregate(async () => [{n: 1}]);
+    const result = await insideMonitoredRequest(() => aggregate.call({}, [{$match: {a: 1}}]));
     expect(result).toEqual([{n: 1}]);
   });
 
-  it("logs slow Model.aggregate without a request context", async () => {
-    const originalHrtime = process.hrtime.bind(process);
-    process.hrtime = ((start?: [number, number]) => {
-      if (!start) {
-        return [0, 0] as [number, number];
-      }
-      return [1, 0] as [number, number];
-    }) as typeof process.hrtime;
-    try {
-      const value = await mongoose.Model.aggregate.call({}, [{$match: {}}]);
-      expect(value).toEqual([{n: 1}]);
-    } finally {
-      process.hrtime = originalHrtime;
-    }
-  });
-
-  it("tracks rejected Model.aggregate inside a request", async () => {
-    const req = makeReq();
-    const res = makeRes();
-    let message = "";
-    requestMonitorMiddleware(req, res, () => {
-      void mongoose.Model.aggregate.call({reject: true}, [{$match: {}}]).catch((error: Error) => {
-        message = error.message;
-        res.end();
-      });
+  it("tracks a rejected aggregate inside a request and rethrows", async () => {
+    const aggregate = createMonitoredAggregate(async () => {
+      throw new Error("aggregate failed");
     });
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(message).toBe("aggregate failed");
+    await expect(insideMonitoredRequest(() => aggregate.call({}, [{$match: {}}]))).rejects.toThrow(
+      "aggregate failed"
+    );
   });
 
-  it("logs slow rejected Model.aggregate without a request context", async () => {
-    const originalHrtime = process.hrtime.bind(process);
-    process.hrtime = ((start?: [number, number]) => {
-      if (!start) {
-        return [0, 0] as [number, number];
-      }
-      return [1, 0] as [number, number];
-    }) as typeof process.hrtime;
-    try {
-      await mongoose.Model.aggregate.call({reject: true}, [{$match: {}}]);
-      expect(true).toBe(false);
-    } catch (error) {
-      expect((error as Error).message).toBe("aggregate failed");
-    } finally {
-      process.hrtime = originalHrtime;
-    }
+  it("logs a slow resolved aggregate without a request context", async () => {
+    const aggregate = createMonitoredAggregate(async () => [{n: 1}]);
+    await withSlowClock(async () => {
+      expect(await aggregate.call({}, [{$match: {}}])).toEqual([{n: 1}]);
+    });
+  });
+
+  it("logs a slow rejected aggregate without a request context", async () => {
+    const aggregate = createMonitoredAggregate(async () => {
+      throw new Error("aggregate failed");
+    });
+    await withSlowClock(async () => {
+      await expect(aggregate.call({}, [{$match: {}}])).rejects.toThrow("aggregate failed");
+    });
   });
 });
