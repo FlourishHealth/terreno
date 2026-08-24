@@ -243,7 +243,7 @@ const applyOptimisticUpdate = (
       dispatch(
         // noExplicitAny: RTK Query cache shape varies by endpoint
         // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, updater)
+        api.util.updateQueryData(listEndpointName as never, queryArg, updater)
       );
     }
   };
@@ -316,7 +316,7 @@ const removeTempItems = (
       dispatch(
         // noExplicitAny: RTK Query cache shape varies by endpoint
         // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, (draft: any) => {
+        api.util.updateQueryData(listEndpointName as never, queryArg, (draft: any) => {
           if (draft?.data && Array.isArray(draft.data)) {
             draft.data = draft.data.filter(
               (d: Record<string, unknown>) =>
@@ -486,15 +486,20 @@ export const createOfflineMiddleware = (
           const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
           const cachedArgs = getCachedQueryArgs(listenerApi.getState, api, listEndpointName);
           for (const queryArg of cachedArgs) {
-            // noExplicitAny: RTK Query cache shape and endpoint types vary
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape and endpoint types vary
-            const endpoint = (api.endpoints as any)[listEndpointName];
+            const endpoint = (
+              api.endpoints as unknown as Record<
+                string,
+                {
+                  select?: (
+                    arg: unknown
+                  ) => (state: unknown) => {data?: {data?: Record<string, unknown>[]} | undefined};
+                }
+              >
+            )[listEndpointName];
             if (!endpoint?.select) {
               continue;
             }
-            // noExplicitAny: RTK Query cache shape varies
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies
-            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState() as any) as any;
+            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState());
             const items = cacheEntry?.data?.data;
             if (Array.isArray(items)) {
               const doc = items.find(

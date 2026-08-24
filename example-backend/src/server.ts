@@ -84,7 +84,7 @@ const createOpenApiAwareRouteRegistration = (
   return registration;
 };
 
-export async function start(skipListen = false): Promise<express.Application> {
+export const start = async (skipListen = false): Promise<express.Application> => {
   // Connect to MongoDB first
   await connectToMongoDB();
   await access.roles.seedDefaults();
@@ -149,9 +149,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       ? createBetterAuth({
           config: betterAuthConfig,
           mongoClient: getMongoClientFromMongoose(),
-          // noExplicitAny: User model type mismatch
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          userModel: User as any,
+          userModel: User as unknown as TerrenoAuthUserModel,
         })
       : undefined;
 
@@ -232,9 +230,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           betterAuth: betterAuthInstance
             ? {
                 auth: betterAuthInstance,
-                // noExplicitAny: User model type mismatch
-                // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-                userModel: User as any,
+                userModel: User as unknown as TerrenoAuthUserModel,
               }
             : undefined,
           changeStream: {
@@ -245,9 +241,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           // otherwise falls back to the synthetic JWT-claim user, which carries no
           // `organizationIds`, so tenant streams resolve to nothing and `admin` is
           // trusted from the token instead of the database (Task 9.21).
-          // noExplicitAny: User model type mismatch
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          userModel: User as any,
+          userModel: User as unknown as TerrenoAuthUserModel,
         })
       );
     } else {
@@ -416,7 +410,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
-}
+};
 
 process.on("unhandledRejection", (error: unknown) => {
   logger.error(`unhandledRejection: ${(error as Error).message}\n${(error as Error).stack}`);

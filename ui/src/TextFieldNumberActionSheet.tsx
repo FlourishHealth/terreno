@@ -1,4 +1,5 @@
 import DateTimePicker, {type DateTimePickerEvent} from "@react-native-community/datetimepicker";
+import {DateTime} from "luxon";
 import React from "react";
 
 import {ActionSheet} from "./ActionSheet";
@@ -37,7 +38,11 @@ export class NumberPickerActionSheet extends React.Component<
               this.props.onChange(date.toString());
             }}
             testID="dateTimePicker"
-            value={this.props.value ? new Date(this.props.value) : new Date()}
+            value={
+              this.props.value
+                ? DateTime.fromISO(this.props.value).toJSDate()
+                : DateTime.now().toJSDate()
+            }
           />
         </Box>
       </ActionSheet>

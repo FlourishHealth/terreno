@@ -1,4 +1,5 @@
 import type {ClientSession, Query, Schema} from "mongoose";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {claimSyncSeqs, confirmSyncSeqs, releaseSyncSeqs, SyncScopeMove} from "./models";
 import {findSyncEntryByModelName, type SyncRegistryEntry} from "./registry";
@@ -298,11 +299,13 @@ export const syncPlugin = (schema: Schema): void => {
   // so the `baseVersion` comparison in executeUpdate cannot be defeated by a concurrent
   // save landing between the read and the write.
   if (!schema.options.versionKey) {
-    throw new Error(
-      "syncPlugin requires a versionKey on the schema: sync relies on Mongoose " +
+    throw new APIError({
+      status: 500,
+      title:
+        "syncPlugin requires a versionKey on the schema: sync relies on Mongoose " +
         "optimisticConcurrency to make the baseVersion conflict check atomic. " +
-        "Remove `versionKey: false` from the schema options."
-    );
+        "Remove `versionKey: false` from the schema options.",
+    });
   }
   schema.set("optimisticConcurrency", true);
 

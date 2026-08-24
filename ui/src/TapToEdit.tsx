@@ -122,9 +122,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
             row={fieldProps?.type === "textarea" ? 5 : undefined}
             type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
             value={value}
-            // noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
-            // biome-ignore lint/suspicious/noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
-            {...(fieldProps as any)}
+            {...(fieldProps as FieldProps)}
           />
           {editing && !isEditing && (
             <View style={{flexDirection: "row", gap: 16, justifyContent: "flex-end"}}>
