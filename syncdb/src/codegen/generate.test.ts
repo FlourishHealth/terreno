@@ -1,12 +1,12 @@
 import {describe, expect, it} from "bun:test";
-import {mkdtemp, readFile, rm} from "node:fs/promises";
+import {mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 
 import {discoverCollections} from "./discoverCollections";
 import {emitSdk} from "./emitSdk";
 import {emitInterface} from "./emitTypes";
-import {generateSyncDbSdk} from "./generate";
+import {generateSyncDbSdk, loadConfigFile, parseCollectionsFlag} from "./generate";
 import {friendlyHookNames} from "./hookNames";
 import {loadSpec} from "./loadSpec";
 
@@ -36,6 +36,31 @@ describe("emitInterface", () => {
         },
       })
     ).toContain("ownerId: string;");
+  });
+
+  it("emits enums, arrays, empty objects, numbers, booleans, and unknown types", () => {
+    expect(
+      emitInterface({
+        name: "Mixed",
+        schema: {
+          properties: {
+            flags: {type: "array", items: {type: "boolean"}},
+            kind: {enum: ["a", "b"]},
+            nested: {type: "object"},
+            n: {type: "integer"},
+            on: {type: "boolean"},
+            other: {},
+          },
+          type: "object",
+        },
+      })
+    ).toContain("kind?: \"a\" | \"b\";");
+    expect(
+      emitInterface({
+        name: "Alias",
+        schema: {type: "string"},
+      })
+    ).toBe("export type Alias = string;");
   });
 });
 
@@ -195,6 +220,22 @@ describe("generateSyncDbSdk", () => {
     }
   });
 
+  it("formats the generated file when format is true", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "syncdb-codegen-"));
+    const out = join(dir, "syncDbSdk.ts");
+    try {
+      const source = await generateSyncDbSdk({
+        format: true,
+        out,
+        schema: fixturePath,
+      });
+      expect(source).toContain("export const SYNC_COLLECTIONS");
+      expect(await readFile(out, "utf8")).toBe(source);
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
   it("rejects collection names that are not TypeScript identifiers", async () => {
     const spec = await loadSpec(fixturePath);
     const discovered = discoverCollections({spec});
@@ -212,5 +253,65 @@ describe("generateSyncDbSdk", () => {
         ],
       })
     ).toThrow(/not a TypeScript identifier/);
+  });
+});
+
+describe("parseCollectionsFlag", () => {
+  it("returns undefined for missing or empty values", () => {
+    expect(parseCollectionsFlag()).toBeUndefined();
+    expect(parseCollectionsFlag("  ,  ")).toBeUndefined();
+  });
+
+  it("splits and trims collection names", () => {
+    expect(parseCollectionsFlag("todos, notes")).toEqual(["todos", "notes"]);
+  });
+});
+
+describe("loadConfigFile", () => {
+  it("returns undefined when no path is provided", async () => {
+    expect(await loadConfigFile()).toBeUndefined();
+  });
+
+  it("parses a JSON config file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "syncdb-codegen-"));
+    const path = join(dir, "config.json");
+    try {
+      await writeFile(path, JSON.stringify({overrides: {todos: {retries: false}}}), "utf8");
+      const config = await loadConfigFile(path);
+      expect(config?.overrides?.todos).toEqual({retries: false});
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+});
+
+describe("loadSpec", () => {
+  it("rejects an empty schema argument", async () => {
+    await expect(loadSpec("")).rejects.toThrow(/Missing --schema/);
+  });
+
+  it("fetches an HTTP spec and rejects non-OK responses", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response("nope", {status: 500})) as typeof fetch;
+    try {
+      await expect(loadSpec("https://example.test/openapi.json")).rejects.toThrow(
+        /Failed to fetch OpenAPI spec/
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("parses a fetched HTTP spec", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({paths: {}}), {status: 200})) as typeof fetch;
+    try {
+      const spec = await loadSpec("http://localhost/openapi.json");
+      expect(spec.paths).toEqual({});
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

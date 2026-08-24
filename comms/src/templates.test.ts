@@ -34,4 +34,20 @@ describe("renderTemplate", () => {
 
     assert.equal(rendered.subject, "  Ada");
   });
+
+  it("renders empty strings for null and undefined own properties", (): void => {
+    const rendered = renderTemplate({
+      data: {name: null, title: undefined},
+      template: {
+        html: "<p>{{name}}</p>",
+        subject: "{{title}} {{name}}",
+        text: "{{name}}",
+      },
+    });
+    assert.deepEqual(rendered, {
+      html: "<p></p>",
+      subject: " ",
+      text: "",
+    });
+  });
 });

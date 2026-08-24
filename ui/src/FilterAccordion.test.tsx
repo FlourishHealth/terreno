@@ -55,4 +55,41 @@ describe("FilterAccordion", () => {
     fireEvent.press(getByTestId("acc.header"));
     expect(onToggle).toHaveBeenCalledWith(true);
   });
+
+  it("renders the changes badge when requested", () => {
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} showChangesBadge testID="acc" />
+    );
+    expect(getByTestId("acc.badge")).toBeTruthy();
+  });
+
+  it("toggles via Space and ignores auto-repeat and other keys", () => {
+    const onToggle = mock();
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} onToggle={onToggle} testID="acc" />
+    );
+    const header = getByTestId("acc.header");
+    fireEvent(header, "keyDown", {key: "Enter", preventDefault: mock()});
+    expect(onToggle).not.toHaveBeenCalled();
+
+    const preventDefault = mock();
+    fireEvent(header, "keyDown", {key: " ", preventDefault, repeat: true});
+    expect(preventDefault).toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
+
+    fireEvent(header, "keyDown", {key: " ", preventDefault: mock(), repeat: false});
+    expect(onToggle).toHaveBeenCalledWith(true);
+
+    fireEvent(header, "keyDown", {key: "Spacebar", preventDefault: mock()});
+    expect(onToggle).toHaveBeenCalledWith(false);
+  });
+
+  it("applies hover background when collapsed", () => {
+    const {getByTestId} = renderWithTheme(<FilterAccordion {...defaultProps} testID="acc" />);
+    const root = getByTestId("acc");
+    fireEvent(getByTestId("acc.header"), "hoverIn");
+    expect(root.props.style.backgroundColor).toBeTruthy();
+    fireEvent(getByTestId("acc.header"), "hoverOut");
+    expect(root.props.style.backgroundColor).toBeTruthy();
+  });
 });
