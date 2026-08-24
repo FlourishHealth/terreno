@@ -1,4 +1,5 @@
 import {
+  ADMIN_PAGE_ACTION,
   type AdminAccessConfig,
   type AdminModelAdminMap,
   type AnyTerrenoAccess,
@@ -604,7 +605,7 @@ export class AdminApp {
 
   private adminAccessPermissions(): PermissionMethod<unknown>[] {
     if (this.options.accessControl) {
-      return [this.options.accessControl.permission({admin: ["access"]})];
+      return [this.options.accessControl.permission({admin: [ADMIN_PAGE_ACTION]})];
     }
     return [Permissions.IsAdmin];
   }

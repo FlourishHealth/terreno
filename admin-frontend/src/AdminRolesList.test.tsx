@@ -175,6 +175,42 @@ describe("AdminRolesList", () => {
     assert.deepEqual(updateInput.changes?.permissions, {adminTodo: ["read", "write"]});
   });
 
+  it("edits admin page access with a dedicated toggle", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+    });
+
+    expect(getByTestId("admin-role-page-access")).toBeTruthy();
+    expect(getByText("Allow access to the admin page")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-permission-admin-access-clickable"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+
+    const updateInput = mockUpdateRole.mock.calls[0]?.[0] as {
+      changes?: {permissions?: Record<string, string[]>};
+      roleName?: string;
+    };
+    assert.equal(updateInput.roleName, "todoUser");
+    assert.deepEqual(updateInput.changes?.permissions, {
+      admin: ["access"],
+      adminTodo: ["read", "writeOwned"],
+    });
+  });
+
   it("scrolls the role list body while keeping the add button outside the scroll area", () => {
     mockUseListRolesQuery.mockReturnValue({
       data: ROLES,

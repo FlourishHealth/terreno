@@ -127,6 +127,23 @@ describe("AdminShell", () => {
     expect(queryByTestId("admin-shell-mobile-header")).toBeNull();
   });
 
+  it("shows a forbidden state when admin config returns 403", () => {
+    configState.config = null;
+    configState.error = {status: 403} as unknown as Error;
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(getByTestId("admin-shell-forbidden")).toBeTruthy();
+    expect(queryByTestId("admin-shell-error")).toBeNull();
+    expect(queryByTestId("admin-shell-sidebar")).toBeNull();
+  });
+
   it("hides the fixed sidebar and shows a hamburger header below 768px", () => {
     const {getByTestId, getByLabelText, queryByTestId, UNSAFE_root} = renderWithTheme(
       <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">

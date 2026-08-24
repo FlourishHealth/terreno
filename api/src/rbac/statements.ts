@@ -1,8 +1,15 @@
 const MODEL_CRUD = ["create", "list", "read", "update", "delete"] as const;
 export const ADMIN_MODEL_ACCESS = ["read", "write", "writeOwned"] as const;
 
+/** Resource/action that opens the admin panel. Other admin permissions do not grant entry. */
+export const ADMIN_PAGE_RESOURCE = "admin" as const;
+export const ADMIN_PAGE_ACTION = "access" as const;
+export const ADMIN_PAGE_PERMISSION = {
+  [ADMIN_PAGE_RESOURCE]: [ADMIN_PAGE_ACTION],
+} as const;
+
 export const terrenoStatements = {
-  admin: ["access", "runScripts", "viewBackgroundTasks"],
+  admin: [ADMIN_PAGE_ACTION, "runScripts", "viewBackgroundTasks"],
   adminConsentForm: ADMIN_MODEL_ACCESS,
   adminConsentResponse: ADMIN_MODEL_ACCESS,
   adminFeatureFlag: ADMIN_MODEL_ACCESS,

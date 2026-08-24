@@ -5,6 +5,7 @@ import React, {useCallback, useEffect, useState} from "react";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
+import {isAdminPageForbiddenError} from "./adminPageAccess";
 import {groupAdminModelsByGroup} from "./adminShellNav";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
@@ -353,6 +354,15 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   }
 
   if (error || !config) {
+    if (isAdminPageForbiddenError(error)) {
+      return (
+        <Box padding={4} testID="admin-shell-forbidden">
+          <Text color="error">
+            You do not have permission to open the admin page. Grant the admin:access permission.
+          </Text>
+        </Box>
+      );
+    }
     return (
       <Box padding={4} testID="admin-shell-error">
         <Text color="error">Failed to load admin configuration.</Text>

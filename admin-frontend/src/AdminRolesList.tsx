@@ -42,6 +42,29 @@ const STANDARD_ACCESS_OPTIONS = [
   {label: "Read + write owned", value: "writeOwned"},
   {label: "Read + write all", value: "write"},
 ];
+const ADMIN_PAGE_RESOURCE = "admin";
+const ADMIN_PAGE_ACTION = "access";
+
+const editorActionsForResource = ({
+  actions,
+  hasStandardAccess,
+  resource,
+}: {
+  actions: readonly string[];
+  hasStandardAccess: boolean;
+  resource: string;
+}): readonly string[] => {
+  const withoutStandard = hasStandardAccess
+    ? actions.filter(
+        (action) =>
+          !STANDARD_ACCESS_ACTIONS.includes(action as (typeof STANDARD_ACCESS_ACTIONS)[number])
+      )
+    : actions;
+  if (resource === ADMIN_PAGE_RESOURCE) {
+    return withoutStandard.filter((action) => action !== ADMIN_PAGE_ACTION);
+  }
+  return withoutStandard;
+};
 
 const standardAccessValue = (actions: string[]): string => {
   if (actions.includes("write")) {
@@ -77,6 +100,8 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
   const roles = normalizeRoles(data);
   const statements = normalizeStatements(statementsData);
   const resources = useMemo(() => Object.keys(statements).sort(), [statements]);
+  const hasAdminPageStatement =
+    statements[ADMIN_PAGE_RESOURCE]?.includes(ADMIN_PAGE_ACTION) ?? false;
   const [editingRole, setEditingRole] = useState<RbacRoleRow | null>(null);
   const [form, setForm] = useState<RoleFormState>(EMPTY_ROLE_FORM);
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -327,19 +352,44 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
             />
             <Box gap={2} testID="admin-role-permissions">
               <Heading size="sm">Permissions</Heading>
+              {hasAdminPageStatement ? (
+                <Box gap={2} testID="admin-role-page-access">
+                  <Heading size="sm">Admin page</Heading>
+                  <Text>
+                    This is the only permission that opens the admin panel. Model and tool
+                    permissions do not apply until it is granted.
+                  </Text>
+                  <Box
+                    accessibilityHint="Toggles whether this role can open the admin page"
+                    accessibilityLabel="Allow access to the admin page"
+                    alignItems="center"
+                    direction="row"
+                    gap={1}
+                    onClick={() => handlePermissionToggle(ADMIN_PAGE_RESOURCE, ADMIN_PAGE_ACTION)}
+                    testID={`admin-role-permission-${ADMIN_PAGE_RESOURCE}-${ADMIN_PAGE_ACTION}`}
+                  >
+                    <CheckBox
+                      selected={
+                        form.permissions[ADMIN_PAGE_RESOURCE]?.includes(ADMIN_PAGE_ACTION) ?? false
+                      }
+                    />
+                    <Text>Allow access to the admin page</Text>
+                  </Box>
+                </Box>
+              ) : null}
               {resources.map((resource) => {
                 const actions = statements[resource];
                 const hasStandardAccess = STANDARD_ACCESS_ACTIONS.every((action) =>
                   actions.includes(action)
                 );
-                const customActions = hasStandardAccess
-                  ? actions.filter(
-                      (action) =>
-                        !STANDARD_ACCESS_ACTIONS.includes(
-                          action as (typeof STANDARD_ACCESS_ACTIONS)[number]
-                        )
-                    )
-                  : actions;
+                const customActions = editorActionsForResource({
+                  actions,
+                  hasStandardAccess,
+                  resource,
+                });
+                if (!hasStandardAccess && customActions.length === 0) {
+                  return null;
+                }
                 return (
                   <Box gap={1} key={resource}>
                     <Text bold>{resource}</Text>

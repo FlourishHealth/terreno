@@ -13,7 +13,11 @@ registry into `AdminProvider`; `@terreno/admin-frontend` only owns first-party T
 
 ## Authorization metadata
 
-`AdminApp` resolves authorization before returning `/admin/config`. The response only contains
+Opening the admin UI is a separate decision from what an operator may do inside it. The page
+gate is `admin:access` (`GET /admin/config` 403 without it). Host apps should hide admin
+navigation with the same check (`canOpenAdminPage` from `@terreno/rtk`).
+
+`AdminApp` then resolves authorization before returning `/admin/config`. The response only contains
 models and custom screens the caller may read, includes effective write capabilities, and exposes
 visibility flags for built-in Platform tools. The frontend treats this metadata as navigation and
 affordance guidance; backend model, script, configuration, and RBAC routes enforce the same

@@ -102,7 +102,10 @@ Field metadata includes:
 
 ## Permissions
 
-Without `accessControl`, all admin routes use `Permissions.IsAdmin`.
+`admin:access` is the only permission that opens the admin page. `GET /admin/config` returns 403
+without it. Script, configuration, RBAC, and per-model permissions never grant entry on their own.
+
+Without `accessControl`, that same page gate uses `Permissions.IsAdmin` (`user.admin`).
 
 With `accessControl`, each model can use a standard admin resource with three actions:
 

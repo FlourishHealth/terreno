@@ -549,6 +549,15 @@ describe("AdminApp adminAccess role matrix", () => {
     await member.get("/admin/foods").expect(405);
   });
 
+  it("does not open the admin page with other admin permissions alone", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["runScripts", "viewBackgroundTasks"], adminFood: ["read", "write"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    await agent.get("/admin/config").expect(403);
+    await agent.get("/admin/foods").expect(405);
+  });
+
   it("hides models and mutations when the caller only has admin:access", async () => {
     const app = buildMatrixApp({
       [ADMIN_EMAIL]: {admin: ["access"]},

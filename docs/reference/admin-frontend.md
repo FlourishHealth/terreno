@@ -73,7 +73,11 @@ System fields (`_id`, `__v`, `created`, `updated`, `deleted`) are automatically 
 
 ### AdminRolesList
 
-Role editing groups standard admin model permissions into one access-level selector:
+Role editing starts with a dedicated **Admin page** toggle for `admin:access`. That is the only
+permission that opens the admin panel. Grant it first; model and tool permissions do nothing until
+the role can enter.
+
+Standard admin model permissions then use one access-level selector:
 
 - No access
 - Read only
@@ -213,7 +217,7 @@ const CustomFieldRenderer = ({value, field, ...props}) => {
 Expects backend to provide:
 1. `GET {baseUrl}/config` — Model metadata
 2. CRUD routes at `{basePath}{routePath}` for each model
-3. Admin authentication (`IsAdmin`) or `accessControl` RBAC
+3. `admin:access` (or `IsAdmin` when RBAC is off) to open the page; per-model RBAC after that
 4. Paginated responses: `{data, page, limit, total, more}`
 
 When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
