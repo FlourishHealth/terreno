@@ -31,8 +31,10 @@ on:
 permissions:
   contents: read
 
+# Shared with roadmap-reconcile and roadmap-generate: three workflows write the
+# same board, and interleaving them produces confusing partial states.
 concurrency:
-  group: roadmap-sync
+  group: roadmap
   cancel-in-progress: false
 
 jobs:

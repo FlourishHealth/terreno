@@ -269,6 +269,14 @@ you invoke them explicitly.
 | `roadmap-promote` | Maintainers accepted an Ideas or RFC discussion and it needs a tracked issue that links back to the thread |
 | `roadmap-item` | An approved IP needs its public tracking issue, or an existing entry's scope changed |
 | `roadmap-review` | Recurring hygiene: status drift, stale items, untriaged backlog, promotion candidates, then regenerate `ROADMAP.md` |
+
+`roadmap-item` and `roadmap-promote` no longer touch the board with `gh project`. They add or
+edit an entry in [`roadmap-seed-issues.md`](roadmap-seed-issues.md) and run `roadmap:sync`,
+which opens the issue, applies the labels, adds the item, and sets every field in one
+idempotent pass. Board items added by hand show up as drift on the next `--check`.
+
+`roadmap-review` starts from `bun run roadmap:reconcile`, which mechanically answers most
+hygiene questions and leaves a `Needs a human` list that is exactly the review's agenda.
 | `roadmap-frontier` | A destination is too large or uncertain for one IP/context and needs a map, a small unblocked frontier, and repeated Grow → Taste delivery loops |
 
 ### Huge features: frontier maps
@@ -349,18 +357,54 @@ do not claim completion until done.
 | -------- | ------- | ------- |
 | [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
 | [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board |
+| [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
+| [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
 
-The two directions of the loop:
+All three share the `roadmap` concurrency group. They write the same board, and interleaving
+them produces confusing partial states.
+
+The full loop, each arrow with exactly one writer:
 
 ```
-repo  ──roadmap:sync──▶  Project board  ──roadmap:generate──▶  ROADMAP.md
-(taxonomy + item list)   (state: what a       (public rendered list)
-                          maintainer drags)
+docs/implementationPlans/*.md ──roadmap:reconcile──▶ roadmap-seed-issues.md
+docs/tasks/*.md                    (Status only)              │
+                                                         roadmap:sync
+                                                              ▼
+                                                        Project board
+                                                              │
+                                                      roadmap:generate
+                                                              ▼
+                                                          ROADMAP.md
 ```
 
-`roadmap:sync` owns the board's *shape* — which fields exist, which options they allow, which
-issues are on it, and the declared field values. Maintainers own the board's *state*; the
-daily `--check` step reports drift rather than reverting it, so moving a card never fights CI.
+Who owns what:
+
+| Artifact | Owns |
+| -------- | ---- |
+| IP header `**Status:**` | Where the work is in its lifecycle |
+| `roadmap-seed-issues.md` | Which items exist, plus Area / Target / Impact / labels / summary |
+| Project board | Live state a maintainer drags, and `Community interest` |
+| `ROADMAP.md` | Nothing — fully generated |
+
+`roadmap:sync` owns the board's *shape*: which fields exist, which options they allow, which
+issues are on it, and the declared field values. Maintainers own the board's *state*; the daily
+`--check` step reports drift rather than reverting it, so moving a card never fights CI.
+
+**Status automation is monotonic.** `roadmap:reconcile --fix` advances status and applies
+supersessions, but never walks a status backwards and never revives declined work. IP headers
+go stale far more often than boards do — several plans still read `Draft` for work that
+shipped — so a backwards move is reported as a stale header for a human to resolve.
+
+| IP `**Status:**` | Board `Status` |
+| ---------------- | -------------- |
+| `Draft` (also `Shaped`) | `Shaping` |
+| `Approved` | `Planned` |
+| `In progress` | `In progress` |
+| `Complete` (also `Implemented`) | `Shipped` |
+| `Deferred`, or any `**Superseded by:**` | `Declined` |
+
+Only the leading phrase matters, so `Approved — decisions recorded (2026-07-29)` maps cleanly.
+A status the table cannot map is reported rather than guessed at.
 
 Triage resolves the `area:*` label with
 [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),

@@ -128,15 +128,45 @@ Print, then **stop and wait**:
 
 ### 6. Apply, after approval
 
-```bash
-gh issue create --title "$TITLE" --body-file "$BODY_FILE" --label "area:deploy,type:feature"
-gh project item-add "$PROJECT_NUMBER" --owner FlourishHealth --url "$ISSUE_URL"
+**Do not touch the board directly.** Write the entry into
+[`docs/explanation/roadmap-seed-issues.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-seed-issues.md)
+and let the sync tool do the rest — that document is the repo's declaration of what belongs
+on the board, and hand-added items get reported as drift on the next `--check`.
+
+Add a `##` section in the house style above:
+
+```markdown
+## <ip-slug>
+
+**Title:** `[Roadmap] <outcome>`
+
+**Labels:** `area:deploy`, `type:feature`
+**Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`<ip-slug>`, Status=`Planned`
+
+<body paragraphs>
 ```
 
-Resolve field IDs with `gh project field-list "$PROJECT_NUMBER" --owner FlourishHealth --format json` before `gh project item-edit`, or set single-selects in the UI.
+Then, with a token carrying `project` scope:
+
+```bash
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --dry-run   # review the plan
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --create-missing-issues
+```
+
+`roadmap:sync` opens the tracking issue, applies the labels, adds the board item, and sets
+every field value. It is idempotent — updating an existing entry means editing the section and
+re-running, never opening a second issue. Omit `--create-missing-issues` when the issue
+already exists.
+
+Add the new issue URL to the IP's `**Roadmap issue:**` header in the same change. That pointer
+is what keeps `roadmap:reconcile` from reporting the entry as orphaned.
 
 ### 7. Report
 
-Give the issue URL, the labels and fields actually applied, and anything the maintainer still needs to set by hand.
+Give the issue URL, the labels and fields actually applied, and anything the maintainer still
+needs to set by hand (`Community interest` is always manual).
 
-`ROADMAP.md` is generated from the board on a schedule — do not hand-edit it to match. If the maintainer wants it refreshed now, run `bun run roadmap:generate` (needs `GITHUB_TOKEN` with `read:project` and `TERRENO_PROJECT_NUMBER`).
+`ROADMAP.md` is generated from the board — do not hand-edit it to match. It refreshes daily,
+on merges that touch IPs or task files, and on demand with `bun run roadmap:generate` (needs
+`GITHUB_TOKEN` with `read:project` and `TERRENO_PROJECT_NUMBER`; read the number with
+`gh variable get TERRENO_PROJECT_NUMBER`).

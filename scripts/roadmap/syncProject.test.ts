@@ -241,3 +241,17 @@ describe("the real seed document", () => {
     assert.equal(new Set(slugs).size, slugs.length);
   });
 });
+
+describe("resolveSeedItems with includeWithoutIp", () => {
+  const seeds = parseSeedIssues(SEED_DOC);
+
+  it("includes an IP-less entry when a maintainer explicitly asks for issues", () => {
+    const {items, skipped} = resolveSeedItems({
+      includeWithoutIp: true,
+      issueNumbersByTitle: new Map(),
+      seeds,
+    });
+    assert.ok(items.some((item) => item.slug === "no-ip-yet"));
+    assert.deepEqual(skipped, []);
+  });
+});

@@ -149,9 +149,16 @@ export const planFields = ({
  * supplies the issue number for slugs whose issue already exists.
  */
 export const resolveSeedItems = ({
+  includeWithoutIp = false,
   issueNumbersByTitle,
   seeds,
 }: {
+  /**
+   * Include entries that have neither an IP nor an issue. Off by default so the
+   * automatic path never opens speculative public issues; on when a maintainer
+   * explicitly asks for issues (promoting a discussion precedes writing the IP).
+   */
+  includeWithoutIp?: boolean;
   issueNumbersByTitle: Map<string, number>;
   seeds: SeedIssue[];
 }): ResolutionResult => {
@@ -175,7 +182,7 @@ export const resolveSeedItems = ({
     const title = primary.title !== "" ? primary.title : (tableRow?.title ?? "");
     const issueNumber = tableRow?.issueNumber ?? issueNumbersByTitle.get(title) ?? null;
 
-    if (issueNumber === null && primary.ip === "") {
+    if (issueNumber === null && primary.ip === "" && !includeWithoutIp) {
       // The repo's own process opens a tracking issue only once an IP is
       // approved. Drafting one here would put speculative work on a public board.
       skipped.push({reason: "no IP written yet — no tracking issue", slug: key});
@@ -507,7 +514,11 @@ export const main = async (): Promise<void> => {
   const seeds = await readSeedIssues();
   const {issues, repositoryId} = await fetchIssues({owner: values.owner, repo: values.repo, token});
   const issueNumbersByTitle = new Map(issues.map((issue) => [issue.title, issue.number]));
-  const {items, skipped} = resolveSeedItems({issueNumbersByTitle, seeds});
+  const {items, skipped} = resolveSeedItems({
+    includeWithoutIp: values["create-missing-issues"],
+    issueNumbersByTitle,
+    seeds,
+  });
 
   const problems = validateItems({items, knownLabels, options});
   if (problems.length > 0) {

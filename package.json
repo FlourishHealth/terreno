@@ -231,6 +231,7 @@
     "mcp:start": "bun run --filter '@terreno/mcp' start",
     "roadmap:check": "bun run scripts/roadmap/checkRoadmapItem.ts",
     "roadmap:generate": "bun run scripts/generate-roadmap/generate.ts",
+    "roadmap:reconcile": "bun run scripts/roadmap/reconcileIps.ts",
     "roadmap:sync": "bun run scripts/roadmap/syncProject.ts",
     "rtk:compile": "bun run --filter '@terreno/rtk' compile",
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",

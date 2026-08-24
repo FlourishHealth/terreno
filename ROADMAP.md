@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-08-24T05:20:23.718Z.
+> dates are promised. Last updated: 2026-08-24T05:25:36.089Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -13,12 +13,12 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 - [B2B platform program](https://github.com/FlourishHealth/terreno/issues/1095) (Feature, Planned) — IP: [b2b-platform-program](docs/implementationPlans/b2b-platform-program.md)
 - [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, Planned) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
-- [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, Planned) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
+- [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
 - [Comms adapter — Twilio SMS](https://github.com/FlourishHealth/terreno/issues/1020) (Feature, Planned) — IP: [comms-adapter-twilio-sms](docs/implementationPlans/comms-adapter-twilio-sms.md)
 - [Comms adapter — Twilio Verify (OTP)](https://github.com/FlourishHealth/terreno/issues/1021) (Feature, Planned) — IP: [comms-adapter-twilio-verify](docs/implementationPlans/comms-adapter-twilio-verify.md)
 - [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, Planned) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
 - [Pluggable communications layer (@terreno/comms)](https://github.com/FlourishHealth/terreno/issues/1018) (Feature, Planned) — IP: [comms-abstraction](docs/implementationPlans/comms-abstraction.md)
-- [RBAC permissions for Terreno](https://github.com/FlourishHealth/terreno/issues/1089) (Feature, Planned) — IP: [rbac-permissions](docs/implementationPlans/rbac-permissions.md)
+- [RBAC permissions for Terreno](https://github.com/FlourishHealth/terreno/issues/1089) (Feature, Shipped) — IP: [rbac-permissions](docs/implementationPlans/rbac-permissions.md)
 - [Stripe billing and subscriptions](https://github.com/FlourishHealth/terreno/issues/1025) (Feature, Planned) — IP: [billing-stripe](docs/implementationPlans/billing-stripe.md)
 
 ### ui
@@ -27,8 +27,8 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### syncdb
 
-- [OpenAPI codegen for typed syncdb hooks (@terreno/syncdb-codegen)](https://github.com/FlourishHealth/terreno/issues/1110) (Feature, Planned) — IP: [syncdb-codegen](docs/implementationPlans/syncdb-codegen.md)
-- [RTK deprecation and syncdb migration docs](https://github.com/FlourishHealth/terreno/issues/1007) (Improvement, Planned) — IP: [rtk-to-syncdb-migration-docs](docs/implementationPlans/rtk-to-syncdb-migration-docs.md)
+- [OpenAPI codegen for typed syncdb hooks (@terreno/syncdb-codegen)](https://github.com/FlourishHealth/terreno/issues/1110) (Feature, In progress) — IP: [syncdb-codegen](docs/implementationPlans/syncdb-codegen.md)
+- [RTK deprecation and syncdb migration docs](https://github.com/FlourishHealth/terreno/issues/1007) (Improvement, Shipped) — IP: [rtk-to-syncdb-migration-docs](docs/implementationPlans/rtk-to-syncdb-migration-docs.md)
 
 ### auth
 
@@ -61,8 +61,8 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### dx
 
-- [Agentic SDLC plugin (/terreno-*)](https://github.com/FlourishHealth/terreno/issues/1006) (Feature, Planned) — IP: [agentic-sdlc-plugin](docs/implementationPlans/agentic-sdlc-plugin.md)
-- [Migrate CI/CD to CircleCI](https://github.com/FlourishHealth/terreno/issues/1088) (Improvement, Planned) — IP: [migrate-cicd-to-circleci](docs/implementationPlans/migrate-cicd-to-circleci.md)
+- [Agentic SDLC plugin (/terreno-*)](https://github.com/FlourishHealth/terreno/issues/1006) (Feature, In progress) — IP: [agentic-sdlc-plugin](docs/implementationPlans/agentic-sdlc-plugin.md)
+- [Migrate CI/CD to CircleCI](https://github.com/FlourishHealth/terreno/issues/1088) (Improvement, In progress) — IP: [migrate-cicd-to-circleci](docs/implementationPlans/migrate-cicd-to-circleci.md)
 - [Open source launch program](https://github.com/FlourishHealth/terreno/issues/1094) (Improvement, In progress) — IP: [oss-launch-program](docs/implementationPlans/oss-launch-program.md)
 - [Public roadmap on GitHub](https://github.com/FlourishHealth/terreno/issues/1004) (Improvement, In progress) — IP: [public-roadmap-github](docs/implementationPlans/public-roadmap-github.md)
 

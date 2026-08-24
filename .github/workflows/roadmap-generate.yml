@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# Shared with roadmap-sync and roadmap-reconcile: three workflows write the same
+# board, and interleaving them produces confusing partial states.
+concurrency:
+  group: roadmap
+  cancel-in-progress: false
+
 jobs:
   generate:
     name: Regenerate ROADMAP.md

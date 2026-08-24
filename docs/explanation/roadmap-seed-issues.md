@@ -72,7 +72,7 @@ session-affinity constraints that commonly break production Terreno deployments.
 **Title:** `[Roadmap] Agentic SDLC plugin (/terreno-*)`
 
 **Labels:** `area:dx`, `type:feature`  
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`agentic-sdlc-plugin`, Status=`Planned`
+**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`agentic-sdlc-plugin`, Status=`In progress`
 
 Packages and documents Terreno's five-stage `/terreno-*` agentic SDLC pipeline as a portable,
 publicly installable Cursor plugin. The pipeline takes work from a raw request through
@@ -92,7 +92,7 @@ invisible and breaks in consumer apps.
 **Title:** `[Roadmap] RTK deprecation and syncdb migration docs`
 
 **Labels:** `area:syncdb`, `type:docs`, `deprecation`, `status:blocked`  
-**Project fields:** Area=`syncdb`, Target=`Next`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Planned`
+**Project fields:** Area=`syncdb`, Target=`Next`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Shipped`
 
 > Blocked on PR #869. The Project **Status** field has no `Blocked` option, so gating is
 > tracked with the `status:blocked` issue label instead.
@@ -403,7 +403,7 @@ step-up work, without Terreno storing or rate-limiting codes itself.
 **Title:** `[Roadmap] Comms adapter — transactional email (SendGrid)`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-sendgrid`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-sendgrid`, Status=`In progress`
 
 Implements the first `@terreno/comms` mail provider on Twilio SendGrid so Terreno apps can
 send transactional email (password resets, invitations, verification), sharing the Twilio
@@ -499,7 +499,7 @@ from this item.
 **Title:** `[Roadmap] Role-based access control`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`rbac-permissions`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`rbac-permissions`, Status=`Shipped`
 
 Replaces the binary `admin` flag + owner checks with a first-class RBAC module: a typed
 permission vocabulary on Better Auth's access-control engine, DB-backed roles editable in
@@ -913,9 +913,9 @@ this table supplies only the issue number.
 | `ModularAPI` | https://github.com/FlourishHealth/terreno/issues/1084 | `Shipped` | `api` | `Released` | `Feature` | `type:feature` |
 | `mcp-boost-parity` | https://github.com/FlourishHealth/terreno/issues/1085 | `In progress` | `mcp` | `Next` | `Feature` | `type:feature` |
 | `docs-site-and-versioning` | https://github.com/FlourishHealth/terreno/issues/1086 | `Planned` | `docs` | `Next` | `Feature` | `type:docs` |
-| `syncdb-codegen` | https://github.com/FlourishHealth/terreno/issues/1110 | `Planned` | `syncdb` | `Next` | `Feature` | `type:feature` |
-| `migrate-cicd-to-circleci` | https://github.com/FlourishHealth/terreno/issues/1088 | `Planned` | `dx` | `Next` | `Improvement` | `type:chore` |
-| `rbac-permissions` | https://github.com/FlourishHealth/terreno/issues/1089 | `Planned` | `api` | `Next` | `Feature` | `type:feature` |
+| `syncdb-codegen` | https://github.com/FlourishHealth/terreno/issues/1110 | `In progress` | `syncdb` | `Next` | `Feature` | `type:feature` |
+| `migrate-cicd-to-circleci` | https://github.com/FlourishHealth/terreno/issues/1088 | `In progress` | `dx` | `Next` | `Improvement` | `type:chore` |
+| `rbac-permissions` | https://github.com/FlourishHealth/terreno/issues/1089 | `Shipped` | `api` | `Next` | `Feature` | `type:feature` |
 | `infra-mcp` | https://github.com/FlourishHealth/terreno/issues/1090 | `Planned` | `mcp` | `Future` | `Feature` | `type:feature` |
 | `comms-admin-dashboard` | https://github.com/FlourishHealth/terreno/issues/1091 | `Planned` | `admin` | `Next` | `Feature` | `type:feature` |
 | `model-router-mcp` | https://github.com/FlourishHealth/terreno/issues/1092 | `Planned` | `mcp` | `Next` | `Feature` | `type:feature` |
