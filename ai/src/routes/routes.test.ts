@@ -1555,6 +1555,71 @@ describe("AI Routes", () => {
       expect(types).toEqual(["general", "remix"]);
     });
 
+    it("filters by repeated requestType query parameters", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "remix prompt",
+        requestType: "remix",
+        response: "remix response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "general prompt",
+        requestType: "general",
+        response: "general response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "json prompt",
+        requestType: "json_object",
+        response: "json response",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?requestType=remix&requestType=general");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(2);
+      const types = (res.body.data as {requestType: string}[]).map((row) => row.requestType).sort();
+      expect(types).toEqual(["general", "remix"]);
+    });
+
+    it("ignores non-string requestType values", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "p",
+        requestType: "general",
+        response: "r",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?requestType[foo]=bar");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+    });
+
+    it("paginates results with page and limit query parameters", async () => {
+      for (let i = 0; i < 3; i++) {
+        await AIRequest.create({
+          aiModel: "gpt-4",
+          prompt: `p${i}`,
+          requestType: "general",
+          response: `r${i}`,
+        });
+      }
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?page=2&limit=2");
+
+      expect(res.status).toBe(200);
+      expect(res.body.page).toBe(2);
+      expect(res.body.limit).toBe(2);
+      expect(res.body.total).toBe(3);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.more).toBe(false);
+    });
+
     it("filters by model query parameter", async () => {
       await AIRequest.create({
         aiModel: "gpt-4",

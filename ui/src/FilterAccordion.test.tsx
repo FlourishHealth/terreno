@@ -55,4 +55,60 @@ describe("FilterAccordion", () => {
     fireEvent.press(getByTestId("acc.header"));
     expect(onToggle).toHaveBeenCalledWith(true);
   });
+
+  it("shows the changes badge when showChangesBadge is set", () => {
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} showChangesBadge testID="acc" />
+    );
+    expect(getByTestId("acc.badge")).toBeTruthy();
+  });
+
+  it("changes background color on hover when collapsed", () => {
+    const {getByTestId} = renderWithTheme(<FilterAccordion {...defaultProps} testID="acc" />);
+    const initialColor = getByTestId("acc").props.style.backgroundColor;
+    fireEvent(getByTestId("acc.header"), "hoverIn");
+    expect(getByTestId("acc").props.style.backgroundColor).not.toBe(initialColor);
+    fireEvent(getByTestId("acc.header"), "hoverOut");
+    expect(getByTestId("acc").props.style.backgroundColor).toBe(initialColor);
+  });
+
+  it("toggles when Space is pressed on the header", () => {
+    const onToggle = mock();
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} onToggle={onToggle} testID="acc" />
+    );
+    fireEvent(getByTestId("acc.header"), "keyDown", {key: " ", preventDefault: () => {}});
+    expect(onToggle).toHaveBeenCalledWith(true);
+  });
+
+  it("toggles on the legacy Spacebar key name", () => {
+    const onToggle = mock();
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} onToggle={onToggle} testID="acc" />
+    );
+    fireEvent(getByTestId("acc.header"), "keyDown", {key: "Spacebar", preventDefault: () => {}});
+    expect(onToggle).toHaveBeenCalledWith(true);
+  });
+
+  it("ignores non-space keys", () => {
+    const onToggle = mock();
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} onToggle={onToggle} testID="acc" />
+    );
+    fireEvent(getByTestId("acc.header"), "keyDown", {key: "Enter", preventDefault: () => {}});
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("ignores held-key auto-repeat for Space", () => {
+    const onToggle = mock();
+    const {getByTestId} = renderWithTheme(
+      <FilterAccordion {...defaultProps} onToggle={onToggle} testID="acc" />
+    );
+    fireEvent(getByTestId("acc.header"), "keyDown", {
+      key: " ",
+      preventDefault: () => {},
+      repeat: true,
+    });
+    expect(onToggle).not.toHaveBeenCalled();
+  });
 });
