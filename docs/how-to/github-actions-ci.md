@@ -20,7 +20,7 @@ PR builds set `DOCS_PREVIEW=true` and pass `--no-minify`. Both PR and
 | Local search index | Skipped | Built |
 | Generated API + component MDX | Restored from cache when `api`/`rtk`/`ui` hashes match | Same cache, then full generate on miss |
 | TypeDoc workspace `tsc` | Once per generate (api+rtk deps share a process) | Same |
-| `.docusaurus` cache | Restored per `pull_request` vs `push` | Separate production key |
+| Rspack cache (`node_modules/.cache/rspack`) | Restored per `pull_request` vs `push` | Separate production key |
 
 Production still builds every version. Do not rely on `/57.1.0/…` URLs in a
 PR deploy preview.

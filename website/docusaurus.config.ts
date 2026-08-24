@@ -23,6 +23,9 @@ const config: Config = {
   favicon: "img/logo.svg",
   future: {
     faster: true,
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+    },
   },
   i18n: {
     defaultLocale: "en",

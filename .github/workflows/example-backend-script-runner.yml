@@ -58,7 +58,9 @@ jobs:
           mongodb-image: mirror.gcr.io/library/mongo
 
       - name: Compile workspace dependencies
-        run: node .github/scripts/compile-workspace-deps.js example-backend
+        run: |
+          node .github/scripts/compile-workspace-deps.js example-backend
+          bun run --filter '@terreno/admin-spa' compile
 
       - name: Build example backend
         run: bun run compile

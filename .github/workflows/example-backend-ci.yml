@@ -63,7 +63,9 @@ jobs:
           mongodb-image: mongo
 
       - name: Compile workspace dependencies
-        run: node .github/scripts/compile-workspace-deps.js example-backend
+        run: |
+          node .github/scripts/compile-workspace-deps.js example-backend
+          bun run --filter '@terreno/admin-spa' compile
 
       - name: Lint
         run: bun run lint

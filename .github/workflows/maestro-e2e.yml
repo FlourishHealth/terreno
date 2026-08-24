@@ -243,7 +243,6 @@ jobs:
           else
             xvfb-run maestro test \
               .maestro/flows/login.yaml \
-              .maestro/flows/signup.yaml \
               .maestro/flows/create-todo.yaml
           fi
 

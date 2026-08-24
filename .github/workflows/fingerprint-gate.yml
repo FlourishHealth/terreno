@@ -114,11 +114,11 @@ jobs:
           echo "ios=$ios" >> "$GITHUB_OUTPUT"
           echo "android=$android" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout master
+      - name: Checkout PR base
         if: steps.master_fp_cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v6.0.3
         with:
-          ref: master
+          ref: ${{ github.event.pull_request.base.sha }}
           path: master
 
       - name: Install + compile (master)
