@@ -29,10 +29,11 @@ PR deploy preview.
 
 | Workflow | What we skip or reuse |
 | --- | --- |
-| `e2e-ci`, `admin-spa-ci`, `admin-spa-integration` | Playwright Chromium under `~/.cache/ms-playwright`, keyed on `bun.lock` |
+| `e2e-ci`, `admin-spa-ci`, `admin-spa-integration` | Playwright Chromium under `~/.cache/ms-playwright`, keyed on `bun.lock`. E2E shards share one compile job (`workspace-dist` artifact) so required check names stay `E2E · <spec>`. |
 | `fingerprint-gate` | Master iOS/Android hashes cached per `pull_request.base.sha` (skips a second `bun run compile`) |
 | `maestro-e2e` | Demo export + static server only when `demo/`, `ui/`, or `.maestro/flows/demo/` change |
-| `example-backend-docker` | Buildx validates the Dockerfile without `load: true` into the daemon |
+| `example-backend-docker` | Buildx runs only when the image recipe changes (`Dockerfile`, lockfile, `package.json`). Source-only PRs skip; CD preview deploy still builds the image. `load: true` stays off. |
+| Bun install | `.github/actions/setup-bun-workspace` pins Bun `1.4.0` and caches `~/.bun/install/cache` without `github.ref` in the key |
 
 Playwright e2e still uses one shard per spec file so required check names stay
 `E2E · <spec>`.
