@@ -3,6 +3,7 @@
  * The web paths are covered by emptyApi.isolated.ts.
  */
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 
 mock.module("react-native", () => ({
   Platform: {OS: "ios"},
@@ -80,12 +81,21 @@ const fetchMock = mock(
 );
 globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-const {getTokenExpirationTimes, refreshAuthToken, staggeredBaseQuery} = await import("../emptyApi");
+const {
+  getFriendlyExpirationInfo,
+  getTokenExpirationTimes,
+  refreshAuthToken,
+  shouldShowStillThereModal,
+  staggeredBaseQuery,
+} = await import("../emptyApi");
 
-const createApiArg = () =>
+const createApiArg = (dispatched: {type: string}[] = []) =>
   ({
     abort: () => {},
-    dispatch: (action: {type: string}) => action,
+    dispatch: (action: {type: string}) => {
+      dispatched.push(action);
+      return action;
+    },
     endpoint: "getTodos",
     extra: undefined,
     forced: false,
@@ -149,5 +159,61 @@ describe("native token storage", () => {
     const request = fetchMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://localhost:4000/todos");
     expect(request.headers.get("authorization")).toBe(`Bearer ${secureStore.get("AUTH_TOKEN")}`);
+  });
+
+  it("reports no expiration times when SecureStore is empty", async () => {
+    const {authRemainingSecs, refreshRemainingSecs} = await getTokenExpirationTimes();
+
+    assert.isUndefined(authRemainingSecs);
+    assert.isUndefined(refreshRemainingSecs);
+    assert.equal(await getFriendlyExpirationInfo(), "No tokens available");
+    assert.isFalse(await shouldShowStillThereModal());
+  });
+
+  it("throws when SecureStore has no refresh token", async () => {
+    let message = "";
+    try {
+      await refreshAuthToken();
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    assert.equal(message, "no refresh token found");
+    assert.equal(axiosPost.mock.calls.length, 0);
+  });
+
+  it("dispatches logout when SecureStore has no auth token", async () => {
+    const dispatched: {type: string}[] = [];
+    const result = await staggeredBaseQuery(
+      "/todos" as never,
+      createApiArg(dispatched) as never,
+      {maxRetries: 0} as never
+    );
+
+    assert.deepEqual(dispatched, [{type: "auth/logout"}]);
+    assert.deepEqual(result.error, {
+      error: "No token found for getTodos",
+      status: "FETCH_ERROR",
+    });
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("dispatches logout when both SecureStore tokens are expired", async () => {
+    secureStore.set("AUTH_TOKEN", makeToken(-300));
+    secureStore.set("REFRESH_TOKEN", makeToken(-100));
+
+    const dispatched: {type: string}[] = [];
+    const result = await staggeredBaseQuery(
+      "/todos" as never,
+      createApiArg(dispatched) as never,
+      {maxRetries: 0} as never
+    );
+
+    assert.deepEqual(dispatched, [{type: "auth/logout"}]);
+    assert.deepEqual(result.error, {
+      error: "Auth and refresh tokens are expired",
+      status: "FETCH_ERROR",
+    });
+    assert.equal(fetchMock.mock.calls.length, 0);
   });
 });

@@ -128,13 +128,21 @@ export type ConfigurationPostUpdateHook = (
 ) => void | Promise<void>;
 
 /**
+ * The subset of a Mongoose model that ConfigurationApp inspects. Structural (rather than
+ * `Model<T>`) so consumers can pass any configuration model without generic invariance
+ * issues; the configurationPlugin statics are looked up at registration time.
+ */
+export interface ConfigurationModelLike {
+  modelName: string;
+  schema: Schema;
+}
+
+/**
  * Options for ConfigurationApp.
  */
 export interface ConfigurationAppOptions {
   /** The Mongoose model with configurationPlugin applied. */
-  // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-  // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-  model: Model<any>;
+  model: ConfigurationModelLike;
   /** Base path for configuration routes. Defaults to "/configuration". */
   basePath?: string;
   /** Per-field widget overrides (e.g., {"ai.systemPrompt": "markdown"}). */
@@ -357,7 +365,7 @@ export class ConfigurationApp implements TerrenoPlugin {
     const schema = ConfigModel.schema;
 
     // Build metadata by inspecting the schema
-    const meta = this.buildMetadata(ConfigModel, schema);
+    const meta = this.buildMetadata(schema);
 
     // GET /configuration/meta — schema metadata for the frontend
     app.get(
@@ -479,9 +487,7 @@ export class ConfigurationApp implements TerrenoPlugin {
    * Top-level fields with subschemas become sections.
    * Top-level scalar fields go into a "General" section.
    */
-  // noExplicitAny: Model<any> required for invariance with consumer-supplied configuration models
-  // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance with consumer-supplied configuration models
-  private buildMetadata(_model: Model<any>, schema: Schema): ConfigurationMetaResponse {
+  private buildMetadata(schema: Schema): ConfigurationMetaResponse {
     const sections: ConfigSectionMeta[] = [];
     const generalFields: Record<string, ConfigFieldMeta> = {};
 
