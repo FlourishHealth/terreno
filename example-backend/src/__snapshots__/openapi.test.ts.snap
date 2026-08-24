@@ -804,6 +804,29 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "models": {
                       "type": "array",
                     },
+                    "platformTools": {
+                      "properties": {
+                        "configuration": {
+                          "type": "boolean",
+                        },
+                        "roles": {
+                          "type": "boolean",
+                        },
+                        "runScripts": {
+                          "type": "boolean",
+                        },
+                        "scripts": {
+                          "type": "boolean",
+                        },
+                        "version": {
+                          "type": "boolean",
+                        },
+                        "viewScripts": {
+                          "type": "boolean",
+                        },
+                      },
+                      "type": "object",
+                    },
                     "schemaVersion": {
                       "type": "number",
                     },

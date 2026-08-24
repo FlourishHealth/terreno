@@ -29,6 +29,11 @@ export type AdminApi = Api<
  */
 export type AdminFieldValue = unknown;
 
+export interface AdminRecordCapabilities {
+  delete: boolean;
+  update: boolean;
+}
+
 /**
  * RTK Query's `build` argument from `api.injectEndpoints({ endpoints: (build) => ... })`.
  *
@@ -151,6 +156,15 @@ export interface AdminConfigResponse {
   customScreens?: AdminCustomScreen[];
   home?: AdminHome;
   models: AdminModelConfig[];
+  /** Server-authorized visibility for built-in Platform sidebar tools. */
+  platformTools?: {
+    configuration: boolean;
+    roles: boolean;
+    runScripts?: boolean;
+    scripts: boolean;
+    version: boolean;
+    viewScripts?: boolean;
+  };
   schemaVersion?: number;
   scripts: AdminScriptConfig[];
   /** Plugin home widget ids merged from admin contributions (informational). */

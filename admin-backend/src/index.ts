@@ -28,7 +28,7 @@ export type {
   AdminOptions,
   AdminScriptConfig,
 } from "./adminApp";
-export {AdminApp} from "./adminApp";
+export {AdminApp, adminOwnedBy} from "./adminApp";
 export * from "./adminUiV2";
 export type {AggregatedAdminContributions} from "./aggregateAdmin";
 export {

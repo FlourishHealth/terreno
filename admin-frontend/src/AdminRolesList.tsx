@@ -1,4 +1,15 @@
-import {Badge, Box, Button, CheckBox, Heading, Modal, Spinner, Text, TextField} from "@terreno/ui";
+import {
+  Badge,
+  Box,
+  Button,
+  CheckBox,
+  Heading,
+  Modal,
+  SelectField,
+  Spinner,
+  Text,
+  TextField,
+} from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
 
 import type {AdminScreenProps} from "./types";
@@ -24,6 +35,50 @@ const EMPTY_ROLE_FORM: RoleFormState = {
   permissions: {},
 };
 
+const STANDARD_ACCESS_ACTIONS = ["read", "write", "writeOwned"] as const;
+const STANDARD_ACCESS_OPTIONS = [
+  {label: "No access", value: "none"},
+  {label: "Read only", value: "read"},
+  {label: "Read + write owned", value: "writeOwned"},
+  {label: "Read + write all", value: "write"},
+];
+const ADMIN_PAGE_RESOURCE = "admin";
+const ADMIN_PAGE_ACTION = "access";
+
+const editorActionsForResource = ({
+  actions,
+  hasStandardAccess,
+  resource,
+}: {
+  actions: readonly string[];
+  hasStandardAccess: boolean;
+  resource: string;
+}): readonly string[] => {
+  const withoutStandard = hasStandardAccess
+    ? actions.filter(
+        (action) =>
+          !STANDARD_ACCESS_ACTIONS.includes(action as (typeof STANDARD_ACCESS_ACTIONS)[number])
+      )
+    : actions;
+  if (resource === ADMIN_PAGE_RESOURCE) {
+    return withoutStandard.filter((action) => action !== ADMIN_PAGE_ACTION);
+  }
+  return withoutStandard;
+};
+
+const standardAccessValue = (actions: string[]): string => {
+  if (actions.includes("write")) {
+    return "write";
+  }
+  if (actions.includes("writeOwned")) {
+    return "writeOwned";
+  }
+  if (actions.includes("read")) {
+    return "read";
+  }
+  return "none";
+};
+
 const clonePermissions = (permissions?: Record<string, string[]>): Record<string, string[]> => {
   return Object.fromEntries(
     Object.entries(permissions ?? {}).map(([resource, actions]) => [resource, [...actions]])
@@ -45,6 +100,8 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
   const roles = normalizeRoles(data);
   const statements = normalizeStatements(statementsData);
   const resources = useMemo(() => Object.keys(statements).sort(), [statements]);
+  const hasAdminPageStatement =
+    statements[ADMIN_PAGE_RESOURCE]?.includes(ADMIN_PAGE_ACTION) ?? false;
   const [editingRole, setEditingRole] = useState<RbacRoleRow | null>(null);
   const [form, setForm] = useState<RoleFormState>(EMPTY_ROLE_FORM);
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -89,6 +146,24 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
       const nextActions = isSelected
         ? currentActions.filter((item) => item !== action)
         : [...currentActions, action].sort();
+      const permissions = {...current.permissions};
+      if (nextActions.length === 0) {
+        Reflect.deleteProperty(permissions, resource);
+      } else {
+        permissions[resource] = nextActions;
+      }
+      return {...current, permissions};
+    });
+  }, []);
+
+  const handleStandardAccessChange = useCallback((resource: string, value: string): void => {
+    setForm((current) => {
+      const customActions = (current.permissions[resource] ?? []).filter(
+        (action) =>
+          !STANDARD_ACCESS_ACTIONS.includes(action as (typeof STANDARD_ACCESS_ACTIONS)[number])
+      );
+      const standardActions = value === "none" ? [] : value === "read" ? ["read"] : ["read", value];
+      const nextActions = [...customActions, ...standardActions];
       const permissions = {...current.permissions};
       if (nextActions.length === 0) {
         Reflect.deleteProperty(permissions, resource);
@@ -277,31 +352,79 @@ export const AdminRolesList: React.FC<AdminScreenProps> = ({api, apiBase, baseUr
             />
             <Box gap={2} testID="admin-role-permissions">
               <Heading size="sm">Permissions</Heading>
-              {resources.map((resource) => (
-                <Box gap={1} key={resource}>
-                  <Text bold>{resource}</Text>
-                  <Box direction="row" gap={3} wrap>
-                    {statements[resource].map((action) => {
-                      const isSelected = form.permissions[resource]?.includes(action) ?? false;
-                      return (
-                        <Box
-                          accessibilityHint={`Toggles the ${action} permission for ${resource}`}
-                          accessibilityLabel={`${resource} ${action}`}
-                          alignItems="center"
-                          direction="row"
-                          gap={1}
-                          key={`${resource}:${action}`}
-                          onClick={() => handlePermissionToggle(resource, action)}
-                          testID={`admin-role-permission-${resource}-${action}`}
-                        >
-                          <CheckBox selected={isSelected} />
-                          <Text>{action}</Text>
-                        </Box>
-                      );
-                    })}
+              {hasAdminPageStatement ? (
+                <Box gap={2} testID="admin-role-page-access">
+                  <Heading size="sm">Admin page</Heading>
+                  <Text>
+                    This is the only permission that opens the admin panel. Model and tool
+                    permissions do not apply until it is granted.
+                  </Text>
+                  <Box
+                    accessibilityHint="Toggles whether this role can open the admin page"
+                    accessibilityLabel="Allow access to the admin page"
+                    alignItems="center"
+                    direction="row"
+                    gap={1}
+                    onClick={() => handlePermissionToggle(ADMIN_PAGE_RESOURCE, ADMIN_PAGE_ACTION)}
+                    testID={`admin-role-permission-${ADMIN_PAGE_RESOURCE}-${ADMIN_PAGE_ACTION}`}
+                  >
+                    <CheckBox
+                      selected={
+                        form.permissions[ADMIN_PAGE_RESOURCE]?.includes(ADMIN_PAGE_ACTION) ?? false
+                      }
+                    />
+                    <Text>Allow access to the admin page</Text>
                   </Box>
                 </Box>
-              ))}
+              ) : null}
+              {resources.map((resource) => {
+                const actions = statements[resource];
+                const hasStandardAccess = STANDARD_ACCESS_ACTIONS.every((action) =>
+                  actions.includes(action)
+                );
+                const customActions = editorActionsForResource({
+                  actions,
+                  hasStandardAccess,
+                  resource,
+                });
+                if (!hasStandardAccess && customActions.length === 0) {
+                  return null;
+                }
+                return (
+                  <Box gap={1} key={resource}>
+                    <Text bold>{resource}</Text>
+                    {hasStandardAccess ? (
+                      <SelectField
+                        onChange={(value: string) => handleStandardAccessChange(resource, value)}
+                        options={STANDARD_ACCESS_OPTIONS}
+                        testID={`admin-role-access-${resource}`}
+                        title="Access level"
+                        value={standardAccessValue(form.permissions[resource] ?? [])}
+                      />
+                    ) : null}
+                    <Box direction="row" gap={3} wrap>
+                      {customActions.map((action) => {
+                        const isSelected = form.permissions[resource]?.includes(action) ?? false;
+                        return (
+                          <Box
+                            accessibilityHint={`Toggles the ${action} permission for ${resource}`}
+                            accessibilityLabel={`${resource} ${action}`}
+                            alignItems="center"
+                            direction="row"
+                            gap={1}
+                            key={`${resource}:${action}`}
+                            onClick={() => handlePermissionToggle(resource, action)}
+                            testID={`admin-role-permission-${resource}-${action}`}
+                          >
+                            <CheckBox selected={isSelected} />
+                            <Text>{action}</Text>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                );
+              })}
             </Box>
           </Box>
         </Box>

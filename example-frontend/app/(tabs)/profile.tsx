@@ -1,5 +1,5 @@
 import {useBooleanFlagDetails} from "@openfeature/react-sdk";
-import {selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
+import {canOpenAdminPage, selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
 import {
   Badge,
   Box,
@@ -144,7 +144,10 @@ const ProfileScreen: React.FC = () => {
 
   const roles = useMemo(() => [...(profile?.roles ?? [])].sort(), [profile?.roles]);
   const isSuperAdmin = roles.includes("superadmin");
-  const isAdmin = profile?.admin === true;
+  const isAdmin = canOpenAdminPage({
+    admin: profile?.admin,
+    permissions: profile?.permissions,
+  });
 
   if (isLoading) {
     return (
