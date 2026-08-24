@@ -16,7 +16,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) 1.4 or newer — use the latest stable release (CI runs `bun-version: latest`; EAS builds pin `1.4.0`)
+- [Bun](https://bun.sh/) 1.4 or newer — use the latest stable release (CI runs `bun-version: latest`). EAS build profiles pin an older Bun on purpose: `eas.json` feeds the Expo fingerprint, so bumping it changes the native runtime version and forces a rebuild.
 - **MongoDB replica set** — required to run `example-backend` locally (change streams power realtime and feature-flag sync). A single-node replica set is enough for development.
 
 ### Bootstrap
