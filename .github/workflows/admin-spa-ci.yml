@@ -72,6 +72,12 @@ jobs:
       - name: Smoke check (backend-free)
         run: bun run smoke
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
 

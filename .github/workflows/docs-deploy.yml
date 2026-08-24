@@ -74,18 +74,48 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Cache generated API reference
+        id: api-ref-cache
+        uses: actions/cache@v6
+        with:
+          path: docs/reference/generated
+          key: docs-api-ref-${{ hashFiles('api/src/**', 'rtk/src/**', 'website/scripts/generate-api-reference.ts') }}
+
+      - name: Cache generated UI component docs
+        id: ui-docs-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            demo/ui-types-documentation.json
+            docs/reference/components
+          key: docs-ui-ref-${{ hashFiles('ui/src/**', 'demo/demoConfig.tsx', 'demo/story-config/**', 'website/scripts/generate-component-docs.ts') }}
+
       - name: Compile UI package
+        if: steps.ui-docs-cache.outputs.cache-hit != 'true'
         run: bun run compile
         working-directory: ui
 
       - name: Generate UI type documentation
+        if: steps.ui-docs-cache.outputs.cache-hit != 'true'
         run: bun run types
         working-directory: ui
 
+      - name: Generate component docs
+        if: steps.ui-docs-cache.outputs.cache-hit != 'true'
+        run: bun run generate:components
+        working-directory: website
+
+      - name: Generate API reference
+        if: steps.api-ref-cache.outputs.cache-hit != 'true'
+        run: bun run generate:api
+        working-directory: website
+
       - name: Build docs site
-        run: bun run website:build
+        run: bunx docusaurus build ${{ github.event_name == 'pull_request' && '--no-minify' || '' }}
+        working-directory: website
         env:
           DEMO_URL: https://terreno-demo.netlify.app
+          DOCS_PREVIEW: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7.0.1

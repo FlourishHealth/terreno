@@ -4,6 +4,9 @@ import {themes as prismThemes} from "prism-react-renderer";
 
 const demoUrl = process.env.DEMO_URL ?? "https://terreno-demo.netlify.app";
 const docsUrl = process.env.DOCS_URL ?? "https://terreno-docs.netlify.app";
+// PR previews only need the current docs tree. Historical versions live in
+// website/versioned_docs and dominate `docusaurus build` time (~4 extra trees).
+const isPreview = process.env.DOCS_PREVIEW === "true";
 
 const config: Config = {
   baseUrl: "/",
@@ -37,6 +40,7 @@ const config: Config = {
       {
         blog: false,
         docs: {
+          disableVersioning: isPreview,
           editUrl: "https://github.com/flourishhealth/terreno/tree/master/docs/",
           exclude: ["**/implementationPlans/**", "**/tasks/**"],
           path: "../docs",

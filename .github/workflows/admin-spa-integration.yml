@@ -157,6 +157,12 @@ jobs:
           curl -sf http://localhost:4000/console/app-config.json
           curl -sf http://localhost:4000/console/ | grep -q "__ADMIN_SPA_BASE__"
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
         working-directory: admin-spa

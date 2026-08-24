@@ -174,6 +174,12 @@ jobs:
           REFRESH_TOKEN_SECRET: ${{ env.REFRESH_TOKEN_SECRET }}
           SESSION_SECRET: ${{ env.SESSION_SECRET }}
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
         working-directory: example-frontend
