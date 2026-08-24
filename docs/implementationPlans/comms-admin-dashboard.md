@@ -9,6 +9,7 @@
 **Program:** [B2B platform](b2b-platform-program.md)
 **Depends on:** [comms-abstraction](comms-abstraction.md) (Phases 1–2, including the hook + error-taxonomy additions); adapters optional but the dashboard is most useful once [comms-adapter-twilio-sms](comms-adapter-twilio-sms.md) and [comms-adapter-sendgrid](comms-adapter-sendgrid.md) land
 **RTK deprecation flag:** Partial — screens use the generated SDK; migrate with syncdb like other admin screens
+**Claude Design prompt:** [comms-admin-dashboard-design-prompt.md](comms-admin-dashboard-design-prompt.md)
 
 ## Goal
 
