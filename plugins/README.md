@@ -54,7 +54,8 @@ lifecycle stage.
 ```text
 Grow PASS → Pick PASS → Roast PASS → Brew PASS → Taste
                        ↘ Roast FAIL → Pick (exact evidence)
-Taste PENDING (product CI / bot timeout) → outer loop waits → fresh Taste
+Brew PENDING (review-bot timeout) → outer loop waits → Taste
+Taste PENDING (product CI / bot timeout / new push) → outer loop waits → fresh Taste
 Taste PASS → merge-ready
 Any BLOCKED → named human/external gate
 ```

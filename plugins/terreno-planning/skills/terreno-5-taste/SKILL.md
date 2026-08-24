@@ -73,11 +73,13 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
     comments. Use an existing review thread when possible. A top-level comment is allowed
     only for one blocking human decision/action not already visible in the PR body.
 11. **Emit and exit.**
-   - Review bots still running after the 20-minute timeout, a second post-fix push, or
-     product CI still running → `PENDING`, current head, `next: taste`, and `wait`.
    - All checks terminal/non-failing, no conflicts, no actionable reviews → `PASS`.
    - No safe current action because of human/access/external/environment gate →
      `BLOCKED`.
+   - Otherwise `PENDING` with `next: taste` and `wait`: review-bot timeout, this
+     invocation pushed a new head, product CI still running or failed without a remaining
+     safe act, or a second post-fix push. A first fix push is `PENDING` after the
+     follow-up review-bot wait unless `PASS` or `BLOCKED` already applies.
    Update execution state and emit the structured result collapsed per the lifecycle
    contract. Then exit.
 

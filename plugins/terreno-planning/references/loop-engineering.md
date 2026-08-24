@@ -6,7 +6,8 @@ skills do not implement this loop.
 ```text
 Grow PASS → Pick PASS → Roast PASS → Brew PASS → Taste
                        ↘ Roast FAIL → Pick (with failure evidence)
-Taste PENDING (product CI / bot timeout) ───→ outer loop waits → fresh Taste
+Brew PENDING (review-bot timeout) ───→ outer loop waits → Taste
+Taste PENDING (product CI / bot timeout / new push) ───→ outer loop waits → fresh Taste
 Taste waits in-process for Bugbot/CodeQL ───→ same invocation reacts
 Taste PASS ────────────→ merge-ready
 Any BLOCKED ───────────→ human/external gate

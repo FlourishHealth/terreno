@@ -94,11 +94,12 @@ handling, and mandatory evidence gates.
 
 ## Failure conditions
 
-Failed final checks, review findings, push errors, or PR setup errors emit `FAIL` with
-evidence and the smallest corrective stage/action: behavioral defects use
-`next: pick`, stale/missing proof uses `next: roast`,
-and submission-only retries use `next: brew`. Do not fix implementation
-inside Brew.
+Failed final checks, **Brew's own independent-review findings** (step 4), push errors, or
+PR setup errors emit `FAIL` with evidence and the smallest corrective stage/action:
+behavioral defects use `next: pick`, stale/missing proof uses `next: roast`,
+and submission-only retries use `next: brew`. Do not treat Bugbot, CodeQL, or similar
+async review-bot findings as Brew `FAIL`; record them and emit `PASS` with
+`next: taste`. Do not fix implementation inside Brew.
 
 ## Blocked conditions
 

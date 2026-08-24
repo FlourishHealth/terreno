@@ -33,11 +33,13 @@ matched bot queued, in progress, or still inside the startup grace.
    re-fetch. Repeat until every matched bot is terminal, or 20 minutes have elapsed.
    Terminal means the check completed (success, failure, cancelled, skipped, timed out)
    or the bot posted a completed review/comment batch for this head.
-4. **Timeout.** If still running at 20 minutes, stop waiting. Emit `PENDING` with
-   `next: taste` and `wait: 120`. Record which bots are still running.
-5. **Re-observe, then continue.** Use the post-wait snapshot. Brew records bot outcomes
-   and does not implement fixes. Taste classifies bot findings and acts on actionable
-   ones in this invocation.
+4. **Timeout.** If still running at 20 minutes, **stop**. Do not continue the stage
+   procedure. Emit `PENDING` with `next: taste` and `wait: 120`. Record which bots are
+   still running.
+5. **Re-observe, then continue — only after a completed wait.** When every matched bot
+   is terminal or none appeared after the grace period, use that snapshot. Brew records
+   bot outcomes and does not implement fixes. Taste classifies bot findings and acts on
+   actionable ones in this invocation.
 
 Use the harness sleep primitive (for example a 30-second sleep). Do not busy-spin.
 
