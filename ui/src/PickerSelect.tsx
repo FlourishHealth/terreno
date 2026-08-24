@@ -50,6 +50,7 @@ import {
   View,
 } from "react-native";
 
+import {CONTROL_MIN_HEIGHT, controlHitSlop} from "./ControlSizes";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {
@@ -79,7 +80,7 @@ export const defaultStyles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     justifyContent: "flex-start",
-    minHeight: 40,
+    minHeight: CONTROL_MIN_HEIGHT,
     width: "100%",
   },
 });
@@ -476,6 +477,7 @@ export const RNPickerSelect = ({
       >
         <Pressable
           disabled={disabled}
+          hitSlop={controlHitSlop(CONTROL_MIN_HEIGHT)}
           onPress={() => {
             togglePicker(true);
           }}
@@ -483,7 +485,7 @@ export const RNPickerSelect = ({
             alignItems: "center",
             flexDirection: "row",
             justifyContent: "center",
-            minHeight: 40,
+            minHeight: CONTROL_MIN_HEIGHT,
             paddingHorizontal: 8,
             width: "100%",
           }}
@@ -588,7 +590,7 @@ export const RNPickerSelect = ({
           {
             backgroundColor: theme.surface.base,
             borderColor: theme.border.dark,
-            height: 40,
+            minHeight: CONTROL_MIN_HEIGHT,
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
@@ -750,7 +752,7 @@ export const RNPickerSelect = ({
               alignItems: "center",
               flexDirection: "row",
               justifyContent: "space-between",
-              minHeight: 40,
+              minHeight: CONTROL_MIN_HEIGHT,
               paddingHorizontal: 8,
               width: "100%",
             }}
@@ -790,7 +792,7 @@ export const RNPickerSelect = ({
               alignItems: "center",
               flexDirection: "row",
               justifyContent: "space-between",
-              minHeight: 40,
+              minHeight: CONTROL_MIN_HEIGHT,
               paddingHorizontal: 8,
               width: "100%",
             }}

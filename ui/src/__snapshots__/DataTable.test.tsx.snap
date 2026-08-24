@@ -5932,6 +5932,10 @@ exports[`DataTable renders with pagination 1`] = `
                 "accessibilityHint": "Click to go to prev page",
                 "aria-label": "Pagination Button",
                 "disabled": true,
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
@@ -5975,6 +5979,10 @@ exports[`DataTable renders with pagination 1`] = `
               "props": {
                 "accessibilityHint": "Click to go to page 1",
                 "accessibilityLabel": "Pagination Number",
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
@@ -6019,6 +6027,10 @@ exports[`DataTable renders with pagination 1`] = `
               "props": {
                 "accessibilityHint": "Click to go to page 2",
                 "accessibilityLabel": "Pagination Number",
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
@@ -6063,6 +6075,10 @@ exports[`DataTable renders with pagination 1`] = `
               "props": {
                 "accessibilityHint": "Click to go to page 3",
                 "accessibilityLabel": "Pagination Number",
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
@@ -6107,6 +6123,10 @@ exports[`DataTable renders with pagination 1`] = `
               "props": {
                 "accessibilityHint": "Click to go to page 4",
                 "accessibilityLabel": "Pagination Number",
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
@@ -6151,6 +6171,10 @@ exports[`DataTable renders with pagination 1`] = `
               "props": {
                 "accessibilityHint": "Click to go to page 5",
                 "accessibilityLabel": "Pagination Number",
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",
@@ -6170,6 +6194,10 @@ exports[`DataTable renders with pagination 1`] = `
                 "accessibilityHint": "Click to go to next page",
                 "aria-label": "Pagination Button",
                 "disabled": false,
+                "hitSlop": {
+                  "bottom": 8,
+                  "top": 8,
+                },
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",

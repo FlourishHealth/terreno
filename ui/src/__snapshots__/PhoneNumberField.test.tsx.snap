@@ -66,6 +66,7 @@ exports[`PhoneNumberField renders correctly with default props 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -73,6 +74,8 @@ exports[`PhoneNumberField renders correctly with default props 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -168,6 +171,7 @@ exports[`PhoneNumberField renders with icon 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -175,6 +179,8 @@ exports[`PhoneNumberField renders with icon 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -261,6 +267,7 @@ exports[`PhoneNumberField uses US as default country code 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -268,6 +275,8 @@ exports[`PhoneNumberField uses US as default country code 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,
@@ -354,6 +363,7 @@ exports[`PhoneNumberField accepts custom country code 1`] = `
         },
       ],
       "props": {
+        "onStartShouldSetResponder": [Function],
         "style": {
           "backgroundColor": "#FFFFFF",
           "borderColor": "#9A9A9A",
@@ -361,6 +371,8 @@ exports[`PhoneNumberField accepts custom country code 1`] = `
           "borderWidth": 1,
           "flexDirection": "column",
           "gap": 0,
+          "justifyContent": "center",
+          "minHeight": 44,
           "overflow": "hidden",
           "paddingHorizontal": 12,
           "paddingVertical": 8,

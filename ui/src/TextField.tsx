@@ -1,5 +1,5 @@
 import {getCalendars} from "expo-localization";
-import {type FC, useMemo, useState} from "react";
+import {type FC, useCallback, useMemo, useRef, useState} from "react";
 import {
   type DimensionValue,
   type KeyboardTypeOptions,
@@ -12,6 +12,7 @@ import {
 
 import {AiSuggestionBox} from "./AiSuggestionBox";
 import type {TextFieldProps, TextStyleWithOutline} from "./Common";
+import {CONTROL_MIN_HEIGHT} from "./ControlSizes";
 import {FieldError} from "./fieldElements/FieldError";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {FieldTitle} from "./fieldElements/FieldTitle";
@@ -96,7 +97,20 @@ export const TextField: FC<TextFieldProps> = ({
   }
 
   const [focused, setFocused] = useState(false);
-  const [height, setHeight] = useState(rows * 40);
+  const [height, setHeight] = useState(rows * CONTROL_MIN_HEIGHT);
+  const internalInputRef = useRef<TextInput | null>(null);
+
+  // The bordered chrome is taller than the TextInput itself, so a tap on the surrounding
+  // padding has to move focus into the input for the whole 44pt box to be a real hit
+  // target. Returning false leaves the responder with the child that was actually
+  // touched, so the trailing icon and text selection keep working.
+  const focusInputFromChrome = useCallback((): boolean => {
+    if (disabled) {
+      return false;
+    }
+    internalInputRef.current?.focus();
+    return false;
+  }, [disabled]);
 
   let borderColor = focused ? theme.border.focus : theme.border.dark;
   if (disabled) {
@@ -107,7 +121,7 @@ export const TextField: FC<TextFieldProps> = ({
 
   const calculatedHeight: DimensionValue = useMemo(() => {
     if (grow) {
-      return Math.max(40, height);
+      return Math.max(CONTROL_MIN_HEIGHT, height);
     } else if (multiline) {
       return height || "100%";
     } else {
@@ -155,6 +169,7 @@ export const TextField: FC<TextFieldProps> = ({
       {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title!} />}
       {Boolean(errorText) && <FieldError testID={fieldTestIDs.error} text={errorText!} />}
       <View
+        onStartShouldSetResponder={focusInputFromChrome}
         style={{
           backgroundColor: disabled ? theme.surface.neutralLight : theme.surface.base,
           borderColor,
@@ -162,6 +177,8 @@ export const TextField: FC<TextFieldProps> = ({
           borderWidth: focused ? 3 : 1,
           flexDirection: "column",
           gap: aiSuggestion ? 10 : 0,
+          justifyContent: "center",
+          minHeight: CONTROL_MIN_HEIGHT,
           overflow: "hidden",
           paddingHorizontal: focused ? 10 : 12,
           paddingVertical: focused ? 6 : 8,
@@ -235,6 +252,7 @@ export const TextField: FC<TextFieldProps> = ({
             placeholderTextColor={theme.text.secondaryLight}
             readOnly={disabled}
             ref={(ref) => {
+              internalInputRef.current = ref;
               if (inputRef) {
                 inputRef(ref);
               }

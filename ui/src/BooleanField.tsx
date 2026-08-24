@@ -2,6 +2,7 @@ import {type FC, useCallback, useEffect, useRef} from "react";
 import {Animated, Pressable, View} from "react-native";
 
 import type {BooleanFieldProps} from "./Common";
+import {controlHitSlop} from "./ControlSizes";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Text} from "./Text";
@@ -100,6 +101,7 @@ export const BooleanField: FC<BooleanFieldProps> = ({
         {Boolean(title) && <FieldTitle testID={fieldTestIDs.label} text={title!} />}
         <Pressable
           aria-role="button"
+          hitSlop={controlHitSlop(TOUCHABLE_SIZE)}
           onPress={handleSwitch}
           style={{alignItems: "center", flexDirection: "row", justifyContent: "center"}}
           testID={fieldTestIDs.input ? `${fieldTestIDs.input}.switch` : undefined}

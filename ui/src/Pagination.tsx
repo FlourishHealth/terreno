@@ -2,6 +2,7 @@ import {type FC, useMemo} from "react";
 import {Pressable, View} from "react-native";
 
 import type {IconName, PaginationProps} from "./Common";
+import {controlHitSlop} from "./ControlSizes";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
@@ -33,6 +34,7 @@ const PaginationButton: FC<{
       accessibilityHint={`Click to go to ${type} page`}
       aria-label="Pagination Button"
       disabled={disabled}
+      hitSlop={controlHitSlop(32)}
       onPress={onClick}
       style={{
         alignItems: "center",
@@ -60,6 +62,7 @@ const PaginationNumber: FC<{
     <Pressable
       accessibilityHint={`Click to go to page ${number}`}
       accessibilityLabel="Pagination Number"
+      hitSlop={controlHitSlop(32)}
       onPress={onClick}
       style={{
         alignItems: "center",
