@@ -2,6 +2,7 @@ import React from "react";
 import {Text as NativeText, Platform, type StyleProp, type TextStyle} from "react-native";
 
 import type {HeadingProps} from "./Common";
+import {useTerrenoFontsLoaded} from "./TerrenoFontProvider";
 import {useTheme} from "./Theme";
 
 const fontSizeAndWeightWeb = {
@@ -30,6 +31,7 @@ const HeadingComponent = ({
   testID,
 }: HeadingProps): React.ReactElement => {
   const {theme} = useTheme();
+  useTerrenoFontsLoaded();
 
   const style: StyleProp<TextStyle> = {};
 

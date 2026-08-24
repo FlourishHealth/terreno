@@ -12,14 +12,16 @@ import {
   TitilliumWeb_700Bold,
   useFonts as useHeadingFonts,
 } from "@expo-google-fonts/titillium-web";
-import type {FC, ReactNode} from "react";
+import {createContext, type FC, type ReactNode, useContext} from "react";
 
 interface TerrenoFontProviderProps {
   children: ReactNode;
 }
 
+const TerrenoFontLoadContext = createContext(true);
+
 export const TerrenoFontProvider: FC<TerrenoFontProviderProps> = ({children}) => {
-  useTextFonts({
+  const [areTextFontsLoaded] = useTextFonts({
     text: Nunito_400Regular,
     "text-bold": Nunito_700Bold,
     "text-bold-italic": Nunito_700Bold_Italic,
@@ -28,11 +30,21 @@ export const TerrenoFontProvider: FC<TerrenoFontProviderProps> = ({children}) =>
     "text-regular": Nunito_400Regular,
     "text-regular-italic": Nunito_400Regular_Italic,
   });
-  useHeadingFonts({
+  const [areHeadingFontsLoaded] = useHeadingFonts({
     heading: TitilliumWeb_600SemiBold,
     "heading-bold": TitilliumWeb_700Bold,
     "heading-semibold": TitilliumWeb_600SemiBold,
   });
 
-  return children;
+  const areFontsLoaded = areTextFontsLoaded && areHeadingFontsLoaded;
+
+  return (
+    <TerrenoFontLoadContext.Provider value={areFontsLoaded}>
+      {children}
+    </TerrenoFontLoadContext.Provider>
+  );
+};
+
+export const useTerrenoFontsLoaded = (): boolean => {
+  return useContext(TerrenoFontLoadContext);
 };

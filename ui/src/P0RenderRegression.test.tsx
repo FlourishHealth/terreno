@@ -55,6 +55,32 @@ describe("P0 component rerender regression coverage", () => {
     assert.notInclude(box.children, "first");
   });
 
+  it("does not leak border-adjusted sizing through the shared Box style map", () => {
+    const result = render(
+      <ThemeProvider>
+        <Box border="default" height={80} testID="bordered" width={100} />
+        <Box height={80} testID="plain" width={100} />
+      </ThemeProvider>
+    );
+
+    assert.equal(result.getByTestId("bordered").props.style.width, 104);
+    assert.equal(result.getByTestId("bordered").props.style.height, 84);
+    assert.equal(result.getByTestId("plain").props.style.width, 100);
+    assert.equal(result.getByTestId("plain").props.style.height, 80);
+
+    result.rerender(
+      <ThemeProvider>
+        <Box height={80} testID="bordered" width={100} />
+        <Box border="default" height={80} testID="plain" width={100} />
+      </ThemeProvider>
+    );
+
+    assert.equal(result.getByTestId("bordered").props.style.width, 100);
+    assert.equal(result.getByTestId("bordered").props.style.height, 80);
+    assert.equal(result.getByTestId("plain").props.style.width, 104);
+    assert.equal(result.getByTestId("plain").props.style.height, 84);
+  });
+
   it("switches Box host behavior when onClick changes", () => {
     const onClick = (): void => {};
     const result = renderP0(<Box testID="box" />);

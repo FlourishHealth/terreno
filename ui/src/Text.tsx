@@ -3,6 +3,7 @@ import {Text as NativeText, Platform, type TextStyle} from "react-native";
 
 import type {TextProps} from "./Common";
 import {Hyperlink} from "./Hyperlink";
+import {useTerrenoFontsLoaded} from "./TerrenoFontProvider";
 import {useTheme} from "./Theme";
 
 const fontSizeAndWeightWeb = {
@@ -37,6 +38,7 @@ const TextComponent = ({
   testID,
 }: TextProps): React.ReactElement => {
   const {theme} = useTheme();
+  useTerrenoFontsLoaded();
 
   const style: TextStyle = {};
 

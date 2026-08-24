@@ -2,6 +2,7 @@ import React, {useMemo} from "react";
 import {Platform} from "react-native";
 import Markdown from "react-native-markdown-display";
 
+import {useTerrenoFontsLoaded} from "./TerrenoFontProvider";
 import {useTheme} from "./Theme";
 
 const IS_WEB = Platform.OS === "web";
@@ -21,6 +22,7 @@ const MarkdownViewComponent: React.FC<{children: React.ReactNode; inverted?: boo
   inverted,
 }) => {
   const {theme} = useTheme();
+  useTerrenoFontsLoaded();
   const textColor = inverted ? theme.text.inverted : theme.text.primary;
   const markdownStyle = useMemo<React.ComponentProps<typeof Markdown>["style"]>(() => {
     const color = {color: textColor};

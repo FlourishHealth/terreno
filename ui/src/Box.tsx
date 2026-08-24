@@ -91,6 +91,7 @@ interface BoxStyleMap {
     // noExplicitAny: Box style props are deliberately heterogeneous and narrowed by each mapper.
     // biome-ignore lint/suspicious/noExplicitAny: heterogeneous style mapper input
     value: any,
+    // noExplicitAny: Box style mappers receive the full heterogeneous prop collection.
     // biome-ignore lint/suspicious/noExplicitAny: heterogeneous Box prop collection
     all: {[prop: string]: any}
   ) => {[style: string]: string | number} | {};
@@ -180,14 +181,14 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
         }
       },
       gap: (value) => ({gap: getSpacing(value)}),
-      height: (value) => {
+      height: (value, allProps) => {
         if (!isValidWidthHeight(value)) {
           console.warn(
             `Box: height prop must be a number or percentage string (e.g., "50%"), received: ${value}`
           );
           return {};
         }
-        if (props.border && !Number.isNaN(Number(value))) {
+        if (allProps.border && !Number.isNaN(Number(value))) {
           return {height: Number(value) + 2 * 2};
         } else {
           return {height: value};
@@ -281,14 +282,14 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
       smDirection: (value: "row" | "column") =>
         mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
       top: (top) => ({top: top ? 0 : undefined}),
-      width: (value) => {
+      width: (value, allProps) => {
         if (!isValidWidthHeight(value)) {
           console.warn(
             `Box: width prop must be a number or percentage string (e.g., "50%"), received: ${value}`
           );
           return {};
         }
-        if (props.border && !Number.isNaN(Number(value))) {
+        if (allProps.border && !Number.isNaN(Number(value))) {
           return {width: Number(value) + 2 * 2};
         } else {
           return {width: value};
