@@ -1,4 +1,4 @@
-import React, {useImperativeHandle} from "react";
+import React, {useImperativeHandle, useMemo, useRef} from "react";
 import {
   type AccessibilityProps,
   KeyboardAvoidingView,
@@ -86,9 +86,11 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "testIDs",
 ]);
 
-export const Box = React.forwardRef((props: BoxProps, ref) => {
+const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
   const resolvedTestID = props.testID;
+  const internalScrollRef = useRef<ScrollView>(null);
+  const scrollRef = props.scrollRef ?? internalScrollRef;
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -298,8 +300,6 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     zIndex: (value) => ({zIndex: value ? value : undefined}),
   };
 
-  const scrollRef = props.scrollRef ?? React.createRef();
-
   // noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
   // biome-ignore lint/suspicious/noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
   const propsToStyle = (): any => {
@@ -323,6 +323,8 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
 
     return style;
   };
+
+  const boxStyle = useMemo(() => propsToStyle(), [props, theme]);
 
   const onHoverIn = async () => {
     await props.onHoverStart?.();
@@ -355,7 +357,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
           await Unifier.utils.haptic();
           await props.onClick?.();
         }}
-        style={propsToStyle()}
+        style={boxStyle}
         testID={resolvedTestID ? `${resolvedTestID}-clickable` : undefined}
       >
         {props.children}
@@ -370,7 +372,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         {...(accessibilityLabel ? {accessibilityLabel} : {})}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
-        style={propsToStyle()}
+        style={boxStyle}
         testID={resolvedTestID}
       >
         {props.children}
@@ -379,7 +381,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   }
 
   if (props.scroll) {
-    const {justifyContent, alignContent, alignItems, ...scrollStyle} = propsToStyle();
+    const {justifyContent, alignContent, alignItems, ...scrollStyle} = boxStyle;
 
     box = (
       <ScrollView
@@ -414,3 +416,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   }
   return box;
 });
+
+BoxComponent.displayName = "Box";
+
+export const Box = React.memo(BoxComponent);
