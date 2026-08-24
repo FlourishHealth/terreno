@@ -12,6 +12,7 @@
  * subscribe/mutate socket handlers) into its own file per the syncdb hardening plan.
  */
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import jwt from "jsonwebtoken";
 
 import {
@@ -235,6 +236,34 @@ describe("socketAuth", () => {
   });
 
   describe("createSocketAuthMiddleware — validator chain", () => {
+    it("authenticates with Better Auth when no JWT secret is configured", async () => {
+      const middleware = createSocketAuthMiddleware({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only"}})},
+          } as any,
+        },
+      });
+      const socket = makeAuthSocket("better-auth-session-token");
+
+      const error = await runMiddleware(middleware, socket);
+
+      assert.isUndefined(error);
+      assert.deepEqual(socket.decodedToken, {
+        admin: false,
+        authKind: "better-auth",
+        id: "ba-only",
+        isAnonymous: false,
+      });
+    });
+
+    it("rejects configuration with no authentication validators", () => {
+      assert.throws(
+        () => createSocketAuthMiddleware({}),
+        "At least one socket authentication validator is required"
+      );
+    });
+
     it("accepts a legacy JWT with the default chain", async () => {
       const middleware = createSocketAuthMiddleware({tokenSecret});
       const token = jwt.sign({admin: false, id: "chain-user"}, tokenSecret);
