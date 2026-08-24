@@ -1,5 +1,6 @@
 import type {Model} from "mongoose";
 import type {ModelRouterOptions} from "../api";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {getScopeField} from "./streams";
 import type {SyncConfig} from "./types";
@@ -69,40 +70,55 @@ export const registerSync = <T>({
   const name = model.modelName;
   const deletedPath = model.schema.path("deleted");
   if (deletedPath?.instance !== "Boolean") {
-    throw new Error(
-      `Model ${name} has a sync config but no soft delete support. ` +
-        "Apply isDeletedPlugin to the schema — sync catch-up requires delete tombstones."
-    );
+    throw new APIError({
+      code: "sync-missing-soft-delete",
+      detail: "Apply isDeletedPlugin to the schema — sync catch-up requires delete tombstones.",
+      status: 500,
+      title: `Model ${name} has a sync config but no soft delete support.`,
+    });
   }
   if (!model.schema.path("_syncSeq")) {
-    throw new Error(
-      `Model ${name} has a sync config but syncPlugin is not applied to its schema. ` +
-        "Apply syncPlugin so every write stamps a per-stream _syncSeq."
-    );
+    throw new APIError({
+      code: "sync-missing-sync-plugin",
+      detail: "Apply syncPlugin so every write stamps a per-stream _syncSeq.",
+      status: 500,
+      title: `Model ${name} has a sync config but syncPlugin is not applied to its schema.`,
+    });
   }
   const scopeField = getScopeField(config.scope);
   if (scopeField && !model.schema.path(scopeField)) {
-    throw new Error(
-      `Model ${name} has a sync scope on field "${scopeField}" but the schema has no such path.`
-    );
+    throw new APIError({
+      code: "sync-missing-scope-field",
+      status: 500,
+      title: `Model ${name} has a sync scope on field "${scopeField}" but the schema has no such path.`,
+    });
   }
   if (typeof config.scope === "function" && !config.snapshotFilter) {
-    throw new Error(
-      `Model ${name} uses a custom sync scope resolver, which requires a snapshotFilter ` +
-        "so the snapshot endpoint can restrict queries to the caller's documents."
-    );
+    throw new APIError({
+      code: "sync-custom-scope-without-filter",
+      status: 500,
+      title:
+        `Model ${name} uses a custom sync scope resolver, which requires a snapshotFilter ` +
+        "so the snapshot endpoint can restrict queries to the caller's documents.",
+    });
   }
   if (syncRegistry.some((entry) => entry.modelName === name)) {
-    throw new Error(`Model ${name} is already registered for sync.`);
+    throw new APIError({
+      code: "sync-model-already-registered",
+      status: 500,
+      title: `Model ${name} is already registered for sync.`,
+    });
   }
   // C8: a duplicate collectionTag would make two models share sync streams and route
   // snapshots/deltas ambiguously — reject it loudly at registration.
   const collectionTag = routePath.replace(/^\//, "");
   if (syncRegistry.some((entry) => entry.collectionTag === collectionTag)) {
-    throw new Error(
-      `Sync collection tag "${collectionTag}" is already registered (routePath ${routePath}). ` +
-        "Each synced model must have a unique route path."
-    );
+    throw new APIError({
+      code: "sync-collection-tag-already-registered",
+      detail: "Each synced model must have a unique route path.",
+      status: 500,
+      title: `Sync collection tag "${collectionTag}" is already registered (routePath ${routePath}).`,
+    });
   }
 
   syncRegistry.push({
@@ -121,11 +137,15 @@ export const registerSync = <T>({
   // guarded multi-document paths do. Idempotent: the replacement never delegates, so a
   // re-registration (tests clearing the registry) re-patching it is harmless.
   (model as unknown as {bulkWrite: () => never}).bulkWrite = (): never => {
-    throw new Error(
-      `bulkWrite is not supported on sync-enabled model ${name}: it bypasses Mongoose ` +
+    throw new APIError({
+      code: "sync-bulk-write-unsupported",
+      detail: "Loop per document instead.",
+      status: 500,
+      title:
+        `bulkWrite is not supported on sync-enabled model ${name}: it bypasses Mongoose ` +
         "middleware, so writes are never stamped with a per-stream _syncSeq and become " +
-        "invisible to sync delta emission and snapshot catch-up. Loop per document instead."
-    );
+        "invisible to sync delta emission and snapshot catch-up.",
+    });
   };
 
   // Compound index for snapshot/catch-up queries: {scopeField, _syncSeq}. Created
@@ -139,10 +159,12 @@ export const registerSync = <T>({
     .then(() => {})
     .catch((error: unknown) => {
       logger.error(`[sync] Failed to create sync index for ${name}`, {error: String(error)});
-      throw new Error(
-        `Failed to create sync snapshot index for ${name}: ${String(error)}. ` +
-          "The snapshot/catch-up query requires this index; fix the schema/DB and restart."
-      );
+      throw new APIError({
+        code: "sync-snapshot-index-failed",
+        detail: "The snapshot/catch-up query requires this index; fix the schema/DB and restart.",
+        status: 500,
+        title: `Failed to create sync snapshot index for ${name}: ${String(error)}.`,
+      });
     });
   indexCreationPromises.push(indexPromise);
   // Swallow the detached rejection (already logged) so it is not an unhandled rejection;
