@@ -1,5 +1,5 @@
-import {assert} from "chai";
 import {act, render} from "@testing-library/react-native";
+import {assert} from "chai";
 import type React from "react";
 import {useEffect} from "react";
 
