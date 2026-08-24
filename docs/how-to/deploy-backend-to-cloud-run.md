@@ -105,6 +105,7 @@ Expect `"healthy": true`.
 | Socket connections drop after ~5 minutes | Default request timeout (300s) | Raise `--timeout` (for example `3600`) |
 | Live feature flags / realtime never update; log mentions replica set | MongoDB is standalone, not a replica set | Use Atlas or `replSet` — change streams required (`feature-flags/src/featureFlagsApp.ts`) |
 | Bun-compiled container never opens its port while creating indexes | OpenTelemetry Mongoose instrumentation patched an already-loaded Mongoose module | Do not explicitly patch Mongoose in the compiled binary; retain HTTP/Express tracing |
+| Container hangs before listening when cloud logging initializes | A network logging transport blocks startup | Log to stdout/stderr during boot; Cloud Run ingests both streams |
 | First request after idle is slow; sockets reconnect constantly | Scaled to zero | Set `--min-instances=1` for user-facing services |
 | Browser API calls blocked by CORS | `corsOrigin` / Better Auth `trustedOrigins` missing web origin | Add your CDN URL to backend CORS and auth config |
 

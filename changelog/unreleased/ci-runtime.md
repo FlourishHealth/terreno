@@ -19,4 +19,6 @@ Backend startup now defers sync index creation until after MongoDB connects.
 This prevents import-time Mongoose buffering timeouts from blocking Cloud Run
 containers before they begin listening. The example backend also avoids the
 OpenTelemetry Mongoose patch that deadlocked index creation in Bun-compiled
-binaries, and Better Auth-only realtime no longer requires a legacy JWT secret.
+binaries, keeps startup logging on Cloud Run's captured stdout instead of a
+blocking network transport, and lets Better Auth-only realtime run without a
+legacy JWT secret.
