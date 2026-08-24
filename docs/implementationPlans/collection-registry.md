@@ -1,6 +1,6 @@
 # One collection registry
 
-**Status:** Draft  
+**Status:** Approved — 2026-08-24  
 **Branch:** `cursor/architecture-ips-a7ec`  
 **Owner:** —  
 **Created:** 2026-08-24  
