@@ -22,9 +22,9 @@ describe("lifecycle skill architecture", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
   });
 
-  it("rejects an internal Taste wait loop", (): void => {
+  it("rejects an unbounded Taste wait loop", (): void => {
     const errors = validateStageContent({
-      content: `${readStage("terreno-5-taste")}\nRun sleep 180 before checking again.`,
+      content: `${readStage("terreno-5-taste")}\nKeep the loop active until all CI is green.`,
       definition: {
         directory: "terreno-5-taste",
         nextMarkers: ["next: taste", "next: null"],
@@ -32,7 +32,24 @@ describe("lifecycle skill architecture", (): void => {
       },
     });
 
-    assert.isTrue(errors.some((error) => error.includes("internal waiting/loop")));
+    assert.isTrue(errors.some((error) => error.includes("unbounded waiting/loop")));
+  });
+
+  it("rejects Brew that exits while review bots are running", (): void => {
+    const content = readStage("terreno-4-brew")
+      .replace("../../references/async-review-bots.md", "missing-bots")
+      .replaceAll("Do not exit while", "Exit immediately while");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("async review-bot wait")));
+    assert.isTrue(errors.some((error) => error.includes("wait in-process for running review bots")));
   });
 
   it("rejects same-invocation Brew to Taste execution", (): void => {

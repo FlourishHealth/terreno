@@ -30,8 +30,10 @@ A monorepo containing shared packages for building full-stack applications with 
 
 The reusable planning plugin uses five bounded transitions:
 **Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
-**Taste** (react once). The outer loop owns state persistence, waiting, retry, stop, and
-escalation. See `plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+**Taste** (react once). The outer loop owns state persistence, product-CI waiting, retry,
+stop, and escalation. Brew and Taste also sleep until review bots such as Bugbot or
+CodeQL finish so they can react in the same invocation. See `plugins/README.md` and
+`docs/reference/lifecycle-plugin.md`.
 
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
 project commands and domain conventions belong there, not in the portable plugin.
