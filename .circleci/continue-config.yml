@@ -663,6 +663,22 @@ jobs:
           name: Check no barrel imports
           command: bun run check:no-barrel-imports
 
+  source-rules:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - node/install-bun
+      - run:
+          name: Install deps (source-rules scanner tests)
+          command: bun install
+      - run:
+          name: Check production source rules
+          command: bun run check:source-rules
+      - run:
+          name: Test source-rules scanner
+          command: bun test scripts/check-source-rules/
+
   explicit-any:
     executor: node22
     steps:
@@ -971,6 +987,7 @@ workflows:
     when: << pipeline.parameters.run-repo-policies >>
     jobs:
       - no-barrel-imports
+      - source-rules
       - explicit-any
       - lifecycle-skills
       - license-coverage
@@ -1034,6 +1051,7 @@ workflows:
       - example-backend-docker
       - admin-spa-ci
       - no-barrel-imports
+      - source-rules
       - explicit-any
       - license-coverage
       - circleci-parity

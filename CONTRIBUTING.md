@@ -77,6 +77,7 @@ Run these from the repository root:
 | `bun run test` | Run all package test suites |
 | `bun run test:agent` | Run all package tests with passing cases suppressed (failures and summaries remain visible) |
 | `bun run check:no-barrel-imports` | Enforce no internal barrel imports |
+| `bun run check:source-rules` | Fail production sources that use `function`, `Date`, `throw new Error`, `console.log`, `findOne`, or `as any` |
 | `bun run check:changelog` | Validate `changelog/unreleased/` fragment files |
 | `bun run skills:sync` | Regenerate installable `skills/` and `skills.sh.json` |
 | `bun run changelog:preview` | Preview assembled unreleased notes |
@@ -92,6 +93,7 @@ Package-specific commands are listed in [AGENTS.md](AGENTS.md).
 Follow the conventions in [AGENTS.md](AGENTS.md). Highlights:
 
 - **No barrel imports** — import concrete module files, not directory `index` re-exports. See [docs/explanation/no-barrel-imports.md](docs/explanation/no-barrel-imports.md). Enforced by Biome and `bun run check:no-barrel-imports`.
+- **Production source rules** — const arrows, Luxon, `APIError`, no `console.log`, no Mongoose `findOne`, no unsuppressed `as any`. See [docs/explanation/source-rules.md](docs/explanation/source-rules.md). Enforced by `bun run check:source-rules`.
 - **Dates** — use [Luxon](https://moment.github.io/luxon/), not `Date` or dayjs.
 - **Logging** — backend: `logger.info/warn/error/debug` from `@terreno/api`; frontend: `console.info/debug/warn/error` for permanent logs. Do not leave `console.log` in committed code.
 - **TypeScript** — prefer interfaces over types; const arrow functions; explicit return types.
