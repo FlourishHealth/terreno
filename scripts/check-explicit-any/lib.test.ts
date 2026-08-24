@@ -90,7 +90,7 @@ test("collectAnyUsages classifies remediation status", () => {
       ])
     );
 
-    expect(byFile["api/src/documented.ts:3"]).toBe("fully-documented");
+    expect(byFile["api/src/documented.ts:4"]).toBe("fully-documented");
     expect(byFile["api/src/violation.ts:1"]).toBe("violation");
     expect(byFile["api/src/populate.ts:1"]).toBe("out-of-scope");
     expect(byFile["ui/src/fileBlanket.ts:2"]).toBe("file-blanket");
