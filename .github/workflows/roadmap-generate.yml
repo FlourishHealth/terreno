@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   generate:
@@ -46,6 +47,9 @@ jobs:
         run: bun run roadmap:generate
 
       - name: Commit roadmap changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROADMAP_BRANCH: automation/roadmap-${{ github.run_id }}
         run: |
           if git diff --quiet ROADMAP.md; then
             echo "ROADMAP.md unchanged"
@@ -53,6 +57,12 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$ROADMAP_BRANCH"
           git add ROADMAP.md
           git commit -m "chore: regenerate ROADMAP.md from project board"
-          git push
+          git push --set-upstream origin "$ROADMAP_BRANCH"
+          gh pr create \
+            --base master \
+            --head "$ROADMAP_BRANCH" \
+            --title "chore: regenerate ROADMAP.md from project board" \
+            --body "Automated update generated from the Terreno Roadmap project board."

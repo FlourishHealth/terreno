@@ -228,8 +228,9 @@ Delete unused GitHub defaults after the new taxonomy is applied (`gh label list`
 The workflow's built-in `GITHUB_TOKEN` **cannot** be used here: it is repository-scoped and
 returns no `projectV2` data for an organization project. GitHub also reserves the name
 `GITHUB_TOKEN`, so a PAT cannot be supplied under that name — hence the separate
-`ROADMAP_PROJECT_TOKEN` secret. Pushing the regenerated `ROADMAP.md` still uses the default
-token via `permissions: contents: write`.
+`ROADMAP_PROJECT_TOKEN` secret. When the rendered file changes, the workflow uses the default
+token with `contents: write` and `pull-requests: write` to push a new branch and open a
+reviewable pull request; protected `master` is never pushed directly.
 
 Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
 is the variable the generator reads.
@@ -327,7 +328,7 @@ do not claim completion until done.
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
 | [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
-| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | Regenerate `ROADMAP.md` from the Project board |
+| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | Regenerate `ROADMAP.md` from the Project board and open a pull request when it changes |
 
 Triage resolves the `area:*` label with
 [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),
