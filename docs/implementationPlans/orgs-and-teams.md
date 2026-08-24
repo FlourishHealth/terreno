@@ -1,14 +1,19 @@
 # Implementation Plan: Organizations, teams, and multi-tenant scoping
 
-**Status:** Draft
+**Status:** Superseded — 2026-08-24
+**Superseded by:** [org-management-ui](org-management-ui.md) (backend primitive + RBAC + admin UI)
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1024
 **Priority:** High
 **Effort:** Big batch
 **Owner:** unassigned
 **Created:** 2026-08-09
 **Program:** [B2B platform](b2b-platform-program.md)
-**Depends on:** none (soft: [rbac-permissions](rbac-permissions.md) for role vocabulary; this IP ships coarse org roles that RBAC later subsumes)
+**Depends on:** superseded; see [org-management-ui](org-management-ui.md)
 **RTK deprecation flag:** None — backend only; frontend surfaces are `org-management-ui`
+
+Do not implement from this file. Canonical design, tasks, and acceptance criteria live on
+[org-management-ui](org-management-ui.md). Kept for decision history (native models, header
+transport) absorbed into that IP.
 
 ## Goal
 

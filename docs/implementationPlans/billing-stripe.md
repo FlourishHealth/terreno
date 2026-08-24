@@ -7,7 +7,7 @@
 **Owner:** unassigned
 **Created:** 2026-08-09
 **Program:** [B2B platform](b2b-platform-program.md)
-**Depends on:** [orgs-and-teams](orgs-and-teams.md), inbound-webhooks (IP pending — hard dependency for Phase 3)
+**Depends on:** [org-management-ui](org-management-ui.md), inbound-webhooks (IP pending — hard dependency for Phase 3)
 **RTK deprecation flag:** None for the backend; the two screens in Phase 4 follow whatever
 data layer example-frontend uses at that time
 
@@ -101,8 +101,8 @@ active/trialing/past_due/canceled/…), `currentPeriodEnd` (date), `cancelAtPeri
 ## UI
 
 Phase 4, kept deliberately thin: a plan-picker screen (`GET /billing/plans` + checkout
-redirect) and a billing settings card (current plan, status, portal link) in
-example-frontend; org-management surfaces integrate later via `org-management-ui`.
+redirect) and a billing settings card (current plan, status, portal link). Admin org
+settings show a billing placeholder until this IP ships (see `org-management-ui`).
 
 ## Phases
 

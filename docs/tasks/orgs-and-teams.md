@@ -1,6 +1,8 @@
 # Tasks: Organizations, teams, and multi-tenant scoping
 
-IP: [orgs-and-teams](../implementationPlans/orgs-and-teams.md)
+**Superseded.** Do not execute. Canonical tasks: [org-management-ui](org-management-ui.md).
+
+IP: [orgs-and-teams](../implementationPlans/orgs-and-teams.md) (superseded by [org-management-ui](../implementationPlans/org-management-ui.md))
 
 ## Phase 1 — Models + plugin
 
