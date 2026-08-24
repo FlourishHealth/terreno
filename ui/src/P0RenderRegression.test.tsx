@@ -14,12 +14,16 @@ interface ThemeMutationProps {
 }
 
 const ThemeMutation: React.FC<ThemeMutationProps> = ({surfaceBase}) => {
-  const {setTheme} = useTheme();
+  const {setTheme, theme} = useTheme();
 
   // Keep the provider mutation driven by props so rerender tests exercise context propagation.
   useEffect((): void => {
+    const desiredColor = surfaceBase === "neutral000" ? "#FFFFFF" : "#D33232";
+    if (theme.surface.base === desiredColor) {
+      return;
+    }
     setTheme({surface: {base: surfaceBase}});
-  }, [setTheme, surfaceBase]);
+  }, [setTheme, surfaceBase, theme.surface.base]);
 
   return null;
 };

@@ -117,12 +117,16 @@ const MarkdownWorkload: React.FC<WorkloadProps> = ({revision, size}) => {
 };
 
 const ThemeDriver: React.FC<ThemeDriverProps> = ({revision}) => {
-  const {setPrimitives} = useTheme();
+  const {setPrimitives, theme} = useTheme();
 
   // Trigger a real provider update so the benchmark includes context fan-out.
   useEffect((): void => {
-    setPrimitives({neutral000: revision % 2 === 0 ? "#FFFFFF" : "#FEFEFE"});
-  }, [revision, setPrimitives]);
+    const desiredColor = revision % 2 === 0 ? "#FFFFFF" : "#FEFEFE";
+    if (theme.primitives.neutral000 === desiredColor) {
+      return;
+    }
+    setPrimitives({neutral000: desiredColor});
+  }, [revision, setPrimitives, theme.primitives.neutral000]);
 
   return null;
 };
