@@ -4,6 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {SelectField} from "@terreno/ui";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {AdminRolesField} from "./AdminRolesField";
 import {AdminRolesList} from "./AdminRolesList";
@@ -17,7 +18,13 @@ const mockRefetch = mock(() => {});
 const mockCreateRole = mock(() => ({unwrap: async () => ({})}));
 const mockUpdateRole = mock(() => ({unwrap: async () => ({})}));
 const mockUseListStatementsQuery = mock(() => ({
-  data: {statements: {admin: ["access", "runScripts"], todo: ["read", "update"]}},
+  data: {
+    statements: {
+      admin: ["access", "runScripts"],
+      adminTodo: ["read", "write", "writeOwned"],
+      todo: ["read", "update"],
+    },
+  },
   error: null,
   isLoading: false,
 }));
@@ -49,7 +56,12 @@ const collectTestIDs = (node: unknown): string[] => {
 
 const ROLES = [
   {displayName: "Super Admin", isLocked: true, isSealed: true, name: "superadmin"},
-  {description: "Baseline role for signed-up users", displayName: "Todo User", name: "todoUser"},
+  {
+    description: "Baseline role for signed-up users",
+    displayName: "Todo User",
+    name: "todoUser",
+    permissions: {adminTodo: ["read", "writeOwned"]},
+  },
 ];
 
 describe("AdminRolesList", () => {
@@ -127,6 +139,76 @@ describe("AdminRolesList", () => {
 
     expect(getByTestId("admin-roles-edit-todoUser").props.disabled).toBeFalsy();
     expect(getByTestId("admin-roles-edit-superadmin").props.disabled).toBeTruthy();
+  });
+
+  it("edits standard model access with a single access-level selector", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+    });
+    const accessSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "admin-role-access-adminTodo"
+    );
+    assert.equal(accessSelect?.props.value, "writeOwned");
+
+    await act(async () => {
+      accessSelect?.props.onChange("write");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+
+    const updateInput = mockUpdateRole.mock.calls[0]?.[0] as {
+      changes?: {permissions?: Record<string, string[]>};
+      roleName?: string;
+    };
+    assert.equal(updateInput.roleName, "todoUser");
+    assert.deepEqual(updateInput.changes?.permissions, {adminTodo: ["read", "write"]});
+  });
+
+  it("edits admin page access with a dedicated toggle", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+    });
+
+    expect(getByTestId("admin-role-page-access")).toBeTruthy();
+    expect(getByText("Allow access to the admin page")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-permission-admin-access-clickable"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+
+    const updateInput = mockUpdateRole.mock.calls[0]?.[0] as {
+      changes?: {permissions?: Record<string, string[]>};
+      roleName?: string;
+    };
+    assert.equal(updateInput.roleName, "todoUser");
+    assert.deepEqual(updateInput.changes?.permissions, {
+      admin: ["access"],
+      adminTodo: ["read", "writeOwned"],
+    });
   });
 
   it("scrolls the role list body while keeping the add button outside the scroll area", () => {

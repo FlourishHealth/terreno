@@ -35,6 +35,7 @@ const contributionScriptToConfig = (script: AdminScriptContribution): AdminScrip
 });
 
 const contributionScreenToConfig = (screen: AdminCustomScreen): AdminCustomScreenConfig => ({
+  adminAccess: screen.adminAccess,
   displayName: screen.displayName,
   name: screen.name,
 });

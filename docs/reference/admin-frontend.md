@@ -71,6 +71,22 @@ Auto-generates fields from model schema:
 
 System fields (`_id`, `__v`, `created`, `updated`, `deleted`) are automatically skipped.
 
+### AdminRolesList
+
+Role editing starts with a dedicated **Admin page** toggle for `admin:access`. That is the only
+permission that opens the admin panel. Grant it first; model and tool permissions do nothing until
+the role can enter.
+
+Standard admin model permissions then use one access-level selector:
+
+- No access
+- Read only
+- Read + write owned
+- Read + write all
+
+Other application and screen permissions remain individual toggles. Saving writes the same
+permission JSON used by `rbacRouter`, so no separate configuration format is required.
+
 ### AdminFieldRenderer
 
 Renders field values in table cells with formatting.
@@ -201,5 +217,9 @@ const CustomFieldRenderer = ({value, field, ...props}) => {
 Expects backend to provide:
 1. `GET {baseUrl}/config` — Model metadata
 2. CRUD routes at `{basePath}{routePath}` for each model
-3. Admin authentication (`IsAdmin` permission)
+3. `admin:access` (or `IsAdmin` when RBAC is off) to open the page; per-model RBAC after that
 4. Paginated responses: `{data, page, limit, total, more}`
+
+When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
+`platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
+renders model or custom-screen links returned by the server.

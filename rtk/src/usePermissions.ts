@@ -48,6 +48,31 @@ export const hasPermission = (
   return true;
 };
 
+/** Resource/action that opens the admin panel. Other admin permissions do not grant entry. */
+export const ADMIN_PAGE_RESOURCE = "admin";
+export const ADMIN_PAGE_ACTION = "access";
+export const ADMIN_PAGE_PERMISSION: PermissionRequest = {
+  [ADMIN_PAGE_RESOURCE]: [ADMIN_PAGE_ACTION],
+};
+
+/**
+ * Decide whether the signed-in user may open the admin UI.
+ * With RBAC (`permissions` present), only `admin:access` grants entry.
+ * Without RBAC, fall back to the legacy `user.admin` flag.
+ */
+export const canOpenAdminPage = ({
+  admin,
+  permissions,
+}: {
+  admin?: boolean;
+  permissions?: PermissionSet;
+}): boolean => {
+  if (permissions) {
+    return hasPermission(permissions, ADMIN_PAGE_PERMISSION);
+  }
+  return admin === true;
+};
+
 export const createPermissionSelectors = (api: {reducerPath: string}) => {
   const selectPermissions = (state: RootState): PermissionSet | undefined => {
     const auth = (state as {auth?: {userId?: string | null}}).auth;
