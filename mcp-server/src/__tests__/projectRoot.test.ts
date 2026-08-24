@@ -1,9 +1,9 @@
 import {afterEach, describe, expect, it} from "bun:test";
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from "node:fs";
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 
-import {resolveTerrenoProjectRoot} from "./projectRoot.ts";
+import {resolveTerrenoProjectRoot} from "../local/projectRoot.js";
 
 const dirs: string[] = [];
 

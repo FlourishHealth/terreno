@@ -18,8 +18,8 @@ describe("setTerrenoTestEnv", () => {
 
   it("deletes listed keys after applying defaults", () => {
     setTerrenoTestEnv({
-      extra: {TRACE: "1"},
       deleteKeys: ["TRACE"],
+      extra: {TRACE: "1"},
     });
     expect(process.env.TRACE).toBeUndefined();
   });

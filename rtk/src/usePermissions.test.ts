@@ -45,17 +45,18 @@ describe("hasPermission", () => {
 
   it("allows an empty action list for a resource", () => {
     assert.isTrue(hasPermission({todo: ["read"]}, {todo: []}));
-    assert.isTrue(
-      hasPermission({todo: ["read"]}, {todo: undefined as unknown as string[]})
-    );
+    assert.isTrue(hasPermission({todo: ["read"]}, {todo: undefined as unknown as string[]}));
   });
 });
 
 describe("createPermissionSelectors", () => {
-  const {selectPermissions: selectFromApi, useCan, useSelectPermissions} =
-    createPermissionSelectors({
-      reducerPath: DEFAULT_PERMISSION_API_REDUCER_PATH,
-    });
+  const {
+    selectPermissions: selectFromApi,
+    useCan,
+    useSelectPermissions,
+  } = createPermissionSelectors({
+    reducerPath: DEFAULT_PERMISSION_API_REDUCER_PATH,
+  });
 
   const createStore = (state: Record<string, unknown>) =>
     configureStore({
@@ -91,12 +92,20 @@ describe("createPermissionSelectors", () => {
       auth: {userId: "u1"},
       [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
         queries: {
-          pending: {data: {permissions: {admin: ["access"]}}, endpointName: "getMe", status: "pending"},
-          other: {data: {permissions: {todo: ["read"]}}, endpointName: "getTodos", status: "fulfilled"},
           "getMe(undefined)": {
             data: {permissions: {admin: ["access"]}},
             endpointName: "getMe",
             status: "fulfilled",
+          },
+          other: {
+            data: {permissions: {todo: ["read"]}},
+            endpointName: "getTodos",
+            status: "fulfilled",
+          },
+          pending: {
+            data: {permissions: {admin: ["access"]}},
+            endpointName: "getMe",
+            status: "pending",
           },
         },
       },

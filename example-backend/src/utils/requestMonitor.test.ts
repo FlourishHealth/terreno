@@ -100,10 +100,7 @@ describe("setupMongooseMonitoring", () => {
       return Promise.resolve({ok: true});
     } as typeof mongoose.Query.prototype.exec;
 
-    mongoose.Model.aggregate = function (
-      this: {reject?: boolean},
-      _pipeline?: unknown
-    ) {
+    mongoose.Model.aggregate = function (this: {reject?: boolean}, _pipeline?: unknown) {
       if (this.reject) {
         return Promise.reject(new Error("aggregate failed"));
       }
@@ -220,7 +217,7 @@ describe("setupMongooseMonitoring", () => {
       getQuery: () => ({}),
       op: "find",
       syncValue: {cursor: true},
-    });
+    }) as unknown;
     expect(value).toEqual({cursor: true});
   });
 
@@ -229,12 +226,10 @@ describe("setupMongooseMonitoring", () => {
     const res = makeRes();
     let result: unknown;
     requestMonitorMiddleware(req, res, () => {
-      void mongoose.Model.aggregate
-        .call({}, [{$match: {active: true}}])
-        .then((value: unknown) => {
-          result = value;
-          res.end();
-        });
+      void mongoose.Model.aggregate.call({}, [{$match: {active: true}}]).then((value: unknown) => {
+        result = value;
+        res.end();
+      });
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(result).toEqual([{n: 1}]);
@@ -261,12 +256,10 @@ describe("setupMongooseMonitoring", () => {
     const res = makeRes();
     let message = "";
     requestMonitorMiddleware(req, res, () => {
-      void mongoose.Model.aggregate
-        .call({reject: true}, [{$match: {}}])
-        .catch((error: Error) => {
-          message = error.message;
-          res.end();
-        });
+      void mongoose.Model.aggregate.call({reject: true}, [{$match: {}}]).catch((error: Error) => {
+        message = error.message;
+        res.end();
+      });
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(message).toBe("aggregate failed");

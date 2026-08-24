@@ -69,7 +69,7 @@ describe("buildFlagDefinition", () => {
   it("uses the evaluated variant key when it matches a defined variant", () => {
     const definition = buildFlagDefinition(
       variantFlag({
-        rules: [{variant: "treatment", field: "id", operator: "eq", value: "user-1"}],
+        rules: [{field: "id", operator: "eq", value: "user-1", variant: "treatment"}],
       }),
       "user-1",
       {id: "user-1"},

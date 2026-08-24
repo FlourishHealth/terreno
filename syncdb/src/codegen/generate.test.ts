@@ -44,17 +44,17 @@ describe("emitInterface", () => {
         name: "Mixed",
         schema: {
           properties: {
-            flags: {type: "array", items: {type: "boolean"}},
+            flags: {items: {type: "boolean"}, type: "array"},
             kind: {enum: ["a", "b"]},
-            nested: {type: "object"},
             n: {type: "integer"},
+            nested: {type: "object"},
             on: {type: "boolean"},
             other: {},
           },
           type: "object",
         },
       })
-    ).toContain("kind?: \"a\" | \"b\";");
+    ).toContain('kind?: "a" | "b";');
     expect(
       emitInterface({
         name: "Alias",
@@ -292,8 +292,7 @@ describe("loadSpec", () => {
 
   it("fetches an HTTP spec and rejects non-OK responses", async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () =>
-      new Response("nope", {status: 500})) as typeof fetch;
+    globalThis.fetch = (async () => new Response("nope", {status: 500})) as unknown as typeof fetch;
     try {
       await expect(loadSpec("https://example.test/openapi.json")).rejects.toThrow(
         /Failed to fetch OpenAPI spec/
@@ -306,7 +305,7 @@ describe("loadSpec", () => {
   it("parses a fetched HTTP spec", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () =>
-      new Response(JSON.stringify({paths: {}}), {status: 200})) as typeof fetch;
+      new Response(JSON.stringify({paths: {}}), {status: 200})) as unknown as typeof fetch;
     try {
       const spec = await loadSpec("http://localhost/openapi.json");
       expect(spec.paths).toEqual({});
