@@ -31,6 +31,15 @@ export const AREA_ORDER = [
 
 export const DECLINED_STATUS = "Declined";
 
+/**
+ * Tracking issues are titled `[Roadmap] <thing>` so they stand out in the issue
+ * list. That prefix is pure noise once every line in this file is a roadmap
+ * item, so it is dropped from the rendered title only.
+ */
+export const displayTitle = (title: string): string => {
+  return title.replace(/^\s*\[Roadmap\]\s*/, "").trim() || title.trim();
+};
+
 const compareByArea = (left: RoadmapItem, right: RoadmapItem): number => {
   const leftIndex = AREA_ORDER.indexOf(left.area as (typeof AREA_ORDER)[number]);
   const rightIndex = AREA_ORDER.indexOf(right.area as (typeof AREA_ORDER)[number]);
@@ -132,7 +141,7 @@ export const renderRoadmapMarkdown = ({
           item.ipSlug === null || item.ipSlug === ""
             ? ""
             : ` — IP: [${item.ipSlug}](docs/implementationPlans/${item.ipSlug}.md)`;
-        lines.push(`- [${item.title}](${item.url}) (${item.impact}, ${item.status})${ipLink}`);
+        lines.push(`- [${displayTitle(item.title)}](${item.url}) (${item.impact}, ${item.status})${ipLink}`);
       }
       lines.push("");
     }

@@ -1,45 +1,15 @@
-import {existsSync, readdirSync, readFileSync} from "node:fs";
+import {readFileSync} from "node:fs";
 import {join} from "node:path";
 
-import {resolveTerrenoProjectRoot} from "../projectRoot.js";
+import {listModelExcerptFiles, resolveModelDirs, withMongooseDb} from "../mongoEnv.js";
 
 interface DatabaseSchemaArgs {
   collectionFilter?: string;
   summary?: boolean;
 }
 
-const readEnvValue = (envPath: string, key: string): string | undefined => {
-  if (!existsSync(envPath)) {
-    return undefined;
-  }
-  const text = readFileSync(envPath, "utf-8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) {
-      continue;
-    }
-    const k = trimmed.slice(0, eq).trim();
-    if (k !== key) {
-      continue;
-    }
-    let v = trimmed.slice(eq + 1).trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    return v;
-  }
-  return undefined;
-};
-
 const parseModelFiles = (modelsDir: string): string[] => {
-  if (!existsSync(modelsDir)) {
-    return [];
-  }
-  const names = readdirSync(modelsDir).filter((f) => f.endsWith(".ts") && f !== "index.ts");
+  const names = listModelExcerptFiles(modelsDir);
   const summaries: string[] = [];
   for (const name of names) {
     const content = readFileSync(join(modelsDir, name), "utf-8");
@@ -50,38 +20,19 @@ const parseModelFiles = (modelsDir: string): string[] => {
 };
 
 export const databaseSchema = async (args: DatabaseSchemaArgs): Promise<string> => {
-  const root = resolveTerrenoProjectRoot();
-  const envPath = join(root, "backend", ".env");
-  const mongoUri =
-    process.env.MONGO_URI?.trim() ||
-    readEnvValue(envPath, "MONGO_URI") ||
-    readEnvValue(envPath, "MONGODB_URI");
-
-  if (!mongoUri) {
-    return "No Mongo URI found. Set `MONGO_URI` in `backend/.env` or export `MONGO_URI`, or set `TERRENO_PROJECT_ROOT` to your app root.";
-  }
-
-  const mongoose = await import("mongoose");
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(mongoUri);
-    }
-
-    const db = mongoose.connection.db;
-    if (!db) {
-      return "Connected to Mongo but `connection.db` is not available.";
-    }
-
+  return withMongooseDb(async (db) => {
     const filter = args.collectionFilter?.toLowerCase().trim();
     const names = (await db.listCollections().toArray())
       .map((c) => c.name)
       .filter((n) => !filter || n.toLowerCase().includes(filter));
 
     const lines: string[] = ["# Database schema", ""];
-    const modelsDir = join(root, "backend", "src", "models");
-    lines.push("## Declared models (static scan of `backend/src/models/*.ts`)");
+    const modelDirs = resolveModelDirs();
+    lines.push(
+      "## Declared models (static scan of `backend/src/models` and `example-backend/src/models`)"
+    );
     lines.push("");
-    const modelBlocks = parseModelFiles(modelsDir);
+    const modelBlocks = modelDirs.flatMap((dir) => parseModelFiles(dir));
     if (modelBlocks.length === 0) {
       lines.push("_(No model files found.)_");
     } else if (args.summary) {
@@ -111,7 +62,5 @@ export const databaseSchema = async (args: DatabaseSchemaArgs): Promise<string> 
     }
 
     return lines.join("\n");
-  } finally {
-    await mongoose.disconnect().catch(() => undefined);
-  }
+  });
 };

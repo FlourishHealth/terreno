@@ -1,34 +1,4 @@
-import {existsSync, readFileSync} from "node:fs";
-import {join} from "node:path";
-
-import {resolveTerrenoProjectRoot} from "../projectRoot.js";
-
-const readEnvValue = (envPath: string, key: string): string | undefined => {
-  if (!existsSync(envPath)) {
-    return undefined;
-  }
-  const text = readFileSync(envPath, "utf-8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) {
-      continue;
-    }
-    const k = trimmed.slice(0, eq).trim();
-    if (k !== key) {
-      continue;
-    }
-    let v = trimmed.slice(eq + 1).trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    return v;
-  }
-  return undefined;
-};
+import {withMongooseDb} from "../mongoEnv.js";
 
 const FORBIDDEN_AGG_KEYS = new Set(["$out", "$merge", "$function"]);
 
@@ -118,28 +88,7 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
     }
   }
 
-  const root = resolveTerrenoProjectRoot();
-  const envPath = join(root, "backend", ".env");
-  const mongoUri =
-    process.env.MONGO_URI?.trim() ||
-    readEnvValue(envPath, "MONGO_URI") ||
-    readEnvValue(envPath, "MONGODB_URI");
-
-  if (!mongoUri) {
-    return "No Mongo URI found. Set `MONGO_URI` in `backend/.env` or export `MONGO_URI`.";
-  }
-
-  const mongoose = await import("mongoose");
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(mongoUri);
-    }
-
-    const db = mongoose.connection.db;
-    if (!db) {
-      return "Connected to Mongo but `connection.db` is not available.";
-    }
-
+  return withMongooseDb(async (db) => {
     const coll = db.collection(args.collection);
     const cap = Math.min(Math.max(args.limit ?? 50, 1), 200);
 
@@ -177,7 +126,5 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
     }
 
     return "Unreachable";
-  } finally {
-    await mongoose.disconnect().catch(() => undefined);
-  }
+  });
 };

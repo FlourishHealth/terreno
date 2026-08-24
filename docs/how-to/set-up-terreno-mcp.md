@@ -34,13 +34,13 @@ claude mcp add terreno-local -- bunx terreno-mcp-local
 ## Configure local discovery
 
 Run the local server from the app root. It discovers bootstrap apps with `backend/` and `frontend/`,
-and this monorepo's `example-backend/` logs. Set these variables only when discovery needs help:
+and this monorepo's `example-backend/` logs and `.env`. Set these variables only when discovery needs help:
 
 | Variable | Use |
 | --- | --- |
 | `TERRENO_PROJECT_ROOT` | Absolute app/monorepo root |
 | `TERRENO_METRO_URL` | Metro origin when the frontend script does not expose `--port` |
-| `MONGO_URI` | MongoDB used by `database_schema` and read-only `database_query` |
+| `MONGO_URI` | MongoDB used by `database_schema` and read-only `database_query`. Also read from `backend/.env` or `example-backend/.env` (`MONGO_URI`, `MONGODB_URI`, or `MONGO_URL`) |
 | `TERRENO_MCP_EVAL=1` | Explicitly enable `evaluate` and `navigate` |
 
 Backend and browser JSONL normally live under `<backend cwd>/.terreno/logs/`. Keep Metro running to

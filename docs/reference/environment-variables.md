@@ -102,6 +102,7 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 
 | Variable | Read by | Required | Default | Secret | Scope |
 |----------|---------|----------|---------|--------|-------|
+| `MONGO_URI` | `terreno-mcp-local` (also `backend/.env` / `example-backend/.env`) | ❌ | — | Yes | tooling |
 | `TERRENO_PROJECT_ROOT` | `terreno-mcp-local`, `terreno` CLI | ❌ | nearest Terreno project root | No | tooling |
 | `TERRENO_METRO_URL` | `terreno-mcp-local` | ❌ | frontend script port or `http://localhost:8082` | No | tooling |
 | `TERRENO_MCP_EVAL` | `terreno-mcp-local` | ❌ | disabled | No | tooling |
@@ -209,6 +210,7 @@ Sender identity must be verified in SendGrid before real delivery works.
 | `MCP_SERVER_URL` | MCP clients | ❌ | — | No | tooling |
 | `TERRENO_MCP_DOCS_DIR` | `@terreno/mcp` | ❌ | — | No | tooling |
 | `TERRENO_MCP_EVAL` | MCP eval | ❌ | — | No | tooling |
+| `MONGO_URI` | MCP local Mongo tools | ❌ | from `backend/.env` or `example-backend/.env` | Yes | tooling |
 | `TERRENO_PROJECT_ROOT` | MCP local | ❌ | — | No | tooling |
 
 ## Example backend (app-specific)

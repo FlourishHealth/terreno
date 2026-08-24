@@ -264,10 +264,13 @@ const graphql = async <T>({
   return payload.data;
 };
 
+// `organization.id` is deliberately absent: that one field requires `read:org`,
+// while everything else here needs only `project`. The owner id is fetched from
+// REST instead (see fetchOrganizationId), so a `project` + `public_repo` token
+// is enough to run the whole sync.
 const PROJECTS_QUERY = `
 query($owner: String!, $after: String) {
   organization(login: $owner) {
-    id
     projectsV2(first: 50, after: $after) {
       pageInfo { hasNextPage endCursor }
       nodes { id number title url }
@@ -346,6 +349,26 @@ const optionInputs = (names: string[]): {color: string; description: string; nam
     description: "",
     name,
   }));
+};
+
+/** Public org metadata, so this needs no `read:org` scope. */
+const fetchOrganizationId = async ({owner, token}: {owner: string; token: string}): Promise<string> => {
+  const response = await fetch(`https://api.github.com/orgs/${owner}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "User-Agent": "terreno-roadmap-sync",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Could not read organization "${owner}": ${response.status}`);
+  }
+
+  const payload = (await response.json()) as {node_id?: string};
+  if (payload.node_id === undefined) {
+    throw new Error(`Organization "${owner}" returned no node_id`);
+  }
+
+  return payload.node_id;
 };
 
 const fetchIssues = async ({
@@ -533,7 +556,7 @@ export const main = async (): Promise<void> => {
 
   // --- project --------------------------------------------------------------
   const projectsData = await graphql<{
-    organization: {id: string; projectsV2: {nodes: {id: string; number: number; title: string; url: string}[]}};
+    organization: {projectsV2: {nodes: {id: string; number: number; title: string; url: string}[]}};
   }>({query: PROJECTS_QUERY, token, variables: {after: null, owner: values.owner}}).catch(
     (error: unknown): never => {
       const message = error instanceof Error ? error.message : String(error);
@@ -566,10 +589,29 @@ export const main = async (): Promise<void> => {
         }
       }`,
       token,
-      variables: {ownerId: projectsData.organization.id, repositoryId, title: PROJECT_TITLE},
+      variables: {
+        ownerId: await fetchOrganizationId({owner: values.owner, token}),
+        repositoryId,
+        title: PROJECT_TITLE,
+      },
     });
     project = {...created.createProjectV2.projectV2, title: PROJECT_TITLE};
-    console.info(`Created ${project.url} (number ${project.number})`);
+
+    // New projects default to private. A roadmap nobody outside the org can see
+    // defeats the purpose, and `createProjectV2` has no visibility input.
+    await graphql({
+      query: `mutation($projectId: ID!, $description: String!) {
+        updateProjectV2(input: {projectId: $projectId, public: true, shortDescription: $description}) {
+          projectV2 { id }
+        }
+      }`,
+      token,
+      variables: {
+        description: "Public roadmap for Terreno. Board is the source of truth; ROADMAP.md is generated from it.",
+        projectId: project.id,
+      },
+    });
+    console.info(`Created ${project.url} (number ${project.number}, public)`);
   }
 
   const desiredFields = buildDesiredFields({options});
@@ -623,7 +665,9 @@ export const main = async (): Promise<void> => {
       if (value === "" && field !== IP_FIELD_NAME) {
         continue;
       }
-      if (boardItem?.fields[field] === value) {
+      // An unset board field is absent from fieldValues rather than empty, so
+      // normalize before comparing or an empty IP re-plans on every run.
+      if ((boardItem?.fields[field] ?? "") === value) {
         continue;
       }
       fieldValuePlan.push({field, itemIssue: item.issueNumber, value});

@@ -3,7 +3,7 @@
 Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
 
 - **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
-- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs` (JSONL + optional Metro `/events` + Hermes CDP console ring), `last_error`, `get_rtk_state` (local `__TERRENO_STORE__` or CDP), `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (expo-router via CDP, same gate). Metro URL defaults from `frontend/package.json` `--port` or `TERRENO_METRO_URL`.
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs` (JSONL + optional Metro `/events` + Hermes CDP console ring), `last_error`, `get_rtk_state` (local `__TERRENO_STORE__` or CDP), `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (expo-router via CDP, same gate). Metro URL defaults from `frontend/package.json` `--port` or `TERRENO_METRO_URL`. Mongo tools read `MONGO_URI` from the process environment, then `backend/.env` or `example-backend/.env` (`MONGO_URI`, `MONGODB_URI`, or `MONGO_URL`).
 
 It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 For editor configuration and runtime prerequisites, see
@@ -511,6 +511,7 @@ Returns comprehensive code style guide from project documentation.
 | `MCP_HOST` or `HOST` | `0.0.0.0` | Server host address |
 | `TERRENO_MCP_DOCS_DIR` | `../docs` | Path to documentation directory (relative to dist/) |
 | `TERRENO_PROJECT_ROOT` | nearest Terreno project root | Override local package, database, and log discovery |
+| `MONGO_URI` | from `backend/.env` or `example-backend/.env` | Mongo URI for local `database_schema` / `database_query` (`MONGODB_URI` and `MONGO_URL` aliases) |
 | `TERRENO_METRO_URL` | Frontend script port or `http://localhost:8082` | Metro origin used for `/events` and CDP discovery |
 | `TERRENO_MCP_EVAL` | Disabled | Set to `1` to enable local MCP `evaluate` and `navigate` |
 | `TERRENO_BROWSER_LOGS` | Enabled only when `NODE_ENV=development` | Set to `true` to opt in in another non-production environment or `false` to disable; production always rejects the route |

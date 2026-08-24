@@ -15,7 +15,7 @@ export const localMcpTools: Tool[] = [
   },
   {
     description:
-      "List Mongo collections with indexes and counts, plus static excerpts from `backend/src/models/*.ts`. Uses `MONGO_URI` from `backend/.env` or environment.",
+      "List Mongo collections with indexes and counts, plus static excerpts from `backend/src/models` or `example-backend/src/models`. Uses `MONGO_URI` from process env, `backend/.env`, or `example-backend/.env`.",
     inputSchema: {
       additionalProperties: false,
       properties: {
