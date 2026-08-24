@@ -177,7 +177,7 @@ No activity logging specific to this feature. MCP tool calls go through the same
 ## Not Included / Future Work
 
 - **Rate limiting** — structured for future hooks but not implemented
-- **MCP resources/prompts** — only tools generated from modelRouter plus `registerMCPTool`
+- **MCP resources/prompts** — only tools generated from modelRouter plus `registerMCPTool`. Follow-up: [`app-mcp-laravel-parity.md`](app-mcp-laravel-parity.md) (Laravel MCP primitive kit: prompts, resources, named servers, Inspector/test DX, Streamable HTTP client).
 - **Array operation tools** — handled via update, no dedicated push/patch/delete array tools
 - **WebSocket transport** — HTTP/SSE only
 - **Admin dashboard** — use `getMCPTools()` programmatically or MCP client tool listing
