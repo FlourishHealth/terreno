@@ -5,9 +5,8 @@
  * are process-wide and would break later files that need the real implementations).
  */
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
-import {assert} from "chai";
-
 import type http from "node:http";
+import {assert} from "chai";
 
 import {RealtimeApp} from "./realtimeApp";
 
