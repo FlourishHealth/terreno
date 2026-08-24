@@ -1,5 +1,3 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import express from "express";
 import {model, Schema} from "mongoose";
@@ -50,7 +48,7 @@ const authedOptions = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<IndexTodo>;
 
 describe("ensureSyncIndexes (C8)", () => {
   beforeEach(() => {
@@ -65,7 +63,7 @@ describe("ensureSyncIndexes (C8)", () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoOk");
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosOk",
     });
@@ -75,12 +73,12 @@ describe("ensureSyncIndexes (C8)", () => {
   it("rejects with an actionable error when createIndex fails, so startup fails loudly", async () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoFail");
     // Force the collection's createIndex to reject, simulating a DB/schema failure.
-    (IndexTodoModel.collection as any).createIndex = async () => {
+    IndexTodoModel.collection.createIndex = async (): Promise<string> => {
       throw new Error("boom: index build failed");
     };
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosFail",
     });
@@ -129,7 +127,7 @@ describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
 
   it("rejects with an actionable error when a bookkeeping index build fails", async () => {
     const originalEnsure = SyncMutation.ensureIndexes.bind(SyncMutation);
-    (SyncMutation as any).ensureIndexes = async () => {
+    SyncMutation.ensureIndexes = async (): Promise<void> => {
       throw new Error("boom: mutationId index build failed");
     };
     try {
@@ -138,7 +136,7 @@ describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
         /Failed to ensure sync indexes for SyncMutation/
       );
     } finally {
-      (SyncMutation as any).ensureIndexes = originalEnsure;
+      SyncMutation.ensureIndexes = originalEnsure;
     }
   });
 });
