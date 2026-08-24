@@ -189,7 +189,7 @@ export const createSocketAuthMiddleware = ({
   extraValidators = [],
 }: {
   /** Secret for the legacy JWT validator (same handling as before the refactor). */
-  tokenSecret: string;
+  tokenSecret?: string;
   /**
    * JWT issuer to require (D1 parity with the HTTP path's `jwt.verify(token, secret,
    * {issuer})`). Omitted means no issuer check, matching pre-D1 behavior. A thunk is
@@ -201,7 +201,10 @@ export const createSocketAuthMiddleware = ({
   /** Additional validators appended to the chain (after JWT and Better Auth). */
   extraValidators?: SocketAuthValidator[];
 }): ((socket: Socket, next: (error?: Error) => void) => void) => {
-  const validators: SocketAuthValidator[] = [createLegacyJwtValidator(tokenSecret, issuer)];
+  const validators: SocketAuthValidator[] = [];
+  if (tokenSecret) {
+    validators.push(createLegacyJwtValidator(tokenSecret, issuer));
+  }
   if (betterAuth) {
     validators.push(createBetterAuthValidator(betterAuth));
   }

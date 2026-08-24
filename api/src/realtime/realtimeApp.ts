@@ -396,7 +396,7 @@ export class RealtimeApp implements TerrenoPlugin {
 
       // Authentication middleware: legacy JWT first, optionally Better Auth sessions.
       const tokenSecret = this.config.tokenSecret ?? process.env.TOKEN_SECRET;
-      if (!tokenSecret) {
+      if (!tokenSecret && !this.config.betterAuth) {
         throw new APIError({
           status: 500,
           title:
@@ -418,12 +418,12 @@ export class RealtimeApp implements TerrenoPlugin {
         createSocketAuthMiddleware({
           betterAuth: this.config.betterAuth,
           issuer: resolveTokenIssuer,
-          tokenSecret,
+          ...(tokenSecret ? {tokenSecret} : {}),
         })
       );
 
       logInfo(
-        `[realtime] Socket auth middleware added (JWT${this.config.betterAuth ? " + Better Auth" : ""})`
+        `[realtime] Socket auth middleware added (${tokenSecret ? "JWT" : ""}${tokenSecret && this.config.betterAuth ? " + " : ""}${this.config.betterAuth ? "Better Auth" : ""})`
       );
 
       // Task 9.21: tenant/custom sync scopes can only be resolved from the full user
