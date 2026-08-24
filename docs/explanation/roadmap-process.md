@@ -166,39 +166,60 @@ Every docs page also has a **Discuss this page** link in the footer.
 
 ### Project board
 
-Create one GitHub Project named **Terreno Roadmap** (repo-level is fine; org-level also
-works). Link it to `FlourishHealth/terreno`.
+The board must be an **organization** project under `FlourishHealth`. The generator queries
+`organization(login:).projectV2`, so a repo-level project returns no data.
+
+`bun run roadmap:sync` creates the project, its fields, and its items from repo data — no
+hand-clicking. It needs a token with `project` scope:
+
+```bash
+gh auth refresh -s project                              # one time
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --dry-run   # print the plan
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync             # apply
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --check     # exit 1 on drift (CI)
+```
+
+What it reads, and therefore what you edit to change the board:
+
+| Source | Drives |
+| ------ | ------ |
+| [`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml) | `Status`, `Target`, `Impact` options |
+| `area:*` labels in [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) | `Area` options |
+| [`roadmap-seed-issues.md`](roadmap-seed-issues.md) | one item per roadmap entry, plus its field values and issue labels |
 
 **Fields** (single-select unless noted):
 
 | Field | Type | Options |
 | ----- | ---- | ------- |
-| Status | Single select | `Inbox`, `Shaping`, `Planned`, `In progress`, `In review`, `Shipped`, `Declined` |
-| Area | Single select | `api`, `ui`, `syncdb`, `auth`, `admin`, `ai`, `mcp`, `docs`, `deploy`, `examples`, `dx` |
-| Target | Single select | `0.28`, `0.29`, `Next`, `Future` (add version labels as releases approach) |
+| Status | Single select | from `roadmap-fields.yml` `status` |
+| Area | Single select | from the `area:*` labels |
+| Target | Single select | from `roadmap-fields.yml` `target` |
 | IP | Text | Slug e.g. `web-ssr-and-admin-spa` (empty when no IP yet) |
-| Impact | Single select | `Breaking`, `Feature`, `Improvement`, `Fix` |
+| Impact | Single select | from `roadmap-fields.yml` `impact` |
 | Community interest | Number | 👍 count — refresh manually on triage |
 
-**Views**
+`Target` answers *which release*, never *what state* — `Status` carries state. Already-shipped
+work uses `Target = Released` so it groups at the bottom of `ROADMAP.md` instead of inflating
+an upcoming version. `TARGET_ORDER` in
+[`scripts/generate-roadmap/lib.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/generate-roadmap/lib.ts)
+must stay deep-equal to the yaml list; a test enforces it.
+
+**Views** — still UI-only; there is no GitHub API for creating project views.
 
 1. **Roadmap** — Board layout, group by `Status`, filter `Status != Declined` (default public view).
 2. **By area** — Table, group by `Area`.
 3. **Next release** — Table, filter `Target = Next` (update filter when cutting a release).
 4. **Needs shaping** — Table, filter `Status = Shaping`.
 
-**CLI (partial support)**
+**What sync will not do:** it never opens a tracking issue for an entry whose `IP` field is
+empty. The repo's process opens the issue when the IP reaches **Approved**, so speculative
+items stay off the public board. Pass `--create-missing-issues` once an IP lands to open the
+issue and place it in one step.
 
-```bash
-gh project list --owner FlourishHealth --limit 20
-gh project link <project-number> --owner FlourishHealth --repo FlourishHealth/terreno
-```
-
-Field and view creation is **UI-only** today — recreate the tables above in the Project
-settings.
-
-**Backfill:** paste tracking issues from [`roadmap-seed-issues.md`](roadmap-seed-issues.md)
-when each IP reaches **Approved**.
+Adding new options to an existing single-select field rewrites that field's whole option list
+(GitHub has no add-one-option mutation). The planner always carries the existing option names
+through the rewrite, so no card loses its current value — but review the `--dry-run` output
+before applying a rewrite.
 
 ### Labels
 
@@ -248,6 +269,15 @@ you invoke them explicitly.
 | `roadmap-promote` | Maintainers accepted an Ideas or RFC discussion and it needs a tracked issue that links back to the thread |
 | `roadmap-item` | An approved IP needs its public tracking issue, or an existing entry's scope changed |
 | `roadmap-review` | Recurring hygiene: status drift, stale items, untriaged backlog, promotion candidates, then regenerate `ROADMAP.md` |
+
+`roadmap-item` and `roadmap-promote` no longer touch the board with `gh project`. They add or
+edit an entry in [`roadmap-seed-issues.md`](roadmap-seed-issues.md) and run `roadmap:sync`,
+which opens the issue, applies the labels, adds the item, and sets every field in one
+idempotent pass. Board items added by hand show up as `--check` drift; apply does not delete
+them. A dragged `Status` that is ahead of the seed is reported the same way and is not reset.
+
+`roadmap-review` starts from `bun run roadmap:reconcile`, which mechanically answers most
+hygiene questions and leaves a `Needs a human` list that is exactly the review's agenda.
 | `roadmap-frontier` | A destination is too large or uncertain for one IP/context and needs a map, a small unblocked frontier, and repeated Grow → Taste delivery loops |
 
 ### Huge features: frontier maps
@@ -327,7 +357,63 @@ do not claim completion until done.
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
 | [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
-| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | Regenerate `ROADMAP.md` from the Project board |
+| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board |
+| [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
+| [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
+
+All three share the `roadmap` concurrency group. They write the same board, and interleaving
+them produces confusing partial states. After the group lock is acquired, each job refreshes
+to the latest branch HEAD so a queued `roadmap-sync` cannot overwrite statuses that
+`roadmap-reconcile` already advanced. `roadmap-reconcile` also fails fast when
+`TERRENO_PROJECT_NUMBER` is unset, so it never mutates the seed or board before generate
+can run. `roadmap:sync` pages organization projects until it finds **Terreno Roadmap**, so
+it will not create a second project if the org has more than 50 boards.
+
+The full loop, each arrow with exactly one writer:
+
+```
+docs/implementationPlans/*.md ──roadmap:reconcile──▶ roadmap-seed-issues.md
+docs/tasks/*.md                    (Status only)              │
+                                                         roadmap:sync
+                                                              ▼
+                                                        Project board
+                                                              │
+                                                      roadmap:generate
+                                                              ▼
+                                                          ROADMAP.md
+```
+
+Who owns what:
+
+| Artifact | Owns |
+| -------- | ---- |
+| IP header `**Status:**` | Where the work is in its lifecycle |
+| `roadmap-seed-issues.md` | Which items exist, plus Area / Target / Impact / labels / summary |
+| Project board | Live state a maintainer drags, and `Community interest` |
+| `ROADMAP.md` | Nothing — fully generated |
+
+`roadmap:sync` owns the board's *shape*: which fields exist, which options they allow, which
+issues are on it, and Area / Target / Impact / IP. It writes `Status` only onto a new card or
+when the seed is strictly ahead (or Declined). A dragged Status that is ahead of the seed is
+reported by `--check` and is never overwritten. Cards that are not in
+[`roadmap-seed-issues.md`](roadmap-seed-issues.md) are also `--check` failures; apply does
+not delete them. Maintainers own the board's *state* and `Community interest`.
+
+**Status automation is monotonic.** `roadmap:reconcile --fix` advances status and applies
+supersessions, but never walks a status backwards and never revives declined work. IP headers
+go stale far more often than boards do — several plans still read `Draft` for work that
+shipped — so a backwards move is reported as a stale header for a human to resolve.
+
+| IP `**Status:**` | Board `Status` |
+| ---------------- | -------------- |
+| `Draft` (also `Shaped`) | `Shaping` |
+| `Approved` | `Planned` |
+| `In progress` | `In progress` |
+| `Complete` (also `Implemented`) | `Shipped` |
+| `Deferred`, or any `**Superseded by:**` | `Declined` |
+
+Only the leading phrase matters, so `Approved — decisions recorded (2026-07-29)` maps cleanly.
+A status the table cannot map is reported rather than guessed at.
 
 Triage resolves the `area:*` label with
 [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),

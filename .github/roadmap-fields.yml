@@ -17,11 +17,15 @@ status:
   - Shipped
   - Declined
 
+# Target answers "which release", not "what state" — Status carries the state.
+# `Released` is the home for already-shipped items so they group together at the
+# bottom of ROADMAP.md instead of polluting an upcoming version.
 target:
-  - "0.28"
-  - "0.29"
+  - "57.3"
+  - "58"
   - Next
   - Future
+  - Released
 
 impact:
   - Breaking

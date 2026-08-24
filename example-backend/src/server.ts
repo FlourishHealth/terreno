@@ -1,4 +1,3 @@
-import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
@@ -122,19 +121,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
 
-  const transports: Array<InstanceType<typeof LoggingWinston>> = [];
-
-  if (isDeployed) {
-    transports.push(
-      new LoggingWinston({
-        defaultCallback: (error): void => {
-          if (error) {
-            logger.error(`Error occurred: ${error}`);
-          }
-        },
-      })
-    );
-  } else {
+  if (!isDeployed) {
     checkModelsStrict();
   }
 
@@ -163,13 +150,13 @@ export async function start(skipListen = false): Promise<express.Application> {
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
+      // Cloud Run captures stdout/stderr. Keeping the console transport avoids making
+      // startup depend on LoggingWinston network/auth callbacks before the port opens.
       loggingOptions: {
         disableConsoleColors: isDeployed,
-        disableConsoleLogging: isDeployed,
         disableFileLogging: isDeployed,
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
-        transports,
       },
       skipListen,
       userModel: User as unknown as TerrenoAuthUserModel,

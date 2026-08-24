@@ -303,6 +303,22 @@ describe("socketAuth", () => {
       });
     });
 
+    it("accepts Better Auth sessions without a legacy JWT secret", async () => {
+      const middleware = createSocketAuthMiddleware({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only-user"}})},
+          } as any,
+        },
+      });
+      const socket = makeAuthSocket("better-auth-session-token");
+      const error = await runMiddleware(middleware, socket);
+
+      assert.isUndefined(error);
+      assert.strictEqual(socket.decodedToken?.id, "ba-only-user");
+      assert.strictEqual(socket.decodedToken?.authKind, "better-auth");
+    });
+
     it("falls through to Better Auth when the JWT is expired", async () => {
       const middleware = createSocketAuthMiddleware({
         betterAuth: {
