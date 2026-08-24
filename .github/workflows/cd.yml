@@ -307,6 +307,26 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+      - name: Print failed Cloud Run revision logs
+        if: failure() && steps.deploy.outcome == 'failure'
+        run: |
+          revision="$(
+            gcloud run revisions list \
+              --service="${{ env.GCP_BACKEND_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format=json |
+              jq -r --arg sha "$GITHUB_SHA" \
+                'first(.[] | select(.metadata.labels["commit-sha"] == $sha) | .metadata.name) // empty'
+          )"
+          if [ -z "$revision" ]; then
+            echo "::warning::Could not identify the failed Cloud Run revision for $GITHUB_SHA"
+            exit 0
+          fi
+          gcloud logging read \
+            "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${{ env.GCP_BACKEND_SERVICE }}\" AND resource.labels.revision_name=\"$revision\"" \
+            --limit=100 \
+            --order=asc \
+            --format=json
       - name: Set deployment status to success
         if: success()
         uses: actions/github-script@v9.0.0
