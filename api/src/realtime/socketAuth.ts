@@ -16,9 +16,9 @@ import type {SocketWithDecodedToken} from "./socketUser";
  * fails, the connection is rejected with the last validator's error.
  *
  * Validators:
- * 1. Legacy JWT (when a token secret is configured, always first) — the existing
- *    `@thream/socketio-jwt` middleware, wrapped unchanged so accepted payloads, secret
- *    handling, and error shapes are byte-for-byte identical to the previous hardcoded setup.
+ * 1. Legacy JWT (default, always first) — the existing `@thream/socketio-jwt` middleware,
+ *    wrapped unchanged so accepted payloads, secret handling, and error shapes are
+ *    byte-for-byte identical to the previous hardcoded setup.
  * 2. Better Auth session (optional) — enabled via `RealtimeAppOptions.betterAuth`. The
  *    handshake token is validated as a Better Auth session via `auth.api.getSession`
  *    (presented as an `Authorization: Bearer` credential, resolved by Better Auth's
@@ -188,7 +188,7 @@ export const createSocketAuthMiddleware = ({
   betterAuth,
   extraValidators = [],
 }: {
-  /** Secret enabling the legacy JWT validator (same handling as before the refactor). */
+  /** Secret for the legacy JWT validator (same handling as before the refactor). */
   tokenSecret?: string;
   /**
    * JWT issuer to require (D1 parity with the HTTP path's `jwt.verify(token, secret,
@@ -209,10 +209,6 @@ export const createSocketAuthMiddleware = ({
     validators.push(createBetterAuthValidator(betterAuth));
   }
   validators.push(...extraValidators);
-
-  if (validators.length === 0) {
-    throw new Error("[realtime] At least one socket authentication validator is required.");
-  }
 
   return (socket, next): void => {
     void (async () => {

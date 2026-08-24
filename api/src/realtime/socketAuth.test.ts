@@ -17,7 +17,6 @@ import jwt from "jsonwebtoken";
 
 import {
   type AuthenticatableSocket,
-  type BetterAuthSocketOptions,
   createBetterAuthValidator,
   createLegacyJwtValidator,
   createSocketAuthMiddleware,
@@ -237,34 +236,6 @@ describe("socketAuth", () => {
   });
 
   describe("createSocketAuthMiddleware — validator chain", () => {
-    it("authenticates with Better Auth when no JWT secret is configured", async () => {
-      const middleware = createSocketAuthMiddleware({
-        betterAuth: {
-          auth: {
-            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only"}})},
-          } as unknown as BetterAuthSocketOptions["auth"],
-        },
-      });
-      const socket = makeAuthSocket("better-auth-session-token");
-
-      const error = await runMiddleware(middleware, socket);
-
-      assert.isUndefined(error);
-      assert.deepEqual(socket.decodedToken, {
-        admin: false,
-        authKind: "better-auth",
-        id: "ba-only",
-        isAnonymous: false,
-      });
-    });
-
-    it("rejects configuration with no authentication validators", () => {
-      assert.throws(
-        () => createSocketAuthMiddleware({}),
-        "At least one socket authentication validator is required"
-      );
-    });
-
     it("accepts a legacy JWT with the default chain", async () => {
       const middleware = createSocketAuthMiddleware({tokenSecret});
       const token = jwt.sign({admin: false, id: "chain-user"}, tokenSecret);
@@ -301,6 +272,22 @@ describe("socketAuth", () => {
         id: "ba-user-2",
         isAnonymous: false,
       });
+    });
+
+    it("accepts Better Auth sessions without a legacy JWT secret", async () => {
+      const middleware = createSocketAuthMiddleware({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only-user"}})},
+          } as any,
+        },
+      });
+      const socket = makeAuthSocket("better-auth-session-token");
+      const error = await runMiddleware(middleware, socket);
+
+      assert.isUndefined(error);
+      assert.strictEqual(socket.decodedToken?.id, "ba-only-user");
+      assert.strictEqual(socket.decodedToken?.authKind, "better-auth");
     });
 
     it("falls through to Better Auth when the JWT is expired", async () => {

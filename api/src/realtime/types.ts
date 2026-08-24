@@ -83,10 +83,7 @@ export interface RealtimeAppOptions {
   adapter?: "redis" | "none";
   /** Redis URL for the Redis adapter */
   redisUrl?: string;
-  /**
-   * JWT secret for socket authentication (default: process.env.TOKEN_SECRET).
-   * Optional when `betterAuth` is configured.
-   */
+  /** JWT secret for socket authentication (default: process.env.TOKEN_SECRET) */
   tokenSecret?: string;
   /**
    * JWT issuer required for socket authentication (default: process.env.TOKEN_ISSUER),
@@ -95,10 +92,9 @@ export interface RealtimeAppOptions {
    */
   tokenIssuer?: string;
   /**
-   * Enables the Better Auth session validator for socket authentication. It is tried after
-   * the legacy JWT validator when a token secret exists, or used alone otherwise. Pass the
-   * instance returned by `createBetterAuth` (and optionally the app user model so
-   * `decodedToken.id`/`admin` match the REST identity).
+   * Enables the Better Auth session validator for socket authentication, tried after the
+   * legacy JWT validator. Pass the instance returned by `createBetterAuth` (and optionally
+   * the app user model so `decodedToken.id`/`admin` match the REST identity).
    */
   betterAuth?: BetterAuthSocketOptions;
   /**

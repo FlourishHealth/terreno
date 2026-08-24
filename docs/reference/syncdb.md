@@ -126,18 +126,14 @@ new TerrenoApp({userModel: User})
 
 - **`SyncApp`** — HTTP sync routes (`/sync/snapshot`, `/sync/mutate`, `/sync/mutate/batch`, `/sync/key`, `/sync/streams`, `/sync/entities`).
 - **`RealtimeApp`** — Socket.io server with change-stream-driven `sync:delta` emission. Requires a **MongoDB replica set** (change streams).
-- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` themselves.
+- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Registration queues this work without contacting MongoDB, so models can load before the database connects. Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` after connecting.
 
-Socket auth requires at least one configured authentication method. It enables legacy JWT
-validation when `tokenSecret` or `TOKEN_SECRET` is available. Better Auth can be used without
-a JWT secret:
+Socket auth accepts legacy JWTs when `TOKEN_SECRET` is configured. For Better Auth sessions,
+the legacy secret is optional:
 
 ```typescript
 new RealtimeApp({betterAuth: {auth, userModel: User}})
 ```
-
-When both methods are configured, JWT validation runs first and Better Auth session validation
-is the fallback.
 
 ## createSyncDb configuration
 
