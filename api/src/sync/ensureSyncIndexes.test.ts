@@ -75,14 +75,14 @@ describe("ensureSyncIndexes (C8)", () => {
   it("defers snapshot index creation until startup ensures indexes", async () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoDeferred");
     let createIndexCalls = 0;
-    (IndexTodoModel.collection as any).createIndex = async () => {
+    IndexTodoModel.collection.createIndex = async (): Promise<string> => {
       createIndexCalls += 1;
       return "ownerId_1__syncSeq_1";
     };
 
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosDeferred",
     });
