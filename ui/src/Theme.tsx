@@ -1,6 +1,7 @@
 import React, {createContext, useMemo, useState} from "react";
 
 import type {TerrenoTheme, TerrenoThemeConfig, ThemePrimitives} from "./Common";
+import {TerrenoFontProvider} from "./TerrenoFontProvider";
 
 const defaultPrimitives = {
   accent000: "#FFFDF7",
@@ -254,9 +255,11 @@ export const ThemeProvider = ({children, initialPrimitives}: ThemeProviderProps)
   };
 
   return (
-    <ThemeContext.Provider value={{resetTheme, setPrimitives, setTheme, theme: computedTheme}}>
-      {children}
-    </ThemeContext.Provider>
+    <TerrenoFontProvider>
+      <ThemeContext.Provider value={{resetTheme, setPrimitives, setTheme, theme: computedTheme}}>
+        {children}
+      </ThemeContext.Provider>
+    </TerrenoFontProvider>
   );
 };
 

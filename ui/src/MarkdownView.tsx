@@ -1,67 +1,38 @@
-import {
-  Nunito_400Regular,
-  Nunito_500Medium,
-  Nunito_700Bold,
-  useFonts as useTextFonts,
-} from "@expo-google-fonts/nunito";
-import {
-  TitilliumWeb_600SemiBold,
-  TitilliumWeb_700Bold,
-  useFonts as useHeadingFonts,
-} from "@expo-google-fonts/titillium-web";
-import type React from "react";
+import React, {useMemo} from "react";
 import {Platform} from "react-native";
 import Markdown from "react-native-markdown-display";
 
 import {useTheme} from "./Theme";
 
+const IS_WEB = Platform.OS === "web";
+const MARKDOWN_SIZES = {
+  lg: IS_WEB ? 24 : 20,
+  md: IS_WEB ? 18 : 16,
+  sm: IS_WEB ? 16 : 14,
+  xl: IS_WEB ? 32 : 28,
+} as const;
+const MONO_FONT = IS_WEB ? "monospace" : Platform.select({android: "monospace", ios: "Menlo"});
+const TEXT_FONT_SIZE = IS_WEB ? 16 : 14;
+const TEXT_LINE_HEIGHT = IS_WEB ? 24 : 20;
+
 // Takes markdown and renders it with our theme. We should open source this component.
-export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boolean}> = ({
+const MarkdownViewComponent: React.FC<{children: React.ReactNode; inverted?: boolean}> = ({
   children,
   inverted,
 }) => {
   const {theme} = useTheme();
+  const textColor = inverted ? theme.text.inverted : theme.text.primary;
+  const markdownStyle = useMemo<React.ComponentProps<typeof Markdown>["style"]>(() => {
+    const color = {color: textColor};
+    const markdownTextStyle = {
+      fontFamily: "text-regular",
+      fontSize: TEXT_FONT_SIZE,
+      lineHeight: TEXT_LINE_HEIGHT,
+      ...color,
+    };
 
-  const color = {color: inverted ? theme.text.inverted : theme.text.primary};
-
-  // Match Heading font sizes to Heading component
-  // Web sizes (see src/Heading.tsx): sm:16, md:18, lg:24, xl:32
-  // Mobile sizes: sm:14, md:16, lg:20, xl:28
-  const isWeb = Platform.OS === "web";
-  const sizes = {
-    lg: isWeb ? 24 : 20,
-    md: isWeb ? 18 : 16,
-    sm: isWeb ? 16 : 14,
-    xl: isWeb ? 32 : 28,
-  } as const;
-
-  // Load fonts similar to Heading/Text components so fontFamily names resolve
-  useHeadingFonts({
-    heading: TitilliumWeb_600SemiBold,
-    "heading-bold": TitilliumWeb_700Bold,
-    "heading-semibold": TitilliumWeb_600SemiBold,
-  });
-  useTextFonts({
-    text: Nunito_400Regular,
-    "text-bold": Nunito_700Bold,
-    "text-medium": Nunito_500Medium,
-    "text-regular": Nunito_400Regular,
-  });
-
-  const monoFont = isWeb ? "monospace" : Platform.select({android: "monospace", ios: "Menlo"});
-  const textFontSize = isWeb ? 16 : 14;
-  const textLineHeight = isWeb ? 24 : 20;
-  const markdownTextStyle = {
-    fontFamily: "text-regular",
-    fontSize: textFontSize,
-    lineHeight: textLineHeight,
-    ...color,
-  };
-
-  return (
-    <Markdown
-      style={{
-        body: {width: "100%", ...markdownTextStyle},
+    return {
+      body: {width: "100%", ...markdownTextStyle},
         bullet_list: {width: "100%"},
         bullet_list_content: {flex: 1, flexShrink: 1, minWidth: 0},
         bullet_list_icon: {
@@ -77,7 +48,7 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
           borderColor: theme.border.default,
           borderRadius: 4,
           borderWidth: 1,
-          fontFamily: monoFont,
+          fontFamily: MONO_FONT,
           fontSize: 13,
           padding: 8,
           ...color,
@@ -87,7 +58,7 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
           borderColor: theme.border.default,
           borderRadius: 3,
           borderWidth: 1,
-          fontFamily: monoFont,
+          fontFamily: MONO_FONT,
           fontSize: 13,
           paddingHorizontal: 4,
           paddingVertical: 1,
@@ -98,46 +69,46 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
           borderColor: theme.border.default,
           borderRadius: 4,
           borderWidth: 1,
-          fontFamily: monoFont,
+          fontFamily: MONO_FONT,
           fontSize: 13,
           padding: 8,
           ...color,
         },
         heading1: {
           fontFamily: "heading-bold",
-          fontSize: sizes.xl,
-          lineHeight: sizes.xl * 1.25,
+          fontSize: MARKDOWN_SIZES.xl,
+          lineHeight: MARKDOWN_SIZES.xl * 1.25,
           ...color,
         },
         heading2: {
           fontFamily: "heading-bold",
-          fontSize: sizes.lg,
-          lineHeight: sizes.lg * 1.25,
+          fontSize: MARKDOWN_SIZES.lg,
+          lineHeight: MARKDOWN_SIZES.lg * 1.25,
           ...color,
         },
         heading3: {
           fontFamily: "heading-bold",
-          fontSize: sizes.md,
-          lineHeight: sizes.md * 1.25,
+          fontSize: MARKDOWN_SIZES.md,
+          lineHeight: MARKDOWN_SIZES.md * 1.25,
           ...color,
         },
         heading4: {
           fontFamily: "heading-semibold",
-          fontSize: sizes.sm,
-          lineHeight: sizes.sm * 1.25,
+          fontSize: MARKDOWN_SIZES.sm,
+          lineHeight: MARKDOWN_SIZES.sm * 1.25,
           ...color,
         },
         // h5/h6 map to small as well for consistency, slightly smaller visually handled by weight
         heading5: {
           fontFamily: "heading-semibold",
-          fontSize: sizes.sm,
-          lineHeight: sizes.sm * 1.25,
+          fontSize: MARKDOWN_SIZES.sm,
+          lineHeight: MARKDOWN_SIZES.sm * 1.25,
           ...color,
         },
         heading6: {
           fontFamily: "heading-semibold",
-          fontSize: sizes.sm,
-          lineHeight: sizes.sm * 1.25,
+          fontSize: MARKDOWN_SIZES.sm,
+          lineHeight: MARKDOWN_SIZES.sm * 1.25,
           ...color,
         },
         list_item: {alignItems: "flex-start", flexDirection: "row", width: "100%"},
@@ -154,9 +125,12 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
         paragraph: {flexShrink: 1, width: "100%", ...markdownTextStyle},
         text: color,
         textgroup: {flexShrink: 1, minWidth: 0},
-      }}
-    >
-      {children}
-    </Markdown>
-  );
+    };
+  }, [textColor, theme.border.default, theme.surface.neutralLight]);
+
+  return <Markdown style={markdownStyle}>{children}</Markdown>;
 };
+
+MarkdownViewComponent.displayName = "MarkdownView";
+
+export const MarkdownView = React.memo(MarkdownViewComponent);

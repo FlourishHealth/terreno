@@ -1,13 +1,4 @@
-import {
-  Nunito_400Regular,
-  Nunito_400Regular_Italic,
-  Nunito_500Medium,
-  Nunito_500Medium_Italic,
-  Nunito_700Bold,
-  Nunito_700Bold_Italic,
-  useFonts,
-} from "@expo-google-fonts/nunito";
-import type React from "react";
+import React from "react";
 import {Text as NativeText, Platform, type TextStyle} from "react-native";
 
 import type {TextProps} from "./Common";
@@ -32,7 +23,7 @@ const fontSizeAndWeighMobile = {
 
 const fontSizes = Platform.OS === "web" ? fontSizeAndWeightWeb : fontSizeAndWeighMobile;
 
-export const Text = ({
+const TextComponent = ({
   align = "left",
   bold,
   children,
@@ -46,16 +37,6 @@ export const Text = ({
   testID,
 }: TextProps): React.ReactElement => {
   const {theme} = useTheme();
-
-  useFonts({
-    text: Nunito_400Regular,
-    "text-bold": Nunito_700Bold,
-    "text-bold-italic": Nunito_700Bold_Italic,
-    "text-medium": Nunito_500Medium,
-    "text-medium-italic": Nunito_500Medium_Italic,
-    "text-regular": Nunito_400Regular,
-    "text-regular-italic": Nunito_400Regular_Italic,
-  });
 
   const style: TextStyle = {};
 
@@ -124,3 +105,7 @@ export const Text = ({
     );
   }
 };
+
+TextComponent.displayName = "Text";
+
+export const Text = React.memo(TextComponent);
