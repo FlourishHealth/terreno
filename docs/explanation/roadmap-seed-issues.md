@@ -481,16 +481,14 @@ dispatch — required by Stripe billing and by Twilio/Expo delivery status callb
 **Title:** `[Roadmap] Organizations, teams, and multi-tenant scoping`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`orgs-and-teams`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`orgs-and-teams`, Status=`Superseded`
 
-Terreno's data model is per-user: `ownerId`, `OwnerQueryFilter`, and owner permissions.
-B2B apps need organizations. This adds Organization and Membership models, an org-context
-middleware, an `OrgQueryFilter` and org-scoping schema plugin for modelRouter, and
-membership-aware permission classes — the tenant analog of the existing owner stack.
-Invitations and the management UI are separate items.
+Superseded by `org-management-ui` (native orgs + RBAC + admin UI). Do not open new work
+from this item.
 
-- **Implementation plan:** [orgs-and-teams.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/orgs-and-teams.md)
-- **Tasks:** [orgs-and-teams.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/orgs-and-teams.md)
+- **Implementation plan:** [orgs-and-teams.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/orgs-and-teams.md) (superseded)
+- **Canonical IP:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/org-management-ui.md)
+- **Tasks:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/org-management-ui.md)
 - **RTK flag:** None
 - **Depends on:** —
 
@@ -507,7 +505,7 @@ Replaces the binary `admin` flag + owner checks with a first-class RBAC module: 
 permission vocabulary on Better Auth's access-control engine, DB-backed roles editable in
 the admin panel, document-level scopes, field-level views, and one `can()` check enforced
 across REST, websockets, MCP tools, and admin. An API design draft already exists;
-`orgs-and-teams` extends it with org-scoped grants.
+`org-management-ui` extends it with org-scoped membership grants (`org-admin` / `member`).
 
 - **Implementation plan:** [rbac-permissions.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rbac-permissions.md)
 - **Tasks:** *(TBD — design doc predates task split)*
@@ -530,25 +528,25 @@ billing can later enforce. Emails go through `@terreno/comms`.
 - **Implementation plan:** *(not yet written)*
 - **Tasks:** *(not yet written)*
 - **RTK flag:** None
-- **Depends on:** orgs-and-teams, comms-abstraction, comms-adapter-sendgrid
+- **Depends on:** org-management-ui, comms-abstraction, comms-adapter-sendgrid
 
 ---
 
 ## org-management-ui
 
-**Title:** `[Roadmap] Org switcher and member management screens`
+**Title:** `[Roadmap] Organizations as a first-class primitive (admin UI + RBAC)`
 
-**Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`org-management-ui`, Status=`Planned`
 
-The frontend counterpart of the tenancy track: an organization switcher, members list with
-roles, invite flow, and org settings screens in `@terreno/ui` + example-frontend, working
-on web and native.
+Native Organization and Membership models, RBAC (`org-admin`, `operator`, `superadmin`),
+and admin-panel directory / switcher / members / settings. Operators manage all orgs;
+org-admins manage only the current org. Invites and billing are design-only placeholders.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
-- **RTK flag:** Partial — screens should target the syncdb data layer where available
-- **Depends on:** orgs-and-teams, rbac-permissions, invitations-and-seats
+- **Implementation plan:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/org-management-ui.md)
+- **Tasks:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/org-management-ui.md)
+- **RTK flag:** Partial — admin screens use generated SDK / `useAdminApi`
+- **Depends on:** rbac-permissions
 
 ---
 
@@ -568,7 +566,7 @@ are a separate item.
 - **Implementation plan:** [billing-stripe.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/billing-stripe.md)
 - **Tasks:** [billing-stripe.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/billing-stripe.md)
 - **RTK flag:** None
-- **Depends on:** orgs-and-teams, inbound-webhooks
+- **Depends on:** org-management-ui, inbound-webhooks
 
 ---
 
@@ -793,7 +791,7 @@ baseline.
 - **Implementation plan:** *(not yet written)*
 - **Tasks:** *(not yet written)*
 - **RTK flag:** None
-- **Depends on:** orgs-and-teams, native-module-baseline
+- **Depends on:** org-management-ui, native-module-baseline
 
 ---
 
@@ -830,7 +828,7 @@ B2B customers.
 - **Implementation plan:** *(not yet written)*
 - **Tasks:** *(not yet written)*
 - **RTK flag:** None
-- **Depends on:** orgs-and-teams
+- **Depends on:** org-management-ui
 
 ---
 

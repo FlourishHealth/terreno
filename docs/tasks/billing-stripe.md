@@ -25,7 +25,7 @@ IP: [billing-stripe](../implementationPlans/billing-stripe.md)
 - [ ] **Task 2.1**: Customer creation + checkout/portal session routes
   - Description: `POST /billing/checkoutSession` (IsOrgAdmin), `POST /billing/portalSession`, `GET /billing/plans`
   - Files: `billing/src/billingApp.ts`
-  - Depends on: 1.2, orgs-and-teams Phase 3
+  - Depends on: 1.2, org-management-ui Phase 3
   - Acceptance: mocked-Stripe supertest incl. permission denials
 - [ ] **Task 2.2**: `getEntitlements` + `planSegment` + `RequiresPlan`
   - Description: cache-backed entitlement service; feature-flag segment factory; permission
