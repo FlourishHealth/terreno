@@ -9,7 +9,7 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
 - GCS state bucket
 - **Workload Identity Federation** — one pool/provider plus two impersonable service accounts:
   - `terraform-admin` — used by `cd.yml`'s terraform-* jobs (project-admin scope)
-  - `gh-deployer` — used by `cd.yml`'s backend-deploy-* and mcp-deploy jobs with the narrow set of roles needed to push images and roll Cloud Run
+  - `gh-deployer` — used by `cd.yml`'s backend-deploy-* and mcp-deploy jobs with the narrow set of roles needed to push images, roll Cloud Run, and read failed revision logs
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
 - Secret Manager containers for the backend's sensitive env vars: `terreno-backend-example-mongodb-uri`, `terreno-backend-example-langfuse-secret-key`, `terreno-backend-example-langfuse-public-key`. Values are seeded out-of-band; the backend and tasks deploy workflows mount them via `secrets:` so plaintext never traverses GitHub Actions runners.
