@@ -3,6 +3,8 @@ import {assert} from "chai";
 
 import {parseLcov} from "./check-coverage";
 import {
+  bunTestFileArgs,
+  coverageRunArgs,
   evaluateNewFileCoverage,
   groupFilesByWorkspace,
   isCoverageSourceFile,
@@ -123,6 +125,43 @@ describe("evaluateNewFileCoverage", () => {
         threshold: 90,
       }),
       [{path: "api/src/new.ts", summary: null}]
+    );
+  });
+});
+
+describe("coverageRunArgs", () => {
+  it("reuses explicit bun test file globs so Playwright specs stay out", () => {
+    assert.deepEqual(bunTestFileArgs("bun test ./**/*.test.ts ./**/*.test.tsx"), [
+      "./**/*.test.ts",
+      "./**/*.test.tsx",
+    ]);
+    assert.deepEqual(
+      coverageRunArgs({
+        hasSrcDir: false,
+        packageName: "example-frontend",
+        testScript: "bun test ./**/*.test.ts ./**/*.test.tsx",
+      }),
+      ["./**/*.test.ts", "./**/*.test.tsx"]
+    );
+  });
+
+  it("ignores flags and chained isolated-test shells", () => {
+    assert.deepEqual(bunTestFileArgs("bun test --max-concurrency=1 src/"), ["src/"]);
+    assert.deepEqual(bunTestFileArgs("bun test && bun test ./src/isolated/*.isolated.ts"), []);
+  });
+
+  it("falls back to src or unit-test globs when the script has no paths", () => {
+    assert.deepEqual(
+      coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
+      ["src"]
+    );
+    assert.deepEqual(
+      coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}),
+      ["./**/*.test.ts", "./**/*.test.tsx"]
+    );
+    assert.deepEqual(
+      coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
+      ["--max-concurrency=1", "src"]
     );
   });
 });

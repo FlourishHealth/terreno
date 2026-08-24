@@ -116,7 +116,8 @@ Pull requests also run the `New file coverage` workflow. Every newly added works
 `.ts` or `.tsx` implementation file must have at least 90% function coverage and 90%
 line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, and isolated-test files
 are excluded. A new implementation file that is absent from LCOV is treated as 0%
-covered.
+covered. The gate runs each package's `bun test` file arguments (or `src` / `*.test.ts`
+globs) so Playwright `*.spec.ts` files are not collected.
 
 Run the same check locally against a base commit:
 

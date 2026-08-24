@@ -142,21 +142,73 @@ export const groupFilesByWorkspace = ({
     .sort((left, right) => left.packageName.localeCompare(right.packageName));
 };
 
+export const bunTestFileArgs = (testScript: string | undefined): string[] => {
+  if (!testScript) {
+    return [];
+  }
+  const firstCommand = testScript.split("&&")[0]?.trim() ?? "";
+  const match = firstCommand.match(/^bun(?:x)?\s+test(?:\s+(.*))?$/);
+  if (!match?.[1]) {
+    return [];
+  }
+  return match[1].split(/\s+/).filter((token) => token.length > 0 && !token.startsWith("-"));
+};
+
+export const coverageRunArgs = ({
+  hasSrcDir,
+  packageName,
+  testScript,
+}: {
+  hasSrcDir: boolean;
+  packageName: string;
+  testScript?: string;
+}): string[] => {
+  const args: string[] = [];
+  if (packageName === "mcp-server") {
+    args.push("--max-concurrency=1");
+  }
+  const fileArgs = bunTestFileArgs(testScript);
+  if (fileArgs.length > 0) {
+    args.push(...fileArgs);
+  } else if (hasSrcDir) {
+    args.push("src");
+  } else {
+    args.push("./**/*.test.ts", "./**/*.test.tsx");
+  }
+  return args;
+};
+
+const readPackageTestScript = (packageRoot: string): string | undefined => {
+  const packageJsonPath = join(packageRoot, "package.json");
+  if (!existsSync(packageJsonPath)) {
+    return undefined;
+  }
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    scripts?: {test?: string};
+  };
+  return packageJson.scripts?.test;
+};
+
 const runPackageCoverage = async ({
   coverageDir,
+  packageName,
   packageRoot,
 }: {
   coverageDir: string;
+  packageName: string;
   packageRoot: string;
 }): Promise<number> => {
-  const concurrencyArgs =
-    packageRoot.endsWith(`${sep}mcp-server`) ? ["--max-concurrency=1"] : [];
+  const coverageArgs = coverageRunArgs({
+    hasSrcDir: existsSync(join(packageRoot, "src")),
+    packageName,
+    testScript: readPackageTestScript(packageRoot),
+  });
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(
       "bun",
       [
         "test",
-        ...concurrencyArgs,
+        ...coverageArgs,
         "--coverage",
         "--coverage-reporter=lcov",
         `--coverage-dir=${coverageDir}`,
@@ -200,7 +252,11 @@ const main = async (): Promise<void> => {
       console.info(
         `\nChecking ${packageCoverage.files.length} new source file(s) in ${packageCoverage.packageName}...`
       );
-      const exitCode = await runPackageCoverage({coverageDir, packageRoot});
+      const exitCode = await runPackageCoverage({
+        coverageDir,
+        packageName: packageCoverage.packageName,
+        packageRoot,
+      });
       if (exitCode !== 0) {
         process.exit(exitCode);
       }
