@@ -293,7 +293,7 @@ export const tools: Tool[] = [
   },
 ];
 
-export const generateModel = (args: {
+const generateModel = (args: {
   name: string;
   fields: Array<{
     name: string;
@@ -378,7 +378,7 @@ export type { ${name}Document, ${name}Model };
 `;
 };
 
-export const generateRoute = (args: {
+const generateRoute = (args: {
   modelName: string;
   routePath: string;
   permissions?: {
@@ -464,7 +464,7 @@ export const add${modelName}Routes = (router: Router) => {
 `;
 };
 
-export const generateScreen = (args: {
+const generateScreen = (args: {
   name: string;
   type: "list" | "detail" | "form" | "empty";
   modelName?: string;
@@ -673,7 +673,7 @@ export default ${name}Screen;
 `;
 };
 
-export const generateFormFields = (args: {
+const generateFormFields = (args: {
   fields: Array<{
     name: string;
     type: string;
@@ -794,7 +794,7 @@ ${fieldComponents.join("\n")}
 `;
 };
 
-export const validateModelSchema = (args: {schema: string}): string => {
+const validateModelSchema = (args: {schema: string}): string => {
   const {schema} = args;
   const issues: string[] = [];
   const suggestions: string[] = [];
@@ -857,7 +857,7 @@ Suggestions:
 ${suggestions.map((s) => `- ${s}`).join("\n")}`;
 };
 
-export const generateInstallAdmin = (args: {
+const generateInstallAdmin = (args: {
   models: Array<{
     modelName: string;
     routePath: string;

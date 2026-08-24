@@ -27,11 +27,6 @@
       "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./codegen": {
-      "bun": "./src/codegen/generate.ts",
-      "default": "./dist/codegen/generate.js",
-      "types": "./dist/codegen/generate.d.ts"
-    },
     "./react": {
       "default": "./dist/react/index.js",
       "types": "./dist/react/index.d.ts"

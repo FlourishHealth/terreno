@@ -1,7 +1,29 @@
 {
+  "name": "@terreno/mcp",
+  "version": "57.2.0",
+  "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
+  "type": "module",
+  "main": "dist/index.js",
   "bin": {
     "terreno-mcp": "./dist/index.js",
     "terreno-mcp-local": "./dist/local/index.js"
+  },
+  "scripts": {
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "dev": "bun --watch src/index.ts",
+    "start": "bun dist/index.js",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "lint:unsafefix": "biome check --fix --unsafe src/",
+    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "compile:watch": "tsc -w",
+    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
+    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
+    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
+    "test": "bun test --max-concurrency=1 src/",
+    "test:agent": "AGENT=1 bun test --only-failures --max-concurrency=1 src/",
+    "test:ci": "bun test --max-concurrency=1 src/",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/express": "^2.0.0",
@@ -10,49 +32,14 @@
     "@sentry/bun": "catalog:",
     "@terreno/api": "workspace:*",
     "express": "catalog:",
-    "luxon": "catalog:",
     "minisearch": "^7.2.0",
     "mongoose": "catalog:"
   },
-  "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",
-    "@types/luxon": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:"
-  },
-  "exports": {
-    ".": {
-      "bun": "./dist/index.js",
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./bootstrap": {
-      "bun": "./dist/bootstrap.js",
-      "default": "./dist/bootstrap.js",
-      "types": "./dist/bootstrap.d.ts"
-    },
-    "./local-tools": {
-      "bun": "./dist/local/localTools.js",
-      "default": "./dist/local/localTools.js",
-      "types": "./dist/local/localTools.d.ts"
-    },
-    "./search": {
-      "bun": "./dist/search/docIndex.js",
-      "default": "./dist/search/docIndex.js",
-      "types": "./dist/search/docIndex.d.ts"
-    },
-    "./tools": {
-      "bun": "./dist/tools.js",
-      "default": "./dist/tools.js",
-      "types": "./dist/tools.d.ts"
-    },
-    "./upgrade": {
-      "bun": "./dist/upgradeGuide.js",
-      "default": "./dist/upgradeGuide.js",
-      "types": "./dist/upgradeGuide.d.ts"
-    }
   },
   "files": [
     "LICENSE",
@@ -67,28 +54,7 @@
     "code-generation"
   ],
   "license": "MIT",
-  "main": "dist/index.js",
-  "name": "@terreno/mcp",
   "publishConfig": {
     "access": "public"
-  },
-  "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "compile:watch": "tsc -w",
-    "dev": "bun --watch src/index.ts",
-    "lint": "biome check src/",
-    "lint:fix": "biome check --write src/",
-    "lint:unsafefix": "biome check --fix --unsafe src/",
-    "start": "bun dist/index.js",
-    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
-    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
-    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
-    "test": "bun test --max-concurrency=1 src/",
-    "test:agent": "AGENT=1 bun test --only-failures --max-concurrency=1 src/",
-    "test:ci": "bun test --max-concurrency=1 src/",
-    "test:coverage": "bun run ../scripts/check-coverage.ts"
-  },
-  "type": "module",
-  "version": "57.1.0"
+  }
 }

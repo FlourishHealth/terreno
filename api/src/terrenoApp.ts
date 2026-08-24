@@ -8,7 +8,6 @@ import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import type {BetterAuthInstance} from "./betterAuthSetup";
-import {addTerrenoDevBrowserLogsRoute} from "./browserLogsRoute";
 import {
   ConfigurationApp,
   type ConfigurationAppOptions,
@@ -339,7 +338,6 @@ export class TerrenoApp {
       }
     }
 
-    addTerrenoDevBrowserLogsRoute(app);
     app.use(express.json({limit: "50mb"}));
 
     // Auth routes (login/signup/refresh_token) before JWT middleware
