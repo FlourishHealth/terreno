@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import {StyleSheet} from "react-native";
 
@@ -42,6 +43,29 @@ describe("FilterSelectMenu", () => {
       <FilterSelectMenu {...defaultProps} onChange={mock()} testID="filter" value="all" />
     );
     expect(getByTestId("filter")).toBeTruthy();
+  });
+
+  it("tints the row while the select is hovered", () => {
+    const {getByTestId} = renderWithTheme(
+      <FilterSelectMenu {...defaultProps} testID="filter" value="all" />
+    );
+    const container = getByTestId("filter.selectContainer");
+    const rowBackground = (): unknown =>
+      StyleSheet.flatten(getByTestId("filter").props.style).backgroundColor;
+
+    const initialBackground = rowBackground();
+    fireEvent(container, "hoverIn");
+    assert.notEqual(rowBackground(), initialBackground);
+
+    fireEvent(container, "hoverOut");
+    assert.equal(rowBackground(), initialBackground);
+  });
+
+  it("renders the placeholder and disabled state on the select", () => {
+    const {getByTestId} = renderWithTheme(
+      <FilterSelectMenu {...defaultProps} disabled placeholder="Select" testID="filter" />
+    );
+    expect(getByTestId("filter.select")).toBeTruthy();
   });
 
   it("clips the compact select control to its fixed width", () => {
