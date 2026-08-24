@@ -1,17 +1,16 @@
-# Tasks: App MCP — Laravel MCP parity
+# Tasks: App MCP server
 
-See: [`docs/implementationPlans/app-mcp-laravel-parity.md`](../implementationPlans/app-mcp-laravel-parity.md)
+See: [`docs/implementationPlans/app-mcp-server.md`](../implementationPlans/app-mcp-server.md)
 
 **Status:** Draft (Grow). Do not Pick until the IP header is **Approved**.
 
 ## Instructions for the implementing agent
 
-- Load `update-docs`, `terreno-backend-api`, `backend-test-env`. For `MCPService` / RTK hooks also `terreno-data-fetching`.
+- Load `update-docs`, `terreno-backend-api`, `backend-test-env`. For `MCPService` / RTK also `terreno-data-fetching`.
 - TDD: failing test for the primitive, then implementation.
-- Do not change hosted Boost tools except optional Phase 3 generators.
-- Do not add OAuth or MCP Apps.
 - After API export changes, update `docs/reference/api.md` and `docs/how-to/expose-mcp-tools.md` in the same task.
-- Run focused `bun test` in `api/` (and `ai/` for Phase 5). `bun run lint` on touched packages.
+- Run focused `bun test` in `api/` (and `ai/` / `mcp-server/` for those phases). `bun run lint` on touched packages.
+- Do not implement MCP Apps or streaming handlers.
 
 ---
 
@@ -55,7 +54,7 @@ See: [`docs/implementationPlans/app-mcp-laravel-parity.md`](../implementationPla
   - Blocked by: Task 1.2, Task 1.3
   - Docs: example README only
   - Skills: `terreno-backend-api`, `update-docs`
-  - Acceptance: booting example-backend, authenticated `prompts/list` and `resources/list` return the new names (test or documented curl/Inspector steps plus an API integration test)
+  - Acceptance: booting example-backend, authenticated `prompts/list` and `resources/list` return the new names (API integration test)
 
 ---
 
@@ -79,7 +78,7 @@ See: [`docs/implementationPlans/app-mcp-laravel-parity.md`](../implementationPla
 
 ---
 
-### Phase 3: Factories + optional generators
+### Phase 3: Factories + hosted generators
 
 - [ ] **Task 3.1**: `defineMCPTool` / `defineMCPPrompt` / `defineMCPResource`
   - Delivers: exported factories that call register functions; example-backend migrated to factories
@@ -89,21 +88,29 @@ See: [`docs/implementationPlans/app-mcp-laravel-parity.md`](../implementationPla
   - Skills: `terreno-backend-api`, `update-docs`
   - Acceptance: factories are the documented API; `registerMCPTool` still exported
 
-- [ ] **Task 3.2** (optional): Hosted `terreno_generate_mcp_tool`
-  - Delivers: Boost MCP tool that returns a `defineMCPTool` snippet
-  - Files: `mcp-server/src/tools.ts` (+ tests), prompt/resource variants if cheap
+- [ ] **Task 3.2**: Hosted `terreno_generate_mcp_tool`
+  - Delivers: `@terreno/mcp` tool that returns a `defineMCPTool` snippet from name/description/fields
+  - Files: `mcp-server/src/tools.ts`, `mcp-server` tests, `docs/reference/mcp-server.md`
   - Blocked by: Task 3.1
   - Docs: `docs/reference/mcp-server.md` tool table
   - Skills: `update-docs`
-  - Acceptance: tool returns TypeScript that typechecks against the public factory types (snapshot or compile test). Skip entire task if timeboxed out; note skip in PR.
+  - Acceptance: returned TypeScript typechecks against public factory types (snapshot or compile test); tool description tells agents to call this before inventing tool shapes
+
+- [ ] **Task 3.3**: Hosted `terreno_generate_mcp_prompt` and `terreno_generate_mcp_resource`
+  - Delivers: sibling generators for prompts and resources
+  - Files: `mcp-server/src/tools.ts`, tests, `docs/reference/mcp-server.md`
+  - Blocked by: Task 3.2
+  - Docs: same reference page
+  - Skills: `update-docs`
+  - Acceptance: each tool returns a snippet that matches `defineMCPPrompt` / `defineMCPResource`; tests cover required vs optional arguments / URI + mimeType
 
 ---
 
 ### Phase 4: Test helpers + Inspector how-to
 
 - [ ] **Task 4.1**: `invokeMCPTool` / `invokeMCPPrompt` / `readMCPResource`
-  - Delivers: helpers used by api tests; Laravel-like assertions
-  - Files: `api/src/mcp/testHelpers.ts`, `api/src/mcp/testHelpers.test.ts`, re-export from a test-only path if needed so consumers can import
+  - Delivers: helpers used by api tests; assert `isError`, text, structured JSON
+  - Files: `api/src/mcp/testHelpers.ts`, `api/src/mcp/testHelpers.test.ts`, re-export from a test-only path if consumers need it
   - Blocked by: Task 1.2, Task 1.3
   - Docs: how-to testing section
   - Skills: `terreno-backend-api`, `backend-test-env`, `update-docs`
@@ -139,24 +146,54 @@ See: [`docs/implementationPlans/app-mcp-laravel-parity.md`](../implementationPla
 
 ---
 
-### Phase 6: Explanation page
+### Phase 6: OAuth 2.1 via Better Auth
 
-- [ ] **Task 6.1**: Two-layer MCP explanation
-  - Delivers: `docs/explanation/app-mcp.md` + index link; Boost IP and model-router-mcp “related work” already point here
+- [ ] **Task 6.1**: Catalog deps + Better Auth MCP plugin wiring
+  - Delivers: `@better-auth/mcp` and `@better-auth/oauth-provider` on the Better Auth instance `BetterAuthApp` already builds; JWT-only apps do not load the plugin
+  - Files: root catalog / `api/package.json`, Better Auth setup module, tests that plugin registers only when Better Auth is on
+  - Blocked by: none (can start in parallel with Phase 1; do not merge OAuth onto `/mcp` until 6.2)
+  - Docs: `docs/how-to/configure-better-auth.md` pointer that MCP OAuth is enabled with Better Auth
+  - Skills: `terreno-backend-api`, `update-docs`
+  - Acceptance: versions match [infra-mcp.md](../implementationPlans/infra-mcp.md) pins; JWT-only boot does not import the MCP OAuth plugin
+
+- [ ] **Task 6.2**: Protected-resource metadata + 401 challenge
+  - Delivers: RFC 9728 well-known document; unauthenticated `/mcp` returns 401 with `WWW-Authenticate` pointing at it
+  - Files: `api/src/mcp/server.ts`, `api/src/mcp/oauth.ts` (or Better Auth route hook), tests
+  - Blocked by: Task 6.1
+  - Docs: `docs/how-to/secure-app-mcp.md` (create); `docs/reference/api.md` well-known paths
+  - Skills: `terreno-backend-api`, `update-docs`
+  - Acceptance: Better Auth test app: no Authorization header → 401 + challenge; JWT-only app: no well-known required, bearer JWT still works
+
+- [ ] **Task 6.3**: Access token → app User in `extractUserFromHeaders`
+  - Delivers: OAuth access tokens on `Authorization: Bearer` resolve to the same `User` as REST; tool calls honor permissions
+  - Files: `api/src/mcp/auth.ts`, `api/src/mcp/auth.test.ts`, server integration test
+  - Blocked by: Task 6.2
+  - Docs: `docs/how-to/secure-app-mcp.md` client connect steps (Claude/ChatGPT-style OAuth vs Inspector bearer)
+  - Skills: `terreno-backend-api`, `backend-test-env`, `update-docs`
+  - Acceptance: issued access token lists tools as that user; expired/wrong audience token is 401; JWT bearer still succeeds on the same app
+
+---
+
+### Phase 7: Explanation page
+
+- [ ] **Task 7.1**: Two-layer MCP explanation
+  - Delivers: `docs/explanation/app-mcp.md` + index link
   - Files: `docs/explanation/app-mcp.md`, `docs/explanation/README.md`
-  - Blocked by: Task 2.2, Task 3.1 (API names stable)
+  - Blocked by: Task 2.2, Task 3.1, Task 6.3 (API and auth names stable)
   - Docs: that explanation + README
   - Skills: `update-docs`
-  - Acceptance: page states Boost vs app MCP in a table; points at how-to; does not document OAuth as shipped
+  - Acceptance: page tables Boost vs app MCP, generated vs registered primitives, JWT bearer vs Better Auth OAuth; links how-tos; does not document MCP Apps as shipped
 
 ---
 
 ## Frontier after Approve
 
-Unblocked: **Task 1.1**.
+Unblocked: **Task 1.1** and **Task 6.1** (OAuth plugin wiring is independent until 6.2).
 Blocked until 1.1: 1.2–1.4.
 1.5 after 1.2+1.3.
 2.x after prompts+resources.
+3.2–3.3 after 3.1 (required generators).
 4.1 can start after 1.2+1.3 in parallel with 2.x.
 5.x after server HTTP surface is stable (2.1).
-6.1 last for name-stable docs.
+6.2 after 6.1; 6.3 after 6.2.
+7.1 last for name-stable docs.
