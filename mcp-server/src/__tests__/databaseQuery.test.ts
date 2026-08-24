@@ -1,7 +1,4 @@
 import {describe, expect, test} from "bun:test";
-import {mkdtempSync, rmSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
 
 import {
   databaseQuery,
@@ -90,37 +87,14 @@ describe("databaseQuery", () => {
 
   test("returns guidance when Mongo URI is missing after validations pass", async () => {
     const prior = process.env.MONGO_URI;
-    const priorUrl = process.env.MONGO_URL;
-    const priorMongodb = process.env.MONGODB_URI;
-    const priorRoot = process.env.TERRENO_PROJECT_ROOT;
-    const emptyRoot = mkdtempSync(join(tmpdir(), "terreno-no-mongo-"));
-    Reflect.deleteProperty(process.env, "MONGO_URI");
-    Reflect.deleteProperty(process.env, "MONGO_URL");
-    Reflect.deleteProperty(process.env, "MONGODB_URI");
-    process.env.TERRENO_PROJECT_ROOT = emptyRoot;
+    delete process.env.MONGO_URI;
     const msg = await databaseQuery({
       collection: "users",
       filter: {a: 1},
       operation: "find",
     });
-    rmSync(emptyRoot, {force: true, recursive: true});
     if (prior !== undefined) {
       process.env.MONGO_URI = prior;
-    }
-    if (priorUrl !== undefined) {
-      process.env.MONGO_URL = priorUrl;
-    } else {
-      Reflect.deleteProperty(process.env, "MONGO_URL");
-    }
-    if (priorMongodb !== undefined) {
-      process.env.MONGODB_URI = priorMongodb;
-    } else {
-      Reflect.deleteProperty(process.env, "MONGODB_URI");
-    }
-    if (priorRoot === undefined) {
-      Reflect.deleteProperty(process.env, "TERRENO_PROJECT_ROOT");
-    } else {
-      process.env.TERRENO_PROJECT_ROOT = priorRoot;
     }
     expect(msg).toContain("No Mongo URI found");
   });

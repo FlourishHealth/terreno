@@ -10,17 +10,11 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM"],
+    "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/docs/templates",
-    "src/__tests__/**",
-    "src/**/*.test.ts"
-  ]
+  "exclude": ["node_modules", "dist", "src/docs/templates", "src/__tests__/**"]
 }

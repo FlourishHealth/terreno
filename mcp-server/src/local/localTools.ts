@@ -15,7 +15,7 @@ export const localMcpTools: Tool[] = [
   },
   {
     description:
-      "List Mongo collections with indexes and counts, plus static excerpts from `backend/src/models` or `example-backend/src/models`. Uses `MONGO_URI` from process env, `backend/.env`, or `example-backend/.env`.",
+      "List Mongo collections with indexes and counts, plus static excerpts from `backend/src/models/*.ts`. Uses `MONGO_URI` from `backend/.env` or environment.",
     inputSchema: {
       additionalProperties: false,
       properties: {
@@ -52,17 +52,12 @@ export const localMcpTools: Tool[] = [
   },
   {
     description:
-      "Merged log tail from `.terreno/logs/app.log` (backend JSONL), `.terreno/logs/browser.log`, Metro `/events`, and Hermes console via CDP when Metro is reachable.",
+      "Merged log tail from `.terreno/logs/app.log` (backend JSONL) and `.terreno/logs/browser.log`. Metro/Hermes live tails require CDP (see output).",
     inputSchema: {
       additionalProperties: false,
       properties: {
         entries: {type: "number"},
         level: {type: "string"},
-        since: {
-          description:
-            "ISO-8601 timestamp; omit entries strictly before this instant when timestamps exist.",
-          type: "string",
-        },
         sources: {items: {type: "string"}, type: "array"},
       },
       type: "object",
@@ -82,15 +77,10 @@ export const localMcpTools: Tool[] = [
   },
   {
     description:
-      "Inspect Redux store (auth + RTK Query cache summary) via `registerTerrenoDevStore` / `globalThis.__TERRENO_STORE__`, or via CDP when the MCP process cannot see the app heap.",
+      "Inspect Redux store (auth + RTK Query cache summary) via `globalThis.__TERRENO_STORE__` from `registerTerrenoDevStore`.",
     inputSchema: {
       additionalProperties: false,
       properties: {
-        query: {
-          description:
-            "When slice is rtk/terreno-rtk, filter cache rows whose endpoint name or serialized args contain this substring (case-insensitive).",
-          type: "string",
-        },
         slice: {type: "string"},
       },
       type: "object",
@@ -98,8 +88,7 @@ export const localMcpTools: Tool[] = [
     name: "get_rtk_state",
   },
   {
-    description:
-      "Opt-in Hermes Runtime.evaluate over Metro CDP (gated by TERRENO_MCP_EVAL=1). Hermes allows a single debugger connection.",
+    description: "Opt-in Hermes Runtime.evaluate (gated by TERRENO_MCP_EVAL=1).",
     inputSchema: {
       additionalProperties: false,
       properties: {
@@ -111,8 +100,7 @@ export const localMcpTools: Tool[] = [
     name: "evaluate",
   },
   {
-    description:
-      "expo-router navigate/push via CDP (gated by TERRENO_MCP_EVAL=1). Same Hermes connection as evaluate/logs.",
+    description: "expo-router navigation helper (CDP-backed in future releases).",
     inputSchema: {
       additionalProperties: false,
       properties: {
@@ -159,7 +147,6 @@ export const handleLocalToolCall = async (
       const text = await readLogs({
         entries: typeof args.entries === "number" ? args.entries : undefined,
         level: typeof args.level === "string" ? args.level : undefined,
-        since: typeof args.since === "string" ? args.since : undefined,
         sources: Array.isArray(args.sources)
           ? args.sources.filter((s): s is string => typeof s === "string")
           : undefined,
@@ -175,18 +162,15 @@ export const handleLocalToolCall = async (
       return {content: [{text, type: "text"}]};
     }
     case "get_rtk_state": {
-      const text = await getRtkState({
-        query: typeof args.query === "string" ? args.query : undefined,
-        slice: typeof args.slice === "string" ? args.slice : undefined,
-      });
+      const text = getRtkState({slice: typeof args.slice === "string" ? args.slice : undefined});
       return {content: [{text, type: "text"}]};
     }
     case "evaluate": {
-      const text = await evaluate({code: typeof args.code === "string" ? args.code : ""});
+      const text = evaluate({code: typeof args.code === "string" ? args.code : ""});
       return {content: [{text, type: "text"}]};
     }
     case "navigate": {
-      const text = await navigate({path: typeof args.path === "string" ? args.path : ""});
+      const text = navigate({path: typeof args.path === "string" ? args.path : ""});
       return {content: [{text, type: "text"}]};
     }
     default: {

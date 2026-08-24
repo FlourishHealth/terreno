@@ -836,17 +836,6 @@ top-level request fields) flows into Google Cloud Logging `jsonPayload` for Log 
 To correlate with Cloud Trace, ensure clients or load balancers send `x-cloud-trace-context` or W3C
 `traceparent`.
 
-### Development browser-log ingestion
-
-`TerrenoApp` mounts `POST /__terreno/browser-logs` only when `NODE_ENV=development`, or when
-`TERRENO_BROWSER_LOGS=true` in another non-production environment. Production always returns 404;
-set `TERRENO_BROWSER_LOGS=false` to disable the route in development.
-
-The request body is `{entries: Array<{level?, message?, stack?, timestamp?}>}`. Batches are capped
-at 100 entries and 256 kB. Accepted rows are truncated to bounded field lengths and appended as
-mode-`0600` JSONL under `<backend cwd>/.terreno/logs/browser.log`. The local MCP `read_logs` /
-`last_error` tools and `terreno logs --sources browser` consume that file.
-
 ### Message style
 
 - Start with what happened, then optional detail: `User export finished`, not `finished`.
@@ -1247,7 +1236,6 @@ Complete reference of environment variables used by @terreno/api:
 |----------|----------|---------|-------------|
 | `USE_SENTRY_LOGGING` | No | — | Set to `"true"` to enable Sentry error tracking |
 | `SENTRY_DSN` | No | — | Sentry Data Source Name (required if USE_SENTRY_LOGGING=true) |
-| `TERRENO_BROWSER_LOGS` | No | enabled in development | Set `"false"` to disable dev ingestion or `"true"` to opt in outside development; production stays disabled |
 | `SENTRY_TRACES_SAMPLE_RATE` | No | `0.1` | Sentry trace sampling rate (0.0 to 1.0) |
 | `DISABLE_LOG_ALL_REQUESTS` | No | — | Set to `"true"` to disable request logging |
 | `SLOW_REQUEST_THRESHOLD_MS` | No | `3000` | Log warning for requests slower than this (milliseconds) |
