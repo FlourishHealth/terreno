@@ -297,6 +297,44 @@ describe("AdminShell", () => {
     assert.isNull(queryByTestId("admin-shell-nav-screen-denied"));
   });
 
+  it("shows only the platform tools and models granted to the current role", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      models: [
+        {
+          ...buildConfig().models[0],
+          permissions: {create: false, delete: false, update: false},
+        },
+      ],
+      platformTools: {
+        configuration: false,
+        roles: true,
+        scripts: false,
+        version: false,
+      },
+    };
+
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-model-Todo-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-roles-clickable"));
+    assert.isNull(queryByTestId("admin-shell-nav-scripts"));
+    assert.isNull(queryByTestId("admin-shell-nav-version"));
+    assert.isNull(queryByTestId("admin-shell-nav-configuration"));
+  });
+
   it("hides empty Models and Screens headings", () => {
     restoreWindowWidth?.();
     restoreWindowWidth = setWindowWidth(1024);

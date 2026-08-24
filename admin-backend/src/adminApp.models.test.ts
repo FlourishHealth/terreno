@@ -480,6 +480,282 @@ describe("AdminApp /admin/config", () => {
   });
 });
 
+describe("AdminApp adminAccess role matrix", () => {
+  const ADMIN_EMAIL = "admin@example.com";
+  const MEMBER_EMAIL = "notAdmin@example.com";
+  const matrixStatements = {
+    ...terrenoStatements,
+    adminFood: ADMIN_MODEL_ACCESS,
+    adminScreen: ["showcase"],
+  };
+
+  const buildMatrixApp = (
+    grantsByEmail: Record<string, Record<string, string[]>>
+  ): express.Application => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async ({user}) => {
+        const email = "email" in user && typeof user.email === "string" ? user.email : "";
+        return grantsByEmail[email] ?? {};
+      },
+      statements: matrixStatements,
+    });
+    return buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            isOwned: ({instance, user}) => {
+              return String((instance as {ownerId?: unknown}).ownerId) === String(user.id);
+            },
+          },
+        },
+      ],
+      {
+        accessControl,
+        customScreens: [
+          {
+            adminAccess: {action: "showcase", resource: "adminScreen"},
+            displayName: "Showcase",
+            name: "showcase",
+          },
+        ],
+        scripts: [
+          {
+            description: "Seed",
+            name: "seed",
+            runner: async () => ({results: [], success: true}),
+          },
+        ],
+      }
+    );
+  };
+
+  beforeEach(async () => {
+    await setupDb();
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+  });
+
+  it("denies the admin shell when the caller lacks admin:access", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+      [MEMBER_EMAIL]: {},
+    });
+    const member = await authAsUser(app, "notAdmin");
+    await member.get("/admin/config").expect(403);
+    await member.get("/admin/foods").expect(405);
+  });
+
+  it("hides models and mutations when the caller only has admin:access", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepEqual(config.body.models, []);
+    assert.deepEqual(config.body.customScreens, []);
+    await agent.get("/admin/foods").expect(405);
+    await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
+  });
+
+  it("allows reads and denies writes for a read-only role", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const actor = await findOneOrNoneFor(UserModel, {email: ADMIN_EMAIL});
+    assert.exists(actor);
+    const food = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
+
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepInclude(config.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await agent.get("/admin/foods").expect(200);
+    await agent.get(`/admin/foods/${food._id}`).expect(200);
+    await agent.post("/admin/foods").send({calories: 2, name: "Denied"}).expect(405);
+    await agent.patch(`/admin/foods/${food._id}`).send({calories: 3}).expect(405);
+    await agent.delete(`/admin/foods/${food._id}`).expect(405);
+  });
+
+  it("allows full CRUD for a write role, including records the caller does not own", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read", "write"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const other = await FoodModel.create({
+      calories: 1,
+      name: "Other",
+      ownerId: new mongoose.Types.ObjectId(),
+    });
+
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepInclude(config.body.models[0].permissions, {
+      create: true,
+      delete: true,
+      update: true,
+    });
+    await agent.post("/admin/foods").send({calories: 2, name: "Created"}).expect(201);
+    const patched = await agent.patch(`/admin/foods/${other._id}`).send({calories: 9}).expect(200);
+    assert.equal(patched.body.data.calories, 9);
+    await agent.delete(`/admin/foods/${other._id}`).expect(204);
+  });
+
+  it("scopes writeOwned updates and deletes to owned records for that role", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read", "writeOwned"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const actor = await findOneOrNoneFor(UserModel, {email: ADMIN_EMAIL});
+    assert.exists(actor);
+    const owned = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
+    const other = await FoodModel.create({
+      calories: 2,
+      name: "Other",
+      ownerId: new mongoose.Types.ObjectId(),
+    });
+
+    const ownedRead = await agent.get(`/admin/foods/${owned._id}`).expect(200);
+    const otherRead = await agent.get(`/admin/foods/${other._id}`).expect(200);
+    assert.deepEqual(ownedRead.body.data._adminCapabilities, {delete: true, update: true});
+    assert.deepEqual(otherRead.body.data._adminCapabilities, {delete: false, update: false});
+    await agent.patch(`/admin/foods/${owned._id}`).send({calories: 4}).expect(200);
+    await agent.patch(`/admin/foods/${other._id}`).send({calories: 5}).expect(403);
+    await agent.delete(`/admin/foods/${other._id}`).expect(403);
+    await agent.delete(`/admin/foods/${owned._id}`).expect(204);
+    await agent.post("/admin/foods").send({calories: 6, name: "Unassigned"}).expect(201);
+  });
+
+  it("applies different adminAccess grants to different users on the same app", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read", "write"]},
+      [MEMBER_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+    });
+    const writer = await authAsUser(app, "admin");
+    const reader = await authAsUser(app, "notAdmin");
+    const writerUser = await findOneOrNoneFor(UserModel, {email: ADMIN_EMAIL});
+    assert.exists(writerUser);
+    const food = await FoodModel.create({calories: 1, name: "Shared", ownerId: writerUser?._id});
+
+    const writerConfig = await writer.get("/admin/config").expect(200);
+    const readerConfig = await reader.get("/admin/config").expect(200);
+    assert.deepInclude(writerConfig.body.models[0].permissions, {
+      create: true,
+      delete: true,
+      update: true,
+    });
+    assert.deepInclude(readerConfig.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await writer.patch(`/admin/foods/${food._id}`).send({calories: 8}).expect(200);
+    await reader.patch(`/admin/foods/${food._id}`).send({calories: 9}).expect(405);
+    await reader.get("/admin/foods").expect(200);
+    await reader.post("/admin/foods").send({calories: 3, name: "Reader"}).expect(405);
+  });
+
+  it("exposes platform tools and custom screens only for roles that grant them", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {
+        admin: ["access", "runScripts", "viewBackgroundTasks"],
+        adminScreen: ["showcase"],
+        configuration: ["read"],
+        rbac: ["read"],
+      },
+      [MEMBER_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+    });
+    const operator = await authAsUser(app, "admin");
+    const reader = await authAsUser(app, "notAdmin");
+
+    const operatorConfig = await operator.get("/admin/config").expect(200);
+    const readerConfig = await reader.get("/admin/config").expect(200);
+    const operatorScreens = operatorConfig.body.customScreens.map(
+      (screen: {name: string}) => screen.name
+    );
+    const readerScreens = readerConfig.body.customScreens.map(
+      (screen: {name: string}) => screen.name
+    );
+    assert.include(operatorScreens, "showcase");
+    assert.notInclude(readerScreens, "showcase");
+    assert.deepEqual(operatorConfig.body.platformTools, {
+      configuration: true,
+      roles: true,
+      runScripts: true,
+      scripts: true,
+      version: true,
+      viewScripts: true,
+    });
+    assert.deepEqual(
+      operatorConfig.body.scripts.map((script: {name: string}) => script.name),
+      ["seed"]
+    );
+    assert.deepEqual(readerConfig.body.customScreens, []);
+    assert.deepEqual(readerConfig.body.platformTools, {
+      configuration: false,
+      roles: false,
+      runScripts: false,
+      scripts: false,
+      version: false,
+      viewScripts: false,
+    });
+    assert.deepEqual(readerConfig.body.scripts, []);
+    assert.deepEqual(
+      readerConfig.body.models.map((model: {name: string}) => model.name),
+      ["Food"]
+    );
+  });
+
+  it("lets authorize allow writes for one user and deny them for another", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({admin: ["access"]}),
+      statements: terrenoStatements,
+    });
+    const app = buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            authorize: ({action, user}) => {
+              const email =
+                user && "email" in user && typeof user.email === "string" ? user.email : "";
+              if (email === ADMIN_EMAIL) {
+                return true;
+              }
+              return action === "list" || action === "read";
+            },
+          },
+        },
+      ],
+      {accessControl}
+    );
+    const writer = await authAsUser(app, "admin");
+    const reader = await authAsUser(app, "notAdmin");
+
+    const writerConfig = await writer.get("/admin/config").expect(200);
+    const readerConfig = await reader.get("/admin/config").expect(200);
+    assert.deepInclude(writerConfig.body.models[0].permissions, {
+      create: true,
+      delete: true,
+      update: true,
+    });
+    assert.deepInclude(readerConfig.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await writer.post("/admin/foods").send({calories: 1, name: "Allowed"}).expect(201);
+    await reader.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(405);
+    await reader.get("/admin/foods").expect(200);
+  });
+});
+
 describe("AdminApp model CRUD routes", () => {
   let app: express.Application;
   let adminAgent: TestAgent;
