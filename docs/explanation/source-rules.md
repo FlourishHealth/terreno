@@ -30,7 +30,7 @@ such as `bunSetup.ts`.
 
 These still match a naive grep and are **not** violations:
 
-- Mongoose hooks, statics, methods, and virtuals that need `this` (`schema.pre`, `.post`, `.method`, `.statics`, `.virtual`)
+- Mongoose hooks, statics, methods, and virtuals that need `this` (`schema.pre`, `.post`, `.method`, `.statics`, `.virtual`). A nearby hook does not whitelist a later `function` in the same file.
 - TypeScript overload signatures plus their implementation (`modelRouter`)
 - `React.forwardRef(function …)` and `*.prototype.* = function` patches that close over `this`
 - Raw Mongo `collection.findOne`

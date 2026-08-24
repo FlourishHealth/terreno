@@ -86,11 +86,41 @@ schema.pre<Query<unknown, unknown>>("find", function () {
   return;
 });
 
+schema.pre("deleteOne", {document: true, query: false}, function () {
+  return;
+});
+
+schema.virtual("ownerId").get(function () {
+  return;
+});
+
 // biome-ignore lint/suspicious/noExplicitAny: schema generic
 const schemaType = model as any;
 void schemaType;
 `;
     assert.deepEqual(rulesOf(source), []);
+  });
+
+  it("allows async mongoose hooks with blanked string args", () => {
+    const source = `
+schema.pre("save", async function () {
+  this.updated = DateTime.now();
+});
+`;
+    assert.deepEqual(rulesOf(source), []);
+  });
+
+  it("does not let a nearby mongoose hook whitelist a later function", () => {
+    const source = `
+schema.pre("save", () => {
+  return;
+});
+
+export function leaked() {
+  return 1;
+}
+`;
+    assert.deepEqual(rulesOf(source), ["function-declaration"]);
   });
 
   it("still flags const name = function () assignments", () => {

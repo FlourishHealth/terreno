@@ -417,25 +417,108 @@ const isAllowedThisBoundFunction = (text: string, functionIndex: number): boolea
   return /\bthis\s*:/.test(signatureSlice(text, functionIndex));
 };
 
+const HOOK_CALLEES = new Set([
+  "forwardRef",
+  "get",
+  "method",
+  "post",
+  "postSync",
+  "pre",
+  "preSync",
+  "set",
+  "virtual",
+]);
+
+const isImmediateFunctionAssignment = (prefix: string): boolean => {
+  return /\.\w+\s*=\s*(?:async\s+)?$/.test(prefix);
+};
+
+const isImmediateCallArgument = (prefix: string): boolean => {
+  const withoutAsync = prefix.replace(/\s+$/, "").replace(/async\s*$/, "").replace(/\s+$/, "");
+  return /[,(]$/.test(withoutAsync);
+};
+
+const skipTrailingAsync = (lookback: string): number => {
+  let index = lookback.length - 1;
+  while (index >= 0 && /\s/.test(lookback[index] ?? "")) {
+    index -= 1;
+  }
+  if (index >= 4 && lookback.slice(index - 4, index + 1) === "async") {
+    index -= 5;
+    while (index >= 0 && /\s/.test(lookback[index] ?? "")) {
+      index -= 1;
+    }
+  }
+  return index;
+};
+
+const enclosingCallOpenParen = (lookback: string): number | undefined => {
+  let index = skipTrailingAsync(lookback);
+  if (lookback[index] !== "(" && lookback[index] !== ",") {
+    return undefined;
+  }
+  let depth = 0;
+  for (; index >= 0; index -= 1) {
+    const char = lookback[index];
+    if (char === ")") {
+      depth += 1;
+    } else if (char === "(") {
+      if (depth === 0) {
+        return index;
+      }
+      depth -= 1;
+    }
+  }
+  return undefined;
+};
+
+const calleeNameBefore = (lookback: string, openParen: number): string => {
+  let index = openParen - 1;
+  while (index >= 0 && /\s/.test(lookback[index] ?? "")) {
+    index -= 1;
+  }
+  if (lookback[index] === ">") {
+    let angle = 1;
+    index -= 1;
+    while (index >= 0 && angle > 0) {
+      if (lookback[index] === ">") {
+        angle += 1;
+      } else if (lookback[index] === "<") {
+        angle -= 1;
+      }
+      index -= 1;
+    }
+    while (index >= 0 && /\s/.test(lookback[index] ?? "")) {
+      index -= 1;
+    }
+  }
+  const end = index + 1;
+  while (index >= 0 && /[A-Za-z0-9_$]/.test(lookback[index] ?? "")) {
+    index -= 1;
+  }
+  return lookback.slice(index + 1, end);
+};
+
 const isAllowedHookOrSchemaFunction = (text: string, functionIndex: number): boolean => {
   const lookback = text.slice(Math.max(0, functionIndex - 400), functionIndex);
-  if (/\.(?:pre|post)(?:Sync)?\s*(?:<[\s\S]*?>)?\s*\(/.test(lookback)) {
+  if (isImmediateFunctionAssignment(lookback)) {
     return true;
   }
-  if (/\.method\s*\(/.test(lookback) || /\.virtual\s*\(/.test(lookback)) {
-    return true;
+  if (!isImmediateCallArgument(lookback)) {
+    return false;
   }
-  if (/forwardRef\s*\(/.test(lookback)) {
-    return true;
+  const openParen = enclosingCallOpenParen(lookback);
+  if (openParen === undefined) {
+    return false;
   }
-  if (/\.statics\b/.test(lookback) || /\.methods\b/.test(lookback)) {
-    return true;
+  const callee = calleeNameBefore(lookback, openParen);
+  if (!HOOK_CALLEES.has(callee)) {
+    return false;
   }
-  // Prototype / instance method patches that close over `this`.
-  if (/\.\w+\s*=\s*(?:async\s+)?$/.test(lookback)) {
-    return true;
+  if ((callee === "get" || callee === "set") && !/\.virtual\s*\(/.test(lookback)) {
+    return false;
   }
-  return false;
+  return true;
 };
 
 const isDeclareFunction = (text: string, functionIndex: number): boolean => {
