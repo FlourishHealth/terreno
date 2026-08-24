@@ -554,4 +554,48 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
     // No body/query validation = just the openApi middleware (single fn)
     expect(typeof result).toBe("function");
   });
+
+  // The composed handler must still run every validator in order and surface a
+  // validator's synchronous throw, which routes previously got from Express
+  // spreading an array of middleware.
+  describe("composed validation middleware", () => {
+    const buildTestApp = (): express.Express => {
+      const {configureOpenApiValidator} = require("./openApiValidator");
+      configureOpenApiValidator({logValidationErrors: false});
+
+      const {apiErrorMiddleware} = require("./errors");
+      const expressLib = require("express") as typeof import("express");
+
+      const app = expressLib();
+      app.use(expressLib.json());
+      app.post(
+        "/widgets",
+        createOpenApiBuilder({})
+          .withRequestBody({name: {required: true, type: "string"}})
+          .withQueryParameter("page", {type: "number"})
+          .withValidation()
+          .build(),
+        (req, res) => {
+          res.json({name: (req.body as {name: string}).name});
+        }
+      );
+      app.use(apiErrorMiddleware);
+      return app;
+    };
+
+    it("passes a valid request through to the route handler", async () => {
+      const response = await supertest(buildTestApp())
+        .post("/widgets?page=2")
+        .send({name: "valid"});
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe("valid");
+    });
+
+    it("rejects a body missing a required field with a 400", async () => {
+      const response = await supertest(buildTestApp()).post("/widgets").send({});
+
+      expect(response.status).toBe(400);
+    });
+  });
 });
