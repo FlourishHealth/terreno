@@ -86,6 +86,18 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "testIDs",
 ]);
 
+interface BoxStyleMap {
+  [prop: string]: (
+    // noExplicitAny: Box style props are deliberately heterogeneous and narrowed by each mapper.
+    // biome-ignore lint/suspicious/noExplicitAny: heterogeneous style mapper input
+    value: any,
+    // biome-ignore lint/suspicious/noExplicitAny: heterogeneous Box prop collection
+    all: {[prop: string]: any}
+  ) => {[style: string]: string | number} | {};
+}
+
+const boxStyleMapCache = new WeakMap<object, BoxStyleMap>();
+
 const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
   const resolvedTestID = props.testID;
@@ -113,16 +125,9 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     },
   }));
 
-  const BOX_STYLE_MAP: {
-    [prop: string]: (
-      // noExplicitAny: Box's style mapper accepts heterogeneous prop values (spacing, colors, dimensions, theme tokens, booleans) that cannot be enumerated in a single union; the mapper functions narrow at call site
-      // biome-ignore lint/suspicious/noExplicitAny: Box's style mapper accepts heterogeneous prop values (spacing, colors, dimensions, theme tokens, booleans) that cannot be enumerated in a single union; the mapper functions narrow at call site
-      value: any,
-      // noExplicitAny: see above - heterogeneous prop values
-      // biome-ignore lint/suspicious/noExplicitAny: see above - heterogeneous prop values
-      all: {[prop: string]: any}
-    ) => {[style: string]: string | number} | {};
-  } = {
+  let boxStyleMap = boxStyleMapCache.get(theme);
+  if (!boxStyleMap) {
+    boxStyleMap = {
     alignContent: (value: AlignContent) => ({alignContent: ALIGN_CONTENT[value]}),
     alignItems: (value: AlignItems) => ({alignItems: ALIGN_ITEMS[value]}),
     alignSelf: (value: AlignSelf) => ({alignSelf: ALIGN_SELF[value]}),
@@ -298,7 +303,9 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
       flexWrap: value ? "wrap" : "nowrap",
     }),
     zIndex: (value) => ({zIndex: value ? value : undefined}),
-  };
+    };
+    boxStyleMapCache.set(theme, boxStyleMap);
+  }
 
   // noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
   // biome-ignore lint/suspicious/noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
@@ -308,8 +315,8 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     let style: any = {};
     for (const prop of Object.keys(props) as Array<keyof typeof props>) {
       const value = props[prop];
-      if (BOX_STYLE_MAP[prop]) {
-        Object.assign(style, BOX_STYLE_MAP[prop](value, props));
+      if (boxStyleMap[prop]) {
+        Object.assign(style, boxStyleMap[prop](value, props));
       } else if (!NON_STYLE_BOX_PROPS.has(prop as string)) {
         style[prop] = value;
         // console.warn(`Box: unknown property ${prop}`);
