@@ -110,6 +110,16 @@ jobs:
         run: bun run generate:api
         working-directory: website
 
+      # Rspack/webpack incremental cache. Preview vs production configs differ
+      # (versioning, minify, search), so the key includes event_name.
+      - name: Cache Docusaurus build cache
+        uses: actions/cache@v6
+        with:
+          path: website/.docusaurus
+          key: docusaurus-v1-${{ runner.os }}-${{ github.event_name }}-${{ hashFiles('bun.lock', 'website/docusaurus.config.ts', 'website/package.json') }}
+          restore-keys: |
+            docusaurus-v1-${{ runner.os }}-${{ github.event_name }}-
+
       - name: Build docs site
         run: bunx docusaurus build ${{ github.event_name == 'pull_request' && '--no-minify' || '' }}
         working-directory: website

@@ -8,9 +8,22 @@ const docsUrl = process.env.DOCS_URL ?? "https://terreno-docs.netlify.app";
 // website/versioned_docs and dominate `docusaurus build` time (~4 extra trees).
 const isPreview = process.env.DOCS_PREVIEW === "true";
 
+const searchTheme: [string, Record<string, unknown>] = [
+  require.resolve("@easyops-cn/docusaurus-search-local"),
+  {
+    docsRouteBasePath: "/",
+    hashed: true,
+    indexBlog: false,
+    language: ["en"],
+  },
+];
+
 const config: Config = {
   baseUrl: "/",
   favicon: "img/logo.svg",
+  future: {
+    faster: true,
+  },
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
@@ -45,6 +58,8 @@ const config: Config = {
           exclude: ["**/implementationPlans/**", "**/tasks/**"],
           path: "../docs",
           routeBasePath: "/",
+          showLastUpdateAuthor: false,
+          showLastUpdateTime: false,
           sidebarPath: "./sidebars.ts",
         },
         theme: {
@@ -118,17 +133,10 @@ const config: Config = {
       theme: prismThemes.github,
     },
   } satisfies Preset.ThemeConfig,
-  themes: [
-    [
-      require.resolve("@easyops-cn/docusaurus-search-local"),
-      {
-        docsRouteBasePath: "/",
-        hashed: true,
-        indexBlog: false,
-        language: ["en"],
-      },
-    ],
-  ],
+  // Local search indexes every MDX page. Skip it on PR previews — the lunr
+  // pass is a large fraction of `docusaurus build` and reviewers use in-page
+  // find. Production `master` still ships the search index.
+  themes: isPreview ? [] : [searchTheme],
   title: "Terreno",
   url: docsUrl,
 };
