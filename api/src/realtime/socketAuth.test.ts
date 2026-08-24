@@ -17,6 +17,7 @@ import jwt from "jsonwebtoken";
 
 import {
   type AuthenticatableSocket,
+  type BetterAuthSocketOptions,
   createBetterAuthValidator,
   createLegacyJwtValidator,
   createSocketAuthMiddleware,
@@ -241,7 +242,7 @@ describe("socketAuth", () => {
         betterAuth: {
           auth: {
             api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only"}})},
-          } as any,
+          } as unknown as BetterAuthSocketOptions["auth"],
         },
       });
       const socket = makeAuthSocket("better-auth-session-token");
