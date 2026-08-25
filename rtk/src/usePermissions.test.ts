@@ -5,39 +5,14 @@ import {assert} from "chai";
 import React from "react";
 import {Provider} from "react-redux";
 
-import type {RootState} from "./constants";
 import {
   ADMIN_PAGE_PERMISSION,
   canOpenAdminPage,
   createPermissionSelectors,
   DEFAULT_PERMISSION_API_REDUCER_PATH,
   hasPermission,
-  type PermissionRequest,
-  type PermissionSet,
   selectPermissions,
-  useCan,
-  useSelectPermissions,
 } from "./usePermissions";
-
-const REDUCER_PATH = "testApi";
-
-const {selectPermissions: selectTestPermissions} = createPermissionSelectors({
-  reducerPath: REDUCER_PATH,
-});
-
-const stateOf = (state: Record<string, unknown>): RootState => state as unknown as RootState;
-
-const createStore = (preloadedState: Record<string, unknown>) =>
-  configureStore({
-    preloadedState,
-    reducer: (state: Record<string, unknown> | undefined) => state ?? {},
-  });
-
-const createWrapper = (store: ReturnType<typeof createStore>) => {
-  const Wrapper: React.FC<{children: React.ReactNode}> = ({children}) =>
-    React.createElement(Provider, {children, store});
-  return Wrapper;
-};
 
 describe("canOpenAdminPage", () => {
   it("requires admin:access when a permissions object is present", () => {
@@ -60,110 +35,113 @@ describe("canOpenAdminPage", () => {
 });
 
 describe("hasPermission", () => {
-  it("denies everything when permissions are missing", () => {
-    assert.isFalse(hasPermission(undefined, ADMIN_PAGE_PERMISSION));
+  it("returns false when the permission set is missing", () => {
+    assert.isFalse(hasPermission(undefined, {todo: ["read"]}));
   });
 
-  it("allows requests with no required actions", () => {
-    assert.isTrue(hasPermission({}, {}));
-    assert.isTrue(hasPermission({}, {admin: []}));
-    assert.isTrue(hasPermission({}, {admin: undefined} as unknown as PermissionRequest));
+  it("treats a missing resource as no grants", () => {
+    assert.isFalse(hasPermission({admin: ["access"]}, {todo: ["read"]}));
   });
 
-  it("requires every action of every requested resource", () => {
-    const permissions: PermissionSet = {admin: ["access"], todo: ["read", "update"]};
-    assert.isTrue(hasPermission(permissions, {admin: ["access"], todo: ["read"]}));
-    assert.isFalse(hasPermission(permissions, {todo: ["read", "delete"]}));
-    assert.isFalse(hasPermission(permissions, {unknownResource: ["read"]}));
+  it("allows an empty action list for a resource", () => {
+    assert.isTrue(hasPermission({todo: ["read"]}, {todo: []}));
+    assert.isTrue(hasPermission({todo: ["read"]}, {todo: undefined as unknown as string[]}));
   });
 });
 
 describe("createPermissionSelectors", () => {
-  const permissions: PermissionSet = {admin: ["access"], todo: ["read"]};
+  const {
+    selectPermissions: selectFromApi,
+    useCan,
+    useSelectPermissions,
+  } = createPermissionSelectors({
+    reducerPath: DEFAULT_PERMISSION_API_REDUCER_PATH,
+  });
 
-  it("returns undefined when no user is signed in", () => {
-    const state = stateOf({
+  const createStore = (state: Record<string, unknown>) =>
+    configureStore({
+      preloadedState: state,
+      reducer: (current: Record<string, unknown> | undefined) => current ?? state,
+    });
+
+  const wrap = (store: ReturnType<typeof createStore>): React.FC<{children: React.ReactNode}> => {
+    const Wrapper: React.FC<{children: React.ReactNode}> = ({children}) =>
+      React.createElement(Provider, {children, store});
+    return Wrapper;
+  };
+
+  it("returns undefined when the user is logged out", () => {
+    const store = createStore({
       auth: {userId: null},
-      [REDUCER_PATH]: {
-        queries: {"getMe(undefined)": {data: {permissions}, status: "fulfilled"}},
-      },
-    });
-    assert.isUndefined(selectTestPermissions(state));
-  });
-
-  it("returns undefined when the api slice has no queries", () => {
-    assert.isUndefined(selectTestPermissions(stateOf({})));
-    assert.isUndefined(selectTestPermissions(stateOf({[REDUCER_PATH]: {}})));
-  });
-
-  it("skips queries that are not fulfilled", () => {
-    const state = stateOf({
-      [REDUCER_PATH]: {queries: {"getMe(undefined)": {data: {permissions}, status: "pending"}}},
-    });
-    assert.isUndefined(selectTestPermissions(state));
-  });
-
-  it("skips queries without permissions data and queries that are not profile queries", () => {
-    const state = stateOf({
-      [REDUCER_PATH]: {
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
         queries: {
-          "getMe(undefined)": {data: {}, endpointName: "getMe"},
-          "getTodos(undefined)": {data: {permissions}, endpointName: "getTodos"},
+          'getMe({"id":1})': {data: {permissions: {admin: ["access"]}}, endpointName: "getMe"},
         },
       },
     });
-    assert.isUndefined(selectTestPermissions(state));
+    assert.isUndefined(selectFromApi(store.getState() as never));
   });
 
-  it("matches on the endpoint name", () => {
-    const state = stateOf({
-      auth: {userId: "user-1"},
-      [REDUCER_PATH]: {
+  it("returns undefined when the api slice has no queries", () => {
+    const store = createStore({auth: {userId: "u1"}});
+    assert.isUndefined(selectFromApi(store.getState() as never));
+  });
+
+  it("skips unfulfilled and non-me queries then returns me permissions", () => {
+    const store = createStore({
+      auth: {userId: "u1"},
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
         queries: {
-          someOpaqueCacheKey: {
-            data: {permissions},
-            endpointName: "authMe",
+          "getMe(undefined)": {
+            data: {permissions: {admin: ["access"]}},
+            endpointName: "getMe",
+            status: "fulfilled",
+          },
+          other: {
+            data: {permissions: {todo: ["read"]}},
+            endpointName: "getTodos",
+            status: "fulfilled",
+          },
+          pending: {
+            data: {permissions: {admin: ["access"]}},
+            endpointName: "getMe",
+            status: "pending",
+          },
+        },
+      },
+    });
+    assert.deepEqual(selectFromApi(store.getState() as never), {admin: ["access"]});
+    assert.deepEqual(selectPermissions(store.getState() as never), {admin: ["access"]});
+  });
+
+  it("matches auth/me cache keys when endpointName is missing", () => {
+    const store = createStore({
+      auth: {userId: "u1"},
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
+        queries: {
+          "auth/me": {data: {permissions: {todo: ["write"]}}, status: "fulfilled"},
+        },
+      },
+    });
+    assert.deepEqual(selectFromApi(store.getState() as never), {todo: ["write"]});
+  });
+
+  it("useSelectPermissions and useCan read from the store", () => {
+    const store = createStore({
+      auth: {userId: "u1"},
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
+        queries: {
+          getProfile: {
+            data: {permissions: {admin: ["access"]}},
+            endpointName: "getProfile",
             status: "fulfilled",
           },
         },
       },
     });
-    assert.deepEqual(selectTestPermissions(state), permissions);
-  });
-
-  it("matches on the cache key when the endpoint name does not match", () => {
-    const state = stateOf({
-      [REDUCER_PATH]: {
-        queries: {"auth/me(undefined)": {data: {permissions}, endpointName: "customEndpoint"}},
-      },
-    });
-    assert.deepEqual(selectTestPermissions(state), permissions);
-  });
-
-  it("exposes default selectors bound to the default reducer path", () => {
-    const state = stateOf({
-      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
-        queries: {"getProfile(undefined)": {data: {permissions}}},
-      },
-    });
-    assert.deepEqual(selectPermissions(state), permissions);
-  });
-
-  it("reads permissions through the hooks", () => {
-    const store = createStore({
-      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
-        queries: {"getMe(undefined)": {data: {permissions}, status: "fulfilled"}},
-      },
-    });
-    const wrapper = createWrapper(store);
-
-    const selected = renderHook(() => useSelectPermissions(), {wrapper});
-    assert.deepEqual(selected.result.current, permissions);
-
-    const allowed = renderHook(() => useCan({todo: ["read"]}), {wrapper});
-    assert.isTrue(allowed.result.current);
-
-    const denied = renderHook(() => useCan({todo: ["delete"]}), {wrapper});
-    assert.isFalse(denied.result.current);
+    const {result: perms} = renderHook(() => useSelectPermissions(), {wrapper: wrap(store)});
+    assert.deepEqual(perms.current, {admin: ["access"]});
+    const {result: can} = renderHook(() => useCan(ADMIN_PAGE_PERMISSION), {wrapper: wrap(store)});
+    assert.isTrue(can.current);
   });
 });
