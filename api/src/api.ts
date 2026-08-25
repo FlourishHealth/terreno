@@ -48,6 +48,7 @@ import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./pe
 import type {PopulatePath} from "./populate";
 import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
 import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
+import {warnRealtimeDeprecated} from "./realtime/deprecation";
 import {registerRealtime, updateRealtimeRegistryOptions} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
@@ -388,6 +389,10 @@ export interface ModelRouterOptions<T> {
    * through the RealtimeApp plugin's change stream watcher.
    *
    * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   *
+   * @deprecated Removed in Terreno 58. Use `sync` with
+   * `@terreno/syncdb` instead. `RealtimeApp` remains required for sync sockets.
+   * See docs/how-to/migrate-rtk-to-syncdb.md.
    */
   realtime?: RealtimeConfig;
   /**
@@ -675,6 +680,7 @@ export function modelRouter<T>(
     // Register before building so _buildModelRouter can replace options with
     // RBAC-resolved permissions (same contract as MCP).
     if (options.realtime) {
+      warnRealtimeDeprecated(model.modelName, path);
       registerRealtime({
         collectionName: model.collection.collectionName,
         config: options.realtime,
@@ -719,6 +725,7 @@ export function modelRouter<T>(
   }
 
   if (options.realtime) {
+    warnRealtimeDeprecated(model.modelName);
     logger.warn(
       `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
         "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"

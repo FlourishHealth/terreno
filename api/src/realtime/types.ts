@@ -8,6 +8,9 @@ import type {BetterAuthSocketOptions} from "./socketAuth";
 /**
  * Configuration for real-time sync on a modelRouter.
  * Determines which CRUD methods emit WebSocket events and how they are routed.
+ *
+ * @deprecated Removed in Terreno 58. Use `sync` on modelRouter with `@terreno/syncdb`.
+ * `RealtimeApp` remains required for sync sockets.
  */
 export interface RealtimeConfig {
   /** Which CRUD methods should emit real-time sync events */
@@ -30,6 +33,9 @@ export interface RealtimeConfig {
 
 /**
  * A real-time sync event emitted to clients via WebSocket.
+ *
+ * @deprecated Removed in Terreno 58 with modelRouter `realtime` and the RTK
+ * cache-patching helpers. Syncdb uses `sync:delta` events instead.
  */
 export interface RealtimeEvent {
   /** Mongoose model name (e.g. "Todo") */

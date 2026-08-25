@@ -4,6 +4,8 @@ This guide is **AI-context-first**: it is written for an agent (or human) perfor
 
 `@terreno/syncdb` supersedes `@terreno/rtk` for **data synchronization** (CRUD reads/writes, offline queue, realtime convergence). It does not replace the generated OpenAPI SDK, Better Auth Redux wiring, or feature-flag infrastructure.
 
+`modelRouter` `realtime`, `realtimeList`, `realtimeDocument`, and `setRealtimeSocket` are **deprecated** and **will be removed in Terreno 58**. `RealtimeApp` stays as the socket host for syncdb. Removal checklist: [`docs/tasks/remove-legacy-realtime.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/remove-legacy-realtime.md).
+
 ## 1. Before you start
 
 | Decision | Requirement | Why |

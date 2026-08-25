@@ -38,6 +38,14 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 
 Two patterns for building Terreno APIs:
 
+### Deprecated: modelRouter `realtime`
+
+`modelRouter({ realtime })` (RTK cache-patching websocket events) is **deprecated** and **will be removed in Terreno 58**. Use `sync` with [`@terreno/syncdb`](syncdb.md). See [Migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).
+
+`RealtimeApp` is **not** deprecated. It still hosts Socket.io, change streams, and `sync:delta`.
+
+Keep `admin.realtime` when you want admin `admin:model.changed` events.
+
 ### TerrenoApp (Recommended)
 
 Fluent API with a register pattern:
