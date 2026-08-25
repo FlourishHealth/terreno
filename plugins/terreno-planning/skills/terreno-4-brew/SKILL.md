@@ -1,16 +1,18 @@
 ---
 name: terreno-4-brew
-description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, and evidence attachment. Exits after emitting PR/head state; does not wait for CI.
+description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, and an in-process wait for async review bots (Bugbot, CodeQL) before exit.
 disable-model-invocation: true
 ---
 
 # Brew — submit
 
-Move one verified implementation into review, emit current PR/head state, and exit. The
-outer loop invokes Taste separately.
+Move one verified implementation into review, wait for async review bots on that head,
+emit current PR/head state, and exit. The outer loop invokes Taste separately. Brew
+records bot outcomes but does not implement fixes.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
-[`documentation contract`](../../references/documentation-contract.md), and
+[`documentation contract`](../../references/documentation-contract.md),
+[`async review bots`](../../references/async-review-bots.md), and
 [`independent review procedure`](../../references/independent-review.md). All GitHub text
 must follow the [`GitHub attention contract`](../../references/github-attention-contract.md).
 
@@ -58,10 +60,15 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
 9. **Do not announce.** Do not post a PR comment for creation, readiness, check results,
    or evidence already present in the body. A top-level comment is allowed only for one
    blocking human action that cannot live in an existing review thread.
-10. **Observe once.** Resolve the PR number/URL and pushed head SHA; confirm CI was
-   triggered. Do not wait for completion.
-11. **Record and exit.** Update execution state and emit `PASS` with the PR/head and
-    `next: taste`, collapsed per the lifecycle contract.
+10. **Wait for review bots.** Resolve the PR number/URL and pushed head SHA; confirm CI
+    was triggered. Follow the async-review-bots procedure: sleep and re-fetch until
+    Bugbot, CodeQL, and similar review bots on this head are terminal, never appeared
+    after the startup grace, or hit the 20-minute timeout. Do not exit while those bots
+    are queued or in progress. Do not wait for ordinary product CI to finish.
+11. **Record and exit.** Update execution state and emit:
+    - review-bot timeout → `PENDING` with `next: taste` and `wait`
+    - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
+    Collapse per the lifecycle contract. Brew itself never executes Taste.
 
 ## Supporting skills
 
@@ -75,21 +82,24 @@ handling, and mandatory evidence gates.
 - Commit and pushed head SHA
 - PR URL/number and preserved template/body state
 - Attached artifact references and sensitive-data check
+- Async review-bot names, statuses, and posted findings
 - Updated execution state and structured Brew result
 
 ## Success conditions
 
 - Verified implementation is committed/pushed and the PR accurately represents it.
 - CI is triggered for the recorded current head.
+- Async review bots on this head are terminal or did not appear after the startup grace.
 - Emit `PASS` with `next: taste`, then exit.
 
 ## Failure conditions
 
-Failed final checks, review findings, push errors, or PR setup errors emit `FAIL` with
-evidence and the smallest corrective stage/action: behavioral defects use
-`next: pick`, stale/missing proof uses `next: roast`,
-and submission-only retries use `next: brew`. Do not fix implementation
-inside Brew.
+Failed final checks, **Brew's own independent-review findings** (step 4), push errors, or
+PR setup errors emit `FAIL` with evidence and the smallest corrective stage/action:
+behavioral defects use `next: pick`, stale/missing proof uses `next: roast`,
+and submission-only retries use `next: brew`. Do not treat Bugbot, CodeQL, or similar
+async review-bot findings as Brew `FAIL`; record them and emit `PASS` with
+`next: taste`. Do not fix implementation inside Brew.
 
 ## Blocked conditions
 
@@ -100,8 +110,9 @@ submission capability, or sensitive-data risk emits `BLOCKED` with
 ## Recommended next stage
 
 - `PASS` → outer loop invokes a fresh Taste
+- `PENDING` → outer loop waits, then invokes Taste
 - `FAIL` → stage named by evidence (`pick`, `roast`, or `brew`)
 - `BLOCKED` → outer loop routes the named gate
 
 For standalone compatibility, a human/runner may invoke Taste immediately after Brew
-returns. Brew itself never executes Taste and never owns CI waiting.
+returns. Brew itself never executes Taste and does not wait for product CI.
