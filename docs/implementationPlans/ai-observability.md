@@ -16,6 +16,8 @@
 
 Ship **Langfuse-like** prompt versioning, nested traces (user / session / cost), multidimensional evaluators (LLM-as-judge + structured I/O), datasets, experiments, and a **local human review queue** — **inside Terreno**, as **plugins on `@terreno/ai`**, with an operator UI in **`admin-frontend` only**.
 
+The product must run the Flourish **AI Feature Development SOP** end-to-end in Terreno admin (local primaries) or via Langfuse-backed primaries + **Open in Langfuse**. Operators must not need a second product for dataset gather → label → prompt → evaluators → experiment loop → production label → live traces/feedback → add traces back to the dataset.
+
 Apps can:
 
 - Run **fully local** (Mongo) with zero Langfuse keys.
@@ -33,6 +35,8 @@ Apps can:
 - Retention / redaction / retry **jobs** (full I/O stored; Q9=C, Q13=A).
 - Replacing `AIRequest` (cheap call log remains).
 - Pixel-clone of Langfuse Cloud chrome.
+- Encoding the SOP **volume spreadsheet** (min datapoints) as a Terreno calculator. Operators keep that sheet; Terreno stores **tags / outcome class / origin** so they can filter for balance.
+- Auto-promoting a prompt to `production` when experiment thresholds pass. Promote stays an explicit admin action (SOP step 6).
 
 ## Decisions
 
@@ -59,6 +63,14 @@ Apps can:
 | Q18 | Live evals | Interceptor with **`sampleRate` default `0`** |
 | Q19 | Cost | `inputTokens` / `outputTokens` / `model`; **USD from config price map** (missing model → tokens only) |
 | Q20 | Instrumentation | If observability is registered, **`AIService` emits traces** on every `generate*` (**opt-out per call**) |
+| Q26 | Operator loop | Flourish **AI Feature Development SOP** (8 steps) is a **must-pass** workflow. How-to: [ai-feature-development.md](../how-to/ai-feature-development.md) |
+| Q27 | Dataset items | `origin` (`trace` \| `manual` \| `synthetic`), `tags[]`, optional `outcomeClass` (`tp`/`fp`/`tn`/`fn`), `expectedOutput`, `proofread` (synthetic defaults **false**; experiments **exclude** `proofread: false` unless `includeUnproofread`) |
+| Q28 | In-app feedback | Authenticated **`POST .../traces/:id/feedback`** (not admin-only): thumbs, outcome class, flag-for-dataset. Writes **ScoreSink** fan-out. Owner (`trace.userId`) or admin |
+| Q29 | Built-in evaluators | Seed templates: **correctness** (boolean judge, flags), **hallucination**, **helpfulness**, **toxicity**, **conciseness** (open-ended). Custom evaluators still allowed |
+| Q30 | Experiment gates | Default **SOP thresholds** on aggregates; UI pass/fail + **outliers** + **low-confidence** filter. Default `confidenceAlertBelow` **0.7** (SOP TBD) |
+| Q31 | Deploy plumbing | `AIService` **`promptName` + `promptLabel`** (default `"production"`) **resolves** via `PromptRegistry` before generate. Apps do not copy prompt strings into routes |
+| Q32 | Synthetic items | Admin `POST .../datasets/:id/generate` drafts items via `AIService` + named generator prompt; items stay `origin: synthetic`, `proofread: false` until a human labels them |
+| Q33 | Trace → dataset | Single and **bulk** add-from-trace from the filtered trace list (errors, thumbs-down, failed eval, flagged) |
 
 ### Competitor coverage (why the SDK is split)
 
@@ -72,6 +84,23 @@ Apps can:
 | Braintrust / LangSmith | later | later | later | later | later |
 
 Traces use **OpenTelemetry + OpenInference** span kinds (`LLM`, `AGENT`, `CHAIN`, `TOOL`, `EVALUATOR`, `PROMPT`). That is the honest “works with competitors” layer. Prompt/dataset/queue APIs stay vendor CRUD behind Terreno interfaces.
+
+## Operator workflow (AI Feature Development SOP)
+
+Normative operator path. Local primaries: all steps in `admin-frontend`. Langfuse primaries: same Terreno screens via facade, or **Open in Langfuse** for playground/vendor experiments.
+
+| SOP step | Operator action | Terreno must provide |
+| --- | --- | --- |
+| 1 Gather gold set | Live traces + in-app labels; manual items; AI drafts (human proofread) | Production tracing; `POST feedback`; dataset create; add-from-trace; synthetic generate; origin/tags |
+| 2 Label expected output | Hand-label outcomes; schema; category metadata | Item `expectedOutput`, dataset `expectedOutputSchema`, `outcomeClass`, `tags`, `proofread` |
+| 3 Create prompt | Product + optional AI draft | Prompt editor + playground; versions immutable |
+| 4 Evaluators | Flags → Correctness judge; open-ended → hallucination, helpfulness, toxicity, conciseness, custom | SOP templates + custom evaluator CRUD |
+| 5 Experiments | Run prompt+model on dataset; check outputs; aggregates vs gates; outliers; low confidence; tweak; repeat | Experiment wizard with model + SOP thresholds; per-item view; outlier/low-confidence lists; new prompt version |
+| 6 Deploy | Label winning version `production`; app resolves that label | Label API; `AIService` `promptName`/`promptLabel` |
+| 7 Live tracing + feedback | Parallel to 1–6. FP/FN, thumbs on suggestions | Auto-trace `generate*`; authenticated feedback; review enqueue |
+| 8 Deficient traces → dataset | Filter weak prod traces; add; relabel; repeat 5–8 | Trace filters + bulk add-to-dataset |
+
+Volume/balance guidance stays in the operator spreadsheet. Terreno does not compute “minimum datapoints.”
 
 ## Architecture
 
@@ -146,6 +175,7 @@ interface TraceRecord {
     costUsd?: number;
   };
   prompt?: {name: string; version: number; label?: string};
+  flaggedForDataset?: boolean;
   spans: SpanRecord[];
 }
 
@@ -154,10 +184,54 @@ interface ScoreRecord {
   dataType: "numeric" | "categorical" | "boolean";
   value: number | string | boolean;
   comment?: string;
-  source: "human" | "llm-judge" | "code";
+  /** 0–1. Judge and humans may omit. Experiment outlier if below evaluator `confidenceAlertBelow` (default 0.7). */
+  confidence?: number;
+  source: "human" | "llm-judge" | "code" | "user-feedback";
   evaluatorId?: string;
   traceId: string;
   spanId?: string;
+}
+
+interface DatasetItemRecord {
+  datasetId: string;
+  expectedOutput?: unknown;
+  input: unknown;
+  metadata?: Record<string, unknown>;
+  origin: "manual" | "synthetic" | "trace";
+  outcomeClass?: "fn" | "fp" | "tn" | "tp";
+  proofread: boolean;
+  sourceTraceId?: string;
+  tags: string[];
+}
+
+interface ScoreThreshold {
+  aggregate: "mean" | "trueRate";
+  dimension: string;
+  evaluatorName: string;
+  op: "eq" | "gte" | "lte";
+  value: number;
+}
+
+/** SOP step 5 defaults. Boolean dimensions use trueRate; numeric use mean. */
+const SOP_DEFAULT_THRESHOLDS: ScoreThreshold[] = [
+  {aggregate: "trueRate", dimension: "correct", evaluatorName: "correctness", op: "eq", value: 1},
+  {
+    aggregate: "trueRate",
+    dimension: "contains_hallucination",
+    evaluatorName: "hallucination",
+    op: "eq",
+    value: 0,
+  },
+  {aggregate: "mean", dimension: "helpfulness", evaluatorName: "helpfulness", op: "gte", value: 0.9},
+  {aggregate: "trueRate", dimension: "is_toxic", evaluatorName: "toxicity", op: "eq", value: 0},
+];
+
+interface TraceFeedback {
+  comment?: string;
+  /** When true, mark trace `flaggedForDataset` and optionally enqueue review. */
+  flagDataset?: boolean;
+  kind: "flag_dataset" | "outcome" | "thumbs";
+  value: "down" | "fn" | "fp" | "tn" | "tp" | "up";
 }
 ```
 
@@ -175,10 +249,11 @@ After each generate path (same place as `logRequest`):
 1. Skip if no `ObservabilityApp` or `options.skipTrace === true`.
 2. Build a root span (`CHAIN` or `LLM`) plus children for tool rounds when present.
 3. Attach `userId`, `sessionId` from generate options (GPT routes copy from `req.user` / body).
-4. Attach prompt name/version when `options.promptRef` is set.
-5. Compute `costUsd` from `options.priceMap ?? observability.priceMap` keyed by `model`.
-6. `Promise.allSettled` on each `TraceSink.export`; log rejections; **never throw**.
-7. If `sampleRate > 0` and `Math.random() < sampleRate`, enqueue live evaluators (same BackgroundTask path as experiments, one trace).
+4. If `options.promptName` is set, **resolve** `PromptRegistry.get({name, label: options.promptLabel ?? "production"})` and use that body (SOP step 6 plumbing). Attach resolved `promptRef` on the trace. Missing production label → `APIError` 400, no generate.
+5. Attach prompt name/version when `options.promptRef` is set without `promptName`.
+6. Compute `costUsd` from `options.priceMap ?? observability.priceMap` keyed by `model`.
+7. `Promise.allSettled` on each `TraceSink.export`; log rejections; **never throw**.
+8. If `sampleRate > 0` and `Math.random() < sampleRate`, enqueue live evaluators (same BackgroundTask path as experiments, one trace).
 
 Parent/child workflows: `AIRequest` already has `parentRequestId` / `subRequestIds`. Traces use `traceId` + `parentSpanId`. Multi-agent `logMultiAgentRequest` should also emit a parent `AGENT`/`CHAIN` span wrapping children when observability is on.
 
@@ -194,12 +269,13 @@ All new models: `createdUpdatedPlugin`, `isDeletedPlugin`, `findOneOrNone`, `fin
 | `ObsTrace` | Root trace: user, session, status, usage, prompt ref, timestamps. |
 | `ObsSpan` | Nested spans: `traceId`, `parentSpanId`, OpenInference `kind`, input/output, model, tokens, cost. |
 | `ObsScore` | Scores on trace/span. |
-| `ObsEvaluator` | Named grader: dimensions[], type human\|llm-judge\|json-assert, judge `promptName` + schema. |
-| `ObsDataset` / `ObsDatasetItem` | Items: input vars, optional expected output, `sourceTraceId`. |
-| `ObsExperiment` / `ObsExperimentItem` | Run metadata + per-item outputs/scores. Status queued\|running\|completed\|failed. `backgroundTaskId`. |
-| `ObsReviewItem` | Queue: pending\|in_progress\|done\|skipped, evaluatorId, traceId, assigneeId, scores payload. |
+| `ObsEvaluator` | Named grader: dimensions[], type human\|llm-judge\|json-assert, judge `promptName` + schema, optional `confidenceAlertBelow` (default 0.7). |
+| `ObsDataset` | Name, tags, optional `expectedOutputSchema` (JSON Schema for labels / automated evals). |
+| `ObsDatasetItem` | `input`, optional `expectedOutput`, `sourceTraceId`, `origin`, `tags[]`, `outcomeClass`, `proofread`, `metadata`. |
+| `ObsExperiment` / `ObsExperimentItem` | Run metadata + per-item outputs/scores. Optional `modelOverride`. `thresholds[]` (default SOP set). Status queued\|running\|completed\|failed. `backgroundTaskId`. Aggregates include pass/fail vs thresholds, outlier item ids, low-confidence item ids. |
+| `ObsReviewItem` | Queue: pending\|in_progress\|done\|skipped, evaluatorId, traceId, assigneeId, scores payload, `reason` (`eval` \| `feedback` \| `dataset_candidate`). |
 
-**Do not** put a unique index on fields that can duplicate (scores per trace are many). Index `{created: -1, userId: 1}`, `{sessionId: 1, created: -1}`, `{promptName: 1, promptVersion: 1}`, `{status: 1, created: 1}` on review items.
+**Do not** put a unique index on fields that can duplicate (scores per trace are many). Index `{created: -1, userId: 1}`, `{sessionId: 1, created: -1}`, `{promptName: 1, promptVersion: 1}`, `{status: 1, created: 1}` on review items, `{flaggedForDataset: 1, created: -1}` on traces, `{datasetId: 1, origin: 1, proofread: 1}` on items.
 
 No backfill: new collections. `AIRequest` unchanged.
 
@@ -214,19 +290,22 @@ Admin-only unless noted (`Permissions.IsAdmin`). OpenAPI via `createOpenApiBuild
 | GET/POST | `/ai/observability/prompts/:name/versions` | Immutable versions; POST creates `vN+1` |
 | POST | `/ai/observability/prompts/:name/labels` | Move `production` / `staging` |
 | POST | `/ai/observability/prompts/:name/playground` | Compile + one `AIService` call (not a new version) |
-| GET | `/ai/observability/traces` | Filters: time, user, session, prompt, status, minCost, hasScore |
-| GET | `/ai/observability/traces/:id` | Tree + scores |
+| GET | `/ai/observability/traces` | Filters: time, user, session, prompt, status, minCost, hasScore, `thumbs`, `outcomeClass`, `flaggedForDataset`, `failedEval`, `lowConfidence` |
+| GET | `/ai/observability/traces/:id` | Tree + scores + feedback |
+| POST | `/ai/observability/traces/:id/feedback` | **IsAuthenticated** (owner or admin). Thumbs / outcome / flag-for-dataset → ScoreSinks; optional review enqueue |
+| POST | `/ai/observability/traces/add-to-dataset` | Admin. Body: `{datasetId, traceIds[]}`. Copies I/O; `origin: "trace"` |
 | GET | `/ai/observability/sessions/:sessionId` | Timeline |
 | GET | `/ai/observability/users/:userId` | Totals 7d/30d/all + recent traces |
 | GET | `/ai/observability/costs` | Aggregates by model, prompt, user |
-| CRUD | `/ai/observability/evaluators` | Dimension definitions |
+| CRUD | `/ai/observability/evaluators` | Dimension definitions. `GET /evaluators/templates` returns SOP built-ins |
 | POST | `/ai/observability/traces/:id/scores` | Human or code score → **all ScoreSinks** |
-| CRUD | `/ai/observability/datasets` + items | Dataset **primary** |
-| POST | `/ai/observability/experiments` | Creates run; local → `BackgroundTask`; Langfuse → vendor API |
-| GET | `/ai/observability/experiments/:id` | Status + aggregates |
+| CRUD | `/ai/observability/datasets` + items | Dataset **primary**. Item PATCH for labels / tags / expectedOutput / proofread |
+| POST | `/ai/observability/datasets/:id/generate` | Admin. Synthetic drafts (`proofread: false`) via named generator prompt |
+| POST | `/ai/observability/experiments` | Creates run; **prompt versions + optional model**; evaluators; `thresholds` default SOP; local → `BackgroundTask`; Langfuse → vendor API |
+| GET | `/ai/observability/experiments/:id` | Status + aggregates + **pass/fail vs thresholds** + outlier + low-confidence item lists |
 | GET/POST | `/ai/observability/review` | Local queue only |
 
-GPT routes: pass `userId` / `sessionId` / optional `promptRef` into `AIService`.
+GPT routes: pass `userId` / `sessionId` / optional `promptRef` or `promptName`+`promptLabel` into `AIService`.
 
 Langfuse-primary prompt/dataset/experiment routes **proxy** existing Langfuse admin routes where they already exist (`langfuseRoutesPrompts.ts` etc.) so we do not duplicate HTTP. ObservabilityApp may mount a thin facade that delegates.
 
@@ -236,14 +315,14 @@ New screens in `AI_ADMIN_WIDGETS` / `customScreens` (same pattern as `AIRequests
 
 | Screen | Name | Notes |
 | --- | --- | --- |
-| Prompts | `ai-prompts` | List + editor (new version, labels, JSON Schema I/O, playground) |
-| Traces | `ai-traces` | List + detail waterfall |
+| Prompts | `ai-prompts` | List + editor (new version, labels, JSON Schema I/O, playground). **Move production** is the SOP deploy action |
+| Traces | `ai-traces` | List + detail waterfall. Filters for SOP step 8 (thumbs-down, flagged, failed eval). **Add to dataset** (single + bulk) |
 | Sessions | `ai-sessions` | Optional v1: filter traces by session from detail |
 | Costs | `ai-costs` | KPI + breakdown tables |
-| Evaluators | `ai-evaluators` | Dimension builder |
-| Datasets | `ai-datasets` | |
-| Experiments | `ai-experiments` | Wizard; poll BackgroundTask; promote version |
-| Review | `ai-review` | Split view; **hide** if local plugin off |
+| Evaluators | `ai-evaluators` | Dimension builder + **Create from SOP template** (correctness / hallucination / helpfulness / toxicity / conciseness) |
+| Datasets | `ai-datasets` | Items table: origin, tags, outcome class, expected output, proofread. Manual add + generate synthetic + label schema |
+| Experiments | `ai-experiments` | Wizard: dataset, prompt versions, **model**, evaluators, thresholds (SOP defaults). Results: aggregates vs gates, outliers, low confidence. Promote is explicit |
+| Review | `ai-review` | Split view; **hide** if local plugin off. Includes dataset-candidate items from feedback flags |
 | Status chip | chrome | Active primaries; **Open in Langfuse** when Langfuse plugin id present |
 
 Reuse `@terreno/ui` (`Page`, `Box`, `DataTable`, `Tabs`, `Modal`, `TextField`). Keep **AI Requests** explorer as-is (`AIRequest`).
@@ -257,7 +336,9 @@ Disabled tabs: if prompt primary is Langfuse, editor still works via API facade;
 - Register `ObservabilityApp` with **local plugin always**.
 - If `LANGFUSE_*` already used for `LangfuseApp`, also pass Langfuse TraceSink/ScoreSink (and prompt adapter only if env `AI_OBS_PROMPTS_PRIMARY=langfuse`).
 - Optional `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` → `OtelTraceSink`.
-- Seed one prompt `example-summarize` v1 production, one evaluator `faithfulness` (numeric 0–1) + `safety` (boolean), empty dataset.
+- Seed one prompt `example-summarize` v1 production.
+- Seed SOP evaluator templates as named evaluators: `correctness`, `hallucination`, `helpfulness`, `toxicity`, `conciseness`.
+- Seed one empty dataset `example-gold` with `expectedOutputSchema` for a short string summary.
 
 `example-frontend`: no product UI required (admin-only). Regen SDK if example-frontend calls new routes (likely admin-only; skip consumer SDK if unused).
 
@@ -289,7 +370,9 @@ Do **not** add `UserUpdate` spam for every trace. Admin audit: prompt **producti
 - Fake TraceSink / ScoreSink in unit tests (in-memory).
 - `AIService` tests: emit called; `skipTrace`; sink throw does not fail generate; `AIRequest` still written.
 - Config tests: illegal experiment/dataset mix; langfuse reviewQueue; local-off + prompt primary local fails.
-- Local experiment: POST creates `BackgroundTask`, items scored, aggregates.
+- Local experiment: POST creates `BackgroundTask`, items scored, aggregates vs SOP thresholds, unproofread synthetic items skipped by default.
+- Feedback: owner thumbs+flag; 403 for stranger; ScoreSink called.
+- `promptName` resolve: production body used; missing label 400.
 - Langfuse adapter tests: mock `getLangfuseClient` (existing pattern in `langfuseClient.test.ts`).
 - Admin widget tests: render list empty/loading (existing admin-frontend patterns).
 - `verify-ui-changes` on admin-frontend screens before Brew.
@@ -300,29 +383,34 @@ Do **not** add `UserUpdate` spam for every trace. Admin audit: prompt **producti
 | --- | --- |
 | `docs/explanation/ai-observability.md` | Why two planes, plugins, vs `LangfuseApp` / `AIRequest` |
 | `docs/how-to/observe-llm-calls.md` | Register plugins, primaries, price map, sampleRate, Open in Langfuse |
-| `docs/reference/ai.md` | Models, routes, `AIService` trace options, env |
+| `docs/how-to/ai-feature-development.md` | SOP 8 steps mapped to Terreno screens + APIs (operator source of truth) |
+| `docs/reference/ai.md` | Models, routes, `AIService` `promptName`/`promptLabel`/`skipTrace`, feedback, env |
 | `terreno-langfuse-integration.md` | Pointer: native path is this IP; LangfuseApp remains the vendor plugin |
-| `ai-prompt-governance` skill | Prompt bodies for judges still named constants **or** `PromptRegistry` production label — not inline strings in `AIService` |
+| `ai-prompt-governance` skill | New features follow the SOP how-to; runtime prompts from **PromptRegistry production**; judge bodies still named constants **or** registry — not inline in `AIService` |
 
 ## Phases
 
 1. **Contracts + ObservabilityApp + AIService emit + in-memory sinks** (tracer).
 2. **Local Mongo plugin** (prompts, traces, scores, costs, users/sessions).
-3. **Evaluators + live sampleRate + review queue**.
-4. **Datasets + local experiments via BackgroundTask**.
-5. **Langfuse adapter** (trace/score/prompt/dataset/experiment) + OTel TraceSink + admin UI + example-backend + docs.
+3. **Evaluators (SOP templates) + live sampleRate + review queue + authenticated feedback**.
+4. **Datasets (tags/outcome/proofread/synthetic) + local experiments (thresholds, outliers, model override) via BackgroundTask**.
+5. **Langfuse adapter** (trace/score/prompt/dataset/experiment) + OTel TraceSink + admin UI (SOP screens) + example-backend + docs.
 
 ## Acceptance criteria
 
 - [ ] `AIService.generateText` with ObservabilityApp registered writes a nested-capable trace to **every** TraceSink; a throwing sink does **not** fail the generate; `AIRequest` still exists.
 - [ ] Creating prompt v2 does not mutate v1; moving `production` is an explicit label API; `get({name, label: "production"})` returns v2.
-- [ ] Trace list filters by `userId`, `sessionId`, prompt name/version; detail shows cost USD when price map has the model.
-- [ ] Evaluator with two dimensions (numeric + boolean) can score a trace via LLM-judge (`AIService` + named judge prompt) and via human review queue.
-- [ ] Dataset of N prior traces; experiment of production vs draft always uses `BackgroundTask` when local; promote sets production label.
+- [ ] `generateText({promptName, promptLabel: "production"})` uses the labeled body; missing label fails the call with 400.
+- [ ] Trace list filters by `userId`, `sessionId`, prompt name/version, thumbs, flaggedForDataset, failedEval; detail shows cost USD when price map has the model.
+- [ ] Owner `POST feedback` (thumbs down + flagDataset) writes a `user-feedback` score, sets `flaggedForDataset`, and a non-owner non-admin gets 403.
+- [ ] SOP templates install correctness / hallucination / helpfulness / toxicity / conciseness; a custom evaluator still works.
+- [ ] Evaluator with two dimensions (numeric + boolean) can score a trace via LLM-judge (`AIService` + named judge prompt) and via human review queue; scores may include `confidence`.
+- [ ] Dataset items support origin/tags/outcomeClass/proofread; synthetic generate creates unproofread items excluded from the default experiment; add-from-trace keeps `sourceTraceId`.
+- [ ] Experiment of production vs draft **always** uses `BackgroundTask` when local; optional model override; completed payload includes SOP threshold pass/fail + outlier ids; promote sets production label.
 - [ ] Langfuse plugin on: same generate dual-writes traces/scores; prompts stay on configured primary; boot fails if `experiments.primary !== datasets.primary` or `reviewQueue` is langfuse.
 - [ ] OTel sink: one test asserts an OTLP payload / exporter mock received an OpenInference `LLM` span.
 - [ ] Admin: prompts, traces, costs, review, experiments usable as admin; Review hidden without local plugin.
-- [ ] Docs pages above match shipped behavior; `bun run --filter=@terreno/ai compile test lint` green.
+- [ ] Docs pages above match shipped behavior; how-to `ai-feature-development.md` can be followed without Langfuse when primaries are local; `bun run --filter=@terreno/ai compile test lint` green.
 
 ## Risks
 
@@ -338,8 +426,9 @@ Do **not** add `UserUpdate` spam for every trace. Admin audit: prompt **producti
 ## Files to create / modify (expected)
 
 - `ai/src/observability/**` (types, app, local models/stores, otel sink, langfuse adapter)
-- `ai/src/service/aiService.ts` — emit traces
-- `ai/src/routes/gpt.ts` — pass user/session
+- `ai/src/service/aiService.ts` — emit traces; resolve `promptName`/`promptLabel`
+- `ai/src/routes/gpt.ts` — pass user/session; optional promptName
+- `docs/how-to/ai-feature-development.md` — SOP mapping
 - `ai/src/aiAdminApp.ts` / new `observabilityAdmin.ts` — screens
 - `ai/src/index.ts` — exports
 - `admin-frontend/src/widgets/*` — new screens + registry

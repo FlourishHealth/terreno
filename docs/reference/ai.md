@@ -15,6 +15,7 @@ AI service layer for Terreno backends: provider-agnostic chat via the Vercel AI 
 - [Route registrars](#route-registrars)
 - [AiApp plugin](#aiapp-plugin)
 - [LangfuseApp plugin](#langfuseapp-plugin)
+- [Observability](#observability)
 - [Langfuse integration](#langfuse-integration)
 - [FileStorageService](#filestorageservice)
 - [MCPService](#mcpservice)
@@ -368,6 +369,12 @@ new LangfuseApp({
 | `cache` | — | Prompt/trace TTL overrides |
 
 Calls `shutdownLangfuseClient()` and `shutdownTracing()` on `SIGTERM`.
+
+## Observability
+
+In-app prompt versions, nested traces, evaluators, datasets, experiments, review queue, and in-app feedback. Operator loop: [Develop an AI feature](../how-to/ai-feature-development.md). Register plugins: [Observe LLM calls](../how-to/observe-llm-calls.md). Why two planes: [AI observability](../explanation/ai-observability.md). Locked design: [implementation plan](../implementationPlans/ai-observability.md).
+
+Until `ObservabilityApp` ships, keep using `AIRequest` logging and optional `LangfuseApp`. Planned routes live under `/ai/observability`. `AIService` gains `promptName` / `promptLabel` (default `"production"`), `skipTrace`, `userId`, `sessionId`, and `promptRef`. Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 
 ## Langfuse integration
 

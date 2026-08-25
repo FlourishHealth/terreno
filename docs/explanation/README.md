@@ -13,6 +13,7 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Local-first data](local-first-data.md) — Why the local store is the UI source of truth
 - [Loop engineering](loop-engineering.md) — Fresh-invocation lifecycle, state, evidence, and orchestration boundaries
 - [Install agent skills](../how-to/install-agent-skills.md) — `npx skills add FlourishHealth/terreno`
+- [AI observability](ai-observability.md) — Two planes (telemetry vs control), plugins vs LangfuseApp, SOP loop
 - [AI-powered workflows](ai-workflows.md) — Autonomous documentation, testing, and maintenance workflows
 - [Authentication architecture](authentication.md) — How JWT, OAuth, and token refresh work
 - [Configuration system](configuration-system.md) — Runtime configuration with database persistence
