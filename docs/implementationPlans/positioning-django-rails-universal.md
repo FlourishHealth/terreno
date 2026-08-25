@@ -1,6 +1,6 @@
 # Implementation Plan: Positioning — "Django/Rails for TypeScript, with Universal Apps"
 
-**Status:** Approved
+**Status:** Implemented
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1008
 **Priority:** High
 **Effort:** Small batch

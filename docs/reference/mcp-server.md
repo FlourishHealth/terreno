@@ -135,6 +135,19 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 }
 ``````
 
+### terreno_get_upgrade_guide
+
+Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages.
+
+**Parameters:**
+
+``````typescript
+{
+  fromVersion: string;      // Installed @terreno/* semver (e.g. 0.19.0)
+  toVersion: string;        // Target semver to upgrade to (e.g. 0.20.0)
+}
+``````
+
 ### terreno_generate_model
 
 Generate a Mongoose model with Terreno conventions (timestamps, soft delete, owner tracking, type definitions).
@@ -333,7 +346,7 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
   appName: string;           // kebab-case (e.g., "my-app")
   appDisplayName: string;    // Human-readable name
   description?: string;
-  mcpServerUrl?: string;     // Default: https://mcp.terreno.flourish.health
+  mcpServerUrl?: string;     // Default: https://mcp.terreno.app
 }
 ``````
 
@@ -379,6 +392,12 @@ Workflow prompt for scaffolding a new Terreno app. Delegates to `terreno_bootstr
 
 - `appName` (string) — Application name in kebab-case
 - `appDisplayName` (string) — Human-readable display name
+
+### terreno_upgrade
+
+Lockstep Terreno upgrade workflow: read bundled upgrade notes, bump `@terreno/*` packages, run tests, and delegate Expo SDK steps to the official upgrading-expo skill.
+
+**Arguments:** `targetVersion` (optional) — target `@terreno/*` semver; omit to mean latest stable.
 
 ### terreno_create_crud_feature
 

@@ -1,6 +1,6 @@
 # @terreno/ui
 
-React Native UI component library (88+ components). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
+React Native UI component library (a large component library). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
 
 ## Key exports
 
@@ -492,5 +492,4 @@ import {TerrenoProvider} from "@terreno/ui";
 ## Related Documentation
 
 - [UI performance benchmarks](ui-performance.md)
-- [UI package source](../../ui/src/)
-- [UI agent rules](../../.cursor/rules/ui/)
+- [UI package source](https://github.com/flourishhealth/terreno/tree/master/ui/src)
