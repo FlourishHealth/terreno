@@ -31,6 +31,8 @@ export interface StorageAdapter {
   removeItem?: (key: string) => void | Promise<void>;
 }
 
+type ExpoClientStorage = NonNullable<Parameters<typeof expoClient>[0]["storage"]>;
+
 /**
  * Storage adapter for Better Auth that works on both web and native.
  * Uses SecureStore on native platforms and AsyncStorage on web.
@@ -184,9 +186,7 @@ export const createBetterAuthClient = (config: BetterAuthClientConfig) => {
     // The plugin's storage type is strictly sync (`getItem: (key) => string | null`),
     // which the native branch satisfies. The union-typed web branch is async but
     // unreachable here, since the plugin skips storage entirely on web.
-    // noExplicitAny: explained above
-    // biome-ignore lint/suspicious/noExplicitAny: explained above
-    storage: storage as any,
+    storage: storage as unknown as ExpoClientStorage,
     storagePrefix,
   }) as unknown as BetterAuthClientPlugin;
 
