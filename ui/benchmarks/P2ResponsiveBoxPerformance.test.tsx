@@ -142,7 +142,7 @@ describe.skipIf(process.env.RUN_UI_P2_RESPONSIVE_BOX_BENCHMARK !== "1")(
 
         console.info(`UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS=${JSON.stringify([result])}`);
         assert.isAtLeast(result.initialRenderMs, 0);
-        assert.isAtLeast(result.initialDimensionReads, 0);
+        assert.isAtMost(result.initialDimensionReads, 2);
         assert.isAtLeast(result.samePropsUpdateMs, 0);
         assert.isAtLeast(result.changedUpdateMs, 0);
       },

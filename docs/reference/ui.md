@@ -340,7 +340,7 @@ if (mediaQuerySmallerThan("lg")) {
 
 // Detect mobile
 if (isMobileDevice()) {
-  console.log("Running on mobile device");
+  console.info("Running on mobile device");
 }
 ``````
 
@@ -357,7 +357,6 @@ Responsive `Box` direction props update automatically when the window resizes or
 ``````
 
 All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
-- `xl`: 1280px
 
 ## Icons
 

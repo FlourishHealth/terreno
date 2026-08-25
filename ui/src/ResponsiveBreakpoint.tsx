@@ -12,7 +12,16 @@ interface CreateResponsiveBreakpointStoreOptions {
   subscribeToDimensions: (listener: (width: number) => void) => {remove: () => void};
 }
 
+interface ResponsiveDimensionsSource {
+  addEventListener: (
+    eventType: "change",
+    listener: (event: {window: {width: number}}) => void
+  ) => {remove: () => void};
+  get: (dimension: "window") => {width: number};
+}
+
 export interface ResponsiveBreakpointStore {
+  getServerSnapshot: () => ResponsiveBreakpoint;
   getSnapshot: () => ResponsiveBreakpoint;
   subscribe: (subscriber: () => void) => () => void;
   updateWidth: (width: number) => void;
@@ -83,19 +92,26 @@ export const createResponsiveBreakpointStore = ({
   };
 
   return {
+    getServerSnapshot: getServerBreakpointSnapshot,
     getSnapshot: (): ResponsiveBreakpoint => getBreakpointForWidth(currentWindowWidth),
     subscribe,
     updateWidth,
   };
 };
 
-const defaultBreakpointStore = createResponsiveBreakpointStore({
-  getWindowWidth: (): number => Dimensions.get("window").width,
-  subscribeToDimensions: (listener) =>
-    Dimensions.addEventListener("change", ({window}): void => {
-      listener(window.width);
-    }),
-});
+export const createNativeResponsiveBreakpointStore = (
+  dimensions: ResponsiveDimensionsSource
+): ResponsiveBreakpointStore => {
+  return createResponsiveBreakpointStore({
+    getWindowWidth: (): number => dimensions.get("window").width,
+    subscribeToDimensions: (listener) =>
+      dimensions.addEventListener("change", ({window}): void => {
+        listener(window.width);
+      }),
+  });
+};
+
+const defaultBreakpointStore = createNativeResponsiveBreakpointStore(Dimensions);
 
 const ResponsiveBreakpointContext =
   createContext<ResponsiveBreakpointStore>(defaultBreakpointStore);
@@ -122,7 +138,7 @@ export const useResponsiveBreakpoint = ({
   return useSyncExternalStore(
     enabled ? store.subscribe : subscribeToNothing,
     store.getSnapshot,
-    getServerBreakpointSnapshot
+    store.getServerSnapshot
   );
 };
 

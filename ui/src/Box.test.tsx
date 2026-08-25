@@ -153,6 +153,27 @@ describe("Box", () => {
       assert.equal(fixture.getRemoveCount(), 1);
     });
 
+    it("does not subscribe Boxes without responsive props", () => {
+      const fixture = createBreakpointStoreFixture(768);
+      const result = renderWithTheme(
+        <ResponsiveBreakpointProvider store={fixture.store}>
+          <Box>
+            {Array.from(
+              {length: 100},
+              (_, index): React.ReactElement => (
+                <Box direction="row" key={index} testID={`static-${index}`} />
+              )
+            )}
+          </Box>
+        </ResponsiveBreakpointProvider>
+      );
+
+      assert.equal(fixture.getListenerCount(), 0);
+
+      result.unmount();
+      assert.equal(fixture.getRemoveCount(), 0);
+    });
+
     it("should apply flex grow", () => {
       const {root} = renderWithTheme(<Box flex="grow" />);
       const view = root.findByType("View");
@@ -922,16 +943,6 @@ describe("Box", () => {
       renderWithTheme(<Box width={"abc"} />);
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();
-    });
-
-    it("applies mdDirection only when mediaQuery is md+", () => {
-      const {root} = renderWithTheme(<Box mdDirection="row" />);
-      expect(root).toBeTruthy();
-    });
-
-    it("applies lgDirection only when mediaQuery is lg", () => {
-      const {root} = renderWithTheme(<Box lgDirection="column" />);
-      expect(root).toBeTruthy();
     });
 
     it("applies width with border adds 4 pixels", () => {
