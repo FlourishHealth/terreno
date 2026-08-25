@@ -100,7 +100,7 @@ describe("RealtimeApp.onServerCreated", () => {
   });
 
   afterEach(() => {
-    delete process.env.TOKEN_SECRET;
+    Reflect.deleteProperty(process.env, "TOKEN_SECRET");
   });
 
   it("wires up auth middleware, connection handlers, and the change-stream watcher", () => {
@@ -151,10 +151,37 @@ describe("RealtimeApp.onServerCreated", () => {
     expect(lastIo().handlers.has("connection")).toBe(true);
   });
 
-  it("throws when no token secret is available", () => {
-    delete process.env.TOKEN_SECRET;
+  it("starts with Better Auth when no token secret is available", () => {
+    Reflect.deleteProperty(process.env, "TOKEN_SECRET");
+    const app = new RealtimeApp(
+      testRealtimeOptions({
+        betterAuth: {
+          auth: {
+            api: {
+              getSession: async () => ({
+                session: {id: "session-1"},
+                user: {id: "better-auth-user"},
+              }),
+            },
+          },
+        } as unknown as NonNullable<
+          NonNullable<ConstructorParameters<typeof RealtimeApp>[0]>["betterAuth"]
+        >,
+      })
+    );
+
+    assert.doesNotThrow(() => app.onServerCreated(fakeServer));
+    assert.lengthOf(lastIo().middleware, 1);
+    assert.isTrue(lastIo().handlers.has("connection"));
+  });
+
+  it("throws when no socket authentication method is available", () => {
+    Reflect.deleteProperty(process.env, "TOKEN_SECRET");
     const app = new RealtimeApp(testRealtimeOptions());
-    expect(() => app.onServerCreated(fakeServer)).toThrow(/TOKEN_SECRET is required/);
+    assert.throws(
+      () => app.onServerCreated(fakeServer),
+      "Socket authentication requires TOKEN_SECRET or Better Auth"
+    );
   });
 
   it("starts with Better Auth when no legacy token secret is available", () => {
