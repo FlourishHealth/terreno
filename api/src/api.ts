@@ -662,9 +662,9 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
-  // Register MCP before building so _buildModelRouter can replace options
-  // with RBAC-resolved permissions (access+accessControl is not deferred).
-  if (options.mcp) {
+  // Pathless MCP only — when a route path is present, registerCollection below
+  // owns the catalog entry and MCP shares that routePath key.
+  if (options.mcp && path === undefined) {
     registerMCPModel(model, options.mcp, options);
   }
 
