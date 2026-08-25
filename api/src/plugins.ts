@@ -355,6 +355,18 @@ export interface FindExactlyOnePlugin<T> {
   ): Promise<Document & T>;
 }
 
+type DateOnlyConditionalHandler = (this: DateOnly, val: unknown) => Date | undefined;
+
+interface SchemaTypeWithConditionalHandlers {
+  $conditionalHandlers?: Record<string, DateOnlyConditionalHandler>;
+}
+
+interface SchemaTypeWithApplySetters {
+  applySetters: (val: unknown, context: unknown) => Date | undefined;
+}
+
+type SchemaTypesWithDateOnly = typeof mongoose.Schema.Types & {DateOnly: typeof DateOnly};
+
 export class DateOnly extends SchemaType {
   constructor(key: string, options: SchemaTypeOptions<Date>) {
     super(key, options, "DateOnly");
@@ -365,11 +377,8 @@ export class DateOnly extends SchemaType {
   }
 
   $conditionalHandlers = {
-    ...(
-      SchemaType as unknown as {
-        prototype: {$conditionalHandlers: Record<string, (value: unknown) => Date | undefined>};
-      }
-    ).prototype.$conditionalHandlers,
+    ...(SchemaType as unknown as {prototype: SchemaTypeWithConditionalHandlers}).prototype
+      .$conditionalHandlers,
     $gt: this.handleSingle,
     $gte: this.handleSingle,
     $lt: this.handleSingle,
@@ -380,11 +389,7 @@ export class DateOnly extends SchemaType {
   // When using $gt, $gte, $lt, $lte, etc, we need to cast the value to a Date
   castForQuery($conditional: string | undefined, val: unknown, context: unknown): Date | undefined {
     if ($conditional == null) {
-      return (
-        this as unknown as {
-          applySetters: (value: unknown, setterContext: unknown) => Date | undefined;
-        }
-      ).applySetters(val, context);
+      return (this as unknown as SchemaTypeWithApplySetters).applySetters(val, context);
     }
 
     const handler = this.$conditionalHandlers[$conditional];
@@ -451,5 +456,4 @@ export class DateOnly extends SchemaType {
 }
 
 // Register DateOnly with Mongoose's Schema.Types
-(mongoose.Schema.Types as typeof mongoose.Schema.Types & {DateOnly: typeof DateOnly}).DateOnly =
-  DateOnly;
+(mongoose.Schema.Types as SchemaTypesWithDateOnly).DateOnly = DateOnly;

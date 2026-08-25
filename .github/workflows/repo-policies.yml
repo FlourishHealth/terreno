@@ -112,7 +112,7 @@ jobs:
         run: bun test scripts/check-source-rules/
 
   explicit-any:
-    name: Explicit any baseline
+    name: Explicit any per-file baseline
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -135,6 +135,9 @@ jobs:
 
       - name: Check explicit any baseline
         run: bun run check:explicit-any:baseline
+
+      - name: Test explicit any policy
+        run: bun test scripts/check-explicit-any/
 
       - name: Write explicit any inventory artifact
         if: always()
