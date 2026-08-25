@@ -13,6 +13,23 @@ React Native UI component library (88+ components). Layout (Box, Page, Card), fo
 - Theming: `TerrenoProvider`, `useTheme`, custom icon registry (`icons` prop)
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
 
+## Performance-sensitive imports
+
+Use a component subpath when startup parse and evaluation cost matters:
+
+```typescript
+import {Box} from "@terreno/ui/Box";
+import {DataTable} from "@terreno/ui/DataTable";
+import {Icon} from "@terreno/ui/Icon";
+```
+
+Every compiled UI module is available through `@terreno/ui/<Module>`. The root import remains fully
+supported and is convenient when startup cost is not material:
+
+```typescript
+import {Box, DataTable, Icon} from "@terreno/ui";
+```
+
 ## Type Re-exports
 
 @terreno/ui re-exports commonly-used React Native types to help consumers avoid version conflicts:

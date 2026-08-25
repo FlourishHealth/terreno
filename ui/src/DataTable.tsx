@@ -36,7 +36,7 @@ import {
 // TODO: Add permanent horizontal scroll bar so users with only a mouse can scroll left/right
 // easily.
 
-const TextCellComponent: FC<{
+const TextCell: FC<{
   cellData: DataTableCellData;
   column: DataTableColumn;
 }> = ({cellData}) => {
@@ -47,9 +47,7 @@ const TextCellComponent: FC<{
   );
 };
 
-const TextCell = memo(TextCellComponent);
-
-const CheckedCellComponent: FC<{
+const CheckedCell: FC<{
   cellData: DataTableCellData;
   column: DataTableColumn;
 }> = ({cellData}) => {
@@ -60,8 +58,6 @@ const CheckedCellComponent: FC<{
     </Box>
   );
 };
-
-const CheckedCell = memo(CheckedCellComponent);
 
 interface InternalDataTableCellProps extends Omit<DataTableCellProps, "columnWidths"> {
   pinnedLeft: number;
@@ -265,7 +261,7 @@ interface DataTableHeaderCellProps {
   headerHeight?: number;
 }
 
-const DataTableHeaderCellComponent: FC<DataTableHeaderCellProps> = ({
+const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
   column,
   index,
   isPinnedHorizontal,
@@ -335,8 +331,6 @@ const DataTableHeaderCellComponent: FC<DataTableHeaderCellProps> = ({
     </View>
   );
 };
-
-const DataTableHeaderCell = memo(DataTableHeaderCellComponent);
 
 interface DataTableHeaderProps {
   columns: DataTableColumn[];
