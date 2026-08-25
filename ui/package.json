@@ -143,6 +143,7 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
+    "performance:p0": "RUN_UI_P0_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P0RenderPerformance.test.tsx",
     "test": "TZ=America/New_York bun test --watch",
     "test:agent": "AGENT=1 TZ=America/New_York bun test --only-failures",
     "test:ci": "TZ=America/New_York bun test",

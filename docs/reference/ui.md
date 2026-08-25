@@ -473,4 +473,6 @@ import {TerrenoProvider} from "@terreno/ui";
 
 ## Related Documentation
 
-See the [ui package source](../../ui/src/) and [.cursor/rules/ui/](../../.cursor/rules/ui/) for props and conventions.
+- [UI performance benchmarks](ui-performance.md)
+- [UI package source](../../ui/src/)
+- [UI agent rules](../../.cursor/rules/ui/)
