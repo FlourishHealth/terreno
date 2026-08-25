@@ -70,6 +70,17 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
 
+### Button Press Animation
+
+Buttons use a scale animation by default. Set `pressAnimation="opacity"` for an opacity response or
+`pressAnimation="none"` when surrounding motion already provides feedback:
+
+``````typescript
+<Button text="Save" onClick={handleSave} pressAnimation="opacity" />
+``````
+
+Disabled and loading buttons use a non-interactive pressable regardless of the selected animation.
+
 ## Authentication Components
 
 ### SocialLoginButton
