@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-08-25T19:30:11.172Z.
+> dates are promised. Last updated: 2026-08-25T20:44:04.161Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -11,16 +11,28 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### api
 
+- [API rate limiting](https://github.com/FlourishHealth/terreno/issues/1187) (Feature, Planned)
 - [B2B platform program](https://github.com/FlourishHealth/terreno/issues/1095) (Feature, Planned) — IP: [b2b-platform-program](docs/implementationPlans/b2b-platform-program.md)
+- [can() as the permission seam](https://github.com/FlourishHealth/terreno/issues/1192) (Improvement, Planned) — IP: [can-as-permission-seam](docs/implementationPlans/can-as-permission-seam.md)
 - [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, Planned) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
 - [Comms adapter — Twilio SMS](https://github.com/FlourishHealth/terreno/issues/1020) (Feature, Planned) — IP: [comms-adapter-twilio-sms](docs/implementationPlans/comms-adapter-twilio-sms.md)
 - [Comms adapter — Twilio Verify (OTP)](https://github.com/FlourishHealth/terreno/issues/1021) (Feature, Planned) — IP: [comms-adapter-twilio-verify](docs/implementationPlans/comms-adapter-twilio-verify.md)
+- [describeModel() schema metadata](https://github.com/FlourishHealth/terreno/issues/1193) (Improvement, Planned) — IP: [describe-model-schema](docs/implementationPlans/describe-model-schema.md)
+- [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, Planned)
+- [Framework-level audit log](https://github.com/FlourishHealth/terreno/issues/1186) (Feature, Planned)
+- [Inbound webhook framework](https://github.com/FlourishHealth/terreno/issues/1172) (Feature, Planned)
+- [Invitations and seat management](https://github.com/FlourishHealth/terreno/issues/1173) (Feature, Planned)
+- [One collection registry](https://github.com/FlourishHealth/terreno/issues/1191) (Improvement, Planned) — IP: [collection-registry](docs/implementationPlans/collection-registry.md)
 - [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, Planned) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
 - [Stripe billing and subscriptions](https://github.com/FlourishHealth/terreno/issues/1025) (Feature, Planned) — IP: [billing-stripe](docs/implementationPlans/billing-stripe.md)
 
 ### ui
 
+- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, Planned)
+- [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, Planned)
+- [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
+- [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, Planned)
 - [Native module baseline for the next major release](https://github.com/FlourishHealth/terreno/issues/1026) (Breaking, Shipped)
 
 ### auth
@@ -51,14 +63,30 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### dx
 
+- [create-terreno-app scaffolding CLI](https://github.com/FlourishHealth/terreno/issues/1174) (Feature, Planned)
 - [Migrate CI/CD to CircleCI](https://github.com/FlourishHealth/terreno/issues/1088) (Improvement, In progress) — IP: [migrate-cicd-to-circleci](docs/implementationPlans/migrate-cicd-to-circleci.md)
 - [Open source launch program](https://github.com/FlourishHealth/terreno/issues/1094) (Improvement, In progress) — IP: [oss-launch-program](docs/implementationPlans/oss-launch-program.md)
 
 ## Target: Future
 
+### api
+
+- [Global search across entities](https://github.com/FlourishHealth/terreno/issues/1183) (Feature, Planned)
+- [Mobile in-app purchases (RevenueCat)](https://github.com/FlourishHealth/terreno/issues/1178) (Feature, Planned)
+- [MongoDB migrations tooling](https://github.com/FlourishHealth/terreno/issues/1189) (Feature, Planned)
+- [Pluggable database layer and SQLite adapter](https://github.com/FlourishHealth/terreno/issues/1194) (Feature, Planned) — IP: [pluggable-database-sqlite](docs/implementationPlans/pluggable-database-sqlite.md)
+
 ### ui
 
+- [Command palette (⌘K)](https://github.com/FlourishHealth/terreno/issues/1180) (Feature, Planned)
+- [Generic multi-step wizard component](https://github.com/FlourishHealth/terreno/issues/1181) (Feature, Planned)
+- [Rich text (WYSIWYG) editor](https://github.com/FlourishHealth/terreno/issues/1182) (Feature, Planned)
 - [Web SSR and admin SPA](https://github.com/FlourishHealth/terreno/issues/1017) (Feature, Planned) — IP: [web-ssr-and-admin-spa](docs/implementationPlans/web-ssr-and-admin-spa.md)
+
+### auth
+
+- [Enterprise SSO (SAML / OIDC)](https://github.com/FlourishHealth/terreno/issues/1184) (Feature, Planned)
+- [MFA and biometric step-up auth](https://github.com/FlourishHealth/terreno/issues/1185) (Feature, Planned)
 
 ### ai
 
