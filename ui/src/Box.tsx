@@ -90,6 +90,9 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "testIDs",
 ]);
 
+const RESPONSIVE_DIRECTION_PROPS = ["smDirection", "mdDirection", "lgDirection"] as const;
+const RESPONSIVE_DIRECTION_PROP_SET = new Set<string>(RESPONSIVE_DIRECTION_PROPS);
+
 interface BoxStyleMap {
   [prop: string]: (
     // noExplicitAny: Box style props are deliberately heterogeneous and narrowed by each mapper.
@@ -331,11 +334,22 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     let style: any = {};
     for (const prop of Object.keys(props) as Array<keyof typeof props>) {
       const value = props[prop];
+      if (RESPONSIVE_DIRECTION_PROP_SET.has(prop as string)) {
+        continue;
+      }
       if (boxStyleMap[prop]) {
         Object.assign(style, boxStyleMap[prop](value, props, breakpoint));
       } else if (!NON_STYLE_BOX_PROPS.has(prop as string)) {
         style[prop] = value;
         // console.warn(`Box: unknown property ${prop}`);
+      }
+    }
+
+    // Responsive direction specificity is deterministic and independent of JSX prop order.
+    for (const responsiveProp of RESPONSIVE_DIRECTION_PROPS) {
+      const responsiveValue = props[responsiveProp];
+      if (responsiveValue) {
+        Object.assign(style, boxStyleMap[responsiveProp](responsiveValue, props, breakpoint));
       }
     }
 

@@ -91,6 +91,37 @@ describe("Box", () => {
       sharedResponsiveBreakpointStore.updateWidth(375);
     });
 
+    it("applies responsive direction overrides from smallest to largest breakpoint", () => {
+      sharedResponsiveBreakpointStore.updateWidth(375);
+      const result = renderWithTheme(
+        <Box
+          direction="column"
+          lgDirection="row"
+          mdDirection="column"
+          smDirection="row"
+          testID="responsive-cascade"
+        />
+      );
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(576);
+      });
+      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "row");
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(768);
+      });
+      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "column");
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(1312);
+      });
+      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "row");
+
+      result.unmount();
+      sharedResponsiveBreakpointStore.updateWidth(375);
+    });
+
     it("should apply flex grow", () => {
       const {root} = renderWithTheme(<Box flex="grow" />);
       const view = root.findByType("View");

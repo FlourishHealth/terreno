@@ -357,6 +357,7 @@ Responsive `Box` direction props update automatically when the window resizes or
 ``````
 
 All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
+When multiple direction props match, the largest active breakpoint wins (`lg` over `md` over `sm`).
 
 ## Icons
 
