@@ -1,4 +1,5 @@
 import type {User} from "../auth";
+import {APIError} from "../errors";
 import {normalizeRbacAuditSinks} from "./auditModel";
 import {createIsPermitted, createRequireAccess} from "./middleware";
 import {createPermissionResolver} from "./resolve";
@@ -30,7 +31,10 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
   const persistAudit = options.persistAudit !== false;
   const auditSinks = normalizeRbacAuditSinks(options.auditSink);
   if (!persistAudit && auditSinks.length === 0) {
-    throw new Error("RBAC audit requires persistAudit or at least one auditSink");
+    throw new APIError({
+      status: 500,
+      title: "RBAC audit requires persistAudit or at least one auditSink",
+    });
   }
 
   const mergedStatements = mergeStatements(options.statements) as S;

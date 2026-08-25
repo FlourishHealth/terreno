@@ -257,7 +257,7 @@ const takeoverStaleLease = async (
   const cutoff = DateTime.now().minus({milliseconds: SYNC_MUTATION_LEASE_MS}).toJSDate();
   const claimed = await SyncMutation.findOneAndUpdate(
     {claimedAt: {$lt: cutoff}, mutationId, status: "pending"},
-    {$set: {claimedAt: new Date()}},
+    {$set: {claimedAt: DateTime.now().toJSDate()}},
     {new: true}
   );
   return claimed ?? undefined;
@@ -305,7 +305,7 @@ const waitForRecordedOutcome = async ({
         if (takenOver) {
           logger.warn("[sync] Took over a stale mutation lease", {
             mutationId,
-            staleForMs: Date.now() - new Date(row.claimedAt).getTime(),
+            staleForMs: DateTime.now().diff(DateTime.fromJSDate(row.claimedAt)).toMillis(),
           });
           return onTakeover(takenOver);
         }
@@ -343,7 +343,7 @@ const isE11000Error = (error: unknown): boolean => {
  * different write landed and happens to have advanced the seq by exactly
  * one" (a real conflict; a seq match alone cannot tell these apart).
  */
-const docMatchesMutationData = (
+export const docMatchesMutationData = (
   doc: unknown,
   data: Record<string, unknown> | undefined
 ): boolean => {
@@ -358,7 +358,11 @@ const docMatchesMutationData = (
   return Object.entries(data).every(([key, value]) => {
     const current = plain?.[key];
     if (current instanceof Date && typeof value === "string") {
-      return current.toISOString() === new Date(value).toISOString();
+      const parsed = DateTime.fromISO(value, {zone: "utc"});
+      if (!parsed.isValid) {
+        return false;
+      }
+      return current.toISOString() === parsed.toJSDate().toISOString();
     }
     return JSON.stringify(current) === JSON.stringify(value);
   });
@@ -731,7 +735,7 @@ export const applySyncMutation = async ({
   let claimed: SyncMutationDocument;
   try {
     claimed = await SyncMutation.create({
-      claimedAt: new Date(),
+      claimedAt: DateTime.now().toJSDate(),
       mutationId,
       status: "pending",
       userId: String(user.id),

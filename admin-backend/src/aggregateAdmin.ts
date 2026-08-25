@@ -7,7 +7,7 @@ import type {
   TerrenoApp,
   TerrenoPlugin,
 } from "@terreno/api";
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 
 import type {AdminCustomScreenConfig, AdminModelConfig, AdminScriptConfig} from "./adminApp";
 import {convertLegacyModelConfig} from "./legacy";
@@ -133,9 +133,10 @@ export const aggregateAdminContributions = ({
     const path = registered.routePath;
     const existingRegistered = registeredByPath.get(path);
     if (existingRegistered) {
-      throw new Error(
-        `Duplicate admin modelRouter routePath "${path}" (${existingRegistered.sourceLabel} and ${registered.sourceLabel})`
-      );
+      throw new APIError({
+        status: 500,
+        title: `Duplicate admin modelRouter routePath "${path}" (${existingRegistered.sourceLabel} and ${registered.sourceLabel})`,
+      });
     }
     registeredByPath.set(path, registered);
     const existing = modelsByPath.get(path);

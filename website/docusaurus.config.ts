@@ -44,9 +44,7 @@ const config: Config = {
         redirects: [
           {
             from: "/next/reference/rtk",
-            to: isPreview
-              ? "/how-to/migrate-rtk-to-syncdb"
-              : "/next/how-to/migrate-rtk-to-syncdb",
+            to: isPreview ? "/how-to/migrate-rtk-to-syncdb" : "/next/how-to/migrate-rtk-to-syncdb",
           },
         ],
       },
