@@ -1,5 +1,5 @@
 import {assert} from "chai";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {act, create, type ReactTestRenderer} from "react-test-renderer";
 
 import type {OpenAPISpec} from "../src/Common";
@@ -100,15 +100,18 @@ const installFetchMock = (): void => {
   }) as typeof globalThis.fetch;
 };
 
-const OpenAPIDriver: React.FC<{revision: number}> = ({revision}) => {
-  const [, setNoise] = React.useState(0);
+const ParentDriver: React.FC<{children: React.ReactElement; revision: number}> = ({
+  children,
+  revision,
+}) => {
+  const [, setTick] = useState(0);
 
-  // Force a provider rerender without changing the loaded OpenAPI spec on revision 0.
+  // Trigger parent rerenders without changing the loaded OpenAPI spec on revision 0.
   useEffect((): void => {
-    setNoise(revision);
+    setTick(revision);
   }, [revision]);
 
-  return null;
+  return children;
 };
 
 const OpenAPIProbe: React.FC<{index: number}> = ({index}) => {
@@ -127,12 +130,13 @@ export const P0OpenAPIExampleRenderer: React.FC<WorkloadProps> = ({revision, siz
       : "https://benchmark.example/openapi-v1.json";
 
   return (
-    <OpenAPIProvider specUrl={specUrl}>
-      <OpenAPIDriver revision={revision} />
-      {Array.from({length: size}, (_, index): React.ReactElement => (
-        <OpenAPIProbe index={index} key={index} />
-      ))}
-    </OpenAPIProvider>
+    <ParentDriver revision={revision}>
+      <OpenAPIProvider specUrl={specUrl}>
+        {Array.from({length: size}, (_, index): React.ReactElement => (
+          <OpenAPIProbe index={index} key={index} />
+        ))}
+      </OpenAPIProvider>
+    </ParentDriver>
   );
 };
 
