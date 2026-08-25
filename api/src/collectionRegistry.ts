@@ -1,3 +1,16 @@
+/**
+ * Process-global catalog of modelRouter collections, keyed by routePath
+ * (e.g. `/todos`). MCP, realtime, and Sync read this Map instead of each
+ * keeping their own list. `modelRouter` is the writer; surface `register*`
+ * / `update*` / `clear*` helpers are wrappers around this module.
+ *
+ * TerrenoApp later injects `accessControl` into options. That patch goes
+ * through replaceCollectionOptions so all three surfaces see one options
+ * object. Surface flags stay sticky (OR) so a later replace cannot drop
+ * mcp/realtime/sync once enabled. First-time sync enable still runs schema
+ * and index guards in registrationSideEffects — not here — so catalog
+ * writes stay a Map update.
+ */
 import type {Model} from "mongoose";
 
 import type {ModelRouterOptions} from "./api";
@@ -22,6 +35,7 @@ export interface CollectionRecord {
 
 const collectionRegistry = new Map<string, CollectionRecord>();
 
+/** OR new option flags onto existing ones so a patch cannot disable a surface. */
 const deriveSurfaces = (
   options: ModelRouterOptions<unknown>,
   existing?: CollectionSurfaces
@@ -31,6 +45,7 @@ const deriveSurfaces = (
   sync: Boolean(options.sync) || (existing?.sync ?? false),
 });
 
+/** Insert or merge a collection. First sync enable runs schema/index guards. */
 export const registerCollection = <T>({
   model,
   options,
@@ -76,6 +91,7 @@ export const registerCollection = <T>({
   });
 };
 
+/** Swap the options pointer after TerrenoApp enriches it. Unknown path is a no-op. */
 export const replaceCollectionOptions = (
   routePath: string,
   options: ModelRouterOptions<unknown>
@@ -92,6 +108,7 @@ export const getCollection = (routePath: string): CollectionRecord | undefined =
 
 export const listCollections = (): CollectionRecord[] => Array.from(collectionRegistry.values());
 
+/** Wipe the catalog and queued sync indexes so tests cannot leave a stale surface. */
 export const clearCollectionRegistry = (): void => {
   collectionRegistry.clear();
   clearSyncIndexCreationTasks();
