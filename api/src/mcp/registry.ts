@@ -37,7 +37,7 @@ export const registerMCPModel = (
 ): void => {
   registerCollection({
     model,
-    options: { ...options, mcp: config },
+    options: {...options, mcp: config},
     routePath: mcpRoutePathForModel(model),
   });
 };
@@ -66,7 +66,7 @@ export const getMCPRegistry = (): MCPRegistryEntry[] => {
   return listCollections()
     .filter((record) => record.surfaces.mcp)
     .map((record) => ({
-      config: record.options.mcp!,
+      config: record.options.mcp as MCPConfig,
       model: record.model,
       modelName: record.model.modelName,
       options: record.options as MCPRegistryEntry["options"],

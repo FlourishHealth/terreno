@@ -1,7 +1,4 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-
-import {Permissions} from "./permissions";
-import {FoodModel} from "./tests";
 import {
   clearCollectionRegistry,
   getCollection,
@@ -10,6 +7,8 @@ import {
   replaceCollectionOptions,
 } from "./collectionRegistry";
 import {clearMCPRegistry, getMCPRegistry} from "./mcp/registry";
+import {Permissions} from "./permissions";
+import {FoodModel} from "./tests";
 
 const baseOptions = {
   permissions: {

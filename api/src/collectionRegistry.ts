@@ -9,9 +9,9 @@ export interface CollectionSurfaces {
   sync: boolean;
 }
 
-export interface CollectionRecord<T = unknown> {
-  model: Model<T>;
-  options: ModelRouterOptions<T>;
+export interface CollectionRecord {
+  model: Model<unknown>;
+  options: ModelRouterOptions<unknown>;
   routePath: string;
   surfaces: CollectionSurfaces;
 }
@@ -55,8 +55,8 @@ export const registerCollection = <T>({
   }
 
   collectionRegistry.set(routePath, {
-    model,
-    options,
+    model: model as unknown as Model<unknown>,
+    options: options as ModelRouterOptions<unknown>,
     routePath,
     surfaces: deriveSurfaces(options as ModelRouterOptions<unknown>, existing?.surfaces),
   });
@@ -76,8 +76,7 @@ export const replaceCollectionOptions = (
 export const getCollection = (routePath: string): CollectionRecord | undefined =>
   collectionRegistry.get(routePath);
 
-export const listCollections = (): CollectionRecord[] =>
-  Array.from(collectionRegistry.values());
+export const listCollections = (): CollectionRecord[] => Array.from(collectionRegistry.values());
 
 export const clearCollectionRegistry = (): void => {
   collectionRegistry.clear();

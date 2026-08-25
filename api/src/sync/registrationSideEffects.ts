@@ -22,7 +22,6 @@ export const applySyncRegistrationSideEffects = <T>({
   config,
   existingSyncEntries,
   model,
-  options,
   routePath,
 }: {
   config: SyncConfig;

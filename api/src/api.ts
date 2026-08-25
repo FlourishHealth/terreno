@@ -18,6 +18,7 @@ import {
 import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
 import type {AdminConfig} from "./adminTypes";
 import {authenticateMiddleware, omitUserRolesFromWriteBody, type User} from "./auth";
+import {registerCollection, replaceCollectionOptions} from "./collectionRegistry";
 import {
   APIError,
   apiErrorMiddleware,
@@ -28,7 +29,6 @@ import {
   passthroughOrWrap,
   passthroughOrWrapWrite,
 } from "./errors";
-import {registerCollection, replaceCollectionOptions} from "./collectionRegistry";
 import {logger} from "./logger";
 import type {MCPConfig} from "./mcp/types";
 import {

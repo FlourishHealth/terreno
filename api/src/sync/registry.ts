@@ -31,7 +31,7 @@ const toSyncEntry = (record: {
 }): SyncRegistryEntry => ({
   collectionName: record.model.collection.collectionName,
   collectionTag: record.routePath.replace(/^\//, ""),
-  config: record.options.sync!,
+  config: record.options.sync as SyncConfig,
   modelName: record.model.modelName,
   options: record.options,
   routePath: record.routePath,

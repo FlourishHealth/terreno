@@ -23,14 +23,16 @@ const toRealtimeEntry = (record: {
   routePath: string;
 }): RealtimeRegistryEntry => ({
   collectionName: record.model.collection.collectionName,
-  config: record.options.realtime!,
+  config: record.options.realtime as RealtimeConfig,
   modelName: record.model.modelName,
   options: record.options,
   routePath: record.routePath,
 });
 
 const realtimeModelForEntry = (entry: RealtimeRegistryEntry): Model<unknown> => {
-  const registered = listCollections().find((record) => record.routePath === entry.routePath)?.model;
+  const registered = listCollections().find(
+    (record) => record.routePath === entry.routePath
+  )?.model;
   if (registered) {
     return registered;
   }
