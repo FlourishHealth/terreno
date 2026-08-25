@@ -79,6 +79,9 @@ export const isScopedProductionFile = (relativePath: string): boolean => {
     return false;
   }
   const fileName = relativePath.slice(relativePath.lastIndexOf("/") + 1);
+  if (fileName.endsWith(".d.ts")) {
+    return false;
+  }
   if (!isSourceFile(fileName) || isGeneratedFile(fileName) || isTestOrHarnessFile(relativePath)) {
     return false;
   }
