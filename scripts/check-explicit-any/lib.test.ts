@@ -1,4 +1,5 @@
 import {expect, test} from "bun:test";
+import {assert} from "chai";
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
@@ -90,7 +91,7 @@ test("collectAnyUsages classifies remediation status", () => {
       ])
     );
 
-    expect(byFile["api/src/documented.ts:3"]).toBe("fully-documented");
+    expect(byFile["api/src/documented.ts:4"]).toBe("fully-documented");
     expect(byFile["api/src/violation.ts:1"]).toBe("violation");
     expect(byFile["api/src/populate.ts:1"]).toBe("out-of-scope");
     expect(byFile["ui/src/fileBlanket.ts:2"]).toBe("file-blanket");
@@ -145,6 +146,27 @@ test("runCheckExplicitAny can fail on undocumented suppressions", () => {
     });
 
     expect(result.exitCode).toBe(1);
+  } finally {
+    rmSync(root, {force: true, recursive: true});
+  }
+});
+
+test("runCheckExplicitAny passes strict marker mode for documented suppressions", () => {
+  const root = createFixtureRepo();
+
+  try {
+    rmSync(join(root, "api/src/violation.ts"));
+    rmSync(join(root, "ui/src/fileBlanket.ts"));
+    rmSync(join(root, "ui/src/Widget.test.tsx"));
+
+    const result = runCheckExplicitAny({
+      failOnUndocumented: true,
+      includeExcluded: true,
+      repoRoot: root,
+    });
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.summary.byRemediationStatus["fully-documented"], 1);
   } finally {
     rmSync(root, {force: true, recursive: true});
   }

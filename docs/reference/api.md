@@ -491,6 +491,10 @@ router.use("/todos", modelRouter(Todo, {
 }));
 ``````
 
+### Builder validation
+
+Call `.withValidation()` before `.build()` so body and query checks run in the same handler that documents the route. `build()` still returns one Express `RequestHandler`, so callers can nest it in a middleware array. OpenAPI metadata stays on that handler, so the route remains in `/openapi.json`.
+
 ### Manual Validation
 
 For custom routes, use validation middleware directly:
