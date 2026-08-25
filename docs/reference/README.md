@@ -19,7 +19,7 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 ## Legacy
 
-`@terreno/rtk` is deprecated for **data synchronization**. New apps should use [`@terreno/syncdb`](syncdb.md). Existing RTK consumers: follow [Migrate from @terreno/rtk to @terreno/syncdb](../how-to/migrate-rtk-to-syncdb.md). Archived RTK reference: [legacy/rtk.md](legacy/rtk.md).
+`@terreno/rtk` is deprecated for **data synchronization**. New apps should use [`@terreno/syncdb`](syncdb.md). Existing RTK consumers: follow [Migrate from @terreno/rtk to @terreno/syncdb](../how-to/migrate-rtk-to-syncdb.md). Archived RTK reference: [legacy/rtk.md](legacy/rtk.md). `modelRouter` `realtime` and the RTK cache-patching helpers are removed in Terreno 58.
 
 ## Configuration
 
