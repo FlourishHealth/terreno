@@ -167,5 +167,21 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "57.2.0"
+  "version": "57.2.0",
+  "description": "React Native UI component library for iOS, Android, and web — part of Terreno, the batteries-included TypeScript framework for universal apps.",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "ui",
+    "universal-apps",
+    "terreno"
+  ]
 }

@@ -14,6 +14,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 - [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
+- [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
@@ -26,7 +27,6 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Coming Soon
 
-- [Add feature flags](add-feature-flags.md) — Add feature flags and A/B testing to your app
 - Add custom permissions
 - Implement file uploads
 - Configure email notifications

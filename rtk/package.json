@@ -23,7 +23,7 @@
     "redux-persist": "catalog:",
     "socket.io-client": "catalog:"
   },
-  "description": "Redux Toolkit Query utilities for @terreno/api backends",
+  "description": "OpenAPI SDK, Better Auth Redux, and feature flags for Terreno frontends — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@openfeature/react-sdk": "catalog:",
@@ -78,5 +78,20 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0"
+  "version": "57.2.0",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "keywords": [
+    "redux",
+    "rtk-query",
+    "openapi",
+    "better-auth",
+    "terreno"
+  ]
 }

@@ -7,7 +7,7 @@
     "socket.io-client": "catalog:",
     "tinybase": "^9.5.1"
   },
-  "description": "Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence",
+  "description": "Local-first data layer with TinyBase, durable outbox, and delta sync — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@testing-library/react-native": "catalog:",
@@ -72,5 +72,20 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0"
+  "version": "57.2.0",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "keywords": [
+    "local-first",
+    "tinybase",
+    "sync",
+    "offline",
+    "terreno"
+  ]
 }
