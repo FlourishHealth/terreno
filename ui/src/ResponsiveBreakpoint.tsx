@@ -1,7 +1,8 @@
 import {useSyncExternalStore} from "react";
-import {Dimensions} from "react-native";
+import {Dimensions, Platform} from "react-native";
 
-export type ResponsiveBreakpoint = "xs" | "sm" | "md" | "lg";
+export type ResponsiveBreakpoint = "xs" | "sm" | "md" | "lg" | "xl";
+export type BreakpointSurface = "native" | "web";
 
 interface UseResponsiveBreakpointOptions {
   enabled?: boolean;
@@ -9,6 +10,7 @@ interface UseResponsiveBreakpointOptions {
 }
 
 interface CreateResponsiveBreakpointStoreOptions {
+  getSurface?: () => BreakpointSurface;
   getWindowWidth: () => number;
   subscribeToDimensions: (listener: (width: number) => void) => {remove: () => void};
 }
@@ -28,24 +30,90 @@ export interface ResponsiveBreakpointStore {
   updateWidth: (width: number) => void;
 }
 
+export const NATIVE_BREAKPOINT_MIN_WIDTH = {
+  lg: 600,
+  md: 375,
+  sm: 320,
+  xl: 1024,
+} as const;
+
+export const WEB_BREAKPOINT_MIN_WIDTH = {
+  lg: 1024,
+  md: 375,
+  sm: 320,
+  xl: 1280,
+} as const;
+
 const BREAKPOINT_ORDER: Record<ResponsiveBreakpoint, number> = {
   lg: 3,
   md: 2,
   sm: 1,
+  xl: 4,
   xs: 0,
 };
 
-export const getBreakpointForWidth = (width: number): ResponsiveBreakpoint => {
-  if (width < 576) {
+export const getBreakpointSurface = (os: string = Platform.OS): BreakpointSurface => {
+  if (os === "web") {
+    return "web";
+  }
+  return "native";
+};
+
+export interface BreakpointMinWidths {
+  lg: number;
+  md: number;
+  sm: number;
+  xl: number;
+}
+
+export const getBreakpointMinWidths = (surface: BreakpointSurface): BreakpointMinWidths => {
+  if (surface === "web") {
+    return WEB_BREAKPOINT_MIN_WIDTH;
+  }
+  return NATIVE_BREAKPOINT_MIN_WIDTH;
+};
+
+export const isBreakpointAtLeast = ({
+  breakpoint,
+  minimum,
+}: {
+  breakpoint: ResponsiveBreakpoint;
+  minimum: ResponsiveBreakpoint;
+}): boolean => {
+  return BREAKPOINT_ORDER[breakpoint] >= BREAKPOINT_ORDER[minimum];
+};
+
+export const getBreakpointForWidth = (
+  width: number,
+  surface: BreakpointSurface = getBreakpointSurface()
+): ResponsiveBreakpoint => {
+  const mins = getBreakpointMinWidths(surface);
+  if (width < mins.sm) {
     return "xs";
   }
-  if (width < 768) {
+  if (width < mins.md) {
     return "sm";
   }
-  if (width < 1312) {
+  if (width < mins.lg) {
     return "md";
   }
-  return "lg";
+  if (width < mins.xl) {
+    return "lg";
+  }
+  return "xl";
+};
+
+export const isSupportedDesktopViewport = ({
+  breakpoint,
+  surface,
+}: {
+  breakpoint: ResponsiveBreakpoint;
+  surface: BreakpointSurface;
+}): boolean => {
+  if (surface === "web") {
+    return isBreakpointAtLeast({breakpoint, minimum: "lg"});
+  }
+  return isBreakpointAtLeast({breakpoint, minimum: "xl"});
 };
 
 const getServerBreakpointSnapshot = (): ResponsiveBreakpoint => {
@@ -53,6 +121,7 @@ const getServerBreakpointSnapshot = (): ResponsiveBreakpoint => {
 };
 
 export const createResponsiveBreakpointStore = ({
+  getSurface = getBreakpointSurface,
   getWindowWidth,
   subscribeToDimensions,
 }: CreateResponsiveBreakpointStoreOptions): ResponsiveBreakpointStore => {
@@ -89,7 +158,8 @@ export const createResponsiveBreakpointStore = ({
 
   return {
     getServerSnapshot: getServerBreakpointSnapshot,
-    getSnapshot: (): ResponsiveBreakpoint => getBreakpointForWidth(currentWindowWidth),
+    getSnapshot: (): ResponsiveBreakpoint =>
+      getBreakpointForWidth(currentWindowWidth, getSurface()),
     subscribe,
     updateWidth,
   };
@@ -122,14 +192,4 @@ export const useResponsiveBreakpoint = ({
     store.getSnapshot,
     store.getServerSnapshot
   );
-};
-
-export const isBreakpointAtLeast = ({
-  breakpoint,
-  minimum,
-}: {
-  breakpoint: ResponsiveBreakpoint;
-  minimum: ResponsiveBreakpoint;
-}): boolean => {
-  return BREAKPOINT_ORDER[breakpoint] >= BREAKPOINT_ORDER[minimum];
 };

@@ -10,6 +10,7 @@ import {
   createResponsiveBreakpointStore,
   getBreakpointForWidth,
   isBreakpointAtLeast,
+  isSupportedDesktopViewport,
   type ResponsiveBreakpointStore,
   useResponsiveBreakpoint,
 } from "./ResponsiveBreakpoint";
@@ -33,19 +34,40 @@ const BreakpointSubscriber: React.FC<BreakpointConsumerProps> = ({enabled = true
 };
 
 describe("ResponsiveBreakpoint", () => {
-  it("keeps exact responsive breakpoint boundaries", () => {
-    assert.equal(getBreakpointForWidth(575), "xs");
-    assert.equal(getBreakpointForWidth(576), "sm");
-    assert.equal(getBreakpointForWidth(767), "sm");
-    assert.equal(getBreakpointForWidth(768), "md");
-    assert.equal(getBreakpointForWidth(1311), "md");
-    assert.equal(getBreakpointForWidth(1312), "lg");
+  it("keeps native mobile breakpoint boundaries", () => {
+    assert.equal(getBreakpointForWidth(319, "native"), "xs");
+    assert.equal(getBreakpointForWidth(320, "native"), "sm");
+    assert.equal(getBreakpointForWidth(374, "native"), "sm");
+    assert.equal(getBreakpointForWidth(375, "native"), "md");
+    assert.equal(getBreakpointForWidth(599, "native"), "md");
+    assert.equal(getBreakpointForWidth(600, "native"), "lg");
+    assert.equal(getBreakpointForWidth(1023, "native"), "lg");
+    assert.equal(getBreakpointForWidth(1024, "native"), "xl");
+  });
+
+  it("keeps web desktop breakpoint boundaries", () => {
+    assert.equal(getBreakpointForWidth(319, "web"), "xs");
+    assert.equal(getBreakpointForWidth(320, "web"), "sm");
+    assert.equal(getBreakpointForWidth(374, "web"), "sm");
+    assert.equal(getBreakpointForWidth(375, "web"), "md");
+    assert.equal(getBreakpointForWidth(1023, "web"), "md");
+    assert.equal(getBreakpointForWidth(1024, "web"), "lg");
+    assert.equal(getBreakpointForWidth(1279, "web"), "lg");
+    assert.equal(getBreakpointForWidth(1280, "web"), "xl");
+  });
+
+  it("treats native xl and web lg as the supported desktop floor", () => {
+    assert.isFalse(isSupportedDesktopViewport({breakpoint: "lg", surface: "native"}));
+    assert.isTrue(isSupportedDesktopViewport({breakpoint: "xl", surface: "native"}));
+    assert.isFalse(isSupportedDesktopViewport({breakpoint: "md", surface: "web"}));
+    assert.isTrue(isSupportedDesktopViewport({breakpoint: "lg", surface: "web"}));
   });
 
   it("compares breakpoints without reading Dimensions", () => {
     assert.isFalse(isBreakpointAtLeast({breakpoint: "xs", minimum: "sm"}));
     assert.isTrue(isBreakpointAtLeast({breakpoint: "sm", minimum: "sm"}));
     assert.isTrue(isBreakpointAtLeast({breakpoint: "lg", minimum: "md"}));
+    assert.isTrue(isBreakpointAtLeast({breakpoint: "xl", minimum: "lg"}));
   });
 
   it("maps native resize and rotation events into shared breakpoint updates", () => {
@@ -57,12 +79,12 @@ describe("ResponsiveBreakpoint", () => {
         dimensionListener = listener;
         return {remove: removeListener};
       },
-      get: (): {width: number} => ({width: 575}),
+      get: (): {width: number} => ({width: 319}),
     });
     const unsubscribe = store.subscribe(subscriber);
 
     assert.equal(store.getSnapshot(), "xs");
-    dimensionListener?.({window: {width: 768}});
+    dimensionListener?.({window: {width: 375}});
     assert.equal(store.getSnapshot(), "md");
     assert.lengthOf(subscriber.mock.calls, 1);
 
@@ -72,14 +94,15 @@ describe("ResponsiveBreakpoint", () => {
 
   it("uses the xs server snapshot before client hydration", () => {
     const store = createResponsiveBreakpointStore({
-      getWindowWidth: (): number => 1312,
+      getSurface: (): "native" => "native",
+      getWindowWidth: (): number => 1024,
       subscribeToDimensions: (): {remove: () => void} => ({remove: (): void => {}}),
     });
 
     const html = renderToString(<BreakpointConsumer store={store} />);
 
     assert.include(html, ">xs<");
-    assert.equal(store.getSnapshot(), "lg");
+    assert.equal(store.getSnapshot(), "xl");
   });
 
   it("shares one dimensions listener across a responsive tree", () => {
@@ -89,7 +112,7 @@ describe("ResponsiveBreakpoint", () => {
     const store = createResponsiveBreakpointStore({
       getWindowWidth: (): number => {
         dimensionReadCount += 1;
-        return 768;
+        return 375;
       },
       subscribeToDimensions: (): {remove: () => void} => {
         listenerCount += 1;
@@ -121,7 +144,7 @@ describe("ResponsiveBreakpoint", () => {
   it("does not subscribe when responsive behavior is disabled", () => {
     let listenerCount = 0;
     const store = createResponsiveBreakpointStore({
-      getWindowWidth: (): number => 768,
+      getWindowWidth: (): number => 375,
       subscribeToDimensions: (): {remove: () => void} => {
         listenerCount += 1;
         return {remove: (): void => {}};

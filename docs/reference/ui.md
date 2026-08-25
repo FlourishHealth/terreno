@@ -344,20 +344,44 @@ if (isMobileDevice()) {
 }
 ``````
 
-**Breakpoints:**
-- `xs`: below 576px
-- `sm`: 576px
-- `md`: 768px
-- `lg`: 1312px
+**Breakpoints are platform-specific.** `lg` and `xl` do not mean the same width on native and web.
+
+Native (iOS/Android):
+
+| Token | Width (pt) | Use |
+| --- | --- | --- |
+| Below `sm` | < 320 | Not supported. Accessible, not optimized. |
+| `sm` | 320–374 | Small phone. Critical workflows stay usable. |
+| `md` | 375–599 | Standard phone. |
+| `lg` | 600–1023 | Large mobile / tablet, including Samsung A11. |
+| `xl` | ≥ 1024 | Not a supported mobile layout. Use the desktop web experience where available. |
+
+Web (desktop staff):
+
+| Token | Width (pt) | Use |
+| --- | --- | --- |
+| Below `lg` | < 1024 | Not a supported desktop experience. Accessible, not optimized. |
+| `lg` | 1024–1279 | Smaller desktop. Collapse secondary content; keep core workflows. |
+| `xl` | ≥ 1280 | Primary desktop (M1/M4 MacBook Air 13"). Full multi-panel layouts. |
+
+On web, `sm` (320) and `md` (375) still classify widths below 1024 so layouts can remain accessible.
+
+`isMobileDevice()` is true below the supported desktop floor: native width < 1024 (`xl`), web width < 1024 (`lg`).
 
 Responsive `Box` direction props update automatically when the window resizes or a device rotates:
 
 ``````typescript
-<Box direction="column" smDirection="row" mdDirection="column" lgDirection="row" />
+<Box
+  direction="column"
+  smDirection="row"
+  mdDirection="column"
+  lgDirection="row"
+  xlDirection="column"
+/>
 ``````
 
 All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
-When multiple direction props match, the largest active breakpoint wins (`lg` over `md` over `sm`).
+When multiple direction props match, the largest active breakpoint wins (`xl` over `lg` over `md` over `sm`).
 
 ## Icons
 

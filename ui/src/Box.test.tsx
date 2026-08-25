@@ -53,46 +53,60 @@ describe("Box", () => {
     });
 
     it("updates responsive directions at exact shared breakpoints", () => {
-      sharedResponsiveBreakpointStore.updateWidth(375);
-
       const result = renderWithTheme(
         <Box>
           <Box direction="column" smDirection="row" testID="sm-responsive-box" />
           <Box direction="column" mdDirection="row" testID="md-responsive-box" />
           <Box direction="column" lgDirection="row" testID="lg-responsive-box" />
+          <Box direction="column" testID="xl-responsive-box" xlDirection="row" />
         </Box>
       );
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(319);
+      });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
+      assert.equal(result.getByTestId("xl-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        sharedResponsiveBreakpointStore.updateWidth(576);
+        sharedResponsiveBreakpointStore.updateWidth(320);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
+      assert.equal(result.getByTestId("xl-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        sharedResponsiveBreakpointStore.updateWidth(768);
+        sharedResponsiveBreakpointStore.updateWidth(375);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
+      assert.equal(result.getByTestId("xl-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        sharedResponsiveBreakpointStore.updateWidth(1312);
+        sharedResponsiveBreakpointStore.updateWidth(600);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("xl-responsive-box").props.style.flexDirection, "column");
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(1024);
+      });
+      assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("xl-responsive-box").props.style.flexDirection, "row");
 
       result.unmount();
       sharedResponsiveBreakpointStore.updateWidth(375);
     });
 
     it("applies responsive direction overrides from smallest to largest breakpoint", () => {
-      sharedResponsiveBreakpointStore.updateWidth(375);
       const result = renderWithTheme(
         <Box
           direction="column"
@@ -100,23 +114,34 @@ describe("Box", () => {
           mdDirection="column"
           smDirection="row"
           testID="responsive-cascade"
+          xlDirection="column"
         />
       );
 
       act((): void => {
-        sharedResponsiveBreakpointStore.updateWidth(576);
-      });
-      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "row");
-
-      act((): void => {
-        sharedResponsiveBreakpointStore.updateWidth(768);
+        sharedResponsiveBreakpointStore.updateWidth(319);
       });
       assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "column");
 
       act((): void => {
-        sharedResponsiveBreakpointStore.updateWidth(1312);
+        sharedResponsiveBreakpointStore.updateWidth(320);
       });
       assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "row");
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(375);
+      });
+      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "column");
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(600);
+      });
+      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "row");
+
+      act((): void => {
+        sharedResponsiveBreakpointStore.updateWidth(1024);
+      });
+      assert.equal(result.getByTestId("responsive-cascade").props.style.flexDirection, "column");
 
       result.unmount();
       sharedResponsiveBreakpointStore.updateWidth(375);

@@ -90,7 +90,10 @@ export const ResponsiveBoxLayout: React.FC = () => {
     <StorybookContainer>
       <Box marginBottom={3}>
         <Text bold>Resize the viewport</Text>
-        <Text>The layout changes at 576px, 768px, and 1312px.</Text>
+        <Text>
+          Native: sm 320pt, md 375pt, lg 600pt, xl 1024pt. Web: sm 320pt, md 375pt, lg 1024pt, xl
+          1280pt.
+        </Text>
       </Box>
       <Box
         direction="column"
@@ -99,6 +102,7 @@ export const ResponsiveBoxLayout: React.FC = () => {
         mdDirection="column"
         smDirection="row"
         testID="responsive-box-story"
+        xlDirection="column"
       >
         {["One", "Two", "Three"].map(
           (label): React.ReactElement => (

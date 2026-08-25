@@ -90,7 +90,12 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "testIDs",
 ]);
 
-const RESPONSIVE_DIRECTION_PROPS = ["smDirection", "mdDirection", "lgDirection"] as const;
+const RESPONSIVE_DIRECTION_PROPS = [
+  "smDirection",
+  "mdDirection",
+  "lgDirection",
+  "xlDirection",
+] as const;
 const RESPONSIVE_DIRECTION_PROP_SET = new Set<string>(RESPONSIVE_DIRECTION_PROPS);
 
 interface BoxStyleMap {
@@ -113,7 +118,7 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const internalScrollRef = useRef<ScrollView>(null);
   const scrollRef = props.scrollRef ?? internalScrollRef;
   const hasResponsiveDirection = Boolean(
-    props.smDirection || props.mdDirection || props.lgDirection
+    props.smDirection || props.mdDirection || props.lgDirection || props.xlDirection
   );
   const breakpoint = useResponsiveBreakpoint({enabled: hasResponsiveDirection});
 
@@ -321,6 +326,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
           : "flex-start",
         flexWrap: value ? "wrap" : "nowrap",
       }),
+      xlDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "xl"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       zIndex: (value) => ({zIndex: value ? value : undefined}),
     };
     boxStyleMapCache.set(theme, boxStyleMap);

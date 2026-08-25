@@ -89,8 +89,9 @@ are milliseconds; lower is better.
 
 Responsive Boxes now subscribe to one shared window-dimension source. A resize or rotation updates
 the cached breakpoint and every subscribed Box without a synchronous dimension read per responsive
-prop. Non-responsive Boxes do not subscribe. Focused regressions cover the exact 576px, 768px, and
-1312px boundaries, listener sharing, cleanup, and changed responsive styles.
+prop. Non-responsive Boxes do not subscribe. Focused regressions cover the native 320pt / 375pt / 600pt /
+1024pt boundaries, the web 1024pt / 1280pt desktop boundaries, listener sharing, cleanup, and
+changed responsive styles.
 
 ## Environment overrides
 
