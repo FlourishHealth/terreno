@@ -1,5 +1,3 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import {assert} from "chai";
 import express from "express";
@@ -53,7 +51,7 @@ const authedOptions = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<IndexTodo>;
 
 describe("ensureSyncIndexes (C8)", () => {
   beforeEach(() => {
@@ -68,7 +66,7 @@ describe("ensureSyncIndexes (C8)", () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoOk");
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosOk",
     });
@@ -78,14 +76,14 @@ describe("ensureSyncIndexes (C8)", () => {
   it("defers snapshot index creation until startup ensures indexes", async () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoDeferred");
     let createIndexCalls = 0;
-    (IndexTodoModel.collection as any).createIndex = async () => {
+    IndexTodoModel.collection.createIndex = async (): Promise<string> => {
       createIndexCalls += 1;
       return "ownerId_1__syncSeq_1";
     };
 
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosDeferred",
     });
@@ -99,12 +97,12 @@ describe("ensureSyncIndexes (C8)", () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoFail");
     const sentinel = new Error("boom-sentinel-snapshot-index");
     // Force the collection's createIndex to reject, simulating a DB/schema failure.
-    (IndexTodoModel.collection as any).createIndex = async () => {
+    IndexTodoModel.collection.createIndex = async (): Promise<string> => {
       throw sentinel;
     };
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosFail",
     });
@@ -163,7 +161,7 @@ describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
   it("rejects with an actionable error when a bookkeeping index build fails", async () => {
     const originalEnsure = SyncMutation.ensureIndexes.bind(SyncMutation);
     const sentinel = new Error("boom-sentinel-mutation-index");
-    (SyncMutation as any).ensureIndexes = async () => {
+    SyncMutation.ensureIndexes = async (): Promise<void> => {
       throw sentinel;
     };
     try {
@@ -179,7 +177,7 @@ describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
       expect(apiError.message).not.toContain(sentinel.message);
       expect(apiError.detail).toContain(sentinel.message);
     } finally {
-      (SyncMutation as any).ensureIndexes = originalEnsure;
+      SyncMutation.ensureIndexes = originalEnsure;
     }
   });
 });
