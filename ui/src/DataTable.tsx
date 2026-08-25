@@ -1,6 +1,6 @@
 import {FontAwesome6} from "@expo/vector-icons";
 import type React from "react";
-import {type FC, memo, useCallback, useMemo, useRef, useState} from "react";
+import {type FC, memo, useCallback, useLayoutEffect, useMemo, useRef, useState} from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -41,6 +41,7 @@ import {
 const DATA_TABLE_INITIAL_NUM_TO_RENDER = 15;
 const DATA_TABLE_MAX_TO_RENDER_PER_BATCH = 10;
 const DATA_TABLE_WINDOW_SIZE = 5;
+const DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS = 50;
 
 const TextCell: FC<{
   cellData: DataTableCellData;
@@ -493,7 +494,9 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
   const bodyListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
   const pinnedListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
   const moreListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
+  const bodyScrollYRef = useRef(0);
   const isVerticalScrollSyncingRef = useRef(false);
+  const verticalScrollSyncReleaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const moreColumnOffset = MoreContentContent ? 48 : 0;
   const scrollableWidth = useMemo(
@@ -541,6 +544,16 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
     ]
   );
 
+  const scheduleVerticalScrollSyncRelease = useCallback((): void => {
+    if (verticalScrollSyncReleaseTimeoutRef.current) {
+      clearTimeout(verticalScrollSyncReleaseTimeoutRef.current);
+    }
+    verticalScrollSyncReleaseTimeoutRef.current = setTimeout(() => {
+      isVerticalScrollSyncingRef.current = false;
+      verticalScrollSyncReleaseTimeoutRef.current = null;
+    }, DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS);
+  }, []);
+
   const syncVerticalScroll = useCallback(
     (scrollY: number, source: "body" | "pinned" | "more"): void => {
       if (isVerticalScrollSyncingRef.current) {
@@ -556,28 +569,50 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
       if (source !== "more") {
         moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
       }
-      isVerticalScrollSyncingRef.current = false;
+      scheduleVerticalScrollSyncRelease();
     },
-    []
+    [scheduleVerticalScrollSyncRelease]
   );
+
+  const syncSatelliteListsToBodyOffset = useCallback((): void => {
+    const scrollY = bodyScrollYRef.current;
+    if (scrollY <= 0) {
+      return;
+    }
+    isVerticalScrollSyncingRef.current = true;
+    pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    scheduleVerticalScrollSyncRelease();
+  }, [scheduleVerticalScrollSyncRelease]);
+
+  // Pinned/more FlatLists mount at offset 0; align them with the body list's current scroll position.
+  useLayoutEffect(() => {
+    syncSatelliteListsToBodyOffset();
+  }, [MoreContentContent, pinnedColumns, syncSatelliteListsToBodyOffset]);
 
   const handleBodyVerticalScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
-      syncVerticalScroll(event.nativeEvent.contentOffset.y, "body");
+      const scrollY = event.nativeEvent.contentOffset.y;
+      bodyScrollYRef.current = scrollY;
+      syncVerticalScroll(scrollY, "body");
     },
     [syncVerticalScroll]
   );
 
   const handlePinnedVerticalScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
-      syncVerticalScroll(event.nativeEvent.contentOffset.y, "pinned");
+      const scrollY = event.nativeEvent.contentOffset.y;
+      bodyScrollYRef.current = scrollY;
+      syncVerticalScroll(scrollY, "pinned");
     },
     [syncVerticalScroll]
   );
 
   const handleMoreVerticalScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
-      syncVerticalScroll(event.nativeEvent.contentOffset.y, "more");
+      const scrollY = event.nativeEvent.contentOffset.y;
+      bodyScrollYRef.current = scrollY;
+      syncVerticalScroll(scrollY, "more");
     },
     [syncVerticalScroll]
   );

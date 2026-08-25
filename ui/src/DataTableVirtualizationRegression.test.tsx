@@ -84,6 +84,96 @@ describe("DataTable virtualization regression coverage", () => {
     assert.throws(() => result.getByTestId(`${ROW_TEST_ID_BASE}-${LARGE_ROW_COUNT - 1}`));
   });
 
+  it("does not feedback-loop when syncing vertical scroll between body and pinned lists", () => {
+    const data = buildLargeData(LARGE_ROW_COUNT);
+    const result = render(
+      <ThemeProvider>
+        <DataTable columns={columns} data={data} pinnedColumns={1} rowHeight={ROW_HEIGHT} />
+      </ThemeProvider>
+    );
+
+    const flatLists = result.UNSAFE_getAllByType(FlatList);
+    const bodyList = flatLists.find((list) => list.props.showsVerticalScrollIndicator === true);
+    const pinnedList = flatLists.find((list) => list.props.showsVerticalScrollIndicator === false);
+    assert.exists(bodyList);
+    assert.exists(pinnedList);
+
+    const bodyRef = (
+      bodyList as {props: {ref?: React.RefObject<{scrollToOffset?: (opts: {offset: number}) => void}>}}
+    ).props.ref?.current;
+    const pinnedRef = (
+      pinnedList as {props: {ref?: React.RefObject<{scrollToOffset?: (opts: {offset: number}) => void}>}}
+    ).props.ref?.current;
+    assert.exists(bodyRef?.scrollToOffset);
+    assert.exists(pinnedRef?.scrollToOffset);
+
+    const bodyScrollToOffsetCalls: number[] = [];
+    const pinnedScrollToOffsetCalls: number[] = [];
+    const originalBodyScrollToOffset = bodyRef!.scrollToOffset!.bind(bodyRef);
+    const originalPinnedScrollToOffset = pinnedRef!.scrollToOffset!.bind(pinnedRef);
+
+    bodyRef!.scrollToOffset = (opts: {offset: number}) => {
+      bodyScrollToOffsetCalls.push(opts.offset);
+      originalBodyScrollToOffset(opts);
+    };
+    pinnedRef!.scrollToOffset = (opts: {offset: number}) => {
+      pinnedScrollToOffsetCalls.push(opts.offset);
+      originalPinnedScrollToOffset(opts);
+    };
+
+    const scrollY = ROW_HEIGHT * 10;
+    act((): void => {
+      bodyList!.props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: scrollY}}});
+    });
+
+    assert.deepEqual(pinnedScrollToOffsetCalls, [scrollY]);
+    assert.deepEqual(bodyScrollToOffsetCalls, []);
+  });
+
+  it("aligns pinned list to body scroll offset when pinned columns mount", () => {
+    const data = buildLargeData(LARGE_ROW_COUNT);
+    const distantRowIndex = 500;
+
+    const TableProbe: React.FC = () => {
+      const [pinnedColumns, setPinnedColumns] = useState(0);
+
+      return (
+        <ThemeProvider>
+          <DataTable
+            columns={columns}
+            data={data}
+            getRowTestID={(_, rowIndex) => rowIndex}
+            pinnedColumns={pinnedColumns}
+            rowHeight={ROW_HEIGHT}
+            testIDs={{row: ROW_TEST_ID_BASE}}
+          />
+          <Pressable onPress={() => setPinnedColumns(1)} testID="enable-pinned">
+            <View />
+          </Pressable>
+        </ThemeProvider>
+      );
+    };
+
+    const result = render(<TableProbe />);
+    const bodyList = result.UNSAFE_getAllByType(FlatList).find(
+      (list) => list.props.showsVerticalScrollIndicator === true
+    );
+    assert.exists(bodyList);
+
+    act((): void => {
+      bodyList!.props.ref?.current?.scrollToIndex?.({animated: false, index: distantRowIndex});
+    });
+    assert.throws(() => result.getByText("Row 1"));
+    assert.exists(result.getByText(`Row ${distantRowIndex + 1}`));
+
+    act((): void => {
+      fireEvent.press(result.getByTestId("enable-pinned"));
+    });
+
+    assert.throws(() => result.getByText("Row 1"));
+    assert.exists(result.getByText(`Row ${distantRowIndex + 1}`));
+  });
+
   it("renders changed row values after scrolling to a distant index", () => {
     const baseline = buildLargeData(LARGE_ROW_COUNT);
     const changed = baseline.map((row, rowIndex) =>
