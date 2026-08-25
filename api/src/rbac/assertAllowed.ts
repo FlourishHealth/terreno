@@ -12,7 +12,7 @@ export interface AssertAllowedArgs<T> {
   doc?: T;
 }
 
-const throwAccessDenied = ({
+function throwAccessDenied({
   status,
   title,
   detail,
@@ -20,13 +20,13 @@ const throwAccessDenied = ({
   status: 403 | 405;
   title: string;
   detail?: string;
-}): void => {
+}): never {
   throw new APIError({
     detail,
     status,
     title,
   });
-};
+}
 
 const assertAllowedViaAccess = async <T>({
   method,
@@ -60,7 +60,10 @@ const assertAllowedViaAccess = async <T>({
     });
   }
 
-  if (access.scope?.check && user) {
+  if (access.scope?.check) {
+    if (!user) {
+      throwAccessDenied({status: 403, title: "Access denied"});
+    }
     const scopeResult = await access.scope.check({
       action,
       doc,
@@ -139,7 +142,10 @@ export const assertAllowed = async <T>({
   }
 
   if (!options.permissions) {
-    throw new Error("modelRouter requires permissions or access with accessControl");
+    throw new APIError({
+      status: 500,
+      title: "modelRouter requires permissions or access with accessControl",
+    });
   }
 
   await assertAllowedViaPermissions({

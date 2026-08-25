@@ -198,4 +198,128 @@ describe("assertAllowed", () => {
       })
     ).rejects.toMatchObject({status: 403});
   });
+
+  it("throws 500 when neither access nor permissions are configured", async () => {
+    await expect(
+      assertAllowed({
+        method: "create",
+        options: {},
+        user: createUser(),
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      title: "modelRouter requires permissions or access with accessControl",
+    });
+  });
+
+  it("denies when scope.check returns false", async () => {
+    const user = createUser();
+    const can = mock(async () => ({allowed: true}));
+    const scopeCheck = mock(async () => false);
+    const accessControl = {
+      can,
+      statements: appStatements,
+    } as unknown as AnyTerrenoAccess;
+
+    await expect(
+      assertAllowed({
+        method: "read",
+        options: {
+          access: {
+            resource: "todo",
+            scope: {check: scopeCheck},
+          },
+          accessControl,
+          permissions: fullLegacyPermissions,
+        },
+        user,
+      })
+    ).rejects.toMatchObject({status: 403, title: "Access denied"});
+
+    expect(scopeCheck).toHaveBeenCalled();
+  });
+
+  it("denies when scope.check requires extra permissions that can() rejects", async () => {
+    const user = createUser();
+    const can = mock(async ({permissions}) => {
+      const todoPerms = (permissions as {todo?: string[]}).todo ?? [];
+      if (todoPerms.includes("admin")) {
+        return {allowed: false, reason: "Missing admin"};
+      }
+      return {allowed: true};
+    });
+    const scopeCheck = mock(async () => ({todo: ["admin"]}));
+    const accessControl = {
+      can,
+      statements: appStatements,
+    } as unknown as AnyTerrenoAccess;
+
+    await expect(
+      assertAllowed({
+        method: "read",
+        options: {
+          access: {
+            resource: "todo",
+            scope: {check: scopeCheck},
+          },
+          accessControl,
+          permissions: fullLegacyPermissions,
+        },
+        user,
+      })
+    ).rejects.toMatchObject({
+      detail: "Missing admin",
+      status: 403,
+      title: "Access denied",
+    });
+  });
+
+  it("denies scope when user is missing even if can() allows anonymous access", async () => {
+    const can = mock(async () => ({allowed: true}));
+    const scopeCheck = mock(async () => true);
+    const accessControl = {
+      can,
+      statements: appStatements,
+    } as unknown as AnyTerrenoAccess;
+
+    await expect(
+      assertAllowed({
+        method: "read",
+        options: {
+          access: {
+            resource: "todo",
+            scope: {check: scopeCheck},
+          },
+          accessControl,
+          permissions: fullLegacyPermissions,
+        },
+      })
+    ).rejects.toMatchObject({status: 403, title: "Access denied"});
+
+    expect(scopeCheck).not.toHaveBeenCalled();
+  });
+
+  it("enforces access.also legacy permission checks", async () => {
+    const user = createUser();
+    const can = mock(async () => ({allowed: true}));
+    const accessControl = {
+      can,
+      statements: appStatements,
+    } as unknown as AnyTerrenoAccess;
+
+    await expect(
+      assertAllowed({
+        method: "create",
+        options: {
+          access: {
+            also: {create: [Permissions.IsAdmin]},
+            resource: "todo",
+          },
+          accessControl,
+          permissions: fullLegacyPermissions,
+        },
+        user,
+      })
+    ).rejects.toMatchObject({status: 405});
+  });
 });
