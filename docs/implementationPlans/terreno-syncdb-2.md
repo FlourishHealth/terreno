@@ -1,6 +1,9 @@
 # SyncDB Hardening Plan (terreno-syncdb-2)
 
-**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1081
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1081  
+**Status:** Complete  
+**Parent IP:** [syncdb-local-first.md](syncdb-local-first.md) — this plan hardens that IP and shares its roadmap issue
+
 Implementation plan for hardening PR #869 (`@terreno/syncdb` local-first data layer,
 branch `worktree-ip-syncdb`). This plan is self-contained: it restates each defect,
 the exact fix, the files involved, and the tests that prove it. Work happens on a

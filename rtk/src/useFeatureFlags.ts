@@ -1,14 +1,10 @@
-import type {Api, BaseQueryFn} from "@reduxjs/toolkit/query/react";
 import {DateTime} from "luxon";
 import {useCallback, useEffect, useMemo, useRef} from "react";
-import {useTerrenoFeatureFlags} from "./useTerrenoFeatureFlags";
+import {type FlagsApi, useTerrenoFeatureFlags} from "./useTerrenoFeatureFlags";
 
 interface FlagValues {
   [key: string]: boolean | string | null;
 }
-
-/** Consumer RTK Query API with type-erased endpoint definitions (same pattern as admin-frontend). */
-type FlagsApi = Api<BaseQueryFn<unknown, unknown, unknown>, Record<string, never>, string, string>;
 
 interface UseFeatureFlagsResult {
   error: unknown;

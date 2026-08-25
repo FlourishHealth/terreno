@@ -1,5 +1,5 @@
 import {NOOP_PROVIDER, OpenFeature, TypedInMemoryProvider} from "@openfeature/web-sdk";
-import type {Api, BaseQueryFn} from "@reduxjs/toolkit/query/react";
+import type {Api, BaseQueryFn, EndpointDefinitions} from "@reduxjs/toolkit/query/react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 
 /** Shape returned by `GET .../flagConfiguration` (OpenFeature static flag map). */
@@ -34,12 +34,30 @@ export interface UseTerrenoFeatureFlagsResult {
   refetch: () => unknown;
 }
 
-/** Consumer RTK Query API with type-erased endpoint definitions (same pattern as admin-frontend). */
-type FlagsApi = Api<BaseQueryFn<unknown, unknown, unknown>, Record<string, never>, string, string>;
+/** Any consumer RTK Query API the flag endpoint can be injected into. */
+export type FlagsApi = Api<BaseQueryFn, EndpointDefinitions, string, string>;
 
-// noExplicitAny: injectEndpoints adds useTerrenoFlagConfigurationQuery at runtime; RTK's UseQuery hook generic is not expressible from the erased FlagsApi base type
-// biome-ignore lint/suspicious/noExplicitAny: injectEndpoints adds useTerrenoFlagConfigurationQuery at runtime; RTK's UseQuery hook generic is not expressible from the erased FlagsApi base type
-type EnhancedTerrenoFlagsApi = FlagsApi & {useTerrenoFlagConfigurationQuery: any};
+/** The subset of the injected query hook's result this hook consumes. */
+interface TerrenoFlagConfigurationQueryResult {
+  data?: TerrenoFlagConfiguration;
+  error: unknown;
+  isError: boolean;
+  isFetching: boolean;
+  isLoading: boolean;
+  isSuccess: boolean;
+  refetch: () => unknown;
+}
+
+/**
+ * `useTerrenoFlagConfigurationQuery`, declared structurally: RTK Query injects it onto the
+ * API object at runtime, so it is invisible to the consumer API's static type.
+ */
+type EnhancedTerrenoFlagsApi = FlagsApi & {
+  useTerrenoFlagConfigurationQuery: (
+    arg: {cacheKey: string},
+    options?: {skip?: boolean}
+  ) => TerrenoFlagConfigurationQueryResult;
+};
 
 const enhancedApiCache = new WeakMap<FlagsApi, Map<string, EnhancedTerrenoFlagsApi>>();
 
