@@ -10,7 +10,7 @@
 import type {Model} from "mongoose";
 
 import type {ModelRouterOptions} from "../api";
-import {APIError} from "../errors";
+import {APIError, errorDetail} from "../errors";
 import {logger} from "../logger";
 import {getScopeField} from "./streams";
 import type {SyncConfig} from "./types";
@@ -112,7 +112,7 @@ export const applySyncRegistrationSideEffects = <T>({
       throw new APIError({
         cause: error,
         code: "sync-snapshot-index-failed",
-        detail: `${String(error)}. The snapshot/catch-up query requires this index; fix the schema/DB and restart.`,
+        detail: `${errorDetail(error)}. The snapshot/catch-up query requires this index; fix the schema/DB and restart.`,
         status: 500,
         title: `Failed to create sync snapshot index for ${name}`,
       });

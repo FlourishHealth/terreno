@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import {DateTime} from "luxon";
 import mongoose, {type ClientSession, type Model, Schema} from "mongoose";
-import {APIError} from "../errors";
+import {APIError, errorDetail} from "../errors";
 import {logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
 
@@ -628,7 +628,7 @@ export const ensureSyncModelIndexes = async (): Promise<void> => {
           cause: error,
           code: "sync-indexes-failed",
           detail:
-            `${String(error)}. The sync protocol depends on these indexes (unique mutationId for ` +
+            `${errorDetail(error)}. The sync protocol depends on these indexes (unique mutationId for ` +
             "mutation idempotency, unique stream for seq allocation); fix the DB and restart.",
           status: 500,
           title: `Failed to ensure sync indexes for ${model.modelName}`,
