@@ -107,7 +107,10 @@
       "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./dist/*": "./dist/*",
+    "./dist/*": {
+      "default": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    },
     "./*": {
       "default": "./dist/*.js",
       "types": "./dist/*.d.ts"
