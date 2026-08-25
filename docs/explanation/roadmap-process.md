@@ -130,7 +130,7 @@ When an answer repeats, maintainers turn it into a how-to doc via PR.
 MCP server setup, Cursor/Claude skills, and agent-driven workflows.
 
 - MCP package: [`mcp-server/`](https://github.com/FlourishHealth/terreno/tree/master/mcp-server) and hosted `terreno-mcp`.
-- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored to `.cursor/`, `.claude/`, etc.).
+- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored into editor-specific copies).
 - Terreno planning plugin: [`plugins/terreno-planning/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning).
 
 General feature ideas → **Ideas**. Doc typos → **Docs feedback** or a docs PR.

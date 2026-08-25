@@ -5,15 +5,137 @@ import {fileURLToPath} from "node:url";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const WEBSITE_ROOT = resolve(SCRIPT_DIR, "..");
 const REPO_ROOT = resolve(WEBSITE_ROOT, "..");
-const TYPES_PATH = join(REPO_ROOT, "demo/ui-types-documentation.json");
 const STORY_CONFIG_DIR = join(REPO_ROOT, "demo/story-config");
 
-interface DriftItem {
+export interface DriftItem {
   severity: "error" | "warning";
   message: string;
 }
 
-const issues: DriftItem[] = [];
+export const INTERNAL_LEAKAGE_REGEX =
+  /\.cursor\/rules|\.claude\/rules|\.claude\/skills|\.cursor\/skills|flourish-terreno|flourish-backend|mcp\.terreno\.flourish\.health|a\.run\.app|\bPRO-\d+\b|\bFH-\d+\b/gi;
+
+export const parsePublishWorkingDirectories = (yaml: string): string[] => {
+  const matches = [...yaml.matchAll(/working-directory:\s*([A-Za-z0-9._-]+)/g)];
+  return [...new Set(matches.map((match) => match[1]))].sort();
+};
+
+export const referencePageForPackage = (packageDir: string): string => {
+  if (packageDir === "rtk") {
+    return "docs/reference/legacy/rtk.md";
+  }
+  if (packageDir === "mcp-server") {
+    return "docs/reference/mcp-server.md";
+  }
+  return `docs/reference/${packageDir}.md`;
+};
+
+export const isNonStubReadme = (contents: string): boolean => {
+  const lineCount = contents.split(/\r?\n/).length;
+  return lineCount >= 30 && /^## Install(ation)?\b/m.test(contents);
+};
+
+export const findInternalLeakageHits = (contents: string): string[] => {
+  const hits = contents.match(INTERNAL_LEAKAGE_REGEX) ?? [];
+  return [...new Set(hits.map((hit) => hit.toLowerCase()))];
+};
+
+const walkMarkdownFiles = (dir: string, collected: string[]): void => {
+  if (!existsSync(dir)) {
+    return;
+  }
+  for (const entry of readdirSync(dir, {withFileTypes: true})) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "implementationPlans" || entry.name === "tasks") {
+        continue;
+      }
+      walkMarkdownFiles(fullPath, collected);
+      continue;
+    }
+    if (entry.name.endsWith(".md")) {
+      collected.push(fullPath);
+    }
+  }
+};
+
+export const collectPublicDocPaths = (repoRoot: string): string[] => {
+  const paths: string[] = [];
+  for (const section of ["reference", "how-to", "tutorials", "explanation"]) {
+    walkMarkdownFiles(join(repoRoot, "docs", section), paths);
+  }
+  const docsReadme = join(repoRoot, "docs/README.md");
+  if (existsSync(docsReadme)) {
+    paths.push(docsReadme);
+  }
+  const rootReadme = join(repoRoot, "README.md");
+  if (existsSync(rootReadme)) {
+    paths.push(rootReadme);
+  }
+  return paths;
+};
+
+export const checkPublishedPackageDocs = ({
+  repoRoot,
+  packageDirs,
+}: {
+  packageDirs: string[];
+  repoRoot: string;
+}): DriftItem[] => {
+  const issues: DriftItem[] = [];
+  for (const packageDir of packageDirs) {
+    const readmePath = join(repoRoot, packageDir, "README.md");
+    if (!existsSync(readmePath)) {
+      issues.push({
+        message: `Published package ${packageDir} is missing README.md`,
+        severity: "error",
+      });
+    } else {
+      const contents = readFileSync(readmePath, "utf8");
+      if (!isNonStubReadme(contents)) {
+        issues.push({
+          message: `Published package ${packageDir} has a stub README.md (need ≥30 lines and an ## Install heading)`,
+          severity: "error",
+        });
+      }
+    }
+    const referenceRel = referencePageForPackage(packageDir);
+    if (!existsSync(join(repoRoot, referenceRel))) {
+      issues.push({
+        message: `Published package ${packageDir} is missing ${referenceRel}`,
+        severity: "error",
+      });
+    }
+  }
+  return issues;
+};
+
+export const checkInternalLeakage = ({
+  filePaths,
+  repoRoot,
+}: {
+  filePaths: string[];
+  repoRoot: string;
+}): DriftItem[] => {
+  const issues: DriftItem[] = [];
+  for (const filePath of filePaths) {
+    if (!existsSync(filePath)) {
+      continue;
+    }
+    const hits = findInternalLeakageHits(readFileSync(filePath, "utf8"));
+    if (hits.length === 0) {
+      continue;
+    }
+    const relative = filePath.startsWith(repoRoot)
+      ? filePath.slice(repoRoot.length + 1)
+      : filePath;
+    issues.push({
+      message: `Internal leakage in ${relative}: ${hits.join(", ")}`,
+      severity: "error",
+    });
+  }
+  return issues;
+};
 
 const readMultilineString = (block: string, field: string): string | undefined => {
   const inline = block.match(new RegExp(`${field}:\\s*"((?:\\\\.|[^"\\\\])*)"`));
@@ -45,13 +167,18 @@ const parseStoryConfigs = (): {name: string; interfaceName: string}[] =>
     })
     .filter((entry): entry is {name: string; interfaceName: string} => Boolean(entry));
 
-const main = (): void => {
-  if (!existsSync(TYPES_PATH)) {
-    issues.push({message: `Missing ${TYPES_PATH}. Run cd ui && bun run types.`, severity: "error"});
+export const runDocsAudit = (repoRoot = REPO_ROOT): DriftItem[] => {
+  const issues: DriftItem[] = [];
+  const typesPath = join(repoRoot, "demo/ui-types-documentation.json");
+  if (!existsSync(typesPath)) {
+    issues.push({
+      message: `Missing ${typesPath}. Run cd ui && bun run types.`,
+      severity: "error",
+    });
   }
 
-  const typedoc = existsSync(TYPES_PATH)
-    ? (JSON.parse(readFileSync(TYPES_PATH, "utf8")) as {
+  const typedoc = existsSync(typesPath)
+    ? (JSON.parse(readFileSync(typesPath, "utf8")) as {
         children?: {children?: {name: string; children?: unknown[]}[]}[];
       })
     : undefined;
@@ -63,24 +190,48 @@ const main = (): void => {
     ])
   );
 
-  for (const entry of parseStoryConfigs()) {
-    const storyFile = join(REPO_ROOT, `demo/stories/${entry.name.replace(/\s+/g, "")}.stories.tsx`);
-    if (!existsSync(storyFile)) {
-      issues.push({
-        message: `Component "${entry.name}" is missing a demo story at demo/stories/${entry.name.replace(/\s+/g, "")}.stories.tsx`,
-        severity: "warning",
-      });
-    }
+  const storyConfigDir = join(repoRoot, "demo/story-config");
+  if (existsSync(storyConfigDir)) {
+    for (const entry of parseStoryConfigs()) {
+      const storyFile = join(
+        repoRoot,
+        `demo/stories/${entry.name.replace(/\s+/g, "")}.stories.tsx`
+      );
+      if (!existsSync(storyFile)) {
+        issues.push({
+          message: `Component "${entry.name}" is missing a demo story at demo/stories/${entry.name.replace(/\s+/g, "")}.stories.tsx`,
+          severity: "warning",
+        });
+      }
 
-    const propCount = interfaces.get(entry.interfaceName) ?? 0;
-    if (propCount === 0) {
-      issues.push({
-        message: `Interface ${entry.interfaceName} (${entry.name}) has no TypeDoc props extracted.`,
-        severity: "warning",
-      });
+      const propCount = interfaces.get(entry.interfaceName) ?? 0;
+      if (propCount === 0) {
+        issues.push({
+          message: `Interface ${entry.interfaceName} (${entry.name}) has no TypeDoc props extracted.`,
+          severity: "warning",
+        });
+      }
     }
   }
 
+  const publishYamlPath = join(repoRoot, ".github/workflows/publish-on-tag.yml");
+  const packageDirs = existsSync(publishYamlPath)
+    ? parsePublishWorkingDirectories(readFileSync(publishYamlPath, "utf8"))
+    : [];
+  issues.push(...checkPublishedPackageDocs({packageDirs, repoRoot}));
+
+  const leakageFiles = collectPublicDocPaths(repoRoot);
+  for (const packageDir of packageDirs) {
+    leakageFiles.push(join(repoRoot, packageDir, "README.md"));
+  }
+  leakageFiles.push(join(repoRoot, "demo/README.md"), join(repoRoot, "website/README.md"));
+  issues.push(...checkInternalLeakage({filePaths: leakageFiles, repoRoot}));
+
+  return issues;
+};
+
+const main = (): void => {
+  const issues = runDocsAudit();
   if (issues.length === 0) {
     console.info("Docs audit passed — no drift detected.");
     return;
@@ -94,4 +245,6 @@ const main = (): void => {
   process.exit(hasErrors ? 1 : 0);
 };
 
-main();
+if (import.meta.main) {
+  main();
+}
