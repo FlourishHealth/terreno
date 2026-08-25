@@ -35,6 +35,22 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("unbounded waiting/loop")));
   });
 
+  it("rejects Taste without a no-push emit path", (): void => {
+    const errors = validateStageContent({
+      content: readStage("terreno-5-taste").replace(
+        "If step 8 did not push",
+        "After step 8 pushed"
+      ),
+      definition: {
+        directory: "terreno-5-taste",
+        nextMarkers: ["next: taste", "next: null"],
+        stage: "taste",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("emit path when no fix was pushed")));
+  });
+
   it("rejects Brew that exits while review bots are running", (): void => {
     const content = readStage("terreno-4-brew")
       .replace("../../references/async-review-bots.md", "missing-bots")

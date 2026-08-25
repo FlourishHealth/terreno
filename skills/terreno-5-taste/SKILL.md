@@ -72,8 +72,9 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 10. **Default to silence.** Never post progress, thanks, readiness, CI, or PR-summary
     comments. Use an existing review thread when possible. A top-level comment is allowed
     only for one blocking human decision/action not already visible in the PR body.
-11. **Emit and exit.** Do this only after step 8's post-push review-bot wait and at
-    most one follow-up act on those results.
+11. **Emit and exit.** If step 8 pushed, do this only after its post-push review-bot
+    wait and at most one follow-up act on those results. If step 8 did not push, emit
+    after the initial observe/act path.
    - All checks terminal/non-failing, no conflicts, no actionable reviews → `PASS`.
    - No safe current action because of human/access/external/environment gate →
      `BLOCKED`.

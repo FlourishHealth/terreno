@@ -215,6 +215,9 @@ export const validateStageContent = ({
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
+    if (!content.includes("If step 8 did not push")) {
+      errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
+    }
     for (const pattern of TASTE_UNBOUNDED_LOOP_PATTERNS) {
       if (pattern.test(content)) {
         errors.push(
