@@ -161,6 +161,7 @@
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "performance:p0": "RUN_UI_P0_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P0RenderPerformance.test.tsx",
     "performance:p1": "bun run compile && RUN_UI_P1_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P1RenderPerformance.test.tsx",
+    "performance:datatable-virtual": "bun run compile && RUN_UI_DATATABLE_VIRTUAL_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/DataTableVirtualizationPerformance.test.tsx",
     "test": "TZ=America/New_York bun test --watch",
     "test:agent": "AGENT=1 TZ=America/New_York bun test --only-failures",
     "test:ci": "TZ=America/New_York bun test",

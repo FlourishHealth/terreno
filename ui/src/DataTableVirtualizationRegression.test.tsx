@@ -1,0 +1,136 @@
+import {act, fireEvent, render} from "@testing-library/react-native";
+import {assert} from "chai";
+import type React from "react";
+import {useState} from "react";
+import {FlatList, Pressable, View} from "react-native";
+
+import type {DataTableCellData, DataTableColumn} from "./Common";
+import {DataTable} from "./DataTable";
+import {ThemeProvider} from "./Theme";
+
+const LARGE_ROW_COUNT = 1000;
+const ROW_TEST_ID_BASE = "virtual-table.row";
+const ROW_HEIGHT = 54;
+const VIEWPORT_BOUNDED_ROW_THRESHOLD = 80;
+
+const columns: DataTableColumn[] = [
+  {columnType: "text", sortable: true, title: "Name", width: 150},
+  {columnType: "text", title: "Age", width: 100},
+  {columnType: "boolean", title: "Active", width: 100},
+];
+
+const buildLargeData = (size: number): DataTableCellData[][] =>
+  Array.from({length: size}, (_, rowIndex) => [
+    {value: `Row ${rowIndex + 1}`},
+    {value: String(rowIndex + 20)},
+    {value: rowIndex % 2 === 0},
+  ]);
+
+const countRowTestIDs = (getByTestId: (id: string) => unknown, size: number): number => {
+  let count = 0;
+  for (let rowIndex = 0; rowIndex < size; rowIndex += 1) {
+    try {
+      getByTestId(`${ROW_TEST_ID_BASE}-${rowIndex}`);
+      count += 1;
+    } catch {
+      // Row is not mounted in the virtualized viewport.
+    }
+  }
+  return count;
+};
+
+describe("DataTable virtualization regression coverage", () => {
+  it("keeps mounted rows viewport-bounded for unpinned large tables", () => {
+    const data = buildLargeData(LARGE_ROW_COUNT);
+    const result = render(
+      <ThemeProvider>
+        <DataTable
+          columns={columns}
+          data={data}
+          getRowTestID={(_, rowIndex) => rowIndex}
+          rowHeight={ROW_HEIGHT}
+          testID="virtual-table"
+          testIDs={{row: ROW_TEST_ID_BASE}}
+        />
+      </ThemeProvider>
+    );
+
+    const mountedRowCount = countRowTestIDs(result.getByTestId, LARGE_ROW_COUNT);
+    assert.isBelow(mountedRowCount, VIEWPORT_BOUNDED_ROW_THRESHOLD);
+    assert.isBelow(mountedRowCount, LARGE_ROW_COUNT);
+    assert.exists(result.getByTestId(`${ROW_TEST_ID_BASE}-0`));
+    assert.throws(() => result.getByTestId(`${ROW_TEST_ID_BASE}-${LARGE_ROW_COUNT - 1}`));
+  });
+
+  it("keeps mounted rows viewport-bounded for pinned large tables", () => {
+    const data = buildLargeData(LARGE_ROW_COUNT);
+    const result = render(
+      <ThemeProvider>
+        <DataTable
+          columns={columns}
+          data={data}
+          getRowTestID={(_, rowIndex) => rowIndex}
+          pinnedColumns={1}
+          rowHeight={ROW_HEIGHT}
+          testID="virtual-table"
+          testIDs={{row: ROW_TEST_ID_BASE}}
+        />
+      </ThemeProvider>
+    );
+
+    const mountedRowCount = countRowTestIDs(result.getByTestId, LARGE_ROW_COUNT);
+    assert.isBelow(mountedRowCount, VIEWPORT_BOUNDED_ROW_THRESHOLD);
+    assert.exists(result.getByTestId(`${ROW_TEST_ID_BASE}-0`));
+    assert.throws(() => result.getByTestId(`${ROW_TEST_ID_BASE}-${LARGE_ROW_COUNT - 1}`));
+  });
+
+  it("renders changed row values after scrolling to a distant index", () => {
+    const baseline = buildLargeData(LARGE_ROW_COUNT);
+    const changed = baseline.map((row, rowIndex) =>
+      rowIndex === 500 ? [{value: "Updated 500"}, ...row.slice(1)] : row
+    );
+
+    const ScrollProbe: React.FC = () => {
+      const [data, setData] = useState(baseline);
+
+      return (
+        <ThemeProvider>
+          <DataTable
+            columns={columns}
+            data={data}
+            getRowTestID={(_, rowIndex) => rowIndex}
+            rowHeight={ROW_HEIGHT}
+            testID="virtual-table"
+            testIDs={{row: ROW_TEST_ID_BASE}}
+          />
+          <Pressable onPress={() => setData(changed)} testID="apply-change">
+            <View />
+          </Pressable>
+        </ThemeProvider>
+      );
+    };
+
+    const result = render(<ScrollProbe />);
+    const flatLists = result.UNSAFE_getAllByType(FlatList);
+    const bodyList = flatLists.find((list) => list.props.getItemLayout !== undefined);
+    assert.exists(bodyList);
+
+    const listRef = (bodyList as {props: {ref?: React.RefObject<FlatList>}}).props.ref?.current as
+      | {
+          scrollToIndex?: (options: {animated?: boolean; index: number}) => void;
+        }
+      | undefined;
+    assert.exists(listRef?.scrollToIndex);
+
+    act((): void => {
+      listRef?.scrollToIndex?.({animated: false, index: 500});
+    });
+    act((): void => {
+      fireEvent.press(result.getByTestId("apply-change"));
+    });
+
+    assert.exists(result.getByTestId(`${ROW_TEST_ID_BASE}-500`));
+    assert.exists(result.getByText("Updated 500"));
+    assert.throws(() => result.getByText("Row 501"));
+  });
+});

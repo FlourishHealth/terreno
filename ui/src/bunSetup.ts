@@ -45,6 +45,182 @@ const rnGlobals = globalThis as typeof globalThis & {
 rnGlobals.__DEV__ = true;
 rnGlobals.__BUNDLE_START_TIME__ = Date.now();
 
+type MockFlatListRenderItemInfo = {
+  item: unknown;
+  index: number;
+  separators: {highlight: () => void; unhighlight: () => void};
+};
+
+type MockFlatListProps = MockComponentProps & {
+  data?: unknown[];
+  renderItem?: (info: MockFlatListRenderItemInfo) => React.ReactNode;
+  keyExtractor?: (item: unknown, index: number) => string;
+  getItemLayout?: (
+    data: unknown[] | null | undefined,
+    index: number
+  ) => {length: number; offset: number; index: number};
+  initialNumToRender?: number;
+  maxToRenderPerBatch?: number;
+  windowSize?: number;
+  onScroll?: (event: {nativeEvent: {contentOffset: {x: number; y: number}}}) => void;
+};
+
+const DEFAULT_FLAT_LIST_VIEWPORT_HEIGHT = 400;
+
+const getMockFlatListRenderedRange = ({
+  dataLength,
+  itemHeight,
+  initialNumToRender,
+  scrollOffsetY,
+  viewportHeight,
+  windowSize,
+}: {
+  dataLength: number;
+  itemHeight: number;
+  initialNumToRender: number;
+  scrollOffsetY: number;
+  viewportHeight: number;
+  windowSize: number;
+}): {end: number; start: number} => {
+  if (dataLength === 0) {
+    return {end: 0, start: 0};
+  }
+
+  const visibleRowCount = Math.max(1, Math.ceil(viewportHeight / itemHeight));
+  const overscanRows = Math.max(1, Math.floor(windowSize * visibleRowCount));
+
+  if (scrollOffsetY <= 0) {
+    return {
+      end: Math.min(dataLength, initialNumToRender),
+      start: 0,
+    };
+  }
+
+  const firstVisibleRow = Math.floor(scrollOffsetY / itemHeight);
+  const start = Math.max(0, firstVisibleRow - overscanRows);
+  const end = Math.min(dataLength, firstVisibleRow + visibleRowCount + overscanRows);
+  return {end: Math.max(end, start), start};
+};
+
+const createMockFlatListScrollRef = (
+  onScroll?: MockFlatListProps["onScroll"],
+  setScrollOffsetY?: (offsetY: number) => void
+) => {
+  const scrollTo = ({x = 0, y = 0}: {animated?: boolean; x?: number; y?: number}) => {
+    setScrollOffsetY?.(y);
+    onScroll?.({
+      nativeEvent: {
+        contentOffset: {x, y},
+      },
+    });
+  };
+  const scrollToOffset = ({offset, animated: _animated}: {offset: number; animated?: boolean}) => {
+    scrollTo({y: offset});
+  };
+  const scrollToIndex = ({index, animated: _animated}: {index: number; animated?: boolean}) => {
+    scrollToOffset({offset: index * 54});
+  };
+  return {
+    scrollTo,
+    scrollToIndex,
+    scrollToOffset,
+  };
+};
+
+const createSimpleFlatList = () => {
+  return React.forwardRef(function SimpleFlatList(props: MockFlatListProps, ref) {
+    const {data, renderItem, keyExtractor, onScroll, ...restProps} = props;
+    const scrollRef = createMockFlatListScrollRef(onScroll);
+    React.useImperativeHandle(ref, () => ({
+      ...scrollRef,
+      _listRef: {_scrollRef: scrollRef},
+      _scrollRef: scrollRef,
+    }));
+
+    const separators = {highlight: () => {}, unhighlight: () => {}};
+    return React.createElement(
+      "FlatList",
+      restProps,
+      data?.map((item: unknown, index: number) => {
+        const element = renderItem?.({index, item, separators});
+        const key = keyExtractor?.(item, index) ?? String(index);
+        return React.createElement(React.Fragment, {key}, element);
+      })
+    );
+  });
+};
+
+const createVirtualizedFlatList = (): React.ForwardRefExoticComponent<
+  MockFlatListProps & React.RefAttributes<unknown>
+> =>
+  React.forwardRef(function VirtualizedFlatList(props, ref) {
+    const {
+      data,
+      renderItem,
+      keyExtractor,
+      getItemLayout,
+      initialNumToRender = 10,
+      windowSize = 21,
+      onScroll,
+      ...restProps
+    } = props;
+    const [scrollOffsetY, setScrollOffsetY] = React.useState(0);
+    const dataLength = data?.length ?? 0;
+    const itemHeight = getItemLayout?.(data, 0)?.length ?? 54;
+    const shouldVirtualize = Boolean(getItemLayout && dataLength > 100);
+    const {end, start} = shouldVirtualize
+      ? getMockFlatListRenderedRange({
+          dataLength,
+          initialNumToRender,
+          itemHeight,
+          scrollOffsetY,
+          viewportHeight: DEFAULT_FLAT_LIST_VIEWPORT_HEIGHT,
+          windowSize,
+        })
+      : {end: dataLength, start: 0};
+
+    const emitScroll = (offsetY: number): void => {
+      onScroll?.({
+        nativeEvent: {
+          contentOffset: {x: 0, y: offsetY},
+        },
+      });
+    };
+
+    const scrollRef = createMockFlatListScrollRef(onScroll, setScrollOffsetY);
+
+    React.useImperativeHandle(ref, () => ({
+      ...scrollRef,
+      _listRef: {_scrollRef: scrollRef},
+      _scrollRef: scrollRef,
+    }));
+
+    const separators = {highlight: () => {}, unhighlight: () => {}};
+    const children = data?.slice(start, end).map((item: unknown, relativeIndex: number) => {
+      const index = start + relativeIndex;
+      const element = renderItem?.({index, item, separators});
+      const key = keyExtractor?.(item, index) ?? String(index);
+      return React.createElement(React.Fragment, {key}, element);
+    });
+
+    return React.createElement("FlatList", restProps, children);
+  });
+
+const VirtualizedFlatList = createVirtualizedFlatList();
+const SimpleFlatList = createSimpleFlatList();
+
+const shouldUseVirtualizedFlatList = (props: MockFlatListProps): boolean => {
+  const dataLength = props.data?.length ?? 0;
+  return Boolean(props.getItemLayout && dataLength > 100);
+};
+
+const FlatListRouter = React.forwardRef(function FlatListRouter(props, ref) {
+  if (shouldUseVirtualizedFlatList(props)) {
+    return React.createElement(VirtualizedFlatList, {...props, ref});
+  }
+  return React.createElement(SimpleFlatList, {...props, ref});
+});
+
 // Mock react-native to avoid Flow type errors
 mock.module("react-native", () => {
   const View = ({children, style, testID, ...props}: MockComponentProps) =>
@@ -63,23 +239,7 @@ mock.module("react-native", () => {
     React.createElement("ImageBackground", props, children);
   const ActivityIndicator = (props: MockComponentProps) =>
     React.createElement("ActivityIndicator", props);
-  const FlatList = ({
-    data,
-    renderItem,
-    keyExtractor,
-    ...props
-  }: MockComponentProps & {
-    data?: unknown[];
-    renderItem?: (info: {item: unknown; index: number; separators: unknown}) => React.ReactNode;
-    keyExtractor?: (item: unknown, index: number) => string;
-  }) =>
-    React.createElement(
-      "FlatList",
-      props,
-      data?.map((item: unknown, index: number) =>
-        renderItem?.({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
-      )
-    );
+  const FlatList = FlatListRouter;
   const SectionList = (props: MockComponentProps) => React.createElement("SectionList", props);
   const KeyboardAvoidingView = ({children, ...props}: MockComponentProps) =>
     React.createElement("KeyboardAvoidingView", props, children);
@@ -1054,21 +1214,7 @@ mock.module("react-native/Libraries/Components/Switch/Switch", () => ({
 }));
 
 mock.module("react-native/Libraries/Lists/FlatList", () => ({
-  default: ({
-    data,
-    renderItem,
-    ...props
-  }: MockComponentProps & {
-    data?: unknown[];
-    renderItem?: (info: {item: unknown; index: number; separators: unknown}) => React.ReactNode;
-  }) =>
-    React.createElement(
-      "FlatList",
-      props,
-      data?.map((item: unknown, index: number) =>
-        renderItem?.({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
-      )
-    ),
+  default: FlatListRouter,
 }));
 
 mock.module("react-native/Libraries/Lists/SectionList", () => ({
