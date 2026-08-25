@@ -19,19 +19,25 @@ jobs:
     name: Regenerate ROADMAP.md
     runs-on: ubuntu-latest
     steps:
-      # Checks out with the roadmap PAT so the ROADMAP.md commit below can push:
+      # Checks out with the roadmap PAT so later git fetch/push can authenticate:
       # master requires a pull request, and the default GITHUB_TOKEN is not a
-      # bypass actor on that ruleset, so pushing with it is rejected outright.
+      # bypass actor on that ruleset. persist-credentials is false so the PAT
+      # is not stored in git config through bun install.
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          persist-credentials: false
           token: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
 
       # Concurrency waits on the triggering SHA. Reset to the branch tip so a
       # queued generate cannot commit ROADMAP.md from a stale board snapshot.
       - name: Refresh to latest branch HEAD after concurrency wait
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           git fetch origin "$GITHUB_REF_NAME"
           git reset --hard "origin/$GITHUB_REF_NAME"
+          git config --local --unset-all http.https://github.com/.extraheader
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -75,6 +81,8 @@ jobs:
         run: bun run roadmap:generate
 
       - name: Commit roadmap changes
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
           if git diff --quiet ROADMAP.md; then
             echo "ROADMAP.md unchanged"
@@ -87,4 +95,6 @@ jobs:
           # master moves while this job runs, so a first push can be rejected as
           # non-fast-forward; rebasing onto the new tip and retrying is safe
           # because this job only ever touches ROADMAP.md.
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)
+          git config --local --unset-all http.https://github.com/.extraheader

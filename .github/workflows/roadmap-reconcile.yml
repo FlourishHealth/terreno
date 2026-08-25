@@ -38,19 +38,25 @@ jobs:
     name: Advance roadmap status from implementation plans
     runs-on: ubuntu-latest
     steps:
-      # Checks out with the roadmap PAT so the commits below can push: master
-      # requires a pull request, and the default GITHUB_TOKEN is not a bypass
-      # actor on that ruleset, so pushing with it is rejected outright.
+      # Checks out with the roadmap PAT so later git fetch/push can authenticate:
+      # master requires a pull request, and the default GITHUB_TOKEN is not a
+      # bypass actor on that ruleset. persist-credentials is false so the PAT
+      # is not stored in git config through bun install.
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          persist-credentials: false
           token: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
 
       # Concurrency waits on the triggering SHA. Reset to the branch tip so a
       # queued run cannot overwrite a later reconcile or sync with stale seed.
       - name: Refresh to latest branch HEAD after concurrency wait
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           git fetch origin "$GITHUB_REF_NAME"
           git reset --hard "origin/$GITHUB_REF_NAME"
+          git config --local --unset-all http.https://github.com/.extraheader
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -97,6 +103,8 @@ jobs:
 
       - name: Commit reconciled statuses
         if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
           if git diff --quiet docs/explanation/roadmap-seed-issues.md; then
             echo "No status changes to commit"
@@ -109,7 +117,9 @@ jobs:
           # master moves while this job runs, so a first push can be rejected as
           # non-fast-forward; rebasing onto the new tip and retrying is safe
           # because this job only ever touches the seed document.
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)
+          git config --local --unset-all http.https://github.com/.extraheader
 
       - name: Push status onto the board
         if: inputs.dry_run != true
@@ -128,6 +138,8 @@ jobs:
 
       - name: Commit ROADMAP.md
         if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
           if git diff --quiet ROADMAP.md; then
             echo "ROADMAP.md unchanged"
@@ -137,4 +149,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ROADMAP.md
           git commit -m "Regenerate ROADMAP.md from the project board"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)
+          git config --local --unset-all http.https://github.com/.extraheader
