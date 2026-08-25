@@ -1,44 +1,32 @@
 import {Dimensions} from "react-native";
 
-export const mediaQuery = (): "xs" | "sm" | "md" | "lg" => {
-  const width = Dimensions.get("window").width;
-  if (width < 576) {
-    return "xs";
-  } else if (width < 768) {
-    return "sm";
-  } else if (width < 1312) {
-    return "md";
-  } else {
-    return "lg";
-  }
+import {
+  getBreakpointForWidth,
+  isBreakpointAtLeast,
+  type ResponsiveBreakpoint,
+} from "./ResponsiveBreakpoint";
+
+export const mediaQuery = (): ResponsiveBreakpoint => {
+  return getBreakpointForWidth(Dimensions.get("window").width);
 };
 
-export const mediaQueryLargerThan = (size: "xs" | "sm" | "md" | "lg"): boolean => {
+export const mediaQueryLargerThan = (size: ResponsiveBreakpoint): boolean => {
   const media = mediaQuery();
-  if (size === "xs") {
-    return true;
-  } else if (size === "sm") {
-    return ["sm", "md", "lg"].includes(media);
-  } else if (size === "md") {
-    return ["md", "lg"].includes(media);
-  } else if (size === "lg") {
-    return ["lg"].includes(media);
-  }
-  return false;
+  return isBreakpointAtLeast({breakpoint: media, minimum: size});
 };
 
-export const mediaQuerySmallerThan = (size: "xs" | "sm" | "md" | "lg"): boolean => {
+export const mediaQuerySmallerThan = (size: ResponsiveBreakpoint): boolean => {
   const media = mediaQuery();
   if (size === "lg") {
     return true;
-  } else if (size === "md") {
-    return ["xs", "sm", "md"].includes(media);
-  } else if (size === "sm") {
-    return ["xs", "sm"].includes(media);
-  } else if (size === "xs") {
-    return ["xs"].includes(media);
   }
-  return false;
+  if (size === "md") {
+    return ["xs", "sm", "md"].includes(media);
+  }
+  if (size === "sm") {
+    return ["xs", "sm"].includes(media);
+  }
+  return media === "xs";
 };
 
 export const isMobileDevice = (): boolean => {

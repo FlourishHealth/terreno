@@ -18,7 +18,11 @@ import type {
   SurfaceTheme,
 } from "./Common";
 import {getRounding, getSpacing} from "./Common";
-import {mediaQueryLargerThan} from "./MediaQuery";
+import {
+  isBreakpointAtLeast,
+  type ResponsiveBreakpoint,
+  useResponsiveBreakpoint,
+} from "./ResponsiveBreakpoint";
 import {useTheme} from "./Theme";
 import {Unifier} from "./Unifier";
 
@@ -93,7 +97,8 @@ interface BoxStyleMap {
     value: any,
     // noExplicitAny: Box style mappers receive the full heterogeneous prop collection.
     // biome-ignore lint/suspicious/noExplicitAny: heterogeneous Box prop collection
-    all: {[prop: string]: any}
+    all: {[prop: string]: any},
+    breakpoint: ResponsiveBreakpoint
   ) => {[style: string]: string | number} | {};
 }
 
@@ -104,6 +109,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const resolvedTestID = props.testID;
   const internalScrollRef = useRef<ScrollView>(null);
   const scrollRef = props.scrollRef ?? internalScrollRef;
+  const hasResponsiveDirection = Boolean(
+    props.smDirection || props.mdDirection || props.lgDirection
+  );
+  const breakpoint = useResponsiveBreakpoint({enabled: hasResponsiveDirection});
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -196,8 +205,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
       },
       justifyContent: (value: JustifyContent) => ({justifyContent: ALIGN_CONTENT[value]}),
       left: (left) => ({left: left ? 0 : undefined}),
-      lgDirection: (value: "row" | "column") =>
-        mediaQueryLargerThan("lg") ? {display: "flex", flexDirection: value} : {},
+      lgDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "lg"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       margin: (value) => ({margin: getSpacing(value)}),
       marginBottom: (value) => ({marginBottom: getSpacing(value)}),
       marginLeft: (value) => ({marginLeft: getSpacing(value)}),
@@ -221,8 +232,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
         }
         return {maxWidth: value};
       },
-      mdDirection: (value: "row" | "column") =>
-        mediaQueryLargerThan("md") ? {display: "flex", flexDirection: value} : {},
+      mdDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "md"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       minHeight: (value) => {
         if (!isValidWidthHeight(value)) {
           console.warn(
@@ -279,8 +292,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
           return {elevation: 4};
         }
       },
-      smDirection: (value: "row" | "column") =>
-        mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
+      smDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "sm"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       top: (top) => ({top: top ? 0 : undefined}),
       width: (value, allProps) => {
         if (!isValidWidthHeight(value)) {
@@ -317,7 +332,7 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     for (const prop of Object.keys(props) as Array<keyof typeof props>) {
       const value = props[prop];
       if (boxStyleMap[prop]) {
-        Object.assign(style, boxStyleMap[prop](value, props));
+        Object.assign(style, boxStyleMap[prop](value, props, breakpoint));
       } else if (!NON_STYLE_BOX_PROPS.has(prop as string)) {
         style[prop] = value;
         // console.warn(`Box: unknown property ${prop}`);

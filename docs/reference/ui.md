@@ -323,9 +323,9 @@ import {
   isMobileDevice,
 } from "@terreno/ui";
 
-// Check if matches breakpoint
-if (mediaQuery("md")) {
-  console.log("Medium or larger");
+// Read the current breakpoint
+if (mediaQuery() === "md") {
+  console.info("Medium viewport");
 }
 
 // Greater than breakpoint
@@ -345,9 +345,18 @@ if (isMobileDevice()) {
 ``````
 
 **Breakpoints:**
-- `sm`: 640px
+- `xs`: below 576px
+- `sm`: 576px
 - `md`: 768px
-- `lg`: 1024px
+- `lg`: 1312px
+
+Responsive `Box` direction props update automatically when the window resizes or a device rotates:
+
+``````typescript
+<Box direction="column" smDirection="row" mdDirection="column" lgDirection="row" />
+``````
+
+All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
 - `xl`: 1280px
 
 ## Icons

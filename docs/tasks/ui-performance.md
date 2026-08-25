@@ -112,7 +112,7 @@
     state or load the modal path; rapid presses, delayed handlers, unmount cleanup, loading,
     disabled, keyboard, haptic, and confirmation behavior match current tests and running stories.
 
-- [ ] **Task 2.4**: Replace synchronous responsive dimension reads with reactive breakpoints
+- [x] **Task 2.4**: Replace synchronous responsive dimension reads with reactive breakpoints
   - Delivers: responsive `Box` props read one shared window state and update correctly on rotation
     and resize.
   - Files: `ui/src/MediaQuery.ts`, `ui/src/Box.tsx`, provider/hook files if needed, tests,

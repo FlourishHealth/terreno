@@ -1,7 +1,13 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
-import type {ScrollView} from "react-native";
+import {
+  Dimensions,
+  type DimensionsChangeEvent,
+  type ScaledSize,
+  type ScrollView,
+} from "react-native";
 
 import {Box} from "./Box";
 import {Text} from "./Text";
@@ -12,6 +18,13 @@ interface BoxScrollHandle {
   scrollTo: (y: number) => void;
   scrollToEnd: () => void;
 }
+
+const getScaledSize = (width: number): ScaledSize => ({
+  fontScale: 1,
+  height: 812,
+  scale: 2,
+  width,
+});
 
 describe("Box", () => {
   describe("basic rendering", () => {
@@ -48,6 +61,93 @@ describe("Box", () => {
     it("should apply responsive direction props", () => {
       const {root} = renderWithTheme(<Box smDirection="row" />);
       expect(root).toBeTruthy();
+    });
+
+    it("updates responsive directions at exact shared breakpoints", () => {
+      const dimensionsGetMock = Dimensions.get as ReturnType<typeof mock>;
+      const dimensionsListenerMock = Dimensions.addEventListener as ReturnType<typeof mock>;
+      let changeListener: ((event: DimensionsChangeEvent) => void) | undefined;
+      dimensionsGetMock.mockImplementation(() => getScaledSize(575));
+      dimensionsListenerMock.mockImplementation(
+        (_eventType: string, listener: (event: DimensionsChangeEvent) => void) => {
+          changeListener = listener;
+          return {remove: mock(() => {})};
+        }
+      );
+
+      const result = renderWithTheme(
+        <Box>
+          <Box direction="column" smDirection="row" testID="sm-responsive-box" />
+          <Box direction="column" mdDirection="row" testID="md-responsive-box" />
+          <Box direction="column" lgDirection="row" testID="lg-responsive-box" />
+        </Box>
+      );
+      assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "column");
+      assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
+      assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
+
+      act((): void => {
+        changeListener?.({
+          screen: getScaledSize(576),
+          window: getScaledSize(576),
+        });
+      });
+      assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
+      assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
+
+      act((): void => {
+        changeListener?.({
+          screen: getScaledSize(768),
+          window: getScaledSize(768),
+        });
+      });
+      assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
+
+      act((): void => {
+        changeListener?.({
+          screen: getScaledSize(1312),
+          window: getScaledSize(1312),
+        });
+      });
+      assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
+      assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "row");
+
+      result.unmount();
+      dimensionsGetMock.mockImplementation(() => getScaledSize(375));
+      dimensionsListenerMock.mockImplementation(() => ({remove: mock(() => {})}));
+    });
+
+    it("shares one Dimensions read and listener across a responsive Box tree", () => {
+      const dimensionsGetMock = Dimensions.get as ReturnType<typeof mock>;
+      const dimensionsListenerMock = Dimensions.addEventListener as ReturnType<typeof mock>;
+      dimensionsGetMock.mockClear();
+      dimensionsListenerMock.mockClear();
+      dimensionsGetMock.mockImplementation(() => getScaledSize(768));
+      const removeListener = mock(() => {});
+      dimensionsListenerMock.mockImplementation(() => ({remove: removeListener}));
+
+      const result = renderWithTheme(
+        <Box>
+          {Array.from(
+            {length: 100},
+            (_, index): React.ReactElement => (
+              <Box key={index} mdDirection="row" testID={`responsive-${index}`} />
+            )
+          )}
+        </Box>
+      );
+
+      assert.lengthOf(dimensionsGetMock.mock.calls, 1);
+      assert.lengthOf(dimensionsListenerMock.mock.calls, 1);
+
+      result.unmount();
+      assert.lengthOf(removeListener.mock.calls, 1);
+      dimensionsGetMock.mockImplementation(() => getScaledSize(375));
+      dimensionsListenerMock.mockImplementation(() => ({remove: mock(() => {})}));
     });
 
     it("should apply flex grow", () => {

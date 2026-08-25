@@ -6,6 +6,7 @@ Run the benchmark that covers the component being changed:
 cd ui
 bun run performance:p0
 bun run performance:p1
+bun run performance:p2:responsive-box
 ```
 
 The benchmarks render large trees through the same React Native test environment as the UI
@@ -16,6 +17,7 @@ component suite. They report median wall-clock times after two warmups and seven
 - 500 theme consumers
 - a 100-row, eight-column `DataTable` with two pinned columns
 - 500 `Icon` instances
+- 500 responsive `Box` instances with `sm`, `md`, and `lg` direction props
 - initial mount, same-prop update, and changed-prop/theme update timings
 
 Use it for before/after comparisons on the same machine. It is not a device frame-rate benchmark;
@@ -73,6 +75,23 @@ The P1 example renderers import public component subpaths such as `@terreno/ui/D
 `@terreno/ui/Icon`. These subpaths avoid evaluating the complete root export graph. The root
 `@terreno/ui` import and existing direct `src`/`dist` paths remain supported.
 
+## August 2026 P2 responsive Box optimization results
+
+These measurements used the same Cursor Cloud VM and Bun 1.3.11, with 21 measured samples. Times
+are milliseconds; lower is better.
+
+| Phase | Baseline | Optimized | Change |
+| --- | ---: | ---: | ---: |
+| Initial render | 3.01 | 2.94 | 2.3% faster |
+| Same-prop update | 0.89 | 0.87 | Within benchmark variance |
+| One-direction update | 0.92 | 0.89 | 3.8% faster |
+| Initial `Dimensions.get` calls | 1,500 | 1 | 99.9% fewer |
+
+Responsive Boxes now subscribe to one shared window-dimension source. A resize or rotation updates
+the cached breakpoint and every subscribed Box without a synchronous dimension read per responsive
+prop. Non-responsive Boxes do not subscribe. Focused regressions cover the exact 576px, 768px, and
+1312px boundaries, listener sharing, cleanup, and changed responsive styles.
+
 ## Environment overrides
 
 Increase samples or workload size when comparing smaller changes:
@@ -92,5 +111,13 @@ UI_P1_BENCHMARK_ICONS=1000 \
 bun run performance:p1
 ```
 
-The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS` or `UI_P1_BENCHMARK_RESULTS` JSON
-lines for CI or local reporting.
+```bash
+UI_P2_RESPONSIVE_BOX_BENCHMARK_SAMPLES=21 \
+UI_P2_RESPONSIVE_BOX_BENCHMARK_WARMUPS=3 \
+UI_P2_RESPONSIVE_BOX_BENCHMARK_SIZE=1000 \
+bun run performance:p2:responsive-box
+```
+
+The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`,
+`UI_P1_BENCHMARK_RESULTS`, or `UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS` JSON lines for CI or local
+reporting.
