@@ -359,6 +359,15 @@ describe("the real seed document", () => {
     const slugs = items.map((item) => item.slug);
     assert.equal(new Set(slugs).size, slugs.length);
   });
+
+  it("pairs every Shipped item with Target=Released", async () => {
+    const seeds = parseSeedIssues(await Bun.file("docs/explanation/roadmap-seed-issues.md").text());
+    const {items} = resolveSeedItems({issueNumbersByTitle: new Map(), seeds});
+    const mismatches = items
+      .filter((item) => item.status === "Shipped" && item.target !== "Released")
+      .map((item) => `${item.slug} Target=${item.target}`);
+    assert.deepEqual(mismatches, []);
+  });
 });
 
 describe("resolveSeedItems with includeWithoutIp", () => {
