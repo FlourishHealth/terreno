@@ -1,6 +1,8 @@
 # @terreno/syncdb
 
-Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](../docs/how-to/migrate-rtk-to-syncdb.md)).
+Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence.
+
+Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/migrate-rtk-to-syncdb.md)).
 
 ## Architecture
 
@@ -27,7 +29,7 @@ Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted 
        └── POST /sync/mutate (fallback while the socket is down)
 ```
 
-## Installation
+## Install
 
 ```bash
 bun install @terreno/syncdb
@@ -450,3 +452,11 @@ This writes `store/syncDbSdk.ts` with `SYNC_COLLECTIONS`, entity types, and hook
 - **Whole-store persistence**: each save serializes and (on web) encrypts the full store — cost scales with store size, not change size. Bound it by scoping which collections sync; saves are debounced.
 - **`realtime` + `sync` coexistence**: a model may enable both (distinct events, `sync` vs `sync:delta`, so clients never double-apply), at the cost of double emission work. `modelRouter` `realtime` is **deprecated and will be removed in Terreno 58**; use `sync` only.
 - **Seq counter write amplification**: every synced write does an atomic `$inc` on a per-stream counter doc. Acceptable at current scale; Redis-based counters are the documented upgrade path.
+
+## Documentation
+
+Full API reference: [docs/reference/syncdb.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/syncdb.md)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

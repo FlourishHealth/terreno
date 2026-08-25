@@ -240,6 +240,17 @@ Workflow definitions live in `.github/workflows/*.md` files. These are compiled 
 - **Review draft PRs** — Workflow-generated PRs may contain useful improvements
 - **Report issues** — If a workflow behaves unexpectedly, open an issue
 
+## Reference docs vs agent rules
+
+`docs/reference/` is descriptive documentation for humans. `.rulesync/rules/` is prescriptive guidance for agents. Both are maintained on purpose.
+
+A change to a package's public API must update:
+
+1. The `docs/reference/<pkg>.md` page (and the package README if the quick start changed)
+2. The matching `.rulesync/rules/<pkg>/00-*.md` source, then `bun run rules`
+
+The docs-audit workflow flags a missing README or reference page and obvious internal leakage. It cannot fully verify that reference prose and agent rules still agree — reviewers still check both when the public surface changes.
+
 ## Troubleshooting
 
 ### Workflow doesn't run when expected
