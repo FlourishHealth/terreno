@@ -5,6 +5,7 @@ Run the benchmark that covers the component being changed:
 ```bash
 cd ui
 bun run performance:p0
+bun run performance:p0:openapi
 bun run performance:p1
 ```
 
@@ -14,6 +15,7 @@ component suite. They report median wall-clock times after two warmups and seven
 - 500 `Box`, `Text`, and `Heading` instances
 - 100 `MarkdownView` instances
 - 500 theme consumers
+- 500 `useOpenAPISpec` consumers
 - a 100-row, eight-column `DataTable` with two pinned columns
 - 500 `Icon` instances
 - initial mount, same-prop update, and changed-prop/theme update timings
@@ -73,6 +75,23 @@ The P1 example renderers import public component subpaths such as `@terreno/ui/D
 `@terreno/ui/Icon`. These subpaths avoid evaluating the complete root export graph. The root
 `@terreno/ui` import and existing direct `src`/`dist` paths remain supported.
 
+## August 2026 OpenAPI context optimization results (Task 1.1)
+
+These measurements used the same Cursor Cloud VM and Bun 1.3.11, with 21 measured samples and 3
+warmups. The workload renders 500 `useOpenAPISpec` consumers under a parent rerender with an
+unchanged spec, then replaces the spec URL so field lookups must refresh. Times are milliseconds;
+lower is better.
+
+| Phase | Baseline | Optimized | Change |
+| --- | ---: | ---: | ---: |
+| Initial render | 1.65 | 1.64 | Within benchmark variance |
+| Same-prop update | 1.91 | 1.70 | 11.0% faster |
+| Spec replacement update | 1.76 | 1.79 | Within benchmark variance |
+
+`OpenAPIProvider` now memoizes `getModelField`, `getModelFields`, and the context value with complete
+`spec` dependencies. Unchanged metadata skips memoized consumers; replacing the spec updates field
+lookups immediately. `OpenAPIRenderRegression.test.tsx` covers both guarantees.
+
 ## Environment overrides
 
 Increase samples or workload size when comparing smaller changes:
@@ -92,5 +111,13 @@ UI_P1_BENCHMARK_ICONS=1000 \
 bun run performance:p1
 ```
 
-The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS` or `UI_P1_BENCHMARK_RESULTS` JSON
-lines for CI or local reporting.
+```bash
+UI_P0_OPENAPI_BENCHMARK_SAMPLES=21 \
+UI_P0_OPENAPI_BENCHMARK_WARMUPS=3 \
+UI_P0_OPENAPI_BENCHMARK_SIZE=500 \
+bun run performance:p0:openapi
+```
+
+The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`,
+`UI_P0_OPENAPI_BENCHMARK_RESULTS`, or `UI_P1_BENCHMARK_RESULTS` JSON lines for CI or local
+reporting.

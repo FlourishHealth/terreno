@@ -28,6 +28,7 @@ import {MarkdownViewConfiguration} from "@story-config/MarkdownView.config";
 import {ModalConfiguration} from "@story-config/Modal.config";
 import {MultiselectFieldConfiguration} from "@story-config/MultiselectField.config";
 import {NumberFieldConfiguration} from "@story-config/NumberField.config";
+import {OpenAPIContextConfiguration} from "@story-config/OpenAPIContext.config";
 import {PageConfiguration} from "@story-config/Page.config";
 import {PaginationConfiguration} from "@story-config/Pagination.config";
 import {PasswordFieldConfiguration} from "@story-config/PasswordField.config";
@@ -225,6 +226,7 @@ const Config: DemoConfigurationBase[] = [
   ModalConfiguration,
   MultiselectFieldConfiguration,
   NumberFieldConfiguration,
+  OpenAPIContextConfiguration,
   PageConfiguration,
   PaginationConfiguration,
   PasswordFieldConfiguration,

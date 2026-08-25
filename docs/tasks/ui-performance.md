@@ -33,7 +33,7 @@
 
 ### Phase 1: Finish omitted and deferred high-priority work
 
-- [ ] **Task 1.1**: Stabilize `OpenAPIProvider` context values (leftover P0)
+- [x] **Task 1.1**: Stabilize `OpenAPIProvider` context values (leftover P0)
   - Delivers: unrelated parent renders no longer fan out through unchanged OpenAPI model metadata.
   - Files: `ui/src/OpenAPIContext.tsx`, focused regression tests, `ui/benchmarks/`, `ui/package.json`,
     `docs/reference/ui-performance.md`
