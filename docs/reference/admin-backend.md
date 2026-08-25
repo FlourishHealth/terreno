@@ -93,12 +93,14 @@ For each model, creates standard modelRouter CRUD endpoints:
 ``````
 
 Field metadata includes:
-- `type` — Field type (string, number, boolean, date, objectid, etc.)
+- `type` — Field type (string, number, boolean, date, objectid, array, etc.)
 - `required` — Whether field is required
 - `description` — From schema (ensure all fields have descriptions!)
 - `enum` — Enum values if applicable
 - `default` — Default value
 - `ref` — Referenced model name for ObjectId refs
+
+Field metadata is built from `describeModel()` via `modelDescriptionToAdminFields()` — not from a second OpenAPI property walk. Widget overrides (`fieldOverrides`) remain admin-backend configuration.
 
 ## Permissions
 

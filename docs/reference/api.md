@@ -614,6 +614,46 @@ router.post("/todos", [
 
 **Learn more:** See `api/src/openApiValidator.ts` for advanced usage and `api/src/api.ts` for modelRouter integration.
 
+## describeModel
+
+Walk a Mongoose model once and get a canonical field graph (`ModelDescription`). OpenAPI, admin config, and MCP Zod tools format that graph instead of re-walking `schema.paths`.
+
+``````typescript
+import {
+  describeModel,
+  describeModelForRouter,
+  modelDescriptionToOpenApiSpec,
+  modelDescriptionToAdminFields,
+  fieldDescriptionToZodType,
+} from "@terreno/api";
+
+const description = describeModel(Todo);
+const openApi = modelDescriptionToOpenApiSpec(description);
+const adminFields = modelDescriptionToAdminFields(description);
+``````
+
+### Field kinds
+
+| Kind | Description |
+|------|-------------|
+| `string` | String (optional `enum`) |
+| `number` | Number |
+| `boolean` | Boolean |
+| `date` | Date (OpenAPI `date-time`) |
+| `dateOnly` | Terreno DateOnly type |
+| `objectId` | ObjectId with optional `ref` |
+| `embedded` | Subdocument or array of subdocuments |
+| `mixed` | Schema.Types.Mixed |
+| `map` | Map type |
+
+Each field includes `required`, optional `description`, `isArray`, nested `item` / `fields`, and `system` for `_id`, `__v`, `created`, `updated`, `deleted`.
+
+`describeModelForRouter(model, options)` adds `writableOnCreate` and `writableOnUpdate` using the same rules as MCP system-field exclusions and router validation / field views.
+
+`getOpenApiSpecForModel` builds HTTP body schemas from `ModelDescription`; populate merging for referenced models is unchanged.
+
+See [Schema metadata explanation](../explanation/schema-metadata.md).
+
 ## Middleware
 
 ### openApiEtagMiddleware
