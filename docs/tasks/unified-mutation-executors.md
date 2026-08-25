@@ -4,7 +4,7 @@ IP: [unified-mutation-executors.md](../implementationPlans/unified-mutation-exec
 
 ## Phase 1 — MCP create → `executeCreate`
 
-- [ ] **Task 1.1**: MCP create uses `executeCreate`
+- [x] **Task 1.1**: MCP create uses `executeCreate`
   - Delivers: `handleCreate` calls `executeCreate`; `model.create` gone from create path; MCP error mapping for `APIError`
   - Files: `api/src/mcp/handlers.ts`, `api/src/mcp/integration.test.ts`, `api/src/sync/executors.test.ts` (only if a shared hook case is missing)
   - Blocked by: none
@@ -14,12 +14,12 @@ IP: [unified-mutation-executors.md](../implementationPlans/unified-mutation-exec
 
 ## Phase 2 — Update and delete
 
-- [ ] **Task 2.1**: MCP update uses `executeUpdate`
+- [x] **Task 2.1**: MCP update uses `executeUpdate`
   - Delivers: `handleUpdate` adapter only
   - Files: `api/src/mcp/handlers.ts`, `api/src/mcp/integration.test.ts`
   - Blocked by: 1.1
   - Acceptance: MCP update tests pass; no `doc.save()` in `handleUpdate`
-- [ ] **Task 2.2**: MCP delete uses `executeDelete`
+- [x] **Task 2.2**: MCP delete uses `executeDelete`
   - Delivers: `handleDelete` adapter only (soft-delete semantics from executor)
   - Files: `api/src/mcp/handlers.ts`, `api/src/mcp/integration.test.ts`
   - Blocked by: 1.1
@@ -27,7 +27,7 @@ IP: [unified-mutation-executors.md](../implementationPlans/unified-mutation-exec
 
 ## Phase 3 — Contract and docs
 
-- [ ] **Task 3.1**: Docs + changelog
+- [x] **Task 3.1**: Docs + changelog
   - Delivers: explanation/reference match the single write pipeline
   - Files: `docs/explanation/model-router-actions.md`, `docs/reference/api.md`, `docs/implementationPlans/model-router-mcp.md` (pointer), changelog fragment
   - Blocked by: 2.1, 2.2

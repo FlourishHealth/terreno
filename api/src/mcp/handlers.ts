@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
-import {omitUserRolesFromWriteBody, type User} from "../auth";
+import type {User} from "../auth";
 import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
-import {validateAccessWritePayload} from "../rbac/modelRouterAccess";
-import {defaultResponseHandler, transform} from "../transformers";
+import {executeCreate, executeDelete, executeUpdate} from "../sync/executors";
+import {defaultResponseHandler} from "../transformers";
 import {createMCPRequest} from "./createMCPRequest";
 import {buildListQuery} from "./query";
 import {restWriteExcludeFields, writeExcludeFields} from "./schemaGenerator";
@@ -210,11 +210,16 @@ const requiresAuthentication = (entry: MCPRegistryEntry, user?: User): boolean =
   return !user && entry.options.allowAnonymous !== true;
 };
 
-const hookFailureResult = (label: string, error: unknown): MCPToolResult => {
+/** Map executor/APIError failures onto the MCP error envelope. */
+const fromExecutorError = (error: unknown): MCPToolResult => {
   if (isAPIError(error)) {
     return errorResult(error.title, error);
   }
-  return errorResult(`${label}: ${errorMessage(error)}`, error);
+  return errorResult(errorMessage(error), error);
+};
+
+const deniedWriteFields = (entry: MCPRegistryEntry, phase: "create" | "update"): string[] => {
+  return writeExcludeFields(entry.config, restWriteExcludeFields(phase, entry.options.validation));
 };
 
 const serializeResponse = async (
@@ -379,65 +384,22 @@ export const handleCreate = async (
     return errorResult("Permission denied: authentication required");
   }
 
-  if (!(await checkPermissions("create", options.permissions.create, user))) {
-    return errorResult("Permission denied: cannot create");
-  }
-
-  let body: MCPToolArgs | null = omitDeniedWriteFields(
-    args,
-    writeExcludeFields(entry.config, restWriteExcludeFields("create", options.validation))
-  );
-  try {
-    body = transform(options, body, "create", user) as MCPToolArgs;
-  } catch (error) {
-    return errorResult(`Transform failed: ${errorMessage(error)}`, error);
-  }
-
-  if (options.preCreate) {
-    try {
-      body = await options.preCreate(body, createMCPRequest({body, user}));
-      if (body === null || body === undefined) {
-        return errorResult("Create not allowed");
-      }
-    } catch (error) {
-      return hookFailureResult("preCreate hook failed", error);
-    }
-  }
-
-  body = omitUserRolesFromWriteBody(entry.modelName, options.accessControl, body) as MCPToolArgs;
-
-  try {
-    await validateAccessWritePayload({
-      body,
-      options,
-      phase: "create",
-      user,
-    });
-  } catch (error) {
-    if (isAPIError(error)) {
-      return errorResult(error.title, error);
-    }
-    return errorResult(`Write validation failed: ${errorMessage(error)}`, error);
-  }
+  const body = omitDeniedWriteFields(args, deniedWriteFields(entry, "create")) as MCPToolArgs;
+  const req = createMCPRequest({body, user});
 
   let data: MCPDocument | null;
   try {
-    data = asDocument(await model.create(body));
+    const result = await executeCreate({
+      body,
+      model,
+      options,
+      req,
+      user,
+      writeModelName: entry.modelName,
+    });
+    data = result.doc as MCPDocument;
   } catch (error) {
-    return errorResult(`Create failed: ${errorMessage(error)}`, error);
-  }
-
-  if (options.populatePaths) {
-    const populateQuery = addPopulateToQuery(model.findById(data?._id), options.populatePaths);
-    data = asDocument(await populateQuery.exec());
-  }
-
-  if (options.postCreate) {
-    try {
-      await options.postCreate(data, createMCPRequest({body, user}));
-    } catch (error) {
-      return hookFailureResult("postCreate hook failed", error);
-    }
+    return fromExecutorError(error);
   }
 
   const serialized = await serializeResponse(data, "create", entry, user);
@@ -459,85 +421,31 @@ export const handleUpdate = async (
     return errorResult("Permission denied: authentication required");
   }
 
-  if (!(await checkPermissions("update", options.permissions.update, user))) {
-    return errorResult("Permission denied: cannot update");
-  }
-
   const documentId = asOptionalString(id);
   if (!documentId) {
     return missingDocumentResult(id);
   }
 
-  let doc = await execFindByIdQuery(
-    addPopulateToQuery(model.findById(documentId), options.populatePaths)
-  );
-
-  if (!doc) {
-    return missingDocumentResult(documentId);
-  }
-
-  if (!(await checkPermissions("update", options.permissions.update, user, doc))) {
-    return errorResult("Permission denied: cannot update this document");
-  }
-
-  let body: MCPToolArgs | null = omitDeniedWriteFields(
+  const body = omitDeniedWriteFields(
     updateFields,
-    writeExcludeFields(entry.config, restWriteExcludeFields("update", options.validation))
-  );
+    deniedWriteFields(entry, "update")
+  ) as MCPToolArgs;
+  const req = createMCPRequest({body, user});
+
+  let doc: MCPDocument | null;
   try {
-    body = transform(options, body, "update", user) as MCPToolArgs;
-  } catch (error) {
-    return errorResult(`Transform failed: ${errorMessage(error)}`, error);
-  }
-
-  if (options.preUpdate) {
-    try {
-      body = await options.preUpdate(body, createMCPRequest({body, user}));
-      if (body === null || body === undefined) {
-        return errorResult("Update not allowed");
-      }
-    } catch (error) {
-      return hookFailureResult("preUpdate hook failed", error);
-    }
-  }
-
-  body = omitUserRolesFromWriteBody(entry.modelName, options.accessControl, body) as MCPToolArgs;
-
-  try {
-    await validateAccessWritePayload({
+    const result = await executeUpdate({
       body,
-      doc,
+      id: documentId,
+      model,
       options,
-      phase: "write",
+      req,
       user,
+      writeModelName: entry.modelName,
     });
+    doc = result.doc as MCPDocument;
   } catch (error) {
-    if (isAPIError(error)) {
-      return errorResult(error.title, error);
-    }
-    return errorResult(`Write validation failed: ${errorMessage(error)}`, error);
-  }
-
-  const prevDoc = doc.toObject();
-
-  try {
-    doc.set(body);
-    await doc.save();
-  } catch (error) {
-    return errorResult(`Update failed: ${errorMessage(error)}`, error);
-  }
-
-  if (options.populatePaths) {
-    const populateQuery = addPopulateToQuery(model.findById(doc._id), options.populatePaths);
-    doc = asDocument(await populateQuery.exec());
-  }
-
-  if (options.postUpdate) {
-    try {
-      await options.postUpdate(doc, body, createMCPRequest({body, user}), prevDoc);
-    } catch (error) {
-      return hookFailureResult("postUpdate hook failed", error);
-    }
+    return fromExecutorError(error);
   }
 
   const serialized = await serializeResponse(doc, "update", entry, user);
@@ -559,61 +467,21 @@ export const handleDelete = async (
     return errorResult("Permission denied: authentication required");
   }
 
-  if (!(await checkPermissions("delete", options.permissions.delete, user))) {
-    return errorResult("Permission denied: cannot delete");
-  }
-
   const documentId = asOptionalString(id);
   if (!documentId) {
     return missingDocumentResult(id);
   }
 
-  // Populate before the object-level permission check so custom permissions can inspect
-  // populated refs, matching handleRead/handleUpdate and REST's permissionMiddleware.
-  const doc = await execFindByIdQuery(
-    addPopulateToQuery(model.findById(documentId), options.populatePaths)
-  );
-
-  if (!doc) {
-    return missingDocumentResult(documentId);
-  }
-
-  if (!(await checkPermissions("delete", options.permissions.delete, user, doc))) {
-    return errorResult("Permission denied: cannot delete this document");
-  }
-
-  if (options.preDelete) {
-    try {
-      const result = await options.preDelete(doc, createMCPRequest({body: args, user}));
-      if (result === null || result === undefined) {
-        return errorResult("Delete not allowed");
-      }
-    } catch (error) {
-      return hookFailureResult("preDelete hook failed", error);
-    }
-  }
-
-  // Support soft delete via isDeleted plugin
   try {
-    if (
-      Object.keys(model.schema.paths).includes("deleted") &&
-      model.schema.paths.deleted.instance === "Boolean"
-    ) {
-      doc.deleted = true;
-      await doc.save();
-    } else {
-      await doc.deleteOne();
-    }
+    await executeDelete({
+      id: documentId,
+      model,
+      options,
+      req: createMCPRequest({body: args, user}),
+      user,
+    });
   } catch (error) {
-    return errorResult(`Delete failed: ${errorMessage(error)}`, error);
-  }
-
-  if (options.postDelete) {
-    try {
-      await options.postDelete(createMCPRequest({body: args, user}), doc);
-    } catch (error) {
-      return hookFailureResult("postDelete hook failed", error);
-    }
+    return fromExecutorError(error);
   }
 
   return textResult(JSON.stringify({success: true}));
