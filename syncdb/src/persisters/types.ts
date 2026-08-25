@@ -30,7 +30,16 @@ export type PersisterFactory = ({
     onLoadFailure?: () => void;
     onSaveFailure?: (error: unknown) => void;
   };
-}) => AnyPersister;
+}) => SyncPersister;
+
+/**
+ * Persister capabilities used by the sync client beyond TinyBase's standard
+ * lifecycle. Web persistence exposes `flush` so durability-sensitive state
+ * transitions can bypass its normal trailing debounce.
+ */
+export type SyncPersister = AnyPersister & {
+  flush?: () => Promise<void>;
+};
 
 /**
  * Options accepted by `createDefaultPersisterFactory` on every platform. Each

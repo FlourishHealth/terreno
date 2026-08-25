@@ -40,6 +40,6 @@ Use to show degraded UI when the backend is unreachable.
 
 ## Realtime model updates
 
-When `modelRouter` has `realtime` configured on the backend, list queries can invalidate on socket events. The example todo router uses `roomStrategy: "owner"` so users only receive their own updates.
+`modelRouter` `realtime` (RTK cache-patching via `realtimeList` / `realtimeDocument`) is **deprecated** and **will be removed in Terreno 58**. Use `sync` on `modelRouter` with `@terreno/syncdb`. `RealtimeApp` stays as the socket host.
 
-After adding realtime to a backend model, regenerate the SDK and verify socket connection in the app.
+Do not add new `realtimeList` / `realtimeDocument` wiring. After adding `sync` to a backend model, use syncdb hooks on the client.

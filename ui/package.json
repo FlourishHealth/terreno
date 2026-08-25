@@ -77,6 +77,7 @@
     "react-native-webview": "catalog:",
     "react-time-picker": "^8.0.2"
   },
+  "description": "React Native UI component library for iOS, Android, and web — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@expo/config-plugins": "catalog:",
@@ -162,11 +163,27 @@
     "performance:p0": "RUN_UI_P0_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P0RenderPerformance.test.tsx",
     "performance:p0:openapi": "bun run compile && RUN_UI_P0_OPENAPI_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P0OpenAPIPerformance.test.tsx",
     "performance:p1": "bun run compile && RUN_UI_P1_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P1RenderPerformance.test.tsx",
+    "performance:p2:button": "bun run compile && RUN_UI_P2_BUTTON_BENCHMARK=1 bun test --preload ./src/bunSetup.ts ./benchmarks/P2ButtonPerformance.test.tsx",
     "test": "TZ=America/New_York bun test --watch",
     "test:agent": "AGENT=1 TZ=America/New_York bun test --only-failures",
     "test:ci": "TZ=America/New_York bun test",
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "57.2.0"
+  "version": "57.2.0",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "ui",
+    "universal-apps",
+    "terreno"
+  ]
 }
