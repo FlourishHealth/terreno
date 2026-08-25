@@ -1,6 +1,6 @@
 # @terreno/ui Documentation
 
-Comprehensive React Native UI component library with cross-platform support (web, iOS, Android).
+React Native UI component library for one universal app (iOS, Android, and web).
 
 ## Installation
 

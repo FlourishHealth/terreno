@@ -273,8 +273,11 @@ export const LargeVirtualizedDataTable = (): React.ReactElement => {
       if (leftValue === rightValue) {
         return 0;
       }
-      const isAscending = sortColumn.direction === "asc";
-      return leftValue > rightValue ? (isAscending ? 1 : -1) : isAscending ? -1 : 1;
+      const cmp =
+        typeof leftValue === "number" && typeof rightValue === "number"
+          ? leftValue - rightValue
+          : String(leftValue).localeCompare(String(rightValue));
+      return sortColumn.direction === "asc" ? cmp : -cmp;
     });
   }
 

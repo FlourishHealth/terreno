@@ -3129,7 +3129,7 @@ exports[`DataTable renders with pinned columns 1`] = `
                         "getItemLayout": [Function],
                         "initialNumToRender": 15,
                         "maxToRenderPerBatch": 10,
-                        "scrollEnabled": false,
+                        "scrollEventThrottle": 16,
                         "showsVerticalScrollIndicator": false,
                         "windowSize": 5,
                       },
@@ -3138,6 +3138,7 @@ exports[`DataTable renders with pinned columns 1`] = `
                   ],
                   "props": {
                     "style": {
+                      "bottom": 0,
                       "left": 0,
                       "position": "absolute",
                       "top": 0,
@@ -8561,7 +8562,7 @@ exports[`DataTable renders with more content component 1`] = `
                         "getItemLayout": [Function],
                         "initialNumToRender": 15,
                         "maxToRenderPerBatch": 10,
-                        "scrollEnabled": false,
+                        "scrollEventThrottle": 16,
                         "showsVerticalScrollIndicator": false,
                         "windowSize": 5,
                       },
@@ -8571,6 +8572,7 @@ exports[`DataTable renders with more content component 1`] = `
                   "props": {
                     "style": {
                       "backgroundColor": "#FFFFFF",
+                      "bottom": 0,
                       "left": 0,
                       "position": "absolute",
                       "top": 0,

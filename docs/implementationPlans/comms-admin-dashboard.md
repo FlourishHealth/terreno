@@ -1,6 +1,6 @@
 # Implementation Plan: Comms admin dashboard (errors, retries, log digging)
 
-**Status:** Draft
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1091
 **Priority:** High
 **Effort:** Medium batch

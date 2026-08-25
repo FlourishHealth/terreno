@@ -1,12 +1,14 @@
 import "fake-indexeddb/auto";
 
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 
 import {createSyncDb, type SyncDbConfig} from "./client";
 import {createLocalKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyProviders";
 import {getConflict} from "./mutations/conflicts";
 import {createDefaultPersisterFactory as createWebPersisterFactory} from "./persisters/defaultPersisterFactory.web";
 import {memoryPersisterFactory} from "./persisters/memoryPersister";
+import type {PersisterFactory} from "./persisters/types";
 import {idbGet} from "./storage/idb";
 import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {CURSORS_TABLE} from "./storage/types";
@@ -1072,10 +1074,239 @@ describe("createSyncDb", () => {
       expect(getConflict({mutationId, store: client.store})?.serverSeq).toBe(7);
 
       client.resolveConflict({mutationId, strategy: "useServer"});
+      await flush();
       expect(client.getSyncStatus().conflictCount).toBe(0);
       expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
         title: "server wins",
       });
+      await client.stop();
+    });
+
+    it("flushes a resolved conflict before an immediate client reload can restore it", async () => {
+      const name = uniqueName();
+      const keyProvider = createLocalKeyProvider({cacheDbName: uniqueName()});
+      const persisterFactory = createWebPersisterFactory({keyProvider});
+      const harness = makeHarness({name, persisterFactory});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      harness.transport.respondWithNack({
+        code: "conflict",
+        serverDoc: {title: "server wins"},
+        serverSeq: 7,
+      });
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await new Promise((resolve): void => {
+        setTimeout(resolve, 600);
+      });
+      assert.equal(client.getSyncStatus().conflictCount, 1);
+
+      client.resolveConflict({mutationId, strategy: "useServer"});
+      // The status stays conflicted until the no-debounce durability write
+      // completes, which is the same signal the UI/reload test waits on.
+      assert.equal(client.getSyncStatus().conflictCount, 1);
+      for (
+        let attempt = 0;
+        attempt < 20 && client.getSyncStatus().conflictCount > 0;
+        attempt += 1
+      ) {
+        await flush();
+      }
+      assert.equal(client.getSyncStatus().conflictCount, 0);
+      const reopenedHarness = makeHarness({name, persisterFactory});
+      const reopened = createSyncDb(reopenedHarness.config);
+      await reopened.start();
+
+      assert.equal(reopened.getSyncStatus().conflictCount, 0);
+      assert.deepEqual(reopened.store.getEntity({collection: "todos", id: "t1"})?.data, {
+        title: "server wins",
+      });
+      await reopened.stop();
+      await client.stop();
+    });
+
+    it("falls back to save() when a persister does not expose flush()", async () => {
+      const name = uniqueName();
+      let saveCount = 0;
+      const persisterFactory: PersisterFactory = (args) => {
+        const persister = memoryPersisterFactory(args);
+        return {
+          ...persister,
+          save: (): ReturnType<typeof persister.save> => {
+            saveCount += 1;
+            return persister.save();
+          },
+        };
+      };
+      const harness = makeHarness({name, persisterFactory});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      const savesBeforeResolution = saveCount;
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      harness.transport.respondWithNack({
+        code: "conflict",
+        serverDoc: {title: "server wins"},
+        serverSeq: 7,
+      });
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      client.resolveConflict({mutationId, strategy: "useServer"});
+      for (
+        let attempt = 0;
+        attempt < 20 && client.getSyncStatus().conflictCount > 0;
+        attempt += 1
+      ) {
+        await flush();
+      }
+
+      assert.isAbove(saveCount, savesBeforeResolution);
+      assert.equal(client.getSyncStatus().conflictCount, 0);
+      const reopened = createSyncDb(makeHarness({name, persisterFactory}).config);
+      await reopened.start();
+      assert.deepEqual(reopened.store.getEntity({collection: "todos", id: "t1"})?.data, {
+        title: "server wins",
+      });
+      await reopened.stop();
+      await client.stop();
+    });
+
+    it("keeps a resolved conflict pending and surfaces an error when flush() fails", async () => {
+      const persistenceError = new Error("persistence unavailable");
+      const persisterFactory: PersisterFactory = (args) => {
+        const persister = memoryPersisterFactory(args);
+        return {
+          ...persister,
+          flush: async (): Promise<void> => {
+            throw persistenceError;
+          },
+        };
+      };
+      const harness = makeHarness({persisterFactory});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      harness.transport.respondWithNack({
+        code: "conflict",
+        serverDoc: {title: "server wins"},
+        serverSeq: 7,
+      });
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      client.resolveConflict({mutationId, strategy: "useServer"});
+      await flush();
+
+      assert.equal(client.getSyncStatus().conflictCount, 1);
+      assert.equal(client.getSyncStatus().persistence, "error");
+      await client.stop();
+      assert.equal(client.getSyncStatus().conflictCount, 0);
+      await client.start();
+      assert.equal(client.getSyncStatus().conflictCount, 0);
+      await client.stop();
+    });
+
+    it("ignores a stale conflict flush rejection after a stop and restart", async () => {
+      let rejectStaleFlush: ((error: unknown) => void) | undefined;
+      let factoryCalls = 0;
+      const persisterFactory: PersisterFactory = (args) => {
+        const persister = memoryPersisterFactory(args);
+        factoryCalls += 1;
+        if (factoryCalls > 1) {
+          return persister;
+        }
+        return {
+          ...persister,
+          flush: (): Promise<void> =>
+            new Promise((_resolve, reject): void => {
+              rejectStaleFlush = reject;
+            }),
+        };
+      };
+      const harness = makeHarness({persisterFactory});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      harness.transport.respondWithNack({
+        code: "conflict",
+        serverDoc: {title: "server wins"},
+        serverSeq: 7,
+      });
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      client.resolveConflict({mutationId, strategy: "useServer"});
+      assert.isFunction(rejectStaleFlush);
+      await client.stop();
+      await client.start();
+      rejectStaleFlush?.(new Error("stale flush failed"));
+      await flush();
+
+      assert.equal(client.getSyncStatus().conflictCount, 0);
+      assert.equal(client.getSyncStatus().persistence, "durable");
+      await client.stop();
+    });
+
+    it("keeps the first durability latch when conflict resolution is called twice", async () => {
+      let resolvePersistenceFlush: (() => void) | undefined;
+      const persisterFactory: PersisterFactory = (args) => {
+        const persister = memoryPersisterFactory(args);
+        return {
+          ...persister,
+          flush: (): Promise<void> =>
+            new Promise((resolve): void => {
+              resolvePersistenceFlush = resolve;
+            }),
+        };
+      };
+      const harness = makeHarness({persisterFactory});
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.store.upsertEntity({collection: "todos", data: {title: "old"}, id: "t1", seq: 2});
+      harness.transport.respondWithNack({
+        code: "conflict",
+        serverDoc: {title: "server wins"},
+        serverSeq: 7,
+      });
+      const {mutationId} = client.mutate({
+        collection: "todos",
+        data: {title: "mine"},
+        id: "t1",
+        operation: "update",
+      });
+      await flush();
+
+      client.resolveConflict({mutationId, strategy: "useServer"});
+      assert.equal(client.getSyncStatus().conflictCount, 1);
+      assert.throws(
+        () => client.resolveConflict({mutationId, strategy: "useServer"}),
+        /Conflict not found/
+      );
+      assert.equal(client.getSyncStatus().conflictCount, 1);
+      resolvePersistenceFlush?.();
+      await flush();
+
+      assert.equal(client.getSyncStatus().conflictCount, 0);
       await client.stop();
     });
 
@@ -1134,6 +1365,7 @@ describe("createSyncDb", () => {
       });
 
       client.resolveConflict({mutationId, strategy: "useServer"});
+      await flush();
       expect(client.getSyncStatus().collections).toEqual({
         todos: {conflictCount: 0, failedCount: 1, queuedCount: 0},
       });

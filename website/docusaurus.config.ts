@@ -72,11 +72,21 @@ const config: Config = {
     ],
   ],
   projectName: "terreno",
-  tagline: "Full-stack React Native and Express/Mongoose framework",
+  tagline: "Terreno is Django/Rails for TypeScript — with universal app support.",
   themeConfig: {
     customFields: {
       demoUrl,
     },
+    metadata: [
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        name: "description",
+      },
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        property: "og:description",
+      },
+    ],
     footer: {
       copyright: `Copyright © ${new Date().getFullYear()} Flourish Health.`,
       links: [

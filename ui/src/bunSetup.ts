@@ -104,7 +104,9 @@ const getMockFlatListRenderedRange = ({
 
 const createMockFlatListScrollRef = (
   onScroll?: MockFlatListProps["onScroll"],
-  setScrollOffsetY?: (offsetY: number) => void
+  setScrollOffsetY?: (offsetY: number) => void,
+  getItemLayout?: MockFlatListProps["getItemLayout"],
+  data?: unknown[]
 ) => {
   const scrollTo = ({x = 0, y = 0}: {animated?: boolean; x?: number; y?: number}) => {
     setScrollOffsetY?.(y);
@@ -118,7 +120,9 @@ const createMockFlatListScrollRef = (
     scrollTo({y: offset});
   };
   const scrollToIndex = ({index, animated: _animated}: {index: number; animated?: boolean}) => {
-    scrollToOffset({offset: index * 54});
+    const layout = getItemLayout?.(data, index);
+    const itemHeight = layout?.length ?? 54;
+    scrollToOffset({offset: layout?.offset ?? index * itemHeight});
   };
   return {
     scrollTo,
@@ -179,15 +183,7 @@ const createVirtualizedFlatList = (): React.ForwardRefExoticComponent<
         })
       : {end: dataLength, start: 0};
 
-    const emitScroll = (offsetY: number): void => {
-      onScroll?.({
-        nativeEvent: {
-          contentOffset: {x: 0, y: offsetY},
-        },
-      });
-    };
-
-    const scrollRef = createMockFlatListScrollRef(onScroll, setScrollOffsetY);
+    const scrollRef = createMockFlatListScrollRef(onScroll, setScrollOffsetY, getItemLayout, data);
 
     React.useImperativeHandle(ref, () => ({
       ...scrollRef,

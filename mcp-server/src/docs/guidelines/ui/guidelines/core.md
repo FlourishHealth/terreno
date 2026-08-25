@@ -1,6 +1,6 @@
 ### @terreno/ui
 
-React Native component library with 88+ components:
+React Native UI component library (a large component library):
 
 - **Layout**: Box, Page, SplitPage, Card
 - **Forms**: TextField, SelectField, DateTimeField, CheckBox

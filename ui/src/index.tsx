@@ -74,6 +74,7 @@ export * from "./Page";
 export * from "./Pagination";
 export * from "./PasswordField";
 export * from "./PhoneNumberField";
+export * from "./Popover";
 export * from "./PortalHost";
 export * from "./pdfHtmlTemplate";
 export * from "./Radio";

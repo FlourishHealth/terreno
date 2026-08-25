@@ -102,7 +102,7 @@
     first open has tested loading/error states; search, categories, selection, skin-tone behavior,
     reopen behavior, and web/native rendering remain unchanged.
 
-- [ ] **Task 2.3**: Stabilize plain and confirmation `Button` render paths
+- [x] **Task 2.3**: Stabilize plain and confirmation `Button` render paths
   - Delivers: debounce identity and plain-button renders stay stable without weakening duplicate
     submission protection.
   - Files: `ui/src/Button.tsx`, button tests, benchmark/example renderer,

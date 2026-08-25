@@ -493,6 +493,7 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
   const bodyListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
   const pinnedListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
   const moreListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
+  const isVerticalScrollSyncingRef = useRef(false);
 
   const moreColumnOffset = MoreContentContent ? 48 : 0;
   const scrollableWidth = useMemo(
@@ -540,11 +541,46 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
     ]
   );
 
-  const handleVerticalScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
-    moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
-  }, []);
+  const syncVerticalScroll = useCallback(
+    (scrollY: number, source: "body" | "pinned" | "more"): void => {
+      if (isVerticalScrollSyncingRef.current) {
+        return;
+      }
+      isVerticalScrollSyncingRef.current = true;
+      if (source !== "body") {
+        bodyListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+      }
+      if (source !== "pinned") {
+        pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+      }
+      if (source !== "more") {
+        moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+      }
+      isVerticalScrollSyncingRef.current = false;
+    },
+    []
+  );
+
+  const handleBodyVerticalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      syncVerticalScroll(event.nativeEvent.contentOffset.y, "body");
+    },
+    [syncVerticalScroll]
+  );
+
+  const handlePinnedVerticalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      syncVerticalScroll(event.nativeEvent.contentOffset.y, "pinned");
+    },
+    [syncVerticalScroll]
+  );
+
+  const handleMoreVerticalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      syncVerticalScroll(event.nativeEvent.contentOffset.y, "more");
+    },
+    [syncVerticalScroll]
+  );
 
   const renderMoreRow = useCallback(
     ({index}: {index: number}) => (
@@ -624,6 +660,7 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
           <View
             style={{
               backgroundColor: theme.surface.base,
+              bottom: 0,
               left: 0,
               position: "absolute",
               top: 0,
@@ -638,9 +675,10 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
               initialNumToRender={DATA_TABLE_INITIAL_NUM_TO_RENDER}
               keyExtractor={keyExtractor}
               maxToRenderPerBatch={DATA_TABLE_MAX_TO_RENDER_PER_BATCH}
+              onScroll={handleMoreVerticalScroll}
               ref={moreListRef}
               renderItem={renderMoreRow}
-              scrollEnabled={false}
+              scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               windowSize={DATA_TABLE_WINDOW_SIZE}
             />
@@ -650,6 +688,7 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
         {pinnedColumns > 0 && (
           <View
             style={{
+              bottom: 0,
               left: moreColumnOffset,
               position: "absolute",
               top: 0,
@@ -664,9 +703,10 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
               initialNumToRender={DATA_TABLE_INITIAL_NUM_TO_RENDER}
               keyExtractor={keyExtractor}
               maxToRenderPerBatch={DATA_TABLE_MAX_TO_RENDER_PER_BATCH}
+              onScroll={handlePinnedVerticalScroll}
               ref={pinnedListRef}
               renderItem={renderPinnedRow}
-              scrollEnabled={false}
+              scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               windowSize={DATA_TABLE_WINDOW_SIZE}
             />
@@ -694,7 +734,7 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
               keyExtractor={keyExtractor}
               maxToRenderPerBatch={DATA_TABLE_MAX_TO_RENDER_PER_BATCH}
               nestedScrollEnabled
-              onScroll={handleVerticalScroll}
+              onScroll={handleBodyVerticalScroll}
               ref={bodyListRef}
               renderItem={renderScrollableRow}
               scrollEventThrottle={16}

@@ -59,7 +59,8 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow("rejected query");
   consoleGuard.allow("Error fetching OpenAPI spec");
   // Logging out while offline (see syncdb-storage.spec.ts's user-switch scenario)
-  // legitimately fails Better Auth's sign-out network call.
+  // legitimately fails Better Auth's session and sign-out network calls.
+  consoleGuard.allow("Better Auth: Error syncing session: TypeError: Failed to fetch");
   consoleGuard.allow("Better Auth: Error signing out");
   consoleGuard.allow(/sync needs attention/i);
   // Queueing mutations against a severed network is the point of these suites, so the
