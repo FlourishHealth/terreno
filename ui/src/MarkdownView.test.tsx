@@ -1,12 +1,16 @@
 import {describe, expect, it} from "bun:test";
 import assert from "node:assert";
+import {waitFor} from "@testing-library/react-native";
 
 import {MarkdownView} from "./MarkdownView";
 import {renderWithTheme} from "./test-utils";
 
 describe("MarkdownView", () => {
-  it("renders correctly with simple text", () => {
+  it("renders correctly with simple text", async () => {
     const {toJSON} = renderWithTheme(<MarkdownView>Hello world</MarkdownView>);
+    await waitFor(() => {
+      expect(JSON.stringify(toJSON())).toContain("Hello world");
+    });
     expect(toJSON()).toMatchSnapshot();
   });
 

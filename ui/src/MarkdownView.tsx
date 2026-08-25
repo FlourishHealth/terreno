@@ -1,9 +1,16 @@
-import React, {useMemo} from "react";
+import React, {lazy, Suspense, useMemo} from "react";
 import {Platform} from "react-native";
-import Markdown from "react-native-markdown-display";
+import type Markdown from "react-native-markdown-display";
 
+import {Spinner} from "./Spinner";
 import {useTerrenoFontsLoaded} from "./TerrenoFontProvider";
 import {useTheme} from "./Theme";
+
+const LazyMarkdown = lazy(() =>
+  import("react-native-markdown-display").then((moduleNamespace) => ({
+    default: moduleNamespace.default,
+  }))
+);
 
 const IS_WEB = Platform.OS === "web";
 const MARKDOWN_SIZES = {
@@ -130,7 +137,11 @@ const MarkdownViewComponent: React.FC<{children: React.ReactNode; inverted?: boo
     };
   }, [textColor, theme.border.default, theme.surface.neutralLight]);
 
-  return <Markdown style={markdownStyle}>{children}</Markdown>;
+  return (
+    <Suspense fallback={<Spinner />}>
+      <LazyMarkdown style={markdownStyle}>{children}</LazyMarkdown>
+    </Suspense>
+  );
 };
 
 MarkdownViewComponent.displayName = "MarkdownView";

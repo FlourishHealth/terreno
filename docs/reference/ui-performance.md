@@ -6,6 +6,7 @@ Run the benchmark that covers the component being changed:
 cd ui
 bun run performance:p0
 bun run performance:p1
+bun run performance:imports
 ```
 
 The benchmarks render large trees through the same React Native test environment as the UI
@@ -72,6 +73,45 @@ both guarantees.
 The P1 example renderers import public component subpaths such as `@terreno/ui/DataTable` and
 `@terreno/ui/Icon`. These subpaths avoid evaluating the complete root export graph. The root
 `@terreno/ui` import and existing direct `src`/`dist` paths remain supported.
+
+## August 2026 root import optimization results
+
+These measurements used the same Cursor Cloud VM and Bun 1.3.11. Each workload uses a fresh Bun test process
+(seven measured samples, two warmups). The graph columns count evaluated `@terreno/ui` source modules reached through
+static `import`/`export` edges (type-only re-exports are excluded). Output bytes sum those module file sizes. Elapsed
+time includes dependency evaluation in the Bun test harness. Lower is better.
+
+| Workload | Modules | Output bytes | Elapsed (ms) | Baseline modules | Baseline bytes | Baseline elapsed (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `@terreno/ui/Button` subpath | 17 | 345,992 | 22.8 | 19 | 383,185 | 22.3 |
+| `@terreno/ui` root | 138 | 889,124 | 189.3 | 151 | 1,031,537 | 207.9 |
+| `@terreno/ui/DataTable` subpath | 25 | 387,392 | 24.9 | 26 | 424,006 | 44.6 |
+| `@terreno/ui/MarkdownView` subpath | 5 | 19,036 | 3.5 | 7 | 148,456 | 27.0 |
+
+Changes in this slice:
+
+- Measured heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent/admin tools, and related
+  exports) now cross lazy root boundaries so their implementation files stay off the cold root import path.
+- `MarkdownView`, `DataTable` header info, and `EmojiSelector` defer `react-native-markdown-display` and
+  `emoji-datasource` until first use.
+- `RootImportRegression.test.tsx` and `bun run performance:imports` guard the public entrypoints.
+
+Run the import benchmark locally:
+
+```bash
+cd ui
+bun run performance:imports
+```
+
+Override sample counts when comparing smaller deltas:
+
+```bash
+UI_IMPORT_BENCHMARK_SAMPLES=21 \
+UI_IMPORT_BENCHMARK_WARMUPS=3 \
+bun run performance:imports
+```
+
+The benchmark prints a machine-readable `UI_IMPORT_BENCHMARK_RESULTS` JSON line for CI or local reporting.
 
 ## Environment overrides
 

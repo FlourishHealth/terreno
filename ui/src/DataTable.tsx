@@ -8,8 +8,6 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import Markdown from "react-native-markdown-display";
-
 import {Box} from "./Box";
 import type {
   ColumnSortInterface,
@@ -20,6 +18,7 @@ import type {
   DataTableProps,
   SurfaceColor,
 } from "./Common";
+import {DataTableHeaderInfoMarkdown} from "./DataTableHeaderInfoMarkdown";
 import {Icon} from "./Icon";
 import {InfoModalIcon} from "./InfoModalIcon";
 import {Modal} from "./Modal";
@@ -299,7 +298,11 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
         ) : null,
         <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>
           {column.infoModalText && (
-            <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
+            <InfoModalIcon
+              infoModalChildren={
+                <DataTableHeaderInfoMarkdown>{column.infoModalText}</DataTableHeaderInfoMarkdown>
+              }
+            />
           )}
           {column.sortable && (
             <Pressable hitSlop={16} onPress={() => onSort(index)}>

@@ -1,4 +1,5 @@
 import {Box, EmojiSelector, Text} from "@terreno/ui";
+import {Categories} from "@terreno/ui/EmojiSelector";
 import {type ReactElement, useState} from "react";
 
 export const EmojiSelectorDemo = (): ReactElement => {
@@ -21,15 +22,15 @@ export const EmojiSelectorDemo = (): ReactElement => {
       </Box>
       <Box flex="grow" minHeight={0} overflow="hidden" rounding="md">
         <EmojiSelector
-          category={EmojiSelector.defaultProps.category}
-          columns={EmojiSelector.defaultProps.columns}
+          category={Categories.all}
+          columns={6}
           onEmojiSelected={setSelected}
-          placeholder={EmojiSelector.defaultProps.placeholder}
+          placeholder="Search..."
           showHistory={false}
           showSearchBar
           showSectionTitles
           showTabs
-          theme={EmojiSelector.defaultProps.theme}
+          theme="#007AFF"
         />
       </Box>
     </Box>

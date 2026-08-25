@@ -1,4 +1,4 @@
-import {act, render} from "@testing-library/react-native";
+import {act, render, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import type React from "react";
 import {useEffect} from "react";
@@ -161,20 +161,26 @@ describe("P0 component rerender regression coverage", () => {
     assert.include(heading.children, "second");
   });
 
-  it("updates MarkdownView content and inverted theme styles", () => {
+  it("updates MarkdownView content and inverted theme styles", async () => {
     const result = renderP0(<MarkdownView>{"**first**"}</MarkdownView>);
-    assert.include(JSON.stringify(result.toJSON()), "first");
+    await waitFor(() => {
+      assert.include(JSON.stringify(result.toJSON()), "first");
+    });
 
-    result.rerender(
-      <ThemeProvider>
-        <MarkdownView inverted>{"# second"}</MarkdownView>
-      </ThemeProvider>
-    );
+    await act(async () => {
+      result.rerender(
+        <ThemeProvider>
+          <MarkdownView inverted>{"# second"}</MarkdownView>
+        </ThemeProvider>
+      );
+    });
 
-    const serialized = JSON.stringify(result.toJSON());
-    assert.include(serialized, "second");
-    assert.include(serialized, "#FFFFFF");
-    assert.notInclude(serialized, "first");
+    await waitFor(() => {
+      const serialized = JSON.stringify(result.toJSON());
+      assert.include(serialized, "second");
+      assert.include(serialized, "#FFFFFF");
+      assert.notInclude(serialized, "first");
+    });
   });
 
   it("propagates theme updates through memoization boundaries", async () => {

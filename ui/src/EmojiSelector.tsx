@@ -26,7 +26,6 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import emoji from "emoji-datasource";
 import {useCallback, useEffect, useRef, useState} from "react";
 import type {FlatListProps, LayoutChangeEvent} from "react-native";
 import {
@@ -104,10 +103,20 @@ const charFromUtf16 = (utf16: string): string =>
 
 export const charFromEmojiObject = (obj: Emoji): string => charFromUtf16(obj.unified);
 
-const filteredEmojis: Emoji[] = (emoji as Emoji[]).filter((e) => !e.obsoleted_by);
+let emojiDataPromise: Promise<Emoji[]> | undefined;
 
-const emojiByCategory = (category: string): Emoji[] =>
-  filteredEmojis.filter((e) => e.category === category);
+const loadEmojiData = (): Promise<Emoji[]> => {
+  if (!emojiDataPromise) {
+    emojiDataPromise = import("emoji-datasource").then((moduleNamespace) =>
+      (moduleNamespace.default as Emoji[]).filter((entry) => !entry.obsoleted_by)
+    );
+  }
+
+  return emojiDataPromise;
+};
+
+const emojiByCategory = (emojis: Emoji[], category: string): Emoji[] =>
+  emojis.filter((entry) => entry.category === category);
 
 const sortEmoji = (list: Emoji[]): Emoji[] => list.sort((a, b) => a.sort_order - b.sort_order);
 
@@ -223,6 +232,7 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
   const [category, setCategory] = useState<Category>(initialCategory);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [history, setHistory] = useState<Emoji[]>([]);
+  const [filteredEmojis, setFilteredEmojis] = useState<Emoji[] | null>(null);
   const [emojiList, setEmojiList] = useState<EmojiListByCategory | null>(null);
   const [colSize, setColSize] = useState<number>(0);
   const [width, setWidth] = useState<number>(0);
@@ -312,7 +322,12 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
     const currentCategory = category;
     const currentSearchQuery = searchQuery;
     const currentHistory = history;
+    const currentFilteredEmojis = filteredEmojis;
     let emojiData: EmojiItem[];
+
+    if (!currentFilteredEmojis) {
+      return [];
+    }
 
     if (currentCategory === Categories.all && currentSearchQuery === "") {
       //TODO: OPTIMIZE THIS
@@ -332,9 +347,9 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
       const hasSearchQuery = currentSearchQuery !== "";
       const name = currentCategory.name;
       if (hasSearchQuery) {
-        const filtered = filteredEmojis.filter((e) => {
+        const filtered = currentFilteredEmojis.filter((entry) => {
           let display = false;
-          for (const shortName of e.short_names) {
+          for (const shortName of entry.short_names) {
             if (shortName.includes(currentSearchQuery.toLowerCase())) {
               display = true;
               break;
@@ -352,14 +367,14 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
     }
 
     return shouldInclude ? emojiData.filter((e) => shouldInclude(e.emoji)) : emojiData;
-  }, [category, emojiList, history, searchQuery, shouldInclude]);
+  }, [category, emojiList, filteredEmojis, history, searchQuery, shouldInclude]);
 
   const prerenderEmojis = useCallback(
-    (callback?: () => void) => {
+    (emojis: Emoji[], callback?: () => void) => {
       const listByCategory: EmojiListByCategory = {};
       for (const c of categoryKeys) {
         const name = Categories[c].name;
-        listByCategory[name] = sortEmoji(emojiByCategory(name));
+        listByCategory[name] = sortEmoji(emojiByCategory(emojis, name));
       }
 
       setEmojiList(listByCategory);
@@ -374,11 +389,15 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
   const handleLayout = useCallback(
     ({nativeEvent: {layout}}: LayoutChangeEvent) => {
       setWidth(layout.width);
-      prerenderEmojis(() => {
+      if (!filteredEmojis) {
+        return;
+      }
+
+      prerenderEmojis(filteredEmojis, () => {
         setIsReady(true);
       });
     },
-    [prerenderEmojis]
+    [filteredEmojis, prerenderEmojis]
   );
 
   //
@@ -390,6 +409,33 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
       void loadHistoryAsync();
     }
   }, [initialCategory, loadHistoryAsync, showHistory]);
+
+  // Load emoji metadata on first mount so emoji-datasource stays off cold import paths.
+  useEffect(() => {
+    let isCancelled = false;
+
+    void loadEmojiData().then((emojis) => {
+      if (isCancelled) {
+        return;
+      }
+
+      setFilteredEmojis(emojis);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!filteredEmojis || width === 0) {
+      return;
+    }
+
+    prerenderEmojis(filteredEmojis, () => {
+      setIsReady(true);
+    });
+  }, [filteredEmojis, prerenderEmojis, width]);
 
   const Searchbar = (
     <View style={styles.searchbar_container}>
