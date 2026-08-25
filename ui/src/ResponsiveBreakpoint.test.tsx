@@ -164,4 +164,21 @@ describe("ResponsiveBreakpoint", () => {
     assert.equal(listenerCount, 0);
     result.unmount();
   });
+
+  it("notifies on remount after a resize while no Boxes were subscribed", () => {
+    let windowWidth = 375;
+    const store = createResponsiveBreakpointStore({
+      getSurface: (): "native" => "native",
+      getWindowWidth: (): number => windowWidth,
+      subscribeToDimensions: (): {remove: () => void} => ({remove: (): void => {}}),
+    });
+    const first = render(<BreakpointConsumer store={store} />);
+    assert.equal(first.UNSAFE_root.findByType("span").props.children, "md");
+    first.unmount();
+
+    windowWidth = 1024;
+    const second = render(<BreakpointConsumer store={store} />);
+    assert.equal(second.UNSAFE_root.findByType("span").props.children, "xl");
+    second.unmount();
+  });
 });

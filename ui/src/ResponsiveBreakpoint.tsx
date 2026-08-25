@@ -143,8 +143,8 @@ export const createResponsiveBreakpointStore = ({
     subscribers.add(subscriber);
 
     if (!dimensionSubscription) {
-      currentWindowWidth = getWindowWidth();
       dimensionSubscription = subscribeToDimensions(updateWidth);
+      updateWidth(getWindowWidth());
     }
 
     return (): void => {
