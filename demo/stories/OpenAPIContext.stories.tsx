@@ -55,37 +55,7 @@ const FieldMetadataPanel: React.FC = () => {
   );
 };
 
-const OpenAPIContextDemoBody: React.FC = () => {
-  const [parentRevision, setParentRevision] = useState(0);
-  const bumpParent = useCallback((): void => {
-    setParentRevision((value) => value + 1);
-  }, []);
-
-  return (
-    <Box gap={4} padding={4}>
-      <Heading size="md">OpenAPI field metadata</Heading>
-      <Text>
-        Parent revision {parentRevision}. Bump the parent to confirm field descriptions stay stable
-        while the OpenAPI spec is unchanged.
-      </Text>
-      <Box
-        accessibilityHint="Increments the parent revision counter"
-        accessibilityLabel="Bump parent render"
-        accessibilityRole="button"
-        border="default"
-        onClick={bumpParent}
-        padding={2}
-        rounding="md"
-        testID="openapi-bump-parent"
-      >
-        <Text>Bump parent render</Text>
-      </Box>
-      <FieldMetadataPanel />
-    </Box>
-  );
-};
-
-const OpenAPIContextStoriesBody: React.FC = () => {
+const OpenAPIContextFetchMock: React.FC<{children: React.ReactNode}> = ({children}) => {
   const [hasMockedFetch, setHasMockedFetch] = useState(false);
 
   // Install the demo fetch mock before OpenAPIProvider loads the spec URL.
@@ -111,17 +81,53 @@ const OpenAPIContextStoriesBody: React.FC = () => {
     return <></>;
   }
 
+  return <>{children}</>;
+};
+
+const OpenAPIContextDemoContent: React.FC = () => {
+  const [parentRevision, setParentRevision] = useState(0);
+  const bumpParent = useCallback((): void => {
+    setParentRevision((value) => value + 1);
+  }, []);
+
   return (
-    <OpenAPIProvider specUrl={DEMO_SPEC_URL}>
-      <OpenAPIContextDemoBody />
-    </OpenAPIProvider>
+    <Box gap={4} padding={4}>
+      <Heading size="md">OpenAPI field metadata</Heading>
+      <Text>
+        Parent revision {parentRevision}. Bump the parent to confirm field descriptions stay stable
+        while the OpenAPI spec is unchanged.
+      </Text>
+      <Box
+        accessibilityHint="Increments the parent revision counter"
+        accessibilityLabel="Bump parent render"
+        accessibilityRole="button"
+        border="default"
+        onClick={bumpParent}
+        padding={2}
+        rounding="md"
+        testID="openapi-bump-parent"
+      >
+        <Text>Bump parent render</Text>
+      </Box>
+      <OpenAPIProvider specUrl={DEMO_SPEC_URL}>
+        <FieldMetadataPanel />
+      </OpenAPIProvider>
+    </Box>
+  );
+};
+
+const OpenAPIContextDemoRoot: React.FC = () => {
+  return (
+    <OpenAPIContextFetchMock>
+      <OpenAPIContextDemoContent />
+    </OpenAPIContextFetchMock>
   );
 };
 
 export const OpenAPIContextStories = (): React.ReactElement => {
-  return <OpenAPIContextStoriesBody />;
+  return <OpenAPIContextDemoRoot />;
 };
 
 export const OpenAPIContextDemo = (): React.ReactElement => {
-  return <OpenAPIContextStoriesBody />;
+  return <OpenAPIContextDemoRoot />;
 };
