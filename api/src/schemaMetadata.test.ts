@@ -1,7 +1,18 @@
 import {describe, expect, it} from "bun:test";
 import mongoose, {Schema} from "mongoose";
+import {z} from "zod";
 
-import {describeModel, describeModelForRouter} from "./schemaMetadata";
+import {
+  describeModel,
+  describeModelForRouter,
+  fieldDescriptionToAdminMeta,
+  fieldDescriptionToOpenApiProperty,
+  fieldDescriptionToZodType,
+  modelDescriptionToAdminFields,
+  modelDescriptionToOpenApiSpec,
+  nestDottedFieldDescriptions,
+  type FieldDescription,
+} from "./schemaMetadata";
 
 const fixtureSchema = new Schema({
   completed: {default: false, description: "Whether the item is done", type: Boolean},
@@ -34,6 +45,27 @@ fixtureSchema.add({
 
 const FixtureModel =
   mongoose.models.SchemaMetadataFixture ?? mongoose.model("SchemaMetadataFixture", fixtureSchema);
+
+const mapSchema = new Schema({
+  attributes: {description: "Untyped map values", type: Map},
+  typedMap: {description: "String map", of: String, type: Map},
+});
+
+const MapModel = mongoose.models.SchemaMetadataMap ?? mongoose.model("SchemaMetadataMap", mapSchema);
+
+const embeddedSchema = new Schema({
+  profile: {
+    description: "Nested profile",
+    type: new Schema({
+      bio: {description: "Short bio", type: String},
+    }),
+  },
+  "settings.theme": {description: "Theme name", type: String},
+});
+
+const EmbeddedModel =
+  mongoose.models.SchemaMetadataEmbedded ??
+  mongoose.model("SchemaMetadataEmbedded", embeddedSchema);
 
 describe("describeModel", () => {
   it("returns a field graph snapshot for the fixture schema", () => {
@@ -92,6 +124,30 @@ describe("describeModel", () => {
       })
     );
   });
+
+  it("describes map fields with mixed values when no caster is provided", () => {
+    const description = describeModel(MapModel);
+
+    expect(description.fields.attributes).toEqual(
+      expect.objectContaining({
+        item: expect.objectContaining({kind: "mixed"}),
+        kind: "map",
+      })
+    );
+  });
+
+  it("merges extraProperties into the field graph", () => {
+    const extraField: FieldDescription = {
+      description: "Synthetic field",
+      kind: "string",
+      required: false,
+    };
+    const description = describeModel(FixtureModel, {
+      extraProperties: {synthetic: extraField},
+    });
+
+    expect(description.fields.synthetic).toEqual(extraField);
+  });
 });
 
 describe("describeModelForRouter", () => {
@@ -108,5 +164,204 @@ describe("describeModelForRouter", () => {
     expect(description.fields.label?.writableOnCreate).toBe(true);
     expect(description.fields.status?.writableOnUpdate).toBe(false);
     expect(description.fields.label?.writableOnUpdate).toBe(true);
+  });
+
+  it("respects fieldView write masks for nested paths", () => {
+    const description = describeModelForRouter(EmbeddedModel, {
+      fieldView: {read: "*", write: ["profile"]},
+    });
+
+    expect(description.fields.profile?.writableOnCreate).toBe(true);
+    expect(description.fields["settings.theme"]?.writableOnCreate).toBe(false);
+  });
+});
+
+describe("nestDottedFieldDescriptions", () => {
+  it("nests dotted paths into embedded field graphs", () => {
+    const nested = nestDottedFieldDescriptions({
+      "settings.theme": {kind: "string", required: false},
+      title: {kind: "string", required: true},
+    });
+
+    expect(nested.settings).toEqual(
+      expect.objectContaining({
+        fields: {
+          theme: {kind: "string", required: false},
+        },
+        kind: "embedded",
+      })
+    );
+    expect(nested.title).toEqual({kind: "string", required: true});
+  });
+});
+
+describe("modelDescriptionToOpenApiSpec", () => {
+  it("converts the fixture description into OpenAPI properties", () => {
+    const description = describeModel(FixtureModel);
+    const spec = modelDescriptionToOpenApiSpec(description);
+
+    expect(spec.properties.ownerId).toEqual({
+      description: "Owning user",
+      format: "objectid",
+      type: "string",
+    });
+    expect(spec.properties.metadata).toEqual({
+      description: "Arbitrary metadata",
+    });
+    expect(spec.required).toContain("label");
+    expect(spec.required).toContain("ownerId");
+    expect(spec.properties.__v).toBeUndefined();
+  });
+});
+
+describe("fieldDescriptionToOpenApiProperty", () => {
+  it("maps arrays, embedded objects, maps, and date-only fields", () => {
+    const arrayField: FieldDescription = {
+      description: "Tags",
+      isArray: true,
+      item: {kind: "string", required: false},
+      kind: "string",
+      required: false,
+    };
+    const embeddedField: FieldDescription = {
+      description: "Profile",
+      fields: {
+        bio: {description: "Bio", kind: "string", required: false},
+      },
+      kind: "embedded",
+      required: false,
+    };
+    const mapField: FieldDescription = {
+      description: "Attributes",
+      item: {kind: "string", required: false},
+      kind: "map",
+      required: false,
+    };
+
+    expect(fieldDescriptionToOpenApiProperty(arrayField)).toEqual({
+      description: "Tags",
+      items: {type: "string"},
+      type: "array",
+    });
+    expect(fieldDescriptionToOpenApiProperty(embeddedField)).toEqual(
+      expect.objectContaining({
+        description: "Profile",
+        properties: {bio: {description: "Bio", type: "string"}},
+        type: "object",
+      })
+    );
+    expect(fieldDescriptionToOpenApiProperty(mapField)).toEqual({
+      additionalProperties: {type: "string"},
+      description: "Attributes",
+      type: "object",
+    });
+    expect(
+      fieldDescriptionToOpenApiProperty({
+        description: "Birthday",
+        kind: "dateOnly",
+        required: false,
+      })
+    ).toEqual({
+      description: "Birthday",
+      type: "dateonly",
+    });
+  });
+});
+
+describe("modelDescriptionToAdminFields", () => {
+  it("converts the fixture description into admin field metadata", () => {
+    const description = describeModel(FixtureModel);
+    const fields = modelDescriptionToAdminFields(description);
+
+    expect(fields.ownerId).toEqual(
+      expect.objectContaining({
+        ref: "User",
+        required: true,
+        searchable: false,
+        type: "objectid",
+      })
+    );
+    expect(fields.tags).toEqual(
+      expect.objectContaining({
+        itemType: "string",
+        type: "array",
+      })
+    );
+    expect(fields.tasks).toEqual(
+      expect.objectContaining({
+        items: expect.objectContaining({
+          title: expect.objectContaining({required: true, type: "string"}),
+        }),
+        type: "array",
+      })
+    );
+  });
+});
+
+describe("fieldDescriptionToAdminMeta", () => {
+  it("maps embedded object fields for admin forms", () => {
+    const meta = fieldDescriptionToAdminMeta({
+      description: "Profile",
+      fields: {
+        bio: {description: "Bio", kind: "string", required: false},
+      },
+      kind: "embedded",
+      required: false,
+    });
+
+    expect(meta).toEqual(
+      expect.objectContaining({
+        items: {
+          bio: expect.objectContaining({searchable: true, type: "string"}),
+        },
+        type: "object",
+      })
+    );
+  });
+});
+
+describe("fieldDescriptionToZodType", () => {
+  it("builds zod types for primitive, enum, array, and map fields", () => {
+    expect(fieldDescriptionToZodType({kind: "string", required: true}, z).parse("ok")).toBe("ok");
+    expect(
+      fieldDescriptionToZodType(
+        {enum: ["draft", "published"], kind: "string", required: true},
+        z
+      ).parse("draft")
+    ).toBe("draft");
+    expect(
+      fieldDescriptionToZodType(
+        {
+          description: "Tags",
+          isArray: true,
+          item: {kind: "string", required: false},
+          kind: "string",
+          required: false,
+        },
+        z
+      ).parse(["a"])
+    ).toEqual(["a"]);
+    expect(
+      fieldDescriptionToZodType(
+        {
+          description: "Attributes",
+          item: {kind: "string", required: false},
+          kind: "map",
+          required: false,
+        },
+        z
+      ).parse({key: "value"})
+    ).toEqual({key: "value"});
+    expect(
+      fieldDescriptionToZodType(
+        {
+          description: "Metadata",
+          fields: {note: {kind: "string", required: false}},
+          kind: "embedded",
+          required: false,
+        },
+        z
+      ).parse({note: "hello"})
+    ).toEqual({note: "hello"});
   });
 });

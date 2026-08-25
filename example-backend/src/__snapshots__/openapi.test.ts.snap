@@ -297,7 +297,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "actorId": {
                             "description": "User who performed the action",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "created": {
                             "description": "When this document was created",
@@ -318,7 +319,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "recordId": {
                             "description": "Primary key of the affected document",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "recordLabel": {
                             "description": "Human-readable label for the record",
@@ -545,7 +547,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "actorId": {
                       "description": "User who performed the action",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "created": {
                       "description": "When this document was created",
@@ -566,7 +569,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "recordId": {
                       "description": "Primary key of the affected document",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "recordLabel": {
                       "description": "Human-readable label for the record",
@@ -1177,6 +1181,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "List of checkboxes the user must interact with before agreeing",
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "confirmationPrompt": {
                                   "description": "Optional prompt shown when the user checks this checkbox",
                                   "type": "string",
@@ -1199,6 +1206,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "content": {
                             "additionalProperties": {
+                              "format": "date-time",
                               "type": "string",
                             },
                             "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
@@ -1374,6 +1382,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "List of checkboxes the user must interact with before agreeing",
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "confirmationPrompt": {
                           "description": "Optional prompt shown when the user checks this checkbox",
                           "type": "string",
@@ -1396,6 +1407,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "content": {
                     "additionalProperties": {
+                      "format": "date-time",
                       "type": "string",
                     },
                     "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
@@ -1495,6 +1507,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "List of checkboxes the user must interact with before agreeing",
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "confirmationPrompt": {
                             "description": "Optional prompt shown when the user checks this checkbox",
                             "type": "string",
@@ -1517,6 +1532,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "content": {
                       "additionalProperties": {
+                        "format": "date-time",
                         "type": "string",
                       },
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
@@ -1851,6 +1867,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "List of checkboxes the user must interact with before agreeing",
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "confirmationPrompt": {
                             "description": "Optional prompt shown when the user checks this checkbox",
                             "type": "string",
@@ -1873,6 +1892,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "content": {
                       "additionalProperties": {
+                        "format": "date-time",
                         "type": "string",
                       },
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
@@ -2041,6 +2061,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "List of checkboxes the user must interact with before agreeing",
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "confirmationPrompt": {
                           "description": "Optional prompt shown when the user checks this checkbox",
                           "type": "string",
@@ -2063,6 +2086,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "content": {
                     "additionalProperties": {
+                      "format": "date-time",
                       "type": "string",
                     },
                     "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
@@ -2162,6 +2186,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "List of checkboxes the user must interact with before agreeing",
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "confirmationPrompt": {
                             "description": "Optional prompt shown when the user checks this checkbox",
                             "type": "string",
@@ -2184,6 +2211,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "content": {
                       "additionalProperties": {
+                        "format": "date-time",
                         "type": "string",
                       },
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
@@ -2502,7 +2530,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "checkboxValues": {
                             "additionalProperties": {
-                              "type": "boolean",
+                              "format": "date-time",
+                              "type": "string",
                             },
                             "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
                             "type": "object",
@@ -2808,7 +2837,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "checkboxValues": {
                       "additionalProperties": {
-                        "type": "boolean",
+                        "format": "date-time",
+                        "type": "string",
                       },
                       "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
                       "type": "object",
@@ -3230,7 +3260,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "defaultVariant": {
                             "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                            "required": false,
                             "type": "string",
                           },
                           "deleted": {
@@ -3260,6 +3289,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "rules": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "enabled": {
                                   "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                                   "type": "boolean",
@@ -3314,6 +3346,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "variants": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "key": {
                                   "description": "Variant identifier, e.g., 'control', 'variant-a'",
                                   "type": "string",
@@ -3430,7 +3465,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -3460,6 +3494,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -3514,6 +3551,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -3558,7 +3598,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -3588,6 +3627,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -3642,6 +3684,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -3917,7 +3962,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -3947,6 +3991,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -4001,6 +4048,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -4110,7 +4160,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -4140,6 +4189,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -4194,6 +4246,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -4238,7 +4293,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -4268,6 +4322,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -4322,6 +4379,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -4695,7 +4755,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "ownerId": {
                             "description": "The user who owns this todo",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "priority": {
                             "description": "Priority level of the todo",
@@ -4834,7 +4895,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -4901,7 +4963,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -5136,7 +5199,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -5268,7 +5332,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -5335,7 +5400,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -7162,7 +7228,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "User who owns the device token",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -7292,7 +7359,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "defaultVariant": {
                             "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                            "required": false,
                             "type": "string",
                           },
                           "deleted": {
@@ -7322,6 +7388,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "rules": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "enabled": {
                                   "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                                   "type": "boolean",
@@ -7376,6 +7445,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "variants": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "key": {
                                   "description": "Variant identifier, e.g., 'control', 'variant-a'",
                                   "type": "string",
@@ -7492,7 +7564,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -7522,6 +7593,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -7576,6 +7650,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -7620,7 +7697,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -7650,6 +7726,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -7704,6 +7783,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -7879,7 +7961,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -7909,6 +7990,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -7963,6 +8047,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -8072,7 +8159,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -8102,6 +8188,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -8156,6 +8245,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -8200,7 +8292,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -8230,6 +8321,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -8284,6 +8378,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -8476,7 +8573,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "projectId": {
                             "description": "Project this conversation belongs to",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "prompts": {
                             "description": "Ordered list of messages in this conversation",
@@ -8580,7 +8678,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "userId": {
                             "description": "The user who owns this conversation history",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                         },
                         "required": [
@@ -8683,7 +8782,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "projectId": {
                     "description": "Project this conversation belongs to",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "prompts": {
                     "description": "Ordered list of messages in this conversation",
@@ -8787,7 +8887,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "userId": {
                     "description": "The user who owns this conversation history",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                 },
                 "type": "object",
@@ -8819,7 +8920,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "projectId": {
                       "description": "Project this conversation belongs to",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "prompts": {
                       "description": "Ordered list of messages in this conversation",
@@ -8923,7 +9025,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "The user who owns this conversation history",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -9085,7 +9188,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "projectId": {
                       "description": "Project this conversation belongs to",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "prompts": {
                       "description": "Ordered list of messages in this conversation",
@@ -9189,7 +9293,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "The user who owns this conversation history",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -9285,7 +9390,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "projectId": {
                     "description": "Project this conversation belongs to",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "prompts": {
                     "description": "Ordered list of messages in this conversation",
@@ -9389,7 +9495,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "userId": {
                     "description": "The user who owns this conversation history",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                 },
                 "type": "object",
@@ -9421,7 +9528,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "projectId": {
                       "description": "Project this conversation belongs to",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "prompts": {
                       "description": "Ordered list of messages in this conversation",
@@ -9525,7 +9633,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "The user who owns this conversation history",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -11299,7 +11408,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "ownerId": {
                             "description": "The user who owns this todo",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "priority": {
                             "description": "Priority level of the todo",
@@ -11442,7 +11552,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -11509,7 +11620,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -11816,7 +11928,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -11948,7 +12061,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -12015,7 +12129,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",

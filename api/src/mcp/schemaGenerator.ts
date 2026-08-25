@@ -54,6 +54,7 @@ export const writeExcludeFields = (config: MCPConfig, restExcludeFields: string[
 };
 
 const getModelFields = (
+  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   excludeFields: string[]
@@ -81,6 +82,7 @@ const getModelFields = (
 };
 
 export const generateInputSchema = (
+  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   method: MCPMethod,
@@ -209,6 +211,7 @@ const describeField = ({field, path, required}: ModelField): string => {
 };
 
 export const generateToolDescription = (
+  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   method: MCPMethod,

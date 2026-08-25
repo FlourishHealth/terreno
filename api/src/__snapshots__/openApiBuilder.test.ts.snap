@@ -168,8 +168,8 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           "eatenBy": {
                             "items": {
                               "description": "Users who have eaten this food",
-                              "required": true,
-                              "type": "schemaobjectid",
+                              "format": "objectid",
+                              "type": "string",
                             },
                             "type": "array",
                           },
@@ -182,10 +182,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "boolean",
                           },
                           "lastEatenWith": {
-                            "additionalProperties": {
-                              "format": "date-time",
-                              "type": "string",
-                            },
+                            "additionalProperties": {},
                             "description": "Map of user names to dates they last ate this food with",
                             "type": "object",
                           },
@@ -202,6 +199,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                                 },
                                 "userId": {
                                   "description": "The user who liked the item",
+                                  "format": "objectid",
                                   "type": "string",
                                 },
                               },
@@ -216,6 +214,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           },
                           "ownerId": {
                             "description": "The user who owns this food entry",
+                            "format": "objectid",
                             "type": "string",
                           },
                           "source": {
@@ -233,6 +232,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                                 "type": "string",
                               },
                             },
+                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -373,8 +373,8 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                   "eatenBy": {
                     "items": {
                       "description": "Users who have eaten this food",
-                      "required": true,
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "type": "array",
                   },
@@ -387,10 +387,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
+                    "additionalProperties": {},
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -407,6 +404,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         },
                         "userId": {
                           "description": "The user who liked the item",
+                          "format": "objectid",
                           "type": "string",
                         },
                       },
@@ -421,6 +419,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                   },
                   "ownerId": {
                     "description": "The user who owns this food entry",
+                    "format": "objectid",
                     "type": "string",
                   },
                   "source": {
@@ -438,6 +437,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -507,8 +507,8 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "eatenBy": {
                       "items": {
                         "description": "Users who have eaten this food",
-                        "required": true,
-                        "type": "schemaobjectid",
+                        "format": "objectid",
+                        "type": "string",
                       },
                       "type": "array",
                     },
@@ -521,10 +521,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -541,6 +538,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -555,6 +553,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     },
                     "ownerId": {
                       "description": "The user who owns this food entry",
+                      "format": "objectid",
                       "type": "string",
                     },
                     "source": {
@@ -572,6 +571,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -1121,8 +1121,8 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "eatenBy": {
                       "items": {
                         "description": "Users who have eaten this food",
-                        "required": true,
-                        "type": "schemaobjectid",
+                        "format": "objectid",
+                        "type": "string",
                       },
                       "type": "array",
                     },
@@ -1135,10 +1135,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -1155,6 +1152,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -1169,6 +1167,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     },
                     "ownerId": {
                       "description": "The user who owns this food entry",
+                      "format": "objectid",
                       "type": "string",
                     },
                     "source": {
@@ -1186,6 +1185,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -1319,8 +1319,8 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                   "eatenBy": {
                     "items": {
                       "description": "Users who have eaten this food",
-                      "required": true,
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "type": "array",
                   },
@@ -1333,10 +1333,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
+                    "additionalProperties": {},
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -1353,6 +1350,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         },
                         "userId": {
                           "description": "The user who liked the item",
+                          "format": "objectid",
                           "type": "string",
                         },
                       },
@@ -1367,6 +1365,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                   },
                   "ownerId": {
                     "description": "The user who owns this food entry",
+                    "format": "objectid",
                     "type": "string",
                   },
                   "source": {
@@ -1384,6 +1383,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -1453,8 +1453,8 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "eatenBy": {
                       "items": {
                         "description": "Users who have eaten this food",
-                        "required": true,
-                        "type": "schemaobjectid",
+                        "format": "objectid",
+                        "type": "string",
                       },
                       "type": "array",
                     },
@@ -1467,10 +1467,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -1487,6 +1484,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -1501,6 +1499,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     },
                     "ownerId": {
                       "description": "The user who owns this food entry",
+                      "format": "objectid",
                       "type": "string",
                     },
                     "source": {
@@ -1518,6 +1517,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {

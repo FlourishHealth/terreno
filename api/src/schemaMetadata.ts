@@ -192,7 +192,7 @@ const describeSchemaPath = (path: string, schemaPath: MongooseSchemaPath): Field
   if (schemaPath.instance === "Map") {
     return {
       ...base,
-      item: schemaPath.caster ? describeCaster(schemaPath.caster) : {kind: "date", required: false},
+      item: schemaPath.caster ? describeCaster(schemaPath.caster) : {kind: "mixed", required: false},
       kind: "map",
     };
   }
@@ -302,6 +302,7 @@ const applyWriteMasks = (
 };
 
 export const describeModel = (
+  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   options: DescribeModelOptions = {}
@@ -325,6 +326,7 @@ export const describeModel = (
 };
 
 export const describeModelForRouter = (
+  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
   model: Model<any>,
   options: DescribeModelForRouterOptions = {}
