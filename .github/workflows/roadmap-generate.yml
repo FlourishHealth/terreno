@@ -34,10 +34,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
-          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
           git fetch origin "$GITHUB_REF_NAME"
           git reset --hard "origin/$GITHUB_REF_NAME"
-          git config --local --unset-all http.https://github.com/.extraheader
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -95,6 +95,6 @@ jobs:
           # master moves while this job runs, so a first push can be rejected as
           # non-fast-forward; rebasing onto the new tip and retrying is safe
           # because this job only ever touches ROADMAP.md.
-          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
           git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)
-          git config --local --unset-all http.https://github.com/.extraheader
