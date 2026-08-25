@@ -83,12 +83,12 @@ prop. Times are milliseconds; lower is better.
 
 | Workload | Phase | Baseline | Optimized | Change |
 | --- | --- | ---: | ---: | ---: |
-| Plain `Button` | Initial render | 7.85 | 8.15 | Within benchmark variance |
-| Plain `Button` | Same-prop update | 13.73 | 0.93 | 93.2% faster |
-| Plain `Button` | One-label update | 11.99 | 0.97 | 91.9% faster |
-| Confirmation `Button` | Initial render | 1.71 | 1.87 | Within benchmark variance |
-| Confirmation `Button` | Same-prop update | 2.79 | 0.30 | 89.3% faster |
-| Confirmation `Button` | One-message update | 2.71 | 0.31 | 88.4% faster |
+| Plain `Button` | Initial render | 7.85 | 8.66 | Within benchmark variance |
+| Plain `Button` | Same-prop update | 13.73 | 0.94 | 93.1% faster |
+| Plain `Button` | One-label update | 11.99 | 0.98 | 91.8% faster |
+| Confirmation `Button` | Initial render | 1.71 | 1.93 | Within benchmark variance |
+| Confirmation `Button` | Same-prop update | 2.79 | 0.30 | 89.2% faster |
+| Confirmation `Button` | One-message update | 2.71 | 0.32 | 88.3% faster |
 
 `Button` now skips equivalent parent updates, keeps debounce identity stable, and cancels retained
 debounce timers on replacement or unmount. Plain buttons use a separate path that does not allocate
