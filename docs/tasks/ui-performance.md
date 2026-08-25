@@ -42,7 +42,7 @@
     value with complete dependencies; unchanged metadata skips consumer renders; replacing the spec
     updates field lookups immediately; existing form/admin behavior and the full UI suite pass.
 
-- [ ] **Task 1.2**: Virtualize large `DataTable` row sets without changing table behavior
+- [x] **Task 1.2**: Virtualize large `DataTable` row sets without changing table behavior
   - Delivers: initial mount cost and mounted row count scale with the viewport instead of total rows.
   - Files: `ui/src/DataTable.tsx`, `ui/src/DataTable.test.tsx`, P1 regressions and benchmark,
     `demo/stories/DataTable.stories.tsx`, `docs/reference/ui-performance.md`
