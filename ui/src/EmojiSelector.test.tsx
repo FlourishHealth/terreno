@@ -242,12 +242,7 @@ describe("EmojiSelector", () => {
         theme="#007AFF"
       />
     );
-    // Trigger the onLayout callback so state moves to ready.
-    await act(async () => {
-      (root as LayoutRoot).props.onLayout?.({
-        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
-      });
-    });
+    await waitForEmojiData(() => root as LayoutRoot);
     expect(toJSON()).toBeTruthy();
   });
 
@@ -265,11 +260,7 @@ describe("EmojiSelector", () => {
         theme="#007AFF"
       />
     );
-    await act(async () => {
-      (root as LayoutRoot).props.onLayout?.({
-        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
-      });
-    });
+    await waitForEmojiData(() => root as LayoutRoot);
     const {TouchableOpacity} = require("react-native");
     const tabs = UNSAFE_getAllByType(TouchableOpacity);
     expect(tabs.length).toBeGreaterThan(0);
@@ -294,11 +285,7 @@ describe("EmojiSelector", () => {
         theme="#007AFF"
       />
     );
-    await act(async () => {
-      (root as LayoutRoot).props.onLayout?.({
-        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
-      });
-    });
+    await waitForEmojiData(() => root as LayoutRoot);
 
     const {FlatList} = require("react-native");
     const [list] = UNSAFE_getAllByType(FlatList);
@@ -383,11 +370,7 @@ describe("EmojiSelector", () => {
           theme="#007AFF"
         />
       );
-      await act(async () => {
-        (root as LayoutRoot).props.onLayout?.({
-          nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
-        });
-      });
+      await waitForEmojiData(() => root as LayoutRoot);
       const {FlatList} = require("react-native");
       const [list] = UNSAFE_getAllByType(FlatList);
       const first = (list.props.data ?? [])[0];
@@ -429,11 +412,7 @@ describe("EmojiSelector", () => {
           theme="#007AFF"
         />
       );
-      await act(async () => {
-        (root as LayoutRoot).props.onLayout?.({
-          nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
-        });
-      });
+      await waitForEmojiData(() => root as LayoutRoot);
       const {FlatList} = require("react-native");
       const [list] = UNSAFE_getAllByType(FlatList);
       const first = (list.props.data ?? [])[0];
@@ -473,11 +452,7 @@ describe("EmojiSelector", () => {
         theme="#007AFF"
       />
     );
-    await act(async () => {
-      (root as LayoutRoot).props.onLayout?.({
-        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
-      });
-    });
+    await waitForEmojiData(() => root as LayoutRoot);
 
     const input = getByPlaceholderText("Search emojis");
     await act(async () => {

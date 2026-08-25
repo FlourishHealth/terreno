@@ -1,4 +1,5 @@
 import {spawnSync} from "node:child_process";
+import {existsSync, unlinkSync, writeFileSync} from "node:fs";
 import {resolve} from "node:path";
 
 export interface FreshImportTimingResult {
@@ -28,31 +29,37 @@ describe("fresh import timing", () => {
 `;
 
   const probeFile = resolve(UI_PACKAGE_ROOT, "benchmarks/.fresh-import-probe.test.ts");
-  Bun.write(probeFile, probeSource);
+  writeFileSync(probeFile, probeSource, "utf8");
 
-  const result = spawnSync(
-    "bun",
-    ["test", "--preload", "./src/bunSetup.ts", "./benchmarks/.fresh-import-probe.test.ts"],
-    {
-      cwd: UI_PACKAGE_ROOT,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        TZ: "America/New_York",
-      },
-    }
-  );
-
-  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
-  const match = output.match(/UI_IMPORT_TIMING_RESULT=({.+})/);
-  if (!match) {
-    throw new Error(
-      `Fresh import probe failed for ${importPath}\n${output.slice(0, 2000)}`
+  try {
+    const result = spawnSync(
+      "bun",
+      ["test", "--preload", "./src/bunSetup.ts", "./benchmarks/.fresh-import-probe.test.ts"],
+      {
+        cwd: UI_PACKAGE_ROOT,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          TZ: "America/New_York",
+        },
+      }
     );
-  }
 
-  const parsed = JSON.parse(match[1]) as {elapsedMs: number};
-  return parsed.elapsedMs;
+    const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    const match = output.match(/UI_IMPORT_TIMING_RESULT=({.+})/);
+    if (!match) {
+      throw new Error(
+        `Fresh import probe failed for ${importPath}\n${output.slice(0, 2000)}`
+      );
+    }
+
+    const parsed = JSON.parse(match[1]) as {elapsedMs: number};
+    return parsed.elapsedMs;
+  } finally {
+    if (existsSync(probeFile)) {
+      unlinkSync(probeFile);
+    }
+  }
 };
 
 export const measureFreshImportTiming = ({
