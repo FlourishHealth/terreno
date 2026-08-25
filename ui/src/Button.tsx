@@ -279,4 +279,6 @@ const ButtonRender: React.FC<ButtonProps> = (props) => {
   return button;
 };
 
-export const Button: React.FC<ButtonProps> = memo(ButtonRender);
+const MemoizedButton = memo(ButtonRender);
+
+export const Button: React.FC<ButtonProps> = MemoizedButton;
