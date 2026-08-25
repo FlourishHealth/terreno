@@ -444,7 +444,9 @@ describe("syncdb end-to-end integration", () => {
     expect(entity?.data?.title).toBe("server wins");
     expect(entity?.seq).toBe(baseSeq + 1);
     expect(entity?.pendingMutationId).toBeUndefined();
-    expect(a.client.getSyncStatus().conflictCount).toBe(0);
+    await waitFor(() => a.client.getSyncStatus().conflictCount === 0, {
+      label: "useServer conflict resolution persisted",
+    });
     // The server kept its own write.
     const settled = await IntTodoModel.findById(conflictDocId);
     expect(settled?.title).toBe("server wins");
@@ -485,7 +487,9 @@ describe("syncdb end-to-end integration", () => {
     // (it would replay the recorded conflict nack forever) — and resolveConflict kicks
     // a replay immediately, so the retry drains without waiting for another trigger.
     a.client.resolveConflict({mutationId, strategy: "keepMine"});
-    expect(a.client.getSyncStatus().conflictCount).toBe(0);
+    await waitFor(() => a.client.getSyncStatus().conflictCount === 0, {
+      label: "keepMine conflict resolution persisted",
+    });
     expect(a.client.outbox.getMutation({mutationId})).toBeUndefined();
 
     // ...and the replay applies the client's data server-side.
