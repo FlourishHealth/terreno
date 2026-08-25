@@ -15,7 +15,7 @@ description: >-
 
 See `ai/src/service/aiService.ts` and `ai/src/service/prompts.ts` for the canonical implementation.
 
-**New product AI features** follow [Develop an AI feature](../../../docs/how-to/ai-feature-development.md) (dataset → label → prompt versions → evaluators → experiment gates → `production` label → live traces + feedback). Do not ship a prompt-only change that skips gold data and evaluators when ObservabilityApp is in the app.
+**New product AI features** follow [Develop an AI feature](../../docs/how-to/ai-feature-development.md) (dataset → label → prompt versions → evaluators → experiment gates → `production` label → live traces + feedback). Do not ship a prompt-only change that skips gold data and evaluators when ObservabilityApp is in the app.
 
 ## Prompt Writing Rules
 
@@ -72,12 +72,12 @@ For a one-off manual smoke against a real provider, temporarily add `logger.debu
 - [ ] If `requestType` taxonomy changed, the type union and admin explorer filters were updated
 - [ ] No user-identifiable data baked into the prompt template (only injected at call time)
 - [ ] Unit test added/updated with a mock model
-- [ ] For a user-facing feature: gold dataset labeled, SOP or custom evaluators attached, experiment run, `production` label moved ([how-to](../../../docs/how-to/ai-feature-development.md))
+- [ ] For a user-facing feature: gold dataset labeled, SOP or custom evaluators attached, experiment run, `production` label moved ([how-to](../../docs/how-to/ai-feature-development.md))
 - [ ] Commit message explains the behavioral change (the prompt is the behavior)
 
 ## Adding a New AI Feature
 
-Follow [Develop an AI feature](../../../docs/how-to/ai-feature-development.md). Code slice:
+Follow [Develop an AI feature](../../docs/how-to/ai-feature-development.md). Code slice:
 
 1. Create the named prompt in `PromptRegistry` (or a constant **and** a registry seed). Do not inline in routes.
 2. If structured JSON output, define the TypeScript interface and align dataset `expectedOutputSchema`.
