@@ -1,4 +1,5 @@
 import React, {useState} from "react";
+import type {Api, BaseQueryFn} from "@reduxjs/toolkit/query/react";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -9,10 +10,11 @@ import {detectLocale, useConsentForms} from "./useConsentForms";
 import type {SubmitConsentBody} from "./useSubmitConsent";
 import {useSubmitConsent} from "./useSubmitConsent";
 
+/** Consumer RTK Query API with type-erased endpoint definitions. */
+type ConsentApi = Api<BaseQueryFn<unknown, unknown, unknown>, Record<string, never>, string, string>;
+
 interface ConsentNavigatorProps {
-  // noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
-  api: any;
+  api: ConsentApi;
   baseUrl?: string;
   children: React.ReactNode;
   extraScreens?: React.ReactNode[];

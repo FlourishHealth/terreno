@@ -283,8 +283,8 @@ export const executeCreate = async <T>({
 
   if (options.populatePaths) {
     try {
-      // noExplicitAny: mongoose Query type varies based on populatePaths
-      // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
+      // noExplicitAny: addPopulateToQuery expects Query<any[], …> but findById returns Query<T|null, …>; Mongoose populate transforms the result type in ways TypeScript cannot relate
+      // biome-ignore lint/suspicious/noExplicitAny: addPopulateToQuery expects Query<any[], …> but findById returns Query<T|null, …>; Mongoose populate transforms the result type in ways TypeScript cannot relate
       let populateQuery: any = model.findById(data._id);
       populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
       data = await populateQuery.exec();
@@ -548,8 +548,8 @@ export const executeUpdate = async <T>({
   }
 
   if (options.populatePaths) {
-    // noExplicitAny: mongoose Query type varies based on populatePaths
-    // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
+    // noExplicitAny: addPopulateToQuery expects Query<any[], …> but findById returns Query<T|null, …>; Mongoose populate transforms the result type in ways TypeScript cannot relate
+    // biome-ignore lint/suspicious/noExplicitAny: addPopulateToQuery expects Query<any[], …> but findById returns Query<T|null, …>; Mongoose populate transforms the result type in ways TypeScript cannot relate
     let populateQuery: any = model.findById(doc._id);
     populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
     doc = await populateQuery.exec();

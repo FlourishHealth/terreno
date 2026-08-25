@@ -1,5 +1,5 @@
 import {NOOP_PROVIDER, OpenFeature, TypedInMemoryProvider} from "@openfeature/web-sdk";
-import type {Api} from "@reduxjs/toolkit/query/react";
+import type {Api, BaseQueryFn} from "@reduxjs/toolkit/query/react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 
 /** Shape returned by `GET .../flagConfiguration` (OpenFeature static flag map). */
@@ -34,12 +34,11 @@ export interface UseTerrenoFeatureFlagsResult {
   refetch: () => unknown;
 }
 
-// noExplicitAny: RTK Query API generic typing is intentionally flexible here.
-// biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
-type FlagsApi = Api<any, any, any, any>;
+/** Consumer RTK Query API with type-erased endpoint definitions (same pattern as admin-frontend). */
+type FlagsApi = Api<BaseQueryFn<unknown, unknown, unknown>, Record<string, never>, string, string>;
 
-// noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
-// biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
+// noExplicitAny: injectEndpoints adds useTerrenoFlagConfigurationQuery at runtime; RTK's UseQuery hook generic is not expressible from the erased FlagsApi base type
+// biome-ignore lint/suspicious/noExplicitAny: injectEndpoints adds useTerrenoFlagConfigurationQuery at runtime; RTK's UseQuery hook generic is not expressible from the erased FlagsApi base type
 type EnhancedTerrenoFlagsApi = FlagsApi & {useTerrenoFlagConfigurationQuery: any};
 
 const enhancedApiCache = new WeakMap<FlagsApi, Map<string, EnhancedTerrenoFlagsApi>>();
@@ -65,7 +64,7 @@ const getEnhancedApi = (api: FlagsApi, basePath: string): EnhancedTerrenoFlagsAp
       }),
     }),
     overrideExisting: false,
-  }) as EnhancedTerrenoFlagsApi;
+  }) as unknown as EnhancedTerrenoFlagsApi;
   byBase.set(basePath, enhanced);
   return enhanced;
 };
