@@ -12,6 +12,11 @@ interface PressableTestProps {
   onPress: () => Promise<void>;
 }
 
+interface CancelablePress {
+  (): void;
+  cancel: () => void;
+}
+
 describe("Button", () => {
   it("renders correctly with default props", () => {
     const {toJSON} = renderWithTheme(<Button onClick={() => {}} text="Click me" />);
@@ -193,6 +198,39 @@ describe("Button", () => {
       resolveClick?.();
       await Promise.resolve();
     });
+  });
+
+  it("cancels the debounced press handler on unmount", () => {
+    const {getByTestId, unmount} = renderWithTheme(
+      <Button onClick={() => {}} testID="cleanup-button" text="Cleanup" />
+    );
+    const onPress = getByTestId("cleanup-button").props.onPress as CancelablePress;
+    const cancelSpy = spyOn(onPress, "cancel");
+
+    unmount();
+
+    assert.lengthOf(cancelSpy.mock.calls, 1);
+  });
+
+  it("keeps the confirmation modal path absent for plain buttons", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Plain buttons never show this"
+        modalTitle="Unused confirmation"
+        onClick={handleClick}
+        text="Plain"
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Plain"));
+      await Promise.resolve();
+    });
+
+    assert.isNull(queryByText("Unused confirmation"));
+    assert.isNull(queryByText("Plain buttons never show this"));
+    assert.lengthOf(handleClick.mock.calls, 1);
   });
 
   // Confirmation modal tests

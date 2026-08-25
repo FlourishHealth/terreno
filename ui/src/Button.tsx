@@ -7,7 +7,7 @@ import {
   PressableWithoutFeedback,
 } from "pressto";
 import type React from "react";
-import {lazy, memo, Suspense, useCallback, useEffect, useMemo, useState} from "react";
+import {lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "react-native";
 
 import {Box} from "./Box";
@@ -35,7 +35,7 @@ const PRESSABLE_BY_ANIMATION: Record<
 
 type ButtonPressableProps = CustomPressableProps & PressableProps;
 
-interface ButtonVisualProps extends ButtonProps {
+interface ButtonVisualProps extends Omit<ButtonProps, "onClick"> {
   children?: React.ReactNode;
   isLoading: boolean;
   onPress: () => void;
@@ -55,6 +55,19 @@ const useDebouncedPress = (handlePress: () => Promise<void>): (() => void) => {
   }, [debouncedHandlePress]);
 
   return debouncedHandlePress;
+};
+
+const useMountedRef = (): React.RefObject<boolean> => {
+  const isMountedRef = useRef(true);
+
+  // Prevent async press completions from updating state after the button unmounts.
+  useEffect((): (() => void) => {
+    return (): void => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  return isMountedRef;
 };
 
 const ButtonVisual: React.FC<ButtonVisualProps> = ({
@@ -180,18 +193,26 @@ const ButtonVisual: React.FC<ButtonVisualProps> = ({
 const PlainButton: React.FC<ButtonProps> = (props) => {
   const {loading = false, onClick} = props;
   const [isHandlingPress, setIsHandlingPress] = useState(false);
+  const isMountedRef = useMountedRef();
   const handlePress = useCallback(async (): Promise<void> => {
     await Unifier.utils.haptic();
+    if (!isMountedRef.current) {
+      return;
+    }
     setIsHandlingPress(true);
 
     try {
       await onClick();
     } catch (error) {
-      setIsHandlingPress(false);
+      if (isMountedRef.current) {
+        setIsHandlingPress(false);
+      }
       throw error;
     }
-    setIsHandlingPress(false);
-  }, [onClick]);
+    if (isMountedRef.current) {
+      setIsHandlingPress(false);
+    }
+  }, [isMountedRef, onClick]);
   const debouncedHandlePress = useDebouncedPress(handlePress);
 
   return (
@@ -211,31 +232,28 @@ const ConfirmationButton: React.FC<ButtonProps> = ({
   onClick,
   ...props
 }) => {
-  const [isOpeningConfirmation, setIsOpeningConfirmation] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const isMountedRef = useMountedRef();
   const handlePress = useCallback(async (): Promise<void> => {
     await Unifier.utils.haptic();
-    setIsOpeningConfirmation(true);
+    if (!isMountedRef.current) {
+      return;
+    }
     setShowConfirmation(true);
-    setIsOpeningConfirmation(false);
-  }, []);
+  }, [isMountedRef]);
   const handleDismiss = useCallback((): void => {
     setShowConfirmation(false);
   }, []);
   const handleConfirm = useCallback(async (): Promise<void> => {
     await onClick();
-    setShowConfirmation(false);
-  }, [onClick]);
+    if (isMountedRef.current) {
+      setShowConfirmation(false);
+    }
+  }, [isMountedRef, onClick]);
   const debouncedHandlePress = useDebouncedPress(handlePress);
 
   return (
-    <ButtonVisual
-      {...props}
-      isLoading={loading || isOpeningConfirmation}
-      onClick={onClick}
-      onPress={debouncedHandlePress}
-      withConfirmation
-    >
+    <ButtonVisual {...props} isLoading={loading} onPress={debouncedHandlePress} withConfirmation>
       {showConfirmation && (
         <Suspense fallback={null}>
           <LazyModal
