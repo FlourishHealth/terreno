@@ -126,9 +126,7 @@ export const checkInternalLeakage = ({
     if (hits.length === 0) {
       continue;
     }
-    const relative = filePath.startsWith(repoRoot)
-      ? filePath.slice(repoRoot.length + 1)
-      : filePath;
+    const relative = filePath.startsWith(repoRoot) ? filePath.slice(repoRoot.length + 1) : filePath;
     issues.push({
       message: `Internal leakage in ${relative}: ${hits.join(", ")}`,
       severity: "error",
