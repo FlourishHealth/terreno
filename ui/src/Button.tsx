@@ -7,7 +7,7 @@ import {
   PressableWithoutFeedback,
 } from "pressto";
 import type React from "react";
-import {lazy, Suspense, useCallback, useMemo, useState} from "react";
+import {lazy, memo, Suspense, useCallback, useEffect, useMemo, useState} from "react";
 import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "react-native";
 
 import {Box} from "./Box";
@@ -35,25 +35,43 @@ const PRESSABLE_BY_ANIMATION: Record<
 
 type ButtonPressableProps = CustomPressableProps & PressableProps;
 
-const ButtonComponent: React.FC<ButtonProps> = ({
-  confirmationText = "Are you sure you want to continue?",
+interface ButtonVisualProps extends ButtonProps {
+  children?: React.ReactNode;
+  isLoading: boolean;
+  onPress: () => void;
+}
+
+const useDebouncedPress = (handlePress: () => Promise<void>): (() => void) => {
+  const debouncedHandlePress = useMemo(
+    () => debounce(handlePress, 500, {leading: true, trailing: false}),
+    [handlePress]
+  );
+
+  // Cancel retained debounce timers when the callback changes or the button unmounts.
+  useEffect((): (() => void) => {
+    return (): void => {
+      debouncedHandlePress.cancel();
+    };
+  }, [debouncedHandlePress]);
+
+  return debouncedHandlePress;
+};
+
+const ButtonVisual: React.FC<ButtonVisualProps> = ({
+  children,
   disabled = false,
   fullWidth = false,
   iconName,
   iconPosition = "left",
-  loading: propsLoading,
-  modalTitle = "Confirm",
-  modalSubTitle,
+  isLoading,
+  onPress,
   pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   size = "default",
   testID,
   text,
   variant = "primary",
   withConfirmation = false,
-  onClick,
 }) => {
-  const [loading, setLoading] = useState(propsLoading);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
   const CustomIcon = useCustomIcon(iconName);
 
@@ -93,36 +111,11 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     };
   }, [disabled, variant, theme]);
 
-  const handlePress = useCallback(async (): Promise<void> => {
-    await Unifier.utils.haptic();
-    setLoading(true);
-
-    try {
-      // If a confirmation is required, and the confirmation modal is not currently open,
-      // open it.
-      if (withConfirmation && !showConfirmation) {
-        setShowConfirmation(true);
-      } else if (!withConfirmation && onClick) {
-        // If a confirmation is not required, perform the action.
-        await onClick();
-      }
-    } catch (error) {
-      setLoading(false);
-      throw error;
-    }
-    setLoading(false);
-  }, [onClick, showConfirmation, withConfirmation]);
-
-  const debouncedHandlePress = useMemo(
-    () => debounce(handlePress, 500, {leading: true, trailing: false}),
-    [handlePress]
-  );
-
   if (!theme) {
     return null;
   }
 
-  const isPressDisabled = disabled || Boolean(loading);
+  const isPressDisabled = disabled || isLoading;
   const PressableComponent = (
     isPressDisabled ? Pressable : PRESSABLE_BY_ANIMATION[pressAnimation]
   ) as React.ComponentType<ButtonPressableProps>;
@@ -137,7 +130,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{disabled: isPressDisabled}}
       {...pressableInteractionProps}
-      onPress={debouncedHandlePress}
+      onPress={onPress}
       style={{
         alignItems: "center",
         alignSelf: fullWidth ? "stretch" : "flex-start",
@@ -173,22 +166,83 @@ const ButtonComponent: React.FC<ButtonProps> = ({
           )}
           <Text style={{color, fontSize: size === "sm" ? 14 : 16, fontWeight: "700"}}>{text}</Text>
         </View>
-        {Boolean(loading) && (
+        {isLoading && (
           <Box marginLeft={2}>
             <ActivityIndicator color={color} size="small" />
           </Box>
         )}
       </View>
-      {withConfirmation && showConfirmation && (
+      {children}
+    </PressableComponent>
+  );
+};
+
+const PlainButton: React.FC<ButtonProps> = (props) => {
+  const {loading = false, onClick} = props;
+  const [isHandlingPress, setIsHandlingPress] = useState(false);
+  const handlePress = useCallback(async (): Promise<void> => {
+    await Unifier.utils.haptic();
+    setIsHandlingPress(true);
+
+    try {
+      await onClick();
+    } catch (error) {
+      setIsHandlingPress(false);
+      throw error;
+    }
+    setIsHandlingPress(false);
+  }, [onClick]);
+  const debouncedHandlePress = useDebouncedPress(handlePress);
+
+  return (
+    <ButtonVisual
+      {...props}
+      isLoading={loading || isHandlingPress}
+      onPress={debouncedHandlePress}
+    />
+  );
+};
+
+const ConfirmationButton: React.FC<ButtonProps> = ({
+  confirmationText = "Are you sure you want to continue?",
+  loading = false,
+  modalSubTitle,
+  modalTitle = "Confirm",
+  onClick,
+  ...props
+}) => {
+  const [isOpeningConfirmation, setIsOpeningConfirmation] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const handlePress = useCallback(async (): Promise<void> => {
+    await Unifier.utils.haptic();
+    setIsOpeningConfirmation(true);
+    setShowConfirmation(true);
+    setIsOpeningConfirmation(false);
+  }, []);
+  const handleDismiss = useCallback((): void => {
+    setShowConfirmation(false);
+  }, []);
+  const handleConfirm = useCallback(async (): Promise<void> => {
+    await onClick();
+    setShowConfirmation(false);
+  }, [onClick]);
+  const debouncedHandlePress = useDebouncedPress(handlePress);
+
+  return (
+    <ButtonVisual
+      {...props}
+      isLoading={loading || isOpeningConfirmation}
+      onClick={onClick}
+      onPress={debouncedHandlePress}
+      withConfirmation
+    >
+      {showConfirmation && (
         <Suspense fallback={null}>
           <LazyModal
-            onDismiss={() => setShowConfirmation(false)}
-            primaryButtonOnClick={async (): Promise<void> => {
-              await onClick();
-              setShowConfirmation(false);
-            }}
+            onDismiss={handleDismiss}
+            primaryButtonOnClick={handleConfirm}
             primaryButtonText="Confirm"
-            secondaryButtonOnClick={() => setShowConfirmation(false)}
+            secondaryButtonOnClick={handleDismiss}
             secondaryButtonText="Cancel"
             subtitle={modalSubTitle}
             text={confirmationText}
@@ -197,13 +251,18 @@ const ButtonComponent: React.FC<ButtonProps> = ({
           />
         </Suspense>
       )}
-    </PressableComponent>
+    </ButtonVisual>
   );
 };
 
-export const Button: React.FC<ButtonProps> = (props) => {
+const ButtonRender: React.FC<ButtonProps> = (props) => {
   const {tooltipText, tooltipIdealPosition, tooltipIncludeArrow = false} = props;
   const isMobileOrNative = isMobileDevice() || isNative();
+  const button = props.withConfirmation ? (
+    <ConfirmationButton {...props} />
+  ) : (
+    <PlainButton {...props} />
+  );
 
   if (tooltipText && !isMobileOrNative) {
     return (
@@ -212,10 +271,12 @@ export const Button: React.FC<ButtonProps> = (props) => {
         includeArrow={tooltipIncludeArrow}
         text={tooltipText}
       >
-        <ButtonComponent {...props} />
+        {button}
       </Tooltip>
     );
   }
 
-  return <ButtonComponent {...props} />;
+  return button;
 };
+
+export const Button: React.FC<ButtonProps> = memo(ButtonRender);

@@ -1,5 +1,6 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
+import {assert} from "chai";
 
 import {Button} from "./Button";
 import {isMobileDevice} from "./MediaQuery";
@@ -151,6 +152,47 @@ describe("Button", () => {
     });
 
     expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips equivalent parent updates and redraws changed props", () => {
+    const handleClick = mock(() => Promise.resolve());
+    const mobileDeviceMock = isMobileDevice as ReturnType<typeof mock>;
+    mobileDeviceMock.mockClear();
+    const {rerender} = renderWithTheme(<Button onClick={handleClick} text="Stable" />);
+    const initialRenderCalls = mobileDeviceMock.mock.calls.length;
+
+    rerender(<Button onClick={handleClick} text="Stable" />);
+    assert.equal(mobileDeviceMock.mock.calls.length, initialRenderCalls);
+
+    rerender(<Button onClick={handleClick} text="Changed" />);
+    assert.equal(mobileDeviceMock.mock.calls.length, initialRenderCalls + 1);
+  });
+
+  it("prevents another press while an async handler remains pending", async () => {
+    let resolveClick: (() => void) | undefined;
+    const handleClick = mock(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveClick = resolve;
+        })
+    );
+    const {getByTestId} = renderWithTheme(
+      <Button onClick={handleClick} testID="delayed-button" text="Delayed" />
+    );
+    const button = getByTestId("delayed-button");
+
+    await act(async () => {
+      fireEvent.press(button);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      fireEvent.press(button);
+    });
+
+    assert.lengthOf(handleClick.mock.calls, 1);
+
+    await act(async () => {
+      resolveClick?.();
+      await Promise.resolve();
+    });
   });
 
   // Confirmation modal tests
