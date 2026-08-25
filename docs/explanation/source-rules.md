@@ -12,8 +12,8 @@ file (or a new hit in an existing file) that would trip them.
 tree (`app/`, `components/`, `stories/` instead), so this scanner does not cover them.
 
 Skipped: tests (`*.test.*`, `*.spec.*`, `*.isolated.*`, `__tests__`), generated SDKs
-(`openApiSdk.ts`, `*OpenApiSdk.ts`), `node_modules`, `dist`, and test harness files
-such as `bunSetup.ts`.
+(`openApiSdk.ts`, `*OpenApiSdk.ts`), declaration files (`*.d.ts`), `node_modules`, `dist`,
+and test harness files such as `bunSetup.ts`.
 
 ## Rules
 
