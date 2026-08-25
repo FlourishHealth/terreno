@@ -1,6 +1,6 @@
 # Unified mutation executors (MCP → executors)
 
-**Status:** Approved — 2026-08-24  
+**Status:** In progress — 2026-08-25  
 **Branch:** `cursor/architecture-ips-a7ec`  
 **Owner:** —  
 **Created:** 2026-08-24  

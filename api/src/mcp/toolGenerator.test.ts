@@ -236,7 +236,7 @@ describe("tool-call observability", () => {
     const logs = await captureLogs(async () => {
       const result = await tool.handler({});
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain("Create failed");
+      expect(result.content[0].text).toContain("Validation failed");
       expect(result.content[0].text).not.toContain("ValidationError:");
       expect(Object.keys(result)).toEqual(["content", "isError"]);
     });

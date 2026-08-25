@@ -185,6 +185,7 @@ export const executeCreate = async <T>({
   body,
   req,
   skipPostHooks,
+  writeModelName,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -192,6 +193,11 @@ export const executeCreate = async <T>({
   body: unknown;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  /**
+   * Name used for User-role stripping after hooks. Defaults to `model.modelName`.
+   * MCP passes the registry `modelName` because compiled mongoose names can differ.
+   */
+  writeModelName?: string;
   /**
    * C5 (FIX 6): when true, skip the built-in `postCreate` call — the caller
    * (the sync mutation handler) runs it manually AFTER finalizing the
@@ -245,7 +251,7 @@ export const executeCreate = async <T>({
     }
   }
   cleanedBody = omitUserRolesFromWriteBody(
-    model.modelName,
+    writeModelName ?? model.modelName,
     options.accessControl,
     cleanedBody,
     (request as express.Request & {terrenoAllowUserAdminWrite?: boolean})
@@ -343,6 +349,7 @@ export const executeUpdate = async <T>({
   existingDoc,
   req,
   skipPostHooks,
+  writeModelName,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -359,6 +366,11 @@ export const executeUpdate = async <T>({
   req?: express.Request;
   /** C5 (FIX 6): see `executeCreate`'s `skipPostHooks` doc comment. */
   skipPostHooks?: boolean;
+  /**
+   * Name used for User-role stripping after hooks. Defaults to `model.modelName`.
+   * MCP passes the registry `modelName` because compiled mongoose names can differ.
+   */
+  writeModelName?: string;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
@@ -428,7 +440,7 @@ export const executeUpdate = async <T>({
   }
 
   cleanedBody = omitUserRolesFromWriteBody(
-    model.modelName,
+    writeModelName ?? model.modelName,
     options.accessControl,
     cleanedBody,
     (request as express.Request & {terrenoAllowUserAdminWrite?: boolean})
