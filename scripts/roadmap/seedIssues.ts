@@ -144,7 +144,10 @@ export const parseSeedIssues = (contents: string): SeedIssue[] => {
   for (const section of sections) {
     const newlineIndex = section.indexOf("\n");
     const slug = (newlineIndex === -1 ? section : section.slice(0, newlineIndex)).trim();
-    const parsed = parseSection({body: section.slice(newlineIndex + 1), slug});
+    const rest = newlineIndex === -1 ? "" : section.slice(newlineIndex + 1);
+    const h1Index = rest.search(/\n# /);
+    const body = h1Index === -1 ? rest : rest.slice(0, h1Index);
+    const parsed = parseSection({body, slug});
     if (parsed !== null) {
       issues.push(parsed);
     }

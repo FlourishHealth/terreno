@@ -1,6 +1,6 @@
 # Implementation Plan: Password reset and email verification
 
-**Status:** Draft
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1023
 **Priority:** High
 **Effort:** Big batch

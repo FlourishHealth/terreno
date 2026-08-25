@@ -1,6 +1,8 @@
 # Implementation Plan: OpenFeature Adoption for `@terreno/feature-flags`
 
-**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1082
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1082  
+**Status:** Complete
+
 ## Goal
 
 Migrate `@terreno/feature-flags` (backend) and `@terreno/rtk`'s `useFeatureFlags` (frontend) to be built on top of the OpenFeature SDKs (`@openfeature/server-sdk`, `@openfeature/react-sdk`) while preserving:
