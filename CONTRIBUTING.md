@@ -16,7 +16,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) 1.4 or newer — use the latest stable release (CI runs `bun-version: latest`). EAS build profiles pin an older Bun on purpose: `eas.json` feeds the Expo fingerprint, so bumping it changes the native runtime version and forces a rebuild.
+- [Bun](https://bun.sh/) 1.4 or newer — CI pins `bun-version: 1.4.0` (via `.github/actions/setup-bun-workspace` on the hot workflows). EAS build profiles keep their own Bun pin: `eas.json` feeds the Expo fingerprint, so bumping it changes the native runtime version and forces a rebuild.
 - **MongoDB replica set** — required to run `example-backend` locally (change streams power realtime and feature-flag sync). A single-node replica set is enough for development.
 
 ### Bootstrap
@@ -77,6 +77,7 @@ Run these from the repository root:
 | `bun run test` | Run all package test suites |
 | `bun run test:agent` | Run all package tests with passing cases suppressed (failures and summaries remain visible) |
 | `bun run check:no-barrel-imports` | Enforce no internal barrel imports |
+| `bun run check:source-rules` | Fail production sources that use `function`, `Date`, `throw new Error`, `console.log`, `findOne`, or `as any` |
 | `bun run check:changelog` | Validate `changelog/unreleased/` fragment files |
 | `bun run skills:sync` | Regenerate installable `skills/` and `skills.sh.json` |
 | `bun run changelog:preview` | Preview assembled unreleased notes |
@@ -85,13 +86,91 @@ Run these from the repository root:
 | `bun run frontend:web` | Start example frontend (web) |
 | `bun run demo:start` | Start UI component demo |
 
-Package-specific commands are listed in [AGENTS.md](AGENTS.md).
+Package-specific commands are listed in [AGENTS.md](AGENTS.md). You can also use Bun's filter syntax:
+
+```bash
+bun run --filter '@terreno/ui' compile
+bun run --filter '@terreno/api' test
+```
+
+## Dependency management
+
+This monorepo uses [Bun Catalogs](https://bun.sh/docs/install/catalogs). Shared versions live in the root `package.json` `catalog` field. Workspace packages reference them with `"catalog:"`. Change a shared version once in the catalog, then run `bun install`.
+
+## Linking Terreno packages in another repo
+
+Consumers can develop against local copies of published packages using Bun's `link` protocol.
+
+### Which package goes where
+
+- **@terreno/api** — Link in the consumer's backend. Restart the server after changes; run `bun run api:compile` or `bun run api:dev` in Terreno so the consumer uses the built output.
+- **@terreno/ui** — Link in the consumer's frontend. When the app uses Metro/Expo, update Metro config (see step 5). Run `bun run ui:compile` or `bun run ui:dev` so the consumer uses `ui/dist/`.
+- **@terreno/rtk** — Link in the consumer's frontend. Metro apps that link rtk may need the same resolution tweaks as ui.
+
+### One-time setup in the consumer repo
+
+1. Clone both repos as siblings (adjust paths if your layout differs).
+2. In the workspace that depends on the package, set the dependency to the link protocol, for example when Terreno is at `../terreno`:
+
+   ```json
+   "@terreno/api": "link:../../terreno/api",
+   "@terreno/ui": "link:../../terreno/ui",
+   "@terreno/rtk": "link:../../terreno/rtk"
+   ```
+
+3. Register and link each package from the consumer repo:
+
+   ```bash
+   cd ../terreno/<package-dir> && bun link && cd - && cd <consumer-dir> && bun link @terreno/<name>
+   ```
+
+4. If Bun creates a bad relative symlink, replace it with an absolute path from the consumer workspace that contains `node_modules`:
+
+   ```bash
+   rm node_modules/@terreno/<name>
+   ln -s /absolute/path/to/terreno/<package-dir> node_modules/@terreno/<name>
+   ```
+
+5. When linking **@terreno/ui** (and optionally **@terreno/rtk**) in an Expo/Metro app, the consumer's Metro config must add the linked package directory to `watchFolders` and resolve that package's dependencies from the app's `node_modules` so there is only one copy of React.
+
+6. Restart the bundler with a clean cache (for example `bun start --clear`). Restart the API server so it picks up a linked `@terreno/api`.
+
+In the Terreno repo, run the compile or watch command for each linked package. To revert, set each dependency back to a published version and run `bun install`.
+
+## Releasing
+
+Packages are published to npm automatically when a semantic-version tag is pushed. The published packages listed in the root [README.md](README.md) are kept in lockstep at the same version.
+
+1. Open the [Releases page](../../releases) on GitHub
+2. Draft a new release
+3. Create a new tag with the version number (for example `1.0.0`) — no `v` prefix
+4. Fill in the release title and notes
+5. Publish the release
+
+The GitHub Action validates upgrade documentation, publishes packages in dependency order, commits version bumps to `master` for non-prerelease tags, and notifies Zoom Chat.
+
+Version format: semantic versioning (`1.0.0`, `1.2.3`, `2.0.0-beta.1`). No `v` prefix.
+
+Required repository secrets: `NPM_TOKEN`, `REPO_ADMIN_TOKEN`, `ZOOM_WEBHOOK_URL`, `ZOOM_WEBHOOK_TOKEN`.
+
+GCP infrastructure and static-site hosting live in [terraform/README.md](terraform/README.md).
+
+## AI rules management
+
+This project uses [rulesync](https://github.com/dyoshikawa/rulesync) to keep AI assistant rules consistent.
+
+1. Edit source files in `.rulesync/rules/`
+2. Run `bun run rules` to regenerate tool-specific files (`AGENTS.md`, `CLAUDE.md`, Cursor rules, Copilot instructions)
+3. Commit both the source and generated files
+
+`bun run rules:check` verifies generated files are up to date (also run in CI).
 
 ## Code style
 
 Follow the conventions in [AGENTS.md](AGENTS.md). Highlights:
 
 - **No barrel imports** — import concrete module files, not directory `index` re-exports. See [docs/explanation/no-barrel-imports.md](docs/explanation/no-barrel-imports.md). Enforced by Biome and `bun run check:no-barrel-imports`.
+- **Production source rules** — const arrows, Luxon, `APIError`, no `console.log`, no Mongoose `findOne`, no unsuppressed `as any`. See [docs/explanation/source-rules.md](docs/explanation/source-rules.md). Enforced by `bun run check:source-rules`.
 - **Dates** — use [Luxon](https://moment.github.io/luxon/), not `Date` or dayjs.
 - **Logging** — backend: `logger.info/warn/error/debug` from `@terreno/api`; frontend: `console.info/debug/warn/error` for permanent logs. Do not leave `console.log` in committed code.
 - **TypeScript** — prefer interfaces over types; const arrow functions; explicit return types.
@@ -107,7 +186,7 @@ Follow the conventions in [AGENTS.md](AGENTS.md). Highlights:
 1. **Ideas** — start in [GitHub Discussions → Ideas](https://github.com/FlourishHealth/terreno/discussions/new?category=ideas); do not open a tracking issue yourself.
 2. **Promotion** — a maintainer promotes an accepted idea to a `Shaping` tracking issue on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md) board (`roadmap-promote`).
 3. **Design** — substantial work gets an [implementation plan](docs/implementationPlans/README.md) (IP) plus a task list before large coding begins. When the IP is approved, the tracking issue moves to `Planned` and gets its `IP` field set (`roadmap-item` — it updates the promoted issue, it does not open a second one).
-4. **Build** — the [`terreno-planning` plugin](plugins/README.md) provides bounded transitions: Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (react once). The outer loop reinvokes Taste as PR state changes. Read architecture docs first and update them in the same slice. Install skills with `npx skills add FlourishHealth/terreno`; regenerate `skills/` with `bun run skills:sync`.
+4. **Build** — the [`terreno-planning` plugin](plugins/README.md) provides bounded transitions: Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (react once). Brew and Taste wait in-process for review bots such as Bugbot and CodeQL; the outer loop reinvokes Taste as remaining PR/CI state changes. Read architecture docs first and update them in the same slice. Install skills with `npx skills add FlourishHealth/terreno`; regenerate `skills/` with `bun run skills:sync`.
 5. **RFC path** — API or package changes that affect consumers start in [RFCs](https://github.com/FlourishHealth/terreno/discussions/new?category=rfcs); accepted RFCs become IPs.
 
 See the [roadmap process](docs/explanation/roadmap-process.md) for the full IP ↔ roadmap lifecycle, the promote-vs-item split, maintainer setup, and the Linear bridge.

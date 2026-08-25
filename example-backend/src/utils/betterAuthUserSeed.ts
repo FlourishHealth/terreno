@@ -1,5 +1,12 @@
-import {APIError, BetterAuthApp, logger, syncBetterAuthUser} from "@terreno/api";
+import {
+  APIError,
+  BetterAuthApp,
+  logger,
+  syncBetterAuthUser,
+  type UserModel as TerrenoAuthUserModel,
+} from "@terreno/api";
 import express from "express";
+import {DateTime} from "luxon";
 import supertest from "supertest";
 
 import {User} from "../models/user";
@@ -112,9 +119,7 @@ export const seedBetterAuthUserInProcess = async (
   app.use(express.json());
   const betterAuthApp = new BetterAuthApp({
     config,
-    // noExplicitAny: User model type mismatch
-    // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-    userModel: User as any,
+    userModel: User as unknown as TerrenoAuthUserModel,
   });
   betterAuthApp.register(app);
   const agent = supertest(app);
@@ -159,20 +164,15 @@ export const seedBetterAuthUserInProcess = async (
   }
 
   if (body.user) {
-    await syncBetterAuthUser(
-      // noExplicitAny: User model _id is ObjectId; api UserModel expects string | ObjectId
-      // biome-ignore lint/suspicious/noExplicitAny: User model _id is ObjectId; api UserModel expects string | ObjectId
-      User as any,
-      {
-        createdAt: new Date(),
-        email: body.user.email,
-        emailVerified: false,
-        id: body.user.id,
-        image: null,
-        name: body.user.name,
-        updatedAt: new Date(),
-      }
-    );
+    await syncBetterAuthUser(User as unknown as TerrenoAuthUserModel, {
+      createdAt: DateTime.now().toJSDate(),
+      email: body.user.email,
+      emailVerified: false,
+      id: body.user.id,
+      image: null,
+      name: body.user.name,
+      updatedAt: DateTime.now().toJSDate(),
+    });
   }
 
   logger.info(`Seeded Better Auth user in-process: ${user.email}`);

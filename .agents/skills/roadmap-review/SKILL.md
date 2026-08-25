@@ -37,6 +37,20 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 
 ### 1. Gather
 
+Start with the reconciler — it answers most of the hygiene questions mechanically, so the
+review only has to reason about what it could not decide:
+
+```bash
+bun run roadmap:reconcile
+```
+
+It reports status drift between IP headers and the roadmap, plans that shipped without their
+entry moving, entries whose IP file was deleted, task lists that disagree with the declared
+status, and plans with no roadmap entry at all. Treat its `Needs a human` section as the
+review's agenda; it deliberately refuses to guess on exactly the calls this skill exists to
+make. `--fix` applies only forward status moves and supersessions, never a revival or a
+backwards move.
+
 ```bash
 # Board contents
 gh project item-list "$PROJECT_NUMBER" --owner FlourishHealth --format json --limit 200

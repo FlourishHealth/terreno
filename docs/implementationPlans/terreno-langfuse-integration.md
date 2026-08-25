@@ -1,6 +1,7 @@
 # @terreno/langfuse
 
-**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1093
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1093  
+**Status:** Approved
 
 > **See also:** Native in-app observability (prompts, traces, evals, experiments, review queue) is specified in [ai-observability.md](./ai-observability.md). Operator loop: [Develop an AI feature](../how-to/ai-feature-development.md). This IP remains the **Langfuse Cloud/self-host vendor plugin**. Both plugins may be registered; traces/scores fan out (see the observability IP).
 

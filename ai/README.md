@@ -1,5 +1,7 @@
 # @terreno/ai
 
+AI service layer for Terreno apps - GPT chat, request logging, and admin tools.
+
 AI service layer for Terreno backends — provider-agnostic chat, request logging, GPT history, projects, file uploads, MCP tools, and optional Langfuse integration.
 
 ## Install

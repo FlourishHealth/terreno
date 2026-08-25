@@ -355,6 +355,18 @@ export interface FindExactlyOnePlugin<T> {
   ): Promise<Document & T>;
 }
 
+type DateOnlyConditionalHandler = (this: DateOnly, val: unknown) => Date | undefined;
+
+interface SchemaTypeWithConditionalHandlers {
+  $conditionalHandlers?: Record<string, DateOnlyConditionalHandler>;
+}
+
+interface SchemaTypeWithApplySetters {
+  applySetters: (val: unknown, context: unknown) => Date | undefined;
+}
+
+type SchemaTypesWithDateOnly = typeof mongoose.Schema.Types & {DateOnly: typeof DateOnly};
+
 export class DateOnly extends SchemaType {
   constructor(key: string, options: SchemaTypeOptions<Date>) {
     super(key, options, "DateOnly");
@@ -365,9 +377,8 @@ export class DateOnly extends SchemaType {
   }
 
   $conditionalHandlers = {
-    // noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
-    // biome-ignore lint/suspicious/noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
-    ...(SchemaType as any).prototype.$conditionalHandlers,
+    ...(SchemaType as unknown as {prototype: SchemaTypeWithConditionalHandlers}).prototype
+      .$conditionalHandlers,
     $gt: this.handleSingle,
     $gte: this.handleSingle,
     $lt: this.handleSingle,
@@ -378,9 +389,7 @@ export class DateOnly extends SchemaType {
   // When using $gt, $gte, $lt, $lte, etc, we need to cast the value to a Date
   castForQuery($conditional: string | undefined, val: unknown, context: unknown): Date | undefined {
     if ($conditional == null) {
-      // noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
-      // biome-ignore lint/suspicious/noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
-      return (this as any).applySetters(val, context);
+      return (this as unknown as SchemaTypeWithApplySetters).applySetters(val, context);
     }
 
     const handler = this.$conditionalHandlers[$conditional];
@@ -447,6 +456,4 @@ export class DateOnly extends SchemaType {
 }
 
 // Register DateOnly with Mongoose's Schema.Types
-// noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
-// biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
-(mongoose.Schema.Types as any).DateOnly = DateOnly;
+(mongoose.Schema.Types as SchemaTypesWithDateOnly).DateOnly = DateOnly;

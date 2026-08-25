@@ -12,6 +12,9 @@ Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration lo
 
 Every stage reads durable inputs, performs one bounded transition, writes the execution
 state, emits one result document, and exits. Never rely on conversational memory.
+Brew and Taste include one in-process wait for
+[`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
+exit, so they can react to those results.
 
 ## Discover supporting skills
 
@@ -98,7 +101,7 @@ transcripts.
 | `ask` | human questions: `q` / `rec` / optional `opts` |
 | `next` | recommended next stage or `null` |
 | `action` | concrete next action |
-| `wait` | seconds until the next Taste check |
+| `wait` | seconds until the next Taste check (`PENDING` after bot timeout or remaining product CI) |
 
 ## Execution state
 
@@ -138,7 +141,10 @@ transport.
 - `BLOCKED`: no safe engineering action exists now. Classify `human`, `environment`,
   `access`, or `external`; include the exact action or decision required.
 - `PENDING`: changing external state is not terminal (primarily Taste). Include `wait`;
-  the **outer loop** waits and invokes again.
+  the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI,
+  for review-bot timeout, and after Taste's second post-fix push. Do not emit `PENDING`
+  while Bugbot, CodeQL, or similar review bots are still queued or in progress; sleep
+  per the async-review-bots procedure first.
 - `PASS`: this stage's success conditions are proven for the recorded head.
 
 Human gates include unresolved product semantics, architecture/security/data ownership,
@@ -146,5 +152,5 @@ destructive or irreversible operations, permissions, public compatibility, signi
 scope growth, and policy-required approval. Include options, tradeoffs, evidence, and a
 recommended default when appropriate.
 
-Bounded engineering retries must be hypothesis-driven. Unbounded observation belongs to
-the outer loop, never inside a lifecycle skill.
+Bounded engineering retries must be hypothesis-driven. Unbounded product-CI observation
+belongs to the outer loop. Brew and Taste wait in-process only for async review bots.

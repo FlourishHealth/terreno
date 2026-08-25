@@ -1,6 +1,6 @@
 # Implementation Plan: Loop-Engineering Lifecycle Plugin
 
-**Status:** In Progress
+**Status:** Complete — shipped as `plugins/terreno-planning`
 **Approved:** 2026-08-22
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1006
 **Priority:** High
@@ -17,7 +17,8 @@ transitions optimized for repeated fresh agent invocations:
 Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (react)
 ```
 
-The outer loop owns invocation, persistence, waiting, retry, stop, and escalation.
+The outer loop owns invocation, persistence, product-CI waiting, retry, stop, and
+escalation. Brew and Taste wait in-process for async review bots.
 Lifecycle skills own how one stage is performed. Repository skills own how this codebase
 works. Roast owns independent acceptance proof. State/evidence bridge fresh invocations.
 
@@ -30,8 +31,8 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 - Shared machine-readable result and execution-state schemas
 - Supporting-skill discovery/composition
 - Repository-specific detail removed from portable stages
-- Brew exits after PR setup
-- Taste performs one reactive iteration and exits
+- Brew exits after PR setup and the review-bot wait
+- Taste performs one reactive iteration after waiting for review bots, then exits
 - Outer-loop reference including small-feature and CI/review scenarios
 - Static validation for names, status values, transitions, portability, and loop bounds
 - Documentation, metadata, and generated integrations
@@ -52,13 +53,14 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP2 | Sensitive-data rules cover credentials, customer data, PII/PHI, and evidence media |
 | AP3 | Canonical stages are Grow, Pick, Roast, Brew, Taste |
 | AP4 | Stages discover supporting skills by description; exact skill names are never universal dependencies |
-| AP5 | Taste is one observe/act/emit iteration; the outer loop owns waiting and reinvocation |
+| AP5 | Taste is one observe/act/emit iteration after an in-process wait for async review bots; the outer loop owns product-CI waiting and reinvocation |
 | AP6 | Shared results use compact `v: 2` YAML; required keys are `v`, `stage`, `status`, `next`, `action`; empty keys are omitted; YAML is collapsed for humans |
 | AP7 | Existing repository state convention wins; fallback reuses loop-owned `.terreno/pipeline/<slug>.json`, not committed by default |
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
 | AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
+| AP12 | Brew and Taste sleep until Bugbot, CodeQL, and similar review bots on the current head have reported, then continue; they do not wait for ordinary product CI |
 
 ## Architecture
 
@@ -145,14 +147,17 @@ returns exact expected/actual evidence to Pick.
 ### Brew
 
 Requires Roast proof, runs repository-defined final checks/review, commits/pushes, applies
-the PR template, attaches evidence, records PR/current head, and exits. It does not wait
-for CI or execute Taste.
+the PR template, attaches evidence, waits for async review bots (Bugbot, CodeQL, and
+similar) on the current head, records PR/current head, and exits. It does not wait for
+ordinary product CI or execute Taste.
 
 ### Taste
 
-Reads current-head CI, mergeability, and unresolved review signals once. It classifies,
-performs one bounded set of actionable fixes, verifies/pushes if changed, emits
-`PASS`/`PENDING`/`BLOCKED`/`FAIL`, and exits. The outer loop schedules another invocation.
+Waits in-process if Bugbot, CodeQL, or similar review bots are still running, then reads
+current-head CI, mergeability, and unresolved review signals. It classifies, performs one
+bounded set of actionable fixes (plus one follow-up act after a post-fix review-bot wait),
+verifies/pushes if changed, emits `PASS`/`PENDING`/`BLOCKED`/`FAIL`, and exits. The outer
+loop schedules another invocation for remaining product CI.
 
 ## Supporting skills
 
@@ -168,8 +173,8 @@ code, tests, scripts, and analogous changes.
 ## Retry semantics and human gates
 
 Engineering retries are bounded and hypothesis-driven. Each attempt retains exact failure
-evidence and attempted approaches. Changing external state may be observed indefinitely
-by repeated fresh Taste invocations, but no lifecycle skill waits internally.
+evidence and attempted approaches. Product CI may be observed indefinitely by repeated
+fresh Taste invocations. Brew and Taste wait internally only for async review bots.
 
 Human gates include product semantics, architecture/security/data ownership, destructive
 or irreversible operations, permissions, public compatibility, major scope expansion,

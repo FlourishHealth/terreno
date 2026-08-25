@@ -13,6 +13,8 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 ## Contents
 
 - [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
+- [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
+- [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
@@ -22,14 +24,19 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Develop an AI feature](ai-feature-development.md) — Dataset → prompt → evaluators → experiment → production label → live traces (SOP)
 - [Observe LLM calls](observe-llm-calls.md) — Register ObservabilityApp, primaries, price map, sampleRate
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
-- [Deploy to Google Cloud Platform](deploy-to-gcp.md) — Deploy demo and example apps to GCS with CDN
+- [Upgrade banner](upgrade-banner.md) — Soft warning and hard-block app update UX
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
+
+## Admin
+
+- [Add a model to the admin](admin-add-model.md) — `modelRouter({admin: ...})` setup
+- [Import pre-built admins](admin-import-prebuilt.md) — Plugin `adminContribution()` wiring
+- [Add a custom admin field widget](admin-custom-widget.md) — Custom field widgets
+- [Customize the admin home](admin-custom-home.md) — Home slots and built-in widgets
 
 ## Coming Soon
 
-- [Add feature flags](add-feature-flags.md) — Add feature flags and A/B testing to your app
 - Add custom permissions
 - Implement file uploads
 - Configure email notifications
 - Customize AI workflows
-- Set up custom CI/CD pipelines

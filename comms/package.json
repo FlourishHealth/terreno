@@ -7,7 +7,7 @@
     "@terreno/api": "workspace:*",
     "luxon": "catalog:"
   },
-  "description": "Pluggable communications providers for Terreno backends",
+  "description": "Pluggable mail, SMS, push, and verification providers — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@terreno/test": "workspace:*",
