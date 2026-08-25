@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 # Shared with roadmap-sync and roadmap-generate: three workflows write the same
 # board, and interleaving them produces confusing partial states.
@@ -46,6 +47,13 @@ jobs:
         run: |
           git fetch origin "$GITHUB_REF_NAME"
           git reset --hard "origin/$GITHUB_REF_NAME"
+
+      - name: Create reconciliation branch
+        if: inputs.dry_run != true
+        run: |
+          branch="automation/roadmap-reconcile-${GITHUB_RUN_ID}"
+          git switch --create "$branch"
+          echo "RECONCILE_BRANCH=$branch" >> "$GITHUB_ENV"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -101,7 +109,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/explanation/roadmap-seed-issues.md
           git commit -m "Advance roadmap status from implementation plan headers"
-          git push
 
       - name: Push status onto the board
         if: inputs.dry_run != true
@@ -129,4 +136,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ROADMAP.md
           git commit -m "Regenerate ROADMAP.md from the project board"
-          git push
+
+      - name: Open reconciliation pull request
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet "origin/$GITHUB_REF_NAME"...HEAD; then
+            echo "No roadmap changes to submit"
+            exit 0
+          fi
+
+          git push --set-upstream origin "$RECONCILE_BRANCH"
+          gh pr create \
+            --base "$GITHUB_REF_NAME" \
+            --head "$RECONCILE_BRANCH" \
+            --title "Advance roadmap status from implementation plans" \
+            --body "Automated reconciliation of roadmap status from implementation plan headers and task files."
