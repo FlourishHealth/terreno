@@ -39,6 +39,6 @@ export const BoxConfiguration: DemoConfiguration = {
   stories: {
     FlexBox: {render: FlexBox},
     Colors: {render: BoxColors},
-    Responsive: {render: ResponsiveBoxLayout},
+    Responsive: {render: () => <ResponsiveBoxLayout />},
   },
 };
