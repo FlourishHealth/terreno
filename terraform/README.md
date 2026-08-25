@@ -180,3 +180,35 @@ terraform validate
 ```
 
 Don't `terraform apply` locally — Infra Manager is the source of truth for who can apply.
+
+## GCS + CDN static site hosting
+
+The demo and example-frontend apps are deployed to Google Cloud Storage with CDN. PR previews are deployed automatically.
+
+### Project
+
+- **Project ID**: `flourish-terreno`
+- **Region**: `us-east1`
+
+### Buckets
+
+| App | Bucket | Backend Bucket (CDN) |
+|-----|--------|---------------------|
+| example-frontend | `flourish-terreno-terreno-frontend-example` | `terreno-frontend-example-backend` |
+| demo | `flourish-terreno-terreno-demo` | `terreno-demo-backend` |
+
+### Initial setup
+
+Run `scripts/setup-gcs-hosting.sh` to create GCS buckets with public read access, SPA fallback (`index.html` for 404s), service-account write access, and CDN backend buckets / URL maps / static IPs / HTTP proxies / forwarding rules. Point DNS at the output IPs; follow the script's HTTPS instructions.
+
+Required secret: `GCP_SA_KEY` (service account key JSON with GCS and CDN cache-invalidation permissions).
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `frontend-example-deploy.yml` | Push to master (example-frontend/ui/rtk changes) | Builds and deploys to production bucket |
+| `frontend-example-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `demo-deploy.yml` | Push to master (demo/ui changes) | Builds and deploys to production bucket |
+| `demo-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `preview-cleanup.yml` | PR closed | Deletes preview files from both buckets |

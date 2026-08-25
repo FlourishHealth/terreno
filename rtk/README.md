@@ -103,7 +103,7 @@ const {socket, isSocketConnected} = useSocketConnection({
 
 `useFeatureFlags` and **`useTerrenoFeatureFlags`** wire Terreno’s `GET /feature-flags/flagConfiguration` into OpenFeature. Peer dependencies: **`@openfeature/react-sdk`** and **`@openfeature/web-sdk`** (install them in your app; do not rely on transitive copies).
 
-Full upgrade steps (backend + frontend + SDK regen) live in the **Terreno root README**: [Feature flags: OpenFeature migration](https://github.com/flourishhealth/terreno/blob/master/README.md#feature-flags-openfeature-migration).
+Full upgrade steps (backend + frontend + SDK regen) live in [Add feature flags](../docs/how-to/add-feature-flags.md#migrating-from-get-evaluate-openfeature).
 
 ## Documentation
 
