@@ -1205,10 +1205,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "array",
                           },
                           "content": {
-                            "additionalProperties": {
-                              "format": "date-time",
-                              "type": "string",
-                            },
+                            "additionalProperties": {},
                             "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                             "type": "object",
                           },
@@ -1406,10 +1403,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "array",
                   },
                   "content": {
-                    "additionalProperties": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
+                    "additionalProperties": {},
                     "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                     "type": "object",
                   },
@@ -1531,10 +1525,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "array",
                     },
                     "content": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                       "type": "object",
                     },
@@ -1891,10 +1882,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "array",
                     },
                     "content": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                       "type": "object",
                     },
@@ -2085,10 +2073,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "array",
                   },
                   "content": {
-                    "additionalProperties": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
+                    "additionalProperties": {},
                     "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                     "type": "object",
                   },
@@ -2210,10 +2195,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "array",
                     },
                     "content": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                       "type": "object",
                     },
@@ -2529,10 +2511,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "checkboxValues": {
-                            "additionalProperties": {
-                              "format": "date-time",
-                              "type": "string",
-                            },
+                            "additionalProperties": {},
                             "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
                             "type": "object",
                           },
@@ -2836,10 +2815,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "checkboxValues": {
-                      "additionalProperties": {
-                        "format": "date-time",
-                        "type": "string",
-                      },
+                      "additionalProperties": {},
                       "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
                       "type": "object",
                     },
