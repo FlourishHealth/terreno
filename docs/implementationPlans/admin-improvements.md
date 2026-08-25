@@ -1,6 +1,7 @@
 # Implementation Plan: Admin Improvements (post–Admin UI v2)
 
-**Status:** Approved  
+**Status:** Deferred — rolled into the plans below (2026-08-25)  
+**Superseded by:** [collection-registry.md](collection-registry.md) (admin config on `modelRouter`, plugin aggregation), [describe-model-schema.md](describe-model-schema.md) (shared field descriptors, admin scrubbing), [can-as-permission-seam.md](can-as-permission-seam.md) and [rbac-permissions.md](rbac-permissions.md) (admin permissions)  
 **Branch:** (implementation TBD)  
 **Owner:** Josh Gachnang  
 **Created:** 2026-06-01 (original); revised 2026-08-20 post–v2 gap analysis  

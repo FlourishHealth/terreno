@@ -1,5 +1,7 @@
 # Task List: Admin Improvements (post–Admin UI v2)
 
+**Status:** Closed (2026-08-25) — IP deferred; the architecture work was rolled into [collection-registry](../implementationPlans/collection-registry.md), [describe-model-schema](../implementationPlans/describe-model-schema.md), and the RBAC plans. Open tasks below will not be executed.
+
 *Executable checklist for the gap after [Admin UI v2](./admin-ui-v2-django-parity.md). See [admin-improvements.md](../implementationPlans/admin-improvements.md).*
 
 **Decisions (2026-08-20):** Full IP; bulk actions = v2 `bulk-patch` only (no `/actions/:name`); `home.slots`; static permissions; `filterParser`; widgets in `admin-frontend/src/widgets/`; atomic example migration; new roadmap issue.
