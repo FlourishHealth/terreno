@@ -4,7 +4,7 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {ConsentForm, type ConsentFormType, ConsentResponse, logger} from "@terreno/api";
+import {APIError, ConsentForm, type ConsentFormType, ConsentResponse, logger} from "@terreno/api";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
@@ -205,7 +205,10 @@ const applySeedRoles = (
 const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const user = await User.findByEmail(testUser.email);
   if (!user) {
-    throw new Error(`User ${testUser.email} was not synced to Mongoose`);
+    throw new APIError({
+      status: 500,
+      title: `User ${testUser.email} was not synced to Mongoose`,
+    });
   }
   let changed = false;
   if (testUser.admin && !user.admin) {
@@ -250,9 +253,7 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
     return existingUser;
   }
 
-  // noExplicitAny: passport-local-mongoose register is not typed on the model
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
-  const user = await (User as any).register(
+  const user = await User.register(
     {
       admin: testUser.admin ?? false,
       email: testUser.email,

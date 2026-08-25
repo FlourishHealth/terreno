@@ -299,7 +299,10 @@ export const resolveModelRouterAccess = <T>(options: {
 } => {
   if (!options.access || !options.accessControl) {
     if (!options.permissions) {
-      throw new Error("modelRouter requires permissions or access with accessControl");
+      throw new APIError({
+        status: 500,
+        title: "modelRouter requires permissions or access with accessControl",
+      });
     }
     return {
       permissions: options.permissions,

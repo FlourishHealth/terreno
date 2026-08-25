@@ -69,31 +69,29 @@ export const registerSync = <T>({
   const deletedPath = model.schema.path("deleted");
   if (deletedPath?.instance !== "Boolean") {
     throw new APIError({
-      code: "sync-missing-soft-delete",
-      detail: "Apply isDeletedPlugin to the schema — sync catch-up requires delete tombstones.",
       status: 500,
-      title: `Model ${name} has a sync config but no soft delete support.`,
+      title:
+        `Model ${name} has a sync config but no soft delete support. ` +
+        "Apply isDeletedPlugin to the schema — sync catch-up requires delete tombstones.",
     });
   }
   if (!model.schema.path("_syncSeq")) {
     throw new APIError({
-      code: "sync-missing-sync-plugin",
-      detail: "Apply syncPlugin so every write stamps a per-stream _syncSeq.",
       status: 500,
-      title: `Model ${name} has a sync config but syncPlugin is not applied to its schema.`,
+      title:
+        `Model ${name} has a sync config but syncPlugin is not applied to its schema. ` +
+        "Apply syncPlugin so every write stamps a per-stream _syncSeq.",
     });
   }
   const scopeField = getScopeField(config.scope);
   if (scopeField && !model.schema.path(scopeField)) {
     throw new APIError({
-      code: "sync-missing-scope-field",
       status: 500,
       title: `Model ${name} has a sync scope on field "${scopeField}" but the schema has no such path.`,
     });
   }
   if (typeof config.scope === "function" && !config.snapshotFilter) {
     throw new APIError({
-      code: "sync-custom-scope-without-filter",
       status: 500,
       title:
         `Model ${name} uses a custom sync scope resolver, which requires a snapshotFilter ` +
@@ -102,7 +100,6 @@ export const registerSync = <T>({
   }
   if (syncRegistry.some((entry) => entry.modelName === name)) {
     throw new APIError({
-      code: "sync-model-already-registered",
       status: 500,
       title: `Model ${name} is already registered for sync.`,
     });
@@ -112,10 +109,10 @@ export const registerSync = <T>({
   const collectionTag = routePath.replace(/^\//, "");
   if (syncRegistry.some((entry) => entry.collectionTag === collectionTag)) {
     throw new APIError({
-      code: "sync-collection-tag-already-registered",
-      detail: "Each synced model must have a unique route path.",
       status: 500,
-      title: `Sync collection tag "${collectionTag}" is already registered (routePath ${routePath}).`,
+      title:
+        `Sync collection tag "${collectionTag}" is already registered (routePath ${routePath}). ` +
+        "Each synced model must have a unique route path.",
     });
   }
 
@@ -136,13 +133,11 @@ export const registerSync = <T>({
   // re-registration (tests clearing the registry) re-patching it is harmless.
   (model as unknown as {bulkWrite: () => never}).bulkWrite = (): never => {
     throw new APIError({
-      code: "sync-bulk-write-unsupported",
-      detail: "Loop per document instead.",
       status: 500,
       title:
         `bulkWrite is not supported on sync-enabled model ${name}: it bypasses Mongoose ` +
         "middleware, so writes are never stamped with a per-stream _syncSeq and become " +
-        "invisible to sync delta emission and snapshot catch-up.",
+        "invisible to sync delta emission and snapshot catch-up. Loop per document instead.",
     });
   };
 

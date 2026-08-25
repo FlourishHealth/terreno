@@ -175,7 +175,7 @@ export const patchExpressRouterUse = (): void => {
   ) => unknown;
   Object.defineProperty(routerPrototype, "use", {
     ...useDescriptor,
-    value: function patchedRouterUse(this: {stack?: PatchedLayer[]}, ...args: unknown[]): unknown {
+    value(this: {stack?: PatchedLayer[]}, ...args: unknown[]): unknown {
       const stackBefore = this.stack?.length ?? 0;
       const result = originalUse.apply(this, args);
       annotateMountLayers(this.stack, stackBefore, args);

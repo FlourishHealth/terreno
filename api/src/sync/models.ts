@@ -48,7 +48,7 @@ export const PENDING_CLAIM_LEASE_MS = 60 * 1_000;
 const syncPendingClaimSchema = new Schema<SyncPendingClaim>(
   {
     claimedAt: {
-      default: () => DateTime.utc().toJSDate(),
+      default: () => DateTime.now().toJSDate(),
       description: "When this seq was claimed; a claim older than PENDING_CLAIM_LEASE_MS is stale",
       type: Date,
     },
@@ -157,7 +157,7 @@ export const claimSyncSeqs = async ({
   }
 
   const claim = async (): Promise<SyncSeqClaim> => {
-    const now = DateTime.utc().toJSDate();
+    const now = DateTime.now().toJSDate();
     // Claim (`$inc`) AND register the pending entries in ONE atomic aggregation-pipeline
     // update, so there is never a window where the incremented head is visible without
     // its pending claims (which would let `computeStableFrontier` transiently report a
@@ -300,7 +300,7 @@ export const computeStableFrontier = async ({stream}: {stream: string}): Promise
   if (pending.length === 0) {
     return counter.seq;
   }
-  const cutoff = DateTime.utc().minus({milliseconds: PENDING_CLAIM_LEASE_MS}).toMillis();
+  const cutoff = DateTime.now().minus({milliseconds: PENDING_CLAIM_LEASE_MS}).toMillis();
   const staleSeqs: number[] = [];
   let minLiveSeq = Number.POSITIVE_INFINITY;
   for (const claim of pending) {
@@ -370,7 +370,7 @@ const syncScopeMoveSchema = new Schema<SyncScopeMoveDocument>(
       type: String,
     },
     created: {
-      default: () => DateTime.utc().toJSDate(),
+      default: () => DateTime.now().toJSDate(),
       description:
         "When the move was recorded; reaped by compactTombstones once older than the " +
         "owning model's retentionDays (deliberately NOT TTL-indexed — see the model doc)",
@@ -458,14 +458,14 @@ export const SYNC_MUTATION_LEASE_MS = 60 * 1_000;
 const syncMutationSchema = new Schema<SyncMutationDocument>(
   {
     claimedAt: {
-      default: () => DateTime.utc().toJSDate(),
+      default: () => DateTime.now().toJSDate(),
       description:
         "When this delivery claimed the mutation (lease); a pending row older than " +
         "SYNC_MUTATION_LEASE_MS may be taken over by a fresh delivery via findOneAndUpdate",
       type: Date,
     },
     created: {
-      default: () => DateTime.utc().toJSDate(),
+      default: () => DateTime.now().toJSDate(),
       description: "When the mutation was first claimed; TTL-indexed so rows expire after 30 days",
       type: Date,
     },
@@ -538,7 +538,7 @@ export interface SyncKeyDocument {
 const syncKeySchema = new Schema<SyncKeyDocument>(
   {
     created: {
-      default: () => DateTime.utc().toJSDate(),
+      default: () => DateTime.now().toJSDate(),
       description: "When this key material was generated",
       type: Date,
     },
@@ -570,9 +570,17 @@ export const SyncKey: Model<SyncKeyDocument> =
  * builds them when Mongoose `autoIndex` is on — commonly disabled in production — so
  * startup builds them explicitly.
  */
-// noExplicitAny: a heterogeneous list of models is only used for ensureIndexes
-// biome-ignore lint/suspicious/noExplicitAny: a heterogeneous list of models is only used for ensureIndexes
-const SYNC_BOOKKEEPING_MODELS: Model<any>[] = [SyncCounter, SyncMutation, SyncScopeMove, SyncKey];
+interface IndexableModel {
+  ensureIndexes: () => Promise<void>;
+  modelName: string;
+}
+
+const SYNC_BOOKKEEPING_MODELS: IndexableModel[] = [
+  SyncCounter,
+  SyncMutation,
+  SyncScopeMove,
+  SyncKey,
+];
 
 /**
  * Best-effort removal of the pre-Task-9.15 `SyncScopeMove` TTL index. Failure is only
@@ -620,8 +628,8 @@ export const ensureSyncModelIndexes = async (): Promise<void> => {
           cause: error,
           code: "sync-indexes-failed",
           detail:
-            `${String(error)}. The sync protocol depends on these indexes (unique mutationId for mutation ` +
-            "idempotency, unique stream for seq allocation); fix the DB and restart.",
+            `${String(error)}. The sync protocol depends on these indexes (unique mutationId for ` +
+            "mutation idempotency, unique stream for seq allocation); fix the DB and restart.",
           status: 500,
           title: `Failed to ensure sync indexes for ${model.modelName}`,
         });
@@ -640,7 +648,7 @@ export const getOrCreateSyncKeyMaterial = async ({userId}: {userId: string}): Pr
   const candidate = crypto.randomBytes(32).toString("base64");
   const doc = await SyncKey.findOneAndUpdate(
     {userId},
-    {$setOnInsert: {created: DateTime.utc().toJSDate(), keyMaterial: candidate, userId}},
+    {$setOnInsert: {created: DateTime.now().toJSDate(), keyMaterial: candidate, userId}},
     {new: true, upsert: true}
   );
   return doc.keyMaterial;

@@ -73,6 +73,7 @@ checks appear as CircleCI job names in the GitHub Checks UI.
 | GHA job `name:` / workflow | CircleCI job |
 |----------------------------|--------------|
 | Repository policies / No barrel imports | `no-barrel-imports` |
+| Repository policies / Production source rules | `source-rules` |
 | Explicit any baseline | `explicit-any` |
 | License coverage | `license-coverage` |
 | Verify rules are in sync | `rulesync-check` |
@@ -125,7 +126,7 @@ its CircleCI parameter — otherwise the twin silently never runs. It runs as th
 When CircleCI is enabled, `.circleci/config.yml` / `continue-config.yml` /
 `example-frontend/playwright.circleci.config.ts` edits set `run-circleci-config`,
 which runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
-`no-barrel-imports`, `e2e` spec `login`) so config changes are actually exercised
+`no-barrel-imports`, `source-rules`, `e2e` spec `login`) so config changes are actually exercised
 instead of only hitting the always-on smoke jobs. While disabled, keep the mapping
 in `config.setup.yml` in sync; `check:circleci-parity` reads that file first. CircleCI e2e
 pre-starts a static `bun expo export` on `:8082` (`NODE_OPTIONS=--max-old-space-size=3072`

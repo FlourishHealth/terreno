@@ -5,6 +5,7 @@ import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
+import {findOneOrNoneFor} from "../plugins";
 import {
   computeStableFrontier,
   getCompactedThroughSeq,
@@ -316,8 +317,8 @@ const frontierBelowStreamHead = async (
   streamKey: string,
   frontierSeq: number
 ): Promise<boolean> => {
-  const counter = await SyncCounter.findOne({stream: streamKey}).select({seq: 1}).lean();
-  const head = counter ? ((counter as {seq?: number}).seq ?? 0) : 0;
+  const counter = await findOneOrNoneFor(SyncCounter, {stream: streamKey});
+  const head = counter?.seq ?? 0;
   return head > frontierSeq;
 };
 
