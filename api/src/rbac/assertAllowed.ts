@@ -12,7 +12,7 @@ export interface AssertAllowedArgs<T> {
   doc?: T;
 }
 
-function throwAccessDenied({
+const throwAccessDenied = ({
   status,
   title,
   detail,
@@ -20,13 +20,13 @@ function throwAccessDenied({
   status: 403 | 405;
   title: string;
   detail?: string;
-}): never {
+}): never => {
   throw new APIError({
     detail,
     status,
     title,
   });
-}
+};
 
 const assertAllowedViaAccess = async <T>({
   method,
@@ -43,8 +43,8 @@ const assertAllowedViaAccess = async <T>({
 }): Promise<void> => {
   const statements = accessControl.statements as Record<string, readonly string[]>;
   const action = resolveActionForMethod(method, access, statements);
-  if (!action) {
-    throwAccessDenied({status: 405, title: "Method not allowed"});
+  if (action === null) {
+    throw new APIError({status: 405, title: "Method not allowed"});
   }
 
   const result = await accessControl.can({
@@ -61,8 +61,8 @@ const assertAllowedViaAccess = async <T>({
   }
 
   if (access.scope?.check) {
-    if (!user) {
-      throwAccessDenied({status: 403, title: "Access denied"});
+    if (user === undefined) {
+      throw new APIError({status: 403, title: "Access denied"});
     }
     const scopeResult = await access.scope.check({
       action,
