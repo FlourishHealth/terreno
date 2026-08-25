@@ -67,11 +67,15 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 - **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
 - **mcp-server/** - MCP server and local CLI (published as `@terreno/mcp`)
 
-### Deployed Services
+### Live examples
 
-- **mcp-server/** - MCP (Model Context Protocol) server for AI coding assistants (deployed to `mcp.terreno.flourish.health`)
-- **example-backend/** - Example backend API (deployed to [prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app](https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app))
-- **example-frontend/** - Example frontend app (deployed to [terreno-frontend.netlify.app](https://terreno-frontend.netlify.app))
+Public hosted copies of the example apps (not infrastructure you own):
+
+- MCP server: `https://mcp.terreno.app`
+- Example frontend: [terreno-frontend.netlify.app](https://terreno-frontend.netlify.app)
+- UI demo: [terreno-demo.netlify.app](https://terreno-demo.netlify.app)
+
+To deploy your own apps, follow [Deploy to GCP](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/deploy-to-gcp.md).
 
 ### Example/Demo Apps
 
@@ -290,23 +294,11 @@ The following secrets must be configured in your GitHub repository:
 
 ## GCP Static Site Hosting
 
-The demo and example-frontend apps are deployed to Google Cloud Storage with CDN. PR previews are deployed automatically.
-
-### GCP Project
-
-- **Project ID**: `flourish-terreno`
-- **Region**: `us-east1`
-
-### Buckets
-
-| App | Bucket | Backend Bucket (CDN) |
-|-----|--------|---------------------|
-| example-frontend | `flourish-terreno-terreno-frontend-example` | `terreno-frontend-example-backend` |
-| demo | `flourish-terreno-terreno-demo` | `terreno-demo-backend` |
+The demo and example-frontend apps can be deployed to Google Cloud Storage with CDN. See [Deploy web to GCS + CDN](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/deploy-web-to-gcs-cdn.md).
 
 ### Initial Setup
 
-Run the setup script to create all GCS and CDN resources:
+Run the parameterized setup script with your own project and site names:
 
 ```bash
 scripts/setup-gcs-hosting.sh
@@ -336,7 +328,7 @@ After running the script, point DNS records to the output IPs. To add HTTPS, fol
 
 ## MCP Server
 
-Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.
+Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `https://mcp.terreno.app`.
 
 ### Adding the MCP Server to Claude Code
 
@@ -347,7 +339,7 @@ Add the following to your Claude Code MCP settings file (`~/.claude/claude_deskt
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
@@ -365,7 +357,7 @@ Add the following to your Claude Desktop configuration file:
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
@@ -380,7 +372,7 @@ Add the following to your Cursor MCP settings (`.cursor/mcp.json` in your projec
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
