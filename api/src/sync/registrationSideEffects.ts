@@ -1,3 +1,12 @@
+/**
+ * Schema and Mongo work that must happen when a collection first becomes
+ * sync-enabled — kept out of CollectionRegistry so catalog writes stay a
+ * Map update, while models can still register before Mongo is connected.
+ *
+ * Registration only validates the schema and queues index creation.
+ * TerrenoApp.start() (or a host that builds Express without it) must later
+ * await ensureSyncIndexes() so snapshot/catch-up queries have their indexes.
+ */
 import type {Model} from "mongoose";
 
 import type {ModelRouterOptions} from "../api";
@@ -14,10 +23,15 @@ export interface SyncRegistrationSnapshot {
   modelName: string;
 }
 
+/** Queue extra index work (tests and SyncApp bookkeeping models). */
 export const trackSyncIndexCreation = (task: IndexCreationTask): void => {
   indexCreationTasks.push(task);
 };
 
+/**
+ * Fail loud if the model cannot participate in sync, then queue the
+ * snapshot index. Call only on the first sync enable for a routePath.
+ */
 export const applySyncRegistrationSideEffects = <T>({
   config,
   existingSyncEntries,
@@ -105,10 +119,12 @@ export const applySyncRegistrationSideEffects = <T>({
   });
 };
 
+/** Create every queued sync index after Mongo is connected. */
 export const ensureSyncIndexes = async (): Promise<void> => {
   await Promise.all(indexCreationTasks.map((task) => task()));
 };
 
+/** Drop queued index work when the collection catalog is wiped (tests). */
 export const clearSyncIndexCreationTasks = (): void => {
   indexCreationTasks.length = 0;
 };
