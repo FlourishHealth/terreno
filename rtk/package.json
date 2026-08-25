@@ -1,4 +1,7 @@
 {
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "@ai-sdk/react": "^3.0.118",
     "@better-auth/expo": "^1.6.25",
@@ -54,6 +57,14 @@
     "src/**/*",
     ".ai/**/*"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "redux",
+    "rtk-query",
+    "openapi",
+    "better-auth",
+    "terreno"
+  ],
   "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/rtk",
@@ -64,6 +75,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
     "compile": "tsc",
@@ -78,20 +93,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0",
-  "bugs": {
-    "url": "https://github.com/FlourishHealth/terreno/issues"
-  },
-  "homepage": "https://github.com/FlourishHealth/terreno#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
-  },
-  "keywords": [
-    "redux",
-    "rtk-query",
-    "openapi",
-    "better-auth",
-    "terreno"
-  ]
+  "version": "57.2.0"
 }

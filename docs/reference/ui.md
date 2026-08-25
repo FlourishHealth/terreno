@@ -492,5 +492,4 @@ import {TerrenoProvider} from "@terreno/ui";
 ## Related Documentation
 
 - [UI performance benchmarks](ui-performance.md)
-- [UI package source](../../ui/src/)
-- [UI agent rules](../../.cursor/rules/ui/)
+- [UI package source](https://github.com/flourishhealth/terreno/tree/master/ui/src)

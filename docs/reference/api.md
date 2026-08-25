@@ -86,6 +86,10 @@ setupServer({
 
 Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
 
+## Collection catalog
+
+`modelRouter("/path", Model, options)` writes one catalog record per route path. MCP, realtime, and sync surfaces read that record; TerrenoApp calls `replaceCollectionOptions` once when access control is injected. Test helpers `clearMCPRegistry`, `clearRealtimeRegistry`, and `clearSyncRegistry` clear the entire catalog.
+
 ## MCP tools
 
 Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.
@@ -1296,5 +1300,4 @@ SENTRY_DSN=https://...@sentry.io/...
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)
-- [API package source](../../api/src/)
-- [AI assistant rules](./.cursor/rules/api/)
+- [API package source](https://github.com/flourishhealth/terreno/tree/master/api/src)

@@ -1,4 +1,7 @@
 {
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
@@ -26,6 +29,13 @@
     "src/**/*",
     ".ai/**/*"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "admin",
+    "react-native",
+    "expo",
+    "terreno"
+  ],
   "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/admin-frontend",
@@ -43,6 +53,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
   "scripts": {
     "compile": "tsc",
     "compile:watch": "tsc -w",
@@ -56,19 +70,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0",
-  "bugs": {
-    "url": "https://github.com/FlourishHealth/terreno/issues"
-  },
-  "homepage": "https://github.com/FlourishHealth/terreno#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
-  },
-  "keywords": [
-    "admin",
-    "react-native",
-    "expo",
-    "terreno"
-  ]
+  "version": "57.2.0"
 }

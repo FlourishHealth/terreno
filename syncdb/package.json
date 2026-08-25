@@ -2,6 +2,9 @@
   "bin": {
     "terreno-syncdb-codegen": "./src/codegen/cli.ts"
   },
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "luxon": "catalog:",
     "socket.io-client": "catalog:",
@@ -40,6 +43,14 @@
     "dist/**/*",
     "src/**/*"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "local-first",
+    "tinybase",
+    "sync",
+    "offline",
+    "terreno"
+  ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "name": "@terreno/syncdb",
@@ -58,6 +69,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
   "scripts": {
     "build:binary": "bun build --compile src/codegen/cli.ts --outfile dist/terreno-syncdb-codegen",
     "compile": "tsc",
@@ -72,20 +87,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0",
-  "bugs": {
-    "url": "https://github.com/FlourishHealth/terreno/issues"
-  },
-  "homepage": "https://github.com/FlourishHealth/terreno#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
-  },
-  "keywords": [
-    "local-first",
-    "tinybase",
-    "sync",
-    "offline",
-    "terreno"
-  ]
+  "version": "57.2.0"
 }

@@ -40,6 +40,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Compile workspace for coverage tests
+        run: |
+          node .github/scripts/compile-workspace-deps.js api
+          bun run --filter '@terreno/api' compile
+
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:

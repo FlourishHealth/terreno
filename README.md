@@ -109,10 +109,14 @@ New collection CRUD uses `@terreno/syncdb`. Keep `@terreno/rtk` for the generate
 
 ## Live examples
 
+Public hosted copies of the example apps (not infrastructure you own):
+
 - [Example frontend](https://terreno-frontend.netlify.app)
-- [MCP server](https://mcp.terreno.flourish.health)
+- MCP server: `https://mcp.terreno.app`
 - [Component demo](https://terreno-demo.netlify.app)
 - [Docs](https://terreno-docs.netlify.app)
+
+To deploy your own apps, follow [Deploy to GCP](docs/how-to/deploy-to-gcp.md).
 
 ## MCP server
 
@@ -127,7 +131,7 @@ Add this to `.cursor/mcp.json`:
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
@@ -140,7 +144,7 @@ Add this to `.cursor/mcp.json`:
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
