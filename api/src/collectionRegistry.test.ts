@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import {model, Schema} from "mongoose";
 import {
   clearCollectionRegistry,
   getCollection,
@@ -8,7 +9,38 @@ import {
 } from "./collectionRegistry";
 import {clearMCPRegistry, getMCPRegistry} from "./mcp/registry";
 import {Permissions} from "./permissions";
+import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "./plugins";
+import {trackSyncIndexCreation} from "./sync/registrationSideEffects";
+import {clearSyncRegistry, getSyncRegistry, registerSync} from "./sync/registry";
+import {syncPlugin} from "./sync/syncSeqPlugin";
 import {FoodModel} from "./tests";
+
+interface CatalogTodo extends IsDeleted {
+  _id: string;
+  ownerId: string;
+  title: string;
+  _syncSeq?: number;
+}
+
+const catalogTodoSchema = new Schema<CatalogTodo>({
+  ownerId: {description: "The owner", type: String},
+  title: {description: "The title", required: true, type: String},
+});
+catalogTodoSchema.plugin(isDeletedPlugin);
+catalogTodoSchema.plugin(createdUpdatedPlugin);
+catalogTodoSchema.plugin(syncPlugin);
+const CatalogTodoModel = model<CatalogTodo>("CatalogTodo", catalogTodoSchema);
+
+const syncOptions = {
+  permissions: {
+    create: [Permissions.IsAuthenticated],
+    delete: [Permissions.IsAuthenticated],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsAuthenticated],
+    update: [Permissions.IsAuthenticated],
+  },
+  sync: {scope: {type: "owner"}},
+} as const;
 
 const baseOptions = {
   permissions: {
@@ -83,5 +115,51 @@ describe("CollectionRegistry", () => {
 
     expect(getCollection("/food")?.options).toBe(updatedOptions);
     expect(getMCPRegistry()[0]?.options).toBe(updatedOptions);
+  });
+
+  it("replaceCollectionOptions updates sync registry views with the same options object", () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: CatalogTodoModel,
+      options: syncOptions,
+      routePath: "/catalogTodos",
+    });
+    const updatedOptions = {
+      ...syncOptions,
+      permissions: {...syncOptions.permissions, list: [Permissions.IsAny]},
+    };
+    replaceCollectionOptions("/catalogTodos", updatedOptions);
+
+    expect(getCollection("/catalogTodos")?.options).toBe(updatedOptions);
+    expect(getSyncRegistry()[0]?.options).toBe(updatedOptions);
+  });
+
+  it("rejects re-registering sync at the same route path", () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: CatalogTodoModel,
+      options: syncOptions,
+      routePath: "/catalogTodos",
+    });
+    expect(() =>
+      registerSync({
+        config: {scope: {type: "owner"}},
+        model: CatalogTodoModel,
+        options: syncOptions,
+        routePath: "/catalogTodos",
+      })
+    ).toThrow(/already registered/);
+  });
+
+  it("clearCollectionRegistry resets deferred sync index tasks", async () => {
+    clearCollectionRegistry();
+    trackSyncIndexCreation(async () => {
+      throw new Error("should not run");
+    });
+    clearCollectionRegistry();
+    const {ensureSyncIndexes} = await import("./sync/registrationSideEffects");
+    await expect(ensureSyncIndexes()).resolves.toBeUndefined();
   });
 });

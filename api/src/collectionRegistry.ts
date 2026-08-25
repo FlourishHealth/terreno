@@ -1,7 +1,11 @@
 import type {Model} from "mongoose";
 
 import type {ModelRouterOptions} from "./api";
-import {applySyncRegistrationSideEffects} from "./sync/registrationSideEffects";
+import {APIError} from "./errors";
+import {
+  applySyncRegistrationSideEffects,
+  clearSyncIndexCreationTasks,
+} from "./sync/registrationSideEffects";
 
 export interface CollectionSurfaces {
   mcp: boolean;
@@ -38,6 +42,16 @@ export const registerCollection = <T>({
 }): void => {
   const existing = collectionRegistry.get(routePath);
   const wasSyncEnabled = existing?.surfaces.sync ?? false;
+
+  if (options.sync && wasSyncEnabled) {
+    const collectionTag = routePath.replace(/^\//, "");
+    throw new APIError({
+      status: 500,
+      title:
+        `Sync collection tag "${collectionTag}" is already registered (routePath ${routePath}). ` +
+        "Each synced model must have a unique route path.",
+    });
+  }
 
   if (options.sync && !wasSyncEnabled) {
     applySyncRegistrationSideEffects({
@@ -80,4 +94,5 @@ export const listCollections = (): CollectionRecord[] => Array.from(collectionRe
 
 export const clearCollectionRegistry = (): void => {
   collectionRegistry.clear();
+  clearSyncIndexCreationTasks();
 };

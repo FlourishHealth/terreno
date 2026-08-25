@@ -30,6 +30,7 @@ import {
   passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
+import {registerMCPModel, updateMCPRegistryOptions} from "./mcp/registry";
 import type {MCPConfig} from "./mcp/types";
 import {
   createOpenApiMiddleware,
@@ -661,6 +662,12 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
+  // Register MCP before building so _buildModelRouter can replace options
+  // with RBAC-resolved permissions (access+accessControl is not deferred).
+  if (options.mcp) {
+    registerMCPModel(model, options.mcp, options);
+  }
+
   const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
 
   if (path !== undefined) {
@@ -733,6 +740,9 @@ const _buildModelRouter = <T>(
   };
   if (routePath) {
     replaceCollectionOptions(routePath, options as unknown as ModelRouterOptions<unknown>);
+  }
+  if (options.mcp) {
+    updateMCPRegistryOptions(model.modelName, options as unknown as ModelRouterOptions<unknown>);
   }
 
   assertNoActionCollisions(model, options);
