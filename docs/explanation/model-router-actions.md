@@ -2,6 +2,8 @@
 
 `modelRouter` can register **actions** — named operations at collection or instance scope — alongside standard CRUD. Actions reuse the same permission model, error envelope, and OpenAPI pipeline as CRUD routes, without hand-wiring `endpoints`, `asyncHandler`, and doc loading.
 
+CRUD **create, update, and delete** (not named actions) share one write pipeline: REST, Sync, and MCP all call `executeCreate` / `executeUpdate` / `executeDelete` in `api/src/sync/executors.ts`. MCP tools map arguments and `APIError` titles onto the MCP result envelope after the executor returns.
+
 ## When to use actions
 
 Use actions when an endpoint performs an operation that is not a plain create/read/update/delete on the model document:

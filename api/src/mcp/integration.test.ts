@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, spyOn} from "bun:test";
 import type express from "express";
 import mongoose, {Schema} from "mongoose";
 
@@ -7,6 +7,7 @@ import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
 import {createAccess} from "../rbac/access";
 import {terrenoStatements} from "../rbac/statements";
+import * as executors from "../sync/executors";
 import {setupDb} from "../tests";
 import {handleCreate, handleDelete, handleList, handleRead, handleUpdate} from "./handlers";
 import {
@@ -153,6 +154,16 @@ describe("MCP Integration", () => {
       const parsed = parseResult(result);
 
       expect(String(parsed.data.ownerId)).toBe(normalUser.id);
+    });
+
+    it("calls executeCreate instead of persisting in the handler", async () => {
+      const createSpy = spyOn(executors, "executeCreate");
+      const result = await handleCreate(entry, {title: "Via executor"}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(parsed.data.title).toBe("Via executor");
+      createSpy.mockRestore();
     });
 
     it("denies create without user", async () => {
@@ -561,6 +572,21 @@ describe("MCP Integration", () => {
       expect(parsed.data.title).toBe("Updated");
     });
 
+    it("calls executeUpdate instead of saving in the handler", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Spy update"});
+      const updateSpy = spyOn(executors, "executeUpdate");
+      const result = await handleUpdate(
+        entry,
+        {id: doc._id.toString(), title: "Spy updated"},
+        asUser(normalUser)
+      );
+      const parsed = parseResult(result);
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(parsed.data.title).toBe("Spy updated");
+      updateSpy.mockRestore();
+    });
+
     it("denies update by non-owner", async () => {
       const doc = await TodoModel.create({ownerId: normalUser._id, title: "Not yours"});
       const result = await handleUpdate(
@@ -571,7 +597,8 @@ describe("MCP Integration", () => {
       const parsed = parseResult(result);
 
       expect(parsed.error).toBeDefined();
-      expect(parsed.error).toContain("Permission denied");
+      expect(parsed.error).toContain("Access to GET on MCPTodo");
+      expect(parsed.error).toContain("denied");
     });
 
     it("admin can update any document", async () => {
@@ -801,6 +828,17 @@ describe("MCP Integration", () => {
       expect(found).toBeNull();
     });
 
+    it("calls executeDelete instead of persisting in the handler", async () => {
+      const doc = await TodoModel.create({ownerId: normalUser._id, title: "Spy delete"});
+      const deleteSpy = spyOn(executors, "executeDelete");
+      const result = await handleDelete(entry, {id: doc._id.toString()}, asUser(normalUser));
+      const parsed = parseResult(result);
+
+      expect(deleteSpy).toHaveBeenCalledTimes(1);
+      expect(parsed.success).toBe(true);
+      deleteSpy.mockRestore();
+    });
+
     it("returns not found for a non-ObjectId id without throwing", async () => {
       const result = await handleDelete(entry, {id: "not-an-object-id"}, asUser(normalUser));
       const parsed = parseResult(result);
@@ -910,7 +948,7 @@ describe("MCP Integration", () => {
 
       const parsed = parseResult(await handleCreate(anonymousWrites, {title: "Anon"}));
 
-      expect(parsed.error).toContain("Permission denied");
+      expect(parsed.error).toContain("Access to CREATE on MCPTodo denied");
     });
   });
 
@@ -1025,7 +1063,7 @@ describe("MCP Integration", () => {
 
       const parsed = parseResult(await handleCreate(failing, {title: "No"}, asUser(normalUser)));
 
-      expect(parsed.error).toContain("preCreate hook failed: boom");
+      expect(parsed.error).toBe("preCreate hook error");
     });
 
     it("preserves APIError titles thrown from preCreate", async () => {
@@ -1059,7 +1097,7 @@ describe("MCP Integration", () => {
 
       const parsed = parseResult(await handleCreate(failing, {title: "Yes"}, asUser(normalUser)));
 
-      expect(parsed.error).toContain("postCreate hook failed: after");
+      expect(parsed.error).toBe("postCreate hook error");
     });
 
     it("reports a preUpdate hook that returns null", async () => {
@@ -1092,7 +1130,7 @@ describe("MCP Integration", () => {
         await handleUpdate(failing, {id: doc._id.toString(), title: "Changed"}, asUser(normalUser))
       );
 
-      expect(parsed.error).toContain("postUpdate hook failed: late");
+      expect(parsed.error).toBe("postUpdate hook error");
     });
 
     it("reports a preDelete hook that returns null", async () => {
@@ -1125,7 +1163,7 @@ describe("MCP Integration", () => {
         await handleDelete(failing, {id: doc._id.toString()}, asUser(normalUser))
       );
 
-      expect(parsed.error).toContain("postDelete hook failed: cascade");
+      expect(parsed.error).toBe("postDelete hook error");
     });
 
     it("passes the update fields as the MCP request body, without the id", async () => {
@@ -1313,7 +1351,7 @@ describe("MCP Integration", () => {
         user: normalUser,
       });
       expectStubRequest({
-        body: {ownerId: normalUser._id, title: "Hooked"},
+        body: {title: "Hooked"},
         request: seen.postCreate,
         user: normalUser,
       });
@@ -1456,7 +1494,7 @@ describe("MCP Integration", () => {
       const result = await handleDelete(registered, {id: doc._id.toString()}, asUser(normalUser));
       const parsed = parseResult(result);
 
-      expect(parsed.error).toContain("cannot delete");
+      expect(parsed.error).toContain("Access to DELETE on MCPTodo denied");
       expect(await TodoModel.findById(doc._id)).toBeTruthy();
     });
 

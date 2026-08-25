@@ -102,6 +102,8 @@ const todoRouter = modelRouter("/todos", Todo, {
 
 Cross-model tools use `registerMCPTool` (see the example backend's `users_todo_statuses`). How-to: [Expose MCP tools](../how-to/expose-mcp-tools.md). In-process Vercel AI SDK wrappers: `getMCPTools` from `@terreno/ai`.
 
+Create, update, and delete tools share REST permission, hook, and persistence semantics: they call the same `executeCreate` / `executeUpdate` / `executeDelete` pipeline. MCP error results use `APIError.title` (for example `Create not allowed`, `preCreate hook error`). List and read stay MCP handlers. `excludeFields` and `mcpResponseHandler` still apply after the executor returns.
+
 ## Authentication
 
 @terreno/api includes built-in authentication with multiple strategies:

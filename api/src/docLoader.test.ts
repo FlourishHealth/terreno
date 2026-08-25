@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import type {Model} from "mongoose";
+import mongoose, {type Model} from "mongoose";
 import {loadDocOr404} from "./docLoader";
 import {APIError} from "./errors";
 
@@ -36,6 +36,28 @@ describe("loadDocOr404", () => {
     } as unknown as Model<unknown>;
 
     await expect(loadDocOr404(model, "507f1f77bcf86cd799439011")).rejects.toBe(original);
+  });
+
+  it("maps CastError from findById to a 404", async () => {
+    const model = {
+      collection: {findOne: mock(async () => null)},
+      findById: mock(() => ({
+        exec: mock(async () => {
+          throw new mongoose.Error.CastError("ObjectId", "not-an-object-id", "_id");
+        }),
+      })),
+      modelName: "MockModel",
+    } as unknown as Model<unknown>;
+
+    try {
+      await loadDocOr404(model, "not-an-object-id");
+      expect.unreachable("expected loadDocOr404 to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      const apiError = error as APIError;
+      expect(apiError.status).toBe(404);
+      expect(apiError.title).toBe("Document not found");
+    }
   });
 
   it("returns plain not found when document does not exist", async () => {
