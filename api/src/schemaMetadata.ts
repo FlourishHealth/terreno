@@ -192,7 +192,9 @@ const describeSchemaPath = (path: string, schemaPath: MongooseSchemaPath): Field
   if (schemaPath.instance === "Map") {
     return {
       ...base,
-      item: schemaPath.caster ? describeCaster(schemaPath.caster) : {kind: "mixed", required: false},
+      item: schemaPath.caster
+        ? describeCaster(schemaPath.caster)
+        : {kind: "mixed", required: false},
       kind: "map",
     };
   }

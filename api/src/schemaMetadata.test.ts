@@ -5,13 +5,13 @@ import {z} from "zod";
 import {
   describeModel,
   describeModelForRouter,
+  type FieldDescription,
   fieldDescriptionToAdminMeta,
   fieldDescriptionToOpenApiProperty,
   fieldDescriptionToZodType,
   modelDescriptionToAdminFields,
   modelDescriptionToOpenApiSpec,
   nestDottedFieldDescriptions,
-  type FieldDescription,
 } from "./schemaMetadata";
 
 const fixtureSchema = new Schema({
@@ -51,7 +51,8 @@ const mapSchema = new Schema({
   typedMap: {description: "String map", of: String, type: Map},
 });
 
-const MapModel = mongoose.models.SchemaMetadataMap ?? mongoose.model("SchemaMetadataMap", mapSchema);
+const MapModel =
+  mongoose.models.SchemaMetadataMap ?? mongoose.model("SchemaMetadataMap", mapSchema);
 
 const embeddedSchema = new Schema({
   profile: {
