@@ -55,6 +55,7 @@ export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
 export * from "./rbac/access";
+export {assertAllowed} from "./rbac/assertAllowed";
 export {
   createRbacAuditModel,
   type RbacAuditDocument,
