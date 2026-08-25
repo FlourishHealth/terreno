@@ -28,8 +28,8 @@ import {
   passthroughOrWrap,
   passthroughOrWrapWrite,
 } from "./errors";
+import {registerCollection, replaceCollectionOptions} from "./collectionRegistry";
 import {logger} from "./logger";
-import {registerMCPModel, updateMCPRegistryOptions} from "./mcp/registry";
 import type {MCPConfig} from "./mcp/types";
 import {
   createOpenApiMiddleware,
@@ -48,7 +48,6 @@ import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./pe
 import type {PopulatePath} from "./populate";
 import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
 import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
-import {registerRealtime, updateRealtimeRegistryOptions} from "./realtime/registry";
 import type {RealtimeConfig} from "./realtime/types";
 import {
   type ExecutorConcurrencyCheck,
@@ -57,7 +56,6 @@ import {
   executeUpdate,
   isExecutorConflictError,
 } from "./sync/executors";
-import {registerSync, updateSyncRegistryOptions} from "./sync/registry";
 import type {SyncConfig} from "./sync/types";
 import {
   defaultResponseHandler,
@@ -663,29 +661,10 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
-  // Register MCP before building so _buildModelRouter can replace options
-  // with RBAC-resolved permissions (access+accessControl is not deferred).
-  if (options.mcp) {
-    registerMCPModel(model, options.mcp, options);
-  }
-
   const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
 
   if (path !== undefined) {
-    // Register before building so _buildModelRouter can replace options with
-    // RBAC-resolved permissions (same contract as MCP).
-    if (options.realtime) {
-      registerRealtime({
-        collectionName: model.collection.collectionName,
-        config: options.realtime,
-        modelName: model.modelName,
-        options: options as unknown as ModelRouterOptions<unknown>,
-        routePath: path,
-      });
-    }
-    if (options.sync) {
-      registerSync({config: options.sync, model, options, routePath: path});
-    }
+    registerCollection({model, options, routePath: path});
   }
 
   const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
@@ -703,12 +682,7 @@ export function modelRouter<T>(
           ...enrichedOptions,
           accessControl: enrichedOptions.accessControl ?? context.accessControl,
         };
-        if (options.realtime) {
-          updateRealtimeRegistryOptions(
-            path,
-            runtimeOptions as unknown as ModelRouterOptions<unknown>
-          );
-        }
+        replaceCollectionOptions(path, runtimeOptions as unknown as ModelRouterOptions<unknown>);
         return _buildModelRouter(model, runtimeOptions, path);
       },
       model,
@@ -757,11 +731,8 @@ const _buildModelRouter = <T>(
       options.responseHandler ??
       defaultResponseHandler) as ModelRouterOptions<T>["responseHandler"],
   };
-  if (options.mcp) {
-    updateMCPRegistryOptions(model.modelName, options as unknown as ModelRouterOptions<unknown>);
-  }
-  if (options.sync && routePath) {
-    updateSyncRegistryOptions(routePath, options as unknown as ModelRouterOptions<unknown>);
+  if (routePath) {
+    replaceCollectionOptions(routePath, options as unknown as ModelRouterOptions<unknown>);
   }
 
   assertNoActionCollisions(model, options);
