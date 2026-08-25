@@ -1,6 +1,6 @@
 import {FontAwesome6} from "@expo/vector-icons";
 import type React from "react";
-import {memo, type FC, useCallback, useMemo, useRef, useState} from "react";
+import {type FC, memo, useCallback, useMemo, useRef, useState} from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -536,8 +536,8 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
                 <DataTableRow
                   alternateRowBackground={alternateRowBackground}
                   columnEnd={pinnedColumns}
-                  columns={columns}
                   columnStart={0}
+                  columns={columns}
                   customColumnComponentMap={customColumnComponentMap}
                   defaultTextSize={defaultTextSize}
                   key={`pinned-${rowIndex}`}
@@ -569,8 +569,8 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
                 <DataTableRow
                   alternateRowBackground={alternateRowBackground}
                   columnEnd={columns.length}
-                  columns={columns}
                   columnStart={pinnedColumns}
+                  columns={columns}
                   customColumnComponentMap={customColumnComponentMap}
                   defaultTextSize={defaultTextSize}
                   key={`scrollable-${rowIndex}`}

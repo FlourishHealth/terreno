@@ -1,5 +1,5 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import {memo, type FC} from "react";
+import {type FC, memo} from "react";
 
 import {type IconProps, iconSizeToNumber} from "./Common";
 import {useCustomIcon} from "./IconRegistry";

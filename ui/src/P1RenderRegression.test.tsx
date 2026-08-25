@@ -4,12 +4,7 @@ import type React from "react";
 import {useEffect} from "react";
 import {View} from "react-native";
 
-import type {
-  CustomIconProps,
-  DataTableCellData,
-  DataTableColumn,
-  IconRegistryMap,
-} from "./Common";
+import type {CustomIconProps, DataTableCellData, DataTableColumn, IconRegistryMap} from "./Common";
 import {DataTable} from "./DataTable";
 import {Icon} from "./Icon";
 import {IconRegistryProvider} from "./IconRegistry";
