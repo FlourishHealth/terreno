@@ -1,6 +1,6 @@
 # Implementation Plan: Upgrade Guides and the `upgrading-terreno` Skill
 
-**Status:** Draft — blocked on PR #869
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1013
 **Priority:** High
 **Effort:** Big batch

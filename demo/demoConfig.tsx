@@ -32,6 +32,7 @@ import {PageConfiguration} from "@story-config/Page.config";
 import {PaginationConfiguration} from "@story-config/Pagination.config";
 import {PasswordFieldConfiguration} from "@story-config/PasswordField.config";
 import {PhoneNumberConfiguration} from "@story-config/PhoneNumberField.config";
+import {PopoverConfiguration} from "@story-config/Popover.config";
 import {RadioFieldConfiguration} from "@story-config/RadioField.config";
 import {SectionDividerConfiguration} from "@story-config/SectionDivider.config";
 import {SegmentedControlConfiguration} from "@story-config/SegmentedControl.config";
@@ -228,6 +229,7 @@ const Config: DemoConfigurationBase[] = [
   PageConfiguration,
   PaginationConfiguration,
   PasswordFieldConfiguration,
+  PopoverConfiguration,
   PhoneNumberConfiguration,
   RadioFieldConfiguration,
   SectionDividerConfiguration,

@@ -1,7 +1,7 @@
 {
   "name": "@terreno/mcp",
   "version": "57.2.0",
-  "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
+  "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -56,5 +56,13 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   }
 }

@@ -4,8 +4,8 @@ import {
   diffImportGraphs,
   measureImportGraph,
   resolvePackageEntry,
-} from "./importGraph";
-import {measureFreshImportTiming} from "./importTiming";
+} from "../src/benchmarks/importGraph";
+import {measureFreshImportTiming} from "../src/benchmarks/importTiming";
 
 const DEFAULT_SAMPLE_COUNT = 7;
 const DEFAULT_WARMUP_COUNT = 2;

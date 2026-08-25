@@ -14,6 +14,9 @@ import EmojiSelectorSubpath from "@terreno/ui/EmojiSelector";
 import {GPTChat as GPTChatSubpath} from "@terreno/ui/GPTChat";
 import {MarkdownView} from "@terreno/ui/MarkdownView";
 
+import {Categories} from "./emojiCategories";
+import {EmojiSelector as LazyEmojiSelector} from "./lazyBoundaries/heavyOptionalExports";
+
 const ROOT_IMPORT_PATHS = [
   "@terreno/ui",
   "@terreno/ui/Button",
@@ -44,6 +47,10 @@ describe("root import compatibility", () => {
     expect(EmojiSelector).toBeTruthy();
     expect(GPTChat).toBeTruthy();
     expect(MarkdownEditor).toBeTruthy();
+    expect(
+      (LazyEmojiSelector as unknown as {defaultProps?: {category?: typeof Categories.all}})
+        .defaultProps?.category
+    ).toBe(Categories.all);
   });
 
   it("resolves documented package entrypoints", async () => {

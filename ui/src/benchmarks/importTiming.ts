@@ -1,5 +1,5 @@
 import {spawnSync} from "node:child_process";
-import {dirname, resolve} from "node:path";
+import {resolve} from "node:path";
 
 export interface FreshImportTimingResult {
   elapsedMs: number;
@@ -7,12 +7,9 @@ export interface FreshImportTimingResult {
   samplesMs: number[];
 }
 
-const UI_PACKAGE_ROOT = resolve(import.meta.dir, "..");
+const UI_PACKAGE_ROOT = resolve(import.meta.dir, "../..");
 
-const median = (values: number[]): number => {
-  const sorted = [...values].sort((left, right) => left - right);
-  return sorted[Math.floor(sorted.length / 2)] ?? 0;
-};
+export const compareBenchmarkSamples = (left: number, right: number): number => left - right;
 
 const runFreshImportSample = (importPath: string): number => {
   const probeSource = `
@@ -76,11 +73,11 @@ export const measureFreshImportTiming = ({
     samplesMs.push(runFreshImportSample(importPath));
   }
 
+  const sortedSamples = [...samplesMs].sort(compareBenchmarkSamples);
+
   return {
-    elapsedMs: median(samplesMs),
+    elapsedMs: sortedSamples[Math.floor(sortedSamples.length / 2)] ?? 0,
     importPath,
     samplesMs,
   };
 };
-
-export const getUiPackageRoot = (): string => dirname(UI_PACKAGE_ROOT);

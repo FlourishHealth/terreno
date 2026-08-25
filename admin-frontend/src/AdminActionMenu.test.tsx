@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {act} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";

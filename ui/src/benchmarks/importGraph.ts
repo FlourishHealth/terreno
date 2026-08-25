@@ -1,8 +1,8 @@
 import {existsSync, readFileSync, statSync} from "node:fs";
 import {dirname, join, resolve} from "node:path";
 
-const SRC_ROOT = resolve(import.meta.dir, "../src");
-const DIST_ROOT = resolve(import.meta.dir, "../dist");
+const SRC_ROOT = resolve(import.meta.dir, "..");
+const DIST_ROOT = resolve(import.meta.dir, "../../dist");
 
 const SOURCE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 

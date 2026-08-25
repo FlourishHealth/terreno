@@ -1,6 +1,6 @@
 # @terreno/ui
 
-React Native UI component library (88+ components). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
+React Native UI component library (a large component library). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
 
 ## Key exports
 
@@ -77,6 +77,17 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 ``````
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
+
+### Button Press Animation
+
+Buttons use a scale animation by default. Set `pressAnimation="opacity"` for an opacity response or
+`pressAnimation="none"` when surrounding motion already provides feedback:
+
+``````typescript
+<Button text="Save" onClick={handleSave} pressAnimation="opacity" />
+``````
+
+Disabled and loading buttons use a non-interactive pressable regardless of the selected animation.
 
 ## Authentication Components
 
@@ -500,5 +511,4 @@ import {TerrenoProvider} from "@terreno/ui";
 ## Related Documentation
 
 - [UI performance benchmarks](ui-performance.md)
-- [UI package source](../../ui/src/)
-- [UI agent rules](../../.cursor/rules/ui/)
+- [UI package source](https://github.com/flourishhealth/terreno/tree/master/ui/src)

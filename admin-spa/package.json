@@ -33,7 +33,7 @@
     "react-redux": "catalog:",
     "redux-persist": "catalog:"
   },
-  "description": "Opt-in admin SPA (Expo Router web app) plus an Express plugin that serves it from a Terreno backend",
+  "description": "Standalone admin SPA (Expo Router web) plus Express serve plugin — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
