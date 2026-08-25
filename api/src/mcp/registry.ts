@@ -24,14 +24,17 @@ const findCollectionByModelName = (modelName: string) =>
   listCollections().find((record) => record.model.modelName === modelName);
 
 const mcpRoutePathForModel = (
+  // noExplicitAny: Mongoose invariant generics
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose invariant generics
   model: Model<any>
 ): string => findCollectionByModelName(model.modelName)?.routePath ?? `/_mcp/${model.modelName}`;
 
 export const registerMCPModel = (
+  // noExplicitAny: Mongoose invariant generics
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose invariant generics
   model: Model<any>,
   config: MCPConfig,
+  // noExplicitAny: consumer document type
   // biome-ignore lint/suspicious/noExplicitAny: consumer document type
   options: ModelRouterOptions<any>
 ): void => {
