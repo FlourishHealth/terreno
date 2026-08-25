@@ -220,6 +220,7 @@ describe("MCP Integration", () => {
     });
 
     it("drops User roles on MCP create when accessControl is set", async () => {
+      let seenRoles: unknown;
       const writeEntry: MCPRegistryEntry = {
         config: {methods: ["create"]},
         model: UserWriteModel,
@@ -233,6 +234,10 @@ describe("MCP Integration", () => {
             read: [],
             update: [],
           },
+          preCreate: (body) => {
+            seenRoles = (body as {roles?: string[]}).roles;
+            return body;
+          },
         },
       };
       const result = await handleCreate(
@@ -241,6 +246,7 @@ describe("MCP Integration", () => {
         asUser(normalUser)
       );
       const parsed = parseResult(result);
+      expect(seenRoles).toEqual(["superadmin"]);
       expect(parsed.data.email).toBe("mcp-roles@example.com");
       expect(parsed.data.roles ?? []).toEqual([]);
       const stored = await UserWriteModel.findOne({email: "mcp-roles@example.com"}).lean();
@@ -715,6 +721,7 @@ describe("MCP Integration", () => {
     });
 
     it("drops User roles on MCP update when accessControl is set", async () => {
+      let seenRoles: unknown;
       const doc = await UserWriteModel.create({email: "mcp-roles-update@example.com", roles: []});
       const writeEntry: MCPRegistryEntry = {
         config: {methods: ["update"]},
@@ -729,6 +736,10 @@ describe("MCP Integration", () => {
             read: [],
             update: [Permissions.IsAuthenticated],
           },
+          preUpdate: (body) => {
+            seenRoles = (body as {roles?: string[]}).roles;
+            return body;
+          },
         },
       };
       const result = await handleUpdate(
@@ -737,6 +748,7 @@ describe("MCP Integration", () => {
         asUser(normalUser)
       );
       const parsed = parseResult(result);
+      expect(seenRoles).toEqual(["superadmin"]);
       expect(parsed.data.email).toBe("mcp-roles-update@example.com");
       expect(parsed.data.roles ?? []).toEqual([]);
       expect((await UserWriteModel.findById(doc._id).lean())?.roles ?? []).toEqual([]);

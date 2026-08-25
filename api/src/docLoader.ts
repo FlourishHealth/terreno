@@ -4,12 +4,20 @@ import {addPopulateToQuery} from "./api";
 import {APIError, errorDetail, isAPIError, NotFoundError} from "./errors";
 import type {PopulatePath} from "./populate";
 
-const isInvalidIdError = (error: unknown): boolean => {
+const isCastErrorOnDocumentId = (error: unknown): boolean => {
   if (error instanceof mongoose.Error.CastError) {
+    return error.path === "_id";
+  }
+  const maybe = error as {name?: string; path?: string} | undefined;
+  return maybe?.name === "CastError" && maybe.path === "_id";
+};
+
+const isInvalidIdError = (error: unknown): boolean => {
+  if (isCastErrorOnDocumentId(error)) {
     return true;
   }
   const name = (error as {name?: string} | undefined)?.name;
-  return name === "BSONError" || name === "BSONTypeError" || name === "CastError";
+  return name === "BSONError" || name === "BSONTypeError";
 };
 
 const documentNotFound = (modelName: string, id: string): NotFoundError => {

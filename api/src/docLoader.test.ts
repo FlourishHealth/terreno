@@ -38,6 +38,28 @@ describe("loadDocOr404", () => {
     await expect(loadDocOr404(model, "507f1f77bcf86cd799439011")).rejects.toBe(original);
   });
 
+  it("maps CastError on a populate path to a GET error, not 404", async () => {
+    const model = {
+      collection: {findOne: mock(async () => null)},
+      findById: mock(() => ({
+        exec: mock(async () => {
+          throw new mongoose.Error.CastError("ObjectId", "not-an-object-id", "ownerId");
+        }),
+      })),
+      modelName: "MockModel",
+    } as unknown as Model<unknown>;
+
+    try {
+      await loadDocOr404(model, "507f1f77bcf86cd799439011");
+      expect.unreachable("expected loadDocOr404 to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      const apiError = error as APIError;
+      expect(apiError.status).toBe(500);
+      expect(apiError.title).toBe("GET error");
+    }
+  });
+
   it("maps CastError from findById to a 404", async () => {
     const model = {
       collection: {findOne: mock(async () => null)},

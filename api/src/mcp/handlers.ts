@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 import {addPopulateToQuery, type JSONValue} from "../api";
-import {omitUserRolesFromWriteBody, type User} from "../auth";
+import type {User} from "../auth";
 import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
@@ -384,11 +384,7 @@ export const handleCreate = async (
     return errorResult("Permission denied: authentication required");
   }
 
-  const body = omitUserRolesFromWriteBody(
-    entry.modelName,
-    options.accessControl,
-    omitDeniedWriteFields(args, deniedWriteFields(entry, "create"))
-  ) as MCPToolArgs;
+  const body = omitDeniedWriteFields(args, deniedWriteFields(entry, "create")) as MCPToolArgs;
   const req = createMCPRequest({body, user});
 
   let data: MCPDocument | null;
@@ -399,6 +395,7 @@ export const handleCreate = async (
       options,
       req,
       user,
+      writeModelName: entry.modelName,
     });
     data = result.doc as MCPDocument;
   } catch (error) {
@@ -429,10 +426,9 @@ export const handleUpdate = async (
     return missingDocumentResult(id);
   }
 
-  const body = omitUserRolesFromWriteBody(
-    entry.modelName,
-    options.accessControl,
-    omitDeniedWriteFields(updateFields, deniedWriteFields(entry, "update"))
+  const body = omitDeniedWriteFields(
+    updateFields,
+    deniedWriteFields(entry, "update")
   ) as MCPToolArgs;
   const req = createMCPRequest({body, user});
 
@@ -445,6 +441,7 @@ export const handleUpdate = async (
       options,
       req,
       user,
+      writeModelName: entry.modelName,
     });
     doc = result.doc as MCPDocument;
   } catch (error) {
