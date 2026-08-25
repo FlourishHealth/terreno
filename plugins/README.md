@@ -9,8 +9,8 @@ The reusable Cursor plugin exposes exactly five bounded lifecycle transitions:
 | 1 | **Grow** (`terreno-1-grow`) | Research, clarify, shape, and approve the IP/tasks |
 | 2 | **Pick** (`terreno-2-pick`) | Build one approved slice with TDD and internal review |
 | 3 | **Roast** (`terreno-3-roast`) | Independently prove/disprove the IP criteria |
-| 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, then exit |
-| 5 | **Taste** (`terreno-5-taste`) | One current-head CI/mergeability/review reaction, then exit |
+| 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, wait for review bots, then exit |
+| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots, one current-head CI/mergeability/review reaction, then exit |
 
 Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
 Stages never own the full orchestration.
@@ -36,6 +36,7 @@ The shared result/state format and outer state machine live in:
 
 - [`references/lifecycle-contract.md`](terreno-planning/references/lifecycle-contract.md)
 - [`references/documentation-contract.md`](terreno-planning/references/documentation-contract.md)
+- [`references/async-review-bots.md`](terreno-planning/references/async-review-bots.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
 - [`references/github-attention-contract.md`](terreno-planning/references/github-attention-contract.md)
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
@@ -53,13 +54,16 @@ lifecycle stage.
 ```text
 Grow PASS → Pick PASS → Roast PASS → Brew PASS → Taste
                        ↘ Roast FAIL → Pick (exact evidence)
-Taste PENDING → outer loop waits → fresh Taste
+Brew PENDING (review-bot timeout) → outer loop waits → Taste
+Taste PENDING (product CI / bot timeout / new push) → outer loop waits → fresh Taste
 Taste PASS → merge-ready
 Any BLOCKED → named human/external gate
 ```
 
-Brew does not execute Taste. Taste does not wait or repeatedly inspect changing state.
-The loop owns persistence, waiting, retry, stop, and escalation.
+Brew does not execute Taste. Brew and Taste sleep until Bugbot, CodeQL, and similar
+review bots on the current head have reported, then continue. They do not wait for
+ordinary product CI. The loop owns persistence, product-CI waiting, retry, stop, and
+escalation.
 
 ## Repository integration
 

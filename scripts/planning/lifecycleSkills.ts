@@ -99,12 +99,11 @@ const RETIRED_IDENTIFIERS = [
   "terreno-5-dialin",
 ];
 
-const TASTE_LOOP_PATTERNS = [
-  /\bsleep\b/i,
-  /\bpoll(?:ing)?\b/i,
+const TASTE_UNBOUNDED_LOOP_PATTERNS = [
   /keep the loop active/i,
   /continue the loop/i,
-  /wait\s+\d/i,
+  /do not exit until all checks pass/i,
+  /wait until all CI is green/i,
 ];
 
 const PORTABILITY_MARKERS = [
@@ -189,6 +188,12 @@ export const validateStageContent = ({
     if (!content.includes("../../references/github-attention-contract.md")) {
       errors.push(`${prefix}: Brew must load the GitHub attention contract`);
     }
+    if (!content.includes("../../references/async-review-bots.md")) {
+      errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
+    }
+    if (!content.includes("Do not exit while")) {
+      errors.push(`${prefix}: Brew must wait in-process for running review bots`);
+    }
     if (!content.includes("Brew itself never executes Taste")) {
       errors.push(`${prefix}: must explicitly terminate without executing Taste`);
     }
@@ -201,13 +206,22 @@ export const validateStageContent = ({
     if (!content.includes("../../references/github-attention-contract.md")) {
       errors.push(`${prefix}: Taste must load the GitHub attention contract`);
     }
+    if (!content.includes("../../references/async-review-bots.md")) {
+      errors.push(`${prefix}: Taste must load the async review-bot wait procedure`);
+    }
+    if (!content.includes("Do not exit while")) {
+      errors.push(`${prefix}: Taste must wait in-process for running review bots`);
+    }
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
-    for (const pattern of TASTE_LOOP_PATTERNS) {
+    if (!content.includes("If step 8 did not push")) {
+      errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
+    }
+    for (const pattern of TASTE_UNBOUNDED_LOOP_PATTERNS) {
       if (pattern.test(content)) {
         errors.push(
-          `${prefix}: contains an internal waiting/loop pattern: ${pattern.source}`
+          `${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`
         );
       }
     }

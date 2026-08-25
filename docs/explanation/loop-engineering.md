@@ -42,8 +42,9 @@ durable artifacts. Pick can retry from exact Roast evidence; Roast can verify wi
 implementer's assumptions; Taste can react to the current PR head rather than an old
 green result.
 
-The outer loop decides **when, who, what next, when to retry, when to wait, and when to
-escalate**. Stages decide how to perform one transition correctly.
+The outer loop decides **when, who, what next, when to retry, when to wait on product
+CI, and when to escalate**. Stages decide how to perform one transition correctly. Brew
+and Taste additionally sleep while async review bots are running.
 
 ## The five transitions
 
@@ -56,8 +57,9 @@ escalate**. Stages decide how to perform one transition correctly.
 | Taste | What is actionable on the current PR head now? | CI, mergeability, reviews, bounded fixes |
 
 Roast is not another implementation review. It independently proves or disproves
-acceptance criteria. Taste is not a resident watcher. It observes once, acts once, emits
-`PASS`, `FAIL`, `BLOCKED`, or `PENDING`, then exits.
+acceptance criteria. Taste is not a resident watcher of product CI. It sleeps until
+async review bots (Bugbot, CodeQL, and similar) on the current head have reported, then
+observes, acts, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
 
 ## Portable plugin, local knowledge
 
@@ -107,7 +109,10 @@ contain chain-of-thought or transcripts.
 
 - Roast failure returns exact expected/actual evidence to a fresh Pick.
 - Engineering retries require a new hypothesis and preserve failed approaches.
-- Taste `PENDING` lets the outer loop wait and invoke fresh Taste against current state.
+- Taste `PENDING` lets the outer loop wait on remaining product CI or a review-bot
+  timeout, then invoke fresh Taste against current state.
+- Brew and Taste sleep in-process while Bugbot, CodeQL, or similar review bots are
+  running, then continue so they can react without a loop reinvocation.
 - Human decisions are `BLOCKED`, never arbitrary retries.
 - Taste `PASS` requires all current-head checks terminal/non-failing, no conflicts, and
   no actionable review findings.
