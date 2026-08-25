@@ -3,6 +3,7 @@ import type {Document, Schema} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
 import {APIError} from "./errors";
+import {describeModel, modelDescriptionToOpenApiSpec} from "./schemaMetadata";
 
 const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
@@ -148,11 +149,15 @@ export const getOpenApiSpecForModel = (
     extraModelProperties,
   }: {populatePaths?: PopulatePath[]; extraModelProperties?: Record<string, unknown>} = {}
 ): {properties: Record<string, unknown>; required: string[]} => {
-  const modelSwagger = m2s(model, {
-    props: ["required", "enum"],
-  });
+  const description = describeModel(model);
+  const {properties, required} = modelDescriptionToOpenApiSpec(description);
+  const modelProperties = properties as Record<string, OpenApiSchemaNode>;
+  const modelSwagger = {
+    properties: modelProperties,
+    required,
+  };
 
-  fixMixedFields(model.schema, modelSwagger.properties);
+  fixMixedFields(model.schema, modelProperties);
 
   if (populatePaths && isArray(populatePaths)) {
     for (const populatePath of populatePaths) {
@@ -190,7 +195,7 @@ export const getOpenApiSpecForModel = (
 
       // Navigate through the nested structure and set the schema
       const pathParts = openApiPath.split(".");
-      let currentSchema = modelSwagger.properties;
+      let currentSchema: Record<string, OpenApiSchemaNode> = modelSwagger.properties;
       for (let i = 0; i < pathParts.length; i++) {
         const part = pathParts[i];
         if (i === pathParts.length - 1) {
@@ -201,7 +206,7 @@ export const getOpenApiSpecForModel = (
               ...(schemaToSet.properties || {[part]: schemaToSet}),
             };
           } else {
-            currentSchema[part] = schemaToSet;
+            currentSchema[part] = schemaToSet as OpenApiSchemaNode;
           }
         } else {
           // We're still navigating, ensure the path exists
@@ -214,7 +219,8 @@ export const getOpenApiSpecForModel = (
               currentSchema[part] = {properties: {}, type: "object"};
             }
           }
-          currentSchema = currentSchema[part].properties || currentSchema[part];
+          const nextSchema = currentSchema[part].properties ?? currentSchema[part];
+          currentSchema = nextSchema as Record<string, OpenApiSchemaNode>;
         }
       }
     }
@@ -238,7 +244,11 @@ export const getOpenApiSpecForModel = (
         if (virtual === "id" || virtual === "__v") {
           continue;
         }
-        modelSwagger.properties[childSchema.model.path].properties[virtual] = {
+        const childPath = childSchema.model.path;
+        if (!childPath || !modelSwagger.properties[childPath]?.properties) {
+          continue;
+        }
+        modelSwagger.properties[childPath].properties[virtual] = {
           type: "any",
         };
       }
