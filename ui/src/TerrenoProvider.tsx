@@ -41,7 +41,7 @@ export const TerrenoProvider: FC<{
               toastData?.title ??
               (typeof toastOptions?.message === "string" ? toastOptions.message : "");
 
-            return <Toast {...toastData} title={title} onDismiss={handleDismiss} />;
+            return <Toast {...toastData} onDismiss={handleDismiss} title={title} />;
           }}
           swipeEnabled
         >

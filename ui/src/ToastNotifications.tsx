@@ -38,7 +38,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type {ToastProps as TerrenoToastPayload} from "./Common";
 import {
   Animated,
   Dimensions,
@@ -57,6 +56,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import type {ToastProps as TerrenoToastPayload} from "./Common";
 
 // ============================================================================
 // useDimensions hook
