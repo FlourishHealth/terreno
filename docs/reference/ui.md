@@ -23,7 +23,8 @@ import {DataTable} from "@terreno/ui/DataTable";
 import {Icon} from "@terreno/ui/Icon";
 ```
 
-Every compiled UI module is available through `@terreno/ui/<Module>`. The root import remains fully
+Every compiled UI module is available through `@terreno/ui/<Module>`. Existing
+`@terreno/ui/dist/<file>` imports still resolve to the compiled file. The root import remains fully
 supported and is convenient when startup cost is not material:
 
 ```typescript
