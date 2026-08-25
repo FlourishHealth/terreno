@@ -5,11 +5,7 @@ import React from "react";
 import type {ScrollView} from "react-native";
 
 import {Box} from "./Box";
-import {
-  createResponsiveBreakpointStore,
-  ResponsiveBreakpointProvider,
-  type ResponsiveBreakpointStore,
-} from "./ResponsiveBreakpoint";
+import {sharedResponsiveBreakpointStore} from "./ResponsiveBreakpoint";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
 
@@ -18,40 +14,6 @@ interface BoxScrollHandle {
   scrollTo: (y: number) => void;
   scrollToEnd: () => void;
 }
-
-interface BreakpointStoreFixture {
-  getDimensionReadCount: () => number;
-  getListenerCount: () => number;
-  getRemoveCount: () => number;
-  store: ResponsiveBreakpointStore;
-}
-
-const createBreakpointStoreFixture = (initialWidth: number): BreakpointStoreFixture => {
-  let dimensionReadCount = 0;
-  let listenerCount = 0;
-  let removeCount = 0;
-  const store = createResponsiveBreakpointStore({
-    getWindowWidth: (): number => {
-      dimensionReadCount += 1;
-      return initialWidth;
-    },
-    subscribeToDimensions: () => {
-      listenerCount += 1;
-      return {
-        remove: (): void => {
-          removeCount += 1;
-        },
-      };
-    },
-  });
-
-  return {
-    getDimensionReadCount: (): number => dimensionReadCount,
-    getListenerCount: (): number => listenerCount,
-    getRemoveCount: (): number => removeCount,
-    store,
-  };
-};
 
 describe("Box", () => {
   describe("basic rendering", () => {
@@ -91,87 +53,42 @@ describe("Box", () => {
     });
 
     it("updates responsive directions at exact shared breakpoints", () => {
-      const fixture = createBreakpointStoreFixture(575);
+      sharedResponsiveBreakpointStore.updateWidth(375);
 
       const result = renderWithTheme(
-        <ResponsiveBreakpointProvider store={fixture.store}>
-          <Box>
-            <Box direction="column" smDirection="row" testID="sm-responsive-box" />
-            <Box direction="column" mdDirection="row" testID="md-responsive-box" />
-            <Box direction="column" lgDirection="row" testID="lg-responsive-box" />
-          </Box>
-        </ResponsiveBreakpointProvider>
+        <Box>
+          <Box direction="column" smDirection="row" testID="sm-responsive-box" />
+          <Box direction="column" mdDirection="row" testID="md-responsive-box" />
+          <Box direction="column" lgDirection="row" testID="lg-responsive-box" />
+        </Box>
       );
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        fixture.store.updateWidth(576);
+        sharedResponsiveBreakpointStore.updateWidth(576);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        fixture.store.updateWidth(768);
+        sharedResponsiveBreakpointStore.updateWidth(768);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        fixture.store.updateWidth(1312);
+        sharedResponsiveBreakpointStore.updateWidth(1312);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "row");
 
       result.unmount();
-    });
-
-    it("shares one Dimensions read and listener across a responsive Box tree", () => {
-      const fixture = createBreakpointStoreFixture(768);
-
-      const result = renderWithTheme(
-        <ResponsiveBreakpointProvider store={fixture.store}>
-          <Box>
-            {Array.from(
-              {length: 100},
-              (_, index): React.ReactElement => (
-                <Box key={index} mdDirection="row" testID={`responsive-${index}`} />
-              )
-            )}
-          </Box>
-        </ResponsiveBreakpointProvider>
-      );
-
-      assert.equal(fixture.getDimensionReadCount(), 2);
-      assert.equal(fixture.getListenerCount(), 1);
-
-      result.unmount();
-      assert.equal(fixture.getRemoveCount(), 1);
-    });
-
-    it("does not subscribe Boxes without responsive props", () => {
-      const fixture = createBreakpointStoreFixture(768);
-      const result = renderWithTheme(
-        <ResponsiveBreakpointProvider store={fixture.store}>
-          <Box>
-            {Array.from(
-              {length: 100},
-              (_, index): React.ReactElement => (
-                <Box direction="row" key={index} testID={`static-${index}`} />
-              )
-            )}
-          </Box>
-        </ResponsiveBreakpointProvider>
-      );
-
-      assert.equal(fixture.getListenerCount(), 0);
-
-      result.unmount();
-      assert.equal(fixture.getRemoveCount(), 0);
+      sharedResponsiveBreakpointStore.updateWidth(375);
     });
 
     it("should apply flex grow", () => {

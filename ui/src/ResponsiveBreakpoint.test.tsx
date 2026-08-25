@@ -1,20 +1,35 @@
 import {describe, it, mock} from "bun:test";
+import {render} from "@testing-library/react-native";
 import {assert} from "chai";
 import type React from "react";
 import {renderToString} from "react-dom/server";
+import {View} from "react-native";
 
 import {
   createNativeResponsiveBreakpointStore,
   createResponsiveBreakpointStore,
   getBreakpointForWidth,
   isBreakpointAtLeast,
-  ResponsiveBreakpointProvider,
+  type ResponsiveBreakpointStore,
   useResponsiveBreakpoint,
 } from "./ResponsiveBreakpoint";
 
-const BreakpointConsumer: React.FC = () => {
-  const breakpoint = useResponsiveBreakpoint();
+interface BreakpointConsumerProps {
+  enabled?: boolean;
+  store: ResponsiveBreakpointStore;
+}
+
+const BreakpointConsumer: React.FC<BreakpointConsumerProps> = ({
+  enabled = true,
+  store,
+}): React.ReactElement => {
+  const breakpoint = useResponsiveBreakpoint({enabled, store});
   return <span>{breakpoint}</span>;
+};
+
+const BreakpointSubscriber: React.FC<BreakpointConsumerProps> = ({enabled = true, store}): null => {
+  useResponsiveBreakpoint({enabled, store});
+  return null;
 };
 
 describe("ResponsiveBreakpoint", () => {
@@ -35,14 +50,14 @@ describe("ResponsiveBreakpoint", () => {
 
   it("maps native resize and rotation events into shared breakpoint updates", () => {
     let dimensionListener: ((event: {window: {width: number}}) => void) | undefined;
-    const removeListener = mock(() => {});
-    const subscriber = mock(() => {});
+    const removeListener = mock((): void => {});
+    const subscriber = mock((): void => {});
     const store = createNativeResponsiveBreakpointStore({
-      addEventListener: (_eventType, listener) => {
+      addEventListener: (_eventType, listener): {remove: () => void} => {
         dimensionListener = listener;
         return {remove: removeListener};
       },
-      get: () => ({width: 575}),
+      get: (): {width: number} => ({width: 575}),
     });
     const unsubscribe = store.subscribe(subscriber);
 
@@ -57,17 +72,73 @@ describe("ResponsiveBreakpoint", () => {
 
   it("uses the xs server snapshot before client hydration", () => {
     const store = createResponsiveBreakpointStore({
-      getWindowWidth: () => 1312,
-      subscribeToDimensions: () => ({remove: () => {}}),
+      getWindowWidth: (): number => 1312,
+      subscribeToDimensions: (): {remove: () => void} => ({remove: (): void => {}}),
     });
 
-    const html = renderToString(
-      <ResponsiveBreakpointProvider store={store}>
-        <BreakpointConsumer />
-      </ResponsiveBreakpointProvider>
-    );
+    const html = renderToString(<BreakpointConsumer store={store} />);
 
     assert.include(html, ">xs<");
     assert.equal(store.getSnapshot(), "lg");
+  });
+
+  it("shares one dimensions listener across a responsive tree", () => {
+    let dimensionReadCount = 0;
+    let listenerCount = 0;
+    let removeCount = 0;
+    const store = createResponsiveBreakpointStore({
+      getWindowWidth: (): number => {
+        dimensionReadCount += 1;
+        return 768;
+      },
+      subscribeToDimensions: (): {remove: () => void} => {
+        listenerCount += 1;
+        return {
+          remove: (): void => {
+            removeCount += 1;
+          },
+        };
+      },
+    });
+    const result = render(
+      <View>
+        {Array.from(
+          {length: 100},
+          (_, index): React.ReactElement => (
+            <BreakpointSubscriber key={index} store={store} />
+          )
+        )}
+      </View>
+    );
+
+    assert.equal(dimensionReadCount, 2);
+    assert.equal(listenerCount, 1);
+
+    result.unmount();
+    assert.equal(removeCount, 1);
+  });
+
+  it("does not subscribe when responsive behavior is disabled", () => {
+    let listenerCount = 0;
+    const store = createResponsiveBreakpointStore({
+      getWindowWidth: (): number => 768,
+      subscribeToDimensions: (): {remove: () => void} => {
+        listenerCount += 1;
+        return {remove: (): void => {}};
+      },
+    });
+    const result = render(
+      <View>
+        {Array.from(
+          {length: 100},
+          (_, index): React.ReactElement => (
+            <BreakpointSubscriber enabled={false} key={index} store={store} />
+          )
+        )}
+      </View>
+    );
+
+    assert.equal(listenerCount, 0);
+    result.unmount();
   });
 });

@@ -1,10 +1,11 @@
-import {createContext, type FC, type ReactNode, useContext, useSyncExternalStore} from "react";
+import {useSyncExternalStore} from "react";
 import {Dimensions} from "react-native";
 
 export type ResponsiveBreakpoint = "xs" | "sm" | "md" | "lg";
 
 interface UseResponsiveBreakpointOptions {
   enabled?: boolean;
+  store?: ResponsiveBreakpointStore;
 }
 
 interface CreateResponsiveBreakpointStoreOptions {
@@ -25,11 +26,6 @@ export interface ResponsiveBreakpointStore {
   getSnapshot: () => ResponsiveBreakpoint;
   subscribe: (subscriber: () => void) => () => void;
   updateWidth: (width: number) => void;
-}
-
-interface ResponsiveBreakpointProviderProps {
-  children: ReactNode;
-  store: ResponsiveBreakpointStore;
 }
 
 const BREAKPOINT_ORDER: Record<ResponsiveBreakpoint, number> = {
@@ -104,28 +100,14 @@ export const createNativeResponsiveBreakpointStore = (
 ): ResponsiveBreakpointStore => {
   return createResponsiveBreakpointStore({
     getWindowWidth: (): number => dimensions.get("window").width,
-    subscribeToDimensions: (listener) =>
+    subscribeToDimensions: (listener): {remove: () => void} =>
       dimensions.addEventListener("change", ({window}): void => {
         listener(window.width);
       }),
   });
 };
 
-const defaultBreakpointStore = createNativeResponsiveBreakpointStore(Dimensions);
-
-const ResponsiveBreakpointContext =
-  createContext<ResponsiveBreakpointStore>(defaultBreakpointStore);
-
-export const ResponsiveBreakpointProvider: FC<ResponsiveBreakpointProviderProps> = ({
-  children,
-  store,
-}) => {
-  return (
-    <ResponsiveBreakpointContext.Provider value={store}>
-      {children}
-    </ResponsiveBreakpointContext.Provider>
-  );
-};
+export const sharedResponsiveBreakpointStore = createNativeResponsiveBreakpointStore(Dimensions);
 
 const subscribeToNothing = (): (() => void) => {
   return (): void => {};
@@ -133,8 +115,8 @@ const subscribeToNothing = (): (() => void) => {
 
 export const useResponsiveBreakpoint = ({
   enabled = true,
+  store = sharedResponsiveBreakpointStore,
 }: UseResponsiveBreakpointOptions = {}): ResponsiveBreakpoint => {
-  const store = useContext(ResponsiveBreakpointContext);
   return useSyncExternalStore(
     enabled ? store.subscribe : subscribeToNothing,
     store.getSnapshot,
