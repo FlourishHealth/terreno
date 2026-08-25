@@ -86,6 +86,10 @@ setupServer({
 
 Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
 
+## Collection catalog
+
+`modelRouter("/path", Model, options)` writes one catalog record per route path. MCP, realtime, and sync surfaces read that record; TerrenoApp calls `replaceCollectionOptions` once when access control is injected. Test helpers `clearMCPRegistry`, `clearRealtimeRegistry`, and `clearSyncRegistry` clear the entire catalog.
+
 ## MCP tools
 
 Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.
