@@ -214,7 +214,7 @@ export const createSocketAuthMiddleware = ({
   if (validators.length === 0) {
     throw new APIError({
       status: 500,
-      title: "At least one socket authentication validator is required",
+      title: "[realtime] At least one socket authentication validator is required.",
     });
   }
 
