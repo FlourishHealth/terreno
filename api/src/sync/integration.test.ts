@@ -1,5 +1,3 @@
-// noExplicitAny: the rig bridges generic model/router/test types
-// biome-ignore-all lint/suspicious/noExplicitAny: the rig bridges generic model/router/test types
 /**
  * End-to-end integration test (Task 5.5): a REAL @terreno/syncdb client speaking to a
  * REAL @terreno/api backend over HTTP + Socket.io.
@@ -38,7 +36,13 @@ import {
 import mongoose, {model, Schema} from "mongoose";
 
 import {modelRouter} from "../api";
-import {addAuthRoutes, generateTokens, setupAuth, type User} from "../auth";
+import {
+  type UserModel as AuthUserModel,
+  addAuthRoutes,
+  generateTokens,
+  setupAuth,
+  type User,
+} from "../auth";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, findOneOrNoneFor, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {RealtimeApp} from "../realtime/realtimeApp";
@@ -207,8 +211,8 @@ describe("syncdb end-to-end integration", () => {
     });
 
     const app = getBaseServer();
-    setupAuth(app as any, UserModel as any);
-    addAuthRoutes(app as any, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     new SyncApp({}).register(app);
     app.use(registration.path, registration.router);
 
