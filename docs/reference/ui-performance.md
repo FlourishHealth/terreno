@@ -82,9 +82,9 @@ are milliseconds; lower is better.
 
 | Phase | Baseline | Optimized | Change |
 | --- | ---: | ---: | ---: |
-| Initial render | 3.01 | 2.98 | Within benchmark variance |
-| Same-prop update | 0.89 | 0.91 | Within benchmark variance |
-| One-direction update | 0.92 | 0.92 | Within benchmark variance |
+| Initial render | 3.01 | 3.12 | Within benchmark variance |
+| Same-prop update | 0.89 | 0.88 | Within benchmark variance |
+| One-direction update | 0.92 | 0.90 | Within benchmark variance |
 | Initial `Dimensions.get` calls | 1,500 | 1 | 99.9% fewer |
 
 Responsive Boxes now subscribe to one shared window-dimension source. A resize or rotation updates
