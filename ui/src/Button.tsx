@@ -41,7 +41,12 @@ interface ButtonVisualProps extends Omit<ButtonProps, "onClick"> {
   onPress: () => void;
 }
 
-const useDebouncedPress = (handlePress: () => Promise<void>): (() => void) => {
+interface DebouncedPress {
+  endPressCooldown: () => void;
+  onPress: () => void;
+}
+
+const useDebouncedPress = (handlePress: () => Promise<void>): DebouncedPress => {
   const debouncedHandlePress = useMemo(
     () => debounce(handlePress, 500, {leading: true, trailing: false}),
     [handlePress]
@@ -54,7 +59,11 @@ const useDebouncedPress = (handlePress: () => Promise<void>): (() => void) => {
     };
   }, [debouncedHandlePress]);
 
-  return debouncedHandlePress;
+  const endPressCooldown = useCallback((): void => {
+    debouncedHandlePress.cancel();
+  }, [debouncedHandlePress]);
+
+  return {endPressCooldown, onPress: debouncedHandlePress};
 };
 
 const useMountedRef = (): React.RefObject<boolean> => {
@@ -221,15 +230,9 @@ const PlainButton: React.FC<ButtonProps> = (props) => {
       setIsHandlingPress(false);
     }
   }, [isMountedRef, onClick]);
-  const debouncedHandlePress = useDebouncedPress(handlePress);
+  const {onPress} = useDebouncedPress(handlePress);
 
-  return (
-    <ButtonVisual
-      {...visualProps}
-      isLoading={loading || isHandlingPress}
-      onPress={debouncedHandlePress}
-    />
-  );
+  return <ButtonVisual {...visualProps} isLoading={loading || isHandlingPress} onPress={onPress} />;
 };
 
 const ConfirmationButton: React.FC<ButtonProps> = ({
@@ -249,21 +252,25 @@ const ConfirmationButton: React.FC<ButtonProps> = ({
     }
     setShowConfirmation(true);
   }, [isMountedRef]);
+  const {endPressCooldown, onPress} = useDebouncedPress(handlePress);
+  // The press debounce only guards opening the modal, so closing it must clear the
+  // cooldown or a quick reopen after Cancel, dismiss, or Confirm would be swallowed.
   const handleDismiss = useCallback((): void => {
+    endPressCooldown();
     if (isMountedRef.current) {
       setShowConfirmation(false);
     }
-  }, [isMountedRef]);
+  }, [endPressCooldown, isMountedRef]);
   const handleConfirm = useCallback(async (): Promise<void> => {
     await onClick();
+    endPressCooldown();
     if (isMountedRef.current) {
       setShowConfirmation(false);
     }
-  }, [isMountedRef, onClick]);
-  const debouncedHandlePress = useDebouncedPress(handlePress);
+  }, [endPressCooldown, isMountedRef, onClick]);
 
   return (
-    <ButtonVisual {...props} isLoading={loading} onPress={debouncedHandlePress} withConfirmation>
+    <ButtonVisual {...props} isLoading={loading} onPress={onPress} withConfirmation>
       {showConfirmation && (
         <Suspense fallback={null}>
           <LazyModal

@@ -369,6 +369,108 @@ describe("Button", () => {
     expect(handleClick).not.toHaveBeenCalled();
   });
 
+  it("reopens the confirmation modal immediately after Cancel", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Reopen Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Reopen Title")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Cancel"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      assert.isNull(queryByText("Reopen Title"));
+    });
+
+    // Re-press well inside the 500ms press debounce window.
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Reopen Title")).toBeTruthy();
+    });
+    assert.lengthOf(handleClick.mock.calls, 0);
+  });
+
+  it("reopens the confirmation modal immediately after Confirm", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Confirm Reopen"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Confirm Reopen")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Confirm"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      assert.isNull(queryByText("Confirm Reopen"));
+    });
+    assert.lengthOf(handleClick.mock.calls, 1);
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Confirm Reopen")).toBeTruthy();
+    });
+  });
+
+  it("still debounces repeated presses that do not open the modal", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const hapticSpy = spyOn(Unifier.utils, "haptic");
+    const {getByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Debounced Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    const hapticCallsBefore = hapticSpy.mock.calls.length;
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      fireEvent.press(getByText("Press Me"));
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+
+    assert.equal(hapticSpy.mock.calls.length - hapticCallsBefore, 1);
+    hapticSpy.mockRestore();
+  });
+
   it("renders with tooltip on desktop (wrapped in Tooltip)", () => {
     const {toJSON} = renderWithTheme(
       <Button onClick={() => {}} text="Hover me" tooltipText="Tooltip text" />

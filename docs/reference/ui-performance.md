@@ -92,9 +92,11 @@ prop. Times are milliseconds; lower is better.
 
 `Button` now skips equivalent parent updates, keeps debounce identity stable, and cancels retained
 debounce timers on replacement or unmount. Plain buttons use a separate path that does not allocate
-confirmation state or request the lazy modal. Delayed handlers remain disabled until completion,
-and confirmation buttons retain their existing modal behavior. `P2ButtonRenderRegression.test.tsx`
-covers equivalent props plus changed labels, confirmation content, and theme values.
+confirmation state or request the lazy modal. Delayed handlers remain disabled until completion.
+Confirmation buttons clear the press cooldown when the modal closes, so Cancel, dismiss, or Confirm
+still allows an immediate reopen while repeated presses that do not close the modal stay debounced.
+`P2ButtonRenderRegression.test.tsx` covers equivalent props plus changed labels, confirmation
+content, and theme values.
 
 ## Environment overrides
 
