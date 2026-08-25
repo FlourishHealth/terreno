@@ -133,6 +133,11 @@ describe("parseSeedIssues", () => {
     assert.deepEqual(alpha?.labels, ["area:api", "type:feature"]);
     assert.ok(alpha?.body?.includes("Alpha body line one."));
     assert.ok(!alpha?.body?.includes("**Project fields:**"));
+
+    const lastSection = seeds.find((seed) => seed.slug === "no-ip-yet" && seed.body !== null);
+    assert.ok(lastSection?.body?.includes("Body for the undesigned item."));
+    assert.ok(!lastSection?.body?.includes("Shipped, umbrella, and declined IPs"));
+    assert.ok(!lastSection?.body?.includes("shipped-thing"));
   });
 });
 
@@ -367,6 +372,14 @@ describe("the real seed document", () => {
       .filter((item) => item.status === "Shipped" && item.target !== "Released")
       .map((item) => `${item.slug} Target=${item.target}`);
     assert.deepEqual(mismatches, []);
+  });
+
+  it("does not paste the shipped table into the last section body", async () => {
+    const seeds = parseSeedIssues(await Bun.file("docs/explanation/roadmap-seed-issues.md").text());
+    const lastSection = seeds.find((seed) => seed.slug === "pluggable-database-sqlite" && seed.body !== null);
+    assert.ok(lastSection, "expected a section body for pluggable-database-sqlite");
+    assert.ok(!lastSection?.body?.includes("Shipped, umbrella, and declined IPs"));
+    assert.ok(!lastSection?.body?.includes("admin-improvements"));
   });
 });
 

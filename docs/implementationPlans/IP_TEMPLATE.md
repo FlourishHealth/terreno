@@ -1,12 +1,14 @@
 # Implementation plan template
 
-Copy to `docs/implementationPlans/<slug>.md` and replace placeholders. Pair with `docs/tasks/<slug>.md`.
+Copy to `docs/implementationPlans/<slug>.md` and replace placeholders. Pair with
+`docs/tasks/<slug>.md`. Add `**Parent IP:** [other](other.md)` only when this plan
+rides on another plan's roadmap entry instead of getting its own. A filled Parent
+IP header skips reconcile for that file.
 
 **Status:** Draft | Approved | In progress | Complete | Deferred  
 **Branch:**  
 **Owner:**  
 **Created:** YYYY-MM-DD  
-**Parent IP:** *(optional — only when this plan rides on another plan's roadmap entry instead of getting its own)*  
 
 ## Goal
 

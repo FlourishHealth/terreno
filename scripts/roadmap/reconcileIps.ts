@@ -142,6 +142,21 @@ export const toBoardStatus = (rawStatus: string | null): string | null => {
   return null;
 };
 
+/**
+ * Treats empty and italic `*(optional)*` placeholders as unset so a copied
+ * template does not silence reconcile.
+ */
+export const parseParentIp = (raw: string | null): string | null => {
+  if (raw === null) {
+    return null;
+  }
+  const trimmed = raw.trim();
+  if (trimmed === "" || /^\*\(.*\)\*$/.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
+};
+
 export const parseIpRecord = ({contents, slug}: {contents: string; slug: string}): IpRecord => {
   const rawStatus = headerValue({contents, key: "Status"});
   const issueValue = headerValue({contents, key: "Roadmap issue"});
@@ -149,7 +164,7 @@ export const parseIpRecord = ({contents, slug}: {contents: string; slug: string}
 
   return {
     boardStatus: toBoardStatus(rawStatus),
-    parentIp: headerValue({contents, key: "Parent IP"}),
+    parentIp: parseParentIp(headerValue({contents, key: "Parent IP"})),
     rawStatus,
     roadmapIssue: issueMatch === null ? null : Number.parseInt(issueMatch[1] ?? "", 10),
     slug,

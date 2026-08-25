@@ -83,6 +83,15 @@ describe("parseIpRecord", () => {
     assert.equal(record.parentIp, "[syncdb-local-first](syncdb-local-first.md)");
   });
 
+  it("ignores an italic Parent IP placeholder copied from the template", () => {
+    const record = parseIpRecord({
+      contents:
+        "**Status:** Draft\n**Parent IP:** *(optional — only when this plan rides on another plan's roadmap entry instead of getting its own)*",
+      slug: "copied-from-template",
+    });
+    assert.equal(record.parentIp, null);
+  });
+
   it("tolerates a plan with no header block", () => {
     const record = parseIpRecord({contents: "# Just a title\n\nProse.", slug: "bare"});
     assert.equal(record.rawStatus, null);
@@ -124,6 +133,10 @@ describe("isSubDocument", () => {
 
   it("recognizes a plan that names a parent IP", () => {
     assert.equal(isSubDocument({parentIp: "[a](a.md)", slug: "terreno-syncdb-2"}), true);
+  });
+
+  it("does not treat a missing parent IP as a sub-document", () => {
+    assert.equal(isSubDocument({parentIp: null, slug: "copied-from-template"}), false);
   });
 });
 

@@ -419,7 +419,7 @@ Two headers keep a plan out of that accounting:
 
 | Header | Effect |
 | ------ | ------ |
-| IP `**Parent IP:**` | The plan rides on another plan's roadmap entry, like a `-research` or `-design` sub-document, and needs no entry of its own |
+| IP `**Parent IP:**` | The plan rides on another plan's roadmap entry, like a `-research` or `-design` sub-document, and needs no entry of its own. Empty or italic `*(optional)*` placeholders do not count — omit the header unless it names a real parent |
 | Task file `**Status:** Closed` | The checklist is history — the IP finished by another route, so its unchecked boxes are not outstanding work and never contradict a `Shipped` status |
 
 Triage resolves the `area:*` label with
