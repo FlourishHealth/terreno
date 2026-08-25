@@ -50,12 +50,8 @@
     "test/src/mocks/sentryBun.ts": 13,
     "test/src/transaction/testTransaction.ts": 33,
     "ui/src/ActionSheet.tsx": 2,
-    "ui/src/Box.tsx": 4,
-    "ui/src/Common.ts": 23,
-    "ui/src/SplitPage.native.tsx": 2,
-    "ui/src/SplitPage.tsx": 2,
+    "ui/src/Common.ts": 19,
     "ui/src/ToastNotifications.test.tsx": 1,
-    "ui/src/ToastNotifications.tsx": 1,
     "ui/src/types/react-native-swiper-flatlist.d.ts": 1,
     "ui/src/Unifier.ts": 1
   },
@@ -68,23 +64,23 @@
     "rtk": 53,
     "syncdb": 4,
     "test": 49,
-    "ui": 37
+    "ui": 24
   },
   "byRemediationStatus": {
-    "fully-documented": 993,
+    "fully-documented": 980,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-25T18:26:57.205Z",
+  "generatedAt": "2026-08-25T21:31:35.028Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 993
+    "totalUsages": 980
   },
-  "totalFiles": 58,
-  "totalUsages": 993,
+  "totalFiles": 54,
+  "totalUsages": 980,
   "version": 2
 }

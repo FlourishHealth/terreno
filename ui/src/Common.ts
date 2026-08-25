@@ -637,9 +637,7 @@ export interface BoxPropsBase extends WithTestID {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
-      // noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      // biome-ignore lint/suspicious/noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      [key: string]: any;
+      [key: string]: unknown;
     };
   };
   direction?: "row" | "column";
@@ -1121,7 +1119,11 @@ export interface LayoutChangeEvent {
   };
 }
 
-export interface SplitPageProps {
+export interface SplitPageListItem {
+  id: string;
+}
+
+export interface SplitPageProps<TItem extends SplitPageListItem = SplitPageListItem> {
   /**
    * can accept either one React Child or any array of ReactChild. If this is not provided,
    * renderContent must return one or many ReactChild.
@@ -1141,21 +1143,15 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
-  // noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  // biome-ignore lint/suspicious/noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
+  renderListViewItem: (itemInfo: ListRenderItemInfo<TItem>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
-  // noExplicitAny: list data type varies by consumer's data model
-  // biome-ignore lint/suspicious/noExplicitAny: list data type varies by consumer's data model
-  listViewData: any[];
+  listViewData: TItem[];
   listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
-  // noExplicitAny: callback value type varies by consumer's data model
-  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer's data model
-  onSelectionChange?: (value?: any) => void | Promise<void>;
+  onSelectionChange?: (value?: ListRenderItemInfo<TItem>) => void | Promise<void>;
 }
 
 export type PermissionKind =

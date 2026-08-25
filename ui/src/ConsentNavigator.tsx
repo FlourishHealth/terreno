@@ -1,5 +1,4 @@
 import React, {useState} from "react";
-import type {Api, BaseQueryFn} from "@reduxjs/toolkit/query/react";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -10,11 +9,12 @@ import {detectLocale, useConsentForms} from "./useConsentForms";
 import type {SubmitConsentBody} from "./useSubmitConsent";
 import {useSubmitConsent} from "./useSubmitConsent";
 
-/** Consumer RTK Query API with type-erased endpoint definitions. */
-type ConsentApi = Api<BaseQueryFn<unknown, unknown, unknown>, Record<string, never>, string, string>;
-
 interface ConsentNavigatorProps {
-  api: ConsentApi;
+  /**
+   * Consumer RTK Query API. Typed as unknown because RTK's injectEndpoints return
+   * type is not structurally compatible with the consent hook stubs until runtime.
+   */
+  api: unknown;
   baseUrl?: string;
   children: React.ReactNode;
   extraScreens?: React.ReactNode[];
@@ -32,8 +32,14 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [extraScreenIndex, setExtraScreenIndex] = useState(0);
-  const {forms, isLoading, error, refetch} = useConsentForms(api, baseUrl);
-  const {submit, isSubmitting} = useSubmitConsent(api, baseUrl);
+  const {forms, isLoading, error, refetch} = useConsentForms(
+    api as Parameters<typeof useConsentForms>[0],
+    baseUrl
+  );
+  const {submit, isSubmitting} = useSubmitConsent(
+    api as Parameters<typeof useSubmitConsent>[0],
+    baseUrl
+  );
   const locale = detectLocale();
   const validExtraScreens = extraScreens ?? [];
 

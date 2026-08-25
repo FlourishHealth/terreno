@@ -3,7 +3,7 @@ import {Dimensions, type ListRenderItemInfo, ScrollView, View} from "react-nativ
 import {SwiperFlatList} from "react-native-swiper-flatlist";
 
 import {Box} from "./Box";
-import type {SplitPageProps} from "./Common";
+import type {SplitPageListItem, SplitPageProps} from "./Common";
 import {FlatList} from "./FlatList";
 import {IconButton} from "./IconButton";
 import {mediaQueryLargerThan} from "./MediaQuery";
@@ -13,7 +13,7 @@ import {useTheme} from "./Theme";
 
 // A component for rendering a list on one side and a details view on the right for large screens,
 // and a scrollable list where clicking an item takes you the details view.
-export const SplitPage = ({
+export const SplitPage = <TItem extends SplitPageListItem = SplitPageListItem>({
   children,
   tabs = [],
   loading = false,
@@ -29,7 +29,7 @@ export const SplitPage = ({
   listViewMaxWidth,
   bottomNavBarHeight,
   showItemList,
-}: SplitPageProps) => {
+}: SplitPageProps<TItem>) => {
   const {theme} = useTheme();
   const [selectedId, setSelectedId] = useState<number | undefined>(undefined);
   const [activeTabs, setActiveTabs] = useState<number[]>([0, 1]);
@@ -40,9 +40,7 @@ export const SplitPage = ({
   const elementArray = Children.toArray(children).filter((c) => c !== null);
 
   const onItemSelect = useCallback(
-    // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-    // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-    async (item: ListRenderItemInfo<any>): Promise<void> => {
+    async (item: ListRenderItemInfo<TItem>): Promise<void> => {
       setSelectedId(item.index);
       await onSelectionChange(item);
     },
@@ -71,9 +69,7 @@ export const SplitPage = ({
     return null;
   }
 
-  // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-  // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-  const renderItem = (itemInfo: ListRenderItemInfo<any>) => {
+  const renderItem = (itemInfo: ListRenderItemInfo<TItem>) => {
     return (
       <Box
         accessibilityHint=""
