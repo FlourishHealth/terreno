@@ -6,6 +6,7 @@ import {Button} from "./Button";
 import {isMobileDevice} from "./MediaQuery";
 import * as ThemeModule from "./Theme";
 import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
+import {Unifier} from "./Unifier";
 import * as Utilities from "./Utilities";
 
 interface PressableTestProps {
@@ -210,6 +211,30 @@ describe("Button", () => {
     unmount();
 
     assert.lengthOf(cancelSpy.mock.calls, 1);
+  });
+
+  it("does not start an action when unmounted during async press setup", async () => {
+    let resolveHaptic: (() => void) | undefined;
+    const hapticSpy = spyOn(Unifier.utils, "haptic").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveHaptic = resolve;
+        })
+    );
+    const handleClick = mock(() => Promise.resolve());
+    const {getByTestId, unmount} = renderWithTheme(
+      <Button onClick={handleClick} testID="unmount-button" text="Unmount" />
+    );
+
+    fireEvent.press(getByTestId("unmount-button"));
+    unmount();
+    await act(async () => {
+      resolveHaptic?.();
+      await Promise.resolve();
+    });
+
+    assert.lengthOf(handleClick.mock.calls, 0);
+    hapticSpy.mockRestore();
   });
 
   it("keeps the confirmation modal path absent for plain buttons", async () => {

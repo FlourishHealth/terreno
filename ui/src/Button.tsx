@@ -192,6 +192,14 @@ const ButtonVisual: React.FC<ButtonVisualProps> = ({
 
 const PlainButton: React.FC<ButtonProps> = (props) => {
   const {loading = false, onClick} = props;
+  const {
+    confirmationText: _confirmationText,
+    modalSubTitle: _modalSubTitle,
+    modalTitle: _modalTitle,
+    onClick: _onClick,
+    withConfirmation: _withConfirmation,
+    ...visualProps
+  } = props;
   const [isHandlingPress, setIsHandlingPress] = useState(false);
   const isMountedRef = useMountedRef();
   const handlePress = useCallback(async (): Promise<void> => {
@@ -217,7 +225,7 @@ const PlainButton: React.FC<ButtonProps> = (props) => {
 
   return (
     <ButtonVisual
-      {...props}
+      {...visualProps}
       isLoading={loading || isHandlingPress}
       onPress={debouncedHandlePress}
     />
@@ -242,8 +250,10 @@ const ConfirmationButton: React.FC<ButtonProps> = ({
     setShowConfirmation(true);
   }, [isMountedRef]);
   const handleDismiss = useCallback((): void => {
-    setShowConfirmation(false);
-  }, []);
+    if (isMountedRef.current) {
+      setShowConfirmation(false);
+    }
+  }, [isMountedRef]);
   const handleConfirm = useCallback(async (): Promise<void> => {
     await onClick();
     if (isMountedRef.current) {
