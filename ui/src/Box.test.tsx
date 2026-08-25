@@ -2,14 +2,14 @@ import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
-import {
-  Dimensions,
-  type DimensionsChangeEvent,
-  type ScaledSize,
-  type ScrollView,
-} from "react-native";
+import type {ScrollView} from "react-native";
 
 import {Box} from "./Box";
+import {
+  createResponsiveBreakpointStore,
+  ResponsiveBreakpointProvider,
+  type ResponsiveBreakpointStore,
+} from "./ResponsiveBreakpoint";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
 
@@ -19,12 +19,39 @@ interface BoxScrollHandle {
   scrollToEnd: () => void;
 }
 
-const getScaledSize = (width: number): ScaledSize => ({
-  fontScale: 1,
-  height: 812,
-  scale: 2,
-  width,
-});
+interface BreakpointStoreFixture {
+  getDimensionReadCount: () => number;
+  getListenerCount: () => number;
+  getRemoveCount: () => number;
+  store: ResponsiveBreakpointStore;
+}
+
+const createBreakpointStoreFixture = (initialWidth: number): BreakpointStoreFixture => {
+  let dimensionReadCount = 0;
+  let listenerCount = 0;
+  let removeCount = 0;
+  const store = createResponsiveBreakpointStore({
+    getWindowWidth: (): number => {
+      dimensionReadCount += 1;
+      return initialWidth;
+    },
+    subscribeToDimensions: () => {
+      listenerCount += 1;
+      return {
+        remove: (): void => {
+          removeCount += 1;
+        },
+      };
+    },
+  });
+
+  return {
+    getDimensionReadCount: (): number => dimensionReadCount,
+    getListenerCount: (): number => listenerCount,
+    getRemoveCount: (): number => removeCount,
+    store,
+  };
+};
 
 describe("Box", () => {
   describe("basic rendering", () => {
@@ -64,90 +91,66 @@ describe("Box", () => {
     });
 
     it("updates responsive directions at exact shared breakpoints", () => {
-      const dimensionsGetMock = Dimensions.get as ReturnType<typeof mock>;
-      const dimensionsListenerMock = Dimensions.addEventListener as ReturnType<typeof mock>;
-      let changeListener: ((event: DimensionsChangeEvent) => void) | undefined;
-      dimensionsGetMock.mockImplementation(() => getScaledSize(575));
-      dimensionsListenerMock.mockImplementation(
-        (_eventType: string, listener: (event: DimensionsChangeEvent) => void) => {
-          changeListener = listener;
-          return {remove: mock(() => {})};
-        }
-      );
+      const fixture = createBreakpointStoreFixture(575);
 
       const result = renderWithTheme(
-        <Box>
-          <Box direction="column" smDirection="row" testID="sm-responsive-box" />
-          <Box direction="column" mdDirection="row" testID="md-responsive-box" />
-          <Box direction="column" lgDirection="row" testID="lg-responsive-box" />
-        </Box>
+        <ResponsiveBreakpointProvider store={fixture.store}>
+          <Box>
+            <Box direction="column" smDirection="row" testID="sm-responsive-box" />
+            <Box direction="column" mdDirection="row" testID="md-responsive-box" />
+            <Box direction="column" lgDirection="row" testID="lg-responsive-box" />
+          </Box>
+        </ResponsiveBreakpointProvider>
       );
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        changeListener?.({
-          screen: getScaledSize(576),
-          window: getScaledSize(576),
-        });
+        fixture.store.updateWidth(576);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "column");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        changeListener?.({
-          screen: getScaledSize(768),
-          window: getScaledSize(768),
-        });
+        fixture.store.updateWidth(768);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "column");
 
       act((): void => {
-        changeListener?.({
-          screen: getScaledSize(1312),
-          window: getScaledSize(1312),
-        });
+        fixture.store.updateWidth(1312);
       });
       assert.equal(result.getByTestId("sm-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("md-responsive-box").props.style.flexDirection, "row");
       assert.equal(result.getByTestId("lg-responsive-box").props.style.flexDirection, "row");
 
       result.unmount();
-      dimensionsGetMock.mockImplementation(() => getScaledSize(375));
-      dimensionsListenerMock.mockImplementation(() => ({remove: mock(() => {})}));
     });
 
     it("shares one Dimensions read and listener across a responsive Box tree", () => {
-      const dimensionsGetMock = Dimensions.get as ReturnType<typeof mock>;
-      const dimensionsListenerMock = Dimensions.addEventListener as ReturnType<typeof mock>;
-      dimensionsGetMock.mockClear();
-      dimensionsListenerMock.mockClear();
-      dimensionsGetMock.mockImplementation(() => getScaledSize(768));
-      const removeListener = mock(() => {});
-      dimensionsListenerMock.mockImplementation(() => ({remove: removeListener}));
+      const fixture = createBreakpointStoreFixture(768);
 
       const result = renderWithTheme(
-        <Box>
-          {Array.from(
-            {length: 100},
-            (_, index): React.ReactElement => (
-              <Box key={index} mdDirection="row" testID={`responsive-${index}`} />
-            )
-          )}
-        </Box>
+        <ResponsiveBreakpointProvider store={fixture.store}>
+          <Box>
+            {Array.from(
+              {length: 100},
+              (_, index): React.ReactElement => (
+                <Box key={index} mdDirection="row" testID={`responsive-${index}`} />
+              )
+            )}
+          </Box>
+        </ResponsiveBreakpointProvider>
       );
 
-      assert.lengthOf(dimensionsGetMock.mock.calls, 1);
-      assert.lengthOf(dimensionsListenerMock.mock.calls, 1);
+      assert.equal(fixture.getDimensionReadCount(), 2);
+      assert.equal(fixture.getListenerCount(), 1);
 
       result.unmount();
-      assert.lengthOf(removeListener.mock.calls, 1);
-      dimensionsGetMock.mockImplementation(() => getScaledSize(375));
-      dimensionsListenerMock.mockImplementation(() => ({remove: mock(() => {})}));
+      assert.equal(fixture.getRemoveCount(), 1);
     });
 
     it("should apply flex grow", () => {
