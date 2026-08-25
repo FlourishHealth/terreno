@@ -23,7 +23,6 @@
     "api/src/realtime/realtime.test.ts": 137,
     "api/src/realtime/sessionRevalidation.test.ts": 22,
     "api/src/realtime/socketAuth.test.ts": 11,
-    "api/src/sync/executors.ts": 2,
     "api/src/sync/mutationHandler.test.ts": 8,
     "api/src/sync/sessionRevalidationIntegration.test.ts": 10,
     "api/src/sync/sync.test.ts": 9,
@@ -43,7 +42,6 @@
     "rtk/src/authSlice.ts": 5,
     "rtk/src/offlineMiddleware.test.ts": 8,
     "rtk/src/offlineMiddleware.ts": 39,
-    "rtk/src/useTerrenoFeatureFlags.ts": 1,
     "syncdb/src/client.test.ts": 2,
     "syncdb/src/storage/idb.test.ts": 2,
     "test/src/logging/silenceLogs.ts": 3,
@@ -58,29 +56,29 @@
   "byPackage": {
     "admin-backend": 2,
     "admin-frontend": 1,
-    "api": 822,
+    "api": 820,
     "demo": 2,
     "example-backend": 23,
-    "rtk": 53,
+    "rtk": 52,
     "syncdb": 4,
     "test": 49,
     "ui": 24
   },
   "byRemediationStatus": {
-    "fully-documented": 980,
+    "fully-documented": 977,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-25T21:31:35.028Z",
+  "generatedAt": "2026-08-25T22:07:27.878Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 980
+    "totalUsages": 977
   },
-  "totalFiles": 54,
-  "totalUsages": 980,
+  "totalFiles": 52,
+  "totalUsages": 977,
   "version": 2
 }
