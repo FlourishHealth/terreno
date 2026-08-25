@@ -1,6 +1,6 @@
 # Implementation Plan: AI-First Tutorials
 
-**Status:** Draft — blocked on PR #869
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1010
 **Priority:** High
 **Effort:** Big batch

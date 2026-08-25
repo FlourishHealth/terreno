@@ -1,6 +1,6 @@
 # Implementation Plan: Reference Documentation Coverage
 
-**Status:** Draft — blocked on PR #869
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1009
 **Priority:** High
 **Effort:** Big batch

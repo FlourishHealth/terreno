@@ -415,6 +415,13 @@ shipped — so a backwards move is reported as a stale header for a human to res
 Only the leading phrase matters, so `Approved — decisions recorded (2026-07-29)` maps cleanly.
 A status the table cannot map is reported rather than guessed at.
 
+Two headers keep a plan out of that accounting:
+
+| Header | Effect |
+| ------ | ------ |
+| IP `**Parent IP:**` | The plan rides on another plan's roadmap entry, like a `-research` or `-design` sub-document, and needs no entry of its own |
+| Task file `**Status:** Closed` | The checklist is history — the IP finished by another route, so its unchecked boxes are not outstanding work and never contradict a `Shipped` status |
+
 Triage resolves the `area:*` label with
 [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),
 which owns the package-to-area table. Add new packages there, not in the workflow.

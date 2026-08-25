@@ -77,6 +77,8 @@ export const DECLINED = "Declined";
 export interface IpRecord {
   /** Board Status derived from the IP header, or null when unmappable. */
   boardStatus: string | null;
+  /** `**Parent IP:**` slug, set when this plan rides on another plan's roadmap entry. */
+  parentIp: string | null;
   /** Raw `**Status:**` text, or null when the header is absent. */
   rawStatus: string | null;
   roadmapIssue: number | null;
@@ -86,6 +88,12 @@ export interface IpRecord {
 
 export interface TaskProgress {
   done: number;
+  /**
+   * True when the task file declares `**Status:** Closed`. Closed lists record
+   * that the IP finished by another route — the unexecuted boxes below are
+   * history, not outstanding work — so their checkbox counts prove nothing.
+   */
+  isClosed: boolean;
   total: number;
 }
 
@@ -141,6 +149,7 @@ export const parseIpRecord = ({contents, slug}: {contents: string; slug: string}
 
   return {
     boardStatus: toBoardStatus(rawStatus),
+    parentIp: headerValue({contents, key: "Parent IP"}),
     rawStatus,
     roadmapIssue: issueMatch === null ? null : Number.parseInt(issueMatch[1] ?? "", 10),
     slug,
@@ -151,12 +160,21 @@ export const parseIpRecord = ({contents, slug}: {contents: string; slug: string}
 export const parseTaskProgress = (contents: string): TaskProgress => {
   const boxes = contents.match(/^\s*-\s\[[ xX]\]/gm) ?? [];
   const done = contents.match(/^\s*-\s\[[xX]\]/gm) ?? [];
-  return {done: done.length, total: boxes.length};
+  const status = headerValue({contents, key: "Status"});
+  return {
+    done: done.length,
+    isClosed: status !== null && status.toLowerCase().startsWith("closed"),
+    total: boxes.length,
+  };
 };
 
-/** A research or design sub-document, which shares its parent IP's roadmap entry. */
-export const isSubDocument = (slug: string): boolean => {
-  return /-(research|design)$/.test(slug);
+/**
+ * A sub-document that shares its parent IP's roadmap entry: either named by the
+ * `-research` / `-design` convention or pointing at a parent explicitly with a
+ * `**Parent IP:**` header.
+ */
+export const isSubDocument = ({parentIp, slug}: {parentIp?: string | null; slug: string}): boolean => {
+  return /-(research|design)$/.test(slug) || (parentIp ?? null) !== null;
 };
 
 export const collectFindings = ({
@@ -173,7 +191,7 @@ export const collectFindings = ({
   const ipSlugs = new Set(ips.map((ip) => ip.slug));
 
   for (const ip of ips) {
-    if (isSubDocument(ip.slug)) {
+    if (isSubDocument({parentIp: ip.parentIp, slug: ip.slug})) {
       continue;
     }
 
@@ -248,7 +266,7 @@ export const collectFindings = ({
     }
 
     const progress = taskProgress.get(ip.slug);
-    if (progress !== undefined && progress.total > 0) {
+    if (progress !== undefined && progress.total > 0 && !progress.isClosed) {
       const allDone = progress.done === progress.total;
       if (allDone && expected !== "Shipped" && expected !== "Declined") {
         findings.push({

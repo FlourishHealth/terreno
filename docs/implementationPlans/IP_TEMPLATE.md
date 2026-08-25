@@ -6,6 +6,7 @@ Copy to `docs/implementationPlans/<slug>.md` and replace placeholders. Pair with
 **Branch:**  
 **Owner:**  
 **Created:** YYYY-MM-DD  
+**Parent IP:** *(optional — only when this plan rides on another plan's roadmap entry instead of getting its own)*  
 
 ## Goal
 
