@@ -28,7 +28,6 @@ import {MarkdownViewConfiguration} from "@story-config/MarkdownView.config";
 import {ModalConfiguration} from "@story-config/Modal.config";
 import {MultiselectFieldConfiguration} from "@story-config/MultiselectField.config";
 import {NumberFieldConfiguration} from "@story-config/NumberField.config";
-import {OpenAPIContextConfiguration} from "@story-config/OpenAPIContext.config";
 import {PageConfiguration} from "@story-config/Page.config";
 import {PaginationConfiguration} from "@story-config/Pagination.config";
 import {PasswordFieldConfiguration} from "@story-config/PasswordField.config";
@@ -68,6 +67,7 @@ import {TypedSignatureFieldConfiguration} from "@story-config/TypedSignatureFiel
 import {UserInactivityConfiguration} from "@story-config/UserInactivity.config";
 import type {FieldProps} from "@terreno/ui";
 import type React from "react";
+import {OpenAPIContextDemo, OpenAPIContextStories} from "./stories/OpenAPIContext.stories";
 
 export type DemoConfigStatus = "planned" | "inProgress" | "ready" | "notSupported";
 
@@ -192,6 +192,34 @@ export interface DemoConfiguration extends DemoConfigurationBase {
 // the staff portal.", ], doNot: ["Do not create a new user group icon without checking with the
 // head of product first."], }, props: {}, demo: (props) => <MessageDemo {...props} />, demoOptions:
 // {}, stories: {}, testMatrix: {}, testMatrixDefaultProps: {}, };
+
+const OpenAPIContextConfiguration: DemoConfigurationBase = {
+  name: "OpenAPI Context",
+  component: () => null,
+  related: ["TerrenoProvider"],
+  description:
+    "Loads backend OpenAPI metadata and exposes model field descriptions through useOpenAPISpec.",
+  a11yNotes: ["Field descriptions should remain available after unrelated parent rerenders."],
+  category: "Foundation",
+  status: {
+    documentation: "ready",
+    figma: "notSupported",
+    ios: "ready",
+    android: "ready",
+    web: "ready",
+  },
+  additionalDocumentation: [],
+  interfaceName: "OpenAPIProviderProps",
+  usage: {
+    do: ["Wrap admin or form screens that read model metadata in OpenAPIProvider or TerrenoProvider."],
+    doNot: ["Fetch OpenAPI specs manually in every field component."],
+  },
+  demo: () => OpenAPIContextDemo(),
+  demoOptions: {},
+  stories: {
+    "Field metadata": {render: () => OpenAPIContextStories()},
+  },
+};
 
 const Config: DemoConfigurationBase[] = [
   AccordionConfiguration,

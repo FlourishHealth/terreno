@@ -1,5 +1,5 @@
 import {Box, Heading, OpenAPIProvider, Text, useOpenAPISpec} from "@terreno/ui";
-import React, {useCallback, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 
 const DEMO_SPEC = {
   paths: {
@@ -39,17 +39,6 @@ const DEMO_SPEC = {
 };
 
 const DEMO_SPEC_URL = "https://demo.example/openapi.json";
-const originalFetch = globalThis.fetch;
-
-globalThis.fetch = (async (input: RequestInfo | URL) => {
-  const url = typeof input === "string" ? input : input.toString();
-  if (url !== DEMO_SPEC_URL) {
-    return originalFetch(input);
-  }
-  return {
-    json: async () => DEMO_SPEC,
-  };
-}) as typeof globalThis.fetch;
 
 const FieldMetadataPanel: React.FC = () => {
   const {getModelField, getModelFields} = useOpenAPISpec();
@@ -80,6 +69,8 @@ const OpenAPIContextDemoBody: React.FC = () => {
         while the OpenAPI spec is unchanged.
       </Text>
       <Box
+        accessibilityHint="Increments the parent revision counter"
+        accessibilityLabel="Bump parent render"
         accessibilityRole="button"
         border="default"
         onClick={bumpParent}
@@ -94,7 +85,32 @@ const OpenAPIContextDemoBody: React.FC = () => {
   );
 };
 
-export const OpenAPIContextStories: React.FC = () => {
+const OpenAPIContextStoriesBody: React.FC = () => {
+  const [hasMockedFetch, setHasMockedFetch] = useState(false);
+
+  // Install the demo fetch mock before OpenAPIProvider loads the spec URL.
+  useEffect(() => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url !== DEMO_SPEC_URL) {
+        return originalFetch(input, init);
+      }
+      return {
+        json: async () => DEMO_SPEC,
+      };
+    }) as typeof globalThis.fetch;
+    setHasMockedFetch(true);
+
+    return () => {
+      globalThis.fetch = originalFetch;
+    };
+  }, []);
+
+  if (!hasMockedFetch) {
+    return <></>;
+  }
+
   return (
     <OpenAPIProvider specUrl={DEMO_SPEC_URL}>
       <OpenAPIContextDemoBody />
@@ -102,6 +118,10 @@ export const OpenAPIContextStories: React.FC = () => {
   );
 };
 
-export const OpenAPIContextDemo: React.FC = () => {
-  return <OpenAPIContextStories />;
+export const OpenAPIContextStories = (): React.ReactElement => {
+  return <OpenAPIContextStoriesBody />;
+};
+
+export const OpenAPIContextDemo = (): React.ReactElement => {
+  return <OpenAPIContextStoriesBody />;
 };
