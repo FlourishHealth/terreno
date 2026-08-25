@@ -197,6 +197,7 @@
     "check:explicit-any:remediate": "bun run scripts/check-explicit-any/remediate.ts",
     "check:licenses": "bun run scripts/check-license-coverage/check.ts",
     "check:lifecycle-skills": "bun run scripts/planning/checkLifecycleSkills.ts",
+    "check:new-file-coverage": "bun run scripts/check-new-file-coverage.ts",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
     "check:source-rules": "bun run scripts/check-source-rules/check.ts",
     "check:upgrade-docs": "bun run scripts/check-upgrade-docs/check.ts",

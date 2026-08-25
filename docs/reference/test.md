@@ -106,3 +106,21 @@ Defaults: `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRE
 - Preload once per package via `bunfig.toml`; do not start Mongo in individual test files.
 - Prefer `registerSimpleMongoPreload` unless you need transactions or fixture caching (`registerBackendPreload`).
 - Never mock `@terreno/api` or Mongoose models in package tests — use the real stack against memory Mongo.
+
+## Coverage gates
+
+Package CI uses `scripts/check-coverage.ts` to enforce the package-wide thresholds
+declared in `bunfig.toml`.
+
+Pull requests also run the `New file coverage` workflow. Every newly added workspace
+`.ts` or `.tsx` implementation file must have at least 90% function coverage and 90%
+line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, and isolated-test files
+are excluded. A new implementation file that is absent from LCOV is treated as 0%
+covered. The gate runs each package's `bun test` file arguments (or `src` / `*.test.ts`
+globs) so Playwright `*.spec.ts` files are not collected.
+
+Run the same check locally against a base commit:
+
+```bash
+bun run check:new-file-coverage --base=origin/master --threshold=90
+```
