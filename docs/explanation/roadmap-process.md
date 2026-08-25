@@ -130,7 +130,7 @@ When an answer repeats, maintainers turn it into a how-to doc via PR.
 MCP server setup, Cursor/Claude skills, and agent-driven workflows.
 
 - MCP package: [`mcp-server/`](https://github.com/FlourishHealth/terreno/tree/master/mcp-server) and hosted `terreno-mcp`.
-- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored to `.cursor/`, `.claude/`, etc.).
+- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored into editor-specific copies).
 - Terreno planning plugin: [`plugins/terreno-planning/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning).
 
 General feature ideas → **Ideas**. Doc typos → **Docs feedback** or a docs PR.
@@ -414,6 +414,13 @@ shipped — so a backwards move is reported as a stale header for a human to res
 
 Only the leading phrase matters, so `Approved — decisions recorded (2026-07-29)` maps cleanly.
 A status the table cannot map is reported rather than guessed at.
+
+Two headers keep a plan out of that accounting:
+
+| Header | Effect |
+| ------ | ------ |
+| IP `**Parent IP:**` | The plan rides on another plan's roadmap entry, like a `-research` or `-design` sub-document, and needs no entry of its own. Empty or italic `*(optional)*` placeholders do not count — omit the header unless it names a real parent |
+| Task file `**Status:** Closed` | The checklist is history — the IP finished by another route, so its unchecked boxes are not outstanding work and never contradict a `Shipped` status |
 
 Triage resolves the `area:*` label with
 [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),

@@ -6,6 +6,7 @@ Run the benchmark that covers the component being changed:
 cd ui
 bun run performance:p0
 bun run performance:p1
+bun run performance:p2:button
 bun run performance:p2:responsive-box
 ```
 
@@ -17,6 +18,7 @@ component suite. They report median wall-clock times after two warmups and seven
 - 500 theme consumers
 - a 100-row, eight-column `DataTable` with two pinned columns
 - 500 `Icon` instances
+- 500 plain `Button` instances and 100 confirmation `Button` instances
 - 500 responsive `Box` instances with `sm`, `md`, and `lg` direction props
 - initial mount, same-prop update, and changed-prop/theme update timings
 
@@ -75,6 +77,29 @@ The P1 example renderers import public component subpaths such as `@terreno/ui/D
 `@terreno/ui/Icon`. These subpaths avoid evaluating the complete root export graph. The root
 `@terreno/ui` import and existing direct `src`/`dist` paths remain supported.
 
+## August 2026 P2 Button optimization results
+
+These measurements used the same Cursor Cloud VM and Bun 1.3.11, with 21 measured samples. The
+changed workload replaces one button label or confirmation message while preserving every other
+prop. Times are milliseconds; lower is better.
+
+| Workload | Phase | Baseline | Optimized | Change |
+| --- | --- | ---: | ---: | ---: |
+| Plain `Button` | Initial render | 7.85 | 8.66 | Within benchmark variance |
+| Plain `Button` | Same-prop update | 13.73 | 0.94 | 93.1% faster |
+| Plain `Button` | One-label update | 11.99 | 0.98 | 91.8% faster |
+| Confirmation `Button` | Initial render | 1.71 | 1.93 | Within benchmark variance |
+| Confirmation `Button` | Same-prop update | 2.79 | 0.30 | 89.2% faster |
+| Confirmation `Button` | One-message update | 2.71 | 0.32 | 88.3% faster |
+
+`Button` now skips equivalent parent updates, keeps debounce identity stable, and cancels retained
+debounce timers on replacement or unmount. Plain buttons use a separate path that does not allocate
+confirmation state or request the lazy modal. Delayed handlers remain disabled until completion.
+Confirmation buttons clear the press cooldown when the modal closes, so Cancel, dismiss, or Confirm
+still allows an immediate reopen while repeated presses that do not close the modal stay debounced.
+`P2ButtonRenderRegression.test.tsx` covers equivalent props plus changed labels, confirmation
+content, and theme values.
+
 ## August 2026 P2 responsive Box optimization results
 
 These measurements used the same Cursor Cloud VM and Bun 1.3.11, with 21 measured samples. Times
@@ -113,12 +138,20 @@ bun run performance:p1
 ```
 
 ```bash
+UI_P2_BUTTON_BENCHMARK_SAMPLES=21 \
+UI_P2_BUTTON_BENCHMARK_WARMUPS=3 \
+UI_P2_BUTTON_BENCHMARK_SIZE=1000 \
+UI_P2_CONFIRMATION_BUTTON_BENCHMARK_SIZE=200 \
+bun run performance:p2:button
+```
+
+```bash
 UI_P2_RESPONSIVE_BOX_BENCHMARK_SAMPLES=21 \
 UI_P2_RESPONSIVE_BOX_BENCHMARK_WARMUPS=3 \
 UI_P2_RESPONSIVE_BOX_BENCHMARK_SIZE=1000 \
 bun run performance:p2:responsive-box
 ```
 
-The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`,
-`UI_P1_BENCHMARK_RESULTS`, or `UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS` JSON lines for CI or local
-reporting.
+The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`, `UI_P1_BENCHMARK_RESULTS`,
+`UI_P2_BUTTON_BENCHMARK_RESULTS`, or `UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS` JSON lines for CI or
+local reporting.

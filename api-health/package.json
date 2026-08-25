@@ -7,7 +7,7 @@
     "@terreno/api": "workspace:*",
     "express": "catalog:"
   },
-  "description": "Health check plugin for @terreno/api",
+  "description": "Health check plugin for @terreno/api — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",

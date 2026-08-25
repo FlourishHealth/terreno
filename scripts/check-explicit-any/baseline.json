@@ -19,7 +19,7 @@
     "api/src/githubAuth.ts": 4,
     "api/src/mcp/integration.test.ts": 1,
     "api/src/mcp/query.ts": 1,
-    "api/src/mcp/registry.ts": 2,
+    "api/src/mcp/registry.ts": 3,
     "api/src/mcp/schemaGenerator.ts": 3,
     "api/src/mcp/types.ts": 2,
     "api/src/openApi.test.ts": 48,

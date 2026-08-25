@@ -1,6 +1,6 @@
 # Implementation Plan: Public Roadmap on GitHub
 
-**Status:** Approved — decisions recorded (2026-07-29)
+**Status:** Complete
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1004
 **Priority:** High
 **Effort:** Small batch

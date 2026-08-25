@@ -32,17 +32,19 @@ Find gaps between code and documentation before they reach users.
    - Missing generated component pages → run `bun run website:generate`
    - Components without TypeDoc props → add JSDoc on props in `ui/src/Common.ts` (or the component's props interface)
    - Broken internal links → `bun run website:build` (Docusaurus fails on broken links)
+   - Missing published-package README or `docs/reference/<pkg>.md` → add the standard README template and reference page
+   - Internal leakage (`flourish-terreno`, `.cursor/rules`, Linear `PRO-`/`FH-` IDs, Cloud Run `a.run.app`) → remove or replace with a consumer-facing placeholder
 
 4. **Optional deeper checks**
    - Diff `ui/src/index.tsx` exports against `docs/reference/ui.md`
    - Diff `api/src/index.ts` exports against `docs/reference/api.md`
    - Search docs for removed symbol names
 
-5. **Fix and re-run** until the audit passes.
+5. **Fix and re-run** until the audit passes. README and leakage failures are **errors** (CI fails). Missing TypeDoc props on stories are warnings.
 
 ## CI
 
-`.github/workflows/docs-audit.yml` runs weekly (Mondays 14:00 UTC) and opens a GitHub issue when drift is detected.
+`.github/workflows/docs-audit.yml` runs weekly (Mondays 14:00 UTC) and opens a GitHub issue when drift is detected. Both missing package docs and internal-leakage matches fail the job.
 
 ## Integration
 

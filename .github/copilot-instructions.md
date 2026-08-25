@@ -1,6 +1,21 @@
 # Terreno
 
-A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
+Terreno is Django/Rails for TypeScript — with universal app support.
+
+Terreno is Django/Rails for TypeScript — a batteries-included, full-stack
+framework where the undifferentiated 80% of an app is already written. On the
+backend you get Mongoose models, auto-generated REST APIs, permissions, an admin
+panel, authentication, and an AI service. On the frontend you get one universal
+app — a single React Native codebase that ships to iOS, Android, and web. It is
+built to be driven by AI coding agents from the first prompt to a production
+deploy.
+
+- Batteries included — auth, CRUD APIs, admin, permissions, AI, realtime,
+  feature flags, and consent are already built, so your code is business logic.
+- Universal by default — one React Native codebase ships to iOS, Android, and
+  web. Not a web framework with a mobile bolt-on.
+- AI-native — agents are a first-class client of the framework, not an
+  afterthought.
 
 ## Packages
 
@@ -103,7 +118,7 @@ The three core packages form a complete full-stack framework:
   - TerrenoProvider for theming
 ```
 
-> **Legacy:** `@terreno/rtk` RTK Query hooks for **collection CRUD** are deprecated — use syncdb. See [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
+> **Legacy:** `@terreno/rtk` RTK Query hooks for **collection CRUD** are deprecated — use syncdb. See [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md). `modelRouter` `realtime` and RTK `realtimeList` / `realtimeDocument` are removed in Terreno 58; `RealtimeApp` stays for sync sockets.
 
 ### Integration Flow
 
@@ -245,7 +260,7 @@ router.get("/yourRoute/:id", [
 
 ### @terreno/ui
 
-React Native component library with 88+ components:
+React Native UI component library (a large component library):
 
 - **Layout**: Box, Page, SplitPage, Card
 - **Forms**: TextField, SelectField, DateTimeField, CheckBox
