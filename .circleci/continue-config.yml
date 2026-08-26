@@ -1,8 +1,8 @@
-# Continuation config — package CI, policy, and Playwright e2e (Phases 1–3).
-# Deploys (Netlify/GCP/EAS/npm publish) intentionally omitted for now.
+# Continuation config — CI, deploy, and release workflows.
 version: 2.1
 
 orbs:
+  gcp-cli: circleci/gcp-cli@4.0.1
   node: circleci/node@7.2.1
 
 parameters:
@@ -62,6 +62,47 @@ parameters:
   e2e-load:
     type: boolean
     default: false
+  run-deploy-demo:
+    type: boolean
+    default: false
+  run-deploy-frontend:
+    type: boolean
+    default: false
+  run-deploy-docs:
+    type: boolean
+    default: false
+  run-cd-terraform:
+    type: boolean
+    default: false
+  run-cd-backend:
+    type: boolean
+    default: false
+  run-cd-mcp:
+    type: boolean
+    default: false
+  force-cd:
+    type: boolean
+    default: false
+  force-demo-deploy:
+    type: boolean
+    default: false
+  deploy-preview-pr:
+    type: string
+    default: ""
+  preview-cleanup-pr:
+    type: string
+    default: ""
+  eas-dev-target:
+    type: enum
+    enum: ["none", "example-frontend", "demo", "both"]
+    default: "none"
+  manual-publish-package:
+    type: enum
+    enum: ["none", "syncdb", "feature-flags"]
+    default: "none"
+  manual-publish-version:
+    type: string
+    default: ""
 
 executors:
   node22:
@@ -91,6 +132,18 @@ executors:
     resource_class: large
 
 commands:
+  install_terraform:
+    description: Install the Terraform version used by production
+    steps:
+      - run:
+          name: Install Terraform 1.9.8
+          command: |
+            set -euo pipefail
+            curl -fsSLo /tmp/terraform.zip \
+              https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+            unzip -q /tmp/terraform.zip -d /tmp/terraform
+            sudo install /tmp/terraform/terraform /usr/local/bin/terraform
+
   install_bun_and_deps:
     description: Install Bun (latest) and workspace deps with frozen lockfile + cache
     parameters:
@@ -761,6 +814,18 @@ jobs:
           name: Check CircleCI path filters match GHA twins
           command: bun run check:circleci-parity
 
+  changelog-fragments:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Check changelog fragments
+          command: |
+            bun run check:changelog
+            bun test scripts/changelog/
+
   rulesync-check:
     executor: node22
     steps:
@@ -967,6 +1032,221 @@ jobs:
           path: admin-spa/test-results
           destination: admin-spa-integration-test-results
 
+  deploy-demo:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Build and deploy demo to Netlify
+          command: scripts/ci/netlify-deploy.sh demo production
+
+  deploy-frontend:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Build and deploy example frontend to Netlify
+          command: scripts/ci/netlify-deploy.sh frontend production
+
+  deploy-docs:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Build and deploy docs to Netlify
+          command: scripts/ci/netlify-deploy.sh docs production
+
+  gcp-cd-prod:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_terraform
+      - gcp-cli/install
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.run-cd-terraform >>
+              - << pipeline.parameters.force-cd >>
+          steps:
+            - run:
+                name: Validate and apply Terraform
+                command: |
+                  terraform -chdir=terraform fmt -check -recursive
+                  scripts/ci/gcp-deploy.sh terraform-apply
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.run-cd-backend >>
+              - << pipeline.parameters.force-cd >>
+          steps:
+            - run:
+                name: Deploy backend and tasks services
+                command: |
+                  scripts/ci/gcp-deploy.sh backend-prod
+                  scripts/ci/gcp-deploy.sh tasks-prod
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.run-cd-mcp >>
+              - << pipeline.parameters.force-cd >>
+          steps:
+            - run:
+                name: Deploy MCP service
+                command: scripts/ci/gcp-deploy.sh mcp-prod
+
+  deploy-preview-manual:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - install_terraform
+      - gcp-cli/install
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Validate preview PR number
+          command: |
+            if ! [[ "<< pipeline.parameters.deploy-preview-pr >>" =~ ^[0-9]+$ ]]; then
+              echo "deploy-preview-pr must be a numeric PR number"
+              exit 2
+            fi
+      - run:
+          name: Deploy preview backend and sites
+          environment:
+            PR_NUMBER: << pipeline.parameters.deploy-preview-pr >>
+          command: |
+            scripts/ci/gcp-deploy.sh terraform-preview
+            scripts/ci/gcp-deploy.sh backend-preview
+            scripts/ci/netlify-deploy.sh demo preview "pr-${PR_NUMBER}"
+            EXPO_PUBLIC_API_URL="https://pr-${PR_NUMBER}---terreno-backend-example-7knxlrnpqq-uc.a.run.app" \
+              scripts/ci/netlify-deploy.sh frontend preview "pr-${PR_NUMBER}"
+            scripts/ci/netlify-deploy.sh docs preview "docs-pr-${PR_NUMBER}"
+
+  preview-cleanup:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - gcp-cli/install
+      - run:
+          name: Clean Cloud Run tag and preview database
+          environment:
+            PR_NUMBER: << pipeline.parameters.preview-cleanup-pr >>
+          command: |
+            if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+              echo "preview-cleanup-pr must be a numeric PR number"
+              exit 2
+            fi
+            scripts/ci/gcp-deploy.sh cleanup-preview
+
+  eas-dev-build:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Dispatch EAS development workflow
+          command: scripts/ci/eas-dispatch.sh "<< pipeline.parameters.eas-dev-target >>"
+
+  publish-package-manual:
+    executor: node22_mongo
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Publish selected package
+          command: |
+            package="<< pipeline.parameters.manual-publish-package >>"
+            version="<< pipeline.parameters.manual-publish-version >>"
+            if [ "$package" = "none" ]; then
+              echo "manual-publish-package is required"
+              exit 2
+            fi
+            scripts/ci/publish-package.sh "$package" "$version" latest manual
+
+  publish-release:
+    executor: node22_mongo
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Validate release tag and upgrade notes
+          command: |
+            if ! [[ "${CIRCLE_TAG:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+              echo "Release requires a semver tag"
+              exit 2
+            fi
+            bun run check:upgrade-docs "$CIRCLE_TAG"
+      - run:
+          name: Publish packages in dependency order
+          command: |
+            version="$CIRCLE_TAG"
+            if [[ "$version" == *-* ]]; then
+              prerelease="${version#*-}"
+              npm_tag="${prerelease%%.*}"
+            else
+              npm_tag=latest
+            fi
+            packages=(
+              api test ui rtk admin-backend admin-frontend admin-spa ai
+              api-health comms feature-flags mcp-server syncdb
+            )
+            for package in "${packages[@]}"; do
+              scripts/ci/publish-package.sh "$package" "$version" "$npm_tag" release
+            done
+      - run:
+          name: Update stable package versions on master
+          command: |
+            if [[ "$CIRCLE_TAG" == *-* ]]; then
+              echo "Prerelease: skipping master version bump"
+              exit 0
+            fi
+            scripts/ci/validate-env.sh REPO_ADMIN_TOKEN
+            git config user.name "terreno-circleci"
+            git config user.email "josh@nang.io"
+            git fetch origin master
+            git checkout -B release-master origin/master
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags mcp-server syncdb; do
+              [ -d "$package" ] || continue
+              node -e "
+                const fs=require('fs');
+                const path='$package/package.json';
+                const pkg=JSON.parse(fs.readFileSync(path,'utf8'));
+                pkg.version=process.env.CIRCLE_TAG;
+                fs.writeFileSync(path,JSON.stringify(pkg,null,2)+'\\n');
+              "
+            done
+            git add -- '*/package.json'
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: bump package versions to ${CIRCLE_TAG}"
+              git remote set-url origin "https://x-access-token:${REPO_ADMIN_TOKEN}@github.com/FlourishHealth/terreno.git"
+              git pull --rebase origin master
+              git push origin HEAD:master
+            fi
+      - run:
+          name: Notify release channel
+          when: always
+          command: |
+            scripts/ci/validate-env.sh ZOOM_WEBHOOK_TOKEN ZOOM_WEBHOOK_URL
+            curl --fail --silent --show-error \
+              -H 'Content-Type: application/json' \
+              -H "Authorization: Bearer ${ZOOM_WEBHOOK_TOKEN}" \
+              --data "$(jq -n --arg version "$CIRCLE_TAG" '{message:("Terreno release " + $version + " completed in CircleCI")}')" \
+              "$ZOOM_WEBHOOK_URL"
+
 workflows:
   # Attach terreno-e2e / terreno-github-api in the CircleCI project once Phase 0
   # contexts exist. Do not put GITHUB_TOKEN in project env vars (injected into
@@ -1062,6 +1342,7 @@ workflows:
       - lifecycle-skills
       - license-coverage
       - circleci-parity
+      - changelog-fragments
 
   e2e:
     when: << pipeline.parameters.run-e2e >>
@@ -1131,3 +1412,109 @@ workflows:
             parameters:
               spec:
                 - login
+
+  deploy-demo-production:
+    when: << pipeline.parameters.run-deploy-demo >>
+    jobs:
+      - deploy-demo:
+          context: [terreno-netlify]
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+
+  deploy-frontend-production:
+    when: << pipeline.parameters.run-deploy-frontend >>
+    jobs:
+      - deploy-frontend:
+          context: [terreno-netlify]
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+
+  deploy-docs-production:
+    when: << pipeline.parameters.run-deploy-docs >>
+    jobs:
+      - deploy-docs:
+          context: [terreno-netlify]
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+
+  gcp-production:
+    when:
+      or:
+        - << pipeline.parameters.run-cd-terraform >>
+        - << pipeline.parameters.run-cd-backend >>
+        - << pipeline.parameters.run-cd-mcp >>
+        - << pipeline.parameters.force-cd >>
+    jobs:
+      - gcp-cd-prod:
+          context: [terreno-gcp]
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+
+  deploy-demo-manual:
+    when: << pipeline.parameters.force-demo-deploy >>
+    jobs:
+      - deploy-demo:
+          context: [terreno-netlify]
+
+  deploy-preview-manual:
+    when:
+      not:
+        equal: ["", << pipeline.parameters.deploy-preview-pr >>]
+    jobs:
+      - deploy-preview-manual:
+          context: [terreno-gcp, terreno-netlify]
+
+  preview-cleanup-manual:
+    when:
+      not:
+        equal: ["", << pipeline.parameters.preview-cleanup-pr >>]
+    jobs:
+      - preview-cleanup:
+          context: [terreno-gcp]
+
+  eas-dev-manual:
+    when:
+      not:
+        equal: ["none", << pipeline.parameters.eas-dev-target >>]
+    jobs:
+      - eas-dev-build:
+          context: [terreno-expo]
+
+  publish-package-manual:
+    when:
+      not:
+        equal: ["none", << pipeline.parameters.manual-publish-package >>]
+    jobs:
+      - publish-package-manual:
+          context: [terreno-npm]
+
+  publish-release:
+    jobs:
+      - publish-release:
+          context: [terreno-npm, terreno-release]
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$/
+      - deploy-demo:
+          context: [terreno-netlify]
+          requires:
+            - publish-release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$/

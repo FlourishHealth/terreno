@@ -1,5 +1,5 @@
 # Setup config — path-filtering + dynamic continuation.
-# Real jobs live in continue-config.yml (Phase 1–3 CI; deploys deferred).
+# Real CI/CD jobs live in continue-config.yml.
 # Requires project setting: Enable dynamic config / setup workflows.
 version: 2.1
 
@@ -9,6 +9,29 @@ parameters:
   run-e2e-load:
     type: boolean
     default: false
+  run-cd:
+    type: boolean
+    default: false
+  run-demo-deploy:
+    type: boolean
+    default: false
+  deploy-preview-pr:
+    type: string
+    default: ""
+  run-preview-cleanup:
+    type: string
+    default: ""
+  eas-dev-target:
+    type: enum
+    enum: ["none", "example-frontend", "demo", "both"]
+    default: "none"
+  manual-publish-package:
+    type: enum
+    enum: ["none", "syncdb", "feature-flags"]
+    default: "none"
+  manual-publish-version:
+    type: string
+    default: ""
 
 orbs:
   continuation: circleci/continuation@1.0.0
@@ -16,7 +39,19 @@ orbs:
 
 workflows:
   setup:
-    unless: << pipeline.parameters.run-e2e-load >>
+    unless:
+      or:
+        - << pipeline.parameters.run-e2e-load >>
+        - << pipeline.parameters.run-cd >>
+        - << pipeline.parameters.run-demo-deploy >>
+        - not:
+            equal: ["", << pipeline.parameters.deploy-preview-pr >>]
+        - not:
+            equal: ["", << pipeline.parameters.run-preview-cleanup >>]
+        - not:
+            equal: ["none", << pipeline.parameters.eas-dev-target >>]
+        - not:
+            equal: ["none", << pipeline.parameters.manual-publish-package >>]
     jobs:
       - path-filtering/filter:
           name: check-updated-files
@@ -151,6 +186,29 @@ workflows:
             feature-flags/src/.* run-e2e true
             feature-flags/src/.* run-admin-spa-integration true
             syncdb/.* run-e2e true
+            demo/.* run-deploy-demo true
+            ui/.* run-deploy-demo true
+            example-frontend/.* run-deploy-frontend true
+            ui/.* run-deploy-frontend true
+            rtk/.* run-deploy-frontend true
+            ai/.* run-deploy-frontend true
+            admin-frontend/.* run-deploy-frontend true
+            docs/.* run-deploy-docs true
+            website/.* run-deploy-docs true
+            api/src/.* run-deploy-docs true
+            rtk/src/.* run-deploy-docs true
+            demo/demoConfig\.tsx run-deploy-docs true
+            demo/story-config/.* run-deploy-docs true
+            ui/src/.* run-deploy-docs true
+            netlify\.toml run-deploy-docs true
+            terraform/.* run-cd-terraform true
+            example-backend/.* run-cd-backend true
+            api/.* run-cd-backend true
+            api-health/.* run-cd-backend true
+            admin-backend/.* run-cd-backend true
+            ai/.* run-cd-backend true
+            mcp-server/.* run-cd-mcp true
+            ui/.* run-cd-mcp true
 
   # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
   # Continuation uses a differently named parameter so CircleCI does not treat
@@ -161,3 +219,28 @@ workflows:
       - continuation/continue:
           configuration_path: .circleci/continue-config.yml
           parameters: '{"e2e-load":true}'
+
+  manual-setup:
+    when:
+      or:
+        - << pipeline.parameters.run-cd >>
+        - << pipeline.parameters.run-demo-deploy >>
+        - not:
+            equal: ["", << pipeline.parameters.deploy-preview-pr >>]
+        - not:
+            equal: ["", << pipeline.parameters.run-preview-cleanup >>]
+        - not:
+            equal: ["none", << pipeline.parameters.eas-dev-target >>]
+        - not:
+            equal: ["none", << pipeline.parameters.manual-publish-package >>]
+    jobs:
+      - continuation/continue:
+          configuration_path: .circleci/continue-config.yml
+          parameters: >-
+            {"force-cd":<< pipeline.parameters.run-cd >>,
+            "force-demo-deploy":<< pipeline.parameters.run-demo-deploy >>,
+            "deploy-preview-pr":"<< pipeline.parameters.deploy-preview-pr >>",
+            "preview-cleanup-pr":"<< pipeline.parameters.run-preview-cleanup >>",
+            "eas-dev-target":"<< pipeline.parameters.eas-dev-target >>",
+            "manual-publish-package":"<< pipeline.parameters.manual-publish-package >>",
+            "manual-publish-version":"<< pipeline.parameters.manual-publish-version >>"}

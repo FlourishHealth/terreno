@@ -63,6 +63,21 @@ module "github_oidc" {
   depends_on = [module.bootstrap]
 }
 
+module "circleci_oidc" {
+  count  = var.circleci_org_id != "" && var.circleci_project_id != "" ? 1 : 0
+  source = "./modules/circleci_oidc"
+
+  project_id          = var.project_id
+  circleci_org_id     = var.circleci_org_id
+  circleci_project_id = var.circleci_project_id
+  service_account_names = {
+    for name, email in module.github_oidc.service_account_emails :
+    name => "projects/${var.project_id}/serviceAccounts/${email}"
+  }
+
+  depends_on = [module.github_oidc]
+}
+
 # ---------------------------------------------------------------------------
 # Example backend + tasks worker
 #

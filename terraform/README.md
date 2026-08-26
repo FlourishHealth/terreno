@@ -1,18 +1,18 @@
 # Terreno Infrastructure (Terraform + Infra Manager)
 
 This directory holds the Terraform configuration for Terreno's GCP infrastructure.
-It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.com/infrastructure-manager/docs/overview)** via the unified `.github/workflows/cd.yml` workflow. That workflow also handles backend + MCP Cloud Run deployments, with `needs:` dependencies that guarantee terraform changes apply before any service deploy that might reference them (e.g. adding a new Secret Manager mount).
+It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.com/infrastructure-manager/docs/overview)** via CircleCI `gcp-cd-prod`. The retained `.github/workflows/cd.yml` has `on: []`.
 
 ## What's managed
 
 - Project APIs (Cloud Run, Artifact Registry, IAM, Infra Manager, etc.)
 - GCS state bucket
-- **Workload Identity Federation** — one pool/provider plus two impersonable service accounts:
-  - `terraform-admin` — used by `cd.yml`'s terraform-* jobs (project-admin scope)
-  - `gh-deployer` — used by `cd.yml`'s backend-deploy-* and mcp-deploy jobs with the narrow set of roles needed to push images and roll Cloud Run
+- **Workload Identity Federation** — GitHub and CircleCI providers share two impersonable service accounts:
+  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope)
+  - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
-- Secret Manager containers for the backend's sensitive env vars: `terreno-backend-example-mongodb-uri`, `terreno-backend-example-langfuse-secret-key`, `terreno-backend-example-langfuse-public-key`. Values are seeded out-of-band; the backend and tasks deploy workflows mount them via `secrets:` so plaintext never traverses GitHub Actions runners.
+- Secret Manager containers for backend sensitive env vars. Values are seeded out-of-band; CircleCI deploy jobs mount them by secret reference.
 
 The pre-existing `EXAMPLE_*` Secret Manager secrets (`EXAMPLE_MONGO_CONNECTION`, `EXAMPLE_TOKEN_SECRET`, `EXAMPLE_REFRESH_TOKEN_SECRET`) feeding `MONGO_URI`/`TOKEN_SECRET`/`REFRESH_TOKEN_SECRET` are not yet Terraform-managed but already use proper SM mounts. They can be imported in a follow-up. The MCP server's `SENTRY_DSN` is also still inline-from-GH-secret and could be migrated.
 
@@ -31,6 +31,7 @@ terraform/
     cloud_run_service/          # v2 Cloud Run service + invoker IAM
     secret/                     # Secret Manager secret container (kept for future use)
     github_oidc/                # WIF pool/provider + multi-SA support
+    circleci_oidc/               # CircleCI OIDC provider + SA impersonation
 ```
 
 The whole `terraform/` directory is the Infra Manager source. The workflow runs `--local-source=terraform`.
@@ -83,19 +84,21 @@ gcloud infra-manager deployments apply terreno-prod \
 # (run from the terraform/ directory; or use --local-source="terraform" from repo root)
 ```
 
-After step 4 succeeds, the WIF provider, both deployer SAs, and all other resources exist. From here on, applies happen via GitHub Actions impersonating `terraform-admin@`. The bootstrap SA can stay around for break-glass use or be deleted.
+After step 4 succeeds, the WIF providers, deployer SAs, and all other resources exist. CircleCI then impersonates `terraform-admin@`. The bootstrap SA can stay for break-glass use or be deleted.
 
-## GitHub Actions setup
+## CircleCI OIDC setup
 
-Set these as **repository variables** (Settings → Secrets and variables → Actions → Variables — not secrets, none of these are sensitive):
+1. Set `circleci_org_id` and `circleci_project_id` in `terraform.tfvars`.
+2. Apply once with an existing Terraform admin identity.
+3. Add these non-secret values to the restricted `terreno-gcp` CircleCI context:
 
 | Variable | Value | Used by |
 |----------|-------|---------|
-| `GCP_TF_PROJECT_ID_PROD` | `flourish-terreno` | all workflows |
-| `GCP_WIF_PROVIDER_PROD` | output `workload_identity_provider` | all workflows |
-| `GCP_TF_ADMIN_SA_PROD` | output `terraform_admin_sa_email` | `cd.yml` (terraform jobs) |
-| `GCP_CD_DEPLOYER_SA_PROD` | output `gh_deployer_sa_email` | `cd.yml` (deploy jobs) |
-| `GCP_INFRA_MANAGER_LOCATION` | optional, defaults to `us-central1` | `cd.yml` |
+| `GCP_PROJECT_ID` | `flourish-terreno` | all GCP jobs |
+| `GCP_WIF_PROVIDER_PROD` | output `circleci_workload_identity_provider` | all GCP jobs |
+| `GCP_TF_ADMIN_SA_PROD` | output `terraform_admin_sa_email` | Terraform preview/apply |
+| `GCP_CD_DEPLOYER_SA_PROD` | output `gh_deployer_sa_email` | Cloud Run deploy/cleanup |
+| `GCP_INFRA_MANAGER_LOCATION` | optional, defaults to `us-central1` | Terraform jobs |
 
 Fetch the outputs after the first apply:
 
@@ -107,7 +110,7 @@ gcloud infra-manager deployments describe terreno-prod \
 gcloud infra-manager revisions describe <REVISION> --format=json | jq '.terraformBlueprint'
 ```
 
-Once those repo variables are set, you can **delete the `GCP_SA_KEY` secret** from GitHub — every workflow now uses WIF.
+CircleCI exchanges `CIRCLE_OIDC_TOKEN_V2` at runtime. Do not create a JSON key.
 
 ## Importing existing resources
 

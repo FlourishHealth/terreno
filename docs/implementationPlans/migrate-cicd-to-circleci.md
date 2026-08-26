@@ -1,6 +1,6 @@
 # Implementation Plan: Migrate CI/CD to CircleCI
 
-**Status:** In progress — Phase 1–3 CI config landed (deploys deferred per request)  
+**Status:** In progress — CI, Netlify/GCP CD, release, and manual operations landed; EAS PR/fingerprint and GitHub-native maintenance remain  
 **Discussion:** _(none)_  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Linear:** _(none)_  
@@ -164,10 +164,16 @@ Port and dual-run:
 - Recreate preview aliases + optional GitHub Deployments via API.
 - `preview-cleanup` equivalent for Netlify/GCP previews as applicable.
 
+Implemented: production deploys are automatic on `master`; previews and cleanup
+are CircleCI manual parameters. Matching GHA triggers are disabled.
+
 ### Phase 5 — EAS + fingerprint (v1)
 
 - Port `eas-pr`, `eas-dev-build`, `fingerprint-gate` scripts under `.circleci/` or keep scripts in `.github/workflows/scripts/` and invoke from CircleCI until relocated to `scripts/ci/`.
 - PR comment + `fingerprint-acknowledged` label via GitHub API.
+
+Manual EAS dispatch is implemented. EAS PR updates and fingerprint
+acknowledgement remain GitHub-native.
 
 ### Phase 6 — GCP CD + OIDC (v1)
 
@@ -176,11 +182,19 @@ Port and dual-run:
 - Port `preview-cleanup` onto OIDC (eliminate `GCP_SA_KEY`).
 - Dual-run CD carefully (concurrency: one deployer).
 
+Implemented as a single CircleCI writer with a CircleCI OIDC Terraform module,
+automatic `master` production deployment, and manual preview/cleanup.
+
 ### Phase 7 — npm publish (v1)
 
 - Port `publish-on-tag` + `publish-feature-flags-manual`.
 - **Single-writer rule:** disable GHA tag trigger in the same change that enables CircleCI tag pipeline.
 - Keep Zoom notify + master version bump + docs cut + demo dispatch.
+
+Implemented as a semver-tag release job plus manual `syncdb`/`feature-flags`
+publishing. GHA publishing triggers are disabled. Docs version cutting remains
+a follow-up; package publish, stable master bumps, Zoom notify, and demo deploy
+are ported.
 
 ### Phase 8 — Mobile runners (post-v1 / still required for full cutover)
 
