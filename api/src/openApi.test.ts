@@ -18,12 +18,12 @@ import {Permissions} from "./permissions";
 import {TerrenoApp} from "./terrenoApp";
 import {type Food, FoodModel, setupDb, UserModel} from "./tests";
 
-const passThroughMiddleware: express.RequestHandler = (_req, _res, next) => next();
+const createPassThroughMiddleware = (): express.RequestHandler => (_req, _res, next) => next();
 
 const createOpenApiStub = (
-  path: OpenApiMiddleware["path"] = () => passThroughMiddleware
+  path: OpenApiMiddleware["path"] = () => createPassThroughMiddleware()
 ): OpenApiMiddleware => {
-  return Object.assign(passThroughMiddleware, {
+  return Object.assign(createPassThroughMiddleware(), {
     component: () => undefined,
     document: {},
     path,
@@ -464,7 +464,7 @@ describe("openApi middleware no-op paths", () => {
       {
         openApi: createOpenApiStub((spec: Record<string, unknown>) => {
           captured = spec;
-          return passThroughMiddleware;
+          return createPassThroughMiddleware();
         }),
         permissions: {
           create: [Permissions.IsAny],
@@ -485,7 +485,7 @@ describe("openApi middleware no-op paths", () => {
     listOpenApiMiddleware(FoodModel, {
       openApi: createOpenApiStub((spec: Record<string, unknown>) => {
         captured = spec;
-        return passThroughMiddleware;
+        return createPassThroughMiddleware();
       }),
       permissions: {
         create: [Permissions.IsAny],
@@ -503,7 +503,7 @@ describe("openApi middleware no-op paths", () => {
     listOpenApiMiddleware(FoodModel, {
       openApi: createOpenApiStub((spec: Record<string, unknown>) => {
         captured = spec;
-        return passThroughMiddleware;
+        return createPassThroughMiddleware();
       }),
       permissions: {
         create: [Permissions.IsAny],
@@ -524,7 +524,7 @@ describe("openApi middleware no-op paths", () => {
     let captured: Record<string, unknown> | undefined;
     const capturePath = (spec: Record<string, unknown>): express.RequestHandler => {
       captured = spec;
-      return passThroughMiddleware;
+      return createPassThroughMiddleware();
     };
     const baseOptions: Partial<ModelRouterOptions<Food>> = {
       openApi: createOpenApiStub(capturePath),
@@ -640,7 +640,7 @@ describe("openApi middleware no-op paths", () => {
   });
 
   it("readOpenApiMiddleware returns middleware when configured with permissions", () => {
-    const pathFn: OpenApiMiddleware["path"] = () => passThroughMiddleware;
+    const pathFn: OpenApiMiddleware["path"] = () => createPassThroughMiddleware();
     const mw = readOpenApiMiddleware(
       {
         openApi: createOpenApiStub(pathFn),
