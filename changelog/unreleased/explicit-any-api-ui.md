@@ -2,6 +2,7 @@
 category: Changed
 ---
 
-`@terreno/api` `asyncHandler` now types the request as Express `Request` instead
-of `any`. `@terreno/ui` Hyperlink props (`linkify`, styles, `injectViewProps`)
-and the Google Maps `window.google` global use concrete types instead of `any`.
+`@terreno/api` RBAC routes now narrow path parameters at runtime instead of
+relying on implicit `any`. `@terreno/ui` Hyperlink props (`linkify`, styles,
+`injectViewProps`) and the Google Maps `window.google` global use concrete
+types instead of `any`.

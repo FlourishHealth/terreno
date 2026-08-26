@@ -1377,20 +1377,15 @@ export interface AsyncHandlerOptions {
  * }));
  * ```
  */
-type AsyncHandlerFn<Req extends Request = Request> = (
-  req: Req,
-  res: Response,
-  next: NextFunction
-) => Promise<unknown> | unknown;
+// noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
+// biome-ignore lint/suspicious/noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
+type AsyncHandlerFn = (req: any, res: Response, next: NextFunction) => Promise<unknown> | unknown;
 
-export const asyncHandler = <Req extends Request = Request>(
-  fn: AsyncHandlerFn<Req>,
-  options?: AsyncHandlerOptions
-) => {
+export const asyncHandler = (fn: AsyncHandlerFn, options?: AsyncHandlerOptions) => {
   // If no validation options, return simple handler
   if (!options?.bodySchema && !options?.querySchema) {
     return (req: Request, res: Response, next: NextFunction) => {
-      return Promise.resolve(fn(req as Req, res, next)).catch(next);
+      return Promise.resolve(fn(req, res, next)).catch(next);
     };
   }
 
@@ -1421,7 +1416,7 @@ export const asyncHandler = <Req extends Request = Request>(
     const runValidators = (index: number): void => {
       if (index >= validators.length) {
         // All validators passed, run the actual handler
-        Promise.resolve(fn(req as Req, res, next)).catch(next);
+        Promise.resolve(fn(req, res, next)).catch(next);
         return;
       }
 

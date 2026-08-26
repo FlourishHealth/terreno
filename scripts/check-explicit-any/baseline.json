@@ -8,7 +8,7 @@
     "api/src/api.hooks.test.ts": 22,
     "api/src/api.query.test.ts": 28,
     "api/src/api.test.ts": 75,
-    "api/src/api.ts": 10,
+    "api/src/api.ts": 11,
     "api/src/auth.test.ts": 33,
     "api/src/betterAuthSetup.test.ts": 22,
     "api/src/betterAuthSetup.ts": 1,
@@ -62,7 +62,7 @@
   "byPackage": {
     "admin-backend": 2,
     "admin-frontend": 6,
-    "api": 772,
+    "api": 773,
     "demo": 2,
     "example-backend": 23,
     "example-frontend": 3,
@@ -72,20 +72,20 @@
     "ui": 33
   },
   "byRemediationStatus": {
-    "fully-documented": 908,
+    "fully-documented": 909,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-26T16:44:22.367Z",
+  "generatedAt": "2026-08-26T17:01:13.981Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 908
+    "totalUsages": 909
   },
   "totalFiles": 58,
-  "totalUsages": 908,
+  "totalUsages": 909,
   "version": 2
 }
