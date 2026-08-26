@@ -1,6 +1,6 @@
 # Implementation Plan: Migrate CI/CD to CircleCI
 
-**Status:** In progress — CI, Netlify/GCP CD, release, and manual operations landed; EAS PR/fingerprint and GitHub-native maintenance remain  
+**Status:** In progress — CI, Netlify/GCP CD, release, and manual operations landed; EAS PR/fingerprint temporarily disabled; GitHub-native maintenance remains  
 **Discussion:** _(none)_  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Linear:** _(none)_  
@@ -173,7 +173,8 @@ are CircleCI manual parameters. Matching GHA triggers are disabled.
 - PR comment + `fingerprint-acknowledged` label via GitHub API.
 
 Manual EAS dispatch is implemented. EAS PR updates and fingerprint
-acknowledgement remain GitHub-native.
+acknowledgement are retained with `on: []` until CircleCI comment/label parity
+is implemented.
 
 ### Phase 6 — GCP CD + OIDC (v1)
 

@@ -7,8 +7,8 @@ CircleCI CI/CD source of truth. See
 production deploys, GCP production deploys, semver-tag npm releases, and manual
 preview/EAS/package operations. Matching GitHub workflows remain in-repo with
 `on: []` for rollback. GitHub-native security and repository automation remains
-enabled; EAS PR updates and the fingerprint gate remain on GitHub until their
-PR-comment/label integration is ported.
+enabled. EAS PR updates and the fingerprint gate are temporarily disabled;
+manual EAS development dispatch remains available in CircleCI.
 
 ## Project setup (maintainers)
 
@@ -112,12 +112,12 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | GCP production | `gcp-cd-prod` |
 | npm semver tag | `publish-release` |
 
-CD replacement map (the first two rows remain enabled on GitHub):
+CD replacement map:
 
 | GHA job `name:` / workflow (not yet ported) | Planned CircleCI job |
 |---------------------------------------------|----------------------|
-| Fingerprint gate (`fingerprint-gate.yml`) | `fingerprint-gate` (Phase 5) |
-| EAS PR update/build (`eas-pr.yml`) | `eas-pr` (Phase 5) |
+| Fingerprint gate (`fingerprint-gate.yml`) | Temporarily disabled; no CircleCI automatic gate |
+| EAS PR update/build (`eas-pr.yml`) | Temporarily disabled; use manual EAS dispatch |
 | EAS dev build (`eas-dev-build.yml`) | CircleCI manual `eas-dev-target` |
 | CD terraform / Cloud Run (`cd.yml`) | `gcp-cd-prod` |
 | Preview cleanup (`preview-cleanup.yml`) | CircleCI manual `run-preview-cleanup` |
