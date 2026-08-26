@@ -88,6 +88,7 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | Run all tests (API CI) | `api-ci` |
 | Run all tests (AI CI) | `ai-ci` |
 | RTK Lint and Build | `rtk-ci` |
+| Syncdb Lint, Build, and Tests | `syncdb-ci` |
 | UI Lint, Build, Types, and Tests | `ui-ci` |
 | Demo TypeScript Check (UI dependency) | `ui-demo-typecheck` |
 | Demo Lint and TypeScript Check | `ui-demo-ci` |
@@ -106,6 +107,7 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | _(smoke)_ | `config-ok` |
 | _(e2e compile+export once)_ | `e2e-prepare` |
 | Changelog fragments | `changelog-fragments` |
+| New file coverage | `new-file-coverage` |
 | Netlify production | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
 | GCP production | `gcp-cd-prod` |
 | npm semver tag | `publish-release` |
@@ -175,7 +177,8 @@ pipeline parameters.
 ```
 
 This replaces the GHA cron / `workflow_dispatch` / `load-test` label triggers in
-`e2e-load-nightly.yml`.
+`e2e-load-nightly.yml`. Create a CircleCI schedule with
+`{"run-e2e-load":true}` at `0 6 * * *` to retain the nightly run.
 
 ## Local validation
 

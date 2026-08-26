@@ -12,10 +12,10 @@ resource "google_iam_workload_identity_pool_provider" "circleci" {
   display_name                       = "CircleCI"
 
   attribute_mapping = {
-    "google.subject"      = "assertion.org_id + '/' + assertion.sub.extract('/user/{user_id}/')"
-    "attribute.org_id"    = "assertion.org_id"
-    "attribute.project_id" = "assertion.project_id"
-    "attribute.sub"       = "assertion.sub"
+    "google.subject"       = "assertion.aud + '/' + assertion.sub.extract('/user/{user_id}/')"
+    "attribute.org_id"     = "assertion.aud"
+    "attribute.project_id" = "assertion['oidc.circleci.com/project-id']"
+    "attribute.sub"        = "assertion.sub"
   }
 
   attribute_condition = "attribute.org_id == '${var.circleci_org_id}' && attribute.project_id == '${var.circleci_project_id}'"

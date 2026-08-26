@@ -23,9 +23,11 @@ export const WORKFLOW_PARAMETERS: Record<string, string> = {
   "example-backend-script-runner": "run-example-backend-script",
   "example-frontend-ci": "run-example-frontend",
   "mcp-server-ci": "run-mcp-server",
+  "new-file-coverage": "run-new-file-coverage",
   "repo-policies": "run-repo-policies",
   "rtk-ci": "run-rtk",
   "rulesync-check": "run-rulesync",
+  "syncdb-ci": "run-syncdb",
   "ui-ci": "run-ui",
   "ui-demo-ci": "run-ui-demo",
 };

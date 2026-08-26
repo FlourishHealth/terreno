@@ -57,6 +57,12 @@ parameters:
   run-rulesync:
     type: boolean
     default: false
+  run-syncdb:
+    type: boolean
+    default: false
+  run-new-file-coverage:
+    type: boolean
+    default: false
   # Set only by setup continuation when the setup trigger `run-e2e-load` is true.
   # Different name from the setup parameter to avoid CircleCI continuation conflicts.
   e2e-load:
@@ -493,6 +499,44 @@ jobs:
             bun run compile
             bun run types
             bun run test:ci
+
+  syncdb-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Lint / compile / test syncdb
+          working_directory: ~/project/syncdb
+          environment:
+            CI: "true"
+          command: |
+            bun run lint
+            bun run compile
+            bun run test
+            bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
+
+  new-file-coverage:
+    executor: node22_mongo
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Fetch coverage base
+          command: git fetch origin master
+      - run:
+          name: Compile API coverage dependencies
+          command: |
+            node .github/scripts/compile-workspace-deps.js api
+            bun run --filter '@terreno/api' compile
+      - run:
+          name: Check new source file coverage
+          command: |
+            base_sha="$(git merge-base origin/master HEAD)"
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+            bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
   ui-demo-typecheck:
@@ -1264,6 +1308,16 @@ workflows:
     when: << pipeline.parameters.run-rulesync >>
     jobs:
       - rulesync-check
+
+  syncdb:
+    when: << pipeline.parameters.run-syncdb >>
+    jobs:
+      - syncdb-ci
+
+  new-file-coverage:
+    when: << pipeline.parameters.run-new-file-coverage >>
+    jobs:
+      - new-file-coverage
 
   api:
     when: << pipeline.parameters.run-api >>
