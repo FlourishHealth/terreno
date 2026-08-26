@@ -8,9 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   GCP_SERVICE_ACCOUNT \
   GCP_WIF_PROVIDER_PROD
 
-token_file="$(mktemp)"
-credentials_file="$(mktemp)"
-trap 'rm -f "$token_file" "$credentials_file"' EXIT
+token_file="/tmp/circleci-oidc-token"
+credentials_file="/tmp/circleci-gcp-credentials.json"
 printf '%s' "$CIRCLE_OIDC_TOKEN_V2" > "$token_file"
 
 gcloud iam workload-identity-pools create-cred-config "$GCP_WIF_PROVIDER_PROD" \

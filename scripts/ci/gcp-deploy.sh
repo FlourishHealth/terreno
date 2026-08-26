@@ -39,6 +39,8 @@ deploy_backend() {
   fi
   docker push "$image"
 
+  secrets="MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
+  env_vars="NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true"
   args=(
     run deploy "$GCP_BACKEND_SERVICE"
     "--project=$GCP_PROJECT_ID"
@@ -52,27 +54,26 @@ deploy_backend() {
     "--concurrency=80"
     "--timeout=300"
     --allow-unauthenticated
-    "--set-secrets=MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
   )
 
   better_auth_secret="${GCP_BACKEND_SERVICE}-better-auth-secret"
   if gcloud secrets versions access latest --secret="$better_auth_secret" >/dev/null 2>&1; then
-    args+=("--update-secrets=BETTER_AUTH_SECRET=${better_auth_secret}:latest")
+    secrets+=",BETTER_AUTH_SECRET=${better_auth_secret}:latest"
     if [ "$tag" = "prod" ]; then
       better_auth_url="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
     else
       better_auth_url="https://${tag}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
     fi
-    args+=("--set-env-vars=NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true,AUTH_PROVIDER=better-auth,BETTER_AUTH_URL=${better_auth_url}")
-  else
-    args+=("--set-env-vars=NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true")
+    env_vars+=",AUTH_PROVIDER=better-auth,BETTER_AUTH_URL=${better_auth_url}"
   fi
 
   if [ "$tag" = "prod" ]; then
-    args+=("--update-env-vars=CORS_ORIGINS=https://terreno-frontend.netlify.app")
+    env_vars+=",CORS_ORIGINS=https://terreno-frontend.netlify.app"
   else
-    args+=(--no-traffic "--update-env-vars=CORS_ORIGINS=https://pr-${PR_NUMBER}--terreno-frontend.netlify.app,MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},SEED_DEFAULTS=true")
+    args+=(--no-traffic)
+    env_vars+=",CORS_ORIGINS=https://pr-${PR_NUMBER}--terreno-frontend.netlify.app,MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},SEED_DEFAULTS=true"
   fi
+  args+=("--set-secrets=$secrets" "--set-env-vars=$env_vars")
   gcloud "${args[@]}"
 }
 

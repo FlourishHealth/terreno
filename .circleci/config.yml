@@ -55,7 +55,11 @@ workflows:
     jobs:
       - path-filtering/filter:
           name: check-updated-files
+          filters:
+            tags:
+              only: /.*/
           base-revision: master
+          same-base-run: true
           config-path: .circleci/continue-config.yml
           # <path regex> <pipeline parameter> <value>
           # Regexes are anchored (^…$) by the orb.
