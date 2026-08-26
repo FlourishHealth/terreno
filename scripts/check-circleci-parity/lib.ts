@@ -25,6 +25,7 @@ export const WORKFLOW_PARAMETERS: Record<string, string> = {
   "mcp-server-ci": "run-mcp-server",
   "repo-policies": "run-repo-policies",
   "rtk-ci": "run-rtk",
+  "rulesync-check": "run-rulesync",
   "ui-ci": "run-ui",
   "ui-demo-ci": "run-ui-demo",
 };
