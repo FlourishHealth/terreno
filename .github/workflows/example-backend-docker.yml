@@ -1,14 +1,7 @@
 name: Example Backend Docker Build
 
-on:
-  pull_request:
-    paths:
-      - "example-backend/Dockerfile"
-      - "example-backend/.dockerignore"
-      - "example-backend/package.json"
-      - "package.json"
-      - "bun.lock"
-      - ".github/workflows/example-backend-docker.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   build-image:
