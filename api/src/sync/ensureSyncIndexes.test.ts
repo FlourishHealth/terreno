@@ -3,6 +3,7 @@ import {assert} from "chai";
 import express from "express";
 import {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
+import {APIError} from "../errors";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {setupDb} from "../tests";
@@ -94,9 +95,10 @@ describe("ensureSyncIndexes (C8)", () => {
 
   it("rejects with an actionable error when createIndex fails, so startup fails loudly", async () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoFail");
+    const sentinel = new Error("boom-sentinel-snapshot-index");
     // Force the collection's createIndex to reject, simulating a DB/schema failure.
     IndexTodoModel.collection.createIndex = async (): Promise<string> => {
-      throw new Error("boom: index build failed");
+      throw sentinel;
     };
     registerSync({
       config: {scope: {type: "owner"}},
@@ -104,9 +106,18 @@ describe("ensureSyncIndexes (C8)", () => {
       options: authedOptions,
       routePath: "/ensureIndexTodosFail",
     });
-    await expect(ensureSyncIndexes()).rejects.toThrow(
+    const rejection = ensureSyncIndexes();
+    await expect(rejection).rejects.toThrow(
       /Failed to create sync snapshot index for EnsureIndexTodoFail/
     );
+    const error = await rejection.catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(APIError);
+    const apiError = error as APIError;
+    expect(apiError.code).toBe("sync-snapshot-index-failed");
+    expect(apiError.cause).toBe(sentinel);
+    expect(apiError.status).toBe(500);
+    expect(apiError.message).not.toContain(sentinel.message);
+    expect(apiError.detail).toContain(sentinel.message);
   });
 });
 
@@ -149,14 +160,22 @@ describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
 
   it("rejects with an actionable error when a bookkeeping index build fails", async () => {
     const originalEnsure = SyncMutation.ensureIndexes.bind(SyncMutation);
+    const sentinel = new Error("boom-sentinel-mutation-index");
     SyncMutation.ensureIndexes = async (): Promise<void> => {
-      throw new Error("boom: mutationId index build failed");
+      throw sentinel;
     };
     try {
       new SyncApp().register(express());
-      await expect(ensureSyncIndexes()).rejects.toThrow(
-        /Failed to ensure sync indexes for SyncMutation/
-      );
+      const rejection = ensureSyncIndexes();
+      await expect(rejection).rejects.toThrow(/Failed to ensure sync indexes for SyncMutation/);
+      const error = await rejection.catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(APIError);
+      const apiError = error as APIError;
+      expect(apiError.code).toBe("sync-indexes-failed");
+      expect(apiError.cause).toBe(sentinel);
+      expect(apiError.status).toBe(500);
+      expect(apiError.message).not.toContain(sentinel.message);
+      expect(apiError.detail).toContain(sentinel.message);
     } finally {
       SyncMutation.ensureIndexes = originalEnsure;
     }
