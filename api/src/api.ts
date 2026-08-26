@@ -1377,9 +1377,11 @@ export interface AsyncHandlerOptions {
  * }));
  * ```
  */
-// noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
-// biome-ignore lint/suspicious/noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
-type AsyncHandlerFn = (req: any, res: Response, next: NextFunction) => Promise<unknown> | unknown;
+type AsyncHandlerFn = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<unknown> | unknown;
 
 export const asyncHandler = (fn: AsyncHandlerFn, options?: AsyncHandlerOptions) => {
   // If no validation options, return simple handler
