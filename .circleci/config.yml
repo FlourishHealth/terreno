@@ -60,10 +60,11 @@ workflows:
             admin-frontend/.* run-example-frontend true
             example-backend/.* run-example-backend true
             example-backend/.* run-example-backend-script true
-            example-backend/.* run-example-backend-docker true
+            example-backend/Dockerfile run-example-backend-docker true
+            example-backend/\.dockerignore run-example-backend-docker true
+            example-backend/package\.json run-example-backend-docker true
             api/.* run-example-backend true
             api/.* run-example-backend-script true
-            api/.* run-example-backend-docker true
             ai/.* run-example-backend true
             ai/.* run-example-backend-script true
             admin-backend/.* run-example-backend true

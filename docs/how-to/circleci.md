@@ -37,6 +37,10 @@ already set `run-api`, `run-ui`, `run-e2e`, `run-example-backend`, or
 `comms/**` also sets `run-example-backend` and `run-example-backend-script`,
 matching the GitHub Actions twins.
 
+The example-backend Docker job runs only when its image recipe changes
+(`Dockerfile`, `.dockerignore`, package manifests, or `bun.lock`). API/source
+changes are covered by preview CD builds and do not start a duplicate image job.
+
 ## Contexts (create empty shells, then fill)
 
 Do **not** paste secret values into the repo. Create these CircleCI Contexts and restrict
