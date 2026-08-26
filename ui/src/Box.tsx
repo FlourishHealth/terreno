@@ -1,4 +1,4 @@
-import React, {useImperativeHandle} from "react";
+import React, {useImperativeHandle, useRef} from "react";
 import {
   type AccessibilityProps,
   KeyboardAvoidingView,
@@ -86,9 +86,24 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "testIDs",
 ]);
 
-export const Box = React.forwardRef((props: BoxProps, ref) => {
+interface BoxStyleMap {
+  [prop: string]: (
+    // noExplicitAny: Box style props are deliberately heterogeneous and narrowed by each mapper.
+    // biome-ignore lint/suspicious/noExplicitAny: heterogeneous style mapper input
+    value: any,
+    // noExplicitAny: Box style mappers receive the full heterogeneous prop collection.
+    // biome-ignore lint/suspicious/noExplicitAny: heterogeneous Box prop collection
+    all: {[prop: string]: any}
+  ) => {[style: string]: string | number} | {};
+}
+
+const boxStyleMapCache = new WeakMap<object, BoxStyleMap>();
+
+const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
   const resolvedTestID = props.testID;
+  const internalScrollRef = useRef<ScrollView>(null);
+  const scrollRef = props.scrollRef ?? internalScrollRef;
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -111,194 +126,187 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
   }));
 
-  const BOX_STYLE_MAP: {
-    [prop: string]: (
-      // noExplicitAny: Box's style mapper accepts heterogeneous prop values (spacing, colors, dimensions, theme tokens, booleans) that cannot be enumerated in a single union; the mapper functions narrow at call site
-      // biome-ignore lint/suspicious/noExplicitAny: Box's style mapper accepts heterogeneous prop values (spacing, colors, dimensions, theme tokens, booleans) that cannot be enumerated in a single union; the mapper functions narrow at call site
-      value: any,
-      // noExplicitAny: see above - heterogeneous prop values
-      // biome-ignore lint/suspicious/noExplicitAny: see above - heterogeneous prop values
-      all: {[prop: string]: any}
-    ) => {[style: string]: string | number} | {};
-  } = {
-    alignContent: (value: AlignContent) => ({alignContent: ALIGN_CONTENT[value]}),
-    alignItems: (value: AlignItems) => ({alignItems: ALIGN_ITEMS[value]}),
-    alignSelf: (value: AlignSelf) => ({alignSelf: ALIGN_SELF[value]}),
-    border: (value: keyof BorderTheme) => {
-      if (!value) {
-        return {};
-      }
-      return {borderColor: theme.border[value], borderWidth: BORDER_WIDTH};
-    },
-    borderBottom: (value: keyof BorderTheme) => {
-      if (!value) {
-        return {};
-      }
-      return {borderBottomColor: theme.border[value], borderBottomWidth: BORDER_WIDTH};
-    },
-    borderLeft: (value: keyof BorderTheme) => {
-      if (!value) {
-        return {};
-      }
-      return {borderLeftColor: theme.border[value], borderLeftWidth: BORDER_WIDTH};
-    },
-    borderRight: (value: keyof BorderTheme) => {
-      if (!value) {
-        return {};
-      }
-      return {borderRightColor: theme.border[value], borderRightWidth: BORDER_WIDTH};
-    },
-    borderTop: (value: keyof BorderTheme) => {
-      if (!value) {
-        return {};
-      }
-      return {borderTopColor: theme.border[value], borderTopWidth: BORDER_WIDTH};
-    },
-    bottom: (bottom) => ({bottom: bottom ? 0 : undefined}),
-    color: (value: keyof SurfaceTheme) => ({backgroundColor: theme.surface[value]}),
-    direction: (value: "row" | "column") => ({display: "flex", flexDirection: value}),
-    display: (value: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden") => {
-      if (value === "none") {
-        return {display: "none"};
-      }
-      return value === "flex" ? {flex: undefined} : {flex: 0, flexDirection: "row"};
-    },
-    flex: (value: string) => {
-      if (value === "grow") {
-        return {display: "flex", flexGrow: 1, flexShrink: 1};
-      } else if (value === "shrink") {
-        return {display: "flex", flexShrink: 1};
-      } else {
-        return {display: "flex", flex: 0};
-      }
-    },
-    gap: (value) => ({gap: getSpacing(value)}),
-    height: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: height prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      if (props.border && !Number.isNaN(Number(value))) {
-        return {height: Number(value) + 2 * 2};
-      } else {
-        return {height: value};
-      }
-    },
-    justifyContent: (value: JustifyContent) => ({justifyContent: ALIGN_CONTENT[value]}),
-    left: (left) => ({left: left ? 0 : undefined}),
-    lgDirection: (value: "row" | "column") =>
-      mediaQueryLargerThan("lg") ? {display: "flex", flexDirection: value} : {},
-    margin: (value) => ({margin: getSpacing(value)}),
-    marginBottom: (value) => ({marginBottom: getSpacing(value)}),
-    marginLeft: (value) => ({marginLeft: getSpacing(value)}),
-    marginRight: (value) => ({marginRight: getSpacing(value)}),
-    marginTop: (value) => ({marginTop: getSpacing(value)}),
-    maxHeight: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: maxHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {maxHeight: value};
-    },
-    maxWidth: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: maxWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {maxWidth: value};
-    },
-    mdDirection: (value: "row" | "column") =>
-      mediaQueryLargerThan("md") ? {display: "flex", flexDirection: value} : {},
-    minHeight: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: minHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {minHeight: value};
-    },
-    minWidth: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: minWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {minWidth: value};
-    },
-    overflow: (value) => {
-      if (value === "scrollY" || value === "scroll") {
-        return {overflow: "scroll"};
-      }
-      return {overflow: value};
-    },
-    padding: (value) => ({padding: getSpacing(value)}),
-    paddingX: (value) => ({paddingLeft: getSpacing(value), paddingRight: getSpacing(value)}),
-    paddingY: (value) => ({paddingBottom: getSpacing(value), paddingTop: getSpacing(value)}),
-    position: (value) => ({position: value}),
-    right: (right) => ({right: right ? 0 : undefined}),
-    rounding: (rounding, allProps) => {
-      if (rounding === "circle") {
-        if (!allProps.height && !allProps.width) {
-          console.warn("Cannot use Box rounding='circle' without height or width.");
-          return {borderRadius: undefined};
+  let boxStyleMap = boxStyleMapCache.get(theme);
+  if (!boxStyleMap) {
+    boxStyleMap = {
+      alignContent: (value: AlignContent) => ({alignContent: ALIGN_CONTENT[value]}),
+      alignItems: (value: AlignItems) => ({alignItems: ALIGN_ITEMS[value]}),
+      alignSelf: (value: AlignSelf) => ({alignSelf: ALIGN_SELF[value]}),
+      border: (value: keyof BorderTheme) => {
+        if (!value) {
+          return {};
         }
-        return {borderRadius: allProps.height || allProps.width};
-      }
+        return {borderColor: theme.border[value], borderWidth: BORDER_WIDTH};
+      },
+      borderBottom: (value: keyof BorderTheme) => {
+        if (!value) {
+          return {};
+        }
+        return {borderBottomColor: theme.border[value], borderBottomWidth: BORDER_WIDTH};
+      },
+      borderLeft: (value: keyof BorderTheme) => {
+        if (!value) {
+          return {};
+        }
+        return {borderLeftColor: theme.border[value], borderLeftWidth: BORDER_WIDTH};
+      },
+      borderRight: (value: keyof BorderTheme) => {
+        if (!value) {
+          return {};
+        }
+        return {borderRightColor: theme.border[value], borderRightWidth: BORDER_WIDTH};
+      },
+      borderTop: (value: keyof BorderTheme) => {
+        if (!value) {
+          return {};
+        }
+        return {borderTopColor: theme.border[value], borderTopWidth: BORDER_WIDTH};
+      },
+      bottom: (bottom) => ({bottom: bottom ? 0 : undefined}),
+      color: (value: keyof SurfaceTheme) => ({backgroundColor: theme.surface[value]}),
+      direction: (value: "row" | "column") => ({display: "flex", flexDirection: value}),
+      display: (value: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden") => {
+        if (value === "none") {
+          return {display: "none"};
+        }
+        return value === "flex" ? {flex: undefined} : {flex: 0, flexDirection: "row"};
+      },
+      flex: (value: string) => {
+        if (value === "grow") {
+          return {display: "flex", flexGrow: 1, flexShrink: 1};
+        } else if (value === "shrink") {
+          return {display: "flex", flexShrink: 1};
+        } else {
+          return {display: "flex", flex: 0};
+        }
+      },
+      gap: (value) => ({gap: getSpacing(value)}),
+      height: (value, allProps) => {
+        if (!isValidWidthHeight(value)) {
+          console.warn(
+            `Box: height prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+          );
+          return {};
+        }
+        if (allProps.border && !Number.isNaN(Number(value))) {
+          return {height: Number(value) + 2 * 2};
+        } else {
+          return {height: value};
+        }
+      },
+      justifyContent: (value: JustifyContent) => ({justifyContent: ALIGN_CONTENT[value]}),
+      left: (left) => ({left: left ? 0 : undefined}),
+      lgDirection: (value: "row" | "column") =>
+        mediaQueryLargerThan("lg") ? {display: "flex", flexDirection: value} : {},
+      margin: (value) => ({margin: getSpacing(value)}),
+      marginBottom: (value) => ({marginBottom: getSpacing(value)}),
+      marginLeft: (value) => ({marginLeft: getSpacing(value)}),
+      marginRight: (value) => ({marginRight: getSpacing(value)}),
+      marginTop: (value) => ({marginTop: getSpacing(value)}),
+      maxHeight: (value) => {
+        if (!isValidWidthHeight(value)) {
+          console.warn(
+            `Box: maxHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+          );
+          return {};
+        }
+        return {maxHeight: value};
+      },
+      maxWidth: (value) => {
+        if (!isValidWidthHeight(value)) {
+          console.warn(
+            `Box: maxWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+          );
+          return {};
+        }
+        return {maxWidth: value};
+      },
+      mdDirection: (value: "row" | "column") =>
+        mediaQueryLargerThan("md") ? {display: "flex", flexDirection: value} : {},
+      minHeight: (value) => {
+        if (!isValidWidthHeight(value)) {
+          console.warn(
+            `Box: minHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+          );
+          return {};
+        }
+        return {minHeight: value};
+      },
+      minWidth: (value) => {
+        if (!isValidWidthHeight(value)) {
+          console.warn(
+            `Box: minWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+          );
+          return {};
+        }
+        return {minWidth: value};
+      },
+      overflow: (value) => {
+        if (value === "scrollY" || value === "scroll") {
+          return {overflow: "scroll"};
+        }
+        return {overflow: value};
+      },
+      padding: (value) => ({padding: getSpacing(value)}),
+      paddingX: (value) => ({paddingLeft: getSpacing(value), paddingRight: getSpacing(value)}),
+      paddingY: (value) => ({paddingBottom: getSpacing(value), paddingTop: getSpacing(value)}),
+      position: (value) => ({position: value}),
+      right: (right) => ({right: right ? 0 : undefined}),
+      rounding: (rounding, allProps) => {
+        if (rounding === "circle") {
+          if (!allProps.height && !allProps.width) {
+            console.warn("Cannot use Box rounding='circle' without height or width.");
+            return {borderRadius: undefined};
+          }
+          return {borderRadius: allProps.height || allProps.width};
+        }
 
-      if (rounding) {
-        return {borderRadius: getRounding(rounding)};
-      }
+        if (rounding) {
+          return {borderRadius: getRounding(rounding)};
+        }
 
-      return {borderRadius: undefined};
-    },
-    shadow: (value) => {
-      if (!value) {
-        return {};
-      }
-      if (Platform.OS === "ios" || Platform.OS === "web") {
-        return {
-          boxShadow: "2px 2px 2px rgba(153, 153, 153, 1.0)",
-        };
-      } else {
-        return {elevation: 4};
-      }
-    },
-    smDirection: (value: "row" | "column") =>
-      mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
-    top: (top) => ({top: top ? 0 : undefined}),
-    width: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: width prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      if (props.border && !Number.isNaN(Number(value))) {
-        return {width: Number(value) + 2 * 2};
-      } else {
-        return {width: value};
-      }
-    },
-    // Defaults to alignItems: "flex-start" so wrapped lines size to their content instead of
-    // stretching, but never overrides an explicit alignItems (prop order would decide the winner).
-    wrap: (value, allProps) => ({
-      alignItems: allProps.alignItems
-        ? ALIGN_ITEMS[allProps.alignItems as AlignItems]
-        : "flex-start",
-      flexWrap: value ? "wrap" : "nowrap",
-    }),
-    zIndex: (value) => ({zIndex: value ? value : undefined}),
-  };
-
-  const scrollRef = props.scrollRef ?? React.createRef();
+        return {borderRadius: undefined};
+      },
+      shadow: (value) => {
+        if (!value) {
+          return {};
+        }
+        if (Platform.OS === "ios" || Platform.OS === "web") {
+          return {
+            boxShadow: "2px 2px 2px rgba(153, 153, 153, 1.0)",
+          };
+        } else {
+          return {elevation: 4};
+        }
+      },
+      smDirection: (value: "row" | "column") =>
+        mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
+      top: (top) => ({top: top ? 0 : undefined}),
+      width: (value, allProps) => {
+        if (!isValidWidthHeight(value)) {
+          console.warn(
+            `Box: width prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+          );
+          return {};
+        }
+        if (allProps.border && !Number.isNaN(Number(value))) {
+          return {width: Number(value) + 2 * 2};
+        } else {
+          return {width: value};
+        }
+      },
+      // Defaults to alignItems: "flex-start" so wrapped lines size to their content instead of
+      // stretching, but never overrides an explicit alignItems (prop order would decide the winner).
+      wrap: (value, allProps) => ({
+        alignItems: allProps.alignItems
+          ? ALIGN_ITEMS[allProps.alignItems as AlignItems]
+          : "flex-start",
+        flexWrap: value ? "wrap" : "nowrap",
+      }),
+      zIndex: (value) => ({zIndex: value ? value : undefined}),
+    };
+    boxStyleMapCache.set(theme, boxStyleMap);
+  }
 
   // noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
   // biome-ignore lint/suspicious/noExplicitAny: the style object is assembled from heterogeneous mapper outputs and consumed by RN ViewStyle which has narrow union types per property
@@ -308,8 +316,8 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     let style: any = {};
     for (const prop of Object.keys(props) as Array<keyof typeof props>) {
       const value = props[prop];
-      if (BOX_STYLE_MAP[prop]) {
-        Object.assign(style, BOX_STYLE_MAP[prop](value, props));
+      if (boxStyleMap[prop]) {
+        Object.assign(style, boxStyleMap[prop](value, props));
       } else if (!NON_STYLE_BOX_PROPS.has(prop as string)) {
         style[prop] = value;
         // console.warn(`Box: unknown property ${prop}`);
@@ -323,6 +331,8 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
 
     return style;
   };
+
+  const boxStyle = propsToStyle();
 
   const onHoverIn = async () => {
     await props.onHoverStart?.();
@@ -355,7 +365,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
           await Unifier.utils.haptic();
           await props.onClick?.();
         }}
-        style={propsToStyle()}
+        style={boxStyle}
         testID={resolvedTestID ? `${resolvedTestID}-clickable` : undefined}
       >
         {props.children}
@@ -370,7 +380,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         {...(accessibilityLabel ? {accessibilityLabel} : {})}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
-        style={propsToStyle()}
+        style={boxStyle}
         testID={resolvedTestID}
       >
         {props.children}
@@ -379,7 +389,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   }
 
   if (props.scroll) {
-    const {justifyContent, alignContent, alignItems, ...scrollStyle} = propsToStyle();
+    const {justifyContent, alignContent, alignItems, ...scrollStyle} = boxStyle;
 
     box = (
       <ScrollView
@@ -414,3 +424,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   }
   return box;
 });
+
+BoxComponent.displayName = "Box";
+
+export const Box = React.memo(BoxComponent);

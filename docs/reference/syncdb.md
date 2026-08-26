@@ -125,14 +125,19 @@ new TerrenoApp({userModel: User})
 ```
 
 - **`SyncApp`** — HTTP sync routes (`/sync/snapshot`, `/sync/mutate`, `/sync/mutate/batch`, `/sync/key`, `/sync/streams`, `/sync/entities`).
-- **`RealtimeApp`** — Socket.io server with change-stream-driven `sync:delta` emission. Requires a **MongoDB replica set** (change streams).
-- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` themselves.
+- **`RealtimeApp`** — Socket.io server with change-stream-driven `sync:delta` emission. Requires a **MongoDB replica set** (change streams). `modelRouter` `realtime` (RTK `sync` events) is deprecated and removed in Terreno 58; do not add it to new models.
+- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Registration queues this work without contacting MongoDB, so models can load before the database connects. Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` after connecting.
 
-Socket auth accepts legacy JWTs by default. For Better Auth sessions:
+Socket auth requires at least one configured authentication method. It enables legacy JWT
+validation when `tokenSecret` or `TOKEN_SECRET` is available. Better Auth can be used without
+a JWT secret:
 
 ```typescript
 new RealtimeApp({betterAuth: {auth, userModel: User}})
 ```
+
+When both methods are configured, JWT validation runs first and Better Auth session validation
+is the fallback.
 
 ## createSyncDb configuration
 
@@ -183,7 +188,7 @@ export const syncDb = createSyncDb({
 | `goOffline()` | Simulated outage: disconnect transport, pause replay/reconcile/timer; local mutations keep queueing. |
 | `goOnline()` | End simulated outage; reconnect triggers reconcile + outbox replay. |
 | `mutate({collection, operation, id?, data?})` | Optimistic local write + durable outbox enqueue + fire-and-forget replay. Returns `{mutationId, id}`. |
-| `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. |
+| `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. Also runs automatically on (re)connect, on a rate-limited seq-jump hint, and on the periodic timer; each `sync:subscribed` confirmation additionally pages just the streams it names. |
 | `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. |
 | `replayOutbox()` | Drain queued mutations for the current user now. |
 | `resolveConflict({mutationId, strategy})` | Apply `"useServer"` or `"keepMine"` to a recorded conflict. |
@@ -407,7 +412,7 @@ Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
 | Event | Direction | Payload |
 |-------|-----------|---------|
 | `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[]}` |
-| `sync:subscribed` | server → client | `{collection, streams}` |
+| `sync:subscribed` | server → client | `{collection, streams}` — sent after the stream rooms are joined; the client pages each confirmed stream from its cursor so a write landing between the startup snapshot and the join is not missed |
 | `sync:error` | server → client | `{collection, message}` |
 | `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?, frontierSeq?}` |
 | `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` |

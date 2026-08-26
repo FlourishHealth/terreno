@@ -7,6 +7,13 @@ Published npm package for the Terreno Model Context Protocol (MCP) server. The m
 
 It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 
+Both HTTP MCP surfaces (`@terreno/mcp` and the `modelRouter` endpoint in
+`@terreno/api`) use the MCP TypeScript SDK v2 and speak the stateless
+`2026-07-28` protocol revision. The HTTP handlers retain the SDK's stateless
+legacy fallback for 2025-era clients. `terreno-mcp-local` uses v2 `serveStdio`,
+which negotiates the connection era and pins one server instance for that
+connection.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -125,6 +132,19 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 ``````typescript
 {
   component: string;        // e.g. "Button", "TextField"
+}
+``````
+
+### terreno_get_upgrade_guide
+
+Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages.
+
+**Parameters:**
+
+``````typescript
+{
+  fromVersion: string;      // Installed @terreno/* semver (e.g. 0.19.0)
+  toVersion: string;        // Target semver to upgrade to (e.g. 0.20.0)
 }
 ``````
 
@@ -326,7 +346,7 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
   appName: string;           // kebab-case (e.g., "my-app")
   appDisplayName: string;    // Human-readable name
   description?: string;
-  mcpServerUrl?: string;     // Default: https://mcp.terreno.flourish.health
+  mcpServerUrl?: string;     // Default: https://mcp.terreno.app
 }
 ``````
 
@@ -372,6 +392,12 @@ Workflow prompt for scaffolding a new Terreno app. Delegates to `terreno_bootstr
 
 - `appName` (string) — Application name in kebab-case
 - `appDisplayName` (string) — Human-readable display name
+
+### terreno_upgrade
+
+Lockstep Terreno upgrade workflow: read bundled upgrade notes, bump `@terreno/*` packages, run tests, and delegate Expo SDK steps to the official upgrading-expo skill.
+
+**Arguments:** `targetVersion` (optional) — target `@terreno/*` semver; omit to mean latest stable.
 
 ### terreno_create_crud_feature
 

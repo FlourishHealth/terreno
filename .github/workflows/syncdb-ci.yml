@@ -1,0 +1,63 @@
+# Path filters on `push` are ignored for the first push of a new branch
+# (GitHub Actions docs). PR CI uses `pull_request`; `push` is master-only.
+name: Syncdb CI
+
+on:
+  pull_request:
+    paths:
+      - "syncdb/**"
+      - "scripts/check-coverage.ts"
+      - ".github/workflows/syncdb-ci.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "syncdb/**"
+      - "scripts/check-coverage.ts"
+      - ".github/workflows/syncdb-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Syncdb Lint, Build, and Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+        working-directory: syncdb
+
+      - name: Build
+        run: bun run compile
+        working-directory: syncdb
+
+      - name: Test
+        run: bun run test
+        working-directory: syncdb
+        env:
+          CI: true
+
+      - name: Isolated tests
+        run: bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
+        working-directory: syncdb
+        env:
+          CI: true

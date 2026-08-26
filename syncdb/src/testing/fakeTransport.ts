@@ -16,6 +16,7 @@ import type {
   SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNack,
+  SyncSubscribed,
 } from "../types";
 
 /** Computes the reply for a sent mutation (may reject to simulate transport failure). */
@@ -38,6 +39,8 @@ export interface FakeTransport extends SyncTransport {
   readonly subscribedCollections: string[];
   /** Deliver a server delta to all onDelta listeners. */
   deliverDelta: (delta: SyncDelta) => void;
+  /** Deliver a `sync:subscribed` confirmation to all onSubscribed listeners. */
+  confirmSubscribed: (subscribed: SyncSubscribed) => void;
   /** Simulate a connect/disconnect; notifies status listeners on change. */
   setConnected: (connected: boolean) => void;
   /**
@@ -76,6 +79,7 @@ export const createFakeTransport = (): FakeTransport => {
   const sentBatches: string[][] = [];
   const subscribed = new Set<string>();
   const deltaListeners = new Set<(delta: SyncDelta) => void>();
+  const subscribedListeners = new Set<(subscribed: SyncSubscribed) => void>();
   const statusListeners = new Set<(status: TransportStatus) => void>();
   const responderQueue: FakeMutationResponder[] = [];
   let connected = false;
@@ -118,6 +122,11 @@ export const createFakeTransport = (): FakeTransport => {
   };
 
   return {
+    confirmSubscribed: (subscribed: SyncSubscribed): void => {
+      for (const listener of subscribedListeners) {
+        listener(subscribed);
+      }
+    },
     connect: async (): Promise<void> => {
       setConnected(true);
     },
@@ -145,6 +154,12 @@ export const createFakeTransport = (): FakeTransport => {
       statusListeners.add(callback);
       return () => {
         statusListeners.delete(callback);
+      };
+    },
+    onSubscribed: (callback: (subscribed: SyncSubscribed) => void): (() => void) => {
+      subscribedListeners.add(callback);
+      return () => {
+        subscribedListeners.delete(callback);
       };
     },
     respondBatchWith: (responder: FakeBatchResponder): void => {

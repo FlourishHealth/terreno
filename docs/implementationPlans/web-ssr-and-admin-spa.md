@@ -1,6 +1,6 @@
 # Implementation Plan: Server-Side Rendering for Universal Web (and Admin SPA)
 
-**Status:** Draft — blocking questions open
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1017
 **Priority:** Medium
 **Effort:** Epic

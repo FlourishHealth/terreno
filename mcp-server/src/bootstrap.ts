@@ -1,4 +1,4 @@
-import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import type {Tool} from "@modelcontextprotocol/server";
 
 import {
   composePackageGuidelinesForRules,
@@ -268,7 +268,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
       },
       devDependencies: {
         "@biomejs/biome": "^2.3.6",
-        "@types/bun": "^1.2.4",
+        "@types/bun": "^1.4.0",
         "@types/express": "^4.17.21",
         "@types/luxon": "^3.7.1",
         typescript: "~5.9.2",

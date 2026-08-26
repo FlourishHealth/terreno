@@ -32,6 +32,7 @@ import {PageConfiguration} from "@story-config/Page.config";
 import {PaginationConfiguration} from "@story-config/Pagination.config";
 import {PasswordFieldConfiguration} from "@story-config/PasswordField.config";
 import {PhoneNumberConfiguration} from "@story-config/PhoneNumberField.config";
+import {PopoverConfiguration} from "@story-config/Popover.config";
 import {RadioFieldConfiguration} from "@story-config/RadioField.config";
 import {SectionDividerConfiguration} from "@story-config/SectionDivider.config";
 import {SegmentedControlConfiguration} from "@story-config/SegmentedControl.config";
@@ -228,6 +229,7 @@ const Config: DemoConfigurationBase[] = [
   PageConfiguration,
   PaginationConfiguration,
   PasswordFieldConfiguration,
+  PopoverConfiguration,
   PhoneNumberConfiguration,
   RadioFieldConfiguration,
   SectionDividerConfiguration,
@@ -268,3 +270,21 @@ export const DemoConfig: DemoConfiguration[] = Config.map((c) => ({
     .flatMap((mod) => mod.children ?? [])
     .find((json) => json.name === c.interfaceName),
 })).sort((a, b) => a.name.localeCompare(b.name));
+
+const normalizeComponentName = (name: string): string =>
+  name.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * Resolve a demo configuration from a `component` route param.
+ *
+ * Netlify canonicalizes static asset paths to lowercase, so a deep link or page refresh on
+ * `/demo/Popover` arrives as `/demo/popover`. Matching on a normalized name keeps those URLs
+ * pointed at the component instead of bouncing back to the demo list.
+ */
+export const findDemoConfig = (component?: string): DemoConfiguration | undefined => {
+  if (!component) {
+    return undefined;
+  }
+  const normalized = normalizeComponentName(component);
+  return DemoConfig.find((c) => normalizeComponentName(c.name) === normalized);
+};

@@ -1,8 +1,9 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import type {AdminApi, AdminConfigResponse} from "./types";
@@ -129,6 +130,38 @@ describe("AdminModelForm", () => {
         title: "New User",
       })
     );
+  });
+
+  it("removes save controls when effective model permissions are read-only", () => {
+    configState.config = {
+      ...config,
+      models: [{...modelConfig, permissions: {create: true, delete: true, update: true}}],
+    };
+    readState.data = {
+      _adminCapabilities: {delete: false, update: false},
+      email: "readonly@example.com",
+      name: "Read only",
+    };
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+
+    renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="readonly"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+
+    assert.isNull(header.queryByTestId("admin-save-button"));
+    assert.isNull(header.queryByTestId("admin-delete-button"));
   });
 
   it("renders spinner during edit when the item is loading", () => {
@@ -526,6 +559,51 @@ describe("AdminModelForm", () => {
     const body = updateFn.mock.calls[0][0] as {body: Record<string, unknown>; id: string};
     // Array was stripped of null entries.
     expect(body.body.tags).toEqual(["a", "b"]);
+  });
+
+  it("omits blank optional enum fields from update payloads", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["email", "oauthProvider"],
+          fields: {
+            email: {required: true, type: "string"},
+            oauthProvider: {
+              enum: ["google", "github", "apple"],
+              required: false,
+              type: "string",
+            },
+          },
+        },
+      ],
+    };
+    readState.data = {email: "e@x.com"};
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+    renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+    await act(async () => {
+      fireEvent.press(header.getByTestId("admin-save-button"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    const body = updateFn.mock.calls[0][0] as {body: Record<string, unknown>; id: string};
+    expect(body.body.oauthProvider).toBeUndefined();
+    expect(body.body.email).toBe("e@x.com");
   });
 
   it("applies field-level onChange via the rendered text field", async () => {

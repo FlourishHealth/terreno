@@ -1,3 +1,4 @@
+import {adminOwnedBy} from "@terreno/admin-backend";
 import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/api";
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
@@ -10,6 +11,7 @@ const bulkCompleteBodySchema = z
   .strict();
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  access: {resource: "todo"},
   admin: {
     actions: [
       {
@@ -19,6 +21,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
         patchKeys: ["completed"],
       },
     ],
+    adminAccess: {isOwned: adminOwnedBy("ownerId")},
     adminPermissions: {delete: []},
     bulkPatchAllowlist: ["completed", "priority", "tags"],
     defaultSort: "-created",
@@ -54,6 +57,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   collectionActions: {
     bulkComplete: {
+      access: {action: "update", resource: "todo"},
       body: bulkCompleteBodySchema,
       handler: async ({body, user}) => {
         const ownerId = (user as unknown as UserDocument)?._id;
@@ -90,6 +94,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   instanceActions: {
     markComplete: {
+      access: {action: "update", resource: "todo"},
       handler: async ({doc}) => {
         const todo = doc as TodoDocument;
         if (todo.completed) {
@@ -103,6 +108,11 @@ export const todoRouter = modelRouter("/todos", Todo, {
       permissions: [Permissions.IsOwner],
       summary: "Mark a single todo as complete",
     },
+  },
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read", "create", "update", "delete"],
   },
   permissions: {
     create: [Permissions.IsAuthenticated],

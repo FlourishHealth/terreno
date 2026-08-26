@@ -17,7 +17,8 @@ import {
 } from "./actions";
 import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
 import type {AdminConfig} from "./adminTypes";
-import {authenticateMiddleware, type User} from "./auth";
+import {authenticateMiddleware, omitUserRolesFromWriteBody, type User} from "./auth";
+import {registerCollection, replaceCollectionOptions} from "./collectionRegistry";
 import {
   APIError,
   apiErrorMiddleware,
@@ -29,6 +30,8 @@ import {
   passthroughOrWrapWrite,
 } from "./errors";
 import {logger} from "./logger";
+import {registerMCPModel, updateMCPRegistryOptions} from "./mcp/registry";
+import type {MCPConfig} from "./mcp/types";
 import {
   createOpenApiMiddleware,
   deleteOpenApiMiddleware,
@@ -44,7 +47,9 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
-import {registerRealtime} from "./realtime/registry";
+import {resolveModelRouterAccess, validateAccessWriteBody} from "./rbac/modelRouterAccess";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
+import {warnRealtimeDeprecated} from "./realtime/deprecation";
 import type {RealtimeConfig} from "./realtime/types";
 import {
   type ExecutorConcurrencyCheck,
@@ -53,7 +58,6 @@ import {
   executeUpdate,
   isExecutorConflictError,
 } from "./sync/executors";
-import {registerSync} from "./sync/registry";
 import type {SyncConfig} from "./sync/types";
 import {
   defaultResponseHandler,
@@ -142,8 +146,17 @@ export interface ModelRouterOptions<T> {
    * A group of method-level (create/read/update/delete/list) permissions.
    * Determine if the user can perform the operation at all, and for read/update/delete methods,
    * whether the user can perform the operation on the object referenced.
+   * @deprecated Use `access` with `accessControl` instead. Still required as a type-level
+   * fallback; `resolveModelRouterAccess` replaces these methods when `access` is set.
    * */
   permissions: RESTPermissions<T>;
+  /**
+   * RBAC access configuration for this router. Requires `accessControl` on the same options object
+   * or injected by TerrenoApp at build time.
+   */
+  access?: ModelRouterAccessOptions;
+  /** TerrenoAccess instance used to evaluate `access` permissions. */
+  accessControl?: AnyTerrenoAccess;
   /**
    * Allow anonymous users to access the resource.
    * Defaults to false.
@@ -351,11 +364,34 @@ export interface ModelRouterOptions<T> {
    */
   validation?: boolean | ModelRouterValidationOptions;
   /**
+   * MCP (Model Context Protocol) configuration. When provided, registers this model's
+   * CRUD operations as MCP tools that can be called by LLMs.
+   *
+   * Tools are auto-generated based on the methods specified (default: ['list', 'read']).
+   * Auth, permissions, population, and filtering all work the same as REST.
+   *
+   * @example
+   * ```typescript
+   * modelRouter("/todos", Todo, {
+   *   mcp: {
+   *     methods: ['list', 'read', 'create'],
+   *     excludeFields: ['internalNote'],
+   *     maxLimit: 25,
+   *   },
+   * });
+   * ```
+   */
+  mcp?: MCPConfig;
+  /**
    * Enable real-time sync for this model via WebSocket events.
    * When configured, CRUD operations will emit events to connected clients
    * through the RealtimeApp plugin's change stream watcher.
    *
    * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   *
+   * @deprecated Removed in Terreno 58. Use `sync` with
+   * `@terreno/syncdb` instead. `RealtimeApp` remains required for sync sockets.
+   * See docs/how-to/migrate-rtk-to-syncdb.md.
    */
   realtime?: RealtimeConfig;
   /**
@@ -631,31 +667,39 @@ export function modelRouter<T>(
     options = modelOrOptions as ModelRouterOptions<T>;
   }
 
-  const router = _buildModelRouter(model, options, path);
+  // Pathless MCP only — when a route path is present, registerCollection below
+  // owns the catalog entry and MCP shares that routePath key.
+  if (options.mcp && path === undefined) {
+    registerMCPModel(model, options.mcp, options);
+  }
+
+  const shouldDeferBuild = path !== undefined && Boolean(options.access) && !options.accessControl;
 
   if (path !== undefined) {
-    // Register for real-time sync if configured
     if (options.realtime) {
-      registerRealtime({
-        collectionName: model.collection.collectionName,
-        config: options.realtime,
-        modelName: model.modelName,
-        options: options as unknown as ModelRouterOptions<unknown>,
-        routePath: path,
-      });
+      warnRealtimeDeprecated(model.modelName, path);
     }
-    // Register for local-first sync if configured (validates the schema contract)
-    if (options.sync) {
-      registerSync({config: options.sync, model, options, routePath: path});
-    }
+    registerCollection({model, options, routePath: path});
+  }
+
+  const router = shouldDeferBuild ? express.Router() : _buildModelRouter(model, options, path);
+
+  if (path !== undefined) {
     return {
       __type: "modelRouter",
-      _buildWithContext: (context: ModelRouterBuildContext) =>
-        _buildModelRouter(
+      _buildWithContext: (context: ModelRouterBuildContext) => {
+        const enrichedOptions = enrichModelRouterOptions(
           model,
-          enrichModelRouterOptions(model, {...options, openApi: context.openApi}, context),
-          path
-        ),
+          {...options, openApi: context.openApi},
+          context
+        );
+        const runtimeOptions = {
+          ...enrichedOptions,
+          accessControl: enrichedOptions.accessControl ?? context.accessControl,
+        };
+        replaceCollectionOptions(path, runtimeOptions as unknown as ModelRouterOptions<unknown>);
+        return _buildModelRouter(model, runtimeOptions, path);
+      },
       model,
       options,
       path,
@@ -664,6 +708,7 @@ export function modelRouter<T>(
   }
 
   if (options.realtime) {
+    warnRealtimeDeprecated(model.modelName);
     logger.warn(
       `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
         "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
@@ -685,6 +730,29 @@ const _buildModelRouter = <T>(
   routePath?: string
 ): express.Router => {
   const router = express.Router();
+  const resolvedAccess = resolveModelRouterAccess({
+    access: options.access,
+    accessControl: options.accessControl,
+    permissions: options.permissions,
+    queryFilter: options.queryFilter as never,
+    responseHandler: options.responseHandler as never,
+    scope: options.access?.scope,
+  });
+  options = {
+    ...options,
+    permissions: resolvedAccess.permissions,
+    queryFilter: (resolvedAccess.queryFilter ??
+      options.queryFilter) as ModelRouterOptions<T>["queryFilter"],
+    responseHandler: (resolvedAccess.responseHandler ??
+      options.responseHandler ??
+      defaultResponseHandler) as ModelRouterOptions<T>["responseHandler"],
+  };
+  if (routePath) {
+    replaceCollectionOptions(routePath, options as unknown as ModelRouterOptions<unknown>);
+  }
+  if (options.mcp) {
+    updateMCPRegistryOptions(model.modelName, options as unknown as ModelRouterOptions<unknown>);
+  }
 
   assertNoActionCollisions(model, options);
   registerActionRoutes(router, model, options);
@@ -1159,6 +1227,24 @@ const _buildModelRouter = <T>(
           title: "Update not allowed",
         });
       }
+    }
+
+    body = omitUserRolesFromWriteBody(
+      model.modelName,
+      options.accessControl,
+      body,
+      (req as Request & {terrenoAllowUserAdminWrite?: boolean}).terrenoAllowUserAdminWrite === true
+    ) as typeof body;
+
+    if (options.access && options.accessControl && body && typeof body === "object") {
+      await validateAccessWriteBody({
+        access: options.access,
+        accessControl: options.accessControl,
+        body: body as Record<string, unknown>,
+        doc,
+        phase: "write",
+        user: req.user,
+      });
     }
 
     // Using .save here runs the risk of a versioning error if you try to make two simultaneous

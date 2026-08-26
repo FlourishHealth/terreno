@@ -2,6 +2,8 @@ name: Repository policies
 
 on:
   push:
+    branches:
+      - master
     paths:
       - "**/*.ts"
       - "**/*.tsx"
@@ -11,13 +13,22 @@ on:
       - "biome/plugins/no-barrel-imports.grit"
       - "scripts/no-barrel-imports/**"
       - "scripts/check-explicit-any/**"
+      - "scripts/check-source-rules/**"
       - "scripts/check-license-coverage/**"
       - "scripts/changelog/**"
       - "changelog/**"
       - "CHANGELOG.md"
       - "scripts/check-circleci-parity/**"
+      - "scripts/planning/**"
+      - "plugins/**"
+      - ".cursor-plugin/**"
+      - ".rulesync/skills/**"
+      - "skills/**"
+      - "skills.sh.json"
+      - "**/.ai/skills/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
+      - "docs/explanation/source-rules.md"
       - ".circleci/**"
       - ".github/workflows/repo-policies.yml"
   pull_request:
@@ -30,13 +41,22 @@ on:
       - "biome/plugins/no-barrel-imports.grit"
       - "scripts/no-barrel-imports/**"
       - "scripts/check-explicit-any/**"
+      - "scripts/check-source-rules/**"
       - "scripts/check-license-coverage/**"
       - "scripts/changelog/**"
       - "changelog/**"
       - "CHANGELOG.md"
       - "scripts/check-circleci-parity/**"
+      - "scripts/planning/**"
+      - "plugins/**"
+      - ".cursor-plugin/**"
+      - ".rulesync/skills/**"
+      - "skills/**"
+      - "skills.sh.json"
+      - "**/.ai/skills/**"
       - "docs/explanation/no-barrel-imports.md"
       - "docs/explanation/explicit-any-policy.md"
+      - "docs/explanation/source-rules.md"
       - ".circleci/**"
       - ".github/workflows/repo-policies.yml"
 
@@ -50,7 +70,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Validate required secrets
         run: |
@@ -63,8 +83,8 @@ jobs:
       - name: Check for barrel imports
         run: bun run check:no-barrel-imports
 
-  explicit-any:
-    name: Explicit any baseline
+  source-rules:
+    name: Production source rules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -72,7 +92,35 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Check production source rules
+        run: bun run check:source-rules
+
+      - name: Test source-rules scanner
+        run: bun test scripts/check-source-rules/
+
+  explicit-any:
+    name: Explicit any per-file baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
 
       - name: Validate required secrets
         run: |
@@ -87,6 +135,9 @@ jobs:
 
       - name: Check explicit any baseline
         run: bun run check:explicit-any:baseline
+
+      - name: Test explicit any policy
+        run: bun test scripts/check-explicit-any/
 
       - name: Write explicit any inventory artifact
         if: always()
@@ -108,7 +159,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Validate required secrets
         run: |
@@ -130,7 +181,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Validate required secrets
         run: |
@@ -152,7 +203,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Validate required secrets
         run: |
@@ -170,3 +221,31 @@ jobs:
 
       - name: Test changelog assemble
         run: bun test scripts/changelog/lib.test.ts
+
+  lifecycle-skills:
+    name: Lifecycle skill architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Check lifecycle contracts
+        run: bun run check:lifecycle-skills
+
+      - name: Test lifecycle validator
+        run: bun test scripts/planning/

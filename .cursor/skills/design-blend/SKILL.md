@@ -27,6 +27,10 @@ Use this skill when converting a Claude design file into an implementation-ready
 
 If any mandatory item above is skipped, stop and correct before proceeding.
 
+## Documentation
+
+Read the app's architecture docs and `docs/reference/` for the affected area before mapping the design. Every user-visible or architectural slice names docs to create or update. Write those pages with `update-docs` in the same slice.
+
 ## Required outputs
 
 You MUST output the following sections in order.

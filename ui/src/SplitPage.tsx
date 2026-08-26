@@ -1,4 +1,4 @@
-import {Children, useCallback, useEffect, useState} from "react";
+import {Children, type ComponentProps, useCallback, useEffect, useState} from "react";
 import {Dimensions, type ListRenderItemInfo, ScrollView, View} from "react-native";
 import {SwiperFlatList} from "react-native-swiper-flatlist";
 
@@ -302,9 +302,10 @@ export const SplitPage = ({
       width="100%"
     >
       {loading === true && (
-        // noExplicitAny: Spinner color is a token enum but the legacy code passes theme.text.primary (a resolved hex string); preserving original behavior
-        // biome-ignore lint/suspicious/noExplicitAny: Spinner color is a token enum but the legacy code passes theme.text.primary (a resolved hex string); preserving original behavior
-        <Spinner color={theme.text.primary as any} size="md" />
+        <Spinner
+          color={theme.text.primary as unknown as ComponentProps<typeof Spinner>["color"]}
+          size="md"
+        />
       )}
       {isMobileDevice ? renderMobileSplitPage() : renderSplitPage()}
     </Box>

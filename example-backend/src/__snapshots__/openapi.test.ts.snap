@@ -804,6 +804,29 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "models": {
                       "type": "array",
                     },
+                    "platformTools": {
+                      "properties": {
+                        "configuration": {
+                          "type": "boolean",
+                        },
+                        "roles": {
+                          "type": "boolean",
+                        },
+                        "runScripts": {
+                          "type": "boolean",
+                        },
+                        "scripts": {
+                          "type": "boolean",
+                        },
+                        "version": {
+                          "type": "boolean",
+                        },
+                        "viewScripts": {
+                          "type": "boolean",
+                        },
+                      },
+                      "type": "object",
+                    },
                     "schemaVersion": {
                       "type": "number",
                     },
@@ -5625,6 +5648,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -5766,6 +5796,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -5830,6 +5867,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -6135,6 +6179,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       },
                       "type": "array",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -6269,6 +6320,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6333,6 +6391,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -12262,6 +12327,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -12403,6 +12475,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -12467,6 +12546,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -12672,6 +12758,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       },
                       "type": "array",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -12806,6 +12899,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -12870,6 +12970,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },

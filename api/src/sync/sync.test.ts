@@ -3,6 +3,7 @@
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {model, Schema} from "mongoose";
 import {type ModelRouterOptions, modelRouter} from "../api";
+import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {setupDb} from "../tests";
 import {
@@ -18,6 +19,7 @@ import {
   findSyncEntryByModelName,
   getSyncRegistry,
   registerSync,
+  updateSyncRegistryOptions,
   warnOnSyncScopesWithoutUserModel,
 } from "./registry";
 import {
@@ -244,6 +246,20 @@ describe("registerSync validation", () => {
     expect(findSyncEntryByCollectionTag("syncStuff")?.modelName).toBe("SyncStuff");
   });
 
+  it("updateSyncRegistryOptions replaces options on an existing entry", () => {
+    registerStuff();
+    const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<unknown>;
+    updateSyncRegistryOptions("/syncStuff", updatedOptions);
+    expect(getSyncRegistry()[0]?.options).toBe(updatedOptions);
+  });
+
+  it("updateSyncRegistryOptions no-ops when the route path is not registered", () => {
+    registerStuff();
+    const originalOptions = getSyncRegistry()[0]?.options;
+    updateSyncRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<unknown>);
+    expect(getSyncRegistry()[0]?.options).toBe(originalOptions);
+  });
+
   it("makes bulkWrite throw on the registered model (it bypasses every plugin guard)", () => {
     registerStuff();
     expect(() =>
@@ -294,6 +310,42 @@ describe("modelRouter sync option", () => {
   it("does not register in the two-argument form", () => {
     modelRouter(SyncStuffModel as any, {...stubOptions, sync: ownerConfig});
     expect(findSyncEntryByCollectionTag("syncStuff")).toBeUndefined();
+  });
+
+  it("refreshes sync registry options when rebuilt with accessControl", () => {
+    const registration = modelRouter("/syncStuff", SyncStuffModel, {
+      access: {resource: "syncStuff"},
+      permissions: {
+        create: [Permissions.IsAny],
+        delete: [Permissions.IsAny],
+        list: [Permissions.IsAny],
+        read: [Permissions.IsAny],
+        update: [Permissions.IsAny],
+      },
+      sync: ownerConfig,
+    });
+    const before = findSyncEntryByCollectionTag("syncStuff")?.options.permissions.list;
+    expect(before).toEqual([Permissions.IsAny]);
+
+    const accessControl = {
+      can: async (): Promise<{allowed: boolean}> => ({allowed: true}),
+      fieldMask: async (): Promise<{omit: string[]; read: "*"; write: "*"}> => ({
+        omit: [],
+        read: "*",
+        write: "*",
+      }),
+      queryFilter: async (): Promise<Record<string, unknown>> => ({}),
+      statements: {syncStuff: ["list", "read", "create", "update", "delete"]},
+    };
+    (
+      registration as {_buildWithContext: (context: {accessControl: unknown}) => unknown}
+    )._buildWithContext({
+      accessControl,
+    });
+
+    const after = findSyncEntryByCollectionTag("syncStuff");
+    expect(after?.options.accessControl).toBe(accessControl);
+    expect(after?.options.permissions.list).not.toBe(before);
   });
 });
 

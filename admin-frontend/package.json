@@ -1,4 +1,7 @@
 {
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
@@ -8,7 +11,7 @@
     "react-native": "catalog:",
     "react-native-safe-area-context": "catalog:"
   },
-  "description": "Admin panel frontend screens for @terreno/api backends",
+  "description": "Admin panel frontend screens for @terreno/api backends — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@reduxjs/toolkit": "catalog:",
@@ -25,6 +28,13 @@
     "dist/**/*",
     "src/**/*",
     ".ai/**/*"
+  ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "admin",
+    "react-native",
+    "expo",
+    "terreno"
   ],
   "license": "MIT",
   "main": "dist/index.js",
@@ -43,6 +53,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
   "scripts": {
     "compile": "tsc",
     "compile:watch": "tsc -w",
@@ -51,9 +65,10 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "test": "bun test && for f in ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do bun test \"$f\" || exit 1; done",
+    "test:agent": "for f in ./src/*.test.ts ./src/*.test.tsx ./src/**/*.test.ts ./src/**/*.test.tsx ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do if [ -f \"$f\" ]; then AGENT=1 bun test --only-failures \"$f\" || exit 1; fi; done",
     "test:ci": "bun run test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.0.0"
+  "version": "57.2.0"
 }

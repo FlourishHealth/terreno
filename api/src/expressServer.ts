@@ -169,15 +169,9 @@ export const createRouterWithAuth = (
 };
 
 export interface AuthOptions {
-  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  generateJWTPayload?: (user: any) => Record<string, unknown>;
-  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  generateTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
-  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  generateRefreshTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
+  generateJWTPayload?: (user: unknown) => Record<string, unknown>;
+  generateTokenExpiration?: (user: unknown) => number | jwt.SignOptions["expiresIn"];
+  generateRefreshTokenExpiration?: (user: unknown) => number | jwt.SignOptions["expiresIn"];
 }
 
 export const cronjob = (

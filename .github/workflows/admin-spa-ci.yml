@@ -3,7 +3,16 @@
 name: Admin SPA CI
 
 on:
+  pull_request:
+    paths:
+      - "admin-spa/**"
+      - "admin-frontend/**"
+      - "rtk/**"
+      - "ui/**"
+      - ".github/workflows/admin-spa-ci.yml"
   push:
+    branches:
+      - master
     paths:
       - "admin-spa/**"
       - "admin-frontend/**"
@@ -21,24 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-        working-directory: .
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
 
       # Compile workspace dependencies (server plugin + app typecheck need their types).
       - name: Build workspace dependencies
@@ -62,6 +55,12 @@ jobs:
 
       - name: Smoke check (backend-free)
         run: bun run smoke
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium

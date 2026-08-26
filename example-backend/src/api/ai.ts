@@ -6,6 +6,7 @@ import {
   addMcpRoutes,
   createVertexProvider,
   FileStorageService,
+  getMCPTools,
   listEnabledVertexModels,
   listGeminiApiModels,
   MCPService,
@@ -14,7 +15,7 @@ import {
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
-import type {ModelRouterOptions} from "@terreno/api";
+import type {ModelRouterOptions, User} from "@terreno/api";
 import {
   APIError,
   asyncHandler,
@@ -34,6 +35,8 @@ interface AIProvider {
   (modelId: string): LanguageModel;
   image: (modelId: string) => ImageModel;
 }
+
+type GptRouteOptions = Parameters<typeof addGptRoutes>[1];
 
 /** The subset of @ai-sdk/google we use (loaded dynamically). */
 interface GoogleModule {
@@ -562,12 +565,14 @@ const createImageTool = (apiKey?: string): Tool => {
 };
 
 const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  const tools: Record<string, Tool> = {...getMCPTools(req.user as User | undefined)};
+
   const apiKey = req.headers["x-ai-api-key"] as string | undefined;
-  if (!apiKey) {
-    return {};
+  if (apiKey) {
+    tools.generate_image = createImageTool(apiKey);
   }
 
-  return {generate_image: createImageTool(apiKey)};
+  return tools;
 };
 
 const pdfTool = tool({
@@ -725,9 +730,7 @@ export const addAiRoutes = (
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
-    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    createRequestTools: createPerRequestTools as any,
+    createRequestTools: createPerRequestTools as unknown as GptRouteOptions["createRequestTools"],
     createServerModelFn: createServerModel,
     demoMode: !aiService,
     langfuseSystemPromptName: "chat-assistant",
@@ -735,9 +738,7 @@ export const addAiRoutes = (
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
-    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    tools: getDemoTools() as any,
+    tools: getDemoTools() as unknown as GptRouteOptions["tools"],
   });
   if (fileStorageService) {
     addFileRoutes(router, {

@@ -203,7 +203,7 @@ Sender identity must be verified in SendGrid before real delivery works.
 
 | Variable | Read by | Required | Default | Secret | Scope |
 |----------|---------|----------|---------|--------|-------|
-| `FLOURISH_SERVICE` | OpenTelemetry | ❌ | `flourish-backend` | No | server |
+| `OTEL_SERVICE_NAME` | OpenTelemetry (example-backend) | ❌ | `example-backend` | No | server |
 | `PR_NUMBER` | PR preview deploy | ❌ | — | No | server |
 | `PR_SERVICE_URL` | PR preview deploy | ❌ | — | No | server |
 | `DEFAULT_PAGE_SIZE` | Configuration model | ❌ | `20` | No | server |

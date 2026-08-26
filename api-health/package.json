@@ -7,7 +7,7 @@
     "@terreno/api": "workspace:*",
     "express": "catalog:"
   },
-  "description": "Health check plugin for @terreno/api",
+  "description": "Health check plugin for @terreno/api — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",
@@ -40,9 +40,10 @@
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "test": "bun test src/",
+    "test:agent": "AGENT=1 bun test --only-failures src/",
     "test:ci": "bun test src/",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.0.0"
+  "version": "57.2.0"
 }

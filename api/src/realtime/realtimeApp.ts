@@ -8,7 +8,7 @@ import {Server, type Socket} from "socket.io";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
+import {canSubscribeRealtime} from "../rbac/realtimeAccess";
 import {warnOnSyncScopesWithoutUserModel} from "../sync/registry";
 import {installSyncSocketHandlers} from "../sync/socketHandlers";
 import {getSyncAppOptions} from "../sync/syncApp";
@@ -77,10 +77,7 @@ const canSubscribe = async (
   entry: RealtimeRegistryEntry,
   method: "list" | "read",
   user?: User
-): Promise<boolean> => {
-  const permissions = entry.options.permissions[method];
-  return checkPermissions(method, permissions, user);
-};
+): Promise<boolean> => canSubscribeRealtime(entry, method, user);
 
 const getAuthorizedQuery = async (
   entry: RealtimeRegistryEntry,
@@ -326,7 +323,7 @@ export const installRealtimeSocketHandlers = (
  * TerrenoPlugin that provides real-time sync via Socket.io and MongoDB change streams.
  *
  * Attaches a Socket.io server to the HTTP server created by TerrenoApp.start(),
- * sets up JWT authentication for socket connections, manages room subscriptions
+ * sets up JWT and/or Better Auth authentication for socket connections, manages room subscriptions
  * (model, document, and query rooms), and starts a change stream watcher that
  * emits events to connected clients.
  *
@@ -397,14 +394,14 @@ export class RealtimeApp implements TerrenoPlugin {
         },
       });
 
-      // Authentication middleware: legacy JWT first, optionally Better Auth sessions.
+      // Authentication middleware: legacy JWT first when configured, optionally Better Auth sessions.
       const tokenSecret = this.config.tokenSecret ?? process.env.TOKEN_SECRET;
-      if (!tokenSecret) {
+      if (!tokenSecret && !this.config.betterAuth) {
         throw new APIError({
           status: 500,
           title:
-            "[realtime] TOKEN_SECRET is required for socket authentication. " +
-            "Set process.env.TOKEN_SECRET or pass tokenSecret in RealtimeAppOptions.",
+            "[realtime] Socket authentication requires TOKEN_SECRET or Better Auth. " +
+            "Set process.env.TOKEN_SECRET, pass tokenSecret, or configure betterAuth.",
         });
       }
 
@@ -421,13 +418,14 @@ export class RealtimeApp implements TerrenoPlugin {
         createSocketAuthMiddleware({
           betterAuth: this.config.betterAuth,
           issuer: resolveTokenIssuer,
-          tokenSecret,
+          ...(tokenSecret ? {tokenSecret} : {}),
         })
       );
 
-      logInfo(
-        `[realtime] Socket auth middleware added (JWT${this.config.betterAuth ? " + Better Auth" : ""})`
-      );
+      const authKinds = [tokenSecret ? "JWT" : null, this.config.betterAuth ? "Better Auth" : null]
+        .filter(Boolean)
+        .join(" + ");
+      logInfo(`[realtime] Socket auth middleware added (${authKinds})`);
 
       // Task 9.21: tenant/custom sync scopes can only be resolved from the full user
       // document, so warn loudly here (once, at startup) rather than silently serving

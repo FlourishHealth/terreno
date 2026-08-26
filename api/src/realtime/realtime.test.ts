@@ -14,6 +14,8 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:
 import express from "express";
 import mongoose from "mongoose";
 
+import type {ModelRouterOptions} from "../api";
+
 import {
   emitToAuthorizedRoom,
   emitToDocumentAndQueryRooms,
@@ -48,6 +50,7 @@ import {
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./registry";
 import type {RealtimeEvent} from "./types";
 
@@ -584,6 +587,24 @@ describe("realtimeRegistry", () => {
       registerRealtime(makeEntry());
       clearRealtimeRegistry();
       expect(getRealtimeRegistry()).toHaveLength(0);
+    });
+  });
+
+  describe("updateRealtimeRegistryOptions", () => {
+    it("replaces options on an existing entry by route path", () => {
+      registerRealtime(makeEntry({routePath: "/todos"}));
+      const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<unknown>;
+      updateRealtimeRegistryOptions("/todos", updatedOptions);
+
+      expect(getRealtimeRegistry()[0]?.options).toBe(updatedOptions);
+    });
+
+    it("no-ops when the route path is not registered", () => {
+      registerRealtime(makeEntry({routePath: "/todos"}));
+      const originalOptions = getRealtimeRegistry()[0]?.options;
+      updateRealtimeRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<unknown>);
+
+      expect(getRealtimeRegistry()[0]?.options).toBe(originalOptions);
     });
   });
 });
@@ -1865,12 +1886,15 @@ describe("emitToDocumentAndQueryRooms", () => {
         ...modelEntry,
         options: {
           permissions: {
-            ...modelEntry.options.permissions,
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
             read: [
               (_method, user?: {admin?: boolean; id?: string}, obj?: unknown) =>
                 user?.admin === true ||
                 user?.id === (obj as {ownerId?: string} | undefined)?.ownerId,
             ],
+            update: [() => true],
           },
         },
       };
@@ -2755,14 +2779,16 @@ describe("RealtimeApp.onServerCreated", () => {
     return server;
   };
 
-  it("throws when TOKEN_SECRET is missing", () => {
+  it("throws when no socket authentication method is configured", () => {
     const originalSecret = process.env.TOKEN_SECRET;
     process.env.TOKEN_SECRET = "";
 
     const app = new RealtimeApp({tokenSecret: undefined});
     const server = makeServer();
 
-    expect(() => app.onServerCreated(server)).toThrow("TOKEN_SECRET is required");
+    expect(() => app.onServerCreated(server)).toThrow(
+      "Socket authentication requires TOKEN_SECRET or Better Auth"
+    );
 
     process.env.TOKEN_SECRET = originalSecret;
   });
@@ -3416,7 +3442,7 @@ describe("RealtimeApp — onServerCreated and setupAdapter", () => {
     server.close();
   });
 
-  it("onServerCreated throws when TOKEN_SECRET is missing", () => {
+  it("onServerCreated throws when no socket authentication method is configured", () => {
     const http = require("node:http");
     const origSecret = process.env.TOKEN_SECRET;
     process.env.TOKEN_SECRET = "";
@@ -3425,7 +3451,9 @@ describe("RealtimeApp — onServerCreated and setupAdapter", () => {
     app.register(expressApp);
     const server = http.createServer(expressApp);
 
-    expect(() => app.onServerCreated(server)).toThrow("TOKEN_SECRET is required");
+    expect(() => app.onServerCreated(server)).toThrow(
+      "Socket authentication requires TOKEN_SECRET or Better Auth"
+    );
     process.env.TOKEN_SECRET = origSecret;
     server.close();
   });

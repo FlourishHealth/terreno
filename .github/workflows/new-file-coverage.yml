@@ -1,0 +1,55 @@
+name: New file coverage
+
+on:
+  pull_request:
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "package.json"
+      - "bun.lock"
+      - "scripts/check-coverage.ts"
+      - "scripts/check-new-file-coverage.ts"
+      - ".github/workflows/new-file-coverage.yml"
+
+jobs:
+  new-file-coverage:
+    name: Require 90% coverage on new source files
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
+
+      - name: Validate required variables
+        env:
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          missing=()
+          if [ -z "$COVERAGE_BASE_SHA" ]; then missing+=("COVERAGE_BASE_SHA"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required variables: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Compile workspace for coverage tests
+        run: |
+          node .github/scripts/compile-workspace-deps.js api
+          bun run --filter '@terreno/api' compile
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: "6.0"
+          mongodb-image: mirror.gcr.io/library/mongo
+
+      - name: Test coverage gate
+        run: bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+
+      - name: Check new source file coverage
+        env:
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bun run check:new-file-coverage --base="$COVERAGE_BASE_SHA" --threshold=90

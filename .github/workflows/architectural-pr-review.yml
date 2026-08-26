@@ -2,7 +2,7 @@ name: Architectural PR Review
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
 
@@ -12,8 +12,8 @@ permissions:
   pull-requests: write
 
 concurrency:
-  # Scope by head SHA so a stale `edited` event for an older commit cannot
-  # cancel the in-flight review for the current PR head (see PR #985).
+  # Scope by head SHA so a stale run for an older commit cannot cancel
+  # the in-flight review for the current PR head (see PR #985).
   group: architectural-pr-review-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
@@ -31,7 +31,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Install root dependencies
         run: bun install --frozen-lockfile

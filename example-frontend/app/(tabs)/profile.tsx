@@ -1,6 +1,7 @@
 import {useBooleanFlagDetails} from "@openfeature/react-sdk";
-import {selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
+import {canOpenAdminPage, selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
 import {
+  Badge,
   Box,
   Button,
   Card,
@@ -137,7 +138,16 @@ const ProfileScreen: React.FC = () => {
     router.push("/admin");
   }, [router]);
 
-  const isAdmin = profile?.admin === true;
+  const handleEditRoles = useCallback((): void => {
+    router.push("/admin/roles");
+  }, [router]);
+
+  const roles = useMemo(() => [...(profile?.roles ?? [])].sort(), [profile?.roles]);
+  const isSuperAdmin = roles.includes("superadmin");
+  const isAdmin = canOpenAdminPage({
+    admin: profile?.admin,
+    permissions: profile?.permissions,
+  });
 
   if (isLoading) {
     return (
@@ -212,6 +222,34 @@ const ProfileScreen: React.FC = () => {
                 text="Save Changes"
               />
             </Box>
+          </Box>
+        </Card>
+
+        <Card marginBottom={6} testID="profile-roles-card">
+          <Box gap={4}>
+            <Box alignItems="center" direction="row" justifyContent="between" wrap>
+              <Heading size="lg">Roles</Heading>
+              {isSuperAdmin && (
+                <Button
+                  iconName="pen"
+                  onClick={handleEditRoles}
+                  testID="profile-edit-roles-button"
+                  text="Edit roles"
+                  variant="outline"
+                />
+              )}
+            </Box>
+            {roles.length === 0 ? (
+              <Text color="secondaryLight" testID="profile-roles-empty">
+                No roles assigned.
+              </Text>
+            ) : (
+              <Box direction="row" gap={2} testID="profile-roles-list" wrap>
+                {roles.map((role) => (
+                  <Badge key={role} value={role} />
+                ))}
+              </Box>
+            )}
           </Box>
         </Card>
 

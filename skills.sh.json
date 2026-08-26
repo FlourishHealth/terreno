@@ -1,0 +1,90 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Lifecycle",
+      "description": "Bounded Grow → Pick → Roast → Brew → Taste transitions. Brew/Taste wait for review bots.",
+      "skills": [
+        "terreno-1-grow",
+        "terreno-2-pick",
+        "terreno-3-roast",
+        "terreno-4-brew",
+        "terreno-5-taste"
+      ]
+    },
+    {
+      "title": "Terreno apps",
+      "description": "Backend, UI, data, and schema conventions for Terreno apps.",
+      "skills": [
+        "terreno-backend-api",
+        "terreno-ui",
+        "terreno-data-fetching",
+        "mongoose-schema-safety",
+        "generate-sdk",
+        "building-terreno-apps",
+        "backend-test-env",
+        "ai-prompt-governance"
+      ]
+    },
+    {
+      "title": "Docs and architecture",
+      "description": "Read architecture docs first; write and regenerate them in the same slice.",
+      "skills": [
+        "update-docs",
+        "update-agent-docs",
+        "docs-audit",
+        "improve-codebase-architecture",
+        "improve-rulesync",
+        "build-terreno-app",
+        "design-blend"
+      ]
+    },
+    {
+      "title": "GitHub and shipping",
+      "description": "Commit, PR, review, verification, release, and deploy workflows.",
+      "skills": [
+        "commit",
+        "create-pr",
+        "respond-to-review",
+        "verify-ui-changes",
+        "fix-conflicts",
+        "release",
+        "deploy-gcp"
+      ]
+    },
+    {
+      "title": "Roadmap",
+      "description": "Frontier, triage, promote, item, and review skills for the roadmap.",
+      "skills": [
+        "roadmap-frontier",
+        "roadmap-item",
+        "roadmap-promote",
+        "roadmap-review",
+        "roadmap-triage",
+        "claude-design-to-linear"
+      ]
+    },
+    {
+      "title": "Expo and native",
+      "description": "Expo, native modules, and platform-specific app skills.",
+      "skills": [
+        "add-app-clip",
+        "building-native-ui",
+        "eas-update-insights",
+        "expo-api-routes",
+        "expo-brownfield",
+        "expo-cicd-workflows",
+        "expo-deployment",
+        "expo-dev-client",
+        "expo-module",
+        "expo-observe",
+        "expo-tailwind-setup",
+        "expo-ui",
+        "native-data-fetching",
+        "upgrading-expo",
+        "use-dom"
+      ]
+    }
+  ]
+}

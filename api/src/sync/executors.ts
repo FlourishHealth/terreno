@@ -20,7 +20,7 @@ import {DateTime} from "luxon";
 import type {Document, Model} from "mongoose";
 
 import {addPopulateToQuery, type ModelRouterOptions} from "../api";
-import type {User} from "../auth";
+import {omitUserRolesFromWriteBody, type User} from "../auth";
 import {loadDocOr404} from "../docLoader";
 import {
   APIError,
@@ -33,6 +33,7 @@ import {
   passthroughOrWrapWrite,
 } from "../errors";
 import {checkPermissions} from "../permissions";
+import {validateAccessWritePayload} from "../rbac/modelRouterAccess";
 import {transform} from "../transformers";
 
 /** A hydrated mongoose document joined with the router's base type. */
@@ -184,6 +185,7 @@ export const executeCreate = async <T>({
   body,
   req,
   skipPostHooks,
+  writeModelName,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -191,6 +193,11 @@ export const executeCreate = async <T>({
   body: unknown;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
+  /**
+   * Name used for User-role stripping after hooks. Defaults to `model.modelName`.
+   * MCP passes the registry `modelName` because compiled mongoose names can differ.
+   */
+  writeModelName?: string;
   /**
    * C5 (FIX 6): when true, skip the built-in `postCreate` call — the caller
    * (the sync mutation handler) runs it manually AFTER finalizing the
@@ -243,6 +250,13 @@ export const executeCreate = async <T>({
       });
     }
   }
+  cleanedBody = omitUserRolesFromWriteBody(
+    writeModelName ?? model.modelName,
+    options.accessControl,
+    cleanedBody,
+    (request as express.Request & {terrenoAllowUserAdminWrite?: boolean})
+      .terrenoAllowUserAdminWrite === true
+  ) as typeof cleanedBody;
   if (cleanedBody === undefined) {
     throw new BadRequestError({
       code: "invalid-request-body",
@@ -250,6 +264,12 @@ export const executeCreate = async <T>({
       title: "Invalid request body",
     });
   }
+  await validateAccessWritePayload({
+    body: cleanedBody,
+    options,
+    phase: "create",
+    user,
+  });
   let data: ExecutorDoc<T>;
   try {
     data = (await model.create(cleanedBody as T)) as ExecutorDoc<T>;
@@ -263,11 +283,11 @@ export const executeCreate = async <T>({
 
   if (options.populatePaths) {
     try {
-      // noExplicitAny: mongoose Query type varies based on populatePaths
-      // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-      let populateQuery: any = model.findById(data._id);
-      populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-      data = await populateQuery.exec();
+      const populateQuery = addPopulateToQuery(
+        model.findById(data._id) as unknown as Parameters<typeof addPopulateToQuery>[0],
+        options.populatePaths
+      );
+      data = (await populateQuery.exec()) as unknown as ExecutorDoc<T>;
     } catch (error: unknown) {
       throw passthroughOrWrap(error, {
         code: "populate-error",
@@ -329,6 +349,7 @@ export const executeUpdate = async <T>({
   existingDoc,
   req,
   skipPostHooks,
+  writeModelName,
 }: {
   model: Model<T>;
   options: ModelRouterOptions<T>;
@@ -345,6 +366,11 @@ export const executeUpdate = async <T>({
   req?: express.Request;
   /** C5 (FIX 6): see `executeCreate`'s `skipPostHooks` doc comment. */
   skipPostHooks?: boolean;
+  /**
+   * Name used for User-role stripping after hooks. Defaults to `model.modelName`.
+   * MCP passes the registry `modelName` because compiled mongoose names can differ.
+   */
+  writeModelName?: string;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
@@ -412,6 +438,22 @@ export const executeUpdate = async <T>({
       });
     }
   }
+
+  cleanedBody = omitUserRolesFromWriteBody(
+    writeModelName ?? model.modelName,
+    options.accessControl,
+    cleanedBody,
+    (request as express.Request & {terrenoAllowUserAdminWrite?: boolean})
+      .terrenoAllowUserAdminWrite === true
+  ) as typeof cleanedBody;
+
+  await validateAccessWritePayload({
+    body: cleanedBody,
+    doc,
+    options,
+    phase: "write",
+    user,
+  });
 
   // Conflict detection runs after preUpdate so that unauthorized mutations
   // are rejected before we leak document data in a conflict response.
@@ -506,11 +548,11 @@ export const executeUpdate = async <T>({
   }
 
   if (options.populatePaths) {
-    // noExplicitAny: mongoose Query type varies based on populatePaths
-    // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-    let populateQuery: any = model.findById(doc._id);
-    populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-    doc = await populateQuery.exec();
+    const populateQuery = addPopulateToQuery(
+      model.findById(doc._id) as unknown as Parameters<typeof addPopulateToQuery>[0],
+      options.populatePaths
+    );
+    doc = (await populateQuery.exec()) as unknown as ExecutorDoc<T>;
   }
 
   if (options.postUpdate && !skipPostHooks) {

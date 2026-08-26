@@ -1,5 +1,7 @@
 # @terreno/admin-frontend
 
+Admin panel frontend screens for @terreno/api backends.
+
 Reusable React Native admin screens for `@terreno/api` backends — model list, tables, forms, and shell layout wired to admin CRUD routes.
 
 ## Install

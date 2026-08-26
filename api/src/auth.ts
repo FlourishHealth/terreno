@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
 import {DateTime} from "luxon";
-import type {Model, ObjectId} from "mongoose";
+import type {Model, ObjectId, Query} from "mongoose";
 import ms, {type StringValue} from "ms";
 import passport from "passport";
 import {Strategy as AnonymousStrategy} from "passport-anonymous";
@@ -41,18 +41,14 @@ export interface UserModel extends Model<User> {
   // Allows additional setup during signup. This will be passed the rest of req.body from the signup
   postCreate?: (body: Record<string, unknown>) => Promise<void>;
 
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  createStrategy(): any;
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  serializeUser(): any;
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  deserializeUser(): any;
-  // noExplicitAny: passport-local-mongoose return types are untyped
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  findByUsername(username: string, findOpts: any): any;
+  // Provided by passport-local-mongoose:
+  createStrategy(): passport.Strategy;
+  serializeUser(): (user: User, cb: (err: unknown, id?: unknown) => void) => void;
+  deserializeUser(): (username: string, cb: (err: unknown, user?: User | null) => void) => void;
+  findByUsername(
+    username: string,
+    findOpts: boolean | {selectHashSaltFields?: boolean}
+  ): Query<User | null, User>;
 }
 
 export interface GenerateTokensOptions {
@@ -100,6 +96,75 @@ export const authenticateMiddleware = (anonymous = false) => {
   };
 };
 
+/**
+ * User fields that confer authority. Self-service requests (anonymous signup, `PATCH /me`)
+ * must never set them, or any caller could grant themselves admin or an RBAC role. Elevate
+ * users through the admin API or `access.roles.assign` instead.
+ */
+export const PRIVILEGED_USER_FIELDS = ["admin", "roles", "organizationIds"] as const;
+
+/**
+ * Removes {@link PRIVILEGED_USER_FIELDS} from a self-service body. Fields are dropped rather
+ * than rejected so clients that echo a whole user object back still succeed.
+ */
+export const stripPrivilegedUserFields = (
+  body: Record<string, unknown>,
+  context: string
+): Record<string, unknown> => {
+  const sanitized: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [key, value] of Object.entries(body)) {
+    if ((PRIVILEGED_USER_FIELDS as readonly string[]).includes(key)) {
+      dropped.push(key);
+      continue;
+    }
+    sanitized[key] = value;
+  }
+  if (dropped.length > 0) {
+    logger.warn(`Ignored privileged user fields on ${context}: ${dropped.join(", ")}`);
+  }
+  return sanitized;
+};
+
+const omitPrivilegedFieldsFromObject = (item: unknown, allowAdminWrite: boolean): unknown => {
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    return item;
+  }
+  const record = item as Record<string, unknown>;
+  const fieldsToDrop = PRIVILEGED_USER_FIELDS.filter(
+    (field) => field in record && !(field === "admin" && allowAdminWrite)
+  );
+  if (fieldsToDrop.length === 0) {
+    return item;
+  }
+  const next = {...record};
+  for (const field of fieldsToDrop) {
+    Reflect.deleteProperty(next, field);
+  }
+  logger.warn(`Ignored privileged User fields on a modelRouter write: ${fieldsToDrop.join(", ")}`);
+  return next;
+};
+
+/**
+ * When RBAC is enabled, authority-bearing User fields must not flow through ordinary mongoose
+ * writes on `/users`, sync, or MCP. AdminApp captures role assignments before this runs and
+ * explicitly marks authorized legacy-admin writes after its additional checks.
+ */
+export const omitUserRolesFromWriteBody = (
+  modelName: string,
+  accessControl: unknown,
+  body: unknown,
+  allowAdminWrite = false
+): unknown => {
+  if (modelName !== "User" || !accessControl || body == null) {
+    return body;
+  }
+  if (Array.isArray(body)) {
+    return body.map((item) => omitPrivilegedFieldsFromObject(item, allowAdminWrite));
+  }
+  return omitPrivilegedFieldsFromObject(body, allowAdminWrite);
+};
+
 export const signupUser = async (
   userModel: UserModel,
   email: string,
@@ -108,12 +173,22 @@ export const signupUser = async (
 ) => {
   // Strip email and password from the body. They can cause mongoose to throw an error if strict is
   // set.
-  const {email: _email, password: _password, ...bodyRest} = body ?? {};
+  const {email: _email, password: _password, ...rawBody} = body ?? {};
+  const bodyRest = stripPrivilegedUserFields(rawBody, "signup");
 
   try {
-    // noExplicitAny: passport-local-mongoose's register() is untyped
-    // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's register() is untyped
-    const user = await (userModel as any).register({email, ...bodyRest}, password);
+    const registrableModel = userModel as UserModel & {
+      register(
+        user: Record<string, unknown>,
+        password: string
+      ): Promise<
+        User & {
+          postCreate?: (body: Record<string, unknown>) => Promise<void>;
+          save: () => Promise<unknown>;
+        }
+      >;
+    };
+    const user = await registrableModel.register({email, ...bodyRest}, password);
 
     if (user.postCreate) {
       try {
@@ -465,9 +540,8 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     return next();
   };
   app.use(decodeJWTMiddleware);
-  // noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
-  // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
-  app.use(express.urlencoded({extended: false}) as any);
+  // express 5's urlencoded() handler type doesn't match RequestHandler directly
+  app.use(express.urlencoded({extended: false}) as unknown as express.RequestHandler);
 };
 
 export const addAuthRoutes = (
@@ -594,7 +668,8 @@ export const addAuthRoutes = (
 export const addMeRoutes = (
   app: express.Application,
   userModel: UserModel,
-  _authOptions?: AuthOptions
+  _authOptions?: AuthOptions,
+  accessControl?: import("./rbac/types").AnyTerrenoAccess
 ): void => {
   const router = express.Router();
   router.get("/me", authenticateMiddleware(), async (req, res) => {
@@ -609,6 +684,13 @@ export const addMeRoutes = (
     }
     const dataObject = data.toObject() as unknown as Record<string, unknown>;
     dataObject.id = data._id;
+    if (accessControl) {
+      const withRoles = data as unknown as {roles?: string[]};
+      dataObject.roles = withRoles.roles ?? [];
+      dataObject.permissions = await accessControl.getPermissions({
+        user: data as unknown as User,
+      });
+    }
     return res.json({data: dataObject});
   });
 
@@ -627,7 +709,7 @@ export const addMeRoutes = (
     //   return res.status(403).send({message: (e as Error).message});
     // }
     try {
-      Object.assign(doc, req.body);
+      Object.assign(doc, stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me"));
       await doc.save();
 
       const dataObject = doc.toObject() as unknown as Record<string, unknown>;

@@ -20,6 +20,9 @@ test.describe("Profile", () => {
   test("shows current user info", async ({page}) => {
     await expect(page.getByTestId("profile-email-input").first()).toHaveValue(TEST_USER.email);
     await expect(page.getByTestId("profile-logged-in-as").first()).toContainText(TEST_USER.email);
+    await expect(page.getByTestId("profile-roles-card").first()).toBeVisible();
+    await expect(page.getByTestId("profile-roles-list").first()).toContainText("todoUser");
+    await expect(page.getByTestId("profile-edit-roles-button")).not.toBeVisible();
   });
 
   test("save button disabled when no changes", async ({page}) => {

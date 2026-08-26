@@ -81,6 +81,7 @@ export const resolvedModelFromAdminConfig = ({
   return {
     actions: admin.actions,
     admin,
+    adminAccess: admin.adminAccess,
     autocompleteFields: admin.autocompleteFields,
     bulkPatchAllowlist: admin.bulkPatchAllowlist,
     defaultSort,

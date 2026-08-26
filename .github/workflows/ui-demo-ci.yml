@@ -1,7 +1,12 @@
 name: UI Demo CI
 
 on:
+  pull_request:
+    paths:
+      - 'demo/**'
   push:
+    branches:
+      - master
     paths:
       - 'demo/**'
 
@@ -40,7 +45,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache

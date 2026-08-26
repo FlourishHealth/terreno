@@ -37,6 +37,20 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 
 ### 1. Gather
 
+Start with the reconciler — it answers most of the hygiene questions mechanically, so the
+review only has to reason about what it could not decide:
+
+```bash
+bun run roadmap:reconcile
+```
+
+It reports status drift between IP headers and the roadmap, plans that shipped without their
+entry moving, entries whose IP file was deleted, task lists that disagree with the declared
+status, and plans with no roadmap entry at all. Treat its `Needs a human` section as the
+review's agenda; it deliberately refuses to guess on exactly the calls this skill exists to
+make. `--fix` applies only forward status moves and supersessions, never a revival or a
+backwards move.
+
 ```bash
 # Board contents
 gh project item-list "$PROJECT_NUMBER" --owner FlourishHealth --format json --limit 200
@@ -68,6 +82,7 @@ gh api graphql -f query='
 | Inbox backlog | `status:needs-triage` older than a week |
 | Promotion candidates | High-upvote Ideas with no tracking issue |
 | Blocked items | `status:blocked` whose blocker has since merged |
+| Wayfinder maps | Frontier contains blocked/closed/claimed work, resolved decisions are not indexed, or fog has become precise enough to ticket |
 
 Validate any label or field change you intend to propose:
 
@@ -84,6 +99,8 @@ Group findings by **what the maintainer must decide**, not by issue number:
 3. **Needs a human call** — stale items, retargeting, anything to decline
 4. **Mechanical fixes** — missing labels, area/label mismatches
 5. **Promotion candidates** — discussions worth tracking, with upvote counts
+
+For each active wayfinder map, report the destination, current unblocked frontier, stale claims, and whether the map can close. Refer to child tickets by linked title rather than bare issue number.
 
 Cap each group at the items that matter. A 60-line audit nobody reads is worse than 10 items that get fixed.
 

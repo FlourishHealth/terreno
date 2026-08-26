@@ -14,7 +14,7 @@ Prefer `unknown` (and narrow) or a precise type. Use `as unknown as T` over `as 
 
 Explicit `any` is acceptable only at **framework or library boundaries** where types are not expressible in TypeScript today, for example:
 
-- Mongoose `Schema<any, …>` accepting arbitrary consumer schemas (`api/src/plugins.ts`)
+- Mongoose model boundaries that inspect consumer-defined schemas (`api/src/populate.ts`)
 - RTK Query `Api<any, any, any, any>` in generic middleware (`rtk/src/offlineMiddleware.ts`)
 - Dynamic RTK hook lookup where endpoint names are not statically known (`admin-frontend`)
 - Test mocks with type-erased doubles (`*.test.ts`, `*.isolated.tsx`)
@@ -55,7 +55,8 @@ For test files with many mocks, a file-level header is fine:
 ```bash
 bun run check:explicit-any                         # summary report
 bun run check:explicit-any:json                    # JSON inventory
-bun run check:explicit-any:baseline                # fail if counts regress vs baseline
+bun run check:explicit-any:lint                    # fail on unmarked or unsuppressed any
+bun run check:explicit-any:baseline                # fail if global or per-file counts regress
 bun run check:explicit-any -- --undocumented       # only suppressed-but-undocumented
 bun run check:explicit-any -- --list --undocumented  # file:line list for remediation
 bun run check:explicit-any -- --production-only --undocumented --list
@@ -70,10 +71,11 @@ bun run check:explicit-any:remediate               # auto-add missing noExplicit
 | Layer | What it does |
 |-------|----------------|
 | **Biome `noExplicitAny: error`** | Blocks new unsuppressed `any` in every linted package |
-| **`bun run check:explicit-any:baseline`** | CI ratchet — total, undocumented, and violation counts must not increase |
-| **`bun run lint`** | Per-package lint including `noExplicitAny` |
+| **`bun run check:explicit-any:lint`** | Blocks suppressions without a `noExplicitAny:` rationale, including undocumented file-level suppressions |
+| **`bun run check:explicit-any:baseline`** | CI ratchet — total, per-file, undocumented, and violation counts must not increase; a new file starts with an allowance of zero |
+| **`bun run lint`** | Runs package lint, then the strict explicit-any marker check |
 
-Baseline file: `scripts/check-explicit-any/baseline.json`. After intentional reductions (removing or properly documenting `any`), refresh with `--write-baseline` and commit the updated baseline.
+Baseline file: `scripts/check-explicit-any/baseline.json`. Its per-file counts prevent a new or existing file from adding explicit `any` even when another file removes the same number. After intentional reductions (removing or properly documenting `any`), refresh with `--write-baseline` and commit the updated baseline.
 
 ## Remediation workflow
 

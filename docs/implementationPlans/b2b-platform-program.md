@@ -1,6 +1,6 @@
 # Program: B2B platform
 
-**Status:** Draft — roadmap items drafted; decisions D1–D7 resolved 2026-08-09; first ten IPs open
+**Status:** Approved — decisions D1–D7 resolved 2026-08-09; first ten IPs open
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1095
 **Owner:** unassigned
 **Created:** 2026-08-09
@@ -32,7 +32,7 @@ org switcher, dark mode).
 
 | Track | Theme | IPs / roadmap items |
 |---|---|---|
-| A | Tenancy & access | `orgs-and-teams`, `rbac-permissions` (existing draft), `invitations-and-seats`, `org-management-ui` |
+| A | Tenancy & access | `org-management-ui` (supersedes `orgs-and-teams`), `rbac-permissions` (Complete), `invitations-and-seats` |
 | C | Communications (pluggable) | `comms-abstraction`, one item **per adapter**: `comms-adapter-expo-push` (first push adapter, per D4), `comms-adapter-twilio-sms`, `comms-adapter-twilio-verify`, `comms-adapter-sendgrid` (first mail adapter, per D2); operations: `comms-admin-dashboard`; consumers: `password-reset-and-email-verification`, `notification-center` |
 | B | Billing | `inbound-webhooks`, `billing-stripe` (web-first, per D1), `mobile-iap-revenuecat` (Future) |
 | D | Zero-to-deployed DX | `create-terreno-app`, `mongo-migrations` (deploy items already exist in the OSS launch program) |
@@ -42,7 +42,7 @@ org switcher, dark mode).
 
 ## Sequencing
 
-1. **Foundations first:** `comms-abstraction` and `orgs-and-teams` are independent and both
+1. **Foundations first:** `comms-abstraction` and `org-management-ui` are independent and both
    unblock most of the program. `inbound-webhooks` lands before billing and before comms
    delivery callbacks.
 2. **Close the auth hole early:** `password-reset-and-email-verification` ships as soon as
@@ -100,12 +100,13 @@ All decisions resolved by the maintainer on 2026-08-09:
 | [comms-adapter-sendgrid](comms-adapter-sendgrid.md) | In progress (Phase 1) | [tasks](../tasks/comms-adapter-sendgrid.md) |
 | [comms-admin-dashboard](comms-admin-dashboard.md) | Draft | [tasks](../tasks/comms-admin-dashboard.md) |
 | [password-reset-and-email-verification](password-reset-and-email-verification.md) | Draft | [tasks](../tasks/password-reset-and-email-verification.md) |
-| [orgs-and-teams](orgs-and-teams.md) | Draft | [tasks](../tasks/orgs-and-teams.md) |
+| [orgs-and-teams](orgs-and-teams.md) | Superseded by [org-management-ui](org-management-ui.md) | — |
+| [org-management-ui](org-management-ui.md) | Draft — awaiting approval | [tasks](../tasks/org-management-ui.md) |
 | [billing-stripe](billing-stripe.md) | Draft | [tasks](../tasks/billing-stripe.md) |
 | [native-module-baseline](native-module-baseline.md) | Draft | [tasks](../tasks/native-module-baseline.md) |
-| [rbac-permissions](rbac-permissions.md) | Draft (pre-existing API design) | TBD |
+| [rbac-permissions](rbac-permissions.md) | Complete (PR #932) | — |
 
-Remaining items (`inbound-webhooks`, `invitations-and-seats`, `org-management-ui`,
+Remaining items (`inbound-webhooks`, `invitations-and-seats`,
 `notification-center`, `framework-audit-log`, `rate-limiting`, `job-queues`, …) get IPs as
 they approach the top of the queue.
 

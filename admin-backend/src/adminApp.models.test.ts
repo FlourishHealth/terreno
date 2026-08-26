@@ -1,14 +1,18 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {
+  ADMIN_MODEL_ACCESS,
   addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  createAccess,
+  findOneOrNoneFor,
   modelRouter,
   Permissions,
   setupAuth,
   type TerrenoApp,
   type TerrenoPlugin,
+  terrenoStatements,
   type UserModel as UserModelType,
   VersionConfig,
 } from "@terreno/api";
@@ -20,6 +24,7 @@ import {
   setupDb,
   UserModel,
 } from "@terreno/api/testing";
+import {assert} from "chai";
 import type express from "express";
 import mongoose from "mongoose";
 import supertest from "supertest";
@@ -334,6 +339,430 @@ describe("AdminApp /admin/config", () => {
     expect(res.body.home.title).toBe("Ops");
     expect(res.body.home.slots.sidebar).toEqual(["versionConfig", "recentActivity"]);
   });
+
+  it("filters screens and platform tools from the caller's RBAC grants", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({
+        admin: ["access"],
+        adminFood: ["read"],
+        adminScreen: ["allowed"],
+      }),
+      statements: {
+        ...terrenoStatements,
+        adminFood: ADMIN_MODEL_ACCESS,
+        adminScreen: ["allowed", "hidden"],
+      },
+    });
+    const localApp = buildApp([{...foodModelConfig, adminAccess: {}}], {
+      accessControl,
+      customScreens: [
+        {
+          adminAccess: {action: "allowed", resource: "adminScreen"},
+          displayName: "Allowed",
+          name: "allowed",
+        },
+        {
+          adminAccess: {action: "hidden", resource: "adminScreen"},
+          displayName: "Hidden",
+          name: "hidden",
+        },
+      ],
+      scripts: [
+        {
+          description: "Seed",
+          name: "seed",
+          runner: async () => ({results: [], success: true}),
+        },
+      ],
+    });
+    const agent = await authAsUser(localApp, "admin");
+
+    const response = await agent.get("/admin/config").expect(200);
+
+    assert.deepEqual(
+      response.body.models.map((model: {name: string}) => model.name),
+      ["Food"]
+    );
+    assert.deepInclude(response.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    assert.deepEqual(response.body.customScreens, [{displayName: "Allowed", name: "allowed"}]);
+    assert.deepEqual(response.body.platformTools, {
+      configuration: false,
+      roles: false,
+      runScripts: false,
+      scripts: false,
+      version: false,
+      viewScripts: false,
+    });
+    assert.deepEqual(response.body.scripts, []);
+  });
+
+  it("enforces writeOwned with the configured ownership callback", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({
+        admin: ["access"],
+        adminFood: ["read", "writeOwned"],
+      }),
+      statements: {...terrenoStatements, adminFood: ADMIN_MODEL_ACCESS},
+    });
+    const localApp = buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            isOwned: ({instance, user}) =>
+              String((instance as {ownerId?: unknown}).ownerId) === String(user.id),
+          },
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const actor = await findOneOrNoneFor(UserModel, {email: "admin@example.com"});
+    assert.exists(actor);
+    const owned = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
+    const other = await FoodModel.create({
+      calories: 2,
+      name: "Other",
+      ownerId: new mongoose.Types.ObjectId(),
+    });
+
+    await agent.patch(`/admin/foods/${owned._id}`).send({calories: 3}).expect(200);
+    await agent.patch(`/admin/foods/${other._id}`).send({calories: 4}).expect(403);
+    const ownedRead = await agent.get(`/admin/foods/${owned._id}`).expect(200);
+    const otherRead = await agent.get(`/admin/foods/${other._id}`).expect(200);
+    assert.deepEqual(ownedRead.body.data._adminCapabilities, {delete: true, update: true});
+    assert.deepEqual(otherRead.body.data._adminCapabilities, {delete: false, update: false});
+    await agent.delete(`/admin/foods/${other._id}`).expect(403);
+    await agent
+      .post("/admin/foods")
+      .send({calories: 5, name: "Created", ownerId: actor?._id})
+      .expect(201);
+    await agent
+      .post("/admin/foods")
+      .send({calories: 6, name: "Foreign", ownerId: new mongoose.Types.ObjectId()})
+      .expect(201);
+    await agent.post("/admin/foods").send({calories: 7, name: "Unassigned"}).expect(201);
+  });
+
+  it("supports completely custom per-model authorization", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({admin: ["access"]}),
+      statements: terrenoStatements,
+    });
+    const localApp = buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            authorize: ({action}) => action === "list" || action === "read",
+          },
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepInclude(config.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await agent.get("/admin/foods").expect(200);
+    await agent.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(405);
+  });
+});
+
+describe("AdminApp adminAccess role matrix", () => {
+  const ADMIN_EMAIL = "admin@example.com";
+  const MEMBER_EMAIL = "notAdmin@example.com";
+  const matrixStatements = {
+    ...terrenoStatements,
+    adminFood: ADMIN_MODEL_ACCESS,
+    adminScreen: ["showcase"],
+  };
+
+  const buildMatrixApp = (
+    grantsByEmail: Record<string, Record<string, string[]>>
+  ): express.Application => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async ({user}) => {
+        const email = "email" in user && typeof user.email === "string" ? user.email : "";
+        return grantsByEmail[email] ?? {};
+      },
+      statements: matrixStatements,
+    });
+    return buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            isOwned: ({instance, user}) => {
+              return String((instance as {ownerId?: unknown}).ownerId) === String(user.id);
+            },
+          },
+        },
+      ],
+      {
+        accessControl,
+        customScreens: [
+          {
+            adminAccess: {action: "showcase", resource: "adminScreen"},
+            displayName: "Showcase",
+            name: "showcase",
+          },
+        ],
+        scripts: [
+          {
+            description: "Seed",
+            name: "seed",
+            runner: async () => ({results: [], success: true}),
+          },
+        ],
+      }
+    );
+  };
+
+  beforeEach(async () => {
+    await setupDb();
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+  });
+
+  it("denies the admin shell when the caller lacks admin:access", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+      [MEMBER_EMAIL]: {},
+    });
+    const member = await authAsUser(app, "notAdmin");
+    await member.get("/admin/config").expect(403);
+    await member.get("/admin/foods").expect(405);
+  });
+
+  it("does not open the admin page with other admin permissions alone", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["runScripts", "viewBackgroundTasks"], adminFood: ["read", "write"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    await agent.get("/admin/config").expect(403);
+    await agent.get("/admin/foods").expect(405);
+  });
+
+  it("hides models and mutations when the caller only has admin:access", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepEqual(config.body.models, []);
+    assert.deepEqual(config.body.customScreens, []);
+    await agent.get("/admin/foods").expect(405);
+    await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
+  });
+
+  it("allows reads and denies writes for a read-only role", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const actor = await findOneOrNoneFor(UserModel, {email: ADMIN_EMAIL});
+    assert.exists(actor);
+    const food = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
+
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepInclude(config.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await agent.get("/admin/foods").expect(200);
+    await agent.get(`/admin/foods/${food._id}`).expect(200);
+    await agent.post("/admin/foods").send({calories: 2, name: "Denied"}).expect(405);
+    await agent.patch(`/admin/foods/${food._id}`).send({calories: 3}).expect(405);
+    await agent.delete(`/admin/foods/${food._id}`).expect(405);
+  });
+
+  it("allows full CRUD for a write role, including records the caller does not own", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read", "write"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const other = await FoodModel.create({
+      calories: 1,
+      name: "Other",
+      ownerId: new mongoose.Types.ObjectId(),
+    });
+
+    const config = await agent.get("/admin/config").expect(200);
+    assert.deepInclude(config.body.models[0].permissions, {
+      create: true,
+      delete: true,
+      update: true,
+    });
+    await agent.post("/admin/foods").send({calories: 2, name: "Created"}).expect(201);
+    const patched = await agent.patch(`/admin/foods/${other._id}`).send({calories: 9}).expect(200);
+    assert.equal(patched.body.data.calories, 9);
+    await agent.delete(`/admin/foods/${other._id}`).expect(204);
+  });
+
+  it("scopes writeOwned updates and deletes to owned records for that role", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read", "writeOwned"]},
+    });
+    const agent = await authAsUser(app, "admin");
+    const actor = await findOneOrNoneFor(UserModel, {email: ADMIN_EMAIL});
+    assert.exists(actor);
+    const owned = await FoodModel.create({calories: 1, name: "Owned", ownerId: actor?._id});
+    const other = await FoodModel.create({
+      calories: 2,
+      name: "Other",
+      ownerId: new mongoose.Types.ObjectId(),
+    });
+
+    const ownedRead = await agent.get(`/admin/foods/${owned._id}`).expect(200);
+    const otherRead = await agent.get(`/admin/foods/${other._id}`).expect(200);
+    assert.deepEqual(ownedRead.body.data._adminCapabilities, {delete: true, update: true});
+    assert.deepEqual(otherRead.body.data._adminCapabilities, {delete: false, update: false});
+    await agent.patch(`/admin/foods/${owned._id}`).send({calories: 4}).expect(200);
+    await agent.patch(`/admin/foods/${other._id}`).send({calories: 5}).expect(403);
+    await agent.delete(`/admin/foods/${other._id}`).expect(403);
+    await agent.delete(`/admin/foods/${owned._id}`).expect(204);
+    await agent.post("/admin/foods").send({calories: 6, name: "Unassigned"}).expect(201);
+  });
+
+  it("applies different adminAccess grants to different users on the same app", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {admin: ["access"], adminFood: ["read", "write"]},
+      [MEMBER_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+    });
+    const writer = await authAsUser(app, "admin");
+    const reader = await authAsUser(app, "notAdmin");
+    const writerUser = await findOneOrNoneFor(UserModel, {email: ADMIN_EMAIL});
+    assert.exists(writerUser);
+    const food = await FoodModel.create({calories: 1, name: "Shared", ownerId: writerUser?._id});
+
+    const writerConfig = await writer.get("/admin/config").expect(200);
+    const readerConfig = await reader.get("/admin/config").expect(200);
+    assert.deepInclude(writerConfig.body.models[0].permissions, {
+      create: true,
+      delete: true,
+      update: true,
+    });
+    assert.deepInclude(readerConfig.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await writer.patch(`/admin/foods/${food._id}`).send({calories: 8}).expect(200);
+    await reader.patch(`/admin/foods/${food._id}`).send({calories: 9}).expect(405);
+    await reader.get("/admin/foods").expect(200);
+    await reader.post("/admin/foods").send({calories: 3, name: "Reader"}).expect(405);
+  });
+
+  it("exposes platform tools and custom screens only for roles that grant them", async () => {
+    const app = buildMatrixApp({
+      [ADMIN_EMAIL]: {
+        admin: ["access", "runScripts", "viewBackgroundTasks"],
+        adminScreen: ["showcase"],
+        configuration: ["read"],
+        rbac: ["read"],
+      },
+      [MEMBER_EMAIL]: {admin: ["access"], adminFood: ["read"]},
+    });
+    const operator = await authAsUser(app, "admin");
+    const reader = await authAsUser(app, "notAdmin");
+
+    const operatorConfig = await operator.get("/admin/config").expect(200);
+    const readerConfig = await reader.get("/admin/config").expect(200);
+    const operatorScreens = operatorConfig.body.customScreens.map(
+      (screen: {name: string}) => screen.name
+    );
+    const readerScreens = readerConfig.body.customScreens.map(
+      (screen: {name: string}) => screen.name
+    );
+    assert.include(operatorScreens, "showcase");
+    assert.notInclude(readerScreens, "showcase");
+    assert.deepEqual(operatorConfig.body.platformTools, {
+      configuration: true,
+      roles: true,
+      runScripts: true,
+      scripts: true,
+      version: true,
+      viewScripts: true,
+    });
+    assert.deepEqual(
+      operatorConfig.body.scripts.map((script: {name: string}) => script.name),
+      ["seed"]
+    );
+    assert.deepEqual(readerConfig.body.customScreens, []);
+    assert.deepEqual(readerConfig.body.platformTools, {
+      configuration: false,
+      roles: false,
+      runScripts: false,
+      scripts: false,
+      version: false,
+      viewScripts: false,
+    });
+    assert.deepEqual(readerConfig.body.scripts, []);
+    assert.deepEqual(
+      readerConfig.body.models.map((model: {name: string}) => model.name),
+      ["Food"]
+    );
+  });
+
+  it("lets authorize allow writes for one user and deny them for another", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({admin: ["access"]}),
+      statements: terrenoStatements,
+    });
+    const app = buildApp(
+      [
+        {
+          ...foodModelConfig,
+          adminAccess: {
+            authorize: ({action, user}) => {
+              const email =
+                user && "email" in user && typeof user.email === "string" ? user.email : "";
+              if (email === ADMIN_EMAIL) {
+                return true;
+              }
+              return action === "list" || action === "read";
+            },
+          },
+        },
+      ],
+      {accessControl}
+    );
+    const writer = await authAsUser(app, "admin");
+    const reader = await authAsUser(app, "notAdmin");
+
+    const writerConfig = await writer.get("/admin/config").expect(200);
+    const readerConfig = await reader.get("/admin/config").expect(200);
+    assert.deepInclude(writerConfig.body.models[0].permissions, {
+      create: true,
+      delete: true,
+      update: true,
+    });
+    assert.deepInclude(readerConfig.body.models[0].permissions, {
+      create: false,
+      delete: false,
+      update: false,
+    });
+    await writer.post("/admin/foods").send({calories: 1, name: "Allowed"}).expect(201);
+    await reader.post("/admin/foods").send({calories: 1, name: "Denied"}).expect(405);
+    await reader.get("/admin/foods").expect(200);
+  });
 });
 
 describe("AdminApp model CRUD routes", () => {
@@ -513,6 +942,47 @@ describe("AdminApp /admin/version-config", () => {
 
   it("returns 403 for non-admins (PUT)", async () => {
     await notAdminAgent.put("/admin/version-config").send({}).expect(403);
+  });
+
+  it("requires configuration:update to PUT version-config when accessControl is set", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({permissions: {admin: ["access"]}}),
+          name: "admin-access-only",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    await agent.get("/admin/version-config").expect(403);
+    await agent.put("/admin/version-config").send({mobileRequiredVersion: 3}).expect(403);
+  });
+
+  it("allows configuration:update to PUT version-config", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {admin: ["access"], configuration: ["read", "update"]},
+          }),
+          name: "config-admin",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent
+      .put("/admin/version-config")
+      .send({mobileRequiredVersion: 3})
+      .expect(200);
+    expect(res.body.mobileRequiredVersion).toBe(3);
   });
 
   it("returns 401 for unauthenticated users", async () => {
@@ -715,6 +1185,42 @@ describe("AdminApp admin UI v2 routes", () => {
     await notAdminAgent.post("/admin/background-tasks").send({kind: "x"}).expect(403);
   });
 
+  it("requires admin:runScripts to enqueue background tasks when accessControl is set", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({permissions: {admin: ["access"]}}),
+          name: "admin-access-only",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([foodModelConfig], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    await agent.post("/admin/background-tasks").send({kind: "reindex-search"}).expect(403);
+  });
+
+  it("allows admin:runScripts to enqueue background tasks", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {admin: ["access", "runScripts"]},
+          }),
+          name: "admin-run-scripts",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp([foodModelConfig], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+    await agent.post("/admin/background-tasks").send({kind: "reindex-search"}).expect(201);
+  });
+
   it("strips readonly fields from PATCH updates", async () => {
     app = buildApp([
       {
@@ -887,6 +1393,28 @@ describe("AdminApp per-model queryFilter", () => {
     expect(res.body.data[0].name).toBe("FilteredOnly");
   });
 
+  it("fails closed on list and mutating CRUD when the model is missing from RBAC statements", async () => {
+    await setupDb();
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({permissions: {admin: ["access"]}}),
+          name: "admin-access",
+        },
+      ],
+      statements: terrenoStatements,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp([foodModelConfig], {accessControl});
+    const agent = await authAsUser(localApp, "admin");
+
+    await agent.get("/admin/foods").expect(405);
+    await agent.get("/admin/foods/search?q=x").expect(403);
+    await agent.post("/admin/foods").send({calories: 1, name: "Nope"}).expect(405);
+  });
+
   it("applies queryFilter to admin search so autocomplete cannot leak out-of-scope rows", async () => {
     const localApp = buildApp([
       {
@@ -985,5 +1513,602 @@ describe("AdminApp per-model queryFilter", () => {
     expect(patched.body.data.name).toBe("Renamed");
     const after = await FoodModel.findById(createdId).lean();
     expect(after?.calories).toBe(12);
+  });
+});
+
+describe("AdminApp user elevation and scoped bulk-patch", () => {
+  beforeEach(async () => {
+    await setupDb();
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+    await VersionConfig.deleteMany({});
+  });
+
+  it("allows admin CRUD to set the User admin flag", async () => {
+    const localApp = buildApp([
+      {
+        displayName: "Users",
+        listFields: ["email", "admin"],
+        model: UserModel,
+        routePath: "/users",
+      },
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(200);
+
+    const after = await UserModel.findById(target?._id);
+    expect(after?.admin).toBe(true);
+  });
+
+  it("requires rbac:assignRoles to set User admin when accessControl is enabled", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-without-assign",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+    expect(target?.admin).toBe(false);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(403);
+
+    const afterDenied = await UserModel.findById(target?._id);
+    expect(afterDenied?.admin).toBe(false);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: false, name: "Kept"})
+      .expect(200);
+    const afterEcho = await UserModel.findById(target?._id);
+    expect(afterEcho?.admin).toBe(false);
+    expect(afterEcho?.name).toBe("Kept");
+
+    const created = await agent
+      .post("/admin/users")
+      .send({admin: false, email: "form-echo-admin@example.com"})
+      .expect(201);
+    expect(created.body.data.admin).toBe(false);
+    expect(await UserModel.findOne({email: "form-echo-admin@example.com"})).toBeTruthy();
+
+    await UserModel.updateOne({_id: target?._id}, {admin: true});
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: "false"})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(true);
+  });
+
+  it("does not let assignRoles grant the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "assigner-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target?.admin).toBe(false);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(false);
+  });
+
+  it("does not let assignRoles revoke the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "assigner-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "admin@example.com"});
+    expect(target?.admin).toBe(true);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: false})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(true);
+  });
+
+  it("does not let manageRoles mint the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles", "manageRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "manager-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target?.admin).toBe(false);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: true})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(false);
+
+    await agent
+      .post("/admin/users")
+      .send({admin: true, email: "minted-admin@example.com"})
+      .expect(403);
+    expect(await UserModel.findOne({email: "minted-admin@example.com"})).toBeNull();
+  });
+
+  it("does not let manageRoles revoke the legacy admin flag", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles", "manageRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "manager-without-legacy-admin",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "notAdmin");
+    const target = await UserModel.findOne({email: "admin@example.com"});
+    expect(target?.admin).toBe(true);
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({admin: false})
+      .expect(403);
+    expect((await UserModel.findById(target?._id))?.admin).toBe(true);
+  });
+
+  it("does not persist organizationIds on RBAC admin User writes", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-editor",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          bulkPatchAllowlist: ["name", "organizationIds"],
+          displayName: "Users",
+          listFields: ["email", "admin"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+
+    await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({name: "Org-stripped", organizationIds: ["other-tenant"]})
+      .expect(200);
+    const afterPatch = await UserModel.findById(target?._id);
+    expect(afterPatch?.name).toBe("Org-stripped");
+    expect(
+      (afterPatch as {organizationIds?: string[]} | null)?.organizationIds ?? []
+    ).not.toContain("other-tenant");
+
+    const created = await agent
+      .post("/admin/users")
+      .send({email: "org-stripped@example.com", organizationIds: ["other-tenant"]})
+      .expect(201);
+    expect(created.body.data.organizationIds ?? []).not.toContain("other-tenant");
+    const createdDoc = await UserModel.findOne({email: "org-stripped@example.com"});
+    expect(
+      (createdDoc as {organizationIds?: string[]} | null)?.organizationIds ?? []
+    ).not.toContain("other-tenant");
+
+    await agent
+      .post("/admin/users/bulk-patch")
+      .send({
+        ids: [String(target?._id)],
+        patch: {organizationIds: ["bulk-tenant"]},
+      })
+      .expect(400);
+    expect(
+      ((await UserModel.findById(target?._id)) as {organizationIds?: string[]} | null)
+        ?.organizationIds ?? []
+    ).not.toContain("bulk-tenant");
+  });
+
+  it("checks each bulk-patch target document against RBAC scopes", async () => {
+    const foodStatements = {
+      ...terrenoStatements,
+      food: ["create", "list", "read", "update", "delete"],
+    } as const;
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      scopes: {
+        "food.update": {
+          check: ({doc, user}) => {
+            if (!doc) {
+              return true;
+            }
+            const ownerId = (doc as {ownerId?: unknown}).ownerId;
+            return String(ownerId) === String(user.id);
+          },
+        },
+      },
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {admin: ["access"], food: ["list", "read", "update"]},
+          }),
+          name: "scoped-food-update",
+        },
+      ],
+      statements: foodStatements,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp([{...foodModelConfig, bulkPatchAllowlist: ["calories", "name"]}], {
+      accessControl,
+    });
+    const agent = await authAsUser(localApp, "admin");
+    const actor = await UserModel.findOne({email: "admin@example.com"});
+    const other = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(actor).toBeTruthy();
+    expect(other).toBeTruthy();
+
+    const owned = await FoodModel.create({
+      calories: 1,
+      name: "Owned",
+      ownerId: actor?._id,
+    });
+    const foreign = await FoodModel.create({
+      calories: 2,
+      name: "Foreign",
+      ownerId: other?._id,
+    });
+
+    const res = await agent
+      .post("/admin/foods/bulk-patch")
+      .send({
+        ids: [String(owned._id), String(foreign._id)],
+        patch: {calories: 50},
+      })
+      .expect(200);
+
+    expect(res.body.updated).toBe(1);
+    expect(res.body.failures).toEqual([{id: String(foreign._id), title: "Forbidden"}]);
+    expect((await FoodModel.findById(owned._id).lean())?.calories).toBe(50);
+    expect((await FoodModel.findById(foreign._id).lean())?.calories).toBe(2);
+  });
+
+  it("returns assigned User roles in the admin update response", async () => {
+    if (!UserModel.schema.path("roles")) {
+      UserModel.schema.add({
+        roles: {default: [], description: "RBAC role names", type: [String]},
+      });
+    }
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles", "manageRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-role-editor",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "roles"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+
+    const response = await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({roles: ["member"]})
+      .expect(200);
+
+    expect(response.body.data.roles).toEqual(["member"]);
+  });
+
+  it("deletes a newly created User when role assignment fails", async () => {
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-create",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const email = "rollback-roles@example.com";
+
+    const res = await agent.post("/admin/users").send({email, roles: ["does-not-exist"]});
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(await UserModel.findOne({email})).toBeNull();
+  });
+
+  it("does not persist other User fields when role assignment fails on update", async () => {
+    if (!UserModel.schema.path("roles")) {
+      UserModel.schema.add({
+        roles: {default: [], description: "RBAC role names", type: [String]},
+      });
+    }
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-update-rollback",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Users",
+          listFields: ["email", "name", "roles"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+    const originalName = target?.name;
+
+    const res = await agent
+      .patch(`/admin/users/${String(target?._id)}`)
+      .send({name: "Should-not-stick", roles: ["does-not-exist"]});
+    expect(res.status).toBeGreaterThanOrEqual(400);
+
+    const after = await UserModel.findById(target?._id);
+    expect(after?.name).toBe(originalName);
+  });
+
+  it("does not persist bulk-patch fields when role assignment fails", async () => {
+    if (!UserModel.schema.path("roles")) {
+      UserModel.schema.add({
+        roles: {default: [], description: "RBAC role names", type: [String]},
+      });
+    }
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              rbac: ["assignRoles"],
+              user: ["create", "list", "read", "update"],
+            },
+          }),
+          name: "admin-user-bulk-rollback",
+        },
+      ],
+      statements: terrenoStatements,
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+
+    const localApp = buildApp(
+      [
+        {
+          bulkPatchAllowlist: ["name", "roles"],
+          displayName: "Users",
+          listFields: ["email", "name", "roles"],
+          model: UserModel,
+          routePath: "/users",
+        },
+      ],
+      {accessControl}
+    );
+    const agent = await authAsUser(localApp, "admin");
+    const target = await UserModel.findOne({email: "notAdmin@example.com"});
+    expect(target).toBeTruthy();
+    const originalName = target?.name;
+
+    const res = await agent.post("/admin/users/bulk-patch").send({
+      ids: [String(target?._id)],
+      patch: {name: "Should-not-stick", roles: ["does-not-exist"]},
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toBe(0);
+    expect(res.body.failures?.length).toBeGreaterThan(0);
+
+    const after = await UserModel.findById(target?._id);
+    expect(after?.name).toBe(originalName);
   });
 });

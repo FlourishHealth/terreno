@@ -1,8 +1,8 @@
 ---
 name: commit
 description: >-
-  Create a commit for the current staged/unstaged changes with a clear, accurate
-  message
+  Create a commit using Terreno message, DCO, attribution, and staging
+  conventions. Lifecycle composition: Brew and code-changing Taste iterations.
 ---
 # Commit Changes
 

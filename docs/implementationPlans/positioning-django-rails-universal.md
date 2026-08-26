@@ -1,6 +1,6 @@
 # Implementation Plan: Positioning — "Django/Rails for TypeScript, with Universal Apps"
 
-**Status:** Draft — blocking questions open
+**Status:** Implemented
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1008
 **Priority:** High
 **Effort:** Small batch
@@ -78,7 +78,7 @@ The Django/Rails claim invites the obvious question. `docs/explanation/positioni
 | Models + ORM | Mongoose schemas + `@terreno/api` plugins | Document store, not relational; no migrations framework |
 | `ModelViewSet` / scaffolds | `modelRouter` | REST only; no GraphQL |
 | Django admin | `@terreno/admin-backend` + `admin-frontend` / `admin-spa` | Younger; see the admin parity IP for the gap list |
-| Auth + permissions | Better Auth + `Permissions` | RBAC is in progress (`rbac-permissions.md`) |
+| Auth + permissions | Better Auth + `Permissions` / RBAC | RBAC shipped (`rbac-permissions.md`, Complete) |
 | Templates / views | `@terreno/ui` components, one codebase for iOS/Android/web | SSR is not shipped yet — see [`web-ssr-and-admin-spa`](web-ssr-and-admin-spa.md) |
 | `manage.py` / generators | MCP server tools (the *tool* layer) + the `/terreno-*` SDLC pipeline (the *process* layer) | Agent-driven rather than CLI-driven. Django gives you `manage.py startapp`; Terreno gives you a reviewed path from a request to a mergeable PR |
 | Celery / ActiveJob | Not shipped | On the roadmap |
