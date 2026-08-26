@@ -54,6 +54,9 @@ parameters:
   run-e2e:
     type: boolean
     default: false
+  run-rulesync:
+    type: boolean
+    default: false
   # Set only by setup continuation when the setup trigger `run-e2e-load` is true.
   # Different name from the setup parameter to avoid CircleCI continuation conflicts.
   e2e-load:
@@ -207,11 +210,20 @@ commands:
     parameters:
       spec:
         type: string
+      skip-compile:
+        type: boolean
+        default: false
+      skip-web-export:
+        type: boolean
+        default: false
     steps:
       - init_mongo_replica
-      - run:
-          name: Compile workspace
-          command: bun run compile
+      - unless:
+          condition: << parameters.skip-compile >>
+          steps:
+            - run:
+                name: Compile workspace
+                command: bun run compile
       - resolve_e2e_secrets
       - run:
           name: Start example-backend
@@ -240,15 +252,18 @@ commands:
             done
             echo "backend failed to become healthy"
             exit 1
-      - run:
-          name: Export example-frontend web
-          working_directory: ~/project/example-frontend
-          no_output_timeout: 15m
-          environment:
-            CI: "true"
-            EXPO_NO_TELEMETRY: "1"
-            NODE_OPTIONS: "--max-old-space-size=3072"
-          command: bun expo export --platform web
+      - unless:
+          condition: << parameters.skip-web-export >>
+          steps:
+            - run:
+                name: Export example-frontend web
+                working_directory: ~/project/example-frontend
+                no_output_timeout: 15m
+                environment:
+                  CI: "true"
+                  EXPO_NO_TELEMETRY: "1"
+                  NODE_OPTIONS: "--max-old-space-size=3072"
+                command: bun expo export --platform web
       - run:
           name: Install Playwright Chromium
           working_directory: ~/project/example-frontend
@@ -326,6 +341,17 @@ commands:
               circleci step halt
             fi
 
+  restore_e2e_dists:
+    description: Unpack workspace dist trees produced by e2e-prepare
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: Restore compiled and exported dist
+          command: |
+            set -euo pipefail
+            tar -xzf e2e-dists.tgz
+
 jobs:
   config-ok:
     executor: node22
@@ -341,6 +367,7 @@ jobs:
             echo "run-ui=<< pipeline.parameters.run-ui >>"
             echo "run-e2e=<< pipeline.parameters.run-e2e >>"
             echo "run-repo-policies=<< pipeline.parameters.run-repo-policies >>"
+            echo "run-rulesync=<< pipeline.parameters.run-rulesync >>"
 
   api-ci:
     executor: node22_mongo
@@ -805,6 +832,39 @@ jobs:
               exit 1
             fi
 
+  e2e-prepare:
+    executor: node22
+    resource_class: large
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Compile workspace
+          command: bun run compile
+      - run:
+          name: Export example-frontend web
+          working_directory: ~/project/example-frontend
+          no_output_timeout: 15m
+          environment:
+            CI: "true"
+            EXPO_NO_TELEMETRY: "1"
+            NODE_OPTIONS: "--max-old-space-size=3072"
+          command: bun expo export --platform web
+      - run:
+          name: Archive dist trees
+          command: |
+            set -euo pipefail
+            find . -type d -name dist \
+              -not -path './node_modules/*' \
+              -not -path './website/*' \
+              -not -path './demo/*' \
+              -print0 | tar -czf e2e-dists.tgz --null -T -
+      - persist_to_workspace:
+          root: .
+          paths:
+            - e2e-dists.tgz
+
   e2e:
     executor: node22_browsers_mongo_rs
     parameters:
@@ -812,9 +872,12 @@ jobs:
         type: string
     steps:
       - checkout
+      - restore_e2e_dists
       - install_bun_and_deps
       - run_example_frontend_e2e:
           spec: << parameters.spec >>
+          skip-compile: true
+          skip-web-export: true
 
   # Heavier syncdb-loadlab spec — nightly/manual only, never PR-blocking
   # (mirrors GHA e2e-load-nightly).
@@ -822,9 +885,12 @@ jobs:
     executor: node22_browsers_mongo_rs
     steps:
       - checkout
+      - restore_e2e_dists
       - install_bun_and_deps
       - run_example_frontend_e2e:
           spec: syncdb-loadlab
+          skip-compile: true
+          skip-web-export: true
 
   admin-spa-integration:
     executor: node22_browsers_mongo_rs
@@ -912,8 +978,12 @@ workflows:
   always:
     jobs:
       - config-ok
-      - rulesync-check
       - dco
+
+  rulesync:
+    when: << pipeline.parameters.run-rulesync >>
+    jobs:
+      - rulesync-check
 
   api:
     when: << pipeline.parameters.run-api >>
@@ -996,9 +1066,12 @@ workflows:
   e2e:
     when: << pipeline.parameters.run-e2e >>
     jobs:
+      - e2e-prepare
       # One shard per spec file. Keep this list in sync with example-frontend/e2e/
       # (and .github/workflows/e2e-ci.yml while dual-running).
       - e2e:
+          requires:
+            - e2e-prepare
           matrix:
             parameters:
               spec:
@@ -1021,43 +1094,40 @@ workflows:
   e2e-load:
     when: << pipeline.parameters.e2e-load >>
     jobs:
-      - e2e-load
+      - e2e-prepare
+      - e2e-load:
+          requires:
+            - e2e-prepare
 
   admin-spa-integration:
     when: << pipeline.parameters.run-admin-spa-integration >>
     jobs:
       - admin-spa-integration
 
-  # Path-filter `run-circleci-config` is set for `.circleci/**`. Dual-run a
-  # representative subset of ported jobs so config-only PRs still exercise
-  # package, policy, example, and e2e twins (one e2e spec, not the full matrix).
-  # Use login, not todos: master GHA E2E · todos is currently red (30s timeout).
+  # Path-filter `run-circleci-config` is set for `.circleci/**`. On config-only
+  # PRs, dual-run the documented representative slice (not every ported job).
+  # Skip this workflow when path filters already started the heavy package/e2e
+  # twins so a mixed PR does not pay for a second api/ui/e2e/mcp matrix.
   circleci-config:
-    when: << pipeline.parameters.run-circleci-config >>
+    when:
+      and:
+        - equal: [true, << pipeline.parameters.run-circleci-config >>]
+        - equal: [false, << pipeline.parameters.run-api >>]
+        - equal: [false, << pipeline.parameters.run-ui >>]
+        - equal: [false, << pipeline.parameters.run-e2e >>]
+        - equal: [false, << pipeline.parameters.run-example-backend >>]
+        - equal: [false, << pipeline.parameters.run-admin-spa >>]
     jobs:
       - api-ci
-      - ai-ci
-      - rtk-ci
       - ui-ci
-      - ui-demo-typecheck
-      - comms-ci
-      - mcp-server-ci
-      - mcp-server-docker:
-          requires:
-            - mcp-server-ci
-      - example-frontend-ci
       - example-backend-ci
-      - example-backend-script-runner
-      - example-backend-docker
-      - admin-spa-ci
       - no-barrel-imports
       - source-rules
-      - explicit-any
-      - license-coverage
-      - circleci-parity
+      - e2e-prepare
       - e2e:
+          requires:
+            - e2e-prepare
           matrix:
             parameters:
               spec:
                 - login
-      - admin-spa-integration

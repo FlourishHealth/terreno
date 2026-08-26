@@ -38,11 +38,12 @@ descriptions):
 
 ### CircleCI dual-run (in progress)
 
-Package CI / policy / Playwright twins live under `.circleci/` (see
+Package CI / policy / Playwright twins run under `.circleci/` (see
 [how-to/circleci.md](../how-to/circleci.md)). **Keep requiring the existing GitHub
 Actions check names** until a twin is trusted; then add the CircleCI job name and
 remove the GHA workflow. Do not require CircleCI deploy jobs yet (deploys not
-ported).
+ported). Do not require the CircleCI kitchen-sink `circleci-config` workflow —
+path-filtered jobs are the required set.
 
 ## Merge settings
 
