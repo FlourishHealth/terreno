@@ -1,12 +1,11 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import type {Router} from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {type ModelRouterOptions, modelRouter} from "./api";
+import {type ModelRouterOptions, modelRouter, type OpenApiMiddleware} from "./api";
+import type {UserModel as AuthUserModel} from "./auth";
 import {
   createOpenApiMiddleware,
   deleteOpenApiMiddleware,
@@ -17,9 +16,30 @@ import {
 } from "./openApi";
 import {Permissions} from "./permissions";
 import {TerrenoApp} from "./terrenoApp";
-import {FoodModel, setupDb, UserModel} from "./tests";
+import {type Food, FoodModel, setupDb, UserModel} from "./tests";
 
-function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
+const passThroughMiddleware: express.RequestHandler = (_req, _res, next) => next();
+
+const createOpenApiStub = (
+  path: OpenApiMiddleware["path"] = () => passThroughMiddleware
+): OpenApiMiddleware => {
+  return Object.assign(passThroughMiddleware, {
+    component: () => undefined,
+    document: {},
+    path,
+    schema: () => undefined,
+  });
+};
+
+const asFoodOptions = (
+  options?: Partial<ModelRouterOptions<unknown>>
+): Partial<ModelRouterOptions<Food>> => {
+  return options as unknown as Partial<ModelRouterOptions<Food>>;
+};
+
+function getMessageSummaryOpenApiMiddleware(
+  options: Partial<ModelRouterOptions<unknown>>
+): express.RequestHandler {
   if (!options.openApi) {
     throw new Error("Expected openApi to be configured for test routes");
   }
@@ -55,11 +75,11 @@ function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<
   });
 }
 
-function addRoutes(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+function addRoutes(router: Router, options?: Partial<ModelRouterOptions<unknown>>): void {
   router.use(
     "/food",
-    modelRouter(FoodModel as any, {
-      ...options,
+    modelRouter(FoodModel, {
+      ...asFoodOptions(options),
       allowAnonymous: true,
       openApiExtraModelProperties: {
         foo: {
@@ -93,7 +113,7 @@ describe("openApi", () => {
     app = new TerrenoApp({
       configureApp: addRoutes,
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
   });
 
@@ -187,11 +207,14 @@ describe("openApi", () => {
   });
 });
 
-function addRoutesStringQuery(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+function addRoutesStringQuery(
+  router: Router,
+  options?: Partial<ModelRouterOptions<unknown>>
+): void {
   router.use(
     "/food",
-    modelRouter(FoodModel as any, {
-      ...options,
+    modelRouter(FoodModel, {
+      ...asFoodOptions(options),
       allowAnonymous: true,
       permissions: {
         create: [Permissions.IsAny],
@@ -216,7 +239,7 @@ describe("openApi string query fields", () => {
     app = new TerrenoApp({
       configureApp: addRoutesStringQuery,
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
   });
 
@@ -240,7 +263,7 @@ describe("openApi string query fields", () => {
   });
 });
 
-function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
+function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<unknown>>): void {
   options?.openApi?.component("schemas", "LimitedUser", {
     properties: {
       email: {
@@ -257,8 +280,8 @@ function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<
 
   router.use(
     "/food",
-    modelRouter(FoodModel as any, {
-      ...options,
+    modelRouter(FoodModel, {
+      ...asFoodOptions(options),
       allowAnonymous: true,
       openApiExtraModelProperties: {
         foo: {
@@ -300,7 +323,7 @@ describe("openApi without swagger", () => {
     app = new TerrenoApp({
       configureApp: addRoutes,
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
   });
 
@@ -320,7 +343,7 @@ describe("openApi populate", () => {
     app = new TerrenoApp({
       configureApp: addRoutesPopulate,
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
   });
 
@@ -395,14 +418,14 @@ describe("openApi populate", () => {
 
 describe("openApi middleware no-op paths", () => {
   it("getOpenApiMiddleware returns noop when openApi not configured", () => {
-    const mw = getOpenApiMiddleware(FoodModel as any, {});
+    const mw = getOpenApiMiddleware(FoodModel, {});
     expect(typeof mw).toBe("function");
     expect(mw.length).toBe(3);
   });
 
   it("getOpenApiMiddleware returns noop when read permissions are empty", () => {
-    const mw = getOpenApiMiddleware(FoodModel as any, {
-      openApi: {component: () => {}, path: () => (() => {}) as any} as any,
+    const mw = getOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub(),
       permissions: {
         create: [],
         delete: [],
@@ -416,13 +439,13 @@ describe("openApi middleware no-op paths", () => {
   });
 
   it("listOpenApiMiddleware returns noop when openApi not configured", () => {
-    const mw = listOpenApiMiddleware(FoodModel as any, {});
+    const mw = listOpenApiMiddleware(FoodModel, {});
     expect(mw.length).toBe(3);
   });
 
   it("listOpenApiMiddleware returns noop when list permissions are empty", () => {
-    const mw = listOpenApiMiddleware(FoodModel as any, {
-      openApi: {path: () => (() => {}) as any} as any,
+    const mw = listOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub(),
       permissions: {
         create: [],
         delete: [],
@@ -437,14 +460,12 @@ describe("openApi middleware no-op paths", () => {
   it("listOpenApiMiddleware emits x-terreno-sync when sync is configured", () => {
     let captured: Record<string, unknown> | undefined;
     listOpenApiMiddleware(
-      FoodModel as any,
+      FoodModel,
       {
-        openApi: {
-          path: (spec: Record<string, unknown>) => {
-            captured = spec;
-            return (() => {}) as express.RequestHandler;
-          },
-        } as any,
+        openApi: createOpenApiStub((spec: Record<string, unknown>) => {
+          captured = spec;
+          return passThroughMiddleware;
+        }),
         permissions: {
           create: [Permissions.IsAny],
           delete: [Permissions.IsAny],
@@ -461,13 +482,11 @@ describe("openApi middleware no-op paths", () => {
 
   it("listOpenApiMiddleware omits x-terreno-sync when sync is not configured", () => {
     let captured: Record<string, unknown> | undefined;
-    listOpenApiMiddleware(FoodModel as any, {
-      openApi: {
-        path: (spec: Record<string, unknown>) => {
-          captured = spec;
-          return (() => {}) as express.RequestHandler;
-        },
-      } as any,
+    listOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub((spec: Record<string, unknown>) => {
+        captured = spec;
+        return passThroughMiddleware;
+      }),
       permissions: {
         create: [Permissions.IsAny],
         delete: [Permissions.IsAny],
@@ -481,13 +500,11 @@ describe("openApi middleware no-op paths", () => {
 
   it("listOpenApiMiddleware falls back to the model collection name without routePath", () => {
     let captured: Record<string, unknown> | undefined;
-    listOpenApiMiddleware(FoodModel as any, {
-      openApi: {
-        path: (spec: Record<string, unknown>) => {
-          captured = spec;
-          return (() => {}) as express.RequestHandler;
-        },
-      } as any,
+    listOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub((spec: Record<string, unknown>) => {
+        captured = spec;
+        return passThroughMiddleware;
+      }),
       permissions: {
         create: [Permissions.IsAny],
         delete: [Permissions.IsAny],
@@ -507,10 +524,10 @@ describe("openApi middleware no-op paths", () => {
     let captured: Record<string, unknown> | undefined;
     const capturePath = (spec: Record<string, unknown>): express.RequestHandler => {
       captured = spec;
-      return (() => {}) as express.RequestHandler;
+      return passThroughMiddleware;
     };
-    const baseOptions = {
-      openApi: {path: capturePath} as any,
+    const baseOptions: Partial<ModelRouterOptions<Food>> = {
+      openApi: createOpenApiStub(capturePath),
       permissions: {
         create: [Permissions.IsAny],
         delete: [Permissions.IsAny],
@@ -521,7 +538,7 @@ describe("openApi middleware no-op paths", () => {
     };
 
     listOpenApiMiddleware(
-      FoodModel as any,
+      FoodModel,
       {
         ...baseOptions,
         sync: {scope: {field: "organizationId", type: "tenant"}},
@@ -531,7 +548,7 @@ describe("openApi middleware no-op paths", () => {
     expect(captured?.["x-terreno-sync"]).toEqual({collection: "projects", scope: "tenant"});
 
     listOpenApiMiddleware(
-      FoodModel as any,
+      FoodModel,
       {
         ...baseOptions,
         sync: {scope: () => "workspace"},
@@ -542,13 +559,13 @@ describe("openApi middleware no-op paths", () => {
   });
 
   it("createOpenApiMiddleware returns noop when openApi not configured", () => {
-    const mw = createOpenApiMiddleware(FoodModel as any, {});
+    const mw = createOpenApiMiddleware(FoodModel, {});
     expect(mw.length).toBe(3);
   });
 
   it("createOpenApiMiddleware returns noop when create permissions are empty", () => {
-    const mw = createOpenApiMiddleware(FoodModel as any, {
-      openApi: {path: () => (() => {}) as any} as any,
+    const mw = createOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub(),
       permissions: {
         create: [],
         delete: [],
@@ -561,13 +578,13 @@ describe("openApi middleware no-op paths", () => {
   });
 
   it("patchOpenApiMiddleware returns noop when openApi not configured", () => {
-    const mw = patchOpenApiMiddleware(FoodModel as any, {});
+    const mw = patchOpenApiMiddleware(FoodModel, {});
     expect(mw.length).toBe(3);
   });
 
   it("patchOpenApiMiddleware returns noop when update permissions are empty", () => {
-    const mw = patchOpenApiMiddleware(FoodModel as any, {
-      openApi: {path: () => (() => {}) as any} as any,
+    const mw = patchOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub(),
       permissions: {
         create: [],
         delete: [],
@@ -580,13 +597,13 @@ describe("openApi middleware no-op paths", () => {
   });
 
   it("deleteOpenApiMiddleware returns noop when openApi not configured", () => {
-    const mw = deleteOpenApiMiddleware(FoodModel as any, {});
+    const mw = deleteOpenApiMiddleware(FoodModel, {});
     expect(mw.length).toBe(3);
   });
 
   it("deleteOpenApiMiddleware returns noop when delete permissions are empty", () => {
-    const mw = deleteOpenApiMiddleware(FoodModel as any, {
-      openApi: {path: () => (() => {}) as any} as any,
+    const mw = deleteOpenApiMiddleware(FoodModel, {
+      openApi: createOpenApiStub(),
       permissions: {
         create: [],
         delete: [],
@@ -606,7 +623,7 @@ describe("openApi middleware no-op paths", () => {
   it("readOpenApiMiddleware returns noop when read permissions are empty", () => {
     const mw = readOpenApiMiddleware(
       {
-        openApi: {path: () => (() => {}) as any} as any,
+        openApi: createOpenApiStub(),
         permissions: {
           create: [],
           delete: [],
@@ -623,11 +640,10 @@ describe("openApi middleware no-op paths", () => {
   });
 
   it("readOpenApiMiddleware returns middleware when configured with permissions", () => {
-    // Use a simple path stub that returns a middleware function
-    const pathFn = () => ((_req: any, _res: any, next: any) => next()) as any;
+    const pathFn: OpenApiMiddleware["path"] = () => passThroughMiddleware;
     const mw = readOpenApiMiddleware(
       {
-        openApi: {path: pathFn} as any,
+        openApi: createOpenApiStub(pathFn),
         permissions: {
           create: [],
           delete: [],
