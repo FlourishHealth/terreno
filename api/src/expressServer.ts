@@ -7,6 +7,7 @@ import cloneDeep from "lodash/cloneDeep";
 import onFinished from "on-finished";
 import passport from "passport";
 import type {ModelRouterOptions} from "./api";
+import type {User} from "./auth";
 import {APIError} from "./errors";
 import {type LoggingOptions, logger} from "./logger";
 import {sendToSlack} from "./notifiers/slackNotifier";
@@ -169,9 +170,9 @@ export const createRouterWithAuth = (
 };
 
 export interface AuthOptions {
-  generateJWTPayload?: (user: unknown) => Record<string, unknown>;
-  generateTokenExpiration?: (user: unknown) => number | jwt.SignOptions["expiresIn"];
-  generateRefreshTokenExpiration?: (user: unknown) => number | jwt.SignOptions["expiresIn"];
+  generateJWTPayload?: (user: User) => Record<string, unknown>;
+  generateTokenExpiration?: (user: User) => number | jwt.SignOptions["expiresIn"];
+  generateRefreshTokenExpiration?: (user: User) => number | jwt.SignOptions["expiresIn"];
 }
 
 export const cronjob = (
