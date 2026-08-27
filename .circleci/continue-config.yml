@@ -1010,11 +1010,18 @@ jobs:
       - init_mongo_replica
       - resolve_e2e_secrets
       - run:
-          name: Install Java 17 (Maestro)
+          name: Install Maestro system deps (Java 17, xvfb, Chrome)
           command: |
             set -euo pipefail
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb
+            # cimg browsers images do not ship a google-chrome binary.
+            if ! command -v google-chrome > /dev/null 2>&1; then
+              curl -fsSL -o /tmp/google-chrome.deb \
+                https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+              sudo apt-get install -y /tmp/google-chrome.deb
+            fi
+            google-chrome --version
       - run:
           name: Compile workspace
           no_output_timeout: 15m
@@ -1126,10 +1133,16 @@ jobs:
           name: Wrap Chrome for CI
           command: |
             set -euo pipefail
-            CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
-            sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
-            printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
-            sudo chmod 0755 "$CHROME_BIN"
+            CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || true)"
+            if [ -z "$CHROME_BIN" ]; then
+              echo "google-chrome is not on PATH after install"
+              exit 1
+            fi
+            if [ ! -e "${CHROME_BIN}.real" ]; then
+              sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
+              printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
+              sudo chmod 0755 "$CHROME_BIN"
+            fi
             "$CHROME_BIN" --version
       - run:
           name: Verify login API
