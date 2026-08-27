@@ -435,6 +435,9 @@ export const RNPickerSelect = ({
     const baseTextInputStyle = {
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
       flex: 1,
+      // Text inputs have an intrinsic width; without this they refuse to shrink inside
+      // narrow triggers and push the chevron outside the field border on web.
+      minWidth: 0,
     };
     return (
       <View
@@ -724,6 +727,9 @@ export const RNPickerSelect = ({
       flex: 1,
       fontFamily: "text" as const,
       fontSize: 16,
+      // Text inputs have an intrinsic width; without this they refuse to shrink inside
+      // narrow triggers and push the chevron outside the field border on web.
+      minWidth: 0,
       paddingLeft: 0,
       paddingRight: 8,
       paddingVertical: 0,
@@ -804,6 +810,7 @@ export const RNPickerSelect = ({
                 flex: 1,
                 fontFamily: "text",
                 fontSize: 16,
+                minWidth: 0,
                 paddingRight: 8,
               }}
               testID="text_input"

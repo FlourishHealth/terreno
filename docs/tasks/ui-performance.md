@@ -112,15 +112,16 @@
     state or load the modal path; rapid presses, delayed handlers, unmount cleanup, loading,
     disabled, keyboard, haptic, and confirmation behavior match current tests and running stories.
 
-- [ ] **Task 2.4**: Replace synchronous responsive dimension reads with reactive breakpoints
+- [x] **Task 2.4**: Replace synchronous responsive dimension reads with reactive breakpoints
   - Delivers: responsive `Box` props read one shared window state and update correctly on rotation
     and resize.
   - Files: `ui/src/MediaQuery.ts`, `ui/src/Box.tsx`, provider/hook files if needed, tests,
     benchmark/example renderer, `docs/reference/ui-performance.md`
   - Blocked by: none
   - Acceptance: benchmark a large responsive `Box` tree; remove per-box synchronous
-    `Dimensions.get` calls; exact `sm`/`md`/`lg` boundaries match current output; resize, rotation,
-    SSR hydration, web, and native behavior have regressions and running-demo proof.
+    `Dimensions.get` calls; native `sm`/`md`/`lg`/`xl` (320/375/600/1024) and web `lg`/`xl`
+    (1024/1280) boundaries match the product spec; resize, rotation, SSR hydration, web, and
+    native behavior have regressions and running-demo proof.
 
 - [ ] **Task 2.5**: Close the measured hot-style allocation backlog
   - Delivers: only proven hot leaves reuse style objects without stale theme values.

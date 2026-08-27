@@ -18,7 +18,7 @@ must follow the [`GitHub attention contract`](references/github-attention-contra
 
 ## Preconditions
 
-- Roast returned `PASS` for the implementation being submitted.
+- Roast returned `PASS` for every in-scope task on the implementation being submitted.
 - Branch/diff and verification evidence are available.
 - No unresolved human gate remains.
 
