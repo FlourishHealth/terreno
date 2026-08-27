@@ -1,5 +1,5 @@
 ---
-name: 5-taste
+name: terreno-5-taste
 description: Perform one reactive iteration against the PR's current head. Sleep until async review bots (Bugbot, CodeQL) finish, inspect CI/mergeability/reviews, act on what is actionable, emit state, and exit. The outer loop owns product-CI waiting and reinvocation.
 disable-model-invocation: true
 ---

@@ -1,17 +1,17 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno` (`2.3.0`)
+Plugin: `terreno-planning` (`2.2.0`)
 
 All five skills are explicitly invoked (`disable-model-invocation: true`) and implement
 one bounded transition.
 
 | Skill | Preconditions | Primary output | PASS next |
 | --- | --- | --- | --- |
-| `1-grow` | request/spec + repository | approved IP/tasks + criterion/verification map | Pick |
-| `2-pick` | approved task + branch/state | implemented slice + tests/internal reviews | Roast |
-| `3-roast` | Pick result + current diff | independent requirement/evidence verdict | Brew |
-| `4-brew` | Roast PASS + branch/evidence | pushed head + PR + review-bot wait + attached evidence | Taste |
-| `5-taste` | PR + current state | one current-head reaction after review-bot wait | null or fresh Taste |
+| `terreno-1-grow` | request/spec + repository | approved IP/tasks + criterion/verification map | Pick |
+| `terreno-2-pick` | approved task + branch/state | implemented slice + tests/internal reviews | Roast |
+| `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict | Brew |
+| `terreno-4-brew` | Roast PASS + branch/evidence | pushed head + PR + review-bot wait + attached evidence | Taste |
+| `terreno-5-taste` | PR + current state | one current-head reaction after review-bot wait | null or fresh Taste |
 
 Every stage includes:
 
@@ -53,8 +53,8 @@ Or install the same five stages as a host plugin:
 
 | Host | Command |
 | --- | --- |
-| Cursor | Install `terreno` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then `/1-grow` |
-| Claude Code | `/plugin marketplace add FlourishHealth/terreno` then `/plugin install terreno@terreno`, then `/terreno:1-grow` |
+| Cursor | Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then `/terreno-1-grow` |
+| Claude Code | `/plugin marketplace add FlourishHealth/terreno` then `/plugin install terreno-planning@terreno`, then `/terreno-planning:terreno-1-grow` |
 
 Manifests: Cursor [`.cursor-plugin/plugin.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/.cursor-plugin/plugin.json); Claude Code [`.claude-plugin/plugin.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/.claude-plugin/plugin.json). Both share `plugins/terreno-planning/skills/`.
 

@@ -1,5 +1,5 @@
 ---
-name: 4-brew
+name: terreno-4-brew
 description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, and an in-process wait for async review bots (Bugbot, CodeQL) before exit.
 disable-model-invocation: true
 ---
@@ -10,11 +10,11 @@ Move one verified implementation into review, wait for async review bots on that
 emit current PR/head state, and exit. The outer loop invokes Taste separately. Brew
 records bot outcomes but does not implement fixes.
 
-Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
-[`documentation contract`](../../references/documentation-contract.md),
-[`async review bots`](../../references/async-review-bots.md), and
-[`independent review procedure`](../../references/independent-review.md). All GitHub text
-must follow the [`GitHub attention contract`](../../references/github-attention-contract.md).
+Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
+[`documentation contract`](references/documentation-contract.md),
+[`async review bots`](references/async-review-bots.md), and
+[`independent review procedure`](references/independent-review.md). All GitHub text
+must follow the [`GitHub attention contract`](references/github-attention-contract.md).
 
 ## Preconditions
 

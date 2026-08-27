@@ -20,7 +20,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
 - [Expose Model Context Protocol tools](expose-mcp-tools.md) — Turn `modelRouter` models into MCP tools an LLM can call
-- [Install agent skills](install-agent-skills.md) — `npx skills`, Cursor plugin, or Claude Code plugin (`/terreno:1-grow`)
+- [Install agent skills](install-agent-skills.md) — `npx skills`, Cursor plugin, or Claude Code plugin (`terreno-planning`)
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Upgrade banner](upgrade-banner.md) — Soft warning and hard-block app update UX
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer

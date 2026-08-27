@@ -35,7 +35,7 @@ const PR_FORBIDDEN_HEADINGS = [
 
 const STAGE_DEFINITIONS: StageDefinition[] = [
   {
-    directory: "1-grow",
+    directory: "terreno-1-grow",
     nextMarkers: [
       "next: pick",
       "next: grow",
@@ -44,7 +44,7 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
     stage: "grow",
   },
   {
-    directory: "2-pick",
+    directory: "terreno-2-pick",
     nextMarkers: [
       "next: roast",
       "next: pick",
@@ -53,7 +53,7 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
     stage: "pick",
   },
   {
-    directory: "3-roast",
+    directory: "terreno-3-roast",
     nextMarkers: [
       "next: brew",
       "next: pick",
@@ -62,7 +62,7 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
     stage: "roast",
   },
   {
-    directory: "4-brew",
+    directory: "terreno-4-brew",
     nextMarkers: [
       "next: taste",
       "next: pick",
@@ -73,7 +73,7 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
     stage: "brew",
   },
   {
-    directory: "5-taste",
+    directory: "terreno-5-taste",
     nextMarkers: ["next: taste", "next: null"],
     stage: "taste",
   },
@@ -93,15 +93,10 @@ const REQUIRED_SECTIONS = [
 
 const RETIRED_IDENTIFIERS = [
   "terreno-1-blend",
-  "terreno-1-grow",
   "terreno-2-roast",
-  "terreno-2-pick",
   "terreno-3-cupping",
-  "terreno-3-roast",
   "terreno-4-pour",
-  "terreno-4-brew",
   "terreno-5-dialin",
-  "terreno-5-taste",
 ];
 
 const TASTE_UNBOUNDED_LOOP_PATTERNS = [
@@ -285,7 +280,7 @@ export const validateLifecyclePlugin = ({
   const pluginDirectory = join(rootDirectory, "plugins/terreno-planning");
   const skillsDirectory = join(rootDirectory, "plugins/terreno-planning/skills");
   const actualStageDirectories = readdirSync(skillsDirectory, {withFileTypes: true})
-    .filter((entry) => entry.isDirectory() && /^\d-/.test(entry.name))
+    .filter((entry) => entry.isDirectory() && /^terreno-\d-/.test(entry.name))
     .map((entry) => entry.name)
     .sort();
   const expectedStageDirectories = STAGE_DEFINITIONS.map(({directory}) => directory).sort();

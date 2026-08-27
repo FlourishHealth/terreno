@@ -1,17 +1,16 @@
 # Terreno plugins
 
-## `terreno` — loop-engineering lifecycle
+## `terreno-planning` — loop-engineering lifecycle
 
-The reusable Cursor and Claude Code plugin (`plugins/terreno-planning/`) exposes exactly
-five bounded lifecycle transitions. Claude Code invokes them as `/terreno:1-grow`.
+The reusable Cursor plugin exposes exactly five bounded lifecycle transitions:
 
 | # | Stage | Contract |
 | --- | --- | --- |
-| 1 | **Grow** (`1-grow`) | Research, clarify, shape, and approve the IP/tasks |
-| 2 | **Pick** (`2-pick`) | Build one approved slice with TDD and internal review |
-| 3 | **Roast** (`3-roast`) | Independently prove/disprove the IP criteria |
-| 4 | **Brew** (`4-brew`) | Final checks, commit/push, PR/evidence, wait for review bots, then exit |
-| 5 | **Taste** (`5-taste`) | Wait for review bots, one current-head CI/mergeability/review reaction, then exit |
+| 1 | **Grow** (`terreno-1-grow`) | Research, clarify, shape, and approve the IP/tasks |
+| 2 | **Pick** (`terreno-2-pick`) | Build one approved slice with TDD and internal review |
+| 3 | **Roast** (`terreno-3-roast`) | Independently prove/disprove the IP criteria |
+| 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, wait for review bots, then exit |
+| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots, one current-head CI/mergeability/review reaction, then exit |
 
 Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
 Stages never own the full orchestration.
@@ -96,23 +95,24 @@ bun run rules:check
 
 | Retired | Canonical |
 | --- | --- |
-| `terreno-1-blend`, `terreno-1-grow` | `1-grow` |
-| `terreno-2-roast` (implementation), `terreno-2-pick` | `2-pick` |
-| `terreno-3-cupping`, `terreno-3-roast` (verification) | `3-roast` |
-| `terreno-4-pour`, `terreno-4-brew` | `4-brew` |
-| `terreno-5-dialin`, `terreno-5-taste` | `5-taste` |
+| `terreno-1-blend` | `terreno-1-grow` |
+| `terreno-2-roast` (implementation) | `terreno-2-pick` |
+| `terreno-3-cupping` | `terreno-3-roast` (verification) |
+| `terreno-4-pour` | `terreno-4-brew` |
+| `terreno-5-dialin` | `terreno-5-taste` |
 
-No aliases are retained for retired plugin command names. The old implementation-Roast
-name collides semantically with the new verification-Roast stage. Deprecated repo-local
-routers (`/ip`, `/implement`, `/submit`, `/autobot`, `/check-watcher`) are removed;
-invoke the canonical stages directly.
+No aliases are retained for the five retired plugin command names. The old
+implementation-Roast name collides semantically with the new verification-Roast stage.
+Deprecated repo-local routers (`/ip`, `/implement`, `/submit`, `/autobot`, `/check-watcher`)
+are removed; invoke the canonical stages directly.
 
-Install `terreno` from either host marketplace, then invoke Grow:
+Install `terreno-planning` from either host marketplace, then invoke a canonical
+stage:
 
 | Host | Marketplace | Install |
 | --- | --- | --- |
-| Cursor | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | install `terreno`, then `/1-grow` |
-| Claude Code | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/plugin marketplace add FlourishHealth/terreno`, then `/plugin install terreno@terreno`, then `/terreno:1-grow` |
+| Cursor | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | install `terreno-planning`, then `/terreno-1-grow` |
+| Claude Code | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/plugin marketplace add FlourishHealth/terreno`, then `/plugin install terreno-planning@terreno`, then `/terreno-planning:terreno-1-grow` |
 
 Both manifests point at the same `plugins/terreno-planning/skills/` tree. Claude Code
-namespaces plugin skills as `/terreno:<skill>`.
+namespaces plugin skills as `/terreno-planning:<skill>`.

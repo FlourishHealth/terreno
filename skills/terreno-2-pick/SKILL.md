@@ -1,5 +1,5 @@
 ---
-name: 2-pick
+name: terreno-2-pick
 description: Implement one approved IP/task slice with behavior-focused TDD, drift detection, and independent implementation/test-quality review. Not for planning, independent acceptance verification, or PR submission.
 disable-model-invocation: true
 ---

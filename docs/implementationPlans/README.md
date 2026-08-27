@@ -50,11 +50,11 @@ approved task contract, one fresh Pick invocation per frontier task, independent
 then Brew and bounded Taste iterations. This preserves the former Grind behavior without
 putting orchestration inside a lifecycle skill.
 
-1. **Grow** (`1-grow`) — grill until answers are executable, then write the IP + tracer-bullet task list; end with the 15-line verify index and a full Decisions table when any exist.
-2. **Pick** (`2-pick`) — implement one approved slice via TDD.
-3. **Roast** (`3-roast`) — independently verify the implementation against the IP.
-4. **Brew** (`4-brew`) — commit, push, open the PR.
-5. **Taste** (`5-taste`) — react once to current CI, mergeability, and review state.
+1. **Grow** (`terreno-1-grow`) — grill until answers are executable, then write the IP + tracer-bullet task list; end with the 15-line verify index and a full Decisions table when any exist.
+2. **Pick** (`terreno-2-pick`) — implement one approved slice via TDD.
+3. **Roast** (`terreno-3-roast`) — independently verify the implementation against the IP.
+4. **Brew** (`terreno-4-brew`) — commit, push, open the PR.
+5. **Taste** (`terreno-5-taste`) — react once to current CI, mergeability, and review state.
 
 The outer loop owns stage selection, execution-state persistence, waiting, retries, and
 human/external escalation. Each stage emits the compact machine-readable result described

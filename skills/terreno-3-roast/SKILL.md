@@ -1,5 +1,5 @@
 ---
-name: 3-roast
+name: terreno-3-roast
 description: Independently prove or disprove that the current implementation satisfies its approved IP and acceptance criteria. Use after Pick, preferably in a fresh context; not for fixing implementation code.
 disable-model-invocation: true
 ---
