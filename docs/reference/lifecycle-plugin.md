@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.3.0`)
+Plugin: `terreno-planning` (`2.4.0`)
 
 All five skills are explicitly invoked (`disable-model-invocation: true`). Grow, Brew,
 and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -13,15 +13,15 @@ stages; they are not stages and must not appear as `stage` values.
 | `terreno-1-grow` | request/spec + repository | approved IP/tasks + criterion/verification map | Pick (enters inner loop) |
 | `terreno-2-pick` | approved task + branch/state | one implemented slice, then Roast, then the next task | Roast, or Brew when the list is done |
 | `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick |
-| `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + review-bot wait + attached evidence | Taste |
-| `terreno-5-taste` | PR + current state | one current-head reaction after review-bot wait | null or fresh Taste |
+| `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + product-CI trigger check + review-bot wait + attached evidence | Taste |
+| `terreno-5-taste` | PR + current state | one current-head reaction after review-bot wait, observing every discovered CI host | null or fresh Taste |
 
 Outer loops (not stages):
 
 | Skill | What it walks | Default |
 | --- | --- | --- |
 | `terreno-planning-loop` | Approved task list | Grow once, then Pick once (inner pick-roast loop). Pass `phases=` to restrict (`grow`, `pick`, `roast`, `brew`, `taste`). |
-| `terreno-taste-sweep` | Author's open broken PRs | Isolate each conflicting or failing non-draft PR and reinvoke Taste until mergeable or blocked. |
+| `terreno-taste-sweep` | Author's open broken PRs | Isolate each conflicting or failing (any discovered CI host) non-draft PR and reinvoke Taste until mergeable or blocked. |
 
 Every stage includes:
 
@@ -45,7 +45,9 @@ retries, and escalation. Pick owns the
 one task, roast it, next task. Roast never invokes Pick. Do not start the next task
 until Roast PASS. Exactly one driver continues after each Roast. Brew and
 Taste sleep until async review bots (Bugbot, CodeQL, and similar) on the current head
-have reported, then continue; they do not wait for ordinary product CI. Brew still does
+have reported, then continue; they do not wait for ordinary product CI. Taste observes
+product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar),
+not only GitHub checks. Brew still does
 not execute Taste.
 
 GitHub communication follows a fixed attention budget: `Why`, `What changed`, and

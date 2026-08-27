@@ -1,6 +1,6 @@
 ---
 name: terreno-4-brew
-description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, and an in-process wait for async review bots (Bugbot, CodeQL) before exit.
+description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, confirm product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), and wait in-process for async review bots (Bugbot, CodeQL) before exit.
 disable-model-invocation: true
 ---
 
@@ -12,6 +12,7 @@ records bot outcomes but does not implement fixes.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 [`documentation contract`](../../references/documentation-contract.md),
+[`product CI`](../../references/product-ci.md),
 [`async review bots`](../../references/async-review-bots.md), and
 [`independent review procedure`](../../references/independent-review.md). All GitHub text
 must follow the [`GitHub attention contract`](../../references/github-attention-contract.md).
@@ -60,11 +61,13 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
 9. **Do not announce.** Do not post a PR comment for creation, readiness, check results,
    or evidence already present in the body. A top-level comment is allowed only for one
    blocking human action that cannot live in an existing review thread.
-10. **Wait for review bots.** Resolve the PR number/URL and pushed head SHA; confirm CI
-    was triggered. Follow the async-review-bots procedure: sleep and re-fetch until
-    Bugbot, CodeQL, and similar review bots on this head are terminal, never appeared
-    after the startup grace, or hit the 20-minute timeout. Do not exit while those bots
-    are queued or in progress. Do not wait for ordinary product CI to finish.
+10. **Confirm product CI, then wait for review bots.** Resolve the PR number/URL and
+    pushed head SHA. Follow the product-CI procedure: discover every CI host on this
+    branch (GitHub Actions, CircleCI, Buildkite, and similar) and confirm each triggered
+    or documented a skip for this SHA on every discovered CI host. Then follow the async-review-bots procedure: sleep
+    and re-fetch until Bugbot, CodeQL, and similar review bots on this head are terminal,
+    never appeared after the startup grace, or hit the 20-minute timeout. Do not exit while
+    those bots are queued or in progress. Do not wait for ordinary product CI to finish.
 11. **Record and exit.** Update execution state and emit:
     - review-bot timeout → `PENDING` with `next: taste` and `wait`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
@@ -82,13 +85,15 @@ handling, and mandatory evidence gates.
 - Commit and pushed head SHA
 - PR URL/number and preserved template/body state
 - Attached artifact references and sensitive-data check
+- Discovered product-CI hosts and trigger/skip outcome per host
 - Async review-bot names, statuses, and posted findings
 - Updated execution state and structured Brew result
 
 ## Success conditions
 
 - Verified implementation is committed/pushed and the PR accurately represents it.
-- CI is triggered for the recorded current head.
+- Product CI on every discovered CI host is triggered (or documented skipped) for the
+  recorded current head.
 - Async review bots on this head are terminal or did not appear after the startup grace.
 - Emit `PASS` with `next: taste`, then exit.
 
@@ -115,4 +120,4 @@ submission capability, or sensitive-data risk emits `BLOCKED` with
 - `BLOCKED` → outer loop routes the named gate
 
 For standalone compatibility, a human/runner may invoke Taste immediately after Brew
-returns. Brew itself never executes Taste and does not wait for product CI.
+returns. Brew itself never executes Taste and does not wait for product CI to finish.

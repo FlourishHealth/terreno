@@ -61,12 +61,13 @@ Taste. Neither is a sixth stage.
 | Pick | Was this slice implemented carefully? | red/green tests, checks, internal reviews; then Roast |
 | Roast | Does this task actually satisfy its criteria? | independent requirement→evidence verdict; emit next Pick or Brew |
 | Brew | Is the verified result correctly submitted? | final checks, commit/head, PR, artifacts |
-| Taste | What is actionable on the current PR head now? | CI, mergeability, reviews, bounded fixes |
+| Taste | What is actionable on the current PR head now? | CI on every discovered host, mergeability, reviews, bounded fixes |
 
 Roast is not another implementation review. It independently proves or disproves
 acceptance criteria. Taste is not a resident watcher of product CI. It sleeps until
 async review bots (Bugbot, CodeQL, and similar) on the current head have reported, then
-observes, acts, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
+observes jobs on every discovered CI host (GitHub Actions, CircleCI, Buildkite, and
+similar), acts, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
 
 ## Portable plugin, local knowledge
 
@@ -119,13 +120,13 @@ contain chain-of-thought or transcripts.
   driver continues after each Roast. Do not pick every task and roast once.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
-- Taste `PENDING` lets the outer loop wait on remaining product CI or a review-bot
-  timeout, then invoke fresh Taste against current state.
+- Taste `PENDING` lets the outer loop wait on remaining product CI (any discovered host)
+  or a review-bot timeout, then invoke fresh Taste against current state.
 - Brew and Taste sleep in-process while Bugbot, CodeQL, or similar review bots are
   running, then continue so they can react without a loop reinvocation.
 - Human decisions are `BLOCKED`, never arbitrary retries.
-- Taste `PASS` requires all current-head checks terminal/non-failing, no conflicts, and
-  no actionable review findings.
+- Taste `PASS` requires all current-head jobs on every discovered CI host
+  terminal/non-failing, no conflicts, and no actionable review findings.
 
 The detailed contract, schemas, and three execution scenarios live under
 [`plugins/terreno-planning/references/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning/references).

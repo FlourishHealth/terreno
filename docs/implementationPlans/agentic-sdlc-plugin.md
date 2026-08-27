@@ -61,6 +61,7 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
 | AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
 | AP12 | Brew and Taste sleep until Bugbot, CodeQL, and similar review bots on the current head have reported, then continue; they do not wait for ordinary product CI |
+| AP13 | Product CI is every discovered host (GitHub Actions, CircleCI, Buildkite, GitLab CI, and similar). Taste observes native jobs when GitHub checks are incomplete; Brew confirms each host triggered or skipped. GitHub checks alone never satisfy Taste `PASS` while another in-scope host is unfinished |
 
 ## Architecture
 
@@ -147,14 +148,16 @@ returns exact expected/actual evidence to Pick.
 ### Brew
 
 Requires Roast proof, runs repository-defined final checks/review, commits/pushes, applies
-the PR template, attaches evidence, waits for async review bots (Bugbot, CodeQL, and
+the PR template, attaches evidence, confirms product CI triggered on every discovered
+host, waits for async review bots (Bugbot, CodeQL, and
 similar) on the current head, records PR/current head, and exits. It does not wait for
 ordinary product CI or execute Taste.
 
 ### Taste
 
 Waits in-process if Bugbot, CodeQL, or similar review bots are still running, then reads
-current-head CI, mergeability, and unresolved review signals. It classifies, performs one
+current-head product CI on every discovered host (not only GitHub checks), mergeability,
+and unresolved review signals. It classifies, performs one
 bounded set of actionable fixes (plus one follow-up act after a post-fix review-bot wait),
 verifies/pushes if changed, emits `PASS`/`PENDING`/`BLOCKED`/`FAIL`, and exits. The outer
 loop schedules another invocation for remaining product CI.

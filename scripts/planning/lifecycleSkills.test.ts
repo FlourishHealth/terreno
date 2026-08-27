@@ -96,6 +96,40 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("wait in-process for running review bots")));
   });
 
+  it("rejects Brew that skips product CI host discovery", (): void => {
+    const content = readStage("terreno-4-brew")
+      .replace("../../references/product-ci.md", "missing-product-ci")
+      .replaceAll("every discovered CI host", "GitHub Actions only");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
+    assert.isTrue(errors.some((error) => error.includes("every discovered CI host")));
+  });
+
+  it("rejects Taste that observes only GitHub checks", (): void => {
+    const content = readStage("terreno-5-taste")
+      .replace("../../references/product-ci.md", "missing-product-ci")
+      .replaceAll("not only GitHub checks", "from GitHub checks only");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-5-taste",
+        nextMarkers: ["next: taste", "next: null"],
+        stage: "taste",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
+    assert.isTrue(errors.some((error) => error.includes("not only GitHub checks")));
+  });
+
   it("rejects same-invocation Brew to Taste execution", (): void => {
     const errors = validateStageContent({
       content: `${readStage("terreno-4-brew")}\nExecute Taste procedure now.`,

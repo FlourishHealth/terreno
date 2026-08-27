@@ -228,6 +228,12 @@ export const validateStageContent = ({
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
     }
+    if (!content.includes("../../references/product-ci.md")) {
+      errors.push(`${prefix}: Brew must load the product-CI procedure`);
+    }
+    if (!content.includes("every discovered CI host")) {
+      errors.push(`${prefix}: Brew must confirm product CI on every discovered CI host`);
+    }
     if (!content.includes("Do not exit while")) {
       errors.push(`${prefix}: Brew must wait in-process for running review bots`);
     }
@@ -245,6 +251,12 @@ export const validateStageContent = ({
     }
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Taste must load the async review-bot wait procedure`);
+    }
+    if (!content.includes("../../references/product-ci.md")) {
+      errors.push(`${prefix}: Taste must load the product-CI procedure`);
+    }
+    if (!content.includes("not only GitHub checks")) {
+      errors.push(`${prefix}: Taste must observe jobs on every discovered CI host, not only GitHub checks`);
     }
     if (!content.includes("Do not exit while")) {
       errors.push(`${prefix}: Taste must wait in-process for running review bots`);
@@ -475,6 +487,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!pluginReadme.includes("npx skills add FlourishHealth/terreno")) {
     errors.push("plugins/README.md must document npx skills installation");
+  }
+  if (!pluginReadme.includes("product-ci.md")) {
+    errors.push("plugins/README.md must document the product-CI procedure");
   }
   if (!pluginReadme.includes("pick-roast-loop.md")) {
     errors.push("plugins/README.md must document the pick-roast inner loop");

@@ -14,7 +14,10 @@ Examples:
 - GitHub CodeQL / code scanning
 - Copilot or other review bots when they appear on the PR
 
-Do not treat ordinary product CI (lint, typecheck, unit, e2e, build) as a review bot.
+Do not treat ordinary product CI as a review bot. Product CI is lint, typecheck, unit,
+e2e, and build work on **any** host (GitHub Actions, CircleCI, Buildkite, GitLab CI,
+Jenkins, Azure Pipelines, Bitbucket Pipelines, and similar). Observe those jobs with
+[`product-ci.md`](product-ci.md).
 
 ## When to wait
 
@@ -49,4 +52,4 @@ Use the harness sleep primitive (for example a 30-second sleep). Do not busy-spi
 - After Taste pushes a fix, wait again for review bots on the new head, then act on
   those results **once** in this invocation. A further push after that second act emits
   `PENDING` (`next: taste`); the outer loop owns later cycles.
-- Unbounded watching of product CI remains outer-loop work.
+- Unbounded watching of product CI on every discovered host remains outer-loop work.

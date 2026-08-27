@@ -21,7 +21,8 @@ task) until the approved list is done, a `FAIL` that cannot continue, or `BLOCKE
 Roast never invokes Pick. Roast proves the current task and returns. Brew and Taste
 include one in-process wait for
 [`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
-exit, so they can react to those results.
+exit, so they can react to those results. Taste observes product CI with
+[`product CI`](product-ci.md) on every discovered host.
 
 ## Discover supporting skills
 
@@ -108,7 +109,7 @@ transcripts.
 | `ask` | human questions: `q` / `rec` / optional `opts` |
 | `next` | recommended next stage or `null` |
 | `action` | concrete next action |
-| `wait` | seconds until the next Taste check (`PENDING` after bot timeout or remaining product CI) |
+| `wait` | seconds until the next Taste check (`PENDING` after bot timeout or remaining product CI on any discovered host) |
 
 ## Execution state
 
@@ -148,7 +149,8 @@ transport.
 - `BLOCKED`: no safe engineering action exists now. Classify `human`, `environment`,
   `access`, or `external`; include the exact action or decision required.
 - `PENDING`: changing external state is not terminal (primarily Taste). Include `wait`;
-  the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI,
+  the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI on
+  any discovered host (GitHub Actions, CircleCI, Buildkite, and similar),
   for review-bot timeout, and after Taste's second post-fix push. Do not emit `PENDING`
   while Bugbot, CodeQL, or similar review bots are still queued or in progress; sleep
   per the async-review-bots procedure first.
@@ -160,4 +162,5 @@ scope growth, and policy-required approval. Include options, tradeoffs, evidence
 recommended default when appropriate.
 
 Bounded engineering retries must be hypothesis-driven. Unbounded product-CI observation
-belongs to the outer loop. Brew and Taste wait in-process only for async review bots.
+on every discovered host belongs to the outer loop. Brew and Taste wait in-process only
+for async review bots.
