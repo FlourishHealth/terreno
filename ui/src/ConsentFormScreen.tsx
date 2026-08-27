@@ -69,8 +69,9 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const handleMarkdownLoad = useCallback((): void => {
     lastContentHeightRef.current = 0;
     setContentHeight(0);
+    setHasScrolledToBottom(!form.requireScrollToBottom);
     setIsMarkdownLoaded(true);
-  }, []);
+  }, [form.requireScrollToBottom]);
 
   // Auto-satisfy only after markdown exists. Empty Spinner fallback (300ms delay) must not
   // unlock Agree. Reset only when content grows past the viewport, not when the hint unmounts.
@@ -109,7 +110,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
-      if (hasScrolledToBottom) {
+      if (!isMarkdownLoaded || hasScrolledToBottom) {
         return;
       }
       const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
@@ -118,7 +119,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         setHasScrolledToBottom(true);
       }
     },
-    [hasScrolledToBottom]
+    [hasScrolledToBottom, isMarkdownLoaded]
   );
 
   const handleCheckboxPress = (index: number) => {
