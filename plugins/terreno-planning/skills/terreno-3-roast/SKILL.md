@@ -1,13 +1,13 @@
 ---
 name: terreno-3-roast
-description: Independently prove or disprove the current task against its IP criteria, then continue the pick-roast loop on the next unblocked task until the list is done. Use after Pick, preferably in a fresh context; not for fixing implementation code.
+description: Independently prove or disprove the current task against its IP criteria, then return. Do not pick or start the next task. Pick owns the inner loop. Use after Pick, preferably in a fresh context; not for fixing implementation code.
 disable-model-invocation: true
 ---
 
 # Roast — prove
 
-Roast is the authoritative stage-level verifier for the **current task**, then it
-continues the pick-roast inner loop:
+Roast is the authoritative stage-level verifier for the **current task**. It does not
+continue the inner loop. Roast never invokes Pick. Pick owns the inner loop:
 
 ```text
 requirement → verification method → evidence → PASS / FAIL / BLOCKED
@@ -52,14 +52,14 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 8. **Do not fix.** Report implementation defects to Pick. Only correct verifier setup
    owned by Roast; if that changes evidence materially, rerun the affected method.
 9. **Record.** Update execution state for this task's Roast result.
-10. **Continue or stop.** Follow the pick-roast loop. Do not start the next task until Roast PASS.
-    Exactly one driver continues. If Pick invoked this Roast, return the current-task
-    result to Pick; do not invoke Pick for the next task. If this invocation entered at
-    Roast, `PASS` with remaining unblocked tasks → invoke Pick once for the next
-    frontier task (that Pick then owns later prove-only Roast cycles).
-    `PASS` with none remaining → emit `PASS` with `next: brew`. `FAIL` → return evidence
-    to the parent Pick, or invoke Pick for the same task when Roast is the entry, or
-    emit `FAIL` with `next: pick` when this invocation must exit. `BLOCKED` exits the loop.
+10. **Return.** Follow the pick-roast loop. Do not start the next task until Roast PASS.
+    Roast never invokes Pick. Pick owns the inner loop. Exactly one driver continues —
+    that driver is always Pick. After recording this task, return the result; do not
+    reconstruct Pick, do not invoke Pick, and do not start the next task. `PASS` with
+    remaining unblocked tasks → emit `PASS` with `next: pick`. `PASS` with none remaining
+    → emit `PASS` with `next: brew`. `FAIL` → emit `FAIL` with `next: pick`. `BLOCKED`
+    → emit `BLOCKED` with `next: null`. When Pick invoked this Roast, returning to Pick
+    is enough; still do not invoke Pick.
 
 Do not treat a Roast of the last slice as proof of earlier unroasted tasks. Terminal
 inner-loop `PASS` requires every in-scope task to have Roast `PASS` on the recorded head.
@@ -87,7 +87,7 @@ probes. If repository policy makes one mandatory and it is unavailable, emit `BL
   evidence on the recorded head.
 - Required regression/runtime/UI checks pass.
 - Architecture and public docs match the shipped behavior.
-- Remaining unblocked tasks continue into Pick rather than Brew.
+- Remaining unblocked tasks emit `next: pick`. Roast never invokes Pick.
 - When none remain and every in-scope task has Roast `PASS`, emit `PASS` with
   `next: brew`.
 

@@ -39,10 +39,9 @@ Give each fresh agent:
 The stage discovers repository skills itself. The loop may suggest known skills but must
 not replace stage-level discovery.
 
-Invoking Pick or Roast is enough to run the inner loop until the approved task list is
-done. Do not start the next task until Roast PASS. Exactly one driver continues after
-each current-task Roast: Pick that invoked Roast continues; entry Roast may invoke Pick
-once.
+Invoking Pick is enough to run the inner loop until the approved task list is done.
+Invoking Roast proves the current task only and emits `next: pick` or `next: brew`.
+Roast never invokes Pick. Do not start the next task until Roast PASS. Exactly one driver continues after each current-task Roast: Pick owns the inner loop.
 
 ## Feature profile (formerly Grind)
 

@@ -204,14 +204,20 @@ export const validateStageContent = ({
     if (!content.includes("Exactly one driver continues")) {
       errors.push(`${prefix}: must name a single inner-loop driver`);
     }
+    if (!content.includes("Roast never invokes Pick")) {
+      errors.push(`${prefix}: Pick must treat Roast as prove-only`);
+    }
   }
 
   if (definition.stage === "roast") {
     if (!content.includes("Exactly one driver continues")) {
       errors.push(`${prefix}: must name a single inner-loop driver`);
     }
-    if (!content.includes("do not invoke Pick for the next task")) {
-      errors.push(`${prefix}: Roast invoked by Pick must return instead of starting the next Pick`);
+    if (!content.includes("Roast never invokes Pick")) {
+      errors.push(`${prefix}: Roast must never invoke Pick`);
+    }
+    if (!content.includes("Pick owns the inner loop")) {
+      errors.push(`${prefix}: Roast must name Pick as the inner-loop driver`);
     }
   }
 
@@ -453,8 +459,22 @@ export const validateLifecyclePlugin = ({
   if (!loopEngineering.includes("Exactly one driver continues")) {
     errors.push("loop engineering must name a single inner-loop driver");
   }
+  if (!loopEngineering.includes("Roast never invokes Pick")) {
+    errors.push("loop engineering must forbid Roast from invoking Pick");
+  }
   if (loopEngineering.includes("run independent tasks in parallel")) {
     errors.push("loop engineering must not pick tasks in parallel without roasting each");
+  }
+
+  const pickRoastLoop = readFileSync(
+    join(pluginDirectory, "references/pick-roast-loop.md"),
+    "utf8"
+  );
+  if (!pickRoastLoop.includes("Roast never invokes Pick")) {
+    errors.push("pick-roast loop must forbid Roast from invoking Pick");
+  }
+  if (pickRoastLoop.includes("entry Roast may invoke Pick")) {
+    errors.push("pick-roast loop must not let entry Roast invoke Pick");
   }
 
   const executionSchema = JSON.parse(

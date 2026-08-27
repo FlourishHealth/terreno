@@ -116,7 +116,8 @@ describe("lifecycle skill architecture", (): void => {
   it("rejects Pick that skips Reconstruct on the next task or dual-drives the loop", (): void => {
     const content = readStage("terreno-2-pick")
       .replaceAll("repeat from Reconstruct", "repeat from Specify")
-      .replaceAll("Exactly one driver continues", "Both Pick and Roast continue");
+      .replaceAll("Exactly one driver continues", "Both Pick and Roast continue")
+      .replaceAll("Roast never invokes Pick", "Roast may invoke Pick");
     const errors = validateStageContent({
       content,
       definition: {
@@ -128,12 +129,14 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("rediscover docs and skills")));
     assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
+    assert.isTrue(errors.some((error) => error.includes("treat Roast as prove-only")));
   });
 
-  it("rejects Roast that starts the next Pick when invoked by Pick", (): void => {
+  it("rejects Roast that invokes Pick or dual-drives the loop", (): void => {
     const content = readStage("terreno-3-roast")
       .replaceAll("Exactly one driver continues", "Both stages continue")
-      .replaceAll("do not invoke Pick for the next task", "also invoke Pick for the next task");
+      .replaceAll("Roast never invokes Pick", "Roast may invoke Pick")
+      .replaceAll("Pick owns the inner loop", "Roast owns the inner loop");
     const errors = validateStageContent({
       content,
       definition: {
@@ -144,7 +147,8 @@ describe("lifecycle skill architecture", (): void => {
     });
 
     assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
-    assert.isTrue(errors.some((error) => error.includes("return instead of starting the next Pick")));
+    assert.isTrue(errors.some((error) => error.includes("never invoke Pick")));
+    assert.isTrue(errors.some((error) => error.includes("Pick as the inner-loop driver")));
   });
 
   it("rejects Roast that does not continue the inner loop", (): void => {

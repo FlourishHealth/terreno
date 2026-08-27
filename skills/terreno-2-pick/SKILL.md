@@ -64,14 +64,15 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 11. **Record.** Mark only the completed task/slice, update execution state with commands,
     evidence, artifacts, docs files, and attempts.
 12. **Prove this task.** Invoke Roast to prove this task only. Prefer a fresh context.
-    Roast must return after classifying this task. Do not start the next task until Roast PASS.
-    Exactly one driver continues.
+    Roast must return after classifying this task. Roast never invokes Pick. Do not start the next task until Roast PASS.
+    Exactly one driver continues — that driver is this Pick.
 13. **Continue or stop.** After Roast `PASS`, if unblocked incomplete tasks remain,
     reconstruct the next frontier task and repeat from Reconstruct so architecture docs
     and supporting skills are rediscovered for that slice. If none remain, emit
     `PASS` with `next: brew`. Roast `FAIL` retries this task from Focus retries. Emit
     `FAIL` with `next: pick` only when this invocation must exit for a new hypothesis
-    the current context cannot safely continue. `BLOCKED` exits the loop.
+    the current context cannot safely continue. `BLOCKED` exits the loop. Pick owns
+    the inner loop. Do not rely on Roast to start the next Pick.
 
 Repeat Specify → Encode → Fulfill for learned behaviors inside this one slice. Do not
 batch all tests first. Do not expand into the next task until Roast PASS.

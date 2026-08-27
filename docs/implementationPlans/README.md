@@ -51,12 +51,13 @@ next until the list is done, then Brew and bounded Taste iterations.
 
 1. **Grow** (`terreno-1-grow`) — grill until answers are executable, then write the IP + tracer-bullet task list; end with the 15-line verify index and a full Decisions table when any exist.
 2. **Pick** (`terreno-2-pick`) — implement one approved slice via TDD, then continue the pick-roast inner loop.
-3. **Roast** (`terreno-3-roast`) — independently verify the current task, then pick the next or hand off to Brew.
+3. **Roast** (`terreno-3-roast`) — independently verify the current task, then return (`next: pick` or `next: brew`).
 4. **Brew** (`terreno-4-brew`) — commit, push, open the PR after every in-scope task has Roast `PASS`.
 5. **Taste** (`terreno-5-taste`) — react once to current CI, mergeability, and review state.
 
 The outer loop owns Grow/Brew/Taste selection, execution-state persistence, waiting,
-retries, and human/external escalation. Pick and Roast own the inner task loop. Each stage emits the compact machine-readable result described
+retries, and human/external escalation. Pick owns the inner task loop. Roast never
+invokes Pick. Each stage emits the compact machine-readable result described
 in [`plugins/terreno-planning/references/lifecycle-contract.md`](../../plugins/terreno-planning/references/lifecycle-contract.md)
 (collapsed behind a Details toggle in chat and on the PR).
 

@@ -38,13 +38,14 @@ durable artifacts. Pick can retry from exact Roast evidence; Roast can verify wi
 implementer's assumptions; Taste can react to the current PR head rather than an old
 green result.
 
-Pick and Roast continue across tasks in one invocation, but each Roast cycle still
-reconstructs from artifacts and prefers a fresh context. That is how the inner loop
-stays automated without turning Roast into a self-review.
+Pick continues across tasks in one invocation. Roast proves the current task and
+returns. Each Roast cycle still reconstructs from artifacts and prefers a fresh context.
+That is how the inner loop stays automated without turning Roast into a self-review or
+a second driver.
 
 The outer loop decides **when, who, what next, when to retry, when to wait on product
 CI, and when to escalate**. Stages decide how to perform one transition correctly. Pick
-and Roast additionally continue the inner loop until the approved task list is done.
+continues the inner loop until the approved task list is done. Roast never invokes Pick.
 Brew and Taste additionally sleep while async review bots are running.
 
 ## The five transitions
@@ -53,7 +54,7 @@ Brew and Taste additionally sleep while async review bots are running.
 | --- | --- | --- |
 | Grow | Is the work shaped and approved? | IP/tasks, decisions, criterion→verification map |
 | Pick | Was this slice implemented carefully? | red/green tests, checks, internal reviews; then Roast |
-| Roast | Does this task actually satisfy its criteria? | independent requirement→evidence verdict; then next Pick or Brew |
+| Roast | Does this task actually satisfy its criteria? | independent requirement→evidence verdict; emit next Pick or Brew |
 | Brew | Is the verified result correctly submitted? | final checks, commit/head, PR, artifacts |
 | Taste | What is actionable on the current PR head now? | CI, mergeability, reviews, bounded fixes |
 
@@ -109,8 +110,8 @@ contain chain-of-thought or transcripts.
 ## Retry and stop rules
 
 - Pick implements one task, Roast proves it, then Pick takes the next unblocked task.
-  Do not start the next task until Roast PASS. Exactly one driver continues after each
-  Roast. Do not pick every task and roast once.
+  Do not start the next task until Roast PASS. Roast never invokes Pick. Exactly one
+  driver continues after each Roast. Do not pick every task and roast once.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
 - Taste `PENDING` lets the outer loop wait on remaining product CI or a review-bot

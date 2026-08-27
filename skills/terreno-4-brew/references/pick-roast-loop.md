@@ -34,21 +34,25 @@ the first Pick. Do not run independent frontier tasks in parallel inside this lo
 
 ## Who executes whom
 
-Invoking **Pick** or **Roast** enters this loop. Exactly one driver continues after each
-current-task Roast. Do not let a parent Pick and a Roast subagent both start the next
-task.
+Invoking **Pick** enters this loop. Invoking **Roast** proves the current task only.
+Roast never invokes Pick. Pick owns the inner loop. Exactly one driver continues after
+each current-task Roast — that driver is always Pick. Do not let a parent Pick and a
+Roast subagent both start the next task. A fresh Roast subagent has no conversational
+"who invoked me" signal; prove-only Roast is the durable driver.
 
 - After Pick records a completed slice, **invoke Roast to prove that task only**. Prefer
   a fresh context or subagent when the harness allows. If a fresh context is unavailable,
   execute Roast from durable artifacts only and ignore Pick's completion claims.
-- When Pick invoked Roast, Roast proves, records, and **returns** to Pick. Roast does
-  not invoke Pick for the next task.
-- Pick then continues: Reconstruct the next frontier task, including architecture docs
-  and supporting skills for that slice, or emit `next: brew` when none remain.
-- When **Roast is the entry skill**, `PASS` with remaining unblocked tasks → invoke Pick
-  once. That Pick owns the rest of the loop, including later prove-only Roast cycles.
-- After Roast `FAIL`, return evidence to the parent Pick, or invoke Pick for the same
-  task when Roast is the entry, with the exact `need` / `want` / `got` / `ev` evidence.
+- Roast proves, records, and **returns**. It does not reconstruct Pick, does not invoke
+  Pick, and does not start the next task. `PASS` with remaining tasks emits `next: pick`.
+  `PASS` with none remaining emits `next: brew`. `FAIL` emits `next: pick`.
+- When Pick invoked Roast, returning to Pick is enough. Pick then continues: Reconstruct
+  the next frontier task, including architecture docs and supporting skills for that
+  slice, or emit `next: brew` when none remain.
+- When Roast is the entry skill, emit `next: pick` or `next: brew`. The caller (human or
+  outer loop) runs Pick. Roast still never invokes Pick.
+- After Roast `FAIL`, return evidence to the parent Pick, or emit `next: pick` with the
+  exact `need` / `want` / `got` / `ev` evidence when Roast is the entry.
 - Pick never skips Roast. Roast never implements the next slice itself.
 
 Each cycle writes execution state (`task`, `attempt`, `last`, `tried`, `next`) before
@@ -72,7 +76,7 @@ one.
 | Entry | Behavior |
 | --- | --- |
 | Grow `PASS` / human invokes Pick | Start at the next unblocked incomplete task |
-| Human invokes Roast after a Pick cycle | Prove the current task, then continue the loop |
+| Human invokes Roast after a Pick cycle | Prove the current task, emit `next: pick` or `next: brew`, return |
 | Roast `FAIL` from a prior invocation | Pick retries that task, then Roast, then continue |
 
 | Stop | `next` |
