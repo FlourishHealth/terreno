@@ -17,7 +17,6 @@
     "api/src/mcp/registry.ts": 3,
     "api/src/mcp/schemaGenerator.ts": 3,
     "api/src/mcp/types.ts": 2,
-    "api/src/openApi.test.ts": 48,
     "api/src/openApiValidator.test.ts": 48,
     "api/src/plugins.ts": 32,
     "api/src/realtime/realtime.test.ts": 137,
@@ -41,44 +40,42 @@
     "example-backend/src/services/userService.test.ts": 3,
     "rtk/src/authSlice.ts": 5,
     "rtk/src/offlineMiddleware.test.ts": 8,
-    "rtk/src/offlineMiddleware.ts": 39,
     "syncdb/src/client.test.ts": 2,
     "syncdb/src/storage/idb.test.ts": 2,
     "test/src/logging/silenceLogs.ts": 3,
     "test/src/mocks/sentryBun.ts": 13,
     "test/src/transaction/testTransaction.ts": 33,
     "ui/src/ActionSheet.tsx": 2,
-    "ui/src/Common.ts": 19,
+    "ui/src/Common.ts": 15,
     "ui/src/ToastNotifications.test.tsx": 1,
-    "ui/src/types/react-native-swiper-flatlist.d.ts": 1,
-    "ui/src/Unifier.ts": 1
+    "ui/src/types/react-native-swiper-flatlist.d.ts": 1
   },
   "byPackage": {
     "admin-backend": 2,
     "admin-frontend": 1,
-    "api": 820,
+    "api": 772,
     "demo": 2,
     "example-backend": 23,
-    "rtk": 52,
+    "rtk": 13,
     "syncdb": 4,
     "test": 49,
-    "ui": 24
+    "ui": 19
   },
   "byRemediationStatus": {
-    "fully-documented": 977,
+    "fully-documented": 885,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-25T22:07:27.878Z",
+  "generatedAt": "2026-08-27T04:51:07.049Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 977
+    "totalUsages": 885
   },
-  "totalFiles": 52,
-  "totalUsages": 977,
+  "totalFiles": 49,
+  "totalUsages": 885,
   "version": 2
 }

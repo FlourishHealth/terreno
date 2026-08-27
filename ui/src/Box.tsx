@@ -22,7 +22,11 @@ import type {
   SurfaceTheme,
 } from "./Common";
 import {getRounding, getSpacing} from "./Common";
-import {mediaQueryLargerThan} from "./MediaQuery";
+import {
+  isBreakpointAtLeast,
+  type ResponsiveBreakpoint,
+  useResponsiveBreakpoint,
+} from "./ResponsiveBreakpoint";
 import {useTheme} from "./Theme";
 import {Unifier} from "./Unifier";
 
@@ -90,8 +94,20 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "testIDs",
 ]);
 
+const RESPONSIVE_DIRECTION_PROPS = [
+  "smDirection",
+  "mdDirection",
+  "lgDirection",
+  "xlDirection",
+] as const;
+const RESPONSIVE_DIRECTION_PROP_SET = new Set<string>(RESPONSIVE_DIRECTION_PROPS);
+
 interface BoxStyleMap {
-  [prop: string]: (value: unknown, all: Readonly<Record<string, unknown>>) => ViewStyle;
+  [prop: string]: (
+    value: unknown,
+    all: Readonly<Record<string, unknown>>,
+    breakpoint: ResponsiveBreakpoint
+  ) => ViewStyle;
 }
 
 const boxStyleMapCache = new WeakMap<object, BoxStyleMap>();
@@ -101,6 +117,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const resolvedTestID = props.testID;
   const internalScrollRef = useRef<ScrollView>(null);
   const scrollRef = props.scrollRef ?? internalScrollRef;
+  const hasResponsiveDirection = Boolean(
+    props.smDirection || props.mdDirection || props.lgDirection || props.xlDirection
+  );
+  const breakpoint = useResponsiveBreakpoint({enabled: hasResponsiveDirection});
 
   useImperativeHandle(ref, () => ({
     scrollTo: (y: number) => {
@@ -193,8 +213,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
       },
       justifyContent: (value: JustifyContent) => ({justifyContent: ALIGN_CONTENT[value]}),
       left: (left) => ({left: left ? 0 : undefined}),
-      lgDirection: (value: "row" | "column") =>
-        mediaQueryLargerThan("lg") ? {display: "flex", flexDirection: value} : {},
+      lgDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "lg"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       margin: (value) => ({margin: getSpacing(value as SignedUpTo12)}),
       marginBottom: (value) => ({marginBottom: getSpacing(value as SignedUpTo12)}),
       marginLeft: (value) => ({marginLeft: getSpacing(value as SignedUpTo12)}),
@@ -218,8 +240,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
         }
         return {maxWidth: value as NumberOrPercentage};
       },
-      mdDirection: (value: "row" | "column") =>
-        mediaQueryLargerThan("md") ? {display: "flex", flexDirection: value} : {},
+      mdDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "md"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       minHeight: (value) => {
         if (!isValidWidthHeight(value as NumberOrPercentage)) {
           console.warn(
@@ -282,8 +306,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
           return {elevation: 4};
         }
       },
-      smDirection: (value: "row" | "column") =>
-        mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
+      smDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "sm"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       top: (top) => ({top: top ? 0 : undefined}),
       width: (value, allProps) => {
         if (!isValidWidthHeight(value as NumberOrPercentage)) {
@@ -306,6 +332,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
           : "flex-start",
         flexWrap: value ? "wrap" : "nowrap",
       }),
+      xlDirection: (value: "row" | "column", _allProps, responsiveBreakpoint) =>
+        isBreakpointAtLeast({breakpoint: responsiveBreakpoint, minimum: "xl"})
+          ? {display: "flex", flexDirection: value}
+          : {},
       zIndex: (value) => ({
         zIndex: typeof value === "number" || value === "auto" ? value : undefined,
       }),
@@ -320,11 +350,22 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     let style: ViewStyle = {};
     for (const prop of Object.keys(props) as Array<keyof typeof props>) {
       const value = props[prop];
+      if (RESPONSIVE_DIRECTION_PROP_SET.has(prop as string)) {
+        continue;
+      }
       if (boxStyleMap[prop]) {
-        Object.assign(style, boxStyleMap[prop](value, propsAsRecord));
+        Object.assign(style, boxStyleMap[prop](value, propsAsRecord, breakpoint));
       } else if (!NON_STYLE_BOX_PROPS.has(prop as string)) {
         (style as Record<string, unknown>)[prop as string] = value;
         // console.warn(`Box: unknown property ${prop}`);
+      }
+    }
+
+    // Responsive direction specificity is deterministic and independent of JSX prop order.
+    for (const responsiveProp of RESPONSIVE_DIRECTION_PROPS) {
+      const responsiveValue = props[responsiveProp];
+      if (responsiveValue) {
+        Object.assign(style, boxStyleMap[responsiveProp](responsiveValue, propsAsRecord, breakpoint));
       }
     }
 

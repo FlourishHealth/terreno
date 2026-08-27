@@ -6,7 +6,7 @@ import {Box} from "./Box";
 import type {SplitPageListItem, SplitPageProps} from "./Common";
 import {FlatList} from "./FlatList";
 import {IconButton} from "./IconButton";
-import {mediaQueryLargerThan} from "./MediaQuery";
+import {isMobileDevice} from "./MediaQuery";
 import {SegmentedControl} from "./SegmentedControl";
 import {Spinner} from "./Spinner";
 import {useTheme} from "./Theme";
@@ -35,7 +35,7 @@ export const SplitPage = <TItem extends SplitPageListItem = SplitPageListItem>({
   const [activeTabs, setActiveTabs] = useState<number[]>([0, 1]);
   const {width} = Dimensions.get("window");
 
-  const isMobileDevice = !mediaQueryLargerThan("sm");
+  const isMobileLayout = isMobileDevice();
 
   const elementArray = Children.toArray(children).filter((c) => c !== null);
 
@@ -189,7 +189,7 @@ export const SplitPage = <TItem extends SplitPageListItem = SplitPageListItem>({
   };
 
   const renderMobileList = () => {
-    if (isMobileDevice && selectedId !== undefined) {
+    if (isMobileLayout && selectedId !== undefined) {
       return null;
     }
 
@@ -218,13 +218,13 @@ export const SplitPage = <TItem extends SplitPageListItem = SplitPageListItem>({
   };
 
   const renderMobileListContent = () => {
-    if (isMobileDevice && selectedId === undefined) {
+    if (isMobileLayout && selectedId === undefined) {
       return null;
     }
 
     return (
       <Box flex="grow" padding={2}>
-        {isMobileDevice && (
+        {isMobileLayout && (
           <Box width="100%">
             <IconButton
               accessibilityHint="close split page"
@@ -303,7 +303,7 @@ export const SplitPage = <TItem extends SplitPageListItem = SplitPageListItem>({
           size="md"
         />
       )}
-      {isMobileDevice ? renderMobileSplitPage() : renderSplitPage()}
+      {isMobileLayout ? renderMobileSplitPage() : renderSplitPage()}
     </Box>
   );
 };

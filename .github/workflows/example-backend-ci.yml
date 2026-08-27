@@ -1,38 +1,7 @@
 name: Example Backend CI
 
-on:
-  pull_request:
-    paths:
-      - "ai/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "admin-spa/**"
-      - "example-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - "comms/**"
-      - "feature-flags/**"
-      - "bun.lock"
-      - "rtk/**"
-      - "ui/**"
-      - ".github/workflows/example-backend-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "ai/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "admin-spa/**"
-      - "example-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - "comms/**"
-      - "feature-flags/**"
-      - "bun.lock"
-      - "rtk/**"
-      - "ui/**"
-      - ".github/workflows/example-backend-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   lint-and-test:

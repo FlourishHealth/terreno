@@ -7,6 +7,7 @@ cd ui
 bun run performance:p0
 bun run performance:p1
 bun run performance:p2:button
+bun run performance:p2:responsive-box
 ```
 
 The benchmarks render large trees through the same React Native test environment as the UI
@@ -18,6 +19,7 @@ component suite. They report median wall-clock times after two warmups and seven
 - a 100-row, eight-column `DataTable` with two pinned columns
 - 500 `Icon` instances
 - 500 plain `Button` instances and 100 confirmation `Button` instances
+- 500 responsive `Box` instances with `sm`, `md`, and `lg` direction props
 - initial mount, same-prop update, and changed-prop/theme update timings
 
 Use it for before/after comparisons on the same machine. It is not a device frame-rate benchmark;
@@ -98,6 +100,24 @@ still allows an immediate reopen while repeated presses that do not close the mo
 `P2ButtonRenderRegression.test.tsx` covers equivalent props plus changed labels, confirmation
 content, and theme values.
 
+## August 2026 P2 responsive Box optimization results
+
+These measurements used the same Cursor Cloud VM and Bun 1.3.11, with 21 measured samples. Times
+are milliseconds; lower is better.
+
+| Phase | Baseline | Optimized | Change |
+| --- | ---: | ---: | ---: |
+| Initial render | 3.01 | 3.12 | Within benchmark variance |
+| Same-prop update | 0.89 | 0.88 | Within benchmark variance |
+| One-direction update | 0.92 | 0.90 | Within benchmark variance |
+| Initial `Dimensions.get` calls | 1,500 | 1 | 99.9% fewer |
+
+Responsive Boxes now subscribe to one shared window-dimension source. A resize or rotation updates
+the cached breakpoint and every subscribed Box without a synchronous dimension read per responsive
+prop. Non-responsive Boxes do not subscribe. Focused regressions cover the native 320pt / 375pt / 600pt /
+1024pt boundaries, the web 1024pt / 1280pt desktop boundaries, listener sharing, cleanup, and
+changed responsive styles.
+
 ## Environment overrides
 
 Increase samples or workload size when comparing smaller changes:
@@ -125,5 +145,13 @@ UI_P2_CONFIRMATION_BUTTON_BENCHMARK_SIZE=200 \
 bun run performance:p2:button
 ```
 
-The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`, `UI_P1_BENCHMARK_RESULTS`, or
-`UI_P2_BUTTON_BENCHMARK_RESULTS` JSON lines for CI or local reporting.
+```bash
+UI_P2_RESPONSIVE_BOX_BENCHMARK_SAMPLES=21 \
+UI_P2_RESPONSIVE_BOX_BENCHMARK_WARMUPS=3 \
+UI_P2_RESPONSIVE_BOX_BENCHMARK_SIZE=1000 \
+bun run performance:p2:responsive-box
+```
+
+The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`, `UI_P1_BENCHMARK_RESULTS`,
+`UI_P2_BUTTON_BENCHMARK_RESULTS`, or `UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS` JSON lines for CI or
+local reporting.

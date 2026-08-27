@@ -1,27 +1,7 @@
 name: CD
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    paths:
-      - "terraform/**"
-      - "example-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - "admin-backend/**"
-      - "ai/**"
-      - "mcp-server/**"
-      - "ui/**"
-      - ".github/workflows/cd.yml"
-  workflow_dispatch:
-    inputs:
-      run_terraform:
-        description: "Force-run terraform jobs even if terraform/ unchanged"
-        required: false
-        type: boolean
-        default: false
+# Disabled after migration to `.circleci/continue-config.yml`; retained for rollback.
+on: []
 
 permissions:
   contents: read

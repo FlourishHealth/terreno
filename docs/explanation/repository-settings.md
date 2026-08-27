@@ -36,13 +36,15 @@ descriptions):
 - Require branches to be up to date before merging
 - Do not allow bypassing the above settings
 
-### CircleCI dual-run (in progress)
+### CircleCI checks
 
-Package CI / policy / Playwright twins live under `.circleci/` (see
-[how-to/circleci.md](../how-to/circleci.md)). **Keep requiring the existing GitHub
-Actions check names** until a twin is trusted; then add the CircleCI job name and
-remove the GHA workflow. Do not require CircleCI deploy jobs yet (deploys not
-ported).
+Package CI, policy, Playwright, Maestro web, architectural review, deploy, and
+release workflows run under `.circleci/` (see
+[how-to/circleci.md](../how-to/circleci.md)). Require the path-filtered CircleCI
+check names. Remove required GitHub Action checks for workflow files whose
+trigger is `on: []`; those checks cannot report anymore. Do not require the
+config-only `circleci-config` workflow. Keep Cursor Approval / Security / Bugbot
+as GitHub App checks; they are not CircleCI jobs.
 
 ## Merge settings
 
