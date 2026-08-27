@@ -10558,9 +10558,6 @@ exports[`EmojiSelector matches snapshot 1`] = `
                     "horizontal": false,
                     "keyboardShouldPersistTaps": "always",
                     "numColumns": 6,
-                    "ref": {
-                      "current": null,
-                    },
                     "removeClippedSubviews": true,
                     "style": {
                       "flex": 1,
@@ -20834,9 +20831,6 @@ exports[`EmojiSelector renders without tabs 1`] = `
                     "horizontal": false,
                     "keyboardShouldPersistTaps": "always",
                     "numColumns": 6,
-                    "ref": {
-                      "current": null,
-                    },
                     "removeClippedSubviews": true,
                     "style": {
                       "flex": 1,
@@ -31446,9 +31440,6 @@ exports[`EmojiSelector renders with history enabled 1`] = `
                     "horizontal": false,
                     "keyboardShouldPersistTaps": "always",
                     "numColumns": 6,
-                    "ref": {
-                      "current": null,
-                    },
                     "removeClippedSubviews": true,
                     "style": {
                       "flex": 1,
@@ -36809,9 +36800,6 @@ exports[`EmojiSelector renders with all category and shouldInclude filter 1`] = 
                     "horizontal": false,
                     "keyboardShouldPersistTaps": "always",
                     "numColumns": 8,
-                    "ref": {
-                      "current": null,
-                    },
                     "removeClippedSubviews": true,
                     "style": {
                       "flex": 1,
@@ -37270,9 +37258,6 @@ exports[`EmojiSelector renders with history category 1`] = `
                     "horizontal": false,
                     "keyboardShouldPersistTaps": "always",
                     "numColumns": 6,
-                    "ref": {
-                      "current": null,
-                    },
                     "removeClippedSubviews": true,
                     "style": {
                       "flex": 1,
