@@ -4,13 +4,15 @@ CircleCI CI/CD source of truth. See
 [`docs/implementationPlans/migrate-cicd-to-circleci.md`](../implementationPlans/migrate-cicd-to-circleci.md).
 
 **Status:** CircleCI owns package CI, repo policies, Playwright e2e, Maestro web
-e2e, architectural PR review, Netlify production deploys, GCP production deploys,
-semver-tag npm releases, and manual preview/EAS/package operations. Matching
-GitHub workflows remain in-repo with `on: []` for rollback. GitHub-native
-security, Cursor GitHub App checks (Approval / Security / Bugbot), and
-repository automation remain enabled. EAS PR updates and the fingerprint gate
-are temporarily disabled; manual EAS development dispatch remains available in
-CircleCI.
+e2e, architectural PR review, semver-tag npm releases, and manual
+preview/EAS/package operations. Automatic Netlify and GCP production path
+triggers are paused until the contexts and GCP OIDC bootstrap below are
+populated and verified; their manual pipeline parameters remain available for
+that verification. Matching GitHub workflows remain in-repo with `on: []` for
+rollback. GitHub-native security, Cursor GitHub App checks (Approval / Security
+/ Bugbot), and repository automation remain enabled. EAS PR updates and the
+fingerprint gate are temporarily disabled; manual EAS development dispatch
+remains available in CircleCI.
 
 ## Project setup (maintainers)
 
@@ -18,7 +20,7 @@ CircleCI.
 2. Default branch: `master`.
 3. Enable **dynamic config** / setup workflows for the project (required for
    `.circleci/config.yml` `setup: true`).
-4. Create the contexts below before merging the CD cutover.
+4. Create and verify the contexts below before enabling automatic CD path mappings.
 5. Build forked PRs if you want DCO + rulesync on forks.
 
 Org/project slug: _(record after Phase 0.1 — e.g. `flourishhealth/terreno`)_.
@@ -70,6 +72,12 @@ project, leave fork-PR secret passing off, and attach that context **only** to
 `architectural-pr-review` also skips if `GITHUB_TOKEN` or `CURSOR_API_KEY` is
 unset, and it skips fork PRs. The job checks out `origin/master` before running
 the review script so a PR cannot rewrite the reviewer.
+
+Do not restore automatic production path mappings until a manual
+`run-demo-deploy` and `run-cd` pipeline both pass. The Netlify deploy helper
+validates its context before building, and the docs target disables Docusaurus
+minification for preview and production builds to remain within the available
+8 GB CircleCI executor.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
 account key. Set `circleci_org_id`, `circleci_project_id`, and
@@ -138,6 +146,10 @@ CD replacement map:
 
 Trigger a pipeline from the CircleCI UI/API on the ref containing the code to
 operate. Set exactly one operation per pipeline:
+
+Netlify and GCP operations require the contexts in the table above. Use these
+manual pipelines to verify those contexts before restoring automatic production
+path mappings in `.circleci/config.yml`.
 
 | Operation | Pipeline parameters |
 |-----------|---------------------|
