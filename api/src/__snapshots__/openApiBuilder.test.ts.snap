@@ -182,7 +182,10 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "boolean",
                           },
                           "lastEatenWith": {
-                            "additionalProperties": {},
+                            "additionalProperties": {
+                              "format": "date-time",
+                              "type": "string",
+                            },
                             "description": "Map of user names to dates they last ate this food with",
                             "type": "object",
                           },
@@ -387,7 +390,10 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -521,7 +527,10 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -1135,7 +1144,10 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -1333,7 +1345,10 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -1467,7 +1482,10 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
