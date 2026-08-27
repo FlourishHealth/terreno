@@ -1,30 +1,7 @@
 name: Example Frontend Deploy
 
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - "example-frontend/**"
-      - "ui/**"
-      - "rtk/**"
-      - "ai/**"
-      - "admin-frontend/**"
-      - "bun.lock"
-      - ".github/workflows/frontend-example-deploy.yml"
-  # Do not list backend globs here. Build still requires frontend `has_changes`,
-  # so backend-only PRs would start then skip. Mixed PRs still run via frontend
-  # paths and `has_backend_changes` still retargets preview BASE_URL.
-  pull_request:
-    paths:
-      - "example-frontend/**"
-      - "ui/**"
-      - "rtk/**"
-      - "ai/**"
-      - "admin-frontend/**"
-      - "bun.lock"
-      - ".github/workflows/frontend-example-deploy.yml"
-  workflow_dispatch:
+# Disabled after migration to `.circleci/continue-config.yml`; retained for rollback.
+on: []
 
 jobs:
   check-changes:
