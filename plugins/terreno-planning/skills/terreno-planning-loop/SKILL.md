@@ -25,15 +25,20 @@ Roast driver.
 - Default when the user says "planning loop" with no phases:
   **Grow, then Pick** (Pick includes Roast for each task, then Brew).
 
-## Parse `phases=`
+## Parse phases
 
-Read the user message for `phases=` (comma-separated, case-insensitive).
+Read the user message for a phase list, in this order:
+
+1. `phases=` (comma-separated, case-insensitive)
+2. A bare comma-separated list of allowed tokens (`grow,roast` or
+   `grow, pick, brew`)
+3. Tokens after `/terreno-planning-loop` or the skill name
 
 Allowed tokens: `grow`, `pick`, `roast`, `brew`, `taste`.
 
 Ignore unknown tokens. Deduplicate while preserving order.
 
-If `phases=` is absent or empty after filtering, use `grow,pick,roast`.
+If nothing remains after filtering, use `grow,pick,roast`.
 That default still means Grow then Pick — Roast is owned by Pick, not a
 second outer-loop pass.
 
@@ -137,13 +142,14 @@ that ran emitted `PASS` (or Brew `FAIL` that you recovered by following
 loop. Use `PENDING` if a stage asked you to wait.
 
 ```yaml
-schema: terreno.lifecycle.v2
-stage: grow
+v: 2
+stage: pick
 status: PASS
-summary: "Planning loop finished selected phases."
 next: brew
-wait: 0
+action: Planning loop finished selected phases.
 ```
 
 Set `stage` to the last stage skill you invoked (`grow` | `pick` |
-`roast` | `brew` | `taste`).
+`roast` | `brew` | `taste`). Required keys are `v`, `stage`, `status`,
+`next`, and `action`. Omit `wait` unless the last stage asked you to
+sleep (`wait` is a positive integer).
