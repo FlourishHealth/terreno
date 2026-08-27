@@ -267,4 +267,13 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("grilling procedure")));
     assert.isTrue(errors.some((error) => error.includes("Decisions table")));
   });
+
+  it("keeps planning-loop and taste-sweep as non-stage plugin skills", (): void => {
+    for (const directory of ["terreno-planning-loop", "terreno-taste-sweep"] as const) {
+      const content = readStage(directory);
+      assert.include(content, `name: ${directory}`);
+      assert.include(content, "disable-model-invocation: true");
+      assert.include(content, "../../references/lifecycle-contract.md");
+    }
+  });
 });

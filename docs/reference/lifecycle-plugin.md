@@ -5,6 +5,8 @@ Plugin: `terreno-planning` (`2.3.0`)
 All five skills are explicitly invoked (`disable-model-invocation: true`). Grow, Brew,
 and Taste each implement one bounded transition. Pick continues an inner loop until the
 approved task list is done. Roast proves the current task and returns.
+`terreno-planning-loop` and `terreno-taste-sweep` are outer loops that invoke those
+stages; they are not stages and must not appear as `stage` values.
 
 | Skill | Preconditions | Primary output | PASS next |
 | --- | --- | --- | --- |
@@ -13,6 +15,13 @@ approved task list is done. Roast proves the current task and returns.
 | `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick |
 | `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + review-bot wait + attached evidence | Taste |
 | `terreno-5-taste` | PR + current state | one current-head reaction after review-bot wait | null or fresh Taste |
+
+Outer loops (not stages):
+
+| Skill | What it walks | Default |
+| --- | --- | --- |
+| `terreno-planning-loop` | Approved task list | Grow once, then Pick once (inner pick-roast loop). Pass `phases=` to restrict (`grow`, `pick`, `roast`, `brew`, `taste`). |
+| `terreno-taste-sweep` | Author's open broken PRs | Isolate each conflicting or failing non-draft PR and reinvoke Taste until mergeable or blocked. |
 
 Every stage includes:
 
@@ -48,7 +57,7 @@ Every stage follows the
 read architecture docs before acting, update them in the same slice, and fail the slice
 when user-visible or architectural behavior ships without matching docs.
 
-Install the published skill set (lifecycle stages plus repo and package skills):
+Install the published skill set (lifecycle stages, outer loops, plus repo and package skills):
 
 ```bash
 npx skills add FlourishHealth/terreno

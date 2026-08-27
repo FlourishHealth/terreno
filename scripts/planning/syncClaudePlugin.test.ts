@@ -39,6 +39,10 @@ describe("Claude plugin sync", (): void => {
     assert.include(paths, "references/lifecycle-contract.md");
     assert.include(paths, "references/pick-roast-loop.md");
     assert.notInclude(paths, "skills/terreno-1-grow/SKILL.md");
+    assert.notInclude(paths, "skills/terreno-planning-loop/SKILL.md");
+    assert.notInclude(paths, "skills/terreno-taste-sweep/SKILL.md");
+    assert.notInclude(paths, "skills/planning-loop/SKILL.md");
+    assert.notInclude(paths, "skills/taste-sweep/SKILL.md");
 
     const grow = files.find(({path}) => path === "skills/1-grow/SKILL.md");
     assert.include(grow?.contents ?? "", "name: 1-grow");

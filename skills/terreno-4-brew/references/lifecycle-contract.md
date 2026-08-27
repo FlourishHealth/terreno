@@ -1,6 +1,8 @@
 # Lifecycle contract
 
 Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration loop.
+`terreno-planning-loop` and `terreno-taste-sweep` are invocable outer loops; they
+must not be recorded as `stage` values.
 
 | Owner | Responsibility |
 | --- | --- |

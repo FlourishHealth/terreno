@@ -53,9 +53,17 @@ export const shortenStageName = (stageName: string): string =>
 export const rewriteStageNames = (contents: string): string =>
   contents.replace(LONG_STAGE_NAME_PATTERN, "$1");
 
+const CANONICAL_STAGE_DIRECTORY = /^terreno-[1-5]-/;
+
+/** Numbered Grow–Taste stages only. Outer loops stay Cursor/`npx skills`. */
 const listStageDirectories = (skillsDirectory: string): string[] =>
   readdirSync(skillsDirectory, {withFileTypes: true})
-    .filter((entry) => entry.isDirectory() && existsSync(join(skillsDirectory, entry.name, "SKILL.md")))
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        CANONICAL_STAGE_DIRECTORY.test(entry.name) &&
+        existsSync(join(skillsDirectory, entry.name, "SKILL.md"))
+    )
     .map((entry) => entry.name)
     .sort();
 
