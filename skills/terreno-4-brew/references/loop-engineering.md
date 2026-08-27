@@ -40,7 +40,9 @@ The stage discovers repository skills itself. The loop may suggest known skills 
 not replace stage-level discovery.
 
 Invoking Pick or Roast is enough to run the inner loop until the approved task list is
-done. Do not start the next task until Roast PASS.
+done. Do not start the next task until Roast PASS. Exactly one driver continues after
+each current-task Roast: Pick that invoked Roast continues; entry Roast may invoke Pick
+once.
 
 ## Feature profile (formerly Grind)
 

@@ -198,6 +198,21 @@ export const validateStageContent = ({
     if (!content.includes("Pick never skips Roast")) {
       errors.push(`${prefix}: Pick must not skip Roast`);
     }
+    if (!content.includes("repeat from Reconstruct")) {
+      errors.push(`${prefix}: must rediscover docs and skills on the next task`);
+    }
+    if (!content.includes("Exactly one driver continues")) {
+      errors.push(`${prefix}: must name a single inner-loop driver`);
+    }
+  }
+
+  if (definition.stage === "roast") {
+    if (!content.includes("Exactly one driver continues")) {
+      errors.push(`${prefix}: must name a single inner-loop driver`);
+    }
+    if (!content.includes("do not invoke Pick for the next task")) {
+      errors.push(`${prefix}: Roast invoked by Pick must return instead of starting the next Pick`);
+    }
   }
 
   if (definition.stage === "brew") {
@@ -434,6 +449,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!loopEngineering.includes("Do not start the next task until Roast PASS")) {
     errors.push("loop engineering must require Roast PASS before the next task");
+  }
+  if (!loopEngineering.includes("Exactly one driver continues")) {
+    errors.push("loop engineering must name a single inner-loop driver");
   }
   if (loopEngineering.includes("run independent tasks in parallel")) {
     errors.push("loop engineering must not pick tasks in parallel without roasting each");

@@ -65,7 +65,8 @@ Taste PASS → merge-ready
 Any BLOCKED → named human/external gate
 ```
 
-Brew does not execute Taste. Pick never skips Roast. Brew and Taste sleep until Bugbot,
+Brew does not execute Taste. Pick never skips Roast. Exactly one driver continues after
+each current-task Roast. Brew and Taste sleep until Bugbot,
 CodeQL, and similar review bots on the current head have reported, then continue. They
 do not wait for ordinary product CI. The loop owns persistence, product-CI waiting,
 retry, stop, and escalation. It does not reinvoke Pick between roasted tasks.

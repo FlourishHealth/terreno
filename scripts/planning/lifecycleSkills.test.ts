@@ -113,6 +113,40 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("must not skip Roast")));
   });
 
+  it("rejects Pick that skips Reconstruct on the next task or dual-drives the loop", (): void => {
+    const content = readStage("terreno-2-pick")
+      .replaceAll("repeat from Reconstruct", "repeat from Specify")
+      .replaceAll("Exactly one driver continues", "Both Pick and Roast continue");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("rediscover docs and skills")));
+    assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
+  });
+
+  it("rejects Roast that starts the next Pick when invoked by Pick", (): void => {
+    const content = readStage("terreno-3-roast")
+      .replaceAll("Exactly one driver continues", "Both stages continue")
+      .replaceAll("do not invoke Pick for the next task", "also invoke Pick for the next task");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-3-roast",
+        nextMarkers: ["next: brew", "next: pick", "next: null"],
+        stage: "roast",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
+    assert.isTrue(errors.some((error) => error.includes("return instead of starting the next Pick")));
+  });
+
   it("rejects Roast that does not continue the inner loop", (): void => {
     const content = readStage("terreno-3-roast")
       .replace("../../references/pick-roast-loop.md", "missing-loop")

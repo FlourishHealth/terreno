@@ -53,10 +53,13 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
    owned by Roast; if that changes evidence materially, rerun the affected method.
 9. **Record.** Update execution state for this task's Roast result.
 10. **Continue or stop.** Follow the pick-roast loop. Do not start the next task until Roast PASS.
-    `PASS` with remaining unblocked tasks → invoke Pick for the next frontier task.
-    `PASS` with none remaining → emit `PASS` with `next: brew`. `FAIL` → invoke Pick for
-    the same task with exact evidence, or emit `FAIL` with `next: pick` when this
-    invocation must exit. `BLOCKED` exits the loop.
+    Exactly one driver continues. If Pick invoked this Roast, return the current-task
+    result to Pick; do not invoke Pick for the next task. If this invocation entered at
+    Roast, `PASS` with remaining unblocked tasks → invoke Pick once for the next
+    frontier task (that Pick then owns later prove-only Roast cycles).
+    `PASS` with none remaining → emit `PASS` with `next: brew`. `FAIL` → return evidence
+    to the parent Pick, or invoke Pick for the same task when Roast is the entry, or
+    emit `FAIL` with `next: pick` when this invocation must exit. `BLOCKED` exits the loop.
 
 Do not treat a Roast of the last slice as proof of earlier unroasted tasks. Terminal
 inner-loop `PASS` requires every in-scope task to have Roast `PASS` on the recorded head.

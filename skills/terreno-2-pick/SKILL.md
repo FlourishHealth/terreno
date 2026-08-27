@@ -63,10 +63,12 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
     Missing docs for a user-visible or architectural change is `FAIL`.
 11. **Record.** Mark only the completed task/slice, update execution state with commands,
     evidence, artifacts, docs files, and attempts.
-12. **Prove this task.** Invoke Roast for this task per the pick-roast loop. Prefer a
-    fresh context. Do not start the next task until Roast PASS.
+12. **Prove this task.** Invoke Roast to prove this task only. Prefer a fresh context.
+    Roast must return after classifying this task. Do not start the next task until Roast PASS.
+    Exactly one driver continues.
 13. **Continue or stop.** After Roast `PASS`, if unblocked incomplete tasks remain,
-    reconstruct the next frontier task and repeat from Specify. If none remain, emit
+    reconstruct the next frontier task and repeat from Reconstruct so architecture docs
+    and supporting skills are rediscovered for that slice. If none remain, emit
     `PASS` with `next: brew`. Roast `FAIL` retries this task from Focus retries. Emit
     `FAIL` with `next: pick` only when this invocation must exit for a new hypothesis
     the current context cannot safely continue. `BLOCKED` exits the loop.

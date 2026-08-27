@@ -109,7 +109,8 @@ contain chain-of-thought or transcripts.
 ## Retry and stop rules
 
 - Pick implements one task, Roast proves it, then Pick takes the next unblocked task.
-  Do not start the next task until Roast PASS. Do not pick every task and roast once.
+  Do not start the next task until Roast PASS. Exactly one driver continues after each
+  Roast. Do not pick every task and roast once.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
 - Taste `PENDING` lets the outer loop wait on remaining product CI or a review-bot

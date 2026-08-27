@@ -33,7 +33,8 @@ Chat and PRs show `status` / `next` / `action`; the YAML lives in a Details togg
 The outer loop owns state persistence, product-CI waiting, Grow/Brew/Taste invocation,
 retries, and escalation. Pick and Roast own the
 [pick-roast inner loop](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/pick-roast-loop.md):
-one task, roast it, next task. Do not start the next task until Roast PASS. Brew and
+one task, roast it, next task. Do not start the next task until Roast PASS. Exactly one
+driver continues after each Roast. Brew and
 Taste sleep until async review bots (Bugbot, CodeQL, and similar) on the current head
 have reported, then continue; they do not wait for ordinary product CI. Brew still does
 not execute Taste.

@@ -34,15 +34,21 @@ the first Pick. Do not run independent frontier tasks in parallel inside this lo
 
 ## Who executes whom
 
-Invoking **Pick** or **Roast** enters or continues this loop in the same invocation.
+Invoking **Pick** or **Roast** enters this loop. Exactly one driver continues after each
+current-task Roast. Do not let a parent Pick and a Roast subagent both start the next
+task.
 
-- After Pick records a completed slice, **invoke Roast** for that task. Prefer a fresh
-  context or subagent when the harness allows. If a fresh context is unavailable,
+- After Pick records a completed slice, **invoke Roast to prove that task only**. Prefer
+  a fresh context or subagent when the harness allows. If a fresh context is unavailable,
   execute Roast from durable artifacts only and ignore Pick's completion claims.
-- After Roast `PASS` with remaining unblocked tasks, **invoke Pick** for the next
-  frontier task. Reconstruct from IP, task file, and execution state.
-- After Roast `FAIL`, **invoke Pick** for the same task with the exact `need` / `want` /
-  `got` / `ev` evidence.
+- When Pick invoked Roast, Roast proves, records, and **returns** to Pick. Roast does
+  not invoke Pick for the next task.
+- Pick then continues: Reconstruct the next frontier task, including architecture docs
+  and supporting skills for that slice, or emit `next: brew` when none remain.
+- When **Roast is the entry skill**, `PASS` with remaining unblocked tasks → invoke Pick
+  once. That Pick owns the rest of the loop, including later prove-only Roast cycles.
+- After Roast `FAIL`, return evidence to the parent Pick, or invoke Pick for the same
+  task when Roast is the entry, with the exact `need` / `want` / `got` / `ev` evidence.
 - Pick never skips Roast. Roast never implements the next slice itself.
 
 Each cycle writes execution state (`task`, `attempt`, `last`, `tried`, `next`) before
