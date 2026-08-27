@@ -10,6 +10,7 @@ bun run performance:p1
 bun run performance:p2:button
 bun run performance:p2:responsive-box
 bun run performance:datatable-virtual
+bun run performance:imports
 ```
 
 The benchmarks render large trees through the same React Native test environment as the UI
@@ -98,7 +99,6 @@ lower is better.
 `spec` dependencies. Unchanged metadata skips memoized consumers; replacing the spec updates field
 lookups immediately. `OpenAPIRenderRegression.test.tsx` covers both guarantees.
 
-
 ## August 2026 DataTable virtualization results
 
 These measurements used the same Cursor Cloud VM and Bun 1.3.11, with 21 measured samples and 1,000-row
@@ -120,6 +120,45 @@ Large `DataTable` bodies now virtualize with React Native `FlatList`, syncing pi
 scrollable row lists while preserving horizontal header/body scroll sync, sorting, pagination, pinned
 columns, row-detail modals, custom cells, highlights, and row test ids. `DataTableVirtualizationRegression.test.tsx`
 covers viewport-bounded mounts, queued vertical-scroll flush after the sync lock, and changed rows after scrolling.
+
+## August 2026 root import optimization results
+
+These measurements used the same Cursor Cloud VM and Bun 1.3.11. Each workload uses a fresh Bun test process
+(seven measured samples, two warmups). The graph columns count evaluated `@terreno/ui` source modules reached through
+static `import`/`export` edges (type-only re-exports are excluded). Output bytes sum those module file sizes. Elapsed
+time includes dependency evaluation in the Bun test harness. Lower is better.
+
+| Workload | Modules | Output bytes | Elapsed (ms) | Baseline modules | Baseline bytes | Baseline elapsed (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `@terreno/ui/Button` subpath | 17 | 345,992 | 22.8 | 19 | 383,185 | 22.3 |
+| `@terreno/ui` root | 138 | 889,124 | 189.3 | 151 | 1,031,537 | 207.9 |
+| `@terreno/ui/DataTable` subpath | 25 | 387,392 | 24.9 | 26 | 424,006 | 44.6 |
+| `@terreno/ui/MarkdownView` subpath | 5 | 19,036 | 3.5 | 7 | 148,456 | 27.0 |
+
+Changes in this slice:
+
+- Measured heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent/admin tools, and related
+  exports) now cross lazy root boundaries so their implementation files stay off the cold root import path.
+- `MarkdownView`, `DataTable` header info, and `EmojiSelector` defer `react-native-markdown-display` and
+  `emoji-datasource` until first use.
+- `RootImportRegression.test.tsx` and `bun run performance:imports` guard the public entrypoints.
+
+Run the import benchmark locally:
+
+```bash
+cd ui
+bun run performance:imports
+```
+
+Override sample counts when comparing smaller deltas:
+
+```bash
+UI_IMPORT_BENCHMARK_SAMPLES=21 \
+UI_IMPORT_BENCHMARK_WARMUPS=3 \
+bun run performance:imports
+```
+
+The benchmark prints a machine-readable `UI_IMPORT_BENCHMARK_RESULTS` JSON line for CI or local reporting.
 
 ## August 2026 P2 Button optimization results
 
@@ -211,6 +250,6 @@ bun run performance:datatable-virtual
 ```
 
 The benchmarks print machine-readable `UI_P0_BENCHMARK_RESULTS`, `UI_P1_BENCHMARK_RESULTS`,
-`UI_P2_BUTTON_BENCHMARK_RESULTS`, `UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS`, or
-`UI_DATATABLE_VIRTUAL_BENCHMARK_RESULTS` JSON lines for CI or
+`UI_P2_BUTTON_BENCHMARK_RESULTS`, `UI_P2_RESPONSIVE_BOX_BENCHMARK_RESULTS`,
+`UI_DATATABLE_VIRTUAL_BENCHMARK_RESULTS`, or `UI_IMPORT_BENCHMARK_RESULTS` JSON lines for CI or
 local reporting.

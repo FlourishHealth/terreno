@@ -61,7 +61,7 @@
     default table path; opening header info still renders identical markdown with an explicit
     loading/error state; table snapshots and interactions remain unchanged.
 
-- [ ] **Task 1.4**: Measure and isolate remaining heavy root-import modules
+- [x] **Task 1.4**: Measure and isolate remaining heavy root-import modules
   - Delivers: startup guidance and lazy boundaries for heavy optional widgets while the root import
     remains compatible.
   - Files: `ui/src/index.tsx`, heavy components identified by the measurement, `ui/package.json`,

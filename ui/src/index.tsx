@@ -3,9 +3,9 @@ export type {StyleProp, ViewStyle} from "react-native";
 export * from "./Accordion";
 export * from "./ActionSheet";
 export * from "./AddressField";
-export * from "./AIRequestExplorer";
-export * from "./AiSuggestionBox";
-export * from "./AttachmentPreview";
+export type * from "./AIRequestExplorer";
+export type * from "./AiSuggestionBox";
+export type * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";
 export {Banner, hideBanner} from "./Banner";
@@ -16,9 +16,9 @@ export * from "./Button";
 export * from "./Card";
 export * from "./CheckBox";
 export * from "./Common";
-export * from "./ConflictSheet";
-export * from "./ConsentFormScreen";
-export * from "./ConsentNavigator";
+export type * from "./ConflictSheet";
+export type * from "./ConsentFormScreen";
+export type * from "./ConsentNavigator";
 export * from "./Constants";
 export * from "./CustomSelectField";
 export * from "./conflictFieldDiff";
@@ -28,10 +28,8 @@ export * from "./DateTimeField";
 export * from "./DateUtilities";
 export * from "./DecimalRangeActionSheet";
 export * from "./DismissButton";
-export {DraggableList} from "./DraggableList";
 export * from "./EditableCard";
 export * from "./EmailField";
-export {default as EmojiSelector} from "./EmojiSelector";
 export * from "./ErrorBoundary";
 export * from "./ErrorPage";
 export * from "./Field";
@@ -42,8 +40,8 @@ export * from "./FilterBoolean";
 export * from "./FilterChangesBadge";
 export * from "./FilterSelectMenu";
 export * from "./FlatList";
-export * from "./GPTChat";
-export * from "./GPTMemoryModal";
+export type * from "./GPTChat";
+export type * from "./GPTMemoryModal";
 export * from "./Heading";
 export * from "./HeightActionSheet";
 export * from "./HeightField";
@@ -56,10 +54,25 @@ export * from "./InfoModalIcon";
 export * from "./InfoTooltipButton";
 export * from "./icons/BarsFilterIcon";
 export * from "./Link";
+export {
+  AIRequestExplorer,
+  AiSuggestionBox,
+  AttachmentPreview,
+  ConflictSheet,
+  ConsentFormScreen,
+  ConsentNavigator,
+  DraggableList,
+  EmojiSelector,
+  GPTChat,
+  GPTMemoryModal,
+  MarkdownEditor,
+  MarkdownEditorField,
+  UpgradeRequiredScreen,
+} from "./lazyBoundaries/heavyOptionalExports";
 export * from "./login/LoginScreen";
 export type {LoginFieldConfig, LoginScreenProps} from "./login/loginTypes";
-export * from "./MarkdownEditor";
-export * from "./MarkdownEditorField";
+export type * from "./MarkdownEditor";
+export type * from "./MarkdownEditorField";
 export * from "./MarkdownView";
 export * from "./MediaQuery";
 export * from "./MobileAddressAutoComplete";
@@ -135,7 +148,7 @@ export * from "./table/TableTitle";
 export * from "./table/tableContext";
 export * from "./UnifiedAddressAutoComplete";
 export * from "./Unifier";
-export * from "./UpgradeRequiredScreen";
+export type * from "./UpgradeRequiredScreen";
 export * from "./UserInactivity";
 export * from "./Utilities";
 export * from "./useAppLaunchOrForeground";
