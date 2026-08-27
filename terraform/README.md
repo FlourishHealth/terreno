@@ -88,7 +88,11 @@ After step 4 succeeds, the WIF providers, deployer SAs, and all other resources 
 
 ## CircleCI OIDC setup
 
-1. Set `circleci_org_id` and `circleci_project_id` in `terraform.tfvars`.
+1. Set `circleci_org_id`, `circleci_project_id`, and `circleci_gcp_context_id`
+   (the UUID of the `terreno-gcp` CircleCI context) in `terraform.tfvars`.
+   The provider refuses tokens whose `oidc.circleci.com/context-ids` claim
+   does not include that UUID, so jobs that skip the context cannot
+   impersonate `terraform-admin` or `gh-deployer`.
 2. Apply once with an existing Terraform admin identity.
 3. Add these non-secret values to the restricted `terreno-gcp` CircleCI context:
 

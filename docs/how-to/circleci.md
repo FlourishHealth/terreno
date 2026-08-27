@@ -72,10 +72,12 @@ unset, and it skips fork PRs. The job checks out `origin/master` before running
 the review script so a PR cannot rewrite the reviewer.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
-account key. Set `circleci_org_id` and `circleci_project_id` in
-`terraform/terraform.tfvars`, apply once with an existing Terraform admin
-identity, then copy `circleci_workload_identity_provider` into the context as
-`GCP_WIF_PROVIDER_PROD`.
+account key. Set `circleci_org_id`, `circleci_project_id`, and
+`circleci_gcp_context_id` in `terraform/terraform.tfvars`, apply once with an
+existing Terraform admin identity, then copy `circleci_workload_identity_provider`
+into the context as `GCP_WIF_PROVIDER_PROD`. The WIF condition requires the
+`terreno-gcp` context UUID so a PR job without that context cannot exchange the
+ambient OIDC token for GCP impersonation.
 
 ## Check name map (GHA → CircleCI)
 
@@ -150,6 +152,9 @@ operate. Set exactly one operation per pipeline:
 `manual-publish-package` also accepts `feature-flags`. Versions must be semver.
 Semver git tags (`57.3.0`, `57.3.0-beta.1`) automatically start
 `publish-release`; prereleases publish to their prerelease npm dist-tag.
+Only stable tags (`57.3.0`) run `deploy-demo` after publish. Use
+`{"run-demo-deploy":true}` on `master` if a prerelease must also refresh the
+demo site.
 
 PR previews and cleanup are manual because CircleCI does not receive GitHub
 `pull_request.closed` events directly. Configure a GitHub App/webhook to call
@@ -171,8 +176,9 @@ CircleCI e2e compiles the workspace and `bun expo export`s **once** in
 `e2e-prepare`, then shards attach that dist (60s test timeout, `large` Docker).
 Keeping Metro alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on
 this project's plan. `maestro-e2e` follows the same rule: it exports
-example-frontend and serves the static `dist`, and it reuses the browsers
-image's Xvfb display on `:99`.
+example-frontend and serves the static `dist`. If the browsers image has no
+Xvfb on `:99`, a `background: true` fallback starts one and keeps it alive
+for later steps.
 
 ## Nightly load test
 

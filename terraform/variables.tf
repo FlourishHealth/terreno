@@ -41,6 +41,12 @@ variable "circleci_project_id" {
   default     = ""
 }
 
+variable "circleci_gcp_context_id" {
+  description = "UUID of the terreno-gcp CircleCI context. Required in the OIDC token before GCP impersonation is allowed."
+  type        = string
+  default     = ""
+}
+
 variable "backend_region" {
   description = "Region for the example backend Cloud Run service."
   type        = string

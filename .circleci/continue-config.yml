@@ -1163,14 +1163,21 @@ jobs:
               exit 1
             fi
       - run:
-          name: Use the image Xvfb display
+          name: Start Xvfb fallback
+          background: true
           command: |
             set -euo pipefail
             echo 'export DISPLAY=:99' >> "$BASH_ENV"
-            # cimg browsers images already run Xvfb on :99; start one only if absent.
-            if ! xdpyinfo -display :99 > /dev/null 2>&1; then
-              Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
+            if xdpyinfo -display :99 > /dev/null 2>&1; then
+              echo "Xvfb already on :99"
+              exec sleep infinity
             fi
+            exec Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp
+      - run:
+          name: Wait for Xvfb
+          command: |
+            set -euo pipefail
+            echo 'export DISPLAY=:99' >> "$BASH_ENV"
             for i in $(seq 1 30); do
               if xdpyinfo -display :99 > /dev/null 2>&1; then
                 echo "Xvfb ready after ${i}s"
@@ -1539,13 +1546,23 @@ jobs:
             fi
       - run:
           name: Notify release channel
-          when: always
+          when: on_success
           command: |
             scripts/ci/validate-env.sh ZOOM_WEBHOOK_TOKEN ZOOM_WEBHOOK_URL
             curl --fail --silent --show-error \
               -H 'Content-Type: application/json' \
               -H "Authorization: Bearer ${ZOOM_WEBHOOK_TOKEN}" \
               --data "$(jq -n --arg version "$CIRCLE_TAG" '{message:("Terreno release " + $version + " completed in CircleCI")}')" \
+              "$ZOOM_WEBHOOK_URL"
+      - run:
+          name: Notify release channel of failure
+          when: on_fail
+          command: |
+            scripts/ci/validate-env.sh ZOOM_WEBHOOK_TOKEN ZOOM_WEBHOOK_URL
+            curl --fail --silent --show-error \
+              -H 'Content-Type: application/json' \
+              -H "Authorization: Bearer ${ZOOM_WEBHOOK_TOKEN}" \
+              --data "$(jq -n --arg version "$CIRCLE_TAG" '{message:("Terreno release " + $version + " failed in CircleCI")}')" \
               "$ZOOM_WEBHOOK_URL"
 
 workflows:
@@ -1837,4 +1854,4 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$/
+              only: /^[0-9]+\.[0-9]+\.[0-9]+$/

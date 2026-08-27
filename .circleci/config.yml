@@ -214,6 +214,7 @@ workflows:
             rtk/.* run-deploy-frontend true
             ai/.* run-deploy-frontend true
             admin-frontend/.* run-deploy-frontend true
+            bun\.lock run-deploy-frontend true
             docs/.* run-deploy-docs true
             website/.* run-deploy-docs true
             api/src/.* run-deploy-docs true

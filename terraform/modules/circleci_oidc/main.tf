@@ -18,7 +18,7 @@ resource "google_iam_workload_identity_pool_provider" "circleci" {
     "attribute.sub"        = "assertion.sub"
   }
 
-  attribute_condition = "attribute.org_id == '${var.circleci_org_id}' && attribute.project_id == '${var.circleci_project_id}'"
+  attribute_condition = trimspace(var.circleci_gcp_context_id) == "" ? "attribute.org_id == '${var.circleci_org_id}' && attribute.project_id == '${var.circleci_project_id}'" : "attribute.org_id == '${var.circleci_org_id}' && attribute.project_id == '${var.circleci_project_id}' && '${var.circleci_gcp_context_id}' in assertion['oidc.circleci.com/context-ids']"
 
   oidc {
     issuer_uri        = "https://oidc.circleci.com/org/${var.circleci_org_id}"

@@ -68,8 +68,9 @@ module "circleci_oidc" {
   source = "./modules/circleci_oidc"
 
   project_id          = var.project_id
-  circleci_org_id     = var.circleci_org_id
-  circleci_project_id = var.circleci_project_id
+  circleci_org_id          = var.circleci_org_id
+  circleci_project_id      = var.circleci_project_id
+  circleci_gcp_context_id  = var.circleci_gcp_context_id
   service_account_names = {
     for name, email in module.github_oidc.service_account_emails :
     name => "projects/${var.project_id}/serviceAccounts/${email}"
