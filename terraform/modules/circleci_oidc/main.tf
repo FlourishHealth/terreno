@@ -24,6 +24,13 @@ resource "google_iam_workload_identity_pool_provider" "circleci" {
     issuer_uri        = "https://oidc.circleci.com/org/${var.circleci_org_id}"
     allowed_audiences = [var.circleci_org_id]
   }
+
+  lifecycle {
+    precondition {
+      condition     = var.circleci_gcp_context_id != ""
+      error_message = "Set circleci_gcp_context_id to the terreno-gcp CircleCI context UUID so WIF rejects jobs that omit that context."
+    }
+  }
 }
 
 resource "google_service_account_iam_member" "circleci_wif_user" {

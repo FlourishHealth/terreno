@@ -14,9 +14,8 @@ variable "circleci_project_id" {
 }
 
 variable "circleci_gcp_context_id" {
-  description = "UUID of the CircleCI context that GCP jobs must attach (terreno-gcp). Empty skips the context claim check."
+  description = "UUID of the CircleCI context that GCP jobs must attach (terreno-gcp). Required when this module is applied."
   type        = string
-  default     = ""
 }
 
 variable "service_account_names" {
