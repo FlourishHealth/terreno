@@ -115,6 +115,7 @@ export const buildClaudePluginFiles = ({
   const canonicalReferences = join(canonicalDirectory, "references");
   const files: GeneratedFile[] = [
     {contents: buildClaudeManifest(rootDirectory), path: ".claude-plugin/plugin.json"},
+    {contents: readFileSync(join(canonicalDirectory, "LICENSE"), "utf8"), path: "LICENSE"},
     {contents: CLAUDE_PLUGIN_README, path: "README.md"},
   ];
 
