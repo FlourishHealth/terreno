@@ -2,8 +2,6 @@
   "byFile": {
     "admin-backend/src/adminApp.ts": 2,
     "admin-frontend/src/dynamicHookApi.ts": 1,
-    "admin-frontend/src/useAdminBackgroundTask.ts": 1,
-    "admin-frontend/src/useConfigurationApi.ts": 4,
     "api/src/api.arrayOperations.test.ts": 33,
     "api/src/api.hooks.test.ts": 22,
     "api/src/api.query.test.ts": 28,
@@ -11,7 +9,6 @@
     "api/src/api.ts": 11,
     "api/src/auth.test.ts": 33,
     "api/src/betterAuthSetup.test.ts": 22,
-    "api/src/betterAuthSetup.ts": 1,
     "api/src/expressServer.test.ts": 68,
     "api/src/githubAuth.test.ts": 43,
     "api/src/githubAuth.ts": 4,
@@ -41,8 +38,7 @@
     "example-backend/src/models/modelPlugins.ts": 4,
     "example-backend/src/models/user.test.ts": 5,
     "example-backend/src/services/userService.test.ts": 3,
-    "example-frontend/store/index.ts": 3,
-    "rtk/src/authSlice.ts": 6,
+    "rtk/src/authSlice.ts": 5,
     "rtk/src/offlineMiddleware.test.ts": 8,
     "syncdb/src/client.test.ts": 2,
     "syncdb/src/storage/idb.test.ts": 2,
@@ -50,42 +46,36 @@
     "test/src/mocks/sentryBun.ts": 13,
     "test/src/transaction/testTransaction.ts": 33,
     "ui/src/ActionSheet.tsx": 2,
-    "ui/src/Box.tsx": 4,
-    "ui/src/Common.ts": 19,
-    "ui/src/ConsentNavigator.tsx": 1,
-    "ui/src/SplitPage.native.tsx": 2,
-    "ui/src/SplitPage.tsx": 2,
+    "ui/src/Common.ts": 15,
     "ui/src/ToastNotifications.test.tsx": 1,
-    "ui/src/ToastNotifications.tsx": 1,
     "ui/src/types/react-native-swiper-flatlist.d.ts": 1
   },
   "byPackage": {
     "admin-backend": 2,
-    "admin-frontend": 6,
-    "api": 773,
+    "admin-frontend": 1,
+    "api": 772,
     "demo": 2,
     "example-backend": 23,
-    "example-frontend": 3,
-    "rtk": 14,
+    "rtk": 13,
     "syncdb": 4,
     "test": 49,
-    "ui": 33
+    "ui": 19
   },
   "byRemediationStatus": {
-    "fully-documented": 909,
+    "fully-documented": 885,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-26T17:01:13.981Z",
+  "generatedAt": "2026-08-27T04:51:07.049Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 909
+    "totalUsages": 885
   },
-  "totalFiles": 58,
-  "totalUsages": 909,
+  "totalFiles": 49,
+  "totalUsages": 885,
   "version": 2
 }
