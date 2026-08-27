@@ -74,9 +74,18 @@ Default when the user names no phases: `grow`, `pick`, `roast`.
      with Pick in phases → Pick again with Roast evidence, then Roast again. `FAIL`
      without Pick → stop; this loop does not fix implementation itself. `BLOCKED` stop.
 5. **Brew once (if selected)** after every in-scope task has passed the selected per-task
-   stages. Invoke `terreno-4-brew`. `PASS` continues to Taste when selected. `PENDING` is
-   not expected from Brew except as documented by Brew itself; honor `next`. `BLOCKED` or
-   `FAIL` stop.
+   stages. Invoke `terreno-4-brew`. Honor `status` and `next`:
+
+   - `PASS` → continue to Taste when Taste is selected; otherwise the loop `PASS`es with
+     `next: taste`.
+   - `PENDING` → wait `wait` seconds if present, otherwise 120 seconds, then invoke Taste
+     when selected; Brew itself does not retry product CI.
+   - `FAIL` → invoke the stage Brew named (`pick`, `roast`, or `brew`) when that stage is
+     in the selected phases (or `brew` even if it was the current stage). After Pick or
+     Roast recovers, invoke Brew again. Three consecutive Brew `FAIL`s on the same head
+     SHA with the same `next` and no new evidence → `blocked-stuck`. If Brew names a
+     stage that is not in phases, stop and report that `next` for the caller.
+   - `BLOCKED` → stop.
 6. **Taste until terminal (if selected).** Same outer-loop rules as
    [`terreno-taste-sweep`](../terreno-taste-sweep/SKILL.md) workers: invoke
    `terreno-5-taste` until `PASS` or `BLOCKED`; wait on `PENDING`; retry `FAIL`; stop as
@@ -110,8 +119,9 @@ It does not add repository-specific commands of its own.
 
 ## Failure conditions
 
-A selected stage returns `FAIL` and retries are exhausted (`blocked-stuck`) or Pick is
-not in phases so Roast `FAIL` cannot be repaired here.
+A selected stage returns `FAIL` and retries are exhausted (`blocked-stuck`), Pick is
+not in phases so Roast `FAIL` cannot be repaired here, or Brew `FAIL` names a stage
+that is not in the selected phases.
 
 ## Blocked conditions
 
@@ -125,4 +135,5 @@ not in phases so Roast `FAIL` cannot be repaired here.
 - Default run `PASS` → Brew (unless Brew already ran)
 - `phases=grow,roast` `PASS` → Pick if implementation remains, else Brew
 - Roast `FAIL` with Pick in phases → Pick
+- Brew `FAIL` → stage Brew named (`pick`, `roast`, or `brew`)
 - Any `BLOCKED` → `next: null` plus the named gate
