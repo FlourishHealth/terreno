@@ -1,139 +1,149 @@
 ---
 name: terreno-planning-loop
-description: Outer loop over the approved task list. Default Grow once, then Pick and Roast each remaining task. Pass phases to restrict (grow, pick, roast, brew, taste). Not a lifecycle stage.
+description: Drive the planning plugin from the current task list, optionally restricting which stages run (Grow, Pick, Roast, Brew, Taste). Not a sixth stage — an outer loop that invokes existing stage skills. Use when asked to run the planning loop, walk the task list, or restrict work to selected phases.
 disable-model-invocation: true
 ---
 
-# Planning loop — walk the task list
+# Planning loop (outer driver)
 
-Invoke sibling lifecycle stages against every remaining task. Stages stay bounded; this
-skill **is** the outer loop. It persists execution state, honors `next`, waits on
-`PENDING`, and stops on `BLOCKED`.
+Not a stage. The five stages stay Grow, Pick, Roast, Brew, Taste. This skill
+walks the **current** task list and invokes those stage skills in order.
+
+Pick owns the inner **pick → roast → next-task → brew** loop (see
+`plugins/terreno-planning/references/pick-roast-loop.md`). This outer loop
+must **not** Pick then Roast per task as a second driver. If `pick` is in
+the requested phases, invoke Pick **once**; Pick roasts each task and
+continues. If `roast` is requested **with** `pick`, do not start a second
+Roast driver.
+
+## When to use
+
+- The user asks to run the planning loop, walk the task list, or keep going
+  until the list is empty.
+- The user names phases (`grow`, `pick`, `roast`, `brew`, `taste`) and wants
+  only those stages.
+- Default when the user says "planning loop" with no phases:
+  **Grow, then Pick** (Pick includes Roast for each task, then Brew).
+
+## Parse `phases=`
+
+Read the user message for `phases=` (comma-separated, case-insensitive).
+
+Allowed tokens: `grow`, `pick`, `roast`, `brew`, `taste`.
+
+Ignore unknown tokens. Deduplicate while preserving order.
+
+If `phases=` is absent or empty after filtering, use `grow,pick,roast`.
+That default still means Grow then Pick — Roast is owned by Pick, not a
+second outer-loop pass.
+
+## Read first
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
-[`documentation contract`](../../references/documentation-contract.md),
-[`loop engineering`](../../references/loop-engineering.md), and Grow's
-[`grilling procedure`](../terreno-1-grow/references/grilling.md) when Grow is in scope.
+[`loop engineering`](../../references/loop-engineering.md), and
+[`pick-roast inner loop`](../../references/pick-roast-loop.md). Then:
 
-Sibling stages:
+1. `plugins/README.md` — Hosts and stage skills
+2. Each selected stage skill under `plugins/terreno-planning/skills/`
 
-- [`terreno-1-grow`](../terreno-1-grow/SKILL.md)
-- [`terreno-2-pick`](../terreno-2-pick/SKILL.md)
-- [`terreno-3-roast`](../terreno-3-roast/SKILL.md)
-- [`terreno-4-brew`](../terreno-4-brew/SKILL.md)
-- [`terreno-5-taste`](../terreno-5-taste/SKILL.md)
+## Drive the selected phases
 
-Never reimplement a stage. Read the sibling skill and follow it for that invocation.
+Stay on the current branch. Do not start a nested PR. One logical commit
+per completed unit of work.
 
-## Preconditions
+### Grow (`grow`)
 
-- A request, IP, or task file is resolvable, or Grow is in the selected phases so it can
-  create them.
-- Sibling stage skills from this plugin are available.
+If `grow` is selected and the task list is empty or missing, invoke
+`terreno-1-grow` once (shape / confirm the list). Skip Grow when a current
+list already exists unless the user asked to reshape.
 
-## Inputs
+If Grow emits `FAIL`, stop. Do not invent tasks.
 
-- Request/spec/ticket, existing IP/task files, execution state
-- Optional **phases** from the invocation text
+### Pick (`pick`) — includes Roast
 
-Parse phases from the user message after the skill name. Accept comma or space
-separation, with or without a `phases=` prefix. Allowed names: `grow`, `pick`, `roast`,
-`brew`, `taste`. Unknown names are `BLOCKED`.
+If `pick` is selected, invoke `terreno-2-pick` **once**. Pick:
 
-Examples:
+1. Takes the next unchecked task
+2. Implements it
+3. Invokes Roast for that task
+4. On Roast `PASS`, continues to the next unchecked task
+5. After the last task, invokes Brew (unless `brew` was excluded — then
+   stop after the last Roast `PASS` and tell the user Brew is the next
+   human/agent step)
 
-- `/terreno-planning-loop` → `grow,pick,roast`
-- `/terreno-planning-loop grow,roast` → Grow once, then Roast each task (no Pick)
-- `/terreno-planning-loop phases=roast` → Roast every in-scope task
-- `/terreno-planning-loop pick` → Pick remaining unblocked tasks only
-- `/terreno-planning-loop grow,pick,roast,brew,taste` → full lifecycle through submit
+Do not wrap Pick in an outer per-task loop. Do not invoke Roast yourself
+when Pick is in the phase list.
 
-Default when the user names no phases: `grow`, `pick`, `roast`.
+If Pick emits `FAIL`, stop.
 
-## Procedure
+Honor Pick's `next` / `wait` when it yields.
 
-1. **Resolve artifacts.** Reconstruct the repository's IP/task convention. If none exists
-   and `grow` is selected, Grow will create it. If none exists and `grow` is not selected,
-   emit `BLOCKED` (missing plan). Read execution state and verify branch/sha/PR.
-2. **Grow once (if selected).** Invoke `terreno-1-grow` for the whole IP and task list.
-   Wait for human grilling/approval per Grow. `PASS` continues. `FAIL` retry Grow with
-   defect evidence. `BLOCKED` stop. Do not Grow per task.
-3. **Order the task list.** Use the approved tracer-bullet order. Skip tasks that are
-   already complete for every selected per-task stage. Skip tasks whose blockers are
-   unmet. A roast-only run still walks tasks whose Pick claims complete; Roast reconstructs
-   independently and must not trust those claims.
-4. **Alternate per-task stages.** For each remaining task, run selected **per-task**
-   stages in this order: Pick, then Roast.
+### Roast (`roast`) without Pick
 
-   - **Pick** (if selected): invoke `terreno-2-pick` for that one task. `PASS` continues
-     to Roast when Roast is selected, else mark the task picked and move on. `FAIL` retry
-     Pick with the new evidence. `BLOCKED` stop the loop. Three consecutive Picks on the
-     same head SHA with the same `status` and no new evidence → `blocked-stuck`.
-   - **Roast** (if selected): invoke `terreno-3-roast` for that task's criteria (or the
-     integrated slice when the task file says so). `PASS` marks the task proven. `FAIL`
-     with Pick in phases → Pick again with Roast evidence, then Roast again. `FAIL`
-     without Pick → stop; this loop does not fix implementation itself. `BLOCKED` stop.
-5. **Brew once (if selected)** after every in-scope task has passed the selected per-task
-   stages. Invoke `terreno-4-brew`. Honor `status` and `next`:
+If `roast` is selected and `pick` is **not**, invoke `terreno-3-roast`
+once for the current in-progress task (prove / tests). Do not start Pick's
+inner loop.
 
-   - `PASS` → continue to Taste when Taste is selected; otherwise the loop `PASS`es with
-     `next: taste`.
-   - `PENDING` → wait `wait` seconds if present, otherwise 120 seconds, then invoke Taste
-     when selected; Brew itself does not retry product CI.
-   - `FAIL` → invoke the stage Brew named (`pick`, `roast`, or `brew`) when that stage is
-     in the selected phases (or `brew` even if it was the current stage). After Pick or
-     Roast recovers, invoke Brew again. Three consecutive Brew `FAIL`s on the same head
-     SHA with the same `next` and no new evidence → `blocked-stuck`. If Brew names a
-     stage that is not in phases, stop and report that `next` for the caller.
-   - `BLOCKED` → stop.
-6. **Taste until terminal (if selected).** Same outer-loop rules as
-   [`terreno-taste-sweep`](../terreno-taste-sweep/SKILL.md) workers: invoke
-   `terreno-5-taste` until `PASS` or `BLOCKED`; wait on `PENDING`; retry `FAIL`; stop as
-   `blocked-stuck` after three identical head+status results.
-7. **Report.** Lead with `status`, `next`, and `action`. Table:
+If Roast emits `FAIL`, stop.
 
-   | Task | Stages run | Outcome | Notes |
-   | --- | --- | --- | --- |
+### Skip Roast when Pick is selected
 
-   Then the collapsed stage-result YAML from the last invocation, per the lifecycle
-   contract. Persist execution state between stage invocations.
+If both `pick` and `roast` appear in `phases=`, treat Roast as already
+owned by Pick. Do not invoke `terreno-3-roast` as a second driver.
 
-## Supporting skills
+### Brew (`brew`)
 
-This loop loads only the selected sibling stages plus skills those stages discover.
-It does not add repository-specific commands of its own.
+If `brew` is selected **and** Pick is **not** in the phase list, invoke
+`terreno-4-brew` after the other selected pre-submit stages. If Pick **is**
+selected, Pick already invoked Brew at the end of the inner loop — do not
+Brew twice.
 
-## Evidence produced
+If Brew emits `FAIL`, **do not stop the outer loop**. Read Brew's `next`
+field and continue with that stage in the same invocation:
 
-- Selected phases
-- Per-task stage outcomes and last `action`/`block`
-- Execution-state path and current head
-- Final loop `status` / `next` / `action`
+- `next: pick` — invoke `terreno-2-pick` (which will Roast again as part of
+  its inner loop)
+- `next: roast` — invoke `terreno-3-roast` (only when Pick is not driving)
+- `next: brew` — invoke `terreno-4-brew` again after the wait (CI still
+  running; honor `wait`)
 
-## Success conditions
+Keep following Brew `FAIL` → `next` until Brew emits `PASS` or `FAIL` with
+no recoverable `next`, or a non-Brew stage emits `FAIL`. Then stop.
 
-- Every in-scope task passed every selected per-task stage.
-- Grow/Brew/Taste succeeded when selected.
-- Emit `PASS` with `next: brew` when the run stopped after Roast, `next: taste` after
-  Brew, `next: null` after Taste `PASS`, or `next: pick`/`roast` when those remain.
+If Brew emits `PASS`, continue to Taste only when `taste` is selected.
 
-## Failure conditions
+### Taste (`taste`)
 
-A selected stage returns `FAIL` and retries are exhausted (`blocked-stuck`), Pick is
-not in phases so Roast `FAIL` cannot be repaired here, or Brew `FAIL` names a stage
-that is not in the selected phases.
+If `taste` is selected, invoke `terreno-5-taste` after Brew `PASS` (or
+after the last selected earlier stage if Brew was omitted). Taste reacts
+to review on the current PR; it does not walk the task list.
 
-## Blocked conditions
+If Taste emits `FAIL` or `PASS`, stop. If Taste emits `PENDING`, honor
+`wait` / `next`.
 
-- Unknown phase name
-- Missing IP/tasks when `grow` is not selected
-- Any stage `BLOCKED` (human/environment/access/external)
-- Missing sibling stage skill
+## Isolation and hosts
 
-## Recommended next stage
+Same rules as the stage skills: one git checkout, no nested worktrees for
+the loop itself, no extra `gh` auth, no `git config`. Cursor, Claude,
+Codex, and Gemini all invoke this the same way — only the skill path
+differs (see Hosts in `plugins/README.md`).
 
-- Default run `PASS` → Brew (unless Brew already ran)
-- `phases=grow,roast` `PASS` → Pick if implementation remains, else Brew
-- Roast `FAIL` with Pick in phases → Pick
-- Brew `FAIL` → stage Brew named (`pick`, `roast`, or `brew`)
-- Any `BLOCKED` → `next: null` plus the named gate
+## Emit (required)
+
+After the last stage you ran, emit **only** a YAML object in a collapsed
+Markdown `<details>` block. Use `status: PASS` when every selected stage
+that ran emitted `PASS` (or Brew `FAIL` that you recovered by following
+`next` through to a later `PASS`). Use `FAIL` if any stage stopped the
+loop. Use `PENDING` if a stage asked you to wait.
+
+```yaml
+schema: terreno.lifecycle.v2
+stage: grow
+status: PASS
+summary: "Planning loop finished selected phases."
+next: brew
+wait: 0
+```
+
+Set `stage` to the last stage skill you invoked (`grow` | `pick` |
+`roast` | `brew` | `taste`).
