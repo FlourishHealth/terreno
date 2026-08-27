@@ -1081,31 +1081,33 @@ jobs:
             echo "backend failed to become healthy"
             exit 1
       - run:
-          name: Start example-frontend web
+          name: Export example-frontend web
           working_directory: ~/project/example-frontend
-          background: true
+          no_output_timeout: 15m
           environment:
-            EXPO_PUBLIC_API_URL: http://localhost:4000
             CI: "true"
             EXPO_NO_TELEMETRY: "1"
-          command: bun expo start --web --port 8082
+            EXPO_PUBLIC_API_URL: http://localhost:4000
+            NODE_OPTIONS: "--max-old-space-size=3072"
+          command: bun expo export --platform web
+      - run:
+          name: Serve exported example-frontend
+          working_directory: ~/project/example-frontend
+          background: true
+          command: bunx serve dist -s -l 8082
       - run:
           name: Wait for example-frontend
           command: |
             set -euo pipefail
-            for i in $(seq 1 90); do
-              if curl -sf http://localhost:8082 > /dev/null; then
-                curl -sf "http://localhost:8082/login" > /tmp/login.html 2>/dev/null || true
-                SIZE=$(wc -c < /tmp/login.html)
-                echo "Metro warm-up ${i}×3s — login HTML ${SIZE} bytes"
-                if [ "$SIZE" -gt 10000 ]; then
-                  echo "Example frontend bundle ready after ${i}×3s"
-                  exit 0
-                fi
+            for i in $(seq 1 30); do
+              code="$(curl -sS --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8082/login || true)"
+              if [ "$code" = "200" ]; then
+                echo "static web ready after ${i} attempts"
+                exit 0
               fi
-              sleep 3
+              sleep 1
             done
-            echo "Example frontend bundle did not become ready within 270s"
+            echo "static web failed to become ready"
             exit 1
       - when:
           condition: << parameters.include-demo >>
@@ -1161,14 +1163,14 @@ jobs:
               exit 1
             fi
       - run:
-          name: Start Xvfb display
-          background: true
-          command: Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp
-      - run:
-          name: Wait for Xvfb
+          name: Use the image Xvfb display
           command: |
             set -euo pipefail
             echo 'export DISPLAY=:99' >> "$BASH_ENV"
+            # cimg browsers images already run Xvfb on :99; start one only if absent.
+            if ! xdpyinfo -display :99 > /dev/null 2>&1; then
+              Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
+            fi
             for i in $(seq 1 30); do
               if xdpyinfo -display :99 > /dev/null 2>&1; then
                 echo "Xvfb ready after ${i}s"

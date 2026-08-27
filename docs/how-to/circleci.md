@@ -170,7 +170,9 @@ When no package/e2e path param is also set, that workflow runs the slice above.
 CircleCI e2e compiles the workspace and `bun expo export`s **once** in
 `e2e-prepare`, then shards attach that dist (60s test timeout, `large` Docker).
 Keeping Metro alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on
-this project's plan.
+this project's plan. `maestro-e2e` follows the same rule: it exports
+example-frontend and serves the static `dist`, and it reuses the browsers
+image's Xvfb display on `:99`.
 
 ## Nightly load test
 
