@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useCallback, useRef, useState} from "react";
 import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -44,6 +44,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
+  const lastContentHeightRef = useRef(0);
 
   const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
   const content = variables
@@ -64,35 +65,54 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
   const actionColumnStyle = {flexBasis: 0, minWidth: 0};
 
-  // Auto-satisfy scroll when content fits. If later layout grows (lazy markdown),
-  // require scrolling again so a spinner-sized first layout cannot unlock Agree.
-  const handleContentSizeChange = (_w: number, h: number) => {
-    setContentHeight(h);
-    if (!form.requireScrollToBottom || layoutHeight <= 0 || h <= 0) {
-      return;
-    }
-    setHasScrolledToBottom(h <= layoutHeight);
-  };
+  // Auto-satisfy scroll when content fits. Reset only when content grows past the
+  // viewport (lazy markdown), not when it shrinks after the in-list hint unmounts.
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number): void => {
+      const previousContentH = lastContentHeightRef.current;
+      lastContentHeightRef.current = h;
+      setContentHeight(h);
+      if (!form.requireScrollToBottom || layoutHeight <= 0 || h <= 0) {
+        return;
+      }
+      if (h <= layoutHeight) {
+        setHasScrolledToBottom(true);
+        return;
+      }
+      if (previousContentH > 0 && h > previousContentH) {
+        setHasScrolledToBottom(false);
+      }
+    },
+    [form.requireScrollToBottom, layoutHeight]
+  );
 
-  const handleLayout = (event: LayoutChangeEvent) => {
-    const h = event.nativeEvent.layout.height;
-    setLayoutHeight(h);
-    if (!form.requireScrollToBottom || contentHeight <= 0 || h <= 0) {
-      return;
-    }
-    setHasScrolledToBottom(contentHeight <= h);
-  };
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent): void => {
+      const h = event.nativeEvent.layout.height;
+      setLayoutHeight(h);
+      if (!form.requireScrollToBottom || contentHeight <= 0 || h <= 0) {
+        return;
+      }
+      if (contentHeight <= h) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [contentHeight, form.requireScrollToBottom]
+  );
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (hasScrolledToBottom) {
-      return;
-    }
-    const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
-    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-    if (distanceFromBottom <= 20) {
-      setHasScrolledToBottom(true);
-    }
-  };
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      if (hasScrolledToBottom) {
+        return;
+      }
+      const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
+      const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+      if (distanceFromBottom <= 20) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [hasScrolledToBottom]
+  );
 
   const handleCheckboxPress = (index: number) => {
     const checkbox = form.checkboxes[index];

@@ -325,6 +325,36 @@ describe("ConsentFormScreen", () => {
     expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
   });
 
+  it("keeps a completed scroll when content shrinks after the in-list hint unmounts", () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const scroll = getByTestId("consent-form-scroll-view");
+    act(() => {
+      fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
+    });
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 2000);
+    });
+    expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
+    act(() => {
+      fireEvent(scroll, "scroll", {
+        nativeEvent: {
+          contentOffset: {y: 1480},
+          contentSize: {height: 2000},
+          layoutMeasurement: {height: 500},
+        },
+      });
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 1900);
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+    expect(getByTestId("consent-form-agree-button")).toBeTruthy();
+  });
+
   it("handleScroll returns early when already scrolled to bottom", () => {
     const form = {...baseForm, requireScrollToBottom: false};
     const {getByTestId} = renderWithTheme(
