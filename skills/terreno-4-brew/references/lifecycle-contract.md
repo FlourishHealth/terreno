@@ -5,6 +5,7 @@ Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration lo
 | Owner | Responsibility |
 | --- | --- |
 | Outer loop | when to invoke, which agent, persistence, waiting, retry, stop, escalation |
+| Pick–Roast inner loop | one task Pick, Roast that task, next task, until the list is done |
 | Lifecycle stage | how to perform one stage correctly and emit evidence |
 | Repository skills | repository commands, architecture, safety rules, and domain conventions |
 | Roast | whether the implementation satisfies the approved IP |
@@ -12,6 +13,9 @@ Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration lo
 
 Every stage reads durable inputs, performs one bounded transition, writes the execution
 state, emits one result document, and exits. Never rely on conversational memory.
+Pick and Roast are the exception that still stays bounded: they continue the
+[`pick-roast loop`](pick-roast-loop.md) in-process (one task, then Roast, then the next
+task) until the approved list is done, a `FAIL` that cannot continue, or `BLOCKED`.
 Brew and Taste include one in-process wait for
 [`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
 exit, so they can react to those results.

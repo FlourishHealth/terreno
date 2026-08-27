@@ -94,6 +94,42 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("repository-specific marker")));
   });
 
+  it("rejects Pick that skips Roast or the inner loop", (): void => {
+    const content = readStage("terreno-2-pick")
+      .replace("../../references/pick-roast-loop.md", "missing-loop")
+      .replaceAll("Do not start the next task until Roast PASS", "Start the next task immediately")
+      .replaceAll("Pick never skips Roast", "Pick may skip Roast");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("pick-roast inner loop")));
+    assert.isTrue(errors.some((error) => error.includes("Roast PASS before the next task")));
+    assert.isTrue(errors.some((error) => error.includes("must not skip Roast")));
+  });
+
+  it("rejects Roast that does not continue the inner loop", (): void => {
+    const content = readStage("terreno-3-roast")
+      .replace("../../references/pick-roast-loop.md", "missing-loop")
+      .replaceAll("Do not start the next task until Roast PASS", "Hand off to Brew after one task");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-3-roast",
+        nextMarkers: ["next: brew", "next: pick", "next: null"],
+        stage: "roast",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("pick-roast inner loop")));
+    assert.isTrue(errors.some((error) => error.includes("Roast PASS before the next task")));
+  });
+
   it("rejects a missing non-pass transition marker", (): void => {
     const content = readStage("terreno-1-grow").replace(
       "next: grow",

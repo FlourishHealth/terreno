@@ -35,10 +35,11 @@ deploy.
 ## Agentic lifecycle
 
 The reusable planning plugin uses five bounded transitions:
-**Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
-**Taste** (react once). The outer loop owns state persistence, product-CI waiting, retry,
-stop, and escalation. Brew and Taste also sleep until review bots such as Bugbot or
-CodeQL finish so they can react in the same invocation. See `plugins/README.md` and
+**Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
+**Brew** (submit) → **Taste** (react once). Pick and Roast loop one task at a time.
+The outer loop owns state persistence, product-CI waiting, retry, stop, and escalation.
+Brew and Taste also sleep until review bots such as Bugbot or CodeQL finish so they can
+react in the same invocation. See `plugins/README.md` and
 `docs/reference/lifecycle-plugin.md`.
 
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;

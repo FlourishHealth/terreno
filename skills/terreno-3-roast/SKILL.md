@@ -1,29 +1,31 @@
 ---
 name: terreno-3-roast
-description: Independently prove or disprove that the current implementation satisfies its approved IP and acceptance criteria. Use after Pick, preferably in a fresh context; not for fixing implementation code.
+description: Independently prove or disprove the current task against its IP criteria, then continue the pick-roast loop on the next unblocked task until the list is done. Use after Pick, preferably in a fresh context; not for fixing implementation code.
 disable-model-invocation: true
 ---
 
 # Roast — prove
 
-Roast is the authoritative stage-level verifier:
+Roast is the authoritative stage-level verifier for the **current task**, then it
+continues the pick-roast inner loop:
 
 ```text
 requirement → verification method → evidence → PASS / FAIL / BLOCKED
 ```
 
-Read the shared [`lifecycle contract`](references/lifecycle-contract.md) and
-[`documentation contract`](references/documentation-contract.md).
+Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
+[`documentation contract`](references/documentation-contract.md), and
+[`pick-roast loop`](references/pick-roast-loop.md).
 
 ## Preconditions
 
-- An approved IP/task contract and completed Pick result exist.
+- An approved IP/task contract and completed Pick result exist for the current task.
 - Current branch/head and diff are resolvable.
 - Run in a fresh context when the harness permits.
 
 ## Inputs
 
-- IP, task file, acceptance criteria, and verification requirements
+- IP, task file, acceptance criteria, and verification requirements for the current task
 - Current branch/head, diff, and PR when present
 - Pick result, execution state, prior Roast attempts, and artifacts
 - Repository instructions and available project/verification skills
@@ -34,8 +36,9 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md) and
    Pick's completion claims as proof.
 2. **Discover supporting skills.** Load applicable domain and verification skills.
    Repository-mandatory capabilities are hard requirements.
-3. **Build the matrix.** Map every in-scope criterion to one or more objective methods and
-   the evidence required. Include promised regressions, compatibility, and non-scope.
+3. **Build the matrix.** Map every in-scope criterion **for the current task** to one or
+   more objective methods and the evidence required. Include promised regressions,
+   compatibility, and non-scope that this task could break.
 4. **Inspect and execute.** Review the diff and run concrete checks independently:
    repository-prescribed tests, integration/system behavior, lint/type/build checks,
    runtime/API/database probes, regression reproductions, or real UI interaction.
@@ -48,8 +51,15 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md) and
    evidence. Never pass a criterion because the code merely looks reasonable.
 8. **Do not fix.** Report implementation defects to Pick. Only correct verifier setup
    owned by Roast; if that changes evidence materially, rerun the affected method.
-9. **Record.** Update execution state and emit the structured result collapsed per the
-   lifecycle contract.
+9. **Record.** Update execution state for this task's Roast result.
+10. **Continue or stop.** Follow the pick-roast loop. Do not start the next task until Roast PASS.
+    `PASS` with remaining unblocked tasks → invoke Pick for the next frontier task.
+    `PASS` with none remaining → emit `PASS` with `next: brew`. `FAIL` → invoke Pick for
+    the same task with exact evidence, or emit `FAIL` with `next: pick` when this
+    invocation must exit. `BLOCKED` exits the loop.
+
+Do not treat a Roast of the last slice as proof of earlier unroasted tasks. Terminal
+inner-loop `PASS` requires every in-scope task to have Roast `PASS` on the recorded head.
 
 ## Supporting skills
 
@@ -59,20 +69,24 @@ probes. If repository policy makes one mandatory and it is unavailable, emit `BL
 
 ## Evidence produced
 
-- Requirement-to-evidence matrix
+- Requirement-to-evidence matrix for the current task
 - Commands/probes/interactions and outcomes
 - Artifact/log/API response references
 - Exact expected vs actual behavior for every failure
 - Environment/access details for every blocker
 - Docs pages that match or fail against shipped behavior
-- Updated execution state and structured Roast result
+- Per-task Roast results in execution state
+- Terminal structured Roast or inner-loop result
 
 ## Success conditions
 
-- Every in-scope acceptance criterion has objective passing evidence on the recorded head.
+- Every in-scope acceptance criterion for the current task has objective passing
+  evidence on the recorded head.
 - Required regression/runtime/UI checks pass.
 - Architecture and public docs match the shipped behavior.
-- Emit `PASS` with `next: brew`.
+- Remaining unblocked tasks continue into Pick rather than Brew.
+- When none remain and every in-scope task has Roast `PASS`, emit `PASS` with
+  `next: brew`.
 
 ## Failure conditions
 
@@ -87,6 +101,7 @@ classification, `next: null`, and next action.
 
 ## Recommended next stage
 
-- `PASS` → Brew
-- `FAIL` → Pick with exact failure evidence and current head
+- Inner-loop `PASS` (all in-scope tasks roasted) → `next: brew`
+- `PASS` with remaining unblocked tasks → `next: pick`
+- `FAIL` → `next: pick` with exact failure evidence and current head
 - `BLOCKED` → outer loop classifies retryable environment/external vs human gate

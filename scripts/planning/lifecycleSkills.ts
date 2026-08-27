@@ -48,6 +48,7 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
     nextMarkers: [
       "next: roast",
       "next: pick",
+      "next: brew",
       "next: null",
     ],
     stage: "pick",
@@ -181,6 +182,21 @@ export const validateStageContent = ({
     }
     if (!content.includes("Decisions table")) {
       errors.push(`${prefix}: Grow must list grilled decisions in a Decisions table`);
+    }
+  }
+
+  if (definition.stage === "pick" || definition.stage === "roast") {
+    if (!content.includes("../../references/pick-roast-loop.md")) {
+      errors.push(`${prefix}: must load the pick-roast inner loop`);
+    }
+    if (!content.includes("Do not start the next task until Roast PASS")) {
+      errors.push(`${prefix}: must require Roast PASS before the next task`);
+    }
+  }
+
+  if (definition.stage === "pick") {
+    if (!content.includes("Pick never skips Roast")) {
+      errors.push(`${prefix}: Pick must not skip Roast`);
     }
   }
 
@@ -327,6 +343,9 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes("npx skills add FlourishHealth/terreno")) {
     errors.push("plugins/README.md must document npx skills installation");
   }
+  if (!pluginReadme.includes("pick-roast-loop.md")) {
+    errors.push("plugins/README.md must document the pick-roast inner loop");
+  }
 
   const pullRequestTemplate = readFileSync(
     join(rootDirectory, ".github/PULL_REQUEST_TEMPLATE.md"),
@@ -401,6 +420,23 @@ export const validateLifecyclePlugin = ({
   }
   if (!lifecycleContract.includes("Omit nulls and empty arrays")) {
     errors.push("lifecycle contract must omit empty stage-result keys");
+  }
+  if (!lifecycleContract.includes("pick-roast-loop.md")) {
+    errors.push("lifecycle contract must name the pick-roast inner loop");
+  }
+
+  const loopEngineering = readFileSync(
+    join(pluginDirectory, "references/loop-engineering.md"),
+    "utf8"
+  );
+  if (!loopEngineering.includes("pick-roast-loop.md")) {
+    errors.push("loop engineering must load the pick-roast inner loop");
+  }
+  if (!loopEngineering.includes("Do not start the next task until Roast PASS")) {
+    errors.push("loop engineering must require Roast PASS before the next task");
+  }
+  if (loopEngineering.includes("run independent tasks in parallel")) {
+    errors.push("loop engineering must not pick tasks in parallel without roasting each");
   }
 
   const executionSchema = JSON.parse(
