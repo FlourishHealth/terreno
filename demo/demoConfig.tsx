@@ -67,6 +67,7 @@ import {TypedSignatureFieldConfiguration} from "@story-config/TypedSignatureFiel
 import {UserInactivityConfiguration} from "@story-config/UserInactivity.config";
 import type {FieldProps} from "@terreno/ui";
 import type React from "react";
+import {OpenAPIContextDemo, OpenAPIContextStories} from "./stories/OpenAPIContext.stories";
 
 export type DemoConfigStatus = "planned" | "inProgress" | "ready" | "notSupported";
 
@@ -192,6 +193,36 @@ export interface DemoConfiguration extends DemoConfigurationBase {
 // head of product first."], }, props: {}, demo: (props) => <MessageDemo {...props} />, demoOptions:
 // {}, stories: {}, testMatrix: {}, testMatrixDefaultProps: {}, };
 
+const OpenAPIContextConfiguration: DemoConfigurationBase = {
+  a11yNotes: ["Field descriptions should remain available after unrelated parent rerenders."],
+  additionalDocumentation: [],
+  category: "Foundation",
+  component: () => null,
+  demo: () => OpenAPIContextDemo(),
+  demoOptions: {},
+  description:
+    "Loads backend OpenAPI metadata and exposes model field descriptions through useOpenAPISpec.",
+  interfaceName: "OpenAPIProviderProps",
+  name: "OpenAPI Context",
+  related: ["TerrenoProvider"],
+  status: {
+    android: "ready",
+    documentation: "ready",
+    figma: "notSupported",
+    ios: "ready",
+    web: "ready",
+  },
+  stories: {
+    "Field metadata": {render: () => OpenAPIContextStories()},
+  },
+  usage: {
+    do: [
+      "Wrap admin or form screens that read model metadata in OpenAPIProvider or TerrenoProvider.",
+    ],
+    doNot: ["Fetch OpenAPI specs manually in every field component."],
+  },
+};
+
 const Config: DemoConfigurationBase[] = [
   AccordionConfiguration,
   AiSuggestionBoxConfiguration,
@@ -226,6 +257,7 @@ const Config: DemoConfigurationBase[] = [
   ModalConfiguration,
   MultiselectFieldConfiguration,
   NumberFieldConfiguration,
+  OpenAPIContextConfiguration,
   PageConfiguration,
   PaginationConfiguration,
   PasswordFieldConfiguration,

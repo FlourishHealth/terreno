@@ -18,6 +18,14 @@ Each stage is `disable-model-invocation`: the outer loop or human invokes it exp
 Grow, Brew, and Taste never own the full orchestration. Pick and Roast own the inner
 loop that implements one task, roasts it, then picks the next until the list is done.
 
+Two additional skills are **outer loops**, not stages. They invoke the five transitions
+and persist state:
+
+| Skill | Loop |
+| --- | --- |
+| **Planning loop** (`terreno-planning-loop`) | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns pick-roast). Pass `phases=` to restrict. |
+| **Taste sweep** (`terreno-taste-sweep`) | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
+
 ## Composition
 
 ```text
@@ -50,8 +58,9 @@ Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details t
 chat and on the PR. Humans read `status`, `next`, and `action`.
 
 The optional **feature profile** in the loop document preserves the former Grind behavior:
-invoke Pick once; it pick-roasts each frontier task in sequence. It is not a sixth
-lifecycle stage.
+invoke Pick once; it pick-roasts each frontier task in sequence. `terreno-planning-loop`
+is the invocable outer recipe (optional phases including Grow, Brew, Taste). Neither is
+a sixth lifecycle stage.
 
 ## State machine
 
@@ -120,6 +129,8 @@ are removed; invoke the canonical stages directly.
 | --- | --- | --- | --- |
 | Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-1-grow` |
 | Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:1-grow` |
+
+Cursor also ships outer loops `/terreno-planning-loop` and `/terreno-taste-sweep`.
 
 Claude Code install:
 

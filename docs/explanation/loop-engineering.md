@@ -48,6 +48,11 @@ CI, and when to escalate**. Stages decide how to perform one transition correctl
 continues the inner loop until the approved task list is done. Roast never invokes Pick.
 Brew and Taste additionally sleep while async review bots are running.
 
+Invocable outer loops in the plugin: `/terreno-planning-loop` runs Grow, then Pick
+(Pick owns the pick-roast inner loop), then optional Brew/Taste; pass `phases=` to
+restrict. `/terreno-taste-sweep` drives the author's broken open PRs by reinvoking
+Taste. Neither is a sixth stage.
+
 ## The five transitions
 
 | Stage | Question | Primary evidence |

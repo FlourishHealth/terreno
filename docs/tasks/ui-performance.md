@@ -33,7 +33,7 @@
 
 ### Phase 1: Finish omitted and deferred high-priority work
 
-- [ ] **Task 1.1**: Stabilize `OpenAPIProvider` context values (leftover P0)
+- [x] **Task 1.1**: Stabilize `OpenAPIProvider` context values (leftover P0)
   - Delivers: unrelated parent renders no longer fan out through unchanged OpenAPI model metadata.
   - Files: `ui/src/OpenAPIContext.tsx`, focused regression tests, `ui/benchmarks/`, `ui/package.json`,
     `docs/reference/ui-performance.md`
@@ -42,7 +42,7 @@
     value with complete dependencies; unchanged metadata skips consumer renders; replacing the spec
     updates field lookups immediately; existing form/admin behavior and the full UI suite pass.
 
-- [ ] **Task 1.2**: Virtualize large `DataTable` row sets without changing table behavior
+- [x] **Task 1.2**: Virtualize large `DataTable` row sets without changing table behavior
   - Delivers: initial mount cost and mounted row count scale with the viewport instead of total rows.
   - Files: `ui/src/DataTable.tsx`, `ui/src/DataTable.test.tsx`, P1 regressions and benchmark,
     `demo/stories/DataTable.stories.tsx`, `docs/reference/ui-performance.md`
