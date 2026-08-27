@@ -24,8 +24,6 @@ import type {ConsoleGuard} from "../fixtures/test";
 
 export const SYNC_DB_NAME = "terreno-example";
 export const CONVERGE_TIMEOUT = 20_000;
-const E2E_FORCE_RECONNECT_EVENT = "syncdb-e2e-reconnect";
-const E2E_FORCE_RECONNECT_DONE_EVENT = "syncdb-e2e-reconnect-done";
 
 /**
  * Per-test budget for the syncdb suites, applied with `test.describe.configure`.
@@ -87,30 +85,6 @@ export const clickTodoControl = async (locator: Locator): Promise<void> => {
     node.scrollIntoView({block: "center", inline: "center"});
   });
   await locator.click({force: true});
-};
-
-export const forceSyncReconnect = async (page: Page): Promise<void> => {
-  await page.evaluate(
-    ({doneEvent, startEvent}: {doneEvent: string; startEvent: string}) => {
-      return new Promise<void>((resolve, reject) => {
-        const timeoutId = window.setTimeout(() => {
-          window.removeEventListener(doneEvent, onDone);
-          reject(new Error(`${startEvent} did not finish within 30s`));
-        }, 30_000);
-        const onDone = (): void => {
-          window.clearTimeout(timeoutId);
-          resolve();
-        };
-        window.addEventListener(doneEvent, onDone, {once: true});
-        window.dispatchEvent(new Event(startEvent));
-      });
-    },
-    {
-      doneEvent: E2E_FORCE_RECONNECT_DONE_EVENT,
-      startEvent: E2E_FORCE_RECONNECT_EVENT,
-    }
-  );
-  await page.getByTestId("sync-offline-indicator").waitFor({state: "hidden", timeout: 30_000});
 };
 
 /**
