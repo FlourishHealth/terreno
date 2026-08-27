@@ -33,13 +33,26 @@ describe("Claude plugin sync", (): void => {
     const paths = files.map(({path}) => path);
 
     assert.include(paths, "skills/1-grow/SKILL.md");
+    assert.include(paths, "skills/2-pick/SKILL.md");
+    assert.include(paths, "skills/3-roast/SKILL.md");
     assert.include(paths, "skills/5-taste/SKILL.md");
     assert.include(paths, "references/lifecycle-contract.md");
+    assert.include(paths, "references/pick-roast-loop.md");
     assert.notInclude(paths, "skills/terreno-1-grow/SKILL.md");
 
     const grow = files.find(({path}) => path === "skills/1-grow/SKILL.md");
     assert.include(grow?.contents ?? "", "name: 1-grow");
     assert.include(grow?.contents ?? "", "../../references/lifecycle-contract.md");
+
+    const pick = files.find(({path}) => path === "skills/2-pick/SKILL.md");
+    const roast = files.find(({path}) => path === "skills/3-roast/SKILL.md");
+    assert.include(pick?.contents ?? "", "name: 2-pick");
+    assert.include(pick?.contents ?? "", "../../references/pick-roast-loop.md");
+    assert.include(pick?.contents ?? "", "Roast never invokes Pick");
+    assert.include(pick?.contents ?? "", "repeat from Reconstruct");
+    assert.include(roast?.contents ?? "", "name: 3-roast");
+    assert.include(roast?.contents ?? "", "Pick owns the inner loop");
+    assert.include(roast?.contents ?? "", "Roast never invokes Pick");
 
     const manifest = JSON.parse(
       files.find(({path}) => path === ".claude-plugin/plugin.json")?.contents ?? "{}"
