@@ -497,14 +497,7 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
   const bodyScrollYRef = useRef(0);
   const isVerticalScrollSyncingRef = useRef(false);
   const verticalScrollLeaderRef = useRef<"body" | "pinned" | "more" | null>(null);
-  const pendingVerticalScrollRef = useRef<{
-    scrollY: number;
-    source: "body" | "pinned" | "more";
-  } | null>(null);
   const verticalScrollSyncReleaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const syncVerticalScrollRef = useRef<
-    (scrollY: number, source: "body" | "pinned" | "more") => void
-  >(() => undefined);
 
   const moreColumnOffset = MoreContentContent ? 48 : 0;
   const scrollableWidth = useMemo(
@@ -552,33 +545,8 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
     ]
   );
 
-  const scheduleVerticalScrollSyncRelease = useCallback((): void => {
-    if (verticalScrollSyncReleaseTimeoutRef.current) {
-      clearTimeout(verticalScrollSyncReleaseTimeoutRef.current);
-    }
-    verticalScrollSyncReleaseTimeoutRef.current = setTimeout(() => {
-      isVerticalScrollSyncingRef.current = false;
-      verticalScrollLeaderRef.current = null;
-      verticalScrollSyncReleaseTimeoutRef.current = null;
-      const pendingVerticalScroll = pendingVerticalScrollRef.current;
-      if (!pendingVerticalScroll) {
-        return;
-      }
-      pendingVerticalScrollRef.current = null;
-      syncVerticalScrollRef.current(pendingVerticalScroll.scrollY, pendingVerticalScroll.source);
-    }, DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS);
-  }, []);
-
-  const syncVerticalScroll = useCallback(
+  const applyVerticalScrollToFollowers = useCallback(
     (scrollY: number, source: "body" | "pinned" | "more"): void => {
-      if (isVerticalScrollSyncingRef.current) {
-        if (source === verticalScrollLeaderRef.current) {
-          pendingVerticalScrollRef.current = {scrollY, source};
-        }
-        return;
-      }
-      isVerticalScrollSyncingRef.current = true;
-      verticalScrollLeaderRef.current = source;
       if (source !== "body") {
         bodyListRef.current?.scrollToOffset({animated: false, offset: scrollY});
       }
@@ -588,11 +556,38 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
       if (source !== "more") {
         moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
       }
+    },
+    []
+  );
+
+  const scheduleVerticalScrollSyncRelease = useCallback((): void => {
+    if (verticalScrollSyncReleaseTimeoutRef.current) {
+      clearTimeout(verticalScrollSyncReleaseTimeoutRef.current);
+    }
+    verticalScrollSyncReleaseTimeoutRef.current = setTimeout(() => {
+      isVerticalScrollSyncingRef.current = false;
+      verticalScrollLeaderRef.current = null;
+      verticalScrollSyncReleaseTimeoutRef.current = null;
+    }, DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS);
+  }, []);
+
+  const syncVerticalScroll = useCallback(
+    (scrollY: number, source: "body" | "pinned" | "more"): void => {
+      if (isVerticalScrollSyncingRef.current) {
+        if (source !== verticalScrollLeaderRef.current) {
+          return;
+        }
+        applyVerticalScrollToFollowers(scrollY, source);
+        scheduleVerticalScrollSyncRelease();
+        return;
+      }
+      isVerticalScrollSyncingRef.current = true;
+      verticalScrollLeaderRef.current = source;
+      applyVerticalScrollToFollowers(scrollY, source);
       scheduleVerticalScrollSyncRelease();
     },
-    [scheduleVerticalScrollSyncRelease]
+    [applyVerticalScrollToFollowers, scheduleVerticalScrollSyncRelease]
   );
-  syncVerticalScrollRef.current = syncVerticalScroll;
 
   const syncSatelliteListsToBodyOffset = useCallback((): void => {
     const scrollY = bodyScrollYRef.current;
@@ -623,7 +618,6 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
       }
       isVerticalScrollSyncingRef.current = false;
       verticalScrollLeaderRef.current = null;
-      pendingVerticalScrollRef.current = null;
     };
   }, [syncSatelliteListsToBodyOffset]);
 

@@ -134,7 +134,7 @@ describe("DataTable virtualization regression coverage", () => {
     assert.deepEqual(bodyScrollToOffsetCalls, []);
   });
 
-  it("applies the latest leader scroll offset after the vertical sync lock clears", async () => {
+  it("keeps pinned rows aligned with later leader scroll events during the sync lock", async () => {
     const data = buildLargeData(LARGE_ROW_COUNT);
     const result = render(
       <ThemeProvider>
@@ -160,8 +160,8 @@ describe("DataTable virtualization regression coverage", () => {
       bodyList!.props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: firstScrollY}}});
       bodyList!.props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: secondScrollY}}});
     });
-    assert.exists(result.getByText("Row 11"));
-    assert.throws(() => result.getByText("Row 201"));
+    assert.exists(result.getByText("Row 201"));
+    assert.throws(() => result.getByText("Row 11"));
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 60));
