@@ -49,6 +49,15 @@ Install the published skill set (lifecycle stages plus repo and package skills):
 npx skills add FlourishHealth/terreno
 ```
 
+Or install the same five stages as a host plugin:
+
+| Host | Command |
+| --- | --- |
+| Cursor | Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then `/terreno-1-grow` |
+| Claude Code | `/plugin marketplace add FlourishHealth/terreno` then `/plugin install terreno-planning@terreno`, then `/terreno-planning:terreno-1-grow` |
+
+Manifests: Cursor [`.cursor-plugin/plugin.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/.cursor-plugin/plugin.json); Claude Code [`.claude-plugin/plugin.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/.claude-plugin/plugin.json). Both share `plugins/terreno-planning/skills/`.
+
 Regenerate the committed `skills/` tree with `bun run skills:sync`. Package skills under
 `<package>/.ai/skills/` overlay the repo copies.
 

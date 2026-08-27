@@ -22,6 +22,32 @@ describe("lifecycle skill architecture", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
   });
 
+  it("ships matching Cursor and Claude Code plugin manifests", (): void => {
+    const cursorPlugin = JSON.parse(
+      readFileSync(
+        resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
+        "utf8"
+      )
+    ) as {name: string; version: string; description: string};
+    const claudePlugin = JSON.parse(
+      readFileSync(
+        resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.claude-plugin/plugin.json"),
+        "utf8"
+      )
+    ) as {name: string; version: string; description: string; skills: string};
+    const claudeMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".claude-plugin/marketplace.json"), "utf8")
+    ) as {name: string; plugins: Array<{name: string; source: string}>};
+
+    assert.equal(cursorPlugin.name, claudePlugin.name);
+    assert.equal(cursorPlugin.version, claudePlugin.version);
+    assert.equal(cursorPlugin.description, claudePlugin.description);
+    assert.equal(claudePlugin.skills, "./skills/");
+    assert.equal(claudeMarketplace.name, "terreno");
+    assert.equal(claudeMarketplace.plugins[0]?.name, "terreno-planning");
+    assert.equal(claudeMarketplace.plugins[0]?.source, "./plugins/terreno-planning");
+  });
+
   it("rejects an unbounded Taste wait loop", (): void => {
     const errors = validateStageContent({
       content: `${readStage("terreno-5-taste")}\nKeep the loop active until all CI is green.`,

@@ -327,6 +327,12 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes("npx skills add FlourishHealth/terreno")) {
     errors.push("plugins/README.md must document npx skills installation");
   }
+  if (!pluginReadme.includes(".claude-plugin/marketplace.json")) {
+    errors.push("plugins/README.md must document the Claude Code marketplace");
+  }
+  if (!pluginReadme.includes("/plugin marketplace add FlourishHealth/terreno")) {
+    errors.push("plugins/README.md must document Claude Code marketplace install");
+  }
 
   const pullRequestTemplate = readFileSync(
     join(rootDirectory, ".github/PULL_REQUEST_TEMPLATE.md"),
@@ -345,10 +351,31 @@ export const validateLifecyclePlugin = ({
 
   const pluginFiles = [
     join(pluginDirectory, ".cursor-plugin/plugin.json"),
+    join(pluginDirectory, ".claude-plugin/plugin.json"),
     join(rootDirectory, ".cursor-plugin/marketplace.json"),
+    join(rootDirectory, ".claude-plugin/marketplace.json"),
     join(rootDirectory, "CONTRIBUTING.md"),
   ];
   const canonicalText = pluginFiles.map((path) => readFileSync(path, "utf8")).join("\n");
+
+  const cursorPlugin = JSON.parse(
+    readFileSync(join(pluginDirectory, ".cursor-plugin/plugin.json"), "utf8")
+  ) as {name?: string; version?: string; description?: string};
+  const claudePlugin = JSON.parse(
+    readFileSync(join(pluginDirectory, ".claude-plugin/plugin.json"), "utf8")
+  ) as {name?: string; version?: string; description?: string; skills?: string};
+  if (cursorPlugin.name !== claudePlugin.name) {
+    errors.push("Cursor and Claude plugin.json name fields must match");
+  }
+  if (cursorPlugin.version !== claudePlugin.version) {
+    errors.push("Cursor and Claude plugin.json version fields must match");
+  }
+  if (cursorPlugin.description !== claudePlugin.description) {
+    errors.push("Cursor and Claude plugin.json description fields must match");
+  }
+  if (claudePlugin.skills !== "./skills/") {
+    errors.push("Claude plugin.json skills path must be ./skills/");
+  }
 
   for (const retiredIdentifier of RETIRED_IDENTIFIERS) {
     if (canonicalText.includes(retiredIdentifier)) {

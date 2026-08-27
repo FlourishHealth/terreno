@@ -106,5 +106,13 @@ implementation-Roast name collides semantically with the new verification-Roast 
 Deprecated repo-local routers (`/ip`, `/implement`, `/submit`, `/autobot`, `/check-watcher`)
 are removed; invoke the canonical stages directly.
 
-Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json),
-then invoke a canonical stage such as `/terreno-1-grow`.
+Install `terreno-planning` from either host marketplace, then invoke a canonical
+stage:
+
+| Host | Marketplace | Install |
+| --- | --- | --- |
+| Cursor | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | install `terreno-planning`, then `/terreno-1-grow` |
+| Claude Code | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/plugin marketplace add FlourishHealth/terreno`, then `/plugin install terreno-planning@terreno`, then `/terreno-planning:terreno-1-grow` |
+
+Both manifests point at the same `plugins/terreno-planning/skills/` tree. Claude Code
+namespaces plugin skills as `/terreno-planning:<skill>`.

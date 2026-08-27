@@ -10,6 +10,26 @@ npx skills add FlourishHealth/terreno --skill terreno-1-grow
 That copies the committed `skills/` tree: lifecycle stages (Grow, Pick, Roast, Brew,
 Taste), repository skills, and published package skills.
 
+## Install as a host plugin
+
+The same lifecycle stages ship as `terreno-planning` for Cursor and Claude Code.
+Skills live once under `plugins/terreno-planning/skills/`.
+
+### Cursor
+
+Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then invoke `/terreno-1-grow`.
+
+### Claude Code
+
+```text
+/plugin marketplace add FlourishHealth/terreno
+/plugin install terreno-planning@terreno
+/terreno-planning:terreno-1-grow
+```
+
+Claude Code namespaces plugin skills as `/terreno-planning:<skill>`. Marketplace:
+[`.claude-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.claude-plugin/marketplace.json).
+
 ## What you get
 
 | Group | Skills |
