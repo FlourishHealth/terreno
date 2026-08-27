@@ -175,7 +175,10 @@ When no package/e2e path param is also set, that workflow runs the slice above.
 CircleCI e2e compiles the workspace and `bun expo export`s **once** in
 `e2e-prepare`, then shards attach that dist (60s test timeout, `large` Docker).
 Keeping Metro alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on
-this project's plan. `maestro-e2e` follows the same rule: it exports
+this project's plan. After chaos flaps, Playwright waits for the
+`syncdb-e2e-reconnect` handshake (stop/start plus Offline banner hidden) before
+asserting drain — fire-and-forget reconnect left the production bundle stuck
+Offline. `maestro-e2e` follows the same static-export rule: it exports
 example-frontend and serves the static `dist`. If the browsers image has no
 Xvfb on `:99`, a `background: true` fallback starts one and keeps it alive
 for later steps.
