@@ -36,10 +36,31 @@ terreno generate rest-cli --schema http://localhost:4000/openapi.json --out ./to
 | `state` | Inspect Better Auth (via `auth` alias or `betterAuth`) or RTK Query state (`--slice`, `--query`) through the dev store or Metro CDP |
 | `eval` | Evaluate JavaScript in the app runtime through Metro CDP (`--code`; requires `TERRENO_MCP_EVAL=1`) |
 | `navigate` | Navigate Expo Router through Metro CDP (requires `TERRENO_MCP_EVAL=1`) |
+| `web [url]` | Automate the web app with Bun 1.4 `Bun.WebView`; ordered `--action` JSON, `--snapshot`, and `--screenshot` |
 | `db schema` | Mongo collections (`--collection-filter`, `--summary`) |
 | `db query` | Read-only Mongo (`--collection`, `--operation`, `--filter`, `--pipeline`, `--field`, `--limit`) |
 
 Global flags: `--json`, `--help` / `-h`, `--version` / `-v`.
+
+## Web app automation
+
+Run an interaction sequence and save proof from the final rendered state:
+
+```bash
+terreno web http://localhost:8082 \
+  --action '{"action":"click","selector":"#login"}' \
+  --action '{"action":"type","selector":"input[name=email]","text":"test@example.com"}' \
+  --action '{"action":"press","key":"Enter"}' \
+  --snapshot \
+  --screenshot /opt/cursor/artifacts/login.png
+```
+
+The command requires Bun 1.4 or newer and uses its built-in headless `Bun.WebView`; Chrome,
+Chromium, or Edge must be installed on Linux and Windows. Actions run in argument order with
+native trusted input. Supported actions are `click`, `type`, `press`, `scroll`, `evaluate`,
+`snapshot`, `screenshot`, `back`, `forward`, and `reload`. Use `--actions-file <path>` for a JSON
+array, `--width` / `--height` for the viewport, and `--data-dir` to persist cookies and browser
+storage. The URL defaults to `TERRENO_WEB_URL`, then `http://localhost:8082`.
 
 ## REST auth
 

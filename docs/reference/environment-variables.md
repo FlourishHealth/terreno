@@ -105,6 +105,8 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `TERRENO_PROJECT_ROOT` | `terreno-mcp-local`, `terreno` CLI | ❌ | nearest Terreno project root | No | tooling |
 | `TERRENO_METRO_URL` | `terreno-mcp-local` | ❌ | frontend script port or `http://localhost:8082` | No | tooling |
 | `TERRENO_MCP_EVAL` | `terreno-mcp-local` | ❌ | disabled | No | tooling |
+| `TERRENO_WEB_URL` | `terreno` CLI | ❌ | `http://localhost:8082` | No | tooling |
+| `BUN_CHROME_PATH` | Bun WebView | ❌ | browser auto-discovery | No | tooling |
 | `TERRENO_OPENAPI` | `terreno` CLI | ❌ | — | No | tooling |
 | `TERRENO_API_URL` | `terreno` CLI | ❌ | OpenAPI `servers[0].url` | No | tooling |
 | `TERRENO_TOKEN` | `terreno` CLI | ❌ | — | Yes | tooling |

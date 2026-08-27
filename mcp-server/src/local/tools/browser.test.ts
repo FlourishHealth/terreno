@@ -1,0 +1,114 @@
+import {describe, it} from "bun:test";
+import {assert} from "chai";
+
+import {BrowserSession} from "./browser";
+
+interface FakeViewCalls {
+  clicks: string[];
+  evaluations: string[];
+  keys: string[];
+  navigations: string[];
+  scrolls: Array<[number, number]>;
+  typed: string[];
+}
+
+const createFakeView = (calls: FakeViewCalls) => {
+  return {
+    title: "Test app",
+    url: "http://localhost:8082/",
+    back: async (): Promise<void> => {},
+    click: async (selector: string): Promise<void> => {
+      calls.clicks.push(selector);
+    },
+    close: (): void => {},
+    evaluate: async <T>(code: string): Promise<T> => {
+      calls.evaluations.push(code);
+      return {text: "Rendered app"} as T;
+    },
+    forward: async (): Promise<void> => {},
+    navigate: async (url: string): Promise<void> => {
+      calls.navigations.push(url);
+    },
+    press: async (key: string): Promise<void> => {
+      calls.keys.push(key);
+    },
+    reload: async (): Promise<void> => {},
+    screenshot: async (): Promise<Blob> => new Blob(["image"]),
+    scroll: async (x: number, y: number): Promise<void> => {
+      calls.scrolls.push([x, y]);
+    },
+    scrollTo: async (selector: string): Promise<void> => {
+      calls.scrolls.push([selector.length, 0]);
+    },
+    type: async (text: string): Promise<void> => {
+      calls.typed.push(text);
+    },
+  };
+};
+
+const createCalls = (): FakeViewCalls => ({
+  clicks: [],
+  evaluations: [],
+  keys: [],
+  navigations: [],
+  scrolls: [],
+  typed: [],
+});
+
+describe("BrowserSession", () => {
+  it("opens a view and performs trusted interactions", async (): Promise<void> => {
+    const calls = createCalls();
+    const session = new BrowserSession(() => createFakeView(calls));
+
+    const opened = await session.run({action: "open", url: "http://localhost:8082"});
+    await session.run({action: "click", selector: "#login"});
+    await session.run({action: "type", selector: "#email", text: "test@example.com"});
+    await session.run({action: "press", key: "Enter"});
+    await session.run({action: "scroll", x: 10, y: 200});
+
+    assert.deepEqual(opened, {
+      action: "open",
+      ok: true,
+      title: "Test app",
+      url: "http://localhost:8082/",
+    });
+    assert.deepEqual(calls.navigations, ["http://localhost:8082"]);
+    assert.deepEqual(calls.clicks, ["#login", "#email"]);
+    assert.deepEqual(calls.typed, ["test@example.com"]);
+    assert.deepEqual(calls.keys, ["Enter"]);
+    assert.deepEqual(calls.scrolls, [[10, 200]]);
+  });
+
+  it("returns an agent-readable page snapshot", async (): Promise<void> => {
+    const calls = createCalls();
+    const session = new BrowserSession(() => createFakeView(calls));
+    await session.run({action: "open", url: "http://localhost:8082"});
+
+    const result = await session.run({action: "snapshot"});
+
+    assert.deepEqual(result, {
+      action: "snapshot",
+      ok: true,
+      snapshot: {text: "Rendered app"},
+    });
+    assert.include(calls.evaluations[0] ?? "", "document.querySelectorAll");
+  });
+
+  it("requires an open session and action inputs", async (): Promise<void> => {
+    const session = new BrowserSession(() => createFakeView(createCalls()));
+
+    try {
+      await session.run({action: "click", selector: "#login"});
+      assert.fail("Expected click without a session to fail");
+    } catch (error) {
+      assert.include(String(error), "No browser session");
+    }
+
+    try {
+      await session.run({action: "open", url: " "});
+      assert.fail("Expected an empty URL to fail");
+    } catch (error) {
+      assert.include(String(error), "requires url");
+    }
+  });
+});
