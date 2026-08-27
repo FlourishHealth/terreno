@@ -365,7 +365,10 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     for (const responsiveProp of RESPONSIVE_DIRECTION_PROPS) {
       const responsiveValue = props[responsiveProp];
       if (responsiveValue) {
-        Object.assign(style, boxStyleMap[responsiveProp](responsiveValue, propsAsRecord, breakpoint));
+        Object.assign(
+          style,
+          boxStyleMap[responsiveProp](responsiveValue, propsAsRecord, breakpoint)
+        );
       }
     }
 
