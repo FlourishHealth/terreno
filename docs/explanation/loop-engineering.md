@@ -46,7 +46,8 @@ a second driver.
 The outer loop decides **when, who, what next, when to retry, when to wait on product
 CI, and when to escalate**. Stages decide how to perform one transition correctly. Pick
 continues the inner loop until the approved task list is done. Roast never invokes Pick.
-Brew and Taste additionally sleep while async review bots are running.
+Brew and Taste additionally wait while async review bots are running, preferring
+provider CLI watch hooks or harness event subscriptions over timer polling.
 
 Invocable outer loops in the plugin: `/terreno-planning-loop` runs Grow, then Pick
 (Pick owns the pick-roast inner loop), then optional Brew/Taste; pass `phases=` to
@@ -64,10 +65,11 @@ Taste. Neither is a sixth stage.
 | Taste | What is actionable on the current PR head now? | CI on every discovered host, mergeability, reviews, bounded fixes |
 
 Roast is not another implementation review. It independently proves or disproves
-acceptance criteria. Taste is not a resident watcher of product CI. It sleeps until
-async review bots (Bugbot, CodeQL, and similar) on the current head have reported, then
-observes jobs on every discovered CI host (GitHub Actions, CircleCI, Buildkite, and
-similar), acts, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
+acceptance criteria. Taste is not a resident watcher of product CI. It waits until async
+review bots (Bugbot, CodeQL, and similar) on the current head have reported, preferring
+native hooks such as `gh pr checks --watch`, then observes jobs on every discovered CI
+host (GitHub Actions, CircleCI, Buildkite, and similar), acts, emits `PASS`, `FAIL`,
+`BLOCKED`, or `PENDING`, and exits.
 
 ## Portable plugin, local knowledge
 
@@ -121,9 +123,11 @@ contain chain-of-thought or transcripts.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
 - Taste `PENDING` lets the outer loop wait on remaining product CI (any discovered host)
-  or a review-bot timeout, then invoke fresh Taste against current state.
-- Brew and Taste sleep in-process while Bugbot, CodeQL, or similar review bots are
-  running, then continue so they can react without a loop reinvocation.
+  or a review-bot timeout, then invoke fresh Taste against current state. The loop uses
+  native provider watch hooks or harness subscriptions where available and a timer only
+  as fallback.
+- Brew and Taste wait in-process while Bugbot, CodeQL, or similar review bots are
+  running, preferring native hooks, then continue without a loop reinvocation.
 - Human decisions are `BLOCKED`, never arbitrary retries.
 - Taste `PASS` requires all current-head jobs on every discovered CI host
   terminal/non-failing, no conflicts, and no actionable review findings.

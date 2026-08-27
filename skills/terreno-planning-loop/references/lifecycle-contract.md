@@ -152,8 +152,8 @@ transport.
   the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI on
   any discovered host (GitHub Actions, CircleCI, Buildkite, and similar),
   for review-bot timeout, and after Taste's second post-fix push. Do not emit `PENDING`
-  while Bugbot, CodeQL, or similar review bots are still queued or in progress; sleep
-  per the async-review-bots procedure first.
+  while Bugbot, CodeQL, or similar review bots are still queued or in progress; wait
+  per the async-review-bots procedure first, preferring native watch/subscription hooks.
 - `PASS`: this stage's success conditions are proven for the recorded head.
 
 Human gates include unresolved product semantics, architecture/security/data ownership,

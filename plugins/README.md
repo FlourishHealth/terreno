@@ -78,12 +78,13 @@ Any BLOCKED → named human/external gate
 ```
 
 Brew does not execute Taste. Pick never skips Roast. Roast never invokes Pick. Exactly
-one driver continues after each current-task Roast. Brew and Taste sleep until Bugbot,
-CodeQL, and similar review bots on the current head have reported, then continue. They
+one driver continues after each current-task Roast. Brew and Taste wait until Bugbot,
+CodeQL, and similar review bots on the current head have reported, preferring provider
+CLI watch hooks or harness event subscriptions over sleep polling, then continue. They
 do not wait for ordinary product CI. Taste observes jobs on every discovered CI host
-(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. The loop
-owns persistence, product-CI waiting, retry, stop, and escalation. It does not reinvoke
-Pick between roasted tasks.
+(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. Outer loops
+use the same native hooks during bounded product-CI waits. The loop owns persistence,
+retry, stop, and escalation. It does not reinvoke Pick between roasted tasks.
 
 ## Repository integration
 

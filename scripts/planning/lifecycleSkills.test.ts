@@ -3,10 +3,13 @@ import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {
+  validateAsyncReviewBotsContract,
   validateClaudePluginHost,
   validateDocumentationContract,
   validateGithubAttentionContract,
   validateLifecyclePlugin,
+  validateOuterLoopContent,
+  validateProductCiContract,
   validateStageContent,
 } from "./lifecycleSkills.ts";
 
@@ -99,7 +102,8 @@ describe("lifecycle skill architecture", (): void => {
   it("rejects Brew that skips product CI host discovery", (): void => {
     const content = readStage("terreno-4-brew")
       .replace("../../references/product-ci.md", "missing-product-ci")
-      .replaceAll("every discovered CI host", "GitHub Actions only");
+      .replaceAll("every discovered CI host", "GitHub Actions only")
+      .replaceAll("provider CLI watch hooks", "manual polling");
     const errors = validateStageContent({
       content,
       definition: {
@@ -111,12 +115,14 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
     assert.isTrue(errors.some((error) => error.includes("every discovered CI host")));
+    assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {
     const content = readStage("terreno-5-taste")
       .replace("../../references/product-ci.md", "missing-product-ci")
-      .replaceAll("not only GitHub checks", "from GitHub checks only");
+      .replaceAll("not only GitHub checks", "from GitHub checks only")
+      .replaceAll("provider CLI watch hooks", "manual polling");
     const errors = validateStageContent({
       content,
       definition: {
@@ -128,6 +134,7 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
     assert.isTrue(errors.some((error) => error.includes("not only GitHub checks")));
+    assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
   });
 
   it("rejects same-invocation Brew to Taste execution", (): void => {
@@ -268,6 +275,28 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("Diátaxis")));
   });
 
+  it("rejects product CI polling without native wait hooks", (): void => {
+    const errors = validateProductCiContract(
+      "Fetch status, sleep 30 seconds, then fetch status again."
+    );
+
+    assert.isTrue(errors.some((error) => error.includes("gh pr checks")));
+    assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
+    assert.isTrue(errors.some((error) => error.includes("bk build watch")));
+    assert.isTrue(errors.some((error) => error.includes("final fallback")));
+  });
+
+  it("rejects review-bot waits that watch every PR check", (): void => {
+    const errors = validateAsyncReviewBotsContract(
+      "Prefer `gh pr checks <pr> --watch --interval 30`."
+    );
+
+    assert.isTrue(errors.some((error) => error.includes("targeted GitHub Actions")));
+    assert.isTrue(errors.some((error) => error.includes("unfiltered PR-check")));
+    assert.isTrue(errors.some((error) => error.includes("PR-event subscriptions")));
+    assert.isTrue(errors.some((error) => error.includes("all PR product checks")));
+  });
+
   it("rejects a stage that does not load the documentation contract", (): void => {
     const content = readStage("terreno-2-pick").replace(
       "../../references/documentation-contract.md",
@@ -308,6 +337,18 @@ describe("lifecycle skill architecture", (): void => {
       assert.include(content, `name: ${directory}`);
       assert.include(content, "disable-model-invocation: true");
       assert.include(content, "../../references/lifecycle-contract.md");
+      assert.deepEqual(validateOuterLoopContent({content, directory}), []);
     }
+  });
+
+  it("rejects outer loops that use timers before native CI hooks", (): void => {
+    const errors = validateOuterLoopContent({
+      content: "Wait 120 seconds, then invoke Taste.",
+      directory: "terreno-planning-loop",
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
+    assert.isTrue(errors.some((error) => error.includes("native watch hooks")));
+    assert.isTrue(errors.some((error) => error.includes("timer waiting")));
   });
 });

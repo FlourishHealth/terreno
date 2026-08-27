@@ -14,7 +14,7 @@
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five bounded transitions (Grow, Pick/Roast inner loop, Brew, Taste) plus planning-loop and taste-sweep outer loops."
+      "description": "Five bounded transitions plus outer loops; Brew and Taste observe every CI host and prefer native watch hooks over timer polling."
     }
   ]
 }

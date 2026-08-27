@@ -43,12 +43,12 @@ The outer loop owns state persistence, product-CI waiting, Grow/Brew/Taste invoc
 retries, and escalation. Pick owns the
 [pick-roast inner loop](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/pick-roast-loop.md):
 one task, roast it, next task. Roast never invokes Pick. Do not start the next task
-until Roast PASS. Exactly one driver continues after each Roast. Brew and
-Taste sleep until async review bots (Bugbot, CodeQL, and similar) on the current head
-have reported, then continue; they do not wait for ordinary product CI. Taste observes
-product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar),
-not only GitHub checks. Brew still does
-not execute Taste.
+until Roast PASS. Exactly one driver continues after each Roast. Brew and Taste wait
+until async review bots (Bugbot, CodeQL, and similar) on the current head have reported,
+preferring provider CLI watch hooks or harness event subscriptions over sleep polling,
+then continue; they do not wait for ordinary product CI. Taste observes product CI on
+every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), not only
+GitHub checks. Brew still does not execute Taste.
 
 GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
 `Verification` are the only visible PR sections; optional detail is expandable; comments

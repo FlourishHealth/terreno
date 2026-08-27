@@ -1,6 +1,6 @@
 ---
 name: terreno-5-taste
-description: Perform one reactive iteration against the PR's current head. Sleep until async review bots (Bugbot, CodeQL) finish, inspect product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), mergeability, and reviews, act on what is actionable, emit state, and exit. The outer loop owns product-CI waiting and reinvocation.
+description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks or harness subscriptions until async review bots (Bugbot, CodeQL) finish, inspect product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), mergeability, and reviews, act on what is actionable, emit state, and exit. The outer loop owns product-CI waiting and reinvocation.
 disable-model-invocation: true
 ---
 
@@ -36,9 +36,10 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 2. **Discover supporting skills.** Load applicable CI, conflict, review-response,
    implementation, test, UI/runtime, security, and repository skills.
 3. **Wait for review bots.** Follow the async-review-bots procedure. If Bugbot, CodeQL,
-   or similar review bots are queued or in progress, sleep and re-fetch until they are
-   terminal or the wait times out. Do not exit while those bots are running. Do not wait
-   for ordinary product CI.
+   or similar review bots are queued or in progress, prefer provider CLI watch hooks or
+   harness event subscriptions until they are terminal or the wait times out. Use
+   bounded sleep/re-fetch only as a fallback. Do not exit while those bots are running.
+   Do not wait for ordinary product CI.
 4. **Observe one snapshot** of the post-wait head:
    - every product-CI job on every discovered CI host for the current SHA (GitHub
      Actions, CircleCI, Buildkite, and similar), not only GitHub checks and not only

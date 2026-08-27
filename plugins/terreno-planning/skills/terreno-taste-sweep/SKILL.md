@@ -93,8 +93,10 @@ invokes Taste, waits, and reports.
      Taste is not itself a loop.
    - **PASS** → stop (success).
    - **BLOCKED** → stop; record the exact `block` reason and required action.
-   - **PENDING** → wait `wait` seconds if present, otherwise 120 seconds, then invoke
-     Taste again. Slow or queued product CI is not stuck.
+   - **PENDING** → for at most `wait` seconds if present (otherwise 120), prefer the
+     product-CI provider's native watch hook or a harness event subscription. Use a
+     timer only when no hook applies. Invoke Taste again as soon as the hook returns.
+     Slow or queued product CI is not stuck.
    - **FAIL** → invoke Taste again immediately. If three consecutive invocations report
      the same `status` against the same head SHA with no new evidence, stop as
      **blocked-stuck**.

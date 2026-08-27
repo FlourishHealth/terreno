@@ -64,10 +64,12 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
 10. **Confirm product CI, then wait for review bots.** Resolve the PR number/URL and
     pushed head SHA. Follow the product-CI procedure: discover every CI host on this
     branch (GitHub Actions, CircleCI, Buildkite, and similar) and confirm each triggered
-    or documented a skip for this SHA on every discovered CI host. Then follow the async-review-bots procedure: sleep
-    and re-fetch until Bugbot, CodeQL, and similar review bots on this head are terminal,
-    never appeared after the startup grace, or hit the 20-minute timeout. Do not exit while
-    those bots are queued or in progress. Do not wait for ordinary product CI to finish.
+    or documented a skip for this SHA on every discovered CI host. Then follow the
+    async-review-bots procedure: prefer provider CLI watch hooks or harness event
+    subscriptions; use bounded sleep/re-fetch only as a fallback. Wait until Bugbot,
+    CodeQL, and similar review bots on this head are terminal, never appeared after the
+    startup grace, or hit the 20-minute timeout. Do not exit while those bots are queued
+    or in progress. Do not wait for ordinary product CI to finish.
 11. **Record and exit.** Update execution state and emit:
     - review-bot timeout → `PENDING` with `next: taste` and `wait`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
