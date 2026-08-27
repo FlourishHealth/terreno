@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 
 import type {CliIo} from "./io";
 import {runCli} from "./runCli";
@@ -49,6 +50,14 @@ describe("runCli", () => {
     const code = await runCli(["help", "api"], io);
     expect(code).toBe(0);
     expect(io.stdoutLines.join("\n")).toContain("terreno api");
+  });
+
+  it("prints Bun WebView command help", async () => {
+    const io = createIo();
+    const code = await runCli(["help", "web"], io);
+    assert.equal(code, 0);
+    assert.include(io.stdoutLines.join("\n"), "Bun.WebView");
+    assert.include(io.stdoutLines.join("\n"), "--screenshot");
   });
 
   it("prints version", async () => {

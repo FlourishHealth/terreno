@@ -33,6 +33,7 @@ Commands:
   state                           Inspect auth and RTK Query state
   eval                            Evaluate JavaScript through Metro CDP
   navigate                        Navigate the Expo app through Metro CDP
+  web [url]                       Drive the web app with Bun.WebView
   db schema                       List Mongo collections
   db query                        Run a read-only Mongo query
 
@@ -52,6 +53,7 @@ Examples:
   terreno api list --schema http://localhost:4000/openapi.json
   terreno api call todo_list --schema ./openapi.json --param limit=10
   terreno generate rest-cli --schema ./openapi.json --out ./tools/app-cli --name myapp
+  terreno web http://localhost:8082 --snapshot --screenshot /opt/cursor/artifacts/app.png
 `;
 
 export const commandHelp = (command: string): string => {
@@ -123,6 +125,26 @@ Reads Redux/RTK Query state through the registered dev store or Metro CDP. The a
 the Better Auth slice and falls back to legacy JWT auth.
 `,
     validate: `Usage: terreno validate schema --file <path>
+`,
+    web: `Usage: terreno web [url] [options]
+
+Drives the web app headlessly with Bun.WebView (Bun 1.4+). The URL defaults to
+TERRENO_WEB_URL or http://localhost:8082.
+
+Options:
+  --action <json>               Ordered browser action; repeatable
+  --actions-file <path>         JSON array of ordered browser actions
+  --snapshot                    Return visible text and interactive elements
+  --screenshot <path>           Save the final viewport as PNG, JPEG, or WebP
+  --width <pixels>              Viewport width (default 1280)
+  --height <pixels>             Viewport height (default 720)
+  --wait <milliseconds>         Initial client-render wait (default 1000)
+  --data-dir <path>             Persist cookies and browser storage
+
+Actions: click, type, press, scroll, evaluate, snapshot, screenshot, back,
+forward, reload, wait. Examples:
+  --action '{"action":"click","selector":"button[type=submit]"}'
+  --action '{"action":"type","selector":"#email","text":"user@example.com"}'
 `,
   };
   return sections[command] ?? HELP_TEXT;

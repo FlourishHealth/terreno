@@ -52,7 +52,35 @@ legacy JWT auth; pass `betterAuth` to request that exact slice. The CLI equivale
 terreno state --slice rtk --query todos
 ```
 
-## 3. Verify the fix in the running app
+## 3. Prove the web fix
+
+Use Bun 1.4's built-in WebView through the local `browser` tool:
+
+```json
+{"name":"browser","arguments":{"action":"open","url":"http://localhost:8082"}}
+{"name":"browser","arguments":{"action":"wait","timeout":1000}}
+{"name":"browser","arguments":{"action":"click","selector":"[data-testid=save]"}}
+{"name":"browser","arguments":{"action":"snapshot"}}
+{"name":"browser","arguments":{"action":"screenshot","output":"/opt/cursor/artifacts/save-result.png"}}
+{"name":"browser","arguments":{"action":"close"}}
+```
+
+The session persists between MCP calls. `snapshot` returns visible text and up to 200 interactive
+elements so the agent can choose selectors and verify state without image guessing. `screenshot`
+saves the viewport for the PR or walkthrough.
+WebView console output is not added to `browser.log`; call `read_logs` alongside this flow when the
+running app posts browser logs to the backend collector.
+
+The equivalent one-process CLI sequence is:
+
+```bash
+terreno web http://localhost:8082 \
+  --action '{"action":"click","selector":"[data-testid=save]"}' \
+  --snapshot \
+  --screenshot /opt/cursor/artifacts/save-result.png
+```
+
+## 4. Verify the native fix in the running app
 
 Navigation and arbitrary evaluation are disabled by default. Opt in only for local debugging:
 
@@ -71,6 +99,8 @@ error-level entry after the navigation timestamp.
 
 ## Connection problems
 
+- Upgrade to Bun 1.4 or newer when `Bun.WebView requires Bun 1.4 or newer` appears.
+- Set `BUN_CHROME_PATH` if WebView cannot discover Chrome, Chromium, or Edge on Linux or Windows.
 - Set `TERRENO_PROJECT_ROOT` if logs or package versions come from the wrong directory.
 - Set `TERRENO_METRO_URL` if Metro is not on the frontend script's `--port`.
 - Close React Native DevTools when Hermes reports another debugger connection.

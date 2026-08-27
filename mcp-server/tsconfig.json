@@ -13,7 +13,8 @@
     "lib": ["ES2022", "DOM"],
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["bun", "node"]
   },
   "include": ["src/**/*"],
   "exclude": [

@@ -10,6 +10,7 @@ import {
   runNavigateCommand,
   runStateCommand,
 } from "./commands/project";
+import {runWebCommand} from "./commands/web";
 import {commandHelp, HELP_TEXT} from "./help";
 import {type CliIo, createProcessIo, printJson} from "./io";
 import {flagBoolean, parseArgs} from "./parseArgs";
@@ -60,6 +61,8 @@ export const runCli = async (argv: string[], io: CliIo = createProcessIo()): Pro
         return await runStateCommand(parsed, io, json);
       case "validate":
         return await runValidateCommand(parsed, io, json);
+      case "web":
+        return await runWebCommand(parsed, io, json);
       case "version": {
         const version = await readCliVersion();
         io.stdout(version);

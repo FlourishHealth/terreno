@@ -1,6 +1,7 @@
 import type {Tool} from "@modelcontextprotocol/server";
 
 import {applicationInfo} from "./tools/applicationInfo.js";
+import {isBrowserAction, useBrowser} from "./tools/browser.js";
 import {databaseQuery} from "./tools/databaseQuery.js";
 import {databaseSchema} from "./tools/databaseSchema.js";
 import {lastError, readLogs} from "./tools/readLogs.js";
@@ -123,6 +124,53 @@ export const localMcpTools: Tool[] = [
     },
     name: "navigate",
   },
+  {
+    description:
+      "Drive the web app with Bun 1.4's built-in headless WebView. Open a persistent session, click/type/press/scroll, inspect the rendered page, save screenshots, then close it. Use snapshot and screenshot as proof after exercising a changed flow.",
+    inputSchema: {
+      additionalProperties: false,
+      properties: {
+        action: {
+          enum: [
+            "open",
+            "click",
+            "type",
+            "press",
+            "scroll",
+            "evaluate",
+            "snapshot",
+            "screenshot",
+            "back",
+            "forward",
+            "reload",
+            "wait",
+            "close",
+          ],
+          type: "string",
+        },
+        code: {description: "JavaScript expression for evaluate", type: "string"},
+        dataDir: {description: "Optional persistent browser-profile directory", type: "string"},
+        height: {description: "Viewport height for open", type: "number"},
+        key: {description: "Key name for press", type: "string"},
+        modifiers: {
+          items: {enum: ["Shift", "Control", "Alt", "Meta"], type: "string"},
+          type: "array",
+        },
+        output: {description: "Screenshot path (.png, .jpg, or .webp)", type: "string"},
+        quality: {description: "JPEG/WebP quality from 0 to 100", type: "number"},
+        selector: {description: "CSS selector for click, type, or scroll", type: "string"},
+        text: {description: "Text inserted by type", type: "string"},
+        timeout: {description: "Selector wait timeout in milliseconds", type: "number"},
+        url: {description: "URL for open", type: "string"},
+        width: {description: "Viewport width for open", type: "number"},
+        x: {description: "Horizontal pixel delta for scroll", type: "number"},
+        y: {description: "Vertical pixel delta for scroll", type: "number"},
+      },
+      required: ["action"],
+      type: "object",
+    },
+    name: "browser",
+  },
 ];
 
 export const handleLocalToolCall = async (
@@ -187,6 +235,37 @@ export const handleLocalToolCall = async (
     }
     case "navigate": {
       const text = await navigate({path: typeof args.path === "string" ? args.path : ""});
+      return {content: [{text, type: "text"}]};
+    }
+    case "browser": {
+      if (!isBrowserAction(args.action)) {
+        throw new Error(`Unknown or missing browser action: ${String(args.action)}`);
+      }
+      const text = await useBrowser({
+        action: args.action,
+        code: typeof args.code === "string" ? args.code : undefined,
+        dataDir: typeof args.dataDir === "string" ? args.dataDir : undefined,
+        height: typeof args.height === "number" ? args.height : undefined,
+        key: typeof args.key === "string" ? args.key : undefined,
+        modifiers: Array.isArray(args.modifiers)
+          ? args.modifiers.filter(
+              (modifier): modifier is Bun.WebView.Modifier =>
+                modifier === "Shift" ||
+                modifier === "Control" ||
+                modifier === "Alt" ||
+                modifier === "Meta"
+            )
+          : undefined,
+        output: typeof args.output === "string" ? args.output : undefined,
+        quality: typeof args.quality === "number" ? args.quality : undefined,
+        selector: typeof args.selector === "string" ? args.selector : undefined,
+        text: typeof args.text === "string" ? args.text : undefined,
+        timeout: typeof args.timeout === "number" ? args.timeout : undefined,
+        url: typeof args.url === "string" ? args.url : undefined,
+        width: typeof args.width === "number" ? args.width : undefined,
+        x: typeof args.x === "number" ? args.x : undefined,
+        y: typeof args.y === "number" ? args.y : undefined,
+      });
       return {content: [{text, type: "text"}]};
     }
     default: {

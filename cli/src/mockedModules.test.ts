@@ -2,6 +2,9 @@ import {mock} from "bun:test";
 
 mock.module("@terreno/mcp/local-tools", () => ({
   handleLocalToolCall: async (name: string, args: Record<string, unknown>) => {
+    if (name === "browser") {
+      return {content: [{text: JSON.stringify({ok: true, ...args}), type: "text"}]};
+    }
     return {content: [{text: `${name}:${JSON.stringify(args)}`, type: "text"}]};
   },
 }));
@@ -13,9 +16,10 @@ mock.module("@terreno/syncdb/codegen", () => ({
 }));
 
 import {describe, expect, it} from "bun:test";
-import {mkdtemp, rm} from "node:fs/promises";
+import {mkdtemp, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {assert} from "chai";
 
 import type {CliIo} from "./io";
 import {runCli} from "./runCli";
@@ -98,6 +102,44 @@ describe("mocked local tools and syncdb", () => {
     );
     expect(code).toBe(0);
     expect(io.stdoutLines.join("\n")).toContain("ok");
+    await rm(dir, {force: true, recursive: true});
+  });
+
+  it("runs ordered WebView actions and captures proof", async (): Promise<void> => {
+    const dir = await mkdtemp(join(tmpdir(), "terreno-cli-web-"));
+    await writeFile(
+      join(dir, "actions.json"),
+      JSON.stringify([{action: "press", key: "Enter"}]),
+      "utf8"
+    );
+    const io = createIo(dir);
+
+    const code = await runCli(
+      [
+        "web",
+        "http://localhost:8082",
+        "--wait",
+        "0",
+        "--action",
+        '{"action":"click","selector":"#save"}',
+        "--actions-file",
+        "actions.json",
+        "--snapshot",
+        "--screenshot",
+        "proof.png",
+        "--json",
+      ],
+      io
+    );
+
+    assert.equal(code, 0);
+    const output = JSON.parse(io.stdoutLines.join("\n")) as {
+      results: Array<{action?: string}>;
+    };
+    assert.deepEqual(
+      output.results.map((result) => result.action),
+      ["open", "wait", "click", "press", "snapshot", "screenshot"]
+    );
     await rm(dir, {force: true, recursive: true});
   });
 });
