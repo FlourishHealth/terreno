@@ -239,7 +239,12 @@ const serializeResponse = async (
     // Use the model router's responseHandler if available, otherwise default
     const responseHandler = entry.options.responseHandler ?? defaultResponseHandler;
 
-    const result = await responseHandler(data, method, createMCPRequest({user}), entry.options);
+    const result = await responseHandler(
+      data as NonNullable<Parameters<typeof responseHandler>[0]>,
+      method,
+      createMCPRequest({user}),
+      entry.options
+    );
     return {value: stripExcludedFields(result, excludeFields) as JSONValue};
   } catch (error) {
     if (isAPIError(error)) {

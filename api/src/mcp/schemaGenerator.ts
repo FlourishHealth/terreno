@@ -53,12 +53,7 @@ export const writeExcludeFields = (config: MCPConfig, restExcludeFields: string[
   return [...(config.excludeFields ?? []), ...restExcludeFields];
 };
 
-const getModelFields = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
-  excludeFields: string[]
-): ModelField[] => {
+const getModelFields = <T>(model: Model<T>, excludeFields: string[]): ModelField[] => {
   const description = describeModel(model);
   const fields: ModelField[] = [];
 
@@ -81,10 +76,8 @@ const getModelFields = (
   return fields;
 };
 
-export const generateInputSchema = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const generateInputSchema = <T>(
+  model: Model<T>,
   method: MCPMethod,
   config: MCPConfig,
   queryFields?: string[],
@@ -210,10 +203,8 @@ const describeField = ({field, path, required}: ModelField): string => {
   return parts.join(" ");
 };
 
-export const generateToolDescription = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const generateToolDescription = <T>(
+  model: Model<T>,
   method: MCPMethod,
   config: MCPConfig,
   queryFields?: string[],
