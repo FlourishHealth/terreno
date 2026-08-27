@@ -224,6 +224,46 @@ describe("ExpoPushProvider", () => {
     assert.equal((await CommsMessage.findExactlyOne({to: token})).status, "failed");
   });
 
+  it("keeps the PushToken active when sendPushToUser gets a MessageTooBig ticket", async (): Promise<void> => {
+    await setupDb();
+    await Promise.all([CommsMessage.deleteMany({}), PushToken.deleteMany({})]);
+    const userId = new mongoose.Types.ObjectId();
+    const token = validToken("too-big");
+    await PushToken.create({
+      active: true,
+      lastSeenAt: DateTime.utc().toJSDate(),
+      platform: "ios",
+      token,
+      userId,
+    });
+    const client = createMockClient({
+      tickets: [
+        {
+          details: {error: "MessageTooBig"},
+          message: "payload too large",
+          status: "error",
+        },
+      ],
+    });
+    const service = new CommsService({
+      push: new ExpoPushProvider({client}),
+      redactRecipients: false,
+    });
+
+    const results = await service.sendPushToUser({
+      body: "Hello",
+      title: "Ping",
+      userId,
+    });
+
+    assert.isFalse(results[0]?.accepted);
+    assert.equal(results[0]?.errorClass, "config");
+    assert.equal(results[0]?.errorCode, "MessageTooBig");
+    assert.isFalse(results[0]?.isPermanentFailure);
+    assert.equal((await PushToken.findExactlyOne({token})).active, true);
+    assert.equal((await CommsMessage.findExactlyOne({to: token})).status, "failed");
+  });
+
   it("classifies MessageRateExceeded as transient and InvalidCredentials as config", async (): Promise<void> => {
     const rateClient = createMockClient({
       tickets: [
@@ -385,6 +425,57 @@ describe("ExpoPushProvider receipts", () => {
       (await CommsMessage.findExactlyOne({providerMessageId: "ticket-ok"})).status,
       "delivered"
     );
+  });
+
+  it("does not deactivate the token for a MessageTooBig receipt", async (): Promise<void> => {
+    await setupDb();
+    await Promise.all([CommsMessage.deleteMany({}), PushToken.deleteMany({})]);
+    const userId = new mongoose.Types.ObjectId();
+    const token = validToken("later-too-big");
+    await PushToken.create({
+      active: true,
+      lastSeenAt: DateTime.utc().toJSDate(),
+      platform: "ios",
+      token,
+      userId,
+    });
+    const client = createMockClient({
+      receipts: {
+        "ticket-ok": {
+          details: {error: "MessageTooBig"},
+          message: "payload too large",
+          status: "error",
+        },
+      },
+      tickets: [{id: "ticket-ok", status: "ok"}],
+    });
+    const events: DeliveryEvent[] = [];
+    let poll: (() => Promise<void>) | undefined;
+    const service = new CommsService({
+      push: new ExpoPushProvider({
+        client,
+        onDeadToken: async (deadToken: string): Promise<void> => {
+          await service.deactivatePushToken(deadToken);
+        },
+        onDeliveryEvent: async (event: DeliveryEvent): Promise<void> => {
+          events.push(event);
+          await service.recordDeliveryEvent(event);
+        },
+        receiptPollDelayMs: 0,
+        scheduleReceiptPoll: (_delayMs, run): void => {
+          poll = run;
+        },
+      }),
+      redactRecipients: false,
+    });
+
+    await service.sendPushToUser({body: "Hello", title: "Ping", userId});
+    await (poll as () => Promise<void>)();
+
+    assert.equal(events[0]?.errorCode, "MessageTooBig");
+    assert.equal(events[0]?.errorClass, "config");
+    assert.equal(events[0]?.status, "failed");
+    assert.equal((await PushToken.findExactlyOne({token})).active, true);
   });
 
   it("drops pending receipt ids when the receipt poll throws", async (): Promise<void> => {

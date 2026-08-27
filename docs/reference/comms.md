@@ -163,9 +163,10 @@ new TerrenoApp({userModel: User})
 `chunkPushNotifications`, and returns one `SendResult` per input token. Invalid tokens
 never hit the Expo API (`errorCode: expo-invalid-token`, `errorClass: permanent`).
 Ticket `DeviceNotRegistered` is a permanent failure so `sendPushToUser` deactivates the
-`PushToken`. Successful tickets schedule one receipt poll (default 15 minutes,
-`receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered` receipt
-calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
+`PushToken`. `MessageTooBig` is `errorClass: config`: the send fails and is not retried,
+but the token stays active. Successful tickets schedule one receipt poll (default 15
+minutes, `receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered`
+receipt calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
 
 example-frontend requests notification permission, then `getExpoPushTokenAsync`, then
 `POST /comms/pushTokens` after login. Denied permission and web skip registration (empty

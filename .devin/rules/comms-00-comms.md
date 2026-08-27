@@ -74,7 +74,8 @@ new CommsApp({
 Requires optional peer `expo-server-sdk`. `EXPO_ACCESS_TOKEN` is optional. Invalid tokens
 are rejected before the SDK (`errorCode: expo-invalid-token`). Ticket/receipt
 `DeviceNotRegistered` is `errorClass: permanent`; wire `onDeadToken` to
-`getCommsService().deactivatePushToken` so later receipts prune tokens. The example
+`getCommsService().deactivatePushToken` so later receipts prune tokens. `MessageTooBig`
+is `errorClass: config` and does not deactivate the token. The example
 app requests notification permission before `getExpoPushTokenAsync`; denied permission
 and web skip `POST /comms/pushTokens`.
 

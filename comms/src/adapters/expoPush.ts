@@ -77,10 +77,10 @@ const defaultIsExpoPushToken = (token: string): boolean =>
 const classifyExpoError = (
   code: string | undefined
 ): {errorClass: CommsErrorClass; errorCode: string} => {
-  if (code === "InvalidCredentials") {
+  if (code === "InvalidCredentials" || code === "MessageTooBig") {
     return {errorClass: "config", errorCode: code};
   }
-  if (code === "DeviceNotRegistered" || code === "MessageTooBig") {
+  if (code === "DeviceNotRegistered") {
     return {errorClass: "permanent", errorCode: code};
   }
   if (code === "MessageRateExceeded") {
