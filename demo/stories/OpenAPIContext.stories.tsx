@@ -78,7 +78,7 @@ const OpenAPIContextFetchMock: React.FC<{children: React.ReactNode}> = ({childre
   }, []);
 
   if (!hasMockedFetch) {
-    return <></>;
+    return null;
   }
 
   return <>{children}</>;

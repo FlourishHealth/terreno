@@ -194,30 +194,32 @@ export interface DemoConfiguration extends DemoConfigurationBase {
 // {}, stories: {}, testMatrix: {}, testMatrixDefaultProps: {}, };
 
 const OpenAPIContextConfiguration: DemoConfigurationBase = {
-  name: "OpenAPI Context",
+  a11yNotes: ["Field descriptions should remain available after unrelated parent rerenders."],
+  additionalDocumentation: [],
+  category: "Foundation",
   component: () => null,
-  related: ["TerrenoProvider"],
+  demo: () => OpenAPIContextDemo(),
+  demoOptions: {},
   description:
     "Loads backend OpenAPI metadata and exposes model field descriptions through useOpenAPISpec.",
-  a11yNotes: ["Field descriptions should remain available after unrelated parent rerenders."],
-  category: "Foundation",
+  interfaceName: "OpenAPIProviderProps",
+  name: "OpenAPI Context",
+  related: ["TerrenoProvider"],
   status: {
+    android: "ready",
     documentation: "ready",
     figma: "notSupported",
     ios: "ready",
-    android: "ready",
     web: "ready",
   },
-  additionalDocumentation: [],
-  interfaceName: "OpenAPIProviderProps",
-  usage: {
-    do: ["Wrap admin or form screens that read model metadata in OpenAPIProvider or TerrenoProvider."],
-    doNot: ["Fetch OpenAPI specs manually in every field component."],
-  },
-  demo: () => OpenAPIContextDemo(),
-  demoOptions: {},
   stories: {
     "Field metadata": {render: () => OpenAPIContextStories()},
+  },
+  usage: {
+    do: [
+      "Wrap admin or form screens that read model metadata in OpenAPIProvider or TerrenoProvider.",
+    ],
+    doNot: ["Fetch OpenAPI specs manually in every field component."],
   },
 };
 
