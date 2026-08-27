@@ -180,9 +180,6 @@ export const generateInputSchema = (
 };
 
 const describeFieldKind = (field: FieldDescription): string => {
-  if (field.kind === "objectId") {
-    return field.ref ? `(ref: ${field.ref})` : "(ObjectId)";
-  }
   if (field.isArray) {
     if (field.item?.kind) {
       const itemLabel =
@@ -194,6 +191,9 @@ const describeFieldKind = (field: FieldDescription): string => {
       return `(${itemLabel}[])`;
     }
     return "(Array)";
+  }
+  if (field.kind === "objectId") {
+    return field.ref ? `(ref: ${field.ref})` : "(ObjectId)";
   }
   if (field.kind === "string" && field.enum?.length) {
     return `(enum: ${field.enum.join("|")})`;
