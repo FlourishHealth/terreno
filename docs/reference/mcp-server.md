@@ -120,6 +120,7 @@ prove the final state, then call `close`.
 
 ``````json
 {"name":"browser","arguments":{"action":"open","url":"http://localhost:8082","width":1280,"height":720}}
+{"name":"browser","arguments":{"action":"wait","timeout":1000}}
 {"name":"browser","arguments":{"action":"click","selector":"button[type=submit]"}}
 {"name":"browser","arguments":{"action":"snapshot"}}
 {"name":"browser","arguments":{"action":"screenshot","output":"/opt/cursor/artifacts/app.png"}}
@@ -128,7 +129,10 @@ prove the final state, then call `close`.
 
 `browser` requires Bun 1.4 or newer. macOS uses system WebKit; Linux and Windows use an installed
 Chrome, Chromium, or Edge through the Chrome DevTools Protocol. Browser storage is ephemeral unless
-`open` receives `dataDir`.
+`open` receives `dataDir`. Set `TERRENO_MCP_EVAL=1` to enable its arbitrary-JavaScript `evaluate`
+action. Screenshot paths must stay under the project root or `/opt/cursor/artifacts`; persistent
+browser data must stay under the project root. Calls are serialized around the one session owned by
+the local MCP process.
 
 ### terreno_search_docs
 

@@ -2,8 +2,10 @@ import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {assert} from "chai";
 import {DateTime} from "luxon";
 
+import {handleLocalToolCall, localMcpTools} from "./localTools";
 import {resolveTerrenoLogDirs} from "./logPaths";
 import {resolveMetroHttpBase} from "./metro/metroDevSession";
 import {lastError, readLogs} from "./tools/readLogs";
@@ -52,6 +54,18 @@ describe("local MCP runtime tools", () => {
       join(projectRoot, "example-backend", ".terreno", "logs"),
       join(projectRoot, ".terreno", "logs"),
     ]);
+  });
+
+  it("publishes browser automation for agent proof", async (): Promise<void> => {
+    assert.isTrue(localMcpTools.some((tool) => tool.name === "browser"));
+    const result = await handleLocalToolCall("browser", {action: "close"});
+    assert.include(result.content[0]?.text ?? "", '"ok": true');
+    try {
+      await handleLocalToolCall("browser", {action: "invalid"});
+      assert.fail("Expected invalid browser action to fail");
+    } catch (error) {
+      assert.include(String(error), "Unknown or missing browser action");
+    }
   });
 
   it("merges example-backend and browser JSONL logs", async (): Promise<void> => {

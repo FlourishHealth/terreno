@@ -138,10 +138,11 @@ Options:
   --screenshot <path>           Save the final viewport as PNG, JPEG, or WebP
   --width <pixels>              Viewport width (default 1280)
   --height <pixels>             Viewport height (default 720)
+  --wait <milliseconds>         Initial client-render wait (default 1000)
   --data-dir <path>             Persist cookies and browser storage
 
 Actions: click, type, press, scroll, evaluate, snapshot, screenshot, back,
-forward, reload. Examples:
+forward, reload, wait. Examples:
   --action '{"action":"click","selector":"button[type=submit]"}'
   --action '{"action":"type","selector":"#email","text":"user@example.com"}'
 `,

@@ -1,6 +1,6 @@
-import {handleLocalToolCall} from "@terreno/mcp/local-tools";
 import {readFile} from "node:fs/promises";
 import {resolve} from "node:path";
+import {handleLocalToolCall} from "@terreno/mcp/local-tools";
 
 import type {CliIo} from "../io";
 import {printJson} from "../io";
@@ -18,6 +18,17 @@ const parsePositiveInteger = (value: string | undefined, name: string): number |
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive integer.`);
+  }
+  return parsed;
+};
+
+const parseNonNegativeInteger = (value: string | undefined, name: string): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer.`);
   }
   return parsed;
 };
@@ -64,6 +75,7 @@ export const runWebCommand = async (
   const screenshot = flagString(parsed.flags, "screenshot");
   const shouldSnapshot = flagBoolean(parsed.flags, "snapshot") || (!actions.length && !screenshot);
   const results: unknown[] = [];
+  let taskError: unknown;
 
   try {
     results.push(
@@ -75,6 +87,12 @@ export const runWebCommand = async (
         width: parsePositiveInteger(flagString(parsed.flags, "width"), "--width"),
       })
     );
+    results.push(
+      await callBrowser({
+        action: "wait",
+        timeout: parseNonNegativeInteger(flagString(parsed.flags, "wait"), "--wait") ?? 1000,
+      })
+    );
     for (const action of actions) {
       results.push(await callBrowser(action));
     }
@@ -84,8 +102,16 @@ export const runWebCommand = async (
     if (screenshot) {
       results.push(await callBrowser({action: "screenshot", output: screenshot}));
     }
-  } finally {
+  } catch (error) {
+    taskError = error;
+  }
+  try {
     await callBrowser({action: "close"});
+  } catch (closeError) {
+    taskError ??= closeError;
+  }
+  if (taskError) {
+    throw taskError;
   }
 
   const output = {ok: true, results};

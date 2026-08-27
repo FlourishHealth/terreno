@@ -1,21 +1,25 @@
 import {mkdir} from "node:fs/promises";
-import {dirname, isAbsolute, resolve} from "node:path";
+import {dirname, isAbsolute, relative, resolve, sep} from "node:path";
 
 import {resolveTerrenoProjectRoot} from "../projectRoot.js";
 
-export type BrowserAction =
-  | "back"
-  | "click"
-  | "close"
-  | "evaluate"
-  | "forward"
-  | "open"
-  | "press"
-  | "reload"
-  | "screenshot"
-  | "scroll"
-  | "snapshot"
-  | "type";
+export const BROWSER_ACTIONS = [
+  "open",
+  "click",
+  "type",
+  "press",
+  "scroll",
+  "evaluate",
+  "snapshot",
+  "screenshot",
+  "back",
+  "forward",
+  "reload",
+  "wait",
+  "close",
+] as const;
+
+export type BrowserAction = (typeof BROWSER_ACTIONS)[number];
 
 export interface BrowserToolArgs {
   action: BrowserAction;
@@ -73,20 +77,27 @@ const PAGE_SNAPSHOT_EXPRESSION = `(() => {
   };
   const elements = Array.from(document.querySelectorAll(
     "a,button,input,select,textarea,[role],[tabindex]"
-  )).filter(isVisible).slice(0, 200).map((element) => ({
-    ariaLabel: element.getAttribute("aria-label"),
-    disabled: Boolean(element.disabled) || element.getAttribute("aria-disabled") === "true",
-    name: element.getAttribute("name"),
-    placeholder: element.getAttribute("placeholder"),
-    role: element.getAttribute("role") || element.tagName.toLowerCase(),
-    selector: element.id
-      ? "#" + CSS.escape(element.id)
-      : element.getAttribute("data-testid")
-        ? '[data-testid="' + CSS.escape(element.getAttribute("data-testid")) + '"]'
-        : null,
-    text: (element.innerText || element.value || "").trim().slice(0, 300),
-    type: element.getAttribute("type"),
-  }));
+  )).filter(isVisible).slice(0, 200).map((element, index) => {
+    let selector;
+    if (element.id) {
+      selector = "#" + CSS.escape(element.id);
+    } else if (element.getAttribute("data-testid")) {
+      selector = '[data-testid="' + CSS.escape(element.getAttribute("data-testid")) + '"]';
+    } else {
+      element.setAttribute("data-terreno-ref", String(index));
+      selector = '[data-terreno-ref="' + index + '"]';
+    }
+    return {
+      ariaLabel: element.getAttribute("aria-label"),
+      disabled: Boolean(element.disabled) || element.getAttribute("aria-disabled") === "true",
+      name: element.getAttribute("name"),
+      placeholder: element.getAttribute("placeholder"),
+      role: element.getAttribute("role") || element.tagName.toLowerCase(),
+      selector,
+      text: (element.innerText || element.value || "").trim().slice(0, 300),
+      type: element.getAttribute("type"),
+    };
+  });
   return {
     elements,
     text: (document.body?.innerText || "").trim().slice(0, 20000),
@@ -97,6 +108,7 @@ const PAGE_SNAPSHOT_EXPRESSION = `(() => {
 
 const DEFAULT_HEIGHT = 720;
 const DEFAULT_WIDTH = 1280;
+const CURSOR_ARTIFACTS_ROOT = "/opt/cursor/artifacts";
 
 const defaultCreateBrowserView: CreateBrowserView = (options): BrowserView => {
   if (typeof Bun.WebView !== "function") {
@@ -116,11 +128,28 @@ const parseImageFormat = (output: string): "jpeg" | "png" | "webp" => {
   return "png";
 };
 
-const resolveOutputPath = (output: string): string => {
-  if (isAbsolute(output)) {
-    return output;
+const isPathWithin = (root: string, target: string): boolean => {
+  const relativePath = relative(root, target);
+  return (
+    relativePath === "" ||
+    (relativePath !== ".." && !relativePath.startsWith(`..${sep}`) && !isAbsolute(relativePath))
+  );
+};
+
+const resolveSafePath = (input: string, allowCursorArtifacts: boolean): string => {
+  const projectRoot = resolveTerrenoProjectRoot();
+  const target = isAbsolute(input) ? resolve(input) : resolve(projectRoot, input);
+  if (isPathWithin(projectRoot, target)) {
+    return target;
   }
-  return resolve(resolveTerrenoProjectRoot(), output);
+  if (allowCursorArtifacts && isPathWithin(CURSOR_ARTIFACTS_ROOT, target)) {
+    return target;
+  }
+  throw new Error(
+    `Browser path must stay under ${projectRoot}${
+      allowCursorArtifacts ? ` or ${CURSOR_ARTIFACTS_ROOT}` : ""
+    }.`
+  );
 };
 
 const requireValue = (value: string | undefined, name: string): string => {
@@ -129,6 +158,10 @@ const requireValue = (value: string | undefined, name: string): string => {
     throw new Error(`Browser action requires ${name}.`);
   }
   return trimmed;
+};
+
+export const isBrowserAction = (value: unknown): value is BrowserAction => {
+  return typeof value === "string" && BROWSER_ACTIONS.includes(value as BrowserAction);
 };
 
 export class BrowserSession {
@@ -158,7 +191,7 @@ export class BrowserSession {
         this.close();
         const backend = process.platform === "darwin" ? "webkit" : "chrome";
         const dataStore = args.dataDir
-          ? {directory: resolveOutputPath(args.dataDir)}
+          ? {directory: resolveSafePath(args.dataDir, false)}
           : "ephemeral";
         this.view = this.createView({
           backend,
@@ -196,6 +229,11 @@ export class BrowserSession {
         return {action: args.action, ok: true, selector: args.selector, ...this.pageState()};
       }
       case "evaluate": {
+        if (process.env.TERRENO_MCP_EVAL !== "1" && process.env.TERRENO_MCP_EVAL !== "true") {
+          throw new Error(
+            "Refused: set `TERRENO_MCP_EVAL=1` to enable arbitrary JavaScript in the WebView."
+          );
+        }
         const code = requireValue(args.code, "code");
         const result = await this.requireView().evaluate(code);
         return {action: args.action, ok: true, result, ...this.pageState()};
@@ -205,7 +243,7 @@ export class BrowserSession {
         return {action: args.action, ok: true, snapshot};
       }
       case "screenshot": {
-        const output = resolveOutputPath(requireValue(args.output, "output"));
+        const output = resolveSafePath(requireValue(args.output, "output"), true);
         await mkdir(dirname(output), {recursive: true});
         const image = await this.requireView().screenshot({
           format: parseImageFormat(output),
@@ -226,6 +264,15 @@ export class BrowserSession {
         await this.requireView().reload();
         return {action: args.action, ok: true, ...this.pageState()};
       }
+      case "wait": {
+        this.requireView();
+        const milliseconds = args.timeout ?? 1000;
+        if (!Number.isFinite(milliseconds) || milliseconds < 0) {
+          throw new Error("Browser wait timeout must be a non-negative number.");
+        }
+        await Bun.sleep(milliseconds);
+        return {action: args.action, milliseconds, ok: true, ...this.pageState()};
+      }
       case "close": {
         this.close();
         return {action: args.action, ok: true};
@@ -243,8 +290,16 @@ export class BrowserSession {
 }
 
 const browserSession = new BrowserSession();
+let browserQueue: Promise<void> = Promise.resolve();
 
 export const useBrowser = async (args: BrowserToolArgs): Promise<string> => {
-  const result = await browserSession.run(args);
-  return JSON.stringify(result, null, 2);
+  const task = browserQueue.then(async (): Promise<string> => {
+    const result = await browserSession.run(args);
+    return JSON.stringify(result, null, 2);
+  });
+  browserQueue = task.then(
+    (): void => {},
+    (): void => {}
+  );
+  return task;
 };

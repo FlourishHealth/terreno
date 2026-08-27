@@ -426,6 +426,7 @@ Post UI verification evidence to GitHub through the PR body so reviewers can see
 ## Cursor Cloud Notes
 
 - Delegate GUI-driven verification to the `ui-verifier` subagent when your harness supports subagents; in Cursor Cloud, fall back to its built-in browser/GUI capability.
+- For web apps on Bun 1.4+, use the documented [`terreno web`](../../docs/reference/cli.md#web-app-automation) flow to collect an agent-readable snapshot and final screenshot. This can prove static rendered state and complement the required GUI video for interaction flows.
 - Use `RecordScreen` for user-facing video walkthroughs of interactive UI changes.
 - Leave test servers running after verification so the user can continue testing.
 

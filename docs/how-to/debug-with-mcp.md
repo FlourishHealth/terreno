@@ -58,6 +58,7 @@ Use Bun 1.4's built-in WebView through the local `browser` tool:
 
 ```json
 {"name":"browser","arguments":{"action":"open","url":"http://localhost:8082"}}
+{"name":"browser","arguments":{"action":"wait","timeout":1000}}
 {"name":"browser","arguments":{"action":"click","selector":"[data-testid=save]"}}
 {"name":"browser","arguments":{"action":"snapshot"}}
 {"name":"browser","arguments":{"action":"screenshot","output":"/opt/cursor/artifacts/save-result.png"}}
@@ -67,6 +68,8 @@ Use Bun 1.4's built-in WebView through the local `browser` tool:
 The session persists between MCP calls. `snapshot` returns visible text and up to 200 interactive
 elements so the agent can choose selectors and verify state without image guessing. `screenshot`
 saves the viewport for the PR or walkthrough.
+WebView console output is not added to `browser.log`; call `read_logs` alongside this flow when the
+running app posts browser logs to the backend collector.
 
 The equivalent one-process CLI sequence is:
 

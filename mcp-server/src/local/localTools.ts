@@ -1,7 +1,7 @@
 import type {Tool} from "@modelcontextprotocol/server";
 
 import {applicationInfo} from "./tools/applicationInfo.js";
-import {type BrowserAction, useBrowser} from "./tools/browser.js";
+import {isBrowserAction, useBrowser} from "./tools/browser.js";
 import {databaseQuery} from "./tools/databaseQuery.js";
 import {databaseSchema} from "./tools/databaseSchema.js";
 import {lastError, readLogs} from "./tools/readLogs.js";
@@ -143,6 +143,7 @@ export const localMcpTools: Tool[] = [
             "back",
             "forward",
             "reload",
+            "wait",
             "close",
           ],
           type: "string",
@@ -237,8 +238,11 @@ export const handleLocalToolCall = async (
       return {content: [{text, type: "text"}]};
     }
     case "browser": {
+      if (!isBrowserAction(args.action)) {
+        throw new Error(`Unknown or missing browser action: ${String(args.action)}`);
+      }
       const text = await useBrowser({
-        action: typeof args.action === "string" ? (args.action as BrowserAction) : "snapshot",
+        action: args.action,
         code: typeof args.code === "string" ? args.code : undefined,
         dataDir: typeof args.dataDir === "string" ? args.dataDir : undefined,
         height: typeof args.height === "number" ? args.height : undefined,

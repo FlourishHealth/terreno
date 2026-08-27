@@ -14,8 +14,6 @@ interface FakeViewCalls {
 
 const createFakeView = (calls: FakeViewCalls) => {
   return {
-    title: "Test app",
-    url: "http://localhost:8082/",
     back: async (): Promise<void> => {},
     click: async (selector: string): Promise<void> => {
       calls.clicks.push(selector);
@@ -40,9 +38,11 @@ const createFakeView = (calls: FakeViewCalls) => {
     scrollTo: async (selector: string): Promise<void> => {
       calls.scrolls.push([selector.length, 0]);
     },
+    title: "Test app",
     type: async (text: string): Promise<void> => {
       calls.typed.push(text);
     },
+    url: "http://localhost:8082/",
   };
 };
 
@@ -65,6 +65,7 @@ describe("BrowserSession", () => {
     await session.run({action: "type", selector: "#email", text: "test@example.com"});
     await session.run({action: "press", key: "Enter"});
     await session.run({action: "scroll", x: 10, y: 200});
+    const waited = await session.run({action: "wait", timeout: 0});
 
     assert.deepEqual(opened, {
       action: "open",
@@ -77,6 +78,13 @@ describe("BrowserSession", () => {
     assert.deepEqual(calls.typed, ["test@example.com"]);
     assert.deepEqual(calls.keys, ["Enter"]);
     assert.deepEqual(calls.scrolls, [[10, 200]]);
+    assert.deepEqual(waited, {
+      action: "wait",
+      milliseconds: 0,
+      ok: true,
+      title: "Test app",
+      url: "http://localhost:8082/",
+    });
   });
 
   it("returns an agent-readable page snapshot", async (): Promise<void> => {
@@ -109,6 +117,33 @@ describe("BrowserSession", () => {
       assert.fail("Expected an empty URL to fail");
     } catch (error) {
       assert.include(String(error), "requires url");
+    }
+  });
+
+  it("gates arbitrary evaluation and restricts write paths", async (): Promise<void> => {
+    const previousEval = process.env.TERRENO_MCP_EVAL;
+    const session = new BrowserSession(() => createFakeView(createCalls()));
+    await session.run({action: "open", url: "http://localhost:8082"});
+    Reflect.deleteProperty(process.env, "TERRENO_MCP_EVAL");
+
+    try {
+      await session.run({action: "evaluate", code: "document.title"});
+      assert.fail("Expected browser evaluate to require opt in");
+    } catch (error) {
+      assert.include(String(error), "TERRENO_MCP_EVAL");
+    }
+
+    try {
+      await session.run({action: "screenshot", output: "/tmp/outside-project.png"});
+      assert.fail("Expected screenshot outside safe roots to fail");
+    } catch (error) {
+      assert.include(String(error), "Browser path must stay under");
+    }
+
+    if (previousEval === undefined) {
+      Reflect.deleteProperty(process.env, "TERRENO_MCP_EVAL");
+    } else {
+      process.env.TERRENO_MCP_EVAL = previousEval;
     }
   });
 });

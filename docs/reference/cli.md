@@ -58,9 +58,12 @@ terreno web http://localhost:8082 \
 The command requires Bun 1.4 or newer and uses its built-in headless `Bun.WebView`; Chrome,
 Chromium, or Edge must be installed on Linux and Windows. Actions run in argument order with
 native trusted input. Supported actions are `click`, `type`, `press`, `scroll`, `evaluate`,
-`snapshot`, `screenshot`, `back`, `forward`, and `reload`. Use `--actions-file <path>` for a JSON
-array, `--width` / `--height` for the viewport, and `--data-dir` to persist cookies and browser
-storage. The URL defaults to `TERRENO_WEB_URL`, then `http://localhost:8082`.
+`snapshot`, `screenshot`, `back`, `forward`, `reload`, and `wait`. Use `--actions-file <path>` for a
+JSON array, `--width` / `--height` for the viewport, `--wait` to change the initial 1000 ms
+client-render delay, and `--data-dir` to persist cookies and browser storage. The URL defaults to
+`TERRENO_WEB_URL`, then `http://localhost:8082`. The CLI manages `open` and `close` around the
+sequence. Set `TERRENO_MCP_EVAL=1` before using an `evaluate` action. Screenshot paths must stay
+under the project root or `/opt/cursor/artifacts`; browser data must stay under the project root.
 
 ## REST auth
 
