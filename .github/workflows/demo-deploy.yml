@@ -1,21 +1,7 @@
 name: Demo Deploy
 
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - "demo/**"
-      - "ui/**"
-      - ".github/workflows/demo-deploy.yml"
-  pull_request:
-    paths:
-      - "demo/**"
-      - "ui/**"
-      - ".github/workflows/demo-deploy.yml"
-  # Allows publish-on-tag.yml to force a fresh production deploy after a release,
-  # so the public demo always reflects the latest published version.
-  workflow_dispatch:
+# Disabled after migration to `.circleci/continue-config.yml`; retained for rollback.
+on: []
 
 jobs:
   check-changes:

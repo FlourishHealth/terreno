@@ -103,6 +103,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 0.2, Task 1.3
   - Acceptance: preview deploy URL posted or visible; prod deploy on master path filter.
+  - Note: Jobs and manual parameters are present, but automatic path triggers are paused until the `terreno-netlify` context passes manual verification.
 
 - [ ] **Task 4.2**: Preview cleanup port
   - Description: On PR close, clean Netlify/GCP preview resources from CircleCI (webhook or GitHub App → pipeline). Prefer OIDC over `GCP_SA_KEY`.
@@ -149,6 +150,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 6.1
   - Acceptance: terraform preview on PR; apply+deploy on master for a safe test path; GitHub Deployment records optional but documented.
+  - Note: Jobs and manual parameters are present, but automatic path triggers are paused until the CircleCI OIDC bootstrap passes manual verification.
 
 - [ ] **Task 6.3**: Dual-run cutover for CD
   - Description: Single deployer: disable GHA `cd.yml` when CircleCI CD is required; remove GitHub OIDC provider only after GHA CD is gone (or keep read-only if other repos need it — document).
@@ -172,17 +174,23 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 8: Mobile (post-v1, required for CC1)
 
-- [ ] **Task 8.1**: Port Maestro + Appium Android
-  - Description: Port `maestro-e2e` and Android half of `demo-appium-ci` to CircleCI Linux VM with emulator strategy documented.
-  - Files: `.circleci/continue-config.yml`
+- [x] **Task 8.1**: Port Maestro web E2E
+  - Description: Port `maestro-e2e` (Chrome + xvfb against example-frontend, optional demo smokes) to CircleCI `node22_browsers_mongo_rs`. Appium Android remains separate.
+  - Files: `.circleci/continue-config.yml`, `.circleci/config.yml`, `.github/workflows/maestro-e2e.yml`
   - Depends on: Task 5.2
-  - Acceptance: manual pipeline runs Android Appium and Maestro successfully.
+  - Acceptance: CircleCI `maestro-e2e` is the writer; GHA workflow is `on: []`.
 
 - [ ] **Task 8.2**: Port Appium iOS on CircleCI macOS
   - Description: Select macOS resource class/image with Working WDA; port iOS job; compare flake rate to GHA `macos-15`.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 8.1
   - Acceptance: iOS Appium green on a representative run; then delete GHA Appium workflow.
+
+- [ ] **Task 8.3**: Port Appium Android
+  - Description: Linux VM with emulator strategy documented.
+  - Files: `.circleci/continue-config.yml`
+  - Depends on: Task 8.1
+  - Acceptance: Android Appium green on a representative run.
 
 ## Phase 9: GitHub-native + agentic replacements
 
@@ -198,11 +206,17 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Depends on: Task 0.2
   - Acceptance: each former workflow’s acceptance behavior has an owner on CircleCI; GHA files deleted.
 
-- [ ] **Task 9.3**: Replace architectural review + gh-aw agentics
-  - Description: Per lockfile (`update-rules`, `update-docs`, daily improvers) and `architectural-pr-review` / `agentics-maintenance`: either port to CircleCI scheduled/PR pipelines with the same scripts or **retire** with maintainer sign-off. CC1 forbids leaving them on GHA.
-  - Files: `.github/workflows/*lock*`, `architectural-pr-review.yml`, `agentics-maintenance.yml`, `.circleci/continue-config.yml`
+- [x] **Task 9.3a**: Port architectural PR review
+  - Description: CircleCI `architectural-pr-review` runs `.github/scripts/architectural-pr-review.ts` after checking out `origin/master`. Skips forks and missing `CURSOR_API_KEY` / `GITHUB_TOKEN`. GHA workflow is `on: []`.
+  - Files: `.circleci/continue-config.yml`, `.github/workflows/architectural-pr-review.yml`, `.github/scripts/architectural-pr-review.ts`
   - Depends on: Task 0.2
-  - Acceptance: written retire-or-port decision for each; no gh-aw workflows remain if ported/retired.
+  - Acceptance: CircleCI job is the writer; Cursor Approval Agent stays on GitHub.
+
+- [ ] **Task 9.3b**: Replace remaining gh-aw agentics
+  - Description: Per lockfile (`update-rules`, `update-docs`, daily improvers) and `agentics-maintenance`: either port to CircleCI scheduled pipelines or retire with maintainer sign-off.
+  - Files: `.github/workflows/*lock*`, `agentics-maintenance.yml`, `.circleci/continue-config.yml`
+  - Depends on: Task 0.2
+  - Acceptance: written retire-or-port decision for each remaining lock workflow.
 
 ## Phase 10: Cleanup
 
