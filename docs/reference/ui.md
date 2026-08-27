@@ -1,6 +1,6 @@
 # @terreno/ui
 
-React Native UI component library (88+ components). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
+React Native UI component library (a large component library). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
 
 ## Key exports
 
@@ -12,6 +12,24 @@ React Native UI component library (88+ components). Layout (Box, Page, Card), fo
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
 - Theming: `TerrenoProvider`, `useTheme`, custom icon registry (`icons` prop)
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
+
+## Performance-sensitive imports
+
+Use a component subpath when startup parse and evaluation cost matters:
+
+```typescript
+import {Box} from "@terreno/ui/Box";
+import {DataTable} from "@terreno/ui/DataTable";
+import {Icon} from "@terreno/ui/Icon";
+```
+
+Every compiled UI module is available through `@terreno/ui/<Module>`. Existing
+`@terreno/ui/dist/<file>` imports still resolve to the compiled `.js` / `.d.ts` files. The root import remains fully
+supported and is convenient when startup cost is not material:
+
+```typescript
+import {Box, DataTable, Icon} from "@terreno/ui";
+```
 
 ## Type Re-exports
 
@@ -51,6 +69,17 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 ``````
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
+
+### Button Press Animation
+
+Buttons use a scale animation by default. Set `pressAnimation="opacity"` for an opacity response or
+`pressAnimation="none"` when surrounding motion already provides feedback:
+
+``````typescript
+<Button text="Save" onClick={handleSave} pressAnimation="opacity" />
+``````
+
+Disabled and loading buttons use a non-interactive pressable regardless of the selected animation.
 
 ## Authentication Components
 
@@ -305,9 +334,9 @@ import {
   isMobileDevice,
 } from "@terreno/ui";
 
-// Check if matches breakpoint
-if (mediaQuery("md")) {
-  console.log("Medium or larger");
+// Read the current breakpoint
+if (mediaQuery() === "md") {
+  console.info("Medium viewport");
 }
 
 // Greater than breakpoint
@@ -322,15 +351,48 @@ if (mediaQuerySmallerThan("lg")) {
 
 // Detect mobile
 if (isMobileDevice()) {
-  console.log("Running on mobile device");
+  console.info("Running on mobile device");
 }
 ``````
 
-**Breakpoints:**
-- `sm`: 640px
-- `md`: 768px
-- `lg`: 1024px
-- `xl`: 1280px
+**Breakpoints are platform-specific.** `lg` and `xl` do not mean the same width on native and web.
+
+Native (iOS/Android):
+
+| Token | Width (pt) | Use |
+| --- | --- | --- |
+| Below `sm` | < 320 | Not supported. Accessible, not optimized. |
+| `sm` | 320–374 | Small phone. Critical workflows stay usable. |
+| `md` | 375–599 | Standard phone. |
+| `lg` | 600–1023 | Large mobile / tablet, including Samsung A11. |
+| `xl` | ≥ 1024 | Not a supported mobile layout. Use the desktop web experience where available. |
+
+Web (desktop staff):
+
+| Token | Width (pt) | Use |
+| --- | --- | --- |
+| Below `lg` | < 1024 | Not a supported desktop experience. Accessible, not optimized. |
+| `lg` | 1024–1279 | Smaller desktop. Collapse secondary content; keep core workflows. |
+| `xl` | ≥ 1280 | Primary desktop (M1/M4 MacBook Air 13"). Full multi-panel layouts. |
+
+On web, `sm` (320) and `md` (375) still classify widths below 1024 so layouts can remain accessible.
+
+`isMobileDevice()` is true below the supported desktop floor: native width < 1024 (`xl`), web width < 1024 (`lg`).
+
+Responsive `Box` direction props update automatically when the window resizes or a device rotates:
+
+``````typescript
+<Box
+  direction="column"
+  smDirection="row"
+  mdDirection="column"
+  lgDirection="row"
+  xlDirection="column"
+/>
+``````
+
+All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
+When multiple direction props match, the largest active breakpoint wins (`xl` over `lg` over `md` over `sm`).
 
 ## Icons
 
@@ -474,5 +536,4 @@ import {TerrenoProvider} from "@terreno/ui";
 ## Related Documentation
 
 - [UI performance benchmarks](ui-performance.md)
-- [UI package source](../../ui/src/)
-- [UI agent rules](../../.cursor/rules/ui/)
+- [UI package source](https://github.com/flourishhealth/terreno/tree/master/ui/src)

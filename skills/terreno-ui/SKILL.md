@@ -1,8 +1,8 @@
 ---
 name: terreno-ui
 description: >-
-  Build UI with @terreno/ui — Terreno's React Native component library with 90+
-  components and a three-layer theming system. Use when adding or reviewing
+  Build UI with @terreno/ui — Terreno's React Native component library with a
+  large component set and a three-layer theming system. Use when adding or reviewing
   layout, forms, tables, modals, feedback, or navigation chrome. Covers
   component selection, Box/Page patterns, theme props, and when NOT to use raw
   React Native primitives. Lifecycle composition: Grow for UI shape, Pick for
@@ -11,7 +11,7 @@ description: >-
 ---
 # @terreno/ui
 
-`@terreno/ui` is Terreno's cross-platform (iOS, Android, web) component library. Start with existing components before creating new ones. For full screen structure and navigation, see `building-terreno-apps`.
+`@terreno/ui` is Terreno's universal (iOS, Android, web) component library. Start with existing components before creating new ones. For full screen structure and navigation, see `building-terreno-apps`.
 
 ## Choosing a component (read this first)
 

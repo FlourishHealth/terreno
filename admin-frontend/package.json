@@ -1,4 +1,7 @@
 {
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
@@ -8,7 +11,7 @@
     "react-native": "catalog:",
     "react-native-safe-area-context": "catalog:"
   },
-  "description": "Admin panel frontend screens for @terreno/api backends",
+  "description": "Admin panel frontend screens for @terreno/api backends — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@reduxjs/toolkit": "catalog:",
@@ -26,6 +29,13 @@
     "src/**/*",
     ".ai/**/*"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "admin",
+    "react-native",
+    "expo",
+    "terreno"
+  ],
   "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/admin-frontend",
@@ -42,6 +52,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
     "compile": "tsc",

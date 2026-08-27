@@ -1,18 +1,7 @@
 name: API CI
 
-on:
-  pull_request:
-    paths:
-      - "api/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/api-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "api/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/api-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:

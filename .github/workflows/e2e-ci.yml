@@ -1,58 +1,7 @@
 name: E2E Tests
 
-# Path filters on `push` are ignored for the first push of a new branch
-# (GitHub Actions docs). PR CI uses `pull_request`; `push` is master-only.
-on:
-  pull_request:
-    paths:
-      - "example-frontend/app/**"
-      - "example-frontend/constants/**"
-      - "example-frontend/hooks/**"
-      - "example-frontend/lib/**"
-      - "example-frontend/store/**"
-      - "example-frontend/utils/**"
-      - "example-frontend/e2e/**"
-      - "example-frontend/playwright.config.ts"
-      - "example-frontend/package.json"
-      - "example-backend/src/**"
-      - "bun.lock"
-      - "ui/src/**"
-      - "rtk/src/**"
-      - "api/src/**"
-      - "ai/src/**"
-      - "admin-backend/src/**"
-      - "admin-frontend/src/**"
-      - "feature-flags/src/**"
-      - "api-health/src/**"
-      - "syncdb/**"
-      - ".github/workflows/e2e-ci.yml"
-      - ".github/actions/setup-bun-workspace/**"
-  push:
-    branches:
-      - master
-    paths:
-      - "example-frontend/app/**"
-      - "example-frontend/constants/**"
-      - "example-frontend/hooks/**"
-      - "example-frontend/lib/**"
-      - "example-frontend/store/**"
-      - "example-frontend/utils/**"
-      - "example-frontend/e2e/**"
-      - "example-frontend/playwright.config.ts"
-      - "example-frontend/package.json"
-      - "example-backend/src/**"
-      - "bun.lock"
-      - "ui/src/**"
-      - "rtk/src/**"
-      - "api/src/**"
-      - "ai/src/**"
-      - "admin-backend/src/**"
-      - "admin-frontend/src/**"
-      - "feature-flags/src/**"
-      - "api-health/src/**"
-      - "syncdb/**"
-      - ".github/workflows/e2e-ci.yml"
-      - ".github/actions/setup-bun-workspace/**"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 concurrency:
   group: e2e-ci-${{ github.workflow }}-${{ github.ref }}

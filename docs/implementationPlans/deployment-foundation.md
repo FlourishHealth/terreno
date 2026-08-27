@@ -1,6 +1,6 @@
 # Implementation Plan: Deployment Foundation
 
-**Status:** Draft — blocking questions open
+**Status:** Complete — blocking questions resolved 2026-07-29; all tasks executed
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1011
 **Priority:** High
 **Effort:** Big batch

@@ -29,6 +29,7 @@ describe("source-rules scanner", () => {
     assert.isFalse(isScopedProductionFile("scripts/check-source-rules/lib.ts"));
     assert.isTrue(isScopedProductionFile("api/src/plugins.ts"));
     assert.isTrue(isScopedProductionFile("ui/src/Button.tsx"));
+    assert.isFalse(isScopedProductionFile("ui/src/types/react-dom.d.ts"));
   });
 
   it("fails a new production file that uses banned forms", () => {

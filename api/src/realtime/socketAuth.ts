@@ -3,7 +3,7 @@ import type {Socket} from "socket.io";
 
 import type {UserModel} from "../auth";
 import type {BetterAuthInstance} from "../betterAuthSetup";
-import {InternalServerError} from "../errors";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
 import type {SocketWithDecodedToken} from "./socketUser";
@@ -212,7 +212,10 @@ export const createSocketAuthMiddleware = ({
   validators.push(...extraValidators);
 
   if (validators.length === 0) {
-    throw new InternalServerError("At least one socket authentication validator is required.");
+    throw new APIError({
+      status: 500,
+      title: "[realtime] At least one socket authentication validator is required.",
+    });
   }
 
   return (socket, next): void => {

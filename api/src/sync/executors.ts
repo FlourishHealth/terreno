@@ -283,11 +283,11 @@ export const executeCreate = async <T>({
 
   if (options.populatePaths) {
     try {
-      // noExplicitAny: mongoose Query type varies based on populatePaths
-      // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-      let populateQuery: any = model.findById(data._id);
-      populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-      data = await populateQuery.exec();
+      const populateQuery = addPopulateToQuery(
+        model.findById(data._id) as unknown as Parameters<typeof addPopulateToQuery>[0],
+        options.populatePaths
+      );
+      data = (await populateQuery.exec()) as unknown as ExecutorDoc<T>;
     } catch (error: unknown) {
       throw passthroughOrWrap(error, {
         code: "populate-error",
@@ -548,11 +548,11 @@ export const executeUpdate = async <T>({
   }
 
   if (options.populatePaths) {
-    // noExplicitAny: mongoose Query type varies based on populatePaths
-    // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
-    let populateQuery: any = model.findById(doc._id);
-    populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
-    doc = await populateQuery.exec();
+    const populateQuery = addPopulateToQuery(
+      model.findById(doc._id) as unknown as Parameters<typeof addPopulateToQuery>[0],
+      options.populatePaths
+    );
+    doc = (await populateQuery.exec()) as unknown as ExecutorDoc<T>;
   }
 
   if (options.postUpdate && !skipPostHooks) {

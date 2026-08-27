@@ -159,6 +159,15 @@ describe("native token storage", () => {
     const request = fetchMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://localhost:4000/todos");
     expect(request.headers.get("authorization")).toBe(`Bearer ${secureStore.get("AUTH_TOKEN")}`);
+    expect(request.headers.get("app-platform")).toBe("mobile");
+    expect(request.headers.get("app-version")).toBe("9.9.9");
+  });
+
+  it("shows the still there modal when the SecureStore refresh token is nearly expired", async () => {
+    secureStore.set("AUTH_TOKEN", makeToken(30));
+    secureStore.set("REFRESH_TOKEN", makeToken(30));
+
+    assert.isTrue(await shouldShowStillThereModal());
   });
 
   it("reports no expiration times when SecureStore is empty", async () => {

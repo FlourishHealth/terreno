@@ -1,9 +1,7 @@
 name: Publish packages on tag
 
-on:
-  push:
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'  # Matches semver: 1.0.0, 2.3.4-beta.1, etc.
+# Disabled after migration to CircleCI semver-tag publishing; retained for rollback.
+on: []
 
 jobs:
   breaking-change-documentation:

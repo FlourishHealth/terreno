@@ -1,6 +1,6 @@
 # Implementation Plan: Loop-Engineering Lifecycle Plugin
 
-**Status:** In Progress
+**Status:** Complete — shipped as `plugins/terreno-planning`
 **Approved:** 2026-08-22
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1006
 **Priority:** High
