@@ -1,7 +1,7 @@
 import type React from "react";
 import {useCallback, useEffect} from "react";
 import {Platform} from "react-native";
-import {usePostCommsPushTokensMutation} from "@/store/openApiSdk";
+import {usePostCommsPushTokensMutation} from "@/store/sdk";
 import {registerExpoPushToken} from "@/store/registerExpoPushToken";
 import {getCurrentExpoToken} from "@/store/utils";
 

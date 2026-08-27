@@ -167,6 +167,11 @@ Ticket `DeviceNotRegistered` is a permanent failure so `sendPushToUser` deactiva
 `receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered` receipt
 calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
 
+example-frontend requests notification permission, then `getExpoPushTokenAsync`, then
+`POST /comms/pushTokens` after login. Denied permission and web skip registration (empty
+token). Physical-device gating via `expo-device` is deferred until the native baseline
+lands.
+
 ## Configuration
 
 ```typescript

@@ -186,6 +186,44 @@ describe("ExpoPushProvider", () => {
     assert.isTrue(result?.isPermanentFailure);
   });
 
+  it("deactivates the PushToken when sendPushToUser gets a DeviceNotRegistered ticket", async (): Promise<void> => {
+    await setupDb();
+    await Promise.all([CommsMessage.deleteMany({}), PushToken.deleteMany({})]);
+    const userId = new mongoose.Types.ObjectId();
+    const token = validToken("ticket-dead");
+    await PushToken.create({
+      active: true,
+      lastSeenAt: DateTime.utc().toJSDate(),
+      platform: "ios",
+      token,
+      userId,
+    });
+    const client = createMockClient({
+      tickets: [
+        {
+          details: {error: "DeviceNotRegistered"},
+          message: "not registered",
+          status: "error",
+        },
+      ],
+    });
+    const service = new CommsService({
+      push: new ExpoPushProvider({client}),
+      redactRecipients: false,
+    });
+
+    const results = await service.sendPushToUser({
+      body: "Hello",
+      title: "Ping",
+      userId,
+    });
+
+    assert.isFalse(results[0]?.accepted);
+    assert.equal(results[0]?.errorClass, "permanent");
+    assert.equal((await PushToken.findExactlyOne({token})).active, false);
+    assert.equal((await CommsMessage.findExactlyOne({to: token})).status, "failed");
+  });
+
   it("classifies MessageRateExceeded as transient and InvalidCredentials as config", async (): Promise<void> => {
     const rateClient = createMockClient({
       tickets: [
@@ -347,5 +385,66 @@ describe("ExpoPushProvider receipts", () => {
       (await CommsMessage.findExactlyOne({providerMessageId: "ticket-ok"})).status,
       "delivered"
     );
+  });
+
+  it("drops pending receipt ids when the receipt poll throws", async (): Promise<void> => {
+    await setupDb();
+    await Promise.all([CommsMessage.deleteMany({}), PushToken.deleteMany({})]);
+    const userId = new mongoose.Types.ObjectId();
+    const token = validToken("poll-throw");
+    await PushToken.create({
+      active: true,
+      lastSeenAt: DateTime.utc().toJSDate(),
+      platform: "ios",
+      token,
+      userId,
+    });
+    const client = createMockClient({
+      receipts: {
+        "ticket-ok": {
+          details: {error: "DeviceNotRegistered"},
+          message: "The device cannot receive notifications",
+          status: "error",
+        },
+      },
+      tickets: [{id: "ticket-ok", status: "ok"}],
+    });
+    let pollCount = 0;
+    client.getPushNotificationReceiptsAsync = async (
+      ids: string[]
+    ): Promise<Record<string, ExpoPushReceipt>> => {
+      pollCount += 1;
+      if (pollCount === 1) {
+        throw new Error("expo receipts unavailable");
+      }
+      return {
+        [ids[0] ?? "ticket-ok"]: {
+          details: {error: "DeviceNotRegistered"},
+          message: "The device cannot receive notifications",
+          status: "error",
+        },
+      };
+    };
+    let poll: (() => Promise<void>) | undefined;
+    const service = new CommsService({
+      push: new ExpoPushProvider({
+        client,
+        onDeadToken: async (deadToken: string): Promise<void> => {
+          await service.deactivatePushToken(deadToken);
+        },
+        receiptPollDelayMs: 0,
+        scheduleReceiptPoll: (_delayMs, run): void => {
+          poll = run;
+        },
+      }),
+      redactRecipients: false,
+    });
+
+    await service.sendPushToUser({body: "Hello", title: "Ping", userId});
+    await (poll as () => Promise<void>)();
+    await (poll as () => Promise<void>)();
+
+    assert.equal(pollCount, 2);
+    assert.equal((await PushToken.findExactlyOne({token})).active, true);
   });
 });

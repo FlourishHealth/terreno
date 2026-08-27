@@ -6,5 +6,6 @@ category: Added
 `expo-server-sdk`). `sendPush` returns one `SendResult` per token, chunks Expo
 payloads, classifies ticket/receipt errors, and polls receipts. `DeviceNotRegistered`
 deactivates `PushToken` rows via `CommsService.deactivatePushToken`. `expo-server-sdk`
-moved off `@terreno/api`. The example app registers the device token after login and
-exposes a profile-screen test send (`POST /comms/dev/testPush`) in non-production.
+moved off `@terreno/api`. The example app requests notification permission, registers the device token after
+login, and exposes a profile-screen test send (`POST /comms/dev/testPush`) in
+non-production.

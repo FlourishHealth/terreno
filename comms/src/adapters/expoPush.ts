@@ -259,6 +259,9 @@ export class ExpoPushProvider implements PushProvider {
         receipts = await this.client.getPushNotificationReceiptsAsync(chunk);
       } catch (error: unknown) {
         logger.warn(`[comms:expo] Receipt poll failed: ${String(error)}`);
+        for (const receiptId of chunk) {
+          this.pendingReceipts.delete(receiptId);
+        }
         continue;
       }
       await Promise.all(
