@@ -1,18 +1,7 @@
 name: AI CI
 
-on:
-  pull_request:
-    paths:
-      - "ai/**"
-      - "bun.lock"
-      - ".github/workflows/ai-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "ai/**"
-      - "bun.lock"
-      - ".github/workflows/ai-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:

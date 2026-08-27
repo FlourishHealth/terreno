@@ -121,7 +121,29 @@ describe("readMappings", () => {
     ]);
   });
 
-  it("prefers config.setup.yml over a disabled config.yml", () => {
+  it("prefers an enabled config.yml over a parked config.setup.yml", () => {
+    const root = createFixtureRepo({
+      mapping: "api/.* run-api true",
+      workflowPaths: ["api/**"],
+    });
+    writeFileSync(
+      join(root, ".circleci", "config.setup.yml"),
+      [
+        "version: 2.1",
+        "setup: true",
+        "workflows:",
+        "  setup:",
+        "    jobs:",
+        "      - path-filtering/filter:",
+        "          mapping: |",
+        "            ui/.* run-ui true",
+        "",
+      ].join("\n")
+    );
+    assert.deepEqual(readMappings({repoRoot: root}), [{parameter: "run-api", regex: "api/.*"}]);
+  });
+
+  it("falls back to config.setup.yml when config.yml is a disabled no-op", () => {
     const root = createFixtureRepo({
       mapping: "api/.* run-api true",
       workflowPaths: ["api/**"],

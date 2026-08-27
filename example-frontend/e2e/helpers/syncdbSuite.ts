@@ -87,12 +87,6 @@ export const clickTodoControl = async (locator: Locator): Promise<void> => {
   await locator.click({force: true});
 };
 
-export const forceSyncReconnect = async (page: Page): Promise<void> => {
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event("syncdb-e2e-reconnect"));
-  });
-};
-
 /**
  * Wait for the syncdb-backed Todos screen. The banner is asserted as *attached*
  * rather than visible: when sync is idle it renders no children, and Playwright
@@ -260,8 +254,7 @@ export const installChaosControl = async (
 
   const stop = async (): Promise<void> => {
     chaosActive = false;
-    offline = false;
-    await page.unroute(`${API_URL}/**`);
+    await goOnline();
   };
 
   return {dropSocket, goOffline, goOnline, stop};

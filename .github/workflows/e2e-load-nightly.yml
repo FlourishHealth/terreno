@@ -5,12 +5,8 @@ name: E2E Load Tests (nightly)
 # heavier than the rest of the syncdb-*.spec.ts suite and does not belong in the
 # PR-blocking matrix in e2e-ci.yml. Runs nightly on a schedule, on manual dispatch, or
 # on a PR carrying the `load-test` label — never unconditionally on every PR push.
-on:
-  schedule:
-    - cron: "0 6 * * *"
-  workflow_dispatch: {}
-  pull_request:
-    types: [labeled]
+# Disabled after migration to CircleCI `run-e2e-load`; retained for rollback.
+on: []
 
 jobs:
   e2e-load:

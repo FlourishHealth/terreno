@@ -1,15 +1,7 @@
 name: New file coverage
 
-on:
-  pull_request:
-    paths:
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "package.json"
-      - "bun.lock"
-      - "scripts/check-coverage.ts"
-      - "scripts/check-new-file-coverage.ts"
-      - ".github/workflows/new-file-coverage.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   new-file-coverage:
