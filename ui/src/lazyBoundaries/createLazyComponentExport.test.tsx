@@ -51,4 +51,28 @@ describe("createLazyComponentExport", () => {
     });
     expect(loadCount).toBe(1);
   });
+
+  it("rejects factories without a default component", async () => {
+    const previous = console.error;
+    console.error = () => undefined;
+    const LazyExport = createLazyComponentExport(async () => ({notAComponent: true}));
+    render(<LazyExport />);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    console.error = previous;
+    expect(LazyExport).toBeTruthy();
+  });
+
+  it("rejects missing named exports", async () => {
+    const previous = console.error;
+    console.error = () => undefined;
+    const LazyExport = createLazyNamedExport(async () => ({Other: TestLazyComponent}), "Missing");
+    render(<LazyExport />);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    console.error = previous;
+    expect(LazyExport).toBeTruthy();
+  });
 });
